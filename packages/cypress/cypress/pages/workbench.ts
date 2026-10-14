@@ -210,6 +210,10 @@ class NotebookImageUpdateModal {
   findLatestVersionOption() {
     return cy.findByTestId('latest-image');
   }
+
+  findErrorAlert() {
+    return cy.findByRole('heading', { name: /Error creating workbench/ }).parents('.pf-v6-c-alert');
+  }
 }
 
 class NotebookImageVersionPopover extends Contextual<HTMLElement> {

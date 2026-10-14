@@ -15,6 +15,7 @@ import {
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { DataSciencePipelineApplicationModel } from '../../../utils/models';
 import { toastNotifications } from '../../../pages/components/ToastNotifications';
+import { captureTracking, expectSafeTracking } from '../../../utils/analytics';
 
 describe('Pipeline Server', () => {
   it('Empty state', () => {
@@ -443,6 +444,26 @@ describe('Pipeline Server', () => {
     cy.wait('@deletePipelineConfig');
     cy.wait('@deleteDSPASecret');
     cy.wait('@deleteDSPA');
+  });
+
+  it('keeps a pipeline server deletion failure out of analytics', () => {
+    const message = 'Private pipeline server diagnostic';
+    initIntercepts({});
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.findInput().fill('Test Project pipeline server');
+    cy.intercept('GET', '**/api/k8s/**', {
+      forceNetworkError: true,
+    }).as('getPipelineServerFailure');
+    captureTracking();
+    deleteModal.findSubmitButton().click();
+    cy.wait('@getPipelineServerFailure');
+    expectSafeTracking(
+      'Pipeline Server Deleted',
+      { success: false, error: 'unknown_error' },
+      message,
+    );
   });
 
   it('View pipeline server', () => {

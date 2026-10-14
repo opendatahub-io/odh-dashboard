@@ -19,6 +19,7 @@ import {
   PipelineSort,
   pipelinesGlobal,
   managePipelineServerModal,
+  pipelineDeleteModal,
 } from '../../../pages/pipelines';
 import { pipelinesSection } from '../../../pages/pipelines/pipelinesSection';
 import { projectDetails } from '../../../pages/projects';
@@ -28,6 +29,7 @@ import {
   RouteModel,
 } from '../../../utils/models';
 import { verifyRelativeURL } from '../../../utils/url';
+import { captureTracking, expectSafeTracking } from '../../../utils/analytics';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -130,6 +132,35 @@ describe('PipelinesList', () => {
     const pipelineRow = pipelinesTable.getRowById(initialMockPipeline.pipeline_id);
     pipelineRow.findKebabAction('Upload new version').should('be.visible').click();
     pipelineVersionImportModal.shouldBeOpen();
+  });
+
+  it('keeps a pipeline deletion failure diagnostic out of analytics', () => {
+    const message = 'Private pipeline deletion diagnostic';
+    initIntercepts();
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+      {
+        path: {
+          namespace: projectName,
+          serviceName: 'dspa',
+          pipelineId: initialMockPipeline.pipeline_id,
+        },
+      },
+      buildMockPipelineVersions([]),
+    );
+    cy.intercept('DELETE', '**/apis/v2beta1/pipelines/**', {
+      forceNetworkError: true,
+    }).as('deletePipelineFailure');
+    projectDetails.visitSection(projectName, 'pipelines-projects');
+    pipelinesTable
+      .getRowById(initialMockPipeline.pipeline_id)
+      .findKebabAction('Delete pipeline')
+      .click();
+    pipelineDeleteModal.findInput().fill(initialMockPipeline.display_name);
+    captureTracking();
+    pipelineDeleteModal.findSubmitButton().click();
+    cy.wait('@deletePipelineFailure');
+    expectSafeTracking('Pipeline Deleted', { success: false, error: 'unknown_error' }, message);
   });
 
   it('should navigate to details page when clicking on the version name', () => {
