@@ -93,7 +93,6 @@ The response follows the envelope pattern:
       "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "name": "aws-secret-1",
       "type": "s3",
-      "databaseProviders": [],
       "data": {
         "AWS_ACCESS_KEY_ID": "[REDACTED]",
         "AWS_DEFAULT_REGION": "[REDACTED]",
@@ -120,14 +119,15 @@ The response follows the envelope pattern:
 
 **Response Fields:**
 
-| Field         | Type   | Description                                                                                                                                                                                                                                                                                                          |
-| ------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `uuid`        | string | The Kubernetes UID of the secret                                                                                                                                                                                                                                                                                     |
-| `name`        | string | The name of the secret                                                                                                                                                                                                                                                                                               |
-| `type`        | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "ogx"). Omitted from the response only when neither is available.                                                                                         |
-| `data`        | object | Object mapping all keys available in the secret to their values. Most values are sanitized as `"[REDACTED]"` for security. Only specific allowed keys (currently: `AWS_S3_BUCKET`) return their actual values. Use `Object.keys()` to validate that additional optional keys required for your use case are present. |
-| `displayName` | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist.                                                                                                                                                                       |
-| `description` | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist.                                                                                                                                                                         |
+| Field               | Type   | Description                                                                                                                                                                                                                                                                                                          |
+| ------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `uuid`              | string | The Kubernetes UID of the secret                                                                                                                                                                                                                                                                                     |
+| `name`              | string | The name of the secret                                                                                                                                                                                                                                                                                               |
+| `type`              | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "ogx"). Omitted from the response only when neither is available.                                                                                         |
+| `data`              | object | Object mapping all keys available in the secret to their values. Most values are sanitized as `"[REDACTED]"` for security. Only specific allowed keys (currently: `AWS_S3_BUCKET`) return their actual values. Use `Object.keys()` to validate that additional optional keys required for your use case are present. |
+| `databaseProviders` | array  | **(Optional)** Supported database providers matched by the secret. Omitted when no supported database provider matches.                                                                                                                                                                                              |
+| `displayName`       | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist.                                                                                                                                                                       |
+| `description`       | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist.                                                                                                                                                                         |
 
 ## Error Responses
 
