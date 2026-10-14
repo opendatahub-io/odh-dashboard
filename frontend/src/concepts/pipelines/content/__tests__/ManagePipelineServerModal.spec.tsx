@@ -2,9 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { NotificationWatcherContext } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
-import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import ManagePipelineServerModal from '#~/concepts/pipelines/content/ManagePipelineServerModal';
 import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
@@ -12,7 +11,6 @@ import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret
 import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types';
 import useNotification from '#~/utilities/useNotification';
-import { useAppContext } from '#~/app/AppContext';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import { DSPAMlflowIntegrationMode } from '#~/k8sTypes';
 
@@ -40,10 +38,6 @@ jest.mock('#~/utilities/useNotification', () => ({
   default: jest.fn(),
 }));
 
-jest.mock('#~/app/AppContext', () => ({
-  useAppContext: jest.fn(),
-}));
-
 jest.mock('#~/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
   __esModule: true,
   default: jest.fn(),
@@ -60,12 +54,23 @@ const mockUpdatePipelineSettings = updatePipelineSettings as jest.MockedFunction
   typeof updatePipelineSettings
 >;
 const mockUseNotification = useNotification as jest.MockedFunction<typeof useNotification>;
-const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
 const mockK8sGetResource = k8sGetResource as jest.MockedFunction<typeof k8sGetResource>;
 const mockUseIsMlflowCRAvailable = useIsMlflowCRAvailable as jest.MockedFunction<
   typeof useIsMlflowCRAvailable
 >;
 const mockUseIsAreaAvailable = useIsAreaAvailable as jest.MockedFunction<typeof useIsAreaAvailable>;
+const mockAreaStatuses = (availableAreas: SupportedArea[]) => {
+  const availableAreaSet = new Set<string>(availableAreas);
+  mockUseIsAreaAvailable.mockImplementation((area) => ({
+    status: availableAreaSet.has(area),
+    featureFlags: {},
+    devFlags: {},
+    reliantAreas: {},
+    requiredComponents: {},
+    requiredCapabilities: {},
+    customCondition: jest.fn(),
+  }));
+};
 
 describe('ManagePipelineServerModal', () => {
   const mockOnClose = jest.fn();
@@ -89,6 +94,7 @@ describe('ManagePipelineServerModal', () => {
     pipelineNamespaceCR: mockDataSciencePipelineApplicationK8sResource({
       name: 'dspa',
       namespace: 'test-project',
+      managedPipelines: { enabled: false },
     }),
   };
 
@@ -149,6 +155,7 @@ describe('ManagePipelineServerModal', () => {
       mockDataSciencePipelineApplicationK8sResource({
         name: 'dspa',
         namespace: 'test-project',
+        managedPipelines: { enabled: false },
       }),
     );
 
@@ -163,25 +170,13 @@ describe('ManagePipelineServerModal', () => {
       warning: jest.fn(),
     });
 
-    mockUseAppContext.mockReturnValue({
-      dashboardConfig: mockDashboardConfig({ automl: true, autorag: true }),
-    } as ReturnType<typeof useAppContext>);
-
     mockUseIsMlflowCRAvailable.mockReturnValue({
       available: false,
       loaded: true,
       error: false,
     });
 
-    mockUseIsAreaAvailable.mockReturnValue({
-      status: false,
-      featureFlags: {},
-      devFlags: {},
-      reliantAreas: {},
-      requiredComponents: {},
-      requiredCapabilities: {},
-      customCondition: jest.fn(),
-    } as ReturnType<typeof useIsAreaAvailable>);
+    mockAreaStatuses([SupportedArea.PLUGIN_AUTOML, SupportedArea.PLUGIN_AUTORAG]);
   });
 
   it('should render the modal with correct title', () => {
@@ -437,6 +432,60 @@ describe('ManagePipelineServerModal', () => {
     expect(managedPipelinesCheckbox).toBeChecked();
   });
 
+  it('should default managed pipelines to enabled when the field is omitted', () => {
+    const pipelineWithoutManagedPipelines = mockDataSciencePipelineApplicationK8sResource({
+      name: 'dspa',
+      namespace: 'test-project',
+    });
+    delete pipelineWithoutManagedPipelines.spec.apiServer?.managedPipelines;
+
+    renderModal({
+      ...defaultProps,
+      pipelineNamespaceCR: pipelineWithoutManagedPipelines,
+    });
+
+    expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
+  });
+
+  it('should disable managed pipelines when enabled is false', () => {
+    const pipelineWithManagedPipelinesDisabled = mockDataSciencePipelineApplicationK8sResource({
+      name: 'dspa',
+      namespace: 'test-project',
+      managedPipelines: { enabled: false },
+    });
+
+    renderModal({
+      ...defaultProps,
+      pipelineNamespaceCR: pipelineWithManagedPipelinesDisabled,
+    });
+
+    expect(screen.getByTestId('managed-pipelines-checkbox')).not.toBeChecked();
+  });
+
+  it('should prevent changing managed pipelines disabled by a pipeline server annotation', () => {
+    const pipelineWithManagedPipelinesDisabledByAnnotation =
+      mockDataSciencePipelineApplicationK8sResource({
+        name: 'dspa',
+        namespace: 'test-project',
+        managedPipelines: { enabled: true },
+      });
+    pipelineWithManagedPipelinesDisabledByAnnotation.metadata.annotations = {
+      'datasciencepipelinesapplications.opendatahub.io/disable-managed-pipelines': 'true',
+    };
+
+    renderModal({
+      ...defaultProps,
+      pipelineNamespaceCR: pipelineWithManagedPipelinesDisabledByAnnotation,
+    });
+
+    const managedPipelinesCheckbox = screen.getByTestId('managed-pipelines-checkbox');
+    expect(managedPipelinesCheckbox).not.toBeChecked();
+    expect(managedPipelinesCheckbox).toBeDisabled();
+    expect(
+      screen.getByText(/Managed pipelines are disabled by an annotation on this pipeline server/),
+    ).toBeInTheDocument();
+  });
+
   it('should toggle managed pipelines checkbox', () => {
     renderModal();
 
@@ -482,7 +531,7 @@ describe('ManagePipelineServerModal', () => {
       expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
         'test-project',
         {
-          managedPipelines: {},
+          managedPipelines: { enabled: true },
         },
         'dspa',
       );
@@ -507,14 +556,14 @@ describe('ManagePipelineServerModal', () => {
         'test-project',
         {
           cacheEnabled: false,
-          managedPipelines: {},
+          managedPipelines: { enabled: true },
         },
         'dspa',
       );
     });
   });
 
-  it('should call updatePipelineSettings with undefined managedPipelines when disabled', async () => {
+  it('should call updatePipelineSettings with enabled false when managed pipelines are disabled', async () => {
     const pipelineWithManagedPipelines = mockDataSciencePipelineApplicationK8sResource({
       name: 'dspa',
       namespace: 'test-project',
@@ -539,20 +588,15 @@ describe('ManagePipelineServerModal', () => {
       expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
         'test-project',
         {
-          managedPipelines: undefined,
+          managedPipelines: { enabled: false },
         },
         'dspa',
       );
     });
   });
 
-  it('should not render managed pipelines section when automl and autorag are disabled', () => {
-    mockUseAppContext.mockReturnValue({
-      dashboardConfig: mockDashboardConfig({
-        automl: false,
-        autorag: false,
-      }),
-    } as ReturnType<typeof useAppContext>);
+  it('should not render managed pipelines section when AutoML and AutoRAG areas are unavailable', () => {
+    mockAreaStatuses([]);
 
     renderModal();
 
@@ -560,13 +604,8 @@ describe('ManagePipelineServerModal', () => {
     expect(screen.queryByText('Managed pipelines')).not.toBeInTheDocument();
   });
 
-  it('should render managed pipelines section when automl is enabled', () => {
-    mockUseAppContext.mockReturnValue({
-      dashboardConfig: mockDashboardConfig({
-        automl: true,
-        autorag: false,
-      }),
-    } as ReturnType<typeof useAppContext>);
+  it('should render managed pipelines section when the AutoML area is available', () => {
+    mockAreaStatuses([SupportedArea.PLUGIN_AUTOML]);
 
     renderModal();
 
@@ -574,13 +613,8 @@ describe('ManagePipelineServerModal', () => {
     expect(screen.getByText('Managed pipelines')).toBeInTheDocument();
   });
 
-  it('should render managed pipelines section when autorag is enabled', () => {
-    mockUseAppContext.mockReturnValue({
-      dashboardConfig: mockDashboardConfig({
-        automl: false,
-        autorag: true,
-      }),
-    } as ReturnType<typeof useAppContext>);
+  it('should render managed pipelines section when the AutoRAG area is available', () => {
+    mockAreaStatuses([SupportedArea.PLUGIN_AUTORAG]);
 
     renderModal();
 
@@ -665,15 +699,11 @@ describe('ManagePipelineServerModal', () => {
         loaded: true,
         error: false,
       });
-      mockUseIsAreaAvailable.mockReturnValue({
-        status: true,
-        featureFlags: {},
-        devFlags: {},
-        reliantAreas: {},
-        requiredComponents: {},
-        requiredCapabilities: {},
-        customCondition: jest.fn(),
-      } as ReturnType<typeof useIsAreaAvailable>);
+      mockAreaStatuses([
+        SupportedArea.PLUGIN_AUTOML,
+        SupportedArea.PLUGIN_AUTORAG,
+        SupportedArea.MLFLOW_PIPELINES,
+      ]);
     };
 
     it('should not render MLflow section when MLflow CR is unavailable', () => {
@@ -682,15 +712,11 @@ describe('ManagePipelineServerModal', () => {
         loaded: true,
         error: false,
       });
-      mockUseIsAreaAvailable.mockReturnValue({
-        status: true,
-        featureFlags: {},
-        devFlags: {},
-        reliantAreas: {},
-        requiredComponents: {},
-        requiredCapabilities: {},
-        customCondition: jest.fn(),
-      } as ReturnType<typeof useIsAreaAvailable>);
+      mockAreaStatuses([
+        SupportedArea.PLUGIN_AUTOML,
+        SupportedArea.PLUGIN_AUTORAG,
+        SupportedArea.MLFLOW_PIPELINES,
+      ]);
 
       renderModal();
 
@@ -703,15 +729,11 @@ describe('ManagePipelineServerModal', () => {
         loaded: false,
         error: false,
       });
-      mockUseIsAreaAvailable.mockReturnValue({
-        status: true,
-        featureFlags: {},
-        devFlags: {},
-        reliantAreas: {},
-        requiredComponents: {},
-        requiredCapabilities: {},
-        customCondition: jest.fn(),
-      } as ReturnType<typeof useIsAreaAvailable>);
+      mockAreaStatuses([
+        SupportedArea.PLUGIN_AUTOML,
+        SupportedArea.PLUGIN_AUTORAG,
+        SupportedArea.MLFLOW_PIPELINES,
+      ]);
 
       renderModal();
 
@@ -724,15 +746,7 @@ describe('ManagePipelineServerModal', () => {
         loaded: true,
         error: false,
       });
-      mockUseIsAreaAvailable.mockReturnValue({
-        status: false,
-        featureFlags: {},
-        devFlags: {},
-        reliantAreas: {},
-        requiredComponents: {},
-        requiredCapabilities: {},
-        customCondition: jest.fn(),
-      } as ReturnType<typeof useIsAreaAvailable>);
+      mockAreaStatuses([SupportedArea.PLUGIN_AUTOML, SupportedArea.PLUGIN_AUTORAG]);
 
       renderModal();
 

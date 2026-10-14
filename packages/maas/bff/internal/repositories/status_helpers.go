@@ -13,6 +13,12 @@ type readyConditionFields struct {
 
 // extractReadyCondition returns the message and reason from the "Ready" condition in status.conditions.
 func extractReadyCondition(content map[string]interface{}) readyConditionFields {
+	return extractConditionByType(content, "Ready")
+}
+
+// extractConditionByType returns fields for the named condition in status.conditions.
+// Returns a zero value when the condition is absent.
+func extractConditionByType(content map[string]interface{}, conditionType string) readyConditionFields {
 	conditions, _, _ := unstructured.NestedSlice(content, "status", "conditions")
 	for _, c := range conditions {
 		cMap, ok := c.(map[string]interface{})
@@ -20,7 +26,7 @@ func extractReadyCondition(content map[string]interface{}) readyConditionFields 
 			continue
 		}
 		condType, _ := cMap["type"].(string)
-		if condType != "Ready" {
+		if condType != conditionType {
 			continue
 		}
 		message, _ := cMap["message"].(string)

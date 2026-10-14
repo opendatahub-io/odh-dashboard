@@ -17,10 +17,15 @@ import {
   splitValueUnit,
   UnitOption,
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
-import { DEFAULT_PROFILE_NAME } from './const';
+import {
+  DEFAULT_PROFILE_NAME,
+  DRA_HARDWARE_PROFILE_WARNING_EDIT_HINT,
+  HARDWARE_PROFILE_WARNING_EDIT_HINT,
+} from './const';
 import { DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './nodeResource/const';
-import { hasCPUandMemory } from './manage/ManageNodeResourceSection';
+import { hasCPUandMemory } from './manage/utils';
 import { createHardwareProfileWarningSchema } from './manage/validationUtils';
+import { isDRAHardwareProfile } from '../../shared/utils';
 
 export enum HardwareProfileBannerWarningTitles {
   ALL_INVALID = 'All hardware profiles are invalid',
@@ -91,27 +96,37 @@ const generateWarningMessage = (
 export const generateWarningForHardwareProfiles = (
   hardwareProfiles: HardwareProfileKind[],
 ): WarningNotification | undefined => {
-  const hasInvalid = hardwareProfiles.some((profile) => {
+  const selectableProfiles = hardwareProfiles.filter((profile) => !isDRAHardwareProfile(profile));
+  const hasInvalid = selectableProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
     );
   });
-  const hasEnabled = hardwareProfiles.some((profile) => isHardwareProfileEnabled(profile));
-  const allInvalid = hardwareProfiles.every((profile) => {
-    const warnings = validateProfileWarning(profile);
-    return warnings.some(
-      (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
-    );
-  });
-  const allIncompleteCPUorMemory = hardwareProfiles.every((profile) => {
-    const warnings = validateProfileWarning(profile);
-    return warnings.some(
-      (warning) => warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
-    );
-  });
+  // DRA profiles cannot be enabled from the dashboard, so only regular profiles count here.
+  const hasEnabled =
+    selectableProfiles.length === 0 ||
+    selectableProfiles.some((profile) => isHardwareProfileEnabled(profile));
+  const allInvalid =
+    selectableProfiles.length > 0 &&
+    selectableProfiles.every((profile) => {
+      const warnings = validateProfileWarning(profile);
+      return warnings.some(
+        (warning) =>
+          warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
+      );
+    });
+  const allIncompleteCPUorMemory =
+    selectableProfiles.length > 0 &&
+    selectableProfiles.every((profile) => {
+      const warnings = validateProfileWarning(profile);
+      return warnings.some(
+        (warning) =>
+          warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
+      );
+    });
 
-  const someIncompleteCPUorMemory = hardwareProfiles.some((profile) => {
+  const someIncompleteCPUorMemory = selectableProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
@@ -177,7 +192,7 @@ export const createHardwareProfileWarningTitle = (hardwareProfile: HardwareProfi
 };
 
 export const createIdentifierWarningMessage = (message: string): string =>
-  `${message} Edit the profile to make the profile valid.`;
+  `${message} ${HARDWARE_PROFILE_WARNING_EDIT_HINT}`;
 
 export const validateProfileWarning = (
   hardwareProfile: HardwareProfileKind,
@@ -186,11 +201,18 @@ export const validateProfileWarning = (
   const identifiers = hardwareProfile.spec.identifiers ?? [];
   const schema = createHardwareProfileWarningSchema(hardwareProfile.metadata.name);
   const warnings = schema.safeParse(identifiers);
+  // DRA profiles cannot be edited in the dashboard, so point to the resource instead.
+  const isDRA = isDRAHardwareProfile(hardwareProfile);
 
   if (warnings.error) {
     warnings.error.issues.forEach((issue) => {
       warningMessages.push({
-        message: issue.message,
+        message: isDRA
+          ? issue.message.replace(
+              HARDWARE_PROFILE_WARNING_EDIT_HINT,
+              DRA_HARDWARE_PROFILE_WARNING_EDIT_HINT,
+            )
+          : issue.message,
         type: 'params' in issue ? issue.params?.code : HardwareProfileWarningType.OTHER,
       });
     });
