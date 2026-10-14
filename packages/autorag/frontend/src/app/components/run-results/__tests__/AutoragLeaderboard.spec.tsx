@@ -1826,7 +1826,7 @@ describe('AutoragLeaderboard component', () => {
 
       // Verify all columns are visible — capture original header order
       const originalHeaders = screen.getAllByTestId(
-        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-.+|chunking-.+-header|retrieval-.+-header)$/,
       );
       const originalOrder = originalHeaders.map((h) => h.getAttribute('data-testid'));
 
@@ -1838,7 +1838,7 @@ describe('AutoragLeaderboard component', () => {
 
       // Headers should still be in the same default order
       const headersAfterPreset = screen.getAllByTestId(
-        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-.+|chunking-.+-header|retrieval-.+-header)$/,
       );
       const orderAfterPreset = headersAfterPreset.map((h) => h.getAttribute('data-testid'));
       expect(orderAfterPreset).toEqual(originalOrder);
@@ -1849,7 +1849,7 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(screen.getByText('Save'));
 
       const headersAfterReset = screen.getAllByTestId(
-        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-)/,
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-.+|chunking-.+-header|retrieval-.+-header)$/,
       );
       const orderAfterReset = headersAfterReset.map((h) => h.getAttribute('data-testid'));
       expect(orderAfterReset).toEqual([
