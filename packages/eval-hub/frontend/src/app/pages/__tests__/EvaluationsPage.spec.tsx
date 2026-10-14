@@ -9,6 +9,8 @@ import {
   mockCuratedBenchmarkSuiteCollections,
 } from '~/app/mockBenchmarkSuiteCollections';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockRefresh = jest.fn();
 const mockUseCollectionsQuery = jest.fn();
@@ -25,6 +27,13 @@ const mockUseEvalHubHealth = jest.fn<
   { isHealthy: boolean; loaded: boolean; error: Error | undefined },
   []
 >();
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  createEvalHubTrackingScope: () => ({ trackEventOnce: jest.fn(), clear: jest.fn() }),
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 jest.mock('~/app/hooks/useEvaluationJobs', () => ({
   useEvaluationJobs: () => mockUseEvaluationJobs(),
@@ -424,6 +433,16 @@ describe('EvaluationsPage', () => {
     expect(screen.queryByTestId('evalhub-load-error-admin-empty-state')).not.toBeInTheDocument();
   });
 
+  it('should track create-suite opens from the tenant gallery surface', () => {
+    renderPage('test-project', '?tab=evaluate');
+
+    fireEvent.click(screen.getByTestId('create-suite-button'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
+      surface: 'my_benchmark_suites',
+    });
+  });
+
   it('should show the suite contextual actions and delete confirmation modal', () => {
     renderPage('test-project', '?tab=evaluate');
 
@@ -465,6 +484,18 @@ describe('EvaluationsPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/edit',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should show a success notification after deleting a benchmark suite', async () => {

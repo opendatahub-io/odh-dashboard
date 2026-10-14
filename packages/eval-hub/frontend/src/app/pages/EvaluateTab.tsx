@@ -58,6 +58,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
           benchmarkNameMap={benchmarkNameMap}
           maxVisibleCollections={MAX_VISIBLE_BENCHMARK_SUITES}
           showSummary
+          trackingSurface="my_benchmark_suites"
           useMockFallback={false}
           primaryActionLabel="Run"
           createSuiteRoute={evaluationCreateSuiteRoute(namespace)}

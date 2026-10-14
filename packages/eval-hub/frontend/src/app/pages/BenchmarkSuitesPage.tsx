@@ -75,6 +75,17 @@ const BenchmarkSuitesPage: React.FC = () => {
 
   const handleEditCollection = React.useCallback(
     (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+        {
+          collectionName: collection.name,
+          surface: 'my_benchmark_suites',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
       navigate(evaluationEditSuiteRoute(namespace, collection.resource.id), {
         state: evaluationBenchmarkSuitesNavigationState,
       });

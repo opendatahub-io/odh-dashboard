@@ -39,7 +39,7 @@ import {
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import type { Collection } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { trackEvalHubEvent, type EvalHubCollectionSurface } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { formatCategory, getBenchmarkDisplayName, getMetricDisplayName } from './benchmarkUtils';
 import type { BenchmarkNameMap } from './benchmarkUtils';
@@ -226,6 +226,7 @@ type BenchmarkSuiteCardProps = {
   showRunCount?: boolean;
   dropdownAction?: BenchmarkSuiteCardButton;
   contextualActions?: BenchmarkSuiteCardAction[];
+  trackingSurface?: EvalHubCollectionSurface;
   onSelect?: (collection: Collection) => boolean | void;
   reservePopularHeader?: boolean;
 };
@@ -237,6 +238,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   showRunCount = false,
   dropdownAction,
   contextualActions,
+  trackingSurface = 'collection_gallery',
   onSelect,
   reservePopularHeader = false,
 }) => {
@@ -389,9 +391,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             : {})}
           onClick={() => {
             setIsActionMenuOpen(false);
-            if (!dropdownAction.href) {
-              dropdownAction.onClick();
-            }
+            dropdownAction.onClick();
           }}
           data-testid={`benchmark-suite-card-dropdown-action-${collection.resource.id}`}
         >
@@ -514,7 +514,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
                   EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED,
                   {
                     collectionName: collection.name,
-                    surface: 'collection_gallery',
+                    surface: trackingSurface,
                   },
                   {
                     collectionType: collection.resource.read_only ? 'system' : 'custom',
@@ -527,7 +527,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
                     EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
                     {
                       collectionName: collection.name,
-                      surface: 'collection_gallery',
+                      surface: trackingSurface,
                     },
                     {
                       collectionType: collection.resource.read_only ? 'system' : 'custom',

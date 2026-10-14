@@ -2,18 +2,20 @@ import * as React from 'react';
 import { Bullseye, Button, Card, CardBody, Content, Title } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { trackEvalHubEvent, type EvalHubCollectionSurface } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 type CreateBenchmarkSuiteCardProps = {
   createSuiteRoute?: string;
   createSuiteRouteState?: unknown;
+  trackingSurface?: EvalHubCollectionSurface;
   onCreateSuite?: () => void;
 };
 
 const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
   createSuiteRoute,
   createSuiteRouteState,
+  trackingSurface = 'collection_gallery',
   onCreateSuite = () => undefined,
 }) => (
   <Card
@@ -42,7 +44,7 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
           )}
           onClick={() =>
             trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
-              surface: 'collection_gallery',
+              surface: trackingSurface,
             })
           }
           data-testid="create-suite-button"
@@ -55,7 +57,7 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
           variant="secondary"
           onClick={() => {
             trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
-              surface: 'collection_gallery',
+              surface: trackingSurface,
             });
             onCreateSuite();
           }}

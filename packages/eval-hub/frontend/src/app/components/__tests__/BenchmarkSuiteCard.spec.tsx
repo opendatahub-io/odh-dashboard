@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { mockCollection } from '~/__mocks__/mockCollection';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
@@ -341,6 +342,35 @@ describe('BenchmarkSuiteCard', () => {
     expect(onCustomize).toHaveBeenCalledTimes(1);
   });
 
+  it('should invoke a routed dropdown callback exactly once before navigation', () => {
+    const onCustomize = jest.fn();
+
+    render(
+      <MemoryRouter>
+        <BenchmarkSuiteCard
+          collection={mockCollection({ id: 'routed-curated-suite' })}
+          primaryAction={{ label: 'Run', onClick: jest.fn(), variant: 'secondary' }}
+          dropdownAction={{
+            label: 'Customize',
+            href: '/collections/routed-curated-suite/copy',
+            onClick: onCustomize,
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(
+      screen.getByTestId('benchmark-suite-card-dropdown-toggle-routed-curated-suite'),
+    );
+    fireEvent.click(
+      within(
+        screen.getByTestId('benchmark-suite-card-dropdown-action-routed-curated-suite'),
+      ).getByRole('menuitem'),
+    );
+
+    expect(onCustomize).toHaveBeenCalledTimes(1);
+  });
+
   it('should invoke the suite selection callback when the name is clicked', () => {
     const collection = mockCollection({ id: 'model-suite' });
     const onSelect = jest.fn();
@@ -366,6 +396,7 @@ describe('BenchmarkSuiteCard', () => {
       <BenchmarkSuiteCard
         collection={collection}
         primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        trackingSurface="my_benchmark_suites"
         onSelect={onSelect}
       />,
     );
@@ -378,13 +409,19 @@ describe('BenchmarkSuiteCard', () => {
     expect(mockTrackEvalHubEvent).toHaveBeenNthCalledWith(
       2,
       EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
-      expect.objectContaining({ collectionName: collection.name }),
+      expect.objectContaining({
+        collectionName: collection.name,
+        surface: 'my_benchmark_suites',
+      }),
       expect.objectContaining({ collectionType: 'custom' }),
     );
     expect(mockTrackEvalHubEvent).toHaveBeenNthCalledWith(
       3,
       EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED,
-      expect.objectContaining({ collectionName: collection.name }),
+      expect.objectContaining({
+        collectionName: collection.name,
+        surface: 'my_benchmark_suites',
+      }),
       expect.objectContaining({ collectionType: 'custom' }),
     );
   });

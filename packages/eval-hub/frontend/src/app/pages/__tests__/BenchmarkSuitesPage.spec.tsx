@@ -5,9 +5,18 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { mockProvider } from '~/__mocks__/mockProvider';
 import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockUseCollectionsQuery = jest.fn();
 const mockUseProviders = jest.fn();
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  createEvalHubTrackingScope: () => ({ trackEventOnce: jest.fn(), clear: jest.fn() }),
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const clickFilterOption = (testId: string) => {
   fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
@@ -162,6 +171,18 @@ describe('BenchmarkSuitesPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/edit',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should keep suites visible while a filter refetch is pending', () => {

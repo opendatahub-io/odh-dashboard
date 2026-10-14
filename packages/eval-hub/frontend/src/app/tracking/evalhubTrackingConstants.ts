@@ -32,6 +32,7 @@ export const EVAL_HUB_EVENTS = {
   JOB_DETAIL_OPENED: 'evalhub.monitoring.job_detail_opened',
   FAILURE_DETAIL_OPENED: 'evalhub.monitoring.failure_detail_opened',
   COLLECTION_CUSTOMIZE_CLICKED: 'evalhub.collection.customize.clicked',
+  COLLECTION_EDIT_OPENED: 'evalhub.collection.edit.opened',
   COLLECTION_CREATE_OPENED: 'evalhub.collection.create.opened',
   COLLECTION_SAVED: 'evalhub.collection.saved',
   REPORT_GENERATION_TRIGGERED: 'evalhub.report.generation.triggered',

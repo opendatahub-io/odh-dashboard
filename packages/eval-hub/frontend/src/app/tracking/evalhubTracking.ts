@@ -13,6 +13,9 @@ declare global {
 
 export type EvalHubCollectionType = 'system' | 'custom' | 'unknown';
 
+export type EvalHubCollectionSurface =
+  'collection_gallery' | 'my_benchmark_suites' | 'curated_gallery';
+
 export type EvalHubTrackingContext = {
   collectionType?: EvalHubCollectionType;
   providerType?: string;

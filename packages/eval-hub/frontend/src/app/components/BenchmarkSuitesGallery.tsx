@@ -54,6 +54,7 @@ import {
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 import { createEvalHubTrackingScope, trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import type { EvalHubCollectionSurface } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './BenchmarkSuitesGallery.scss';
 
@@ -174,6 +175,7 @@ type BenchmarkSuitesGalleryProps = {
   showPagination?: boolean;
   showContextualActions?: boolean;
   scope?: CollectionScope;
+  trackingSurface?: EvalHubCollectionSurface;
   queryFilters?: CollectionFilterParams;
   // System collections without a curation order are not part of the curated gallery.
   requireCuratedIndex?: boolean;
@@ -207,6 +209,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   showPagination = false,
   showContextualActions = true,
   scope = 'tenant',
+  trackingSurface = 'collection_gallery',
   queryFilters,
   requireCuratedIndex = false,
   primaryActionLabel = 'Run',
@@ -438,7 +441,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     trackingScope.trackEventOnce(
       EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED,
       `${namespace}:${scope}:${queryFilters?.evaluationTargets?.join(',') ?? 'all'}`,
-      { surface: 'collection_gallery' },
+      { surface: trackingSurface },
       { collectionType: scope === 'system' ? 'system' : 'custom' },
     );
   }, [
@@ -449,6 +452,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     scope,
     shouldShowLoadError,
     trackingScope,
+    trackingSurface,
   ]);
   const collections = React.useMemo(() => {
     if (shouldShowLoadError || isLoading) {
@@ -1097,6 +1101,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 <CreateBenchmarkSuiteCard
                   createSuiteRoute={createSuiteRoute}
                   createSuiteRouteState={createSuiteRouteState}
+                  trackingSurface={trackingSurface}
                   onCreateSuite={onCreateSuite}
                 />
               </GalleryItem>
@@ -1127,6 +1132,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   contextualActions={
                     showContextualActions ? getContextualActions(collection) : undefined
                   }
+                  trackingSurface={trackingSurface}
                   onSelect={onSelectCollection}
                   reservePopularHeader={hasPopularCollections}
                 />
