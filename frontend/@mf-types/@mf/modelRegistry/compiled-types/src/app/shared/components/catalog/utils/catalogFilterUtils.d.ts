@@ -17,3 +17,4 @@ export declare function toggleFilterValue(current: string[], value: string, chec
  * @returns The filterQuery string for the API, or empty string if no filters active
  */
 export declare function stringFiltersToFilterQuery(filters: Record<string, string[] | undefined>, keyMapping?: Record<string, string>, matchAllKeys?: string[]): string;
+export declare function hasFiltersApplied(filters: Record<string, string[] | undefined>, filterKeys: readonly string[], searchQuery: string): boolean;

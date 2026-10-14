@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { McpDeploymentPhase } from '~/odh/types/mcpDeploymentTypes';
+import { McpDeploymentCondition } from '~/odh/types/mcpDeploymentTypes';
 type McpDeploymentStatusLabelProps = {
-    phase: McpDeploymentPhase;
+    conditions: McpDeploymentCondition[];
 };
 declare const McpDeploymentStatusLabel: React.FC<McpDeploymentStatusLabelProps>;
 export default McpDeploymentStatusLabel;
