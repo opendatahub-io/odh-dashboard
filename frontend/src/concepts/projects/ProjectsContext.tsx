@@ -14,7 +14,6 @@ import { persistWorkingProject } from '@odh-dashboard/ui-core/context/workingPro
 import { useProjects } from '#~/api';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import RhoaiWorkingProjectAdapter from './RhoaiWorkingProjectAdapter';
-import { getWorkingProjectStorage } from './workingProjectAdapterUtils';
 import { isAvailableProject } from './utils';
 
 // Re-export shared definitions for backward compatibility
@@ -84,13 +83,14 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
         return;
       }
       setPreferredProject(knownProject);
-      const storage = getWorkingProjectStorage();
-      if (storage) {
+      try {
         persistWorkingProject(
-          storage,
+          localStorage,
           { name: knownProject.metadata.name },
           projects.map(({ metadata }) => ({ name: metadata.name })),
         );
+      } catch {
+        // Accessing localStorage itself can throw; selection must still succeed.
       }
     },
     [loaded, loadError, projects],

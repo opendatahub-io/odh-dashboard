@@ -2955,7 +2955,7 @@ components:
                 version, as a JSON-encoded string, ready for review/edit before
                 creation. If omitted, the consumer generates the manifest from the
                 fields above.
-            llmInferenceServiceTemplate:
+            llmInferenceServiceConfig:
               type: string
               description: >-
                 Optional full LLMInferenceServiceConfig manifest for this version,

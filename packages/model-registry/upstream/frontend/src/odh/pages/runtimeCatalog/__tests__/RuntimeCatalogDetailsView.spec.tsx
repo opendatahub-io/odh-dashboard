@@ -78,7 +78,7 @@ const runtimeVersions = [
     version: '0.6.0',
     image: 'registry.example.com/mock/vllm:0.6.0',
     servingRuntimeTemplate: '{"kind":"ServingRuntime"}',
-    llmInferenceServiceTemplate: '{"kind":"LLMInferenceServiceConfig"}',
+    llmInferenceServiceConfig: '{"kind":"LLMInferenceServiceConfig"}',
   },
 ];
 
@@ -146,7 +146,7 @@ describe('RuntimeCatalogDetailsView', () => {
     renderDetails({
       runtimeDetails,
       runtimeVersions: [
-        { ...runtimeVersions[0], servingRuntimeTemplate: '', llmInferenceServiceTemplate: '' },
+        { ...runtimeVersions[0], servingRuntimeTemplate: '', llmInferenceServiceConfig: '' },
       ],
     });
 
