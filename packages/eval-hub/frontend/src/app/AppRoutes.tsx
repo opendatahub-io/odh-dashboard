@@ -65,7 +65,10 @@ const AppRoutes: React.FC = () => {
             path=":namespace/create/collections/:collectionId/copy"
             element={<CopySuitePage />}
           />
-          <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />
+          <Route
+            path=":namespace/create/benchmarks"
+            element={<ChooseStandardisedBenchmarksPage />}
+          />
           <Route path=":namespace/create/start" element={<StartEvaluationRunPage />} />
           <Route path=":namespace/reconfigure/:jobId" element={<EvaluationReconfigureLoader />} />
         </Route>

@@ -1129,6 +1129,7 @@ export function useCopySuiteForm({
           EVAL_HUB_EVENTS.COLLECTION_SAVED,
           {
             outcome: 'error',
+            // eslint-disable-next-line camelcase -- API tracking field name.
             error_category: e instanceof Error ? e.name : 'unknown_error',
             saveMode: isCreateMode ? 'create' : isEditMode ? 'edit' : 'copy',
           },
