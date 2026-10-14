@@ -1,3 +1,5 @@
+import type { UserAuthConfig } from '../types';
+
 const RUNTIME_CATALOG_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
 
@@ -7,8 +9,22 @@ class RuntimeCatalogPage {
     this.wait();
   }
 
+  // Visits the library without waiting for it to render, for checking users who cannot reach it.
+  visitAs(credentials: UserAuthConfig, search = '') {
+    cy.visitWithLogin(`${RUNTIME_CATALOG_PATH}${search}`, credentials);
+  }
+
+  navigate() {
+    this.findTab().click();
+    this.wait();
+  }
+
   private wait() {
     cy.findByTestId('runtime-catalog-page').should('exist');
+  }
+
+  findTab() {
+    return cy.findByTestId('tab-serving-runtime-catalog');
   }
 
   findPage() {
@@ -43,6 +59,10 @@ class RuntimeCatalogPage {
     return cy.findByTestId(`runtime-catalog-card-name-${cardKey}`);
   }
 
+  findCardDetailLinks() {
+    return cy.findAllByTestId(/^runtime-catalog-card-detail-link-/);
+  }
+
   findCardDescription(cardKey: string) {
     return cy.findByTestId(`runtime-catalog-card-description-${cardKey}`);
   }
@@ -53,6 +73,14 @@ class RuntimeCatalogPage {
 
   findCardHardware(cardKey: string) {
     return cy.findByTestId(`runtime-catalog-card-hardware-${cardKey}`);
+  }
+
+  findHardwareFilterCheckboxes() {
+    return cy.findByTestId('runtime-catalog-filter-hardware').find('input[type="checkbox"]');
+  }
+
+  findHardwareFilterChips() {
+    return cy.findAllByTestId(/^runtime-catalog-filter-chip-hardware-/);
   }
 
   findEmptyState() {

@@ -1,8 +1,16 @@
+import type { UserAuthConfig } from '../types';
+
+const getRuntimeCatalogDetailsPath = (runtimeId: string): string =>
+  `/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/${runtimeId}`;
+
 class RuntimeCatalogDetailsPage {
   visit(runtimeId: string) {
-    cy.visitWithLogin(
-      `/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/${runtimeId}`,
-    );
+    cy.visitWithLogin(getRuntimeCatalogDetailsPath(runtimeId));
+  }
+
+  // Visits the details page without waiting for it to render, for checking users who cannot reach it.
+  visitAs(runtimeId: string, credentials: UserAuthConfig, search = '') {
+    cy.visitWithLogin(`${getRuntimeCatalogDetailsPath(runtimeId)}${search}`, credentials);
   }
 
   findPage() {
@@ -11,6 +19,10 @@ class RuntimeCatalogDetailsPage {
 
   findHeading(name: string) {
     return this.findPage().findByRole('heading', { name });
+  }
+
+  findTitle() {
+    return this.findPage().findByRole('heading', { level: 1 });
   }
 
   findLatestBadge() {

@@ -1,0 +1,5 @@
+# Runtime image library (Runtime Catalog) E2E test data
+# Remove devFeatureFlagsQuery once the runtimeCatalog feature flag is removed (RHOAIENG-96608)
+devFeatureFlagsQuery: '?devFeatureFlags=runtimeCatalog=true'
+# Any ID works here: the details route is not registered for non-admin users
+nonAdminProbeRuntimeId: 'e2e-non-admin-probe'
