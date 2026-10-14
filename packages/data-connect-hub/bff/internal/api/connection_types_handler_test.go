@@ -53,9 +53,9 @@ func TestGetConnectionTypeHandlerReturnsMockType(t *testing.T) {
 
 func TestGetConnectionTypeHandlerReturnsNotFoundForUnknownMockType(t *testing.T) {
 	app := connectionTypeTestApp(config.EnvConfig{MockHTTPClient: true, MockK8Client: true})
-	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/unknown?namespace=test-project")
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440009?namespace=test-project")
 
-	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "unknown"}})
+	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440009"}})
 
 	require.Equal(t, http.StatusNotFound, response.Code)
 }
@@ -69,20 +69,20 @@ func TestGetConnectionTypeHandlerValidatesRequest(t *testing.T) {
 	}{
 		{
 			name:        "missing namespace",
-			path:        "/api/v1/connection-types/postgresql",
-			params:      httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}},
+			path:        "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440003",
+			params:      httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440003"}},
 			addIdentity: true,
 		},
 		{
 			name:        "invalid namespace",
-			path:        "/api/v1/connection-types/postgresql?namespace=Not_Valid",
-			params:      httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}},
+			path:        "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440003?namespace=Not_Valid",
+			params:      httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440003"}},
 			addIdentity: true,
 		},
 		{
 			name:   "missing identity",
-			path:   "/api/v1/connection-types/postgresql?namespace=test-project",
-			params: httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}},
+			path:   "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440003?namespace=test-project",
+			params: httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440003"}},
 		},
 		{
 			name:        "missing connection type id",
@@ -117,7 +117,7 @@ func TestGetConnectionTypeHandlerForwardsUpstreamRequest(t *testing.T) {
 		require.Equal(t, "test-user", r.Header.Get("X-Remote-User"))
 		w.Header().Set("Content-Type", "application/json")
 		_, err := w.Write([]byte(`{
-			"metadata":{"id":"provider/type one","tenant_id":"test-project","created_at":"2026-09-08T16:00:00Z","updated_at":"2026-09-09T16:00:00Z"},
+			"metadata":{"id":"550e8400-e29b-41d4-a716-446655440007","tenant_id":"test-project","created_at":"2026-09-08T16:00:00Z","updated_at":"2026-09-09T16:00:00Z"},
 			"resource":{"name":"Provider type","provider":"provider","credentials_fields":[]},
 			"status":{"flight_ready":true}
 		}`))
@@ -128,15 +128,15 @@ func TestGetConnectionTypeHandlerForwardsUpstreamRequest(t *testing.T) {
 		MockK8Client:         true,
 		DataConnectHubAPIURL: server.URL,
 	})
-	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/provider%2Ftype%20one?namespace=test-project")
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440007?namespace=test-project")
 
-	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "provider/type one"}})
+	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440007"}})
 
 	require.Equal(t, http.StatusOK, response.Code)
-	require.Equal(t, "/api/v1alpha1/data/connection-types/provider%2Ftype%20one", requestedPath)
+	require.Equal(t, "/api/v1alpha1/data/connection-types/550e8400-e29b-41d4-a716-446655440007", requestedPath)
 	var envelope ConnectionTypeEnvelope
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
-	require.Equal(t, "provider/type one", envelope.Data.Metadata.ID)
+	require.Equal(t, "550e8400-e29b-41d4-a716-446655440007", envelope.Data.Metadata.ID)
 	require.True(t, envelope.Data.Status.FlightReady)
 }
 
@@ -147,9 +147,9 @@ func TestGetConnectionTypeHandlerHandlesInvalidUpstreamResponse(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	app := connectionTypeTestApp(config.EnvConfig{MockK8Client: true, DataConnectHubAPIURL: server.URL})
-	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/postgresql?namespace=test-project")
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440003?namespace=test-project")
 
-	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}})
+	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440003"}})
 
 	require.Equal(t, http.StatusInternalServerError, response.Code)
 }
@@ -162,9 +162,9 @@ func TestGetConnectionTypeHandlerPreservesUpstreamError(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	app := connectionTypeTestApp(config.EnvConfig{MockK8Client: true, DataConnectHubAPIURL: server.URL})
-	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/missing?namespace=test-project")
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440009?namespace=test-project")
 
-	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "missing"}})
+	app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440009"}})
 
 	require.Equal(t, http.StatusNotFound, response.Code)
 	var responseError HTTPError

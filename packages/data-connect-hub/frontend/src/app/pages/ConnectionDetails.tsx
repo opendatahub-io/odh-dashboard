@@ -296,10 +296,11 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
 const ConnectionDetails: React.FC = () => {
   const { search } = useLocation();
   const [searchParams] = useSearchParams();
+  const { connectionId = '' } = useParams<'connectionId'>();
   const namespace = searchParams.get('project');
 
   if (namespace) {
-    return <ConnectionDetailsContent namespace={namespace} />;
+    return <ConnectionDetailsContent key={`${namespace}:${connectionId}`} namespace={namespace} />;
   }
 
   return <Navigate to={{ pathname: '..', search }} relative="path" replace />;

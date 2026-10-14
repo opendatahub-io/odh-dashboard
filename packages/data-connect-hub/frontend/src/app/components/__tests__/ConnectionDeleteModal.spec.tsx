@@ -36,11 +36,12 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 const mockDeleteConnection = jest.mocked(deleteConnection);
 
 const connection: Connection = {
-  metadata: { id: 'connection-1' },
+  metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
   resource: {
     name: 'warehouse',
-    data_connection_type_id: 'postgresql',
+    data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
     format: 'tabular',
+    credentials_ref: { secret: 'warehouse' },
   },
   status: { state: 'ready' },
 };
@@ -71,7 +72,11 @@ describe('ConnectionDeleteModal', () => {
     await user.click(screen.getByTestId('delete-confirm'));
 
     await waitFor(() => {
-      expect(deleteRequest).toHaveBeenCalledWith({}, 'test-project', 'connection-1');
+      expect(deleteRequest).toHaveBeenCalledWith(
+        {},
+        'test-project',
+        '550e8400-e29b-41d4-a716-446655440001',
+      );
       expect(onSuccess).toHaveBeenCalledTimes(1);
       expect(onClose).toHaveBeenCalledTimes(1);
     });

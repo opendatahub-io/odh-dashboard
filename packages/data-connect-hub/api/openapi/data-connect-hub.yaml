@@ -363,6 +363,7 @@ components:
             - name
             - data_connection_type_id
             - format
+            - credentials_ref
           properties:
             name:
               type: string
@@ -374,6 +375,13 @@ components:
             format:
               type: string
               enum: [tabular, binary]
+            credentials_ref:
+              type: object
+              required:
+                - secret
+              properties:
+                secret:
+                  type: string
             properties:
               type: object
               additionalProperties:

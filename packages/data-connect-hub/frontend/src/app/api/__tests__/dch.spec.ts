@@ -28,20 +28,24 @@ describe('getConnectionType', () => {
     const connectionType = mockConnectionType();
     mockRestGET.mockResolvedValue({ data: connectionType });
 
-    await expect(getConnectionType('')({}, 'test-project', 'postgresql')).resolves.toEqual(
-      connectionType,
-    );
+    await expect(
+      getConnectionType('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440003'),
+    ).resolves.toEqual(connectionType);
   });
 
-  it('should encode the connection type id and pass request options to restGET', async () => {
+  it('should pass the connection type id and request options to restGET', async () => {
     const opts = { signal: new AbortController().signal };
     mockRestGET.mockResolvedValue({ data: mockConnectionType() });
 
-    await getConnectionType('/data-connect-hub')(opts, 'test-project', 'provider/type one');
+    await getConnectionType('/data-connect-hub')(
+      opts,
+      'test-project',
+      '550e8400-e29b-41d4-a716-446655440007',
+    );
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '/data-connect-hub',
-      '/data-connect-hub/api/v1/connection-types/provider%2Ftype%20one',
+      '/data-connect-hub/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440007',
       { namespace: 'test-project' },
       opts,
     );
@@ -55,27 +59,27 @@ describe('getConnectionType', () => {
     mockIsModArchResponse.mockReturnValue(isResponse);
     mockRestGET.mockResolvedValue(response);
 
-    await expect(getConnectionType('')({}, 'test-project', 'postgresql')).rejects.toThrow(
-      'Invalid response format',
-    );
+    await expect(
+      getConnectionType('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440003'),
+    ).rejects.toThrow('Invalid response format');
   });
 
   it('should propagate REST failures', async () => {
     mockRestGET.mockResolvedValue({ data: mockConnectionType() });
     mockHandleRestFailures.mockRejectedValue(new Error('request failed'));
 
-    await expect(getConnectionType('')({}, 'test-project', 'postgresql')).rejects.toThrow(
-      'request failed',
-    );
+    await expect(
+      getConnectionType('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440003'),
+    ).rejects.toThrow('request failed');
   });
 });
 
 describe('getConnection', () => {
   const connection = {
-    metadata: { id: 'connection-1' },
+    metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
     resource: {
       name: 'warehouse',
-      data_connection_type_id: 'postgresql',
+      data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
       format: 'tabular' as const,
     },
     status: { state: 'ready' as const },
@@ -90,20 +94,24 @@ describe('getConnection', () => {
   it('should return a connection from a valid response', async () => {
     mockRestGET.mockResolvedValue({ data: connection });
 
-    await expect(getConnection('')({}, 'test-project', 'connection-1')).resolves.toEqual(
-      connection,
-    );
+    await expect(
+      getConnection('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
+    ).resolves.toEqual(connection);
   });
 
-  it('should encode the connection id and pass request options to restGET', async () => {
+  it('should pass the connection id and request options to restGET', async () => {
     const opts = { signal: new AbortController().signal };
     mockRestGET.mockResolvedValue({ data: connection });
 
-    await getConnection('/data-connect-hub')(opts, 'test-project', 'connection one');
+    await getConnection('/data-connect-hub')(
+      opts,
+      'test-project',
+      '550e8400-e29b-41d4-a716-446655440002',
+    );
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '/data-connect-hub',
-      '/data-connect-hub/api/v1/connections/connection%20one',
+      '/data-connect-hub/api/v1/connections/550e8400-e29b-41d4-a716-446655440002',
       { namespace: 'test-project' },
       opts,
     );
@@ -117,9 +125,9 @@ describe('getConnection', () => {
     mockIsModArchResponse.mockReturnValue(isResponse);
     mockRestGET.mockResolvedValue(response);
 
-    await expect(getConnection('')({}, 'test-project', 'connection-1')).rejects.toThrow(
-      'Invalid response format',
-    );
+    await expect(
+      getConnection('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
+    ).rejects.toThrow('Invalid response format');
   });
 });
 
@@ -140,7 +148,7 @@ describe('testCredentials', () => {
 
     await expect(
       testCredentials('')({}, 'test-project', {
-        data_connection_type_id: 'postgresql',
+        data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
         credentials: { URI: 'invalid' },
       }),
     ).rejects.toThrow('AWS_S3_BUCKET is required');
@@ -159,7 +167,7 @@ describe('testCredentials', () => {
 
     await expect(
       testCredentials('')({}, 'test-project', {
-        data_connection_type_id: 'postgresql',
+        data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
         credentials: { URI: 'valid' },
       }),
     ).resolves.toBeUndefined();

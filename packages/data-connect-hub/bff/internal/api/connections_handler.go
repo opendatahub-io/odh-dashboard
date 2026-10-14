@@ -213,6 +213,7 @@ func mockConnections(namespace string) []Connection {
 	connections[0].Resource.Name = "warehouse"
 	connections[0].Resource.DataConnectionTypeID = "550e8400-e29b-41d4-a716-446655440003"
 	connections[0].Resource.Format = "tabular"
+	connections[0].Resource.CredentialsRef.Secret = "warehouse"
 	connections[0].Resource.Properties = map[string]string{}
 	connections[0].Status.State = "ready"
 	connections[0].Status.UpdatedAt = "2026-09-08T16:00:00Z"
@@ -223,6 +224,7 @@ func mockConnections(namespace string) []Connection {
 	connections[1].Resource.Name = "object-store"
 	connections[1].Resource.DataConnectionTypeID = "550e8400-e29b-41d4-a716-446655440004"
 	connections[1].Resource.Format = "binary"
+	connections[1].Resource.CredentialsRef.Secret = "object-store"
 	connections[1].Resource.Properties = map[string]string{}
 	connections[1].Status.State = "not_ready"
 	connections[1].Status.UpdatedAt = "2026-09-08T16:00:00Z"

@@ -65,6 +65,7 @@ export type Connection = {
     name: string;
     data_connection_type_id: string;
     format: 'tabular' | 'binary';
+    credentials_ref: { secret: string };
     properties?: Record<string, string>;
   };
   status: {

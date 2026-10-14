@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { deleteConnection, verifyConnection } from '~/app/api/dch';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import ConnectionDetails from '~/app/pages/ConnectionDetails';
@@ -52,21 +52,35 @@ const refresh = jest.fn();
 
 const connection: Connection = {
   metadata: {
-    id: 'connection-1',
+    id: '550e8400-e29b-41d4-a716-446655440001',
     created_at: '2026-09-06T16:00:00Z',
     updated_at: '2026-09-07T16:00:00Z',
   },
   resource: {
     name: 'warehouse',
-    data_connection_type_id: 'postgresql',
+    data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
     format: 'tabular',
+    credentials_ref: { secret: 'warehouse' },
     properties: { region: 'us-east-1', bucket: 'warehouse-data' },
   },
   status: { state: 'ready', updated_at: '2026-09-08T16:00:00Z' },
 };
 
+const otherConnection: Connection = {
+  ...connection,
+  metadata: {
+    ...connection.metadata,
+    id: '550e8400-e29b-41d4-a716-446655440002',
+  },
+  resource: {
+    ...connection.resource,
+    name: 'object-store',
+    credentials_ref: { secret: 'object-store' },
+  },
+};
+
 const renderDetails = (
-  entry = '/ai-hub/connections/connections/connection-1?project=test-project',
+  entry = '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440001?project=test-project',
 ) =>
   render(
     <MemoryRouter initialEntries={[entry]}>
@@ -84,6 +98,34 @@ const renderDetails = (
       </Routes>
     </MemoryRouter>,
   );
+
+const renderNavigableDetails = (entry: string) => {
+  let navigate: (path: string) => void = () => undefined;
+  const NavigationProbe = () => {
+    navigate = useNavigate();
+    return null;
+  };
+
+  render(
+    <MemoryRouter initialEntries={[entry]}>
+      <NavigationProbe />
+      <Routes>
+        <Route path="/connections" element={<div data-testid="connections-page" />} />
+        <Route path="/connections/:connectionId" element={<ConnectionDetails />} />
+        <Route
+          path="/ai-hub/connections/connections"
+          element={<div data-testid="connections-page" />}
+        />
+        <Route
+          path="/ai-hub/connections/connections/:connectionId"
+          element={<ConnectionDetails />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  return (path: string) => navigate(path);
+};
 
 describe('ConnectionDetails', () => {
   afterEach(() => {
@@ -106,14 +148,17 @@ describe('ConnectionDetails', () => {
 
     renderDetails();
 
-    expect(mockUseConnection).toHaveBeenCalledWith('test-project', 'connection-1');
+    expect(mockUseConnection).toHaveBeenCalledWith(
+      'test-project',
+      '550e8400-e29b-41d4-a716-446655440001',
+    );
     expect(screen.getAllByText('warehouse')).toHaveLength(3);
     expect(screen.getByTestId('connection-label').textContent).toBe('Connection');
     expect(
       screen.getByRole('link', { name: 'Connections - Test Project' }).getAttribute('href'),
     ).toBe('/ai-hub/connections/connections?project=test-project');
     expect(screen.getByTestId('connection-details').getAttribute('data-connection-id')).toBe(
-      'connection-1',
+      '550e8400-e29b-41d4-a716-446655440001',
     );
     expect(screen.getByTestId('connection-details-card').textContent).toContain(
       'Connection details',
@@ -135,7 +180,7 @@ describe('ConnectionDetails', () => {
   it('uses path-relative navigation in standalone mode', () => {
     mockUseConnection.mockReturnValue([connection, true, undefined, refresh]);
 
-    renderDetails('/connections/connection-1?project=test-project');
+    renderDetails('/connections/550e8400-e29b-41d4-a716-446655440001?project=test-project');
 
     expect(
       screen.getByRole('link', { name: 'Connections - Test Project' }).getAttribute('href'),
@@ -179,7 +224,11 @@ describe('ConnectionDetails', () => {
 
     await waitFor(() => {
       expect(mockVerifyConnection).toHaveBeenCalledWith('');
-      expect(verifyRequest).toHaveBeenCalledWith({}, 'test-project', 'connection-1');
+      expect(verifyRequest).toHaveBeenCalledWith(
+        {},
+        'test-project',
+        '550e8400-e29b-41d4-a716-446655440001',
+      );
       expect(refresh).toHaveBeenCalledTimes(1);
     });
   });
@@ -195,7 +244,11 @@ describe('ConnectionDetails', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Verify connection' }));
 
     await waitFor(() => {
-      expect(verifyRequest).toHaveBeenCalledWith({}, 'test-project', 'connection-1');
+      expect(verifyRequest).toHaveBeenCalledWith(
+        {},
+        'test-project',
+        '550e8400-e29b-41d4-a716-446655440001',
+      );
       expect(refresh).toHaveBeenCalledTimes(1);
     });
   });
@@ -212,7 +265,11 @@ describe('ConnectionDetails', () => {
     await user.click(screen.getByTestId('delete-confirm'));
 
     await waitFor(() => {
-      expect(deleteRequest).toHaveBeenCalledWith({}, 'test-project', 'connection-1');
+      expect(deleteRequest).toHaveBeenCalledWith(
+        {},
+        'test-project',
+        '550e8400-e29b-41d4-a716-446655440001',
+      );
       expect(screen.getByTestId('connections-page')).toBeTruthy();
     });
   });
@@ -228,16 +285,61 @@ describe('ConnectionDetails', () => {
 
     await waitFor(() => {
       expect(screen.getByText('verification failed')).toBeTruthy();
-      expect(verifyRequest).toHaveBeenCalledWith({}, 'test-project', 'connection-1');
+      expect(verifyRequest).toHaveBeenCalledWith(
+        {},
+        'test-project',
+        '550e8400-e29b-41d4-a716-446655440001',
+      );
     });
     expect(refresh).not.toHaveBeenCalled();
     expect(screen.getByTestId('connection-verify-button')).toHaveProperty('disabled', false);
   });
 
+  it('resets pending verification state when the connection ID changes', async () => {
+    const user = userEvent.setup();
+    let rejectVerification: (error: Error) => void = () => undefined;
+    const pendingVerification = new Promise<void>((_resolve, reject) => {
+      rejectVerification = reject;
+    });
+    pendingVerification.catch(() => undefined);
+    mockVerifyConnection.mockImplementation(
+      () => (_options, _namespace, _connectionId) => pendingVerification,
+    );
+    mockUseConnection.mockImplementation((_namespace, connectionId) => [
+      connectionId === otherConnection.metadata.id ? otherConnection : connection,
+      true,
+      undefined,
+      refresh,
+    ]);
+
+    const navigate = renderNavigableDetails(
+      '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440001?project=test-project',
+    );
+    await user.click(screen.getByTestId('connection-verify-button'));
+    expect(screen.getByTestId('connection-verify-button')).toHaveProperty('disabled', true);
+
+    navigate(
+      '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440002?project=test-project',
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText('object-store').length).toBeGreaterThan(0);
+    });
+    expect(screen.getByTestId('connection-verify-button')).toHaveProperty('disabled', false);
+    expect(screen.queryByText('Verifying')).toBeNull();
+
+    rejectVerification(new Error('stale verification failed'));
+    await waitFor(() => {
+      expect(screen.queryByText('stale verification failed')).toBeNull();
+    });
+  });
+
   it('renders the not-found state for an unknown connection', () => {
     mockUseConnection.mockReturnValue([undefined, true, undefined, refresh]);
 
-    renderDetails('/ai-hub/connections/connections/missing?project=test-project');
+    renderDetails(
+      '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440009?project=test-project',
+    );
 
     expect(screen.getByText('Connection not found')).toBeTruthy();
   });
@@ -252,7 +354,7 @@ describe('ConnectionDetails', () => {
   });
 
   it('redirects to connections when no project is selected', () => {
-    renderDetails('/ai-hub/connections/connections/connection-1');
+    renderDetails('/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440001');
 
     expect(screen.getByTestId('connections-page')).toBeTruthy();
     expect(mockUseConnection).not.toHaveBeenCalled();

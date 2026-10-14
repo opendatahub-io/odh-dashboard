@@ -61,17 +61,23 @@ const renderConnectionsTab = (props: React.ComponentProps<typeof ConnectionsTab>
 
 const connections = [
   {
-    metadata: { id: 'connection-1' },
+    metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
     resource: {
       name: 'warehouse',
-      data_connection_type_id: 'postgresql',
+      data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
       format: 'tabular' as const,
+      credentials_ref: { secret: 'warehouse' },
     },
     status: { state: 'ready' as const, updated_at: '2026-09-08T16:00:00Z' },
   },
   {
-    metadata: { id: 'connection-2' },
-    resource: { name: 'object-store', data_connection_type_id: 's3', format: 'binary' as const },
+    metadata: { id: '550e8400-e29b-41d4-a716-446655440002' },
+    resource: {
+      name: 'object-store',
+      data_connection_type_id: '550e8400-e29b-41d4-a716-446655440004',
+      format: 'binary' as const,
+      credentials_ref: { secret: 'object-store' },
+    },
     status: { state: 'not_ready' as const },
   },
 ];
@@ -79,7 +85,7 @@ const connections = [
 const connectionTypes = [
   {
     metadata: {
-      id: 'postgresql',
+      id: '550e8400-e29b-41d4-a716-446655440003',
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-08T16:00:00Z',
     },
@@ -95,7 +101,7 @@ const connectionTypes = [
   },
   {
     metadata: {
-      id: 's3',
+      id: '550e8400-e29b-41d4-a716-446655440004',
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-08T16:00:00Z',
     },
@@ -105,14 +111,19 @@ const connectionTypes = [
 ];
 
 const newConnection = {
-  metadata: { id: 'connection-3' },
-  resource: { name: 'analytics', data_connection_type_id: 'snowflake', format: 'tabular' as const },
+  metadata: { id: '550e8400-e29b-41d4-a716-446655440005' },
+  resource: {
+    name: 'analytics',
+    data_connection_type_id: '550e8400-e29b-41d4-a716-446655440006',
+    format: 'tabular' as const,
+    credentials_ref: { secret: 'analytics' },
+  },
   status: { state: 'ready' as const },
 };
 
 const newConnectionType = {
   metadata: {
-    id: 'snowflake',
+    id: '550e8400-e29b-41d4-a716-446655440006',
     created_at: '2026-09-08T16:00:00Z',
     updated_at: '2026-09-08T16:00:00Z',
   },
@@ -131,14 +142,22 @@ describe('ConnectionsTab', () => {
 
   it('keeps manually deselected types deselected during polling', () => {
     expect(
-      synchronizeTypeSelection(['postgresql'], ['postgresql', 's3'], ['postgresql', 's3']),
-    ).toEqual(['postgresql']);
+      synchronizeTypeSelection(
+        ['550e8400-e29b-41d4-a716-446655440003'],
+        ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
+        ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
+      ),
+    ).toEqual(['550e8400-e29b-41d4-a716-446655440003']);
   });
 
   it('adds a newly discovered type while preserving existing selection', () => {
     expect(
-      synchronizeTypeSelection(['postgresql'], ['postgresql'], ['postgresql', 'snowflake']),
-    ).toEqual(['postgresql', 'snowflake']);
+      synchronizeTypeSelection(
+        ['550e8400-e29b-41d4-a716-446655440003'],
+        ['550e8400-e29b-41d4-a716-446655440003'],
+        ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006'],
+      ),
+    ).toEqual(['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006']);
   });
 
   it('renders connection names and readable type names', () => {
@@ -149,9 +168,14 @@ describe('ConnectionsTab', () => {
     expect(screen.getByText('Unverified')).toBeTruthy();
   });
 
-  it('encodes reserved characters in connection detail links', () => {
+  it('renders connection detail links', () => {
     mockUseConnections.mockReturnValue([
-      [{ ...connections[0], metadata: { ...connections[0].metadata, id: 'connection?1#2' } }],
+      [
+        {
+          ...connections[0],
+          metadata: { ...connections[0].metadata, id: '550e8400-e29b-41d4-a716-446655440001' },
+        },
+      ],
       true,
       undefined,
       jest.fn(),
@@ -166,7 +190,7 @@ describe('ConnectionsTab', () => {
     );
 
     expect(screen.getByRole('link', { name: 'warehouse' }).getAttribute('href')).toBe(
-      '/connections/connection%3F1%232?project=test-project',
+      '/connections/550e8400-e29b-41d4-a716-446655440001?project=test-project',
     );
   });
 
@@ -243,7 +267,8 @@ describe('ConnectionsTab', () => {
     });
     mockUseConnections.mockReturnValue([connections, true, undefined, refresh]);
     mockDeleteConnection.mockImplementation(
-      () => (_opts, _namespace, id) => (id === 'connection-1' ? firstDelete : secondDelete),
+      () => (_opts, _namespace, id) =>
+        id === '550e8400-e29b-41d4-a716-446655440001' ? firstDelete : secondDelete,
     );
     renderConnectionsTab({ namespace: 'test-project' });
 
