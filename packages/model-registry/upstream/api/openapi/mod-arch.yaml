@@ -1098,6 +1098,34 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       operationId: getMcpServerTools
       description: Gets the list of tools exposed by an `McpServer`.
+  /api/v1/mcp_catalog/mcp_servers/{server_id}/deploy_readiness:
+    description: >-
+      The REST endpoint/path used to check whether an `McpServer` can be deployed
+      (downstream-only).
+    get:
+      summary: Check deploy prerequisites for an MCP server
+      tags:
+        - MCPCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/serverId"
+      responses:
+        "200":
+          $ref: "#/components/responses/McpServerDeployReadinessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getMcpServerDeployReadiness
+      description: >-
+        Reports whether the `McpServer` requires an MCP gateway and whether it can be
+        deployed now. Gateway checks fail closed: when availability cannot be determined,
+        the response is `deployable: false` with a reason.
 
   # Agent catalog endpoints
   /api/v1/agent_catalog/agents:
@@ -4045,6 +4073,29 @@ components:
           type: string
         tool:
           $ref: "#/components/schemas/McpTool"
+    McpServerDeployReadiness:
+      description: Deploy prerequisites for a catalog MCP server.
+      type: object
+      required:
+        - gatewayRequired
+        - deployable
+      properties:
+        gatewayRequired:
+          type: boolean
+          description: True when the server can only be deployed with an MCP gateway.
+        deployable:
+          type: boolean
+          description: False when a deploy prerequisite is missing.
+        reason:
+          type: string
+          description: Why the server cannot be deployed. Set only when `deployable` is false.
+          enum:
+            - OPERATOR_NOT_READY
+            - GATEWAY_STATUS_UNAVAILABLE
+            - NO_GATEWAY_AVAILABLE
+        message:
+          type: string
+          description: Human-readable explanation. Set only when `deployable` is false.
     McpToolList:
       description: List of MCP tools (with server context).
       allOf:
@@ -5055,6 +5106,15 @@ components:
               data:
                 $ref: "#/components/schemas/McpServer"
       description: A response containing a single `McpServer` entity.
+    McpServerDeployReadinessResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/McpServerDeployReadiness"
+      description: A response containing deploy prerequisites for an `McpServer`.
     McpServerToolListResponse:
       content:
         application/json:
