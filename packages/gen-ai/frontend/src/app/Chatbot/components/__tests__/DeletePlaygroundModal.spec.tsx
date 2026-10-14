@@ -202,7 +202,7 @@ describe('DeletePlaygroundModal', () => {
         outcome: TrackingOutcome.submit,
         success: false,
         namespace: 'test-namespace',
-        error: 'Failed to delete',
+        error: 'unknown_error',
       });
     });
 
