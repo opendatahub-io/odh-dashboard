@@ -65,10 +65,10 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
 
           cy.step('Verify the details page shows the selected runtime image');
           runtimeCatalogDetailsPage.findTitle().should('have.text', runtimeName);
-        });
 
-      cy.step('Verify the Install action is available');
-      runtimeImageInstallPage.findInstallButton().should('be.visible').and('be.enabled');
+          cy.step('Verify the Install action is available for the selected runtime image');
+          runtimeImageInstallPage.findInstallButton().should('be.visible').and('be.enabled');
+        });
     },
   );
 
