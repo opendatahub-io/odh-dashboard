@@ -73,6 +73,9 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   aime25: 'https://huggingface.co/datasets/yentinglin/aime_2025',
   'arc:challenge': 'https://huggingface.co/datasets/allenai/ai2_arc',
   'arc:easy': 'https://huggingface.co/datasets/allenai/ai2_arc',
+  // This is intentionally a partial mapping of the GLUE catalog. Add additional sub-tasks as
+  // their corresponding benchmark IDs are introduced; all of them use the shared `nyu-mll/glue`
+  // dataset.
   'glue:cola': 'https://huggingface.co/datasets/nyu-mll/glue',
   'glue:mrpc': 'https://huggingface.co/datasets/nyu-mll/glue',
   'glue:sst2': 'https://huggingface.co/datasets/nyu-mll/glue',
@@ -156,6 +159,10 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   // Inspect AI benchmark datasets
   'inspect/agentharm': 'https://huggingface.co/datasets/ai-safety-institute/AgentHarm',
   'inspect/aime2024': 'https://huggingface.co/datasets/HuggingFaceH4/aime_2024',
+  // Inspect AI's `aime2025` task uses `math-ai/aime25`, while Lighteval's `aime25` task above
+  // uses `yentinglin/aime_2025`. These are separate framework-selected dataset repositories, so
+  // keep the URLs distinct even though both represent the AIME 2025 benchmark; aligning them
+  // would make one framework's benchmark link inaccurate.
   'inspect/aime2025': 'https://huggingface.co/datasets/math-ai/aime25',
   'inspect/arc': 'https://huggingface.co/datasets/allenai/ai2_arc',
   'inspect/bbh': 'https://huggingface.co/datasets/lukaemon/bbh',
