@@ -7,6 +7,15 @@ export const getExactVisibleOptionRegex = (label: string): RegExp => {
   return new RegExp(`^${escapedLabel.replace(/ /g, '\\s+')}$`, 'i');
 };
 
+export const getExactDatabaseOptionRegex = (name: string): RegExp => {
+  const normalizedName = normalizeVisibleOptionLabel(name);
+  const escapedName = normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(
+    `^${escapedName.replace(/ /g, '\\s+')}(?:\\s+(?:Milvus|PGVector|Neo4j))?$`,
+    'i',
+  );
+};
+
 const getMetricOptionTestId = (value: string): string => {
   const separator = value.indexOf(':');
   const evaluator = separator === -1 ? undefined : value.slice(0, separator);
@@ -235,7 +244,7 @@ class AutoragConfigurePage {
   }
 
   findDatabaseOption(name: string) {
-    return cy.findAllByRole('option').findByText(getExactVisibleOptionRegex(name));
+    return cy.findByRole('option', { name: getExactDatabaseOptionRegex(name) });
   }
 
   // Evaluation dataset — PF FileUpload renders input with id from field.name
