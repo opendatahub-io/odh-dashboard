@@ -5,6 +5,9 @@ import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFo
 import { MLflowPromptVersion } from '~/app/types';
 import * as chatbotStore from '~/app/Chatbot/store';
 import * as usePlaygroundStore from '~/app/Chatbot/store/usePlaygroundStore';
+import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
+import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -102,6 +105,8 @@ describe('PromptAssistantFormGroup', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(usePromptEdited).mockReturnValue(false);
+    jest.mocked(useConfirmation).mockReturnValue({ confirm: jest.fn(), modal: null });
 
     const useChatbotConfigStoreMock = jest.mocked(chatbotStore.useChatbotConfigStore);
     const selectActivePromptMock = jest.mocked(chatbotStore.selectActivePrompt);
@@ -321,6 +326,39 @@ describe('PromptAssistantFormGroup', () => {
   });
 
   describe('Prompt editing controls', () => {
+    it('should show Revert for an unsaved new prompt and restore default instructions', () => {
+      jest.mocked(usePromptEdited).mockReturnValue(true);
+      const confirm = jest.fn();
+      jest.mocked(useConfirmation).mockReturnValue({ confirm, modal: null });
+      const onSystemInstructionChange = jest.fn();
+
+      render(
+        <PromptAssistantFormGroup
+          {...defaultProps}
+          systemInstruction="Unsaved draft instructions"
+          onSystemInstructionChange={onSystemInstructionChange}
+        />,
+      );
+
+      screen.getByTestId('prompt-revert-button').click();
+
+      expect(confirm).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          title: 'Revert changes?',
+          confirmLabel: 'Revert',
+        }),
+      );
+      confirm.mock.calls[0][0]();
+      expect(onSystemInstructionChange).toHaveBeenCalledWith(DEFAULT_SYSTEM_INSTRUCTIONS);
+    });
+
+    it('should hide Revert for an unchanged new prompt', () => {
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.queryByTestId('prompt-revert-button')).not.toBeInTheDocument();
+    });
+
     it('should make loaded prompt instructions directly editable', () => {
       const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockProjectPrompt);

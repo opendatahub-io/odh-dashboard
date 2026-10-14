@@ -42,6 +42,11 @@ const CONFIRMATION_CONFIG = {
     'Your current edits haven’t been saved. Reverting will restore the last saved version of this prompt. To keep your changes, cancel and save first.',
   confirmLabel: 'Revert',
 };
+const UNSAVED_PROMPT_REVERT_CONFIRMATION_CONFIG = {
+  title: 'Revert changes?',
+  message: 'Your unsaved changes will be discarded and the default instructions restored.',
+  confirmLabel: 'Revert',
+};
 const VERSION_SWITCH_CONFIRMATION_CONFIG = {
   title: 'Switch to a different version?',
   message:
@@ -186,7 +191,7 @@ export default function PromptAssistantFormGroup({
                   <i>Unsaved</i>
                 </div>
               )}
-              {activePrompt && (
+              {(activePrompt || isEdited) && (
                 <Button
                   data-testid="prompt-revert-button"
                   variant="plain"
@@ -195,7 +200,9 @@ export default function PromptAssistantFormGroup({
                   isDisabled={!isEdited}
                   onClick={() =>
                     confirm(handleRevert, {
-                      ...CONFIRMATION_CONFIG,
+                      ...(activePrompt
+                        ? CONFIRMATION_CONFIG
+                        : UNSAVED_PROMPT_REVERT_CONFIRMATION_CONFIG),
                       onConfirmTracking: () =>
                         fireMiscTrackingEvent('Playground Prompt Reverted', {
                           outcome: 'submit',

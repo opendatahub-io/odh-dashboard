@@ -101,7 +101,7 @@ function PromptTabContent({
         title={dirtyPrompt?.name || 'New Prompt'}
         titleTestId="prompt-name-title"
         titleActions={
-          (activePrompt || isEdited) && (
+          activePrompt && (
             <Tooltip content="Clear loaded prompt" position="top">
               <span>
                 <DrawerCloseButton

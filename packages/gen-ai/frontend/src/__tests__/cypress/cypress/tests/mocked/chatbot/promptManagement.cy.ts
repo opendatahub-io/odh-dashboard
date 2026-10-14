@@ -668,15 +668,17 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
 
         cy.step('Edit new prompt to trigger unsaved state');
         promptAssistant.findTextarea().clear().type('Unsaved draft instructions');
+        promptAssistant.findClearLoadedPromptButton().should('not.exist');
 
-        cy.step('Clear the draft and confirm the dialog');
-        promptAssistant.findClearLoadedPromptButton().should('be.enabled').click();
+        cy.step('Revert the draft and confirm the dialog');
+        promptAssistant.findRevertButton().should('be.enabled').click();
         promptAssistant.findConfirmationModal().should('be.visible');
         promptAssistant.findConfirmationModalConfirm().click();
 
-        cy.step('Verify cleared new prompt state');
+        cy.step('Verify reverted new prompt state');
         promptAssistant.findNameTitle().should('contain.text', 'New Prompt');
         promptAssistant.findClearLoadedPromptButton().should('not.exist');
+        promptAssistant.findRevertButton().should('not.exist');
       },
     );
   });
