@@ -41,9 +41,6 @@ const extensions: (
   },
   {
     type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       id: EXPERIMENTS_NAV_ID,
       title: 'Experiments',
@@ -58,9 +55,6 @@ const extensions: (
   },
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       path: '/develop-train/mlflow/*',
       component: () => import('./experiments/GlobalMLflowExperimentsRoutes'),
@@ -69,7 +63,7 @@ const extensions: (
   {
     type: 'app.navigation/href',
     flags: {
-      required: ['plugin-gen-ai', SupportedArea.MLFLOW],
+      required: ['plugin-gen-ai'],
     },
     properties: {
       id: 'prompt-management',
@@ -82,9 +76,6 @@ const extensions: (
   },
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       path: globPromptManagementAll,
       component: () => import('./prompts/GlobalMLflowPromptManagementRoutes'),
@@ -92,9 +83,6 @@ const extensions: (
   },
   {
     type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       id: 'agent-observability',
       title: AGENT_OBSERVABILITY_PAGE_TITLE,
@@ -110,9 +98,6 @@ const extensions: (
   },
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       path: globAgentObservabilityAll,
       component: () => import('./agent-observability/GlobalMLflowAgentObservabilityRoutes'),
@@ -150,9 +135,6 @@ const extensions: (
   },
   {
     type: 'app.task/item',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       id: 'develop-experiments',
       group: 'develop-and-train',
@@ -164,7 +146,7 @@ const extensions: (
   {
     type: 'app.task/item',
     flags: {
-      required: ['plugin-gen-ai', SupportedArea.MLFLOW],
+      required: ['plugin-gen-ai'],
     },
     properties: {
       id: 'genai-prompts',

@@ -123,7 +123,7 @@ describe('Agent observability page', () => {
       agentObservability.findNotConfiguredEmptyState().should('not.exist');
     });
 
-    it('should hide nav item when MLflow operator is removed', () => {
+    it('should show setup guidance when MLflow operator is removed', () => {
       const dscStatus = mockDscStatus({});
       dscStatus.components = {
         ...dscStatus.components,
@@ -131,8 +131,12 @@ describe('Agent observability page', () => {
       };
       cy.interceptOdh('GET /api/dsc/status', dscStatus);
 
-      homePage.visit();
-      agentObservability.findNavItem().should('not.exist');
+      agentObservability.visit(PROJECT_A);
+      agentObservability.findNavItem().should('be.visible');
+      agentObservability
+        .findNotConfiguredAdminEmptyState()
+        .should('be.visible')
+        .should('contain', 'Enable agent observability');
     });
   });
 });

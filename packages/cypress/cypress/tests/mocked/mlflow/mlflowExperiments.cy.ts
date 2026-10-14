@@ -135,7 +135,7 @@ describe('MLflow Experiments page wrapper', () => {
       mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
     });
 
-    it('should hide nav item when MLflow operator is removed', () => {
+    it('should show setup guidance when MLflow operator is removed', () => {
       const dscStatus = mockDscStatus({});
       dscStatus.components = {
         ...dscStatus.components,
@@ -143,8 +143,12 @@ describe('MLflow Experiments page wrapper', () => {
       };
       cy.interceptOdh('GET /api/dsc/status', dscStatus);
 
-      cy.visitWithLogin('/');
-      mlflowExperiments.findNavItem().should('not.exist');
+      mlflowExperiments.visit(PROJECT_A);
+      mlflowExperiments.findNavItem().should('be.visible');
+      mlflowExperiments
+        .findNotConfiguredAdminEmptyState()
+        .should('be.visible')
+        .should('contain', 'Enable experiments');
     });
   });
 });

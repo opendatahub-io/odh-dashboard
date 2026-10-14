@@ -23,7 +23,7 @@ describe('MLflowNotConfigured', () => {
   });
 
   it('should direct administrators to the MLflow installation documentation without a link', () => {
-    render(<MLflowNotConfigured />);
+    render(<MLflowNotConfigured featureName="experiments" />);
 
     const emptyState = screen.getByTestId('mlflow-not-configured-admin-empty-state');
     expect(screen.getByRole('heading', { name: 'Enable experiments' })).toBeInTheDocument();
@@ -32,6 +32,18 @@ describe('MLflowNotConfigured', () => {
     );
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
+
+  it.each(['prompts', 'agent observability'])(
+    'should name %s in the administrator guidance',
+    (featureName) => {
+      render(<MLflowNotConfigured featureName={featureName} />);
+
+      expect(screen.getByRole('heading', { name: `Enable ${featureName}` })).toBeInTheDocument();
+      expect(screen.getByTestId('mlflow-not-configured-admin-empty-state')).toHaveTextContent(
+        `To enable the use of ${featureName} on this cluster`,
+      );
+    },
+  );
 
   it('should show non-administrators the cluster-level guidance', () => {
     mockUseUser.mockReturnValue({
@@ -42,7 +54,7 @@ describe('MLflowNotConfigured', () => {
       userLoading: false,
       userError: null,
     });
-    render(<MLflowNotConfigured />);
+    render(<MLflowNotConfigured featureName="experiments" />);
 
     expect(screen.getByTestId('mlflow-not-configured-empty-state')).toHaveTextContent(
       'Ask your administrator to enable MLflow for this cluster.',

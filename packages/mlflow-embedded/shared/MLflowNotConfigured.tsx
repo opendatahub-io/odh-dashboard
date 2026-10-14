@@ -9,15 +9,14 @@ import { CogIcon } from '@patternfly/react-icons';
 import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
-import {
-  MLFLOW_NOT_CONFIGURED_ADMIN_MESSAGE,
-  MLFLOW_NOT_CONFIGURED_ADMIN_TITLE,
-  MLFLOW_NOT_CONFIGURED_MESSAGE,
-  MLFLOW_NOT_CONFIGURED_TITLE,
-} from './const';
+import { MLFLOW_NOT_CONFIGURED_MESSAGE, MLFLOW_NOT_CONFIGURED_TITLE } from './const';
 import SupportIcon from '../icons/SupportIcon';
 
-const MLflowNotConfigured: React.FC = () => {
+type MLflowNotConfiguredProps = {
+  featureName: string;
+};
+
+const MLflowNotConfigured: React.FC<MLflowNotConfiguredProps> = ({ featureName }) => {
   const { isAdmin } = useUser();
 
   if (isAdmin) {
@@ -25,11 +24,15 @@ const MLflowNotConfigured: React.FC = () => {
       <EmptyState
         headingLevel="h2"
         icon={CogIcon}
-        titleText={MLFLOW_NOT_CONFIGURED_ADMIN_TITLE}
+        titleText={`Enable ${featureName}`}
         variant={EmptyStateVariant.lg}
         data-testid="mlflow-not-configured-admin-empty-state"
       >
-        <EmptyStateBody>{MLFLOW_NOT_CONFIGURED_ADMIN_MESSAGE}</EmptyStateBody>
+        <EmptyStateBody>
+          To enable the use of {featureName} on this cluster, enable the MLflow Operator component
+          and ensure that an MLflow custom resource has been created. To learn more about how to
+          install and configure MLflow, view the documentation.
+        </EmptyStateBody>
       </EmptyState>
     );
   }
