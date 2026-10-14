@@ -41,19 +41,19 @@ describe('AutoML Results Page', () => {
     it('should open manage columns modal and show a hidden column', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      // Verify f1 metric column is hidden by default (only optimized metric is visible)
-      automlResultsPage.findMetricHeader('f1').should('not.exist');
+      // Verify roc_auc metric column is hidden by default
+      automlResultsPage.findMetricHeader('roc_auc').should('not.exist');
 
       // Open manage columns modal
       automlResultsPage.findManageColumnsButton().click();
       automlResultsPage.findManageColumnsDescription().should('be.visible');
 
-      // Check f1 column and save
-      automlResultsPage.findColumnCheck('metric:f1').click();
+      // Check roc_auc column and save
+      automlResultsPage.findColumnCheck('metric:roc_auc').click();
       automlResultsPage.findManageColumnsSaveButton().click();
 
-      // f1 column should now be visible
-      automlResultsPage.findMetricHeader('f1').should('exist');
+      // roc_auc column should now be visible
+      automlResultsPage.findMetricHeader('roc_auc').should('exist');
     });
   });
 
