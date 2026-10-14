@@ -3,6 +3,27 @@ import { AWS_BUCKETS } from '../s3Buckets';
 /** Shell-escape a value by wrapping in single quotes (handles embedded quotes). */
 const shQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
 
+const restrictedSecurityContextArgs = (podName: string): string =>
+  `--overrides=${shQuote(
+    JSON.stringify({
+      spec: {
+        containers: [
+          {
+            name: podName,
+            securityContext: {
+              runAsUser: 1001,
+              runAsGroup: 1001,
+              runAsNonRoot: true,
+              allowPrivilegeEscalation: false,
+              seccompProfile: { type: 'RuntimeDefault' },
+              capabilities: { drop: ['ALL'] },
+            },
+          },
+        ],
+      },
+    }),
+  )} --override-type=strategic`;
+
 const assertValidNamespace = (namespace: string): void => {
   if (!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(namespace)) {
     throw new Error(
@@ -38,6 +59,7 @@ export const createRegistryStep = (namespace: string): void => {
       `--env=AWS_ACCESS_KEY_ID=${shQuote(AWS_BUCKETS.AWS_ACCESS_KEY_ID)} ` +
       `--env=AWS_SECRET_ACCESS_KEY=${shQuote(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY)} ` +
       `--env=AWS_DEFAULT_REGION=${shQuote(bucketConfig.REGION)} ` +
+      `${restrictedSecurityContextArgs(podName)} ` +
       `-- s3api put-object --bucket ${shQuote(bucketConfig.NAME)} --key ${shQuote(prefixKey)}`,
     { failOnNonZeroExit: false, log: false, timeout: 120000 },
   ).then((result) => {
@@ -74,6 +96,7 @@ export const deleteFeastRegistryFiles = (namespace: string): void => {
       `--env=AWS_ACCESS_KEY_ID=${shQuote(AWS_BUCKETS.AWS_ACCESS_KEY_ID)} ` +
       `--env=AWS_SECRET_ACCESS_KEY=${shQuote(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY)} ` +
       `--env=AWS_DEFAULT_REGION=${shQuote(bucketConfig.REGION)} ` +
+      `${restrictedSecurityContextArgs(podName)} ` +
       `-- s3 rm ${shQuote(s3Path)} --recursive`,
     { failOnNonZeroExit: false, log: false, timeout: 120000 },
   );
