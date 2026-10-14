@@ -237,6 +237,10 @@ class McpServerDetailsPage {
   findBreadcrumbServerName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('breadcrumb-server-name');
   }
+
+  findGatewayDocsLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-deploy-gateway-docs-link');
+  }
 }
 
 export const mcpDeployModal = new McpDeployModal();

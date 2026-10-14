@@ -124,6 +124,7 @@ type ImageStreamAnnotations = Partial<{
   'opendatahub.io/notebook-image-name': string;
   'opendatahub.io/notebook-image-url': string;
   'opendatahub.io/notebook-image-order': string;
+  'opendatahub.io/notebook-tier': string;
 }>;
 
 type ImageStreamSpecTagAnnotations = Partial<{

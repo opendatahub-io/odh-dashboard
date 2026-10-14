@@ -74,9 +74,12 @@ import {
   PRESET_BETTER_QUALITY,
   PRESET_FASTER,
   PRESET_LABELS,
+  PRESET_QUALITY,
+  PRESETS,
   REQUIRED_CONNECTION_SECRET_KEYS,
   TASK_TYPE_TIMESERIES,
   TASK_TYPES,
+  TIMESERIES_PRESETS,
 } from '~/app/utilities/const';
 import {
   findTimestampColumn,
@@ -218,6 +221,14 @@ function AutomlConfigure({
 
   // Calculate max top_n based on task type
   const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
+  const availablePresets = isTimeseries ? TIMESERIES_PRESETS : PRESETS;
+
+  // Normalize unsupported presets on initial values as well as when switching to timeseries.
+  useEffect(() => {
+    if (isTimeseries && getValues('preset') === PRESET_QUALITY) {
+      setValue('preset', PRESET_FASTER, { shouldValidate: true });
+    }
+  }, [isTimeseries, getValues, setValue]);
 
   // Clear timeseries fields that conflict with the selected target column
   useEffect(() => {
@@ -270,7 +281,7 @@ function AutomlConfigure({
       });
       void trigger('top_n');
     }
-  }, [taskType, isTaskTypeSelected, getValues, setValue, trigger]);
+  }, [taskType, isTaskTypeSelected, isTimeseries, getValues, setValue, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
@@ -1057,7 +1068,7 @@ function AutomlConfigure({
                             name="preset"
                             render={({ field }) => (
                               <Flex direction={{ default: 'column' }}>
-                                {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
+                                {availablePresets.map((preset) => (
                                   <Radio
                                     key={preset}
                                     id={`preset-${preset}`}
@@ -1068,13 +1079,27 @@ function AutomlConfigure({
                                         <>
                                           4 vCPU / 16 GiB
                                           <br />
+                                          45-minute model-selection budget.
+                                          <br />
                                           Use fewer resources to prioritize speed
                                         </>
-                                      ) : (
+                                      ) : preset === PRESET_BETTER_QUALITY ? (
                                         <>
                                           8 vCPU / 32 GiB
                                           <br />
+                                          Up to 3 hours for model selection.
+                                          <br />
                                           Use more resources to prioritize accuracy
+                                        </>
+                                      ) : (
+                                        <>
+                                          16 vCPU / 64 GiB
+                                          <br />
+                                          Up to 6 h for model selection, plus data loading and
+                                          refit; samples up to 10 GiB.
+                                          <br />
+                                          Choose for large datasets when maximum model search
+                                          quality is worth the longer run and higher resource use.
                                         </>
                                       )
                                     }

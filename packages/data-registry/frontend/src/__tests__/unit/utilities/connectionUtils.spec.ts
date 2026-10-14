@@ -20,7 +20,7 @@ describe('connection references', () => {
       id: mockDchConnection().id,
     });
     expect(toConnectionRef(mockRhaiConnection())).toEqual({
-      type: 'rhai',
+      type: 'secret',
       secret_name: 'my-s3-connection',
     });
   });

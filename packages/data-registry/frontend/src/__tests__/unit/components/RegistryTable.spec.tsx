@@ -20,7 +20,7 @@ const mockAssets: RegistryAsset[] = [
     properties: { 'data-domain': 'claims' },
     rawAsset: mockAssetResponse({
       name: 'claims-data',
-      connection_ref: { type: 'rhai', secret_name: 'minio-connection' },
+      connection_ref: { type: 'secret', secret_name: 'minio-connection' },
     }),
   },
   {

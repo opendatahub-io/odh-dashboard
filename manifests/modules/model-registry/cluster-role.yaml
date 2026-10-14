@@ -17,3 +17,13 @@ rules:
       - create
     resources:
       - subjectaccessreviews
+  # MCP catalog deploy readiness: read the gateways published by the MCP Lifecycle
+  # module operator. The CR is a cluster-scoped singleton named "default".
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - mcplifecycleoperators
+    resourceNames:
+      - default
+    verbs:
+      - get

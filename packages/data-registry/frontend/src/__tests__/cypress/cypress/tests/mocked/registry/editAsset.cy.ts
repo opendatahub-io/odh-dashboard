@@ -30,7 +30,7 @@ describe('Edit Table Asset', () => {
     format: 'parquet',
     storage_location: 's3://bucket/claims',
     collection: 'analytics',
-    connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+    connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
     labels: ['production', 'claims'],
     properties: {
       purpose: 'fraud detection',
