@@ -98,7 +98,10 @@ export const getClusterArchitecture = (): Cypress.Chainable<'x86_64' | 's390x' |
     .then((result: CommandLineResult) => {
       const archOutput = result.stdout.trim().replace(/^'|'$/g, '');
       if (result.exitCode !== 0 || !archOutput) {
-        throw new Error('Unable to determine cluster architecture from oc get nodes.');
+        cy.log(
+          `Unable to determine cluster architecture from oc get nodes; defaulting to x86_64 (exitCode: ${result.exitCode}, stderr: ${result.stderr})`,
+        );
+        return cy.wrap<'x86_64' | 's390x' | 'arm64'>('x86_64');
       }
       const architectures = archOutput.split(/\s+/);
       let arch: 'x86_64' | 's390x' | 'arm64' = 'x86_64';

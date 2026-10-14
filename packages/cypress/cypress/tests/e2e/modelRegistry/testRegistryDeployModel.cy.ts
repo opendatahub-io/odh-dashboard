@@ -56,7 +56,7 @@ describe('Verify models can be deployed from model registry', () => {
   let resourceName: string;
   let deploymentName: string;
   let servingRuntime: string;
-  let clusterArchitecture: string;
+  let clusterArchitecture: 'x86_64' | 's390x' | 'arm64' = 'x86_64';
   let hardwareProfileName: string;
   let hardwareProfileYamlPath: string;
   let servingRuntimeArgs: string;

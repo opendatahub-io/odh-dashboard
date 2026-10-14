@@ -22,7 +22,7 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import type { RayJobE2eTestData } from '../../../../types';
-import { skipOnArm } from '../../../../utils/skipUtils';
+import { getClusterArchitecture } from '../../../../utils/oc_commands/baseCommands';
 
 const INITIAL_WORKER_REPLICAS = 1;
 const UPDATED_WORKER_REPLICAS = 2;
@@ -31,8 +31,6 @@ const INITIAL_TOTAL_NODES = INITIAL_WORKER_REPLICAS + 1;
 const UPDATED_TOTAL_NODES = UPDATED_WORKER_REPLICAS + 1;
 
 describe('Verify pause, scale worker nodes, and delete RayJob', () => {
-  skipOnArm();
-
   let testData: RayJobE2eTestData;
   let skipTest = false;
   let projectName: string;
@@ -77,10 +75,12 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
           cpuQuota = testData.cpuQuota;
           memoryQuota = testData.memoryQuota;
           gpuQuota = testData.gpuQuota;
-          rayImage = testData.rayImage;
           rayVersion = testData.rayVersion;
 
           cy.log(`Test configuration loaded for project: ${projectName}`);
+          return getClusterArchitecture().then((arch) => {
+            rayImage = arch === 'arm64' ? testData.rayImageArm64 : testData.rayImage;
+          });
         })
         .then(() => {
           cy.step('Create testing project');

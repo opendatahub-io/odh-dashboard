@@ -4,20 +4,14 @@
 
 import { getClusterArchitecture } from './oc_commands/baseCommands';
 
-/** Skips a suite before its setup runs when ARM is the detected cluster architecture. */
+/** Skips the entire suite (including its setup hooks) when the cluster is ARM. */
 export const skipOnArm = (): void => {
-  let isArm = false;
-
-  before(() => {
-    getClusterArchitecture().then((architecture) => {
-      isArm = architecture === 'arm64';
+  before(function skipSuiteOnArm() {
+    return getClusterArchitecture().then((architecture) => {
+      if (architecture === 'arm64') {
+        this.skip();
+      }
     });
-  });
-
-  beforeEach(function skipTestOnArm() {
-    if (isArm) {
-      this.skip();
-    }
   });
 };
 
