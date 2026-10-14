@@ -242,6 +242,39 @@ func TestResponsesRepositoryResolveVectorDBWithoutForwarderPreservesURI(t *testi
 	assert.Equal(t, originalURI, string(secretData["MILVUS_URI"]))
 }
 
+func TestResponsesRepositoryResolveVectorDBPgvectorWithMilvusLegacyKeysDoesNotForward(t *testing.T) {
+	secretData := map[string][]byte{
+		"PGVECTOR_HOST":      []byte("db.example.com"),
+		"PGVECTOR_PORT":      []byte("5432"),
+		"PGVECTOR_DB":        []byte("db"),
+		"PGVECTOR_USER":      []byte("user"),
+		"PGVECTOR_PASSWORD":  []byte("password"),
+		"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
+	}
+	forwarderCalled := false
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: secretData}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(context.Context, string) (string, error) {
+			forwarderCalled = true
+			return "http://localhost:4321", nil
+		},
+	})
+	repo.newVectorDB = func(_ context.Context, data map[string][]byte, forwardURL func(context.Context, string) (string, error)) (vectordb.VectorDB, error) {
+		assert.Nil(t, forwardURL)
+		assert.Equal(t, string(secretData["MILVUS_URI"]), string(data["MILVUS_URI"]))
+		return &mockVectorDB{}, nil
+	}
+
+	db, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+	require.NoError(t, err)
+	require.NotNil(t, db)
+	assert.False(t, forwarderCalled)
+}
+
 func TestResponsesRepositoryRejectsUnvalidatedURIBeforeForwarding(t *testing.T) {
 	// Loopback URIs are a devmode affordance (the factory bypasses the
 	// forwarder for them), so validation is exercised with URIs the endpoint
@@ -429,8 +462,11 @@ func TestResponsesRepositoryValidateResponsesChecksDatabaseProviderForAllSearchM
 			wantErr:    vectordb.ErrUnsupportedVectorDB,
 		},
 		{
-			name:       "supported provider",
-			secretData: map[string][]byte{"PGVECTOR_HOST": []byte("db.example.com")},
+			name: "supported provider",
+			secretData: map[string][]byte{
+				"PGVECTOR_HOST": []byte("db.example.com"), "PGVECTOR_PORT": []byte("5432"),
+				"PGVECTOR_DB": []byte("db"), "PGVECTOR_USER": []byte("user"), "PGVECTOR_PASSWORD": []byte("password"),
+			},
 		},
 	}
 
