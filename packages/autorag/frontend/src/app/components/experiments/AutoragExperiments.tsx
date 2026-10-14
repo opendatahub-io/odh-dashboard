@@ -1,7 +1,4 @@
-import {
-  EmptyExperimentsState,
-  PipelineServerStarting,
-} from '@odh-dashboard/autox-core/ui/components/feature';
+import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
 import { usePipelineServerStatus } from '@odh-dashboard/autox-core/ui/hooks';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
@@ -169,8 +166,20 @@ function AutoragExperiments({
     );
   }
 
-  if (pipelineServerStatus.isStarting && (!loadError || pipelineServerMode === 'waiting')) {
-    return <PipelineServerStarting namespace={effectiveNamespace} />;
+  if (
+    pipelineServerStatus.isStarting &&
+    !pipelineServerStatus.error &&
+    (!loadError || pipelineServerMode === 'waiting')
+  ) {
+    return (
+      <PipelineServerSetup
+        namespace={effectiveNamespace || undefined}
+        mode="waiting"
+        onStarted={() => setServerBusy('waiting')}
+        onFailed={() => setServerBusy(false)}
+        onReady={handleServerReady}
+      />
+    );
   }
 
   if (pipelineServerMode) {
@@ -200,6 +209,20 @@ function AutoragExperiments({
           <Spinner size="xl" />
         </FlexItem>
       </Flex>
+    );
+  }
+
+  if (!hasExperiments && effectiveNamespace && pipelineServerStatus.error) {
+    return (
+      <Alert
+        variant="danger"
+        isInline
+        title="Unable to verify pipeline server readiness"
+        data-testid="pipeline-server-status-error"
+      >
+        <p>{pipelineServerStatus.error.message}</p>
+        <p>Refresh the page to check again before creating a run.</p>
+      </Alert>
     );
   }
 

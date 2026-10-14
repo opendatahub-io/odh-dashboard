@@ -42,10 +42,11 @@ export const usePipelineServerStatus = (
       (condition) => condition.type === 'Ready' && condition.status === 'True',
     ),
   );
+  const isStarting = !error && loaded && dspas.length > 0 && !isReady;
 
   return {
     loaded,
-    isStarting: loaded && dspas.length > 0 && !isReady,
+    isStarting,
     error,
   };
 };

@@ -41,7 +41,7 @@ jest.mock('~/app/components/empty-states/PipelineServerSetup', () => ({
     onStarted,
   }: {
     namespace?: string;
-    mode?: 'configure' | 'enable';
+    mode?: 'configure' | 'enable' | 'waiting';
     onStarted?: () => void;
     onFailed?: () => void;
     onReady?: () => void;
@@ -159,7 +159,7 @@ describe('AutomlExperiments', () => {
     expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
   });
 
-  it('should show PipelineServerStarting when the pipeline server is starting with no experiments', () => {
+  it('should use the bounded waiting state while the pipeline server is starting', () => {
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
       runs: [],
@@ -173,7 +173,37 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByTestId('pipeline-server-starting')).toBeInTheDocument();
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+    expect(mockPipelineServerSetupMode).toBe('waiting');
+    expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      scenario: 'the initial readiness check fails',
+      status: { loaded: false, isStarting: false, error: new Error('initial watch failure') },
+    },
+    {
+      scenario: 'the watch fails after an unready DSPA was received',
+      status: { loaded: true, isStarting: true, error: new Error('watch interrupted') },
+    },
+  ])('should show a readiness error when $scenario', ({ status }) => {
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      runs: [],
+      totalSize: 0,
+    });
+    mockUsePipelineServerStatus.mockReturnValue(status);
+
+    renderAutoml(<AutomlExperiments />);
+
+    expect(screen.getByTestId('pipeline-server-status-error')).toHaveTextContent(
+      'Unable to verify pipeline server readiness',
+    );
+    expect(screen.getByTestId('pipeline-server-status-error')).toHaveTextContent(
+      status.error.message,
+    );
+    expect(screen.queryByTestId('pipeline-server-starting')).not.toBeInTheDocument();
     expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
   });
 
@@ -319,7 +349,7 @@ describe('AutomlExperiments', () => {
     expect(mockPipelineServerSetupMode).toBe('waiting');
   });
 
-  it('should preserve PipelineServerStarting for a transient waiting error', () => {
+  it('should use the bounded waiting state for a transient waiting error', () => {
     mockGetGenericErrorCode.mockReturnValue(503);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -333,8 +363,8 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByTestId('pipeline-server-starting')).toBeInTheDocument();
-    expect(screen.queryByTestId('no-pipeline-server')).not.toBeInTheDocument();
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+    expect(mockPipelineServerSetupMode).toBe('waiting');
   });
 
   it.each([
