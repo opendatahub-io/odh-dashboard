@@ -23,13 +23,12 @@ import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
+import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   getEvaluationName,
   getBenchmarkName,
   getEvaluationDisplayState,
-  isEvaluationJobQueued,
   isEvaluationJobComparable,
   isTerminalState,
 } from '~/app/utilities/evaluationUtils';
@@ -46,8 +45,6 @@ import {
 } from '~/app/utilities/tablePaginationConstants';
 import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/routes';
 import useEvaluationJobDetailPolling from '~/app/hooks/useEvaluationJobDetailPolling';
-import { useKueueAvailability } from '~/app/hooks/useKueueAvailability';
-import { useKueueWorkloadStatuses } from '~/app/hooks/useKueueWorkloadStatuses';
 import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTableRow from './EvaluationsTableRow';
 
@@ -68,28 +65,17 @@ const FILTER_PLACEHOLDERS: Partial<Record<FilterOption, string>> = {
 };
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: 'admitted', label: 'Admitted' },
   { value: 'cancelled', label: 'Canceled' },
   { value: 'completed', label: 'Completed' },
   { value: 'failed', label: 'Failed' },
-  { value: 'inadmissible', label: 'Inadmissible' },
   { value: 'pending', label: 'Pending' },
-  { value: 'queued', label: 'Queued' },
   { value: 'running', label: 'Running' },
   { value: 'stopping', label: 'Canceling' },
 ];
 
-const KUEUE_STATUS_FILTERS: StatusFilter[] = ['queued', 'admitted', 'inadmissible'];
-
-const matchesStatusFilter = (
-  job: EvaluationJob,
-  selectedStatus: StatusFilter,
-  kueueWorkloadStatus: KueueWorkloadStatus | undefined,
-) => {
+const matchesStatusFilter = (job: EvaluationJob, selectedStatus: StatusFilter) => {
   const displayState = getEvaluationDisplayState(job.status.state, {
-    isQueued: isEvaluationJobQueued(job),
     isPreStartFailure: isPreStartFailure(job),
-    kueueWorkloadStatus,
   });
   if (selectedStatus === 'failed') {
     return displayState === 'failed' || displayState === 'not_started';
@@ -102,19 +88,13 @@ type SortConfig = {
   direction: 'asc' | 'desc';
 };
 
-const getSortableValue = (
-  job: EvaluationJob,
-  columnIndex: number,
-  kueueWorkloadStatus: KueueWorkloadStatus | undefined,
-): string | number => {
+const getSortableValue = (job: EvaluationJob, columnIndex: number): string | number => {
   switch (columnIndex) {
     case 0:
       return getEvaluationName(job).toLowerCase();
     case 1:
       return getEvaluationDisplayState(job.status.state, {
-        isQueued: isEvaluationJobQueued(job),
         isPreStartFailure: isPreStartFailure(job),
-        kueueWorkloadStatus,
       });
     case 4:
       return job.resource.created_at ? new Date(job.resource.created_at).getTime() : 0;
@@ -160,31 +140,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   onShowStatus,
 }) => {
   const navigate = useNavigate();
-  const { availability: kueueAvailability, loaded: kueueAvailabilityLoaded } =
-    useKueueAvailability(namespace);
-  const isKueueEnabled = kueueAvailability?.enabled === true;
-  const statusOptions = isKueueEnabled
-    ? STATUS_OPTIONS
-    : STATUS_OPTIONS.filter((option) => !KUEUE_STATUS_FILTERS.includes(option.value));
   // Pause polling when the browser tab is backgrounded to reduce server load
   const isPollingEnabled = usePageVisibility();
-  const evaluationIDs = React.useMemo(
-    () =>
-      evaluations.filter((job) => !isTerminalState(job.status.state)).map((job) => job.resource.id),
-    [evaluations],
-  );
-  const isKueueWorkloadStatusPollingEnabled = loaded && isPollingEnabled;
-  const {
-    statusesByEvaluationId: kueueWorkloadStatusesByEvaluationID,
-    isLoading: isKueueWorkloadStatusesLoading,
-    error: kueueWorkloadStatusesError,
-  } = useKueueWorkloadStatuses(
-    namespace,
-    evaluationIDs,
-    isKueueEnabled,
-    isKueueWorkloadStatusPollingEnabled,
-    evaluationIDs.length > 0,
-  );
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedStatus, setSelectedStatus] = React.useState<StatusFilter | ''>('');
@@ -198,12 +155,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   });
   const [selectedEvaluationIds, setSelectedEvaluationIds] = React.useState<Set<string>>(new Set());
 
-  React.useEffect(() => {
-    if (!isKueueEnabled && KUEUE_STATUS_FILTERS.some((status) => status === selectedStatus)) {
-      setSelectedStatus('');
-    }
-  }, [isKueueEnabled, selectedStatus]);
-
   const filteredEvaluations = React.useMemo(
     () =>
       evaluations.filter((job) => {
@@ -211,11 +162,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
           if (!selectedStatus) {
             return true;
           }
-          return matchesStatusFilter(
-            job,
-            selectedStatus,
-            kueueWorkloadStatusesByEvaluationID.get(job.resource.id),
-          );
+          return matchesStatusFilter(job, selectedStatus);
         }
         if (!filterValue) {
           return true;
@@ -224,35 +171,20 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
           filterValue.toLowerCase(),
         );
       }),
-    [
-      evaluations,
-      filterValue,
-      activeFilter,
-      selectedStatus,
-      collectionNameMap,
-      kueueWorkloadStatusesByEvaluationID,
-    ],
+    [evaluations, filterValue, activeFilter, selectedStatus, collectionNameMap],
   );
 
   const sortedEvaluations = React.useMemo(() => {
     const sorted = [...filteredEvaluations].toSorted((a, b) => {
-      const aVal = getSortableValue(
-        a,
-        sortConfig.index,
-        kueueWorkloadStatusesByEvaluationID.get(a.resource.id),
-      );
-      const bVal = getSortableValue(
-        b,
-        sortConfig.index,
-        kueueWorkloadStatusesByEvaluationID.get(b.resource.id),
-      );
+      const aVal = getSortableValue(a, sortConfig.index);
+      const bVal = getSortableValue(b, sortConfig.index);
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return aVal - bVal;
       }
       return String(aVal).localeCompare(String(bVal));
     });
     return sortConfig.direction === 'desc' ? sorted.reverse() : sorted;
-  }, [filteredEvaluations, kueueWorkloadStatusesByEvaluationID, sortConfig]);
+  }, [filteredEvaluations, sortConfig]);
 
   const paginatedEvaluations = React.useMemo(
     () => sortedEvaluations.slice(perPage * (page - 1), perPage * page),
@@ -505,7 +437,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     data-testid="filter-status-select"
                   >
                     <SelectList>
-                      {statusOptions.map((option) => (
+                      {STATUS_OPTIONS.map((option) => (
                         <SelectOption
                           key={option.value}
                           value={option.value}
@@ -569,15 +501,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
           isInline
           title="Status updates are temporarily unavailable"
           data-testid="detail-polling-warning"
-        />
-      )}
-
-      {isKueueEnabled && kueueWorkloadStatusesError && (
-        <Alert
-          variant="warning"
-          isInline
-          title="Unable to load Kueue scheduling updates. Evaluation status is shown instead."
-          data-testid="kueue-workload-status-warning"
         />
       )}
 
@@ -663,10 +586,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 onShowStatus={onShowStatus}
                 isSelected={selectedEvaluationIds.has(job.resource.id)}
                 onSelectionChange={(checked) => handleSelectionChange(job.resource.id, checked)}
-                kueueWorkloadStatus={kueueWorkloadStatusesByEvaluationID.get(job.resource.id)}
-                isKueueWorkloadStatusLoading={
-                  !kueueAvailabilityLoaded || (isKueueEnabled && isKueueWorkloadStatusesLoading)
-                }
               />
             ))}
           </Tbody>

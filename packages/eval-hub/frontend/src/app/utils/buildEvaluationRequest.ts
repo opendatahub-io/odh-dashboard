@@ -23,8 +23,6 @@ type BuildEvaluationRequestParams = {
   experimentTags?: { key: string; value: string }[];
   passCriteriaOverride?: JobPassCriteria;
   primaryScoreOverride?: JobPrimaryScore;
-  hardwareProfile?: string;
-  queue?: string;
 };
 
 const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass_criteria']);
@@ -45,8 +43,6 @@ const buildEvaluationRequest = ({
   experimentTags,
   passCriteriaOverride,
   primaryScoreOverride,
-  hardwareProfile,
-  queue,
 }: BuildEvaluationRequestParams): CreateEvaluationJobRequest => {
   const topLevelOverrides: Record<string, unknown> = {};
   const benchmarkParams: Record<string, unknown> = {};
@@ -116,14 +112,6 @@ const buildEvaluationRequest = ({
   );
 
   const isCollectionFlow = !!collection;
-  const hardwareConfig = hardwareProfile
-    ? {
-        // eslint-disable-next-line camelcase
-        hardware_profile_name: hardwareProfile,
-      }
-    : queue
-      ? { queue: { kind: 'kueue', name: queue } }
-      : undefined;
 
   return {
     name: evaluationName.trim(),
@@ -156,8 +144,6 @@ const buildEvaluationRequest = ({
       : { benchmarks: benchmarkEntries }),
     ...restOverrides,
     ...(experiment ? { experiment } : {}),
-    // eslint-disable-next-line camelcase
-    ...(hardwareConfig ? { hardware_config: hardwareConfig } : {}),
   };
 };
 
