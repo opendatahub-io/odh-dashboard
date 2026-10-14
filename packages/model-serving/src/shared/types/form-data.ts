@@ -253,7 +253,7 @@ export type GenericFieldProps = {
 
 export type WizardFieldHelpPopover = {
   title?: string;
-  content: string;
+  content: React.ReactNode;
 };
 
 export type WizardStateOverrides = {
@@ -261,10 +261,15 @@ export type WizardStateOverrides = {
     isDisabled?: boolean;
     disabledHelperText?: string;
   };
+  modelAvailability?: {
+    isDisabled?: boolean;
+    forceSaveAsAiAsset?: boolean;
+    isMaaSSubscriptionSelected?: boolean;
+  };
   'llmd-serving/gateway'?: {
     isDisabled?: boolean;
-    selection?: { name: string; namespace?: string };
-    hiddenOptions?: { name: string; namespace?: string }[];
+    selections?: { name: string; namespace: string }[];
+    hiddenOptions?: { name: string; namespace: string }[];
     disabledTooltip?: string;
     labelHelpPopover?: WizardFieldHelpPopover;
     /**

@@ -1,14 +1,11 @@
 import * as React from 'react';
 import { Form, FormGroup, Switch } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { ChatbotContext } from '~/app/context/ChatbotContext';
-import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import ModelParameterFormGroup from '~/app/Chatbot/components/ModelParameterFormGroup';
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
 import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
 import TranscriptionModelSection from '~/app/Chatbot/components/settingsPanelTabs/TranscriptionModelSection';
-import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
 interface ModelTabContentProps {
   temperature: number;
@@ -24,7 +21,7 @@ interface ModelTabContentProps {
   configId: string;
 }
 
-const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
+function ModelTabContent({
   temperature,
   onTemperatureChange,
   isStreamingEnabled,
@@ -35,26 +32,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   selectedSubscription,
   onSubscriptionChange,
   configId,
-}) => {
-  const { aiModels, aiModelsLoaded, aiModelsError, maasModels, maasModelsLoaded } =
-    React.useContext(ChatbotContext);
-
-  const { hasASRModel, capabilitiesReady, capabilitiesError } = useWorkspaceCapabilities(
-    aiModels,
-    aiModelsLoaded,
-    maasModelsLoaded,
-    aiModelsError,
-    maasModels,
-  );
-
-  React.useEffect(() => {
-    if (capabilitiesReady && !capabilitiesError && !hasASRModel) {
-      const store = useChatbotConfigStore.getState();
-      store.updateAsrModelEnabled(configId, false);
-      store.updateSelectedAsrModel(configId, '');
-    }
-  }, [capabilitiesReady, capabilitiesError, hasASRModel, configId]);
-
+}: ModelTabContentProps): React.ReactElement {
   return (
     <TabContentWrapper title={title}>
       <Form>
@@ -105,6 +83,6 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
       </Form>
     </TabContentWrapper>
   );
-};
+}
 
 export default ModelTabContent;

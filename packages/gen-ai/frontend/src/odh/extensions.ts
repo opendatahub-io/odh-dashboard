@@ -173,7 +173,6 @@ const extensions: (
       href: chatPlaygroundRootPath,
       section: 'gen-ai-studio',
       path: globChatPlaygroundAll,
-      label: 'Tech Preview',
     },
   },
   {
@@ -187,7 +186,6 @@ const extensions: (
       href: aiAssetsRootPath,
       section: 'gen-ai-studio',
       path: globAiAssetsAll,
-      label: 'Tech Preview',
     },
   },
   {

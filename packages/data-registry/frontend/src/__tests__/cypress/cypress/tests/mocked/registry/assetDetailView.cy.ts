@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { mockModArchResponse } from 'mod-arch-core';
+import { mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 
@@ -18,7 +19,7 @@ const mockTableResponse = {
     { name: 'status', type: 'string', nullable: false },
   ],
   collection: 'analytics',
-  connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+  connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
   owner: 'data-team',
   description: 'Claims processing data',
   labels: ['production', 'claims', 'analytics'],
@@ -54,6 +55,9 @@ const initIntercepts = () => {
   cy.intercept('GET', `${MAIN_API}/namespaces`, {
     body: mockModArchResponse([mockNamespace({ name: 'test-project' })]),
   });
+  cy.intercept('GET', `${MAIN_API}/connections/test-project`, {
+    body: mockModArchResponse([mockRhaiConnection()]),
+  });
 };
 
 describe('Table Detail View', () => {
@@ -77,7 +81,8 @@ describe('Table Detail View', () => {
     cy.findByTestId('asset-type').should('contain.text', 'Structured');
     cy.findByTestId('asset-location').should('contain.text', 's3://bucket/claims');
     cy.findByTestId('asset-owner').should('contain.text', 'data-team');
-    cy.findByTestId('connection-ref-label').should('contain.text', 'my-s3-connection');
+    cy.findByTestId('connection-ref-link').should('contain.text', 'My S3 Connection');
+    cy.findByTestId('connection-type').should('contain.text', 's3');
   });
 
   it('should display asset type badge and Overview tab', () => {
@@ -98,11 +103,14 @@ describe('Table Detail View', () => {
     cy.contains('claims').should('exist');
 
     cy.findByTestId('properties-card').should('exist');
-    cy.contains('data.quality: verified').should('exist');
-    cy.contains('source: etl-pipeline').should('exist');
+    cy.findByTestId('asset-property-data.quality')
+      .should('contain.text', 'data.quality')
+      .and('contain.text', 'verified');
+    cy.findByTestId('asset-property-source')
+      .should('contain.text', 'source')
+      .and('contain.text', 'etl-pipeline');
 
     cy.findByTestId('schema-card').should('exist');
-    cy.findByTestId('schema-column-count').should('contain.text', '3 columns');
     cy.findByTestId('schema-columns-table').should('exist');
     cy.findByTestId('schema-column-name-id').should('contain.text', 'id');
   });
@@ -237,9 +245,15 @@ describe('Volume Detail View', () => {
     cy.contains('unstructured').should('exist');
 
     cy.findByTestId('properties-card').should('exist');
-    cy.contains('content-type: application/pdf').should('exist');
-    cy.contains('purpose: training').should('exist');
-    cy.contains('environment: production').should('exist');
+    cy.findByTestId('asset-property-content-type')
+      .should('contain.text', 'content-type')
+      .and('contain.text', 'application/pdf');
+    cy.findByTestId('asset-property-purpose')
+      .should('contain.text', 'Purpose')
+      .and('contain.text', 'training');
+    cy.findByTestId('asset-property-environment')
+      .should('contain.text', 'environment')
+      .and('contain.text', 'production');
   });
 
   it('should not display schema card for volumes', () => {

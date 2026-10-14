@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { mockModArchResponse } from 'mod-arch-core';
+import { mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
@@ -18,9 +19,7 @@ const initIntercepts = () => {
     body: mockModArchResponse([mockNamespace({ name: 'test-project' })]),
   });
   cy.intercept('GET', `${MAIN_API}/connections/test-project`, {
-    body: mockModArchResponse([
-      { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
-    ]),
+    body: mockModArchResponse([mockRhaiConnection()]),
   });
 };
 
@@ -31,7 +30,7 @@ describe('Edit Table Asset', () => {
     format: 'parquet',
     storage_location: 's3://bucket/claims',
     collection: 'analytics',
-    connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+    connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
     labels: ['production', 'claims'],
     properties: {
       purpose: 'fraud detection',
@@ -262,13 +261,13 @@ describe('Edit Table Asset', () => {
     assetDetailPage.findEditAction().click();
     editAssetModal.shouldBeOpen();
 
-    editAssetModal.findLabel('production').should('exist');
-    editAssetModal.findLabel('claims').should('exist');
+    editAssetModal.findLabelInput(0).should('have.value', 'production');
+    editAssetModal.findLabelInput(1).should('have.value', 'claims');
 
     editAssetModal.findAddLabelButton().click();
-    editAssetModal.findLabelsInput().type('new-label{enter}');
+    editAssetModal.findLabelInput(2).type('new-label');
 
-    editAssetModal.removeLabel('production');
+    editAssetModal.removeLabel(0);
 
     editAssetModal.findSaveButton().click();
 
@@ -346,7 +345,7 @@ describe('Edit Table Asset', () => {
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findSchemaColumnName(0).should('have.value', 'id');
-    editAssetModal.findSchemaColumnTypeToggle(0).should('contain.text', 'integer');
+    editAssetModal.findSchemaColumnTypeToggle(0).should('contain.text', 'Integer');
     editAssetModal.findSchemaColumnName(1).should('have.value', 'amount');
 
     editAssetModal.findAddColumnButton().click();

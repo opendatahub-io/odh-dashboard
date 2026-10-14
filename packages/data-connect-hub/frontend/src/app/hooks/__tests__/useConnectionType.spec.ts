@@ -1,6 +1,7 @@
 import { useFetchState } from 'mod-arch-core';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import { getConnectionType } from '~/app/api/dch';
+import { ConnectionTypeInstance } from '~/app/components/ConnectionType';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 
@@ -20,13 +21,22 @@ describe('useConnectionType', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetConnectionType.mockReturnValue(fetchConnectionType);
-    mockUseFetchState.mockReturnValue([mockConnectionType(), true, undefined, jest.fn()]);
+    mockUseFetchState.mockReturnValue([
+      new ConnectionTypeInstance(mockConnectionType()),
+      true,
+      undefined,
+      jest.fn(),
+    ]);
   });
 
-  it('should return the connection type fetch state', () => {
+  it('should return a connection type instance fetch state', () => {
     const result = testHook(useConnectionType)('test-project', 'postgresql');
 
-    expect(result.result.current).toEqual([mockConnectionType(), true, undefined]);
+    expect(result.result.current).toEqual([
+      new ConnectionTypeInstance(mockConnectionType()),
+      true,
+      undefined,
+    ]);
     expect(mockUseFetchState).toHaveBeenCalledWith(expect.any(Function), undefined, {
       initialPromisePurity: true,
     });
@@ -38,10 +48,11 @@ describe('useConnectionType', () => {
     testHook(useConnectionType)('test-project', 'postgresql');
     const callback = mockUseFetchState.mock.calls[0][0];
 
-    await callback(opts);
+    const connectionType = await callback(opts);
 
     expect(mockGetConnectionType).toHaveBeenCalledWith('');
     expect(fetchConnectionType).toHaveBeenCalledWith(opts, 'test-project', 'postgresql');
+    expect(connectionType).toBeInstanceOf(ConnectionTypeInstance);
   });
 
   it.each([

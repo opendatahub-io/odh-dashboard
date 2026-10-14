@@ -38,6 +38,8 @@ export type TabRoutePageExtension = Extension<
     objectType?: string;
     /** When true, renders the tab bar even if only one tab is registered. */
     alwaysShowTabBar?: boolean;
+    /** Relative path prefixes where the generic page title should be hidden. */
+    hidePageTitleOnPaths?: string[];
   }
 >;
 

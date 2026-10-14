@@ -125,13 +125,6 @@ export type BuildStatus = {
   timestamp: string;
 };
 
-export type SubscriptionStatusData = {
-  channel?: string;
-  installedCSV?: string;
-  installPlanRefNamespace?: string;
-  lastUpdated?: string;
-};
-
 type K8sMetadata = {
   name: string;
   namespace?: string;
@@ -244,6 +237,7 @@ export type BYONImage = {
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
   recommendedAcceleratorIdentifiers: string[];
+  tier?: string;
   isOOTB: boolean;
 };
 
@@ -381,6 +375,7 @@ export enum ImageStreamAnnotation {
   CREATOR = 'opendatahub.io/notebook-image-creator',
   RECOMMENDED_ACCELERATORS = 'opendatahub.io/recommended-accelerators',
   IMAGE_ORDER = 'opendatahub.io/notebook-image-order',
+  NOTEBOOK_TIER = 'opendatahub.io/notebook-tier',
   HIDDEN = 'opendatahub.io/notebook-image-hidden',
 }
 

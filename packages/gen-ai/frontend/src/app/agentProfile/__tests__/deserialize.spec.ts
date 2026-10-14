@@ -68,6 +68,27 @@ describe('deserializeAgentProfile', () => {
       expect(config.selectedModel).toBe('maas-vllm/granite-3b');
     });
 
+    it('should match a MaaS model served through genai-bff-proxy', () => {
+      const maasLlamaModel = makeLlamaModel({
+        id: 'genai-bff-proxy/openai-gpt-4o-mini',
+        modelId: 'openai-gpt-4o-mini',
+      });
+      const profile = makeProfile({
+        model: {
+          id: 'openai-gpt-4o-mini',
+          uri: 'https://maas.example.com',
+          sourceType: 'maas',
+        },
+      });
+
+      const { config } = deserializeAgentProfile(
+        profile,
+        makeContext({ playgroundModels: [maasLlamaModel] }),
+      );
+
+      expect(config.selectedModel).toBe('genai-bff-proxy/openai-gpt-4o-mini');
+    });
+
     it('should not match a MaaS playground model for a non-MaaS profile model', () => {
       const maasLlamaModel = makeLlamaModel({
         id: 'maas-vllm/ai-asset-llama-3-70b',

@@ -123,6 +123,30 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+	displayNameTaken, err := k8sClient.IsAgentDeploymentDisplayNameTaken(ctx, namespace, req.Name)
+	if err != nil {
+		if httpErr, ok := err.(*integrations.HTTPError); ok {
+			switch httpErr.StatusCode {
+			case http.StatusForbidden:
+				app.forbiddenResponse(w, r, httpErr.Message)
+			case http.StatusServiceUnavailable:
+				app.errorResponse(w, r, httpErr)
+			default:
+				app.serverErrorResponse(w, r, httpErr)
+			}
+			return
+		}
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if displayNameTaken {
+		app.conflictResponse(
+			w,
+			r,
+			fmt.Errorf("an agent deployment named %q already exists in this project", req.Name),
+		)
+		return
+	}
 	resources := kubernetes.SandboxDeploymentResources{}
 	rollback := func() {
 		rollbackCtx, cancel := context.WithTimeout(context.Background(), sandboxRollbackTimeout)
@@ -368,6 +392,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	// Build Sandbox CR options from the profile snapshot and BFF config.
 	sandboxOpts := kubernetes.SandboxCROptions{
 		Name:                    sandboxName,
+		DisplayName:             req.Name,
 		ProfileID:               req.AgentProfileID,
 		LlamaStackConfigMapName: lsCM.Name,
 		WrapperAppConfigMapName: waCM.Name,

@@ -14,7 +14,10 @@ import type {
   PipelineKF,
   PipelineVersionKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
-import type { DSPipelineAPIServerStore } from '@odh-dashboard/internal/k8sTypes.ts';
+import type {
+  DSPipelineAPIServerStore,
+  DSPipelineManagedPipelinesKind,
+} from '@odh-dashboard/internal/k8sTypes.ts';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
@@ -37,6 +40,7 @@ export type HandlersProps = {
   initializing?: boolean;
   nextPageToken?: string | undefined;
   pipelineStore?: DSPipelineAPIServerStore;
+  managedPipelines?: DSPipelineManagedPipelinesKind;
 };
 
 export const initIntercepts = ({
@@ -49,6 +53,7 @@ export const initIntercepts = ({
   totalSize = mockPipelines.length,
   nextPageToken,
   pipelineStore,
+  managedPipelines,
 }: HandlersProps): void => {
   cy.interceptK8sList(
     isEmpty
@@ -60,6 +65,7 @@ export const initIntercepts = ({
         : [
             mockDataSciencePipelineApplicationK8sResource({
               namespace: projectName,
+              managedPipelines,
             }),
           ],
     ),
@@ -72,6 +78,7 @@ export const initIntercepts = ({
       initializing,
       message: errorMessage,
       pipelineStore,
+      managedPipelines,
     }),
   );
   cy.interceptK8s(

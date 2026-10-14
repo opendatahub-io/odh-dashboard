@@ -624,3 +624,44 @@ export function findTrainingTaskPrefix(
   });
   return match ? match.prefix.replace(/\/$/, '') : undefined;
 }
+
+const UUID_DIRECTORY_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Resolve a training task only when exactly one allowed task directory is present. */
+export function resolveTrainingTaskPrefix(
+  commonPrefixes: { prefix: string }[],
+  allowedTaskNames: string[],
+): string | undefined {
+  const matches = commonPrefixes
+    .filter((prefix) => {
+      const segments = prefix.prefix.split('/').filter(Boolean);
+      const directoryName = segments[segments.length - 1];
+      return allowedTaskNames.includes(directoryName);
+    })
+    .map(({ prefix }) => prefix.replace(/\/$/, ''));
+  const uniqueMatches = [...new Set(matches)];
+
+  return uniqueMatches.length === 1 ? uniqueMatches[0] : undefined;
+}
+
+/** Resolve a UUID child directory only when exactly one matching child is present. */
+export function resolveUniqueUuidPrefix(
+  commonPrefixes: { prefix: string }[],
+  basePath: string,
+): string | undefined {
+  const normalizedBasePath = basePath.replace(/\/+$/, '');
+  const expectedPrefix = `${normalizedBasePath}/`;
+  const ids = commonPrefixes
+    .map(({ prefix }) => {
+      if (!prefix.startsWith(expectedPrefix)) {
+        return undefined;
+      }
+      const remainder = prefix.slice(expectedPrefix.length).split('/').filter(Boolean);
+      const id = remainder.length === 1 ? remainder[0] : undefined;
+      return id && UUID_DIRECTORY_PATTERN.test(id) ? id : undefined;
+    })
+    .filter((id): id is string => Boolean(id));
+  const uniqueIds = [...new Set(ids)];
+
+  return uniqueIds.length === 1 ? `${normalizedBasePath}/${uniqueIds[0]}` : undefined;
+}

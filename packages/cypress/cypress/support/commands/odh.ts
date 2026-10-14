@@ -47,6 +47,7 @@ import type {
   DataScienceClusterKindStatus,
   NotebookKind,
   OdhApplication,
+  OperatorSubscriptionStatus,
   RoleBindingKind,
   SecretKind,
   TemplateKind,
@@ -72,7 +73,6 @@ import type {
   OdhDocument,
   PrometheusQueryResponse,
   ResponseStatus,
-  SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
 import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
 import type { PrometheusQueryRangeResponse } from '@odh-dashboard/ui-core/types/metrics';
@@ -95,6 +95,7 @@ import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__m
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type {
   APIKey,
+  APIKeyConfig,
   APIKeyListResponse,
   BulkRevokeResponse,
   CreateAPIKeyResponse,
@@ -277,7 +278,7 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/operator-subscription-status',
-          response: OdhResponse<SubscriptionStatusData>,
+          response: OdhResponse<OperatorSubscriptionStatus>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/status/openshift-ai-notebooks/allowedUsers',
@@ -1160,6 +1161,10 @@ declare global {
           response: { data: OdhResponse<CreateAPIKeyResponse> },
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /maas/api/v1/api-keys-config',
+          response: OdhResponse<{ data: APIKeyConfig }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /maas/api/v1/is-maas-admin',
           response: OdhResponse<{ data: { allowed: boolean } }>,
         ) => Cypress.Chainable<null>) &
@@ -1298,6 +1303,10 @@ declare global {
           type: 'GET /maas/api/v1/subscriptions/:id',
           options: { path: { id: string } },
           response: OdhResponse<{ data: UserSubscription }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/gateway-url',
+          response: OdhResponse<{ data: { url: string } }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'PUT /api/mlflow-global-namespace',

@@ -437,14 +437,17 @@ components:
                 $ref: '#/components/schemas/ConnectionTypeField'
         status:
           type: object
+          required:
+            - flight_ready
           properties:
-            capabilities:
-              type: object
-              properties:
-                flight:
-                  type: boolean
-                rest:
-                  type: boolean
+            flight_ready:
+              type: boolean
+            flight_url:
+              type: string
+            message:
+              type: string
+            updated_at:
+              type: string
     NoContent:
       description: Successful operation with no response body.
     BaseResource:

@@ -10,18 +10,31 @@ func timePtr(t time.Time) *time.Time {
 	return &t
 }
 
+func int32Ptr(v int32) *int32 {
+	return &v
+}
+
+func boolPtr(v bool) *bool {
+	return &v
+}
+
 // GetMockMaaSSubscriptions returns mock MaaSSubscription resources.
 func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 	return []models.MaaSSubscription{
 		{
-			Name:          "premium-team-sub",
-			Namespace:     "maas-system",
-			DisplayName:   "Premium Team Subscription",
-			Description:   "High-priority subscription for the premium team with extended token limits.",
-			Phase:         "Active",
-			StatusMessage: "successfully reconciled",
-			Reason:        "Reconciled",
-			Priority:      10,
+			Name:              "premium-team-sub",
+			Namespace:         "maas-system",
+			DisplayName:       "Premium Team Subscription",
+			Description:       "High-priority subscription for the premium team with extended token limits.",
+			Phase:             "Active",
+			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
+			InferencePriority: int32Ptr(10),
+			InferenceObjectivesReady: &models.ConditionSummary{
+				Type:   "InferenceObjectivesReady",
+				Status: "True",
+				Reason: "Reconciled",
+			},
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "premium-users"},
@@ -36,6 +49,11 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 100000, Window: "24h"},
 					},
+					ObjectiveName: "maas-models-as-a-service-gold-granite-3-8b-instruct-inference-pool-a1b2c3d4e5",
+					TargetPool:    "granite-3-8b-instruct-inference-pool",
+					Ready:         boolPtr(true),
+					Reason:        "ObjectiveReconciled",
+					Message:       "InferenceObjective sets priority 10",
 				},
 				{
 					Name:        "flan-t5-small",
@@ -45,6 +63,11 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 200000, Window: "24h"},
 					},
+					ObjectiveName: "maas-models-as-a-service-gold-flan-t5-small-inference-pool-b2c3d4e5f6",
+					TargetPool:    "flan-t5-small-inference-pool",
+					Ready:         boolPtr(true),
+					Reason:        "ObjectiveReconciled",
+					Message:       "InferenceObjective sets priority 10",
 				},
 				{
 					Name:        "gpt-4o-external",
@@ -54,6 +77,9 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 50000, Window: "24h"},
 					},
+					Ready:   boolPtr(false),
+					Reason:  "PendingPoolDiscovery",
+					Message: "Waiting for InferencePool discovery",
 				},
 			},
 			TokenMetadata: &models.TokenMetadata{
@@ -70,7 +96,6 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			Phase:         "Active",
 			StatusMessage: "successfully reconciled",
 			Reason:        "Reconciled",
-			Priority:      0,
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "system:authenticated"},
@@ -90,14 +115,19 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
 		},
 		{
-			Name:          "multi-group-llama-sub",
-			Namespace:     "maas-system",
-			DisplayName:   "Enterprise Multi-Group Llama Access",
-			Description:   "Broad access to Llama 3 70B for multiple teams across the organization.",
-			Phase:         "Active",
-			StatusMessage: "successfully reconciled",
-			Reason:        "Reconciled",
-			Priority:      5,
+			Name:              "multi-group-llama-sub",
+			Namespace:         "maas-system",
+			DisplayName:       "Enterprise Multi-Group Llama Access",
+			Description:       "Broad access to Llama 3 70B for multiple teams across the organization.",
+			Phase:             "Active",
+			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
+			InferencePriority: int32Ptr(5),
+			InferenceObjectivesReady: &models.ConditionSummary{
+				Type:   "InferenceObjectivesReady",
+				Status: "True",
+				Reason: "Reconciled",
+			},
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "platform-admins"},
@@ -123,19 +153,29 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 						{Limit: 80000, Window: "1h"},
 						{Limit: 600000, Window: "24h"},
 					},
+					ObjectiveName: "maas-models-as-a-service-gold-llama-3-70b-instruct-inference-pool-c3d4e5f6a7",
+					TargetPool:    "llama-3-70b-instruct-inference-pool",
+					Ready:         boolPtr(true),
+					Reason:        "ObjectiveReconciled",
+					Message:       "InferenceObjective sets priority 5",
 				},
 			},
 			CreationTimestamp: timePtr(time.Date(2025, 4, 1, 9, 0, 0, 0, time.UTC)),
 		},
 		{
-			Name:          "negative-priority-sub",
-			Namespace:     "maas-system",
-			DisplayName:   "Negative Priority Subscription",
-			Description:   "Negative priority subscription for testing.",
-			Phase:         "Active",
-			StatusMessage: "successfully reconciled",
-			Reason:        "Reconciled",
-			Priority:      -10,
+			Name:              "negative-priority-sub",
+			Namespace:         "maas-system",
+			DisplayName:       "Negative Priority Subscription",
+			Description:       "Negative priority subscription for testing.",
+			Phase:             "Active",
+			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
+			InferencePriority: int32Ptr(-10),
+			InferenceObjectivesReady: &models.ConditionSummary{
+				Type:   "InferenceObjectivesReady",
+				Status: "False",
+				Reason: "ObjectiveFailure",
+			},
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "system:authenticated"},
@@ -151,6 +191,9 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 10000, Window: "24h"},
 					},
+					Ready:   boolPtr(false),
+					Reason:  "ObjectiveFailure",
+					Message: "Failed to reconcile InferenceObjective",
 				},
 			},
 			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),

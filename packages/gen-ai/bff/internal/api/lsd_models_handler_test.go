@@ -10,6 +10,7 @@ import (
 
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -20,6 +21,53 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 )
+
+func TestFilterModelsByOGXModelType(t *testing.T) {
+	modelFromResponse := func(raw string) openai.Model {
+		t.Helper()
+		var model openai.Model
+		if err := json.Unmarshal([]byte(raw), &model); err != nil {
+			t.Fatal(err)
+		}
+		return model
+	}
+
+	models := []openai.Model{
+		modelFromResponse(`{"id":"maas/chat","custom_metadata":{"model_type":"llm"}}`),
+		modelFromResponse(`{"id":"maas/embedding-chat","custom_metadata":{"model_type":"llm"}}`),
+		modelFromResponse(`{"id":"granite-vector","custom_metadata":{"model_type":"embedding"}}`),
+		modelFromResponse(`{"id":"sentence-transformers/Qwen/Qwen3-Reranker-0.6B","custom_metadata":{"model_type":"rerank","provider_id":"sentence-transformers","provider_resource_id":"Qwen/Qwen3-Reranker-0.6B"}}`),
+		modelFromResponse(`{"id":"whisper","custom_metadata":{"model_type":"transcription"}}`),
+		modelFromResponse(`{"id":"legacy-chat"}`),
+		modelFromResponse(`{"id":"legacy-embed"}`),
+		modelFromResponse(`{"id":"hidden-chat","model_type":"llm"}`),
+	}
+
+	for _, tc := range []struct {
+		name                   string
+		includeEmbeddingModels bool
+		wantIDs                []string
+	}{
+		{
+			name:    "chat models only",
+			wantIDs: []string{"maas/chat", "maas/embedding-chat", "legacy-chat"},
+		},
+		{
+			name:                   "retain all model types for AI Assets and RAG",
+			includeEmbeddingModels: true,
+			wantIDs:                []string{"maas/chat", "maas/embedding-chat", "granite-vector", "sentence-transformers/Qwen/Qwen3-Reranker-0.6B", "whisper", "legacy-chat", "legacy-embed"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			filtered := filterModels(models, []string{"hidden"}, tc.includeEmbeddingModels)
+			ids := make([]string, 0, len(filtered))
+			for _, model := range filtered {
+				ids = append(ids, model.ID)
+			}
+			assert.Equal(t, tc.wantIDs, ids)
+		})
+	}
+}
 
 var _ = Describe("LlamaStackModelsHandler", func() {
 	var app App

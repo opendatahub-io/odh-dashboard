@@ -4,6 +4,7 @@ import {
   getPipelineDetailsEmptyContent,
   getPipelineStatusFilterLabel,
   getPipelineTreeLoadingContent,
+  getStepStateLabel,
   mapPipelineStatusToLabelAppearance,
   shouldShowStageMapUnavailableNotice,
   type PipelineTreeLoadingMode,
@@ -142,5 +143,21 @@ describe('shouldShowStageMapUnavailableNotice', () => {
         componentStageMapLoading: true,
       }),
     ).toBe(false);
+  });
+});
+
+describe('getStepStateLabel', () => {
+  it('should label unreached steps as not attempted', () => {
+    expect(getStepStateLabel('unreached')).toEqual({
+      text: 'Not attempted',
+      color: 'yellow',
+    });
+  });
+
+  it('should keep pending distinct from not attempted', () => {
+    expect(getStepStateLabel('pending')).toEqual({
+      text: 'Pending',
+      color: 'purple',
+    });
   });
 });

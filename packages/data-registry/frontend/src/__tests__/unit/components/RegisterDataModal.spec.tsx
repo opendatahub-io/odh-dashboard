@@ -1,10 +1,11 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
 import * as connectionsHook from '~/app/hooks/useConnections';
+import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
@@ -16,9 +17,14 @@ const mockCreateGenericTable = jest.mocked(dataRegistryApi.createGenericTable);
 const mockUseConnections = jest.mocked(connectionsHook.useConnections);
 
 const mockConnections = [
-  { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
-  { name: 'my-uri-connection', displayName: 'My URI Connection', connectionType: 'uri' },
+  mockRhaiConnection(),
+  mockRhaiConnection({
+    secret_name: 'my-uri-connection',
+    name: 'My URI Connection',
+    connectionType: 'uri',
+  }),
 ];
+const mockRefreshConnections = jest.fn();
 
 describe('RegisterDataModal', () => {
   const defaultProps = {
@@ -28,23 +34,33 @@ describe('RegisterDataModal', () => {
     collections: ['collection-1', 'collection-2'],
     onCreated: jest.fn(),
     onManageCollections: jest.fn(),
+    onManageLabels: jest.fn(),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseConnections.mockReturnValue([mockConnections, true, undefined]);
+    mockRefreshConnections.mockResolvedValue(mockConnections);
+    mockUseConnections.mockReturnValue([
+      mockConnections,
+      true,
+      undefined,
+      mockRefreshConnections,
+      [],
+    ]);
   });
 
   it('should render modal with all form fields', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
-    expect(screen.getByText('Register data')).toBeTruthy();
+    expect(screen.getByText('Create data asset')).toBeTruthy();
     expect(screen.getByTestId('data-name-input')).toBeTruthy();
     expect(screen.getByTestId('data-description-input')).toBeTruthy();
     expect(screen.getByTestId('asset-type-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-format-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-collection-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-path-input')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Asset type info' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PII information' })).toBeInTheDocument();
   });
 
   it('should default to Unstructured asset type', () => {
@@ -211,6 +227,57 @@ describe('RegisterDataModal', () => {
     expect(screen.getByText('Create new collection')).toBeTruthy();
   });
 
+  it('should open project label management from the organization section', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Manage labels' }));
+
+    expect(defaultProps.onManageLabels).toHaveBeenCalled();
+  });
+
+  it('should disable project label management when no callback is provided', () => {
+    render(<RegisterDataModal {...defaultProps} onManageLabels={undefined} />);
+
+    expect(screen.getByRole('button', { name: 'Manage labels' })).toBeDisabled();
+  });
+
+  it('should preserve form values while the modal is temporarily hidden', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<RegisterDataModal {...defaultProps} />);
+
+    await user.type(screen.getByTestId('data-name-input'), 'asset-under-construction');
+
+    rerender(<RegisterDataModal {...defaultProps} isOpen={false} />);
+    rerender(<RegisterDataModal {...defaultProps} isOpen />);
+
+    expect(screen.getByTestId('data-name-input')).toHaveValue('asset-under-construction');
+  });
+
+  it('should keep added labels as editable rows with remove controls', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = screen.getByTestId('data-labels-input-0');
+    await user.type(labelInput, 'production');
+
+    expect(labelInput).toHaveValue('production');
+    expect(screen.getByTestId('data-label-remove-0')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('data-label-remove-0'));
+    expect(screen.queryByTestId('data-labels-input-0')).not.toBeInTheDocument();
+  });
+
+  it('should use a minus control for custom property rows', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-custom-property'));
+
+    expect(screen.getByTestId('data-custom-property-remove-0')).toBeInTheDocument();
+  });
+
   it('should display available connections in dropdown', async () => {
     const user = userEvent.setup();
     render(<RegisterDataModal {...defaultProps} />);
@@ -220,13 +287,27 @@ describe('RegisterDataModal', () => {
     expect(screen.getByText('My URI Connection')).toBeTruthy();
   });
 
-  it('should show empty state when no connections available', async () => {
-    mockUseConnections.mockReturnValue([[], true, undefined]);
+  it('should keep RHOAI display metadata out of the selectable connections', async () => {
     const user = userEvent.setup();
-    render(<RegisterDataModal {...defaultProps} />);
+    const dchConnection = mockDchConnection();
+    const rhaiDisplayConnection = mockRhaiConnection({
+      secret_name: 'legacy-rhai-connection',
+      name: 'Legacy RHOAI connection',
+    });
+    mockUseConnections.mockReturnValue([
+      [dchConnection],
+      true,
+      undefined,
+      mockRefreshConnections,
+      [],
+      [dchConnection, rhaiDisplayConnection],
+    ]);
 
+    render(<RegisterDataModal {...defaultProps} />);
     await user.click(screen.getByTestId('data-connection-toggle'));
-    expect(screen.getByText('No connections available')).toBeTruthy();
+
+    expect(screen.getByTestId(`connection-option-dch:${dchConnection.id}`)).toBeInTheDocument();
+    expect(screen.queryByText('Legacy RHOAI connection')).not.toBeInTheDocument();
   });
 
   it('should include connection_ref when connection is selected for volume', async () => {
@@ -249,7 +330,7 @@ describe('RegisterDataModal', () => {
       expect(mockCreateVolume).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-volume',
         format: 'other',
-        connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+        connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
       });
     });
   });
@@ -277,9 +358,65 @@ describe('RegisterDataModal', () => {
       expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-table',
         format: 'iceberg',
-        connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+        connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
       });
     });
+  });
+
+  it.each(['volume', 'table'] as const)(
+    'should confirm and save a selected DCH reference for a %s',
+    async (kind) => {
+      const user = userEvent.setup();
+      const first = mockDchConnection();
+      const selected = mockDchConnection({ id: '550e8400-e29b-41d4-a716-446655440002' });
+      mockUseConnections.mockReturnValue([
+        [first, selected],
+        true,
+        undefined,
+        mockRefreshConnections,
+        [],
+      ]);
+      mockRefreshConnections.mockResolvedValue([first, { ...selected, name: 'Renamed data' }]);
+      mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'dch-asset' }));
+      mockCreateGenericTable.mockResolvedValue(mockAssetResponse({ name: 'dch-asset' }));
+
+      render(<RegisterDataModal {...defaultProps} />);
+      await user.type(screen.getByTestId('data-name-input'), 'dch-asset');
+      await user.click(screen.getByTestId('data-collection-toggle'));
+      await user.click(screen.getByText('collection-1'));
+      if (kind === 'table') {
+        await user.click(screen.getByTestId('asset-type-toggle'));
+        await user.click(screen.getByText('Structured'));
+      }
+      await user.click(screen.getByTestId('data-connection-toggle'));
+      await user.click(
+        within(screen.getByTestId(`connection-option-dch:${selected.id}`)).getByRole('option'),
+      );
+      await user.click(screen.getByTestId('register-data-submit'));
+
+      const create = kind === 'table' ? mockCreateGenericTable : mockCreateVolume;
+      await waitFor(() => expect(create).toHaveBeenCalled());
+      expect(create.mock.calls[0][2].connection_ref).toEqual({ type: 'dch', id: selected.id });
+      expect(mockRefreshConnections).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('should prevent creation if the selected connection cannot be confirmed', async () => {
+    const user = userEvent.setup();
+    mockRefreshConnections.mockResolvedValue([]);
+    render(<RegisterDataModal {...defaultProps} />);
+    await user.type(screen.getByTestId('data-name-input'), 'stale-asset');
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    await user.click(screen.getByText('My S3 Connection'));
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() =>
+      expect(screen.getByText(/selected connection could not be confirmed/i)).toBeInTheDocument(),
+    );
+    expect(mockCreateVolume).not.toHaveBeenCalled();
+    expect(mockCreateGenericTable).not.toHaveBeenCalled();
   });
 
   it('should not include default path "/" in request', async () => {

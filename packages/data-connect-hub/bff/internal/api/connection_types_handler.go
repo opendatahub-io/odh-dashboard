@@ -38,10 +38,10 @@ type ConnectionType struct {
 		CredentialsFields []ConnectionTypeCredentialField `json:"credentials_fields"`
 	} `json:"resource"`
 	Status struct {
-		Capabilities struct {
-			Flight bool `json:"flight"`
-			Rest   bool `json:"rest"`
-		} `json:"capabilities"`
+		FlightReady bool   `json:"flight_ready"`
+		FlightURL   string `json:"flight_url,omitempty"`
+		Message     string `json:"message,omitempty"`
+		UpdatedAt   string `json:"updated_at,omitempty"`
 	} `json:"status"`
 }
 
@@ -237,8 +237,9 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 			DefaultValue: "postgresql://localhost:5432/database",
 		},
 	}
-	types[0].Status.Capabilities.Flight = true
-	types[0].Status.Capabilities.Rest = true
+	types[0].Status.FlightReady = true
+	types[0].Status.FlightURL = "https://dch-default-dataconnectservice-flight.redhat-ods-applications.svc:8443"
+	types[0].Status.UpdatedAt = "2026-01-01T00:00:00Z"
 
 	types[1].Metadata.ID = "s3"
 	types[1].Metadata.TenantID = namespace
@@ -263,7 +264,8 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 			DefaultValue: "us-east-1",
 		},
 	}
-	types[1].Status.Capabilities.Flight = true
-	types[1].Status.Capabilities.Rest = true
+	types[1].Status.FlightReady = true
+	types[1].Status.FlightURL = "https://dch-default-dataconnectservice-flight.redhat-ods-applications.svc:8443"
+	types[1].Status.UpdatedAt = "2026-01-01T00:00:00Z"
 	return types
 }

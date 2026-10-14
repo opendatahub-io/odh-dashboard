@@ -4,16 +4,7 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import { Alert, Form, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  AssetResponse,
-  ConnectionModel,
-  ConnectionRef,
-  StructuredFormat,
-  UnstructuredFormat,
-  LICENSE_VALUES,
-  MATURITY_VALUES,
-  PII_STATUS_VALUES,
-} from '~/app/types';
+import { AssetResponse, LICENSE_VALUES, MATURITY_VALUES, PII_STATUS_VALUES } from '~/app/types';
 import {
   isConflictError,
   createLabel,
@@ -21,14 +12,21 @@ import {
   updateVolume,
 } from '~/app/api/dataRegistry';
 import { useConnections } from '~/app/hooks/useConnections';
+import { confirmConnection, getConnectionKey } from '~/app/utilities/connectionUtils';
 import { editAssetSchema, EditAssetFormData } from '~/app/schemas/editAsset.schema';
-import AssetDetailsSection from './register-data/AssetDetailsSection';
+import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
 import DataLocationSection from './register-data/DataLocationSection';
 import PropertiesSection from './register-data/PropertiesSection';
-import CustomPropertiesSection from './register-data/CustomPropertiesSection';
 import SchemaSection from './register-data/SchemaSection';
+import {
+  RegistrationAssetFormatSection,
+  RegistrationIdentitySection,
+  RegistrationOrganizationSection,
+} from './register-data/RegistrationAssetSections';
+import './register-data/RegistrationForm.scss';
 
 type EditAssetModalProps = {
+  isOpen?: boolean;
   asset: AssetResponse;
   assetKind: 'table' | 'volume';
   project: string;
@@ -36,59 +34,21 @@ type EditAssetModalProps = {
   name: string;
   onClose: () => void;
   onSaved: () => void;
+  onManageCollections?: () => void;
+  onManageLabels?: () => void;
+  hasExistingDchConnectionReferences?: boolean;
 };
 
 const WELL_KNOWN_PROPERTIES = new Set(['purpose', 'license', 'maturity', 'domain', 'pii']);
-
-const STRUCTURED_FORMATS: StructuredFormat[] = [
-  'iceberg',
-  'parquet',
-  'csv',
-  'delta',
-  'postgresql',
-  'milvus',
-  'other',
-];
-
-const UNSTRUCTURED_FORMATS: UnstructuredFormat[] = [
-  'documents',
-  'images',
-  'audio',
-  'video',
-  'binary',
-  'other',
-];
-
-const isStructuredFormat = (format: string): format is StructuredFormat =>
-  STRUCTURED_FORMATS.some((value) => value === format);
-
-const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
-  UNSTRUCTURED_FORMATS.some((value) => value === format);
 
 const getEnumPropertyValue = <T extends string>(
   value: string | undefined,
   values: readonly T[],
 ): T | '' => values.find((option) => option === value) ?? '';
 
-const getConnectionDisplayValue = (connectionRef?: ConnectionRef | null): string => {
-  if (!connectionRef) {
-    return '';
-  }
-  return connectionRef.type === 'rhai' ? connectionRef.secret_name : connectionRef.id;
-};
-
-const getConnectionRef = (
-  connection: string,
-  connections: ConnectionModel[],
-): ConnectionRef | null => {
-  if (!connection) {
-    return null;
-  }
-  const selectedConnection = connections.find((item) => item.name === connection);
-  return selectedConnection?.connectionType?.toLowerCase() === 'dch'
-    ? { type: 'dch', id: connection }
-    : { type: 'rhai', secret_name: connection };
-};
+const getValidLabels = (labels: string[]): string[] => [
+  ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
+];
 
 const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAssetFormData => {
   const { asset, assetKind, collection } = props;
@@ -103,8 +63,8 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
     description: asset.description ?? '',
     format: asset.format,
     collection,
-    labels: asset.labels ?? [],
-    connection: getConnectionDisplayValue(asset.connection_ref),
+    labels: getValidLabels(asset.labels ?? []),
+    connection: asset.connection_ref ? getConnectionKey(asset.connection_ref) : '',
     path: asset.storage_location ?? '',
     purpose: properties.purpose || '',
     license: getEnumPropertyValue(properties.license, LICENSE_VALUES),
@@ -126,6 +86,7 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
 };
 
 const EditAssetModal: React.FC<EditAssetModalProps> = ({
+  isOpen = true,
   asset,
   assetKind,
   project,
@@ -133,12 +94,25 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
   name,
   onClose,
   onSaved,
+  onManageCollections,
+  onManageLabels,
+  hasExistingDchConnectionReferences,
 }) => {
   const isTable = assetKind === 'table';
-  const [connections, connectionsLoaded, connectionsError] = useConnections(project);
+  const [
+    connections,
+    connectionsLoaded,
+    connectionsError,
+    refreshConnections,
+    connectionWarnings,
+    fetchedConnectionDisplayData,
+  ] = useConnections(project);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
+  const originalConnectionKey = asset.connection_ref ? getConnectionKey(asset.connection_ref) : '';
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const idRef = React.useRef(0);
+  const assetKey = `${project}:${collection}:${name}:${assetKind}`;
 
   const defaults = React.useMemo(() => {
     const result = buildFormDefaults(
@@ -149,7 +123,8 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
     return result;
   }, [asset, assetKind, collection, name, onClose, onSaved, project]);
 
-  const originalLabels = React.useMemo(() => asset.labels ?? [], [asset.labels]);
+  const assetLabels = React.useMemo(() => getValidLabels(asset.labels ?? []), [asset.labels]);
+  const originalLabels = assetLabels;
 
   const form = useForm<EditAssetFormData>({
     resolver: zodResolver(editAssetSchema),
@@ -157,17 +132,28 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
     mode: 'onBlur',
   });
 
+  const previousAssetKey = React.useRef<string>();
   React.useEffect(() => {
-    form.reset(defaults);
-  }, [defaults, form]);
+    if (previousAssetKey.current !== assetKey) {
+      previousAssetKey.current = assetKey;
+      form.reset(defaults);
+    }
+  }, [assetKey, defaults, form]);
+
+  React.useEffect(() => {
+    if (!form.getFieldState('labels').isDirty) {
+      form.setValue('labels', assetLabels, { shouldDirty: false });
+    }
+  }, [assetLabels, form]);
 
   const handleSubmit = React.useCallback(
     async (data: EditAssetFormData) => {
       setIsSubmitting(true);
       setError('');
 
-      const addLabels = data.labels.filter((label) => !originalLabels.includes(label));
-      const removeLabels = originalLabels.filter((label) => !data.labels.includes(label));
+      const labels = getValidLabels(data.labels);
+      const addLabels = labels.filter((label) => !originalLabels.includes(label));
+      const removeLabels = originalLabels.filter((label) => !labels.includes(label));
       const customProperties: Record<string, string> = {};
       data.customProperties.forEach((property) => {
         if (property.key && property.value) {
@@ -188,28 +174,31 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
           !incompleteCustomPropertyKeys.has(key),
       );
 
-      const originalConnection = getConnectionDisplayValue(asset.connection_ref);
-      const connectionUpdate =
-        data.connection !== originalConnection
-          ? { connection_ref: getConnectionRef(data.connection, connections) }
-          : {};
-
-      const commonUpdate = {
-        description: data.description,
-        storage_location: data.path || null,
-        ...connectionUpdate,
-        ...(data.purpose !== defaults.purpose ? { purpose: data.purpose || null } : {}),
-        ...(data.license !== defaults.license ? { license: data.license || null } : {}),
-        ...(data.maturity !== defaults.maturity ? { maturity: data.maturity || null } : {}),
-        ...(data.domain !== defaults.domain ? { domain: data.domain || null } : {}),
-        ...(data.piiStatus !== defaults.piiStatus ? { pii: data.piiStatus || null } : {}),
-        ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
-        ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
-        ...(removeProperties.length > 0 ? { remove_properties: removeProperties } : {}),
-        properties: customProperties,
-      };
-
       try {
+        const connectionUpdate =
+          data.connection !== originalConnectionKey
+            ? {
+                connection_ref: data.connection
+                  ? await confirmConnection(data.connection, refreshConnections)
+                  : null,
+              }
+            : {};
+
+        const commonUpdate = {
+          description: data.description,
+          storage_location: data.path || null,
+          ...connectionUpdate,
+          ...(data.purpose !== defaults.purpose ? { purpose: data.purpose || null } : {}),
+          ...(data.license !== defaults.license ? { license: data.license || null } : {}),
+          ...(data.maturity !== defaults.maturity ? { maturity: data.maturity || null } : {}),
+          ...(data.domain !== defaults.domain ? { domain: data.domain || null } : {}),
+          ...(data.piiStatus !== defaults.piiStatus ? { pii: data.piiStatus || null } : {}),
+          ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
+          ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
+          ...(removeProperties.length > 0 ? { remove_properties: removeProperties } : {}),
+          properties: customProperties,
+        };
+
         if (addLabels.length > 0) {
           await Promise.all(
             addLabels.map((label) =>
@@ -248,22 +237,22 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
       }
     },
     [
-      asset.connection_ref,
       collection,
-      connections,
       defaults,
       isTable,
       name,
       onSaved,
       originalLabels,
+      originalConnectionKey,
       project,
       asset.properties,
+      refreshConnections,
     ],
   );
 
   return (
     <Modal
-      isOpen
+      isOpen={isOpen}
       onClose={isSubmitting ? undefined : onClose}
       variant="medium"
       data-testid="edit-asset-modal"
@@ -281,18 +270,29 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
           </Alert>
         ) : null}
         <FormProvider {...form}>
-          <Form>
-            <AssetDetailsSection isEditMode />
+          <Form className="odh-data-registry-registration-form">
+            <RegistrationIdentitySection isEditMode />
             <DataLocationSection
-              pathLabel="Storage location"
-              showConnection
               connections={connections}
+              connectionDisplayData={connectionDisplayData}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
+              connectionWarnings={connectionWarnings}
+              showDchFallbackWarning={
+                hasExistingDchConnectionReferences || asset.connection_ref?.type === 'dch'
+              }
+              showRhaiLookupWarning={asset.connection_ref?.type === 'secret'}
+              currentConnection={asset.connection_ref}
+              isConnectionDisabled={isSubmitting}
+            />
+            <RegistrationAssetFormatSection isEditMode />
+            {isTable ? <SchemaSection /> : null}
+            <RegistrationOrganizationSection
+              isEditMode
+              onManageCollections={onManageCollections}
+              onManageLabels={onManageLabels}
             />
             <PropertiesSection />
-            <CustomPropertiesSection />
-            {isTable ? <SchemaSection /> : null}
           </Form>
         </FormProvider>
       </ModalBody>

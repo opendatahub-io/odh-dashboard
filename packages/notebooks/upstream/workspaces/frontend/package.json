@@ -9,10 +9,10 @@
   "overrides": {
     "rimraf": "^6.0.1",
     "nyc": {
-      "rimraf": "^3.0.2"
+      "rimraf@^3.0.0": "^3.0.2"
     },
     "istanbul-lib-processinfo": {
-      "rimraf": "^3.0.2"
+      "rimraf@^3.0.0": "^3.0.2"
     },
     "axios": "^1.15.0"
   },

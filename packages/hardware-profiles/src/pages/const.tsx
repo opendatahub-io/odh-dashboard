@@ -136,3 +136,17 @@ export const CPU_MEMORY_MISSING_WARNING =
   'It is not recommended to remove the last CPU or Memory resource. Resources that use this hardware profile will schedule, but will be very unstable due to not having any lower or upper resource bounds.';
 
 export const DEFAULT_PROFILE_NAME = 'default-profile';
+
+export const HARDWARE_PROFILE_WARNING_EDIT_HINT = 'Edit the profile to make the profile valid.';
+
+export const DRA_HARDWARE_PROFILE_WARNING_EDIT_HINT =
+  'Update the HardwareProfile resource directly to make it valid.';
+
+export const DRA_HARDWARE_PROFILE_EDIT_DISABLED_MESSAGE =
+  'Hardware profiles that use dynamic resource allocation (DRA) cannot be edited in the dashboard. Update the HardwareProfile resource directly.';
+
+export const DRA_HARDWARE_PROFILE_DUPLICATE_DISABLED_MESSAGE =
+  'Hardware profiles that use dynamic resource allocation (DRA) cannot be duplicated in the dashboard. Copy the HardwareProfile resource directly.';
+
+export const DRA_HARDWARE_PROFILE_TOGGLE_DISABLED_MESSAGE =
+  'Hardware profiles that use dynamic resource allocation (DRA) cannot be enabled or disabled in the dashboard. Update the HardwareProfile resource directly.';

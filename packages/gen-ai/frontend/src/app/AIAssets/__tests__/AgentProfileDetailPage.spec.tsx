@@ -7,6 +7,8 @@ import AgentProfileDetailPage, {
 import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
 import useFetchAgentProfile from '~/app/AIAssets/hooks/useFetchAgentProfile';
 import useFetchAgentProfiles from '~/app/hooks/useFetchAgentProfiles';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { AgentDeploymentSummary, AgentProfile } from '~/app/agentProfile/types';
@@ -30,6 +32,16 @@ jest.mock('~/app/hooks/useFetchAgentProfiles', () => ({
   default: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useFetchAIModels', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('~/app/hooks/useGenAiAgentDeploymentEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 jest.mock('~/app/hooks/useGenAiAPI', () => ({
   useGenAiAPI: jest.fn(),
 }));
@@ -42,8 +54,15 @@ jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled', () => ({
 const mockUseFetchAgentProfile = jest.mocked(useFetchAgentProfile);
 const mockUseFetchAgentDeployments = jest.mocked(useFetchAgentDeployments);
 const mockUseFetchAgentProfiles = jest.mocked(useFetchAgentProfiles);
+const mockUseFetchAIModels = jest.mocked(useFetchAIModels);
+const mockUseGenAiAgentDeploymentEnabled = jest.mocked(useGenAiAgentDeploymentEnabled);
 const mockUseGuardrailsEnabled = jest.mocked(useGuardrailsEnabled);
 const mockUseGenAiAPI = jest.mocked(useGenAiAPI);
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+
+afterEach(() => {
+  Element.prototype.scrollIntoView = originalScrollIntoView;
+});
 
 const profile: AgentProfile = {
   apiVersion: 'gen-ai.opendatahub.io/v1alpha1',
@@ -88,9 +107,24 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const renderPageWithDeployment = (deploymentName: string) =>
+  render(
+    <MemoryRouter
+      initialEntries={[`/assets/my-project/agentprofile/123?deployment=${deploymentName}`]}
+    >
+      <Routes>
+        <Route
+          path="/assets/:namespace/agentprofile/:profileId"
+          element={<AgentProfileDetailPage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
 describe('AgentProfileDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: true, loaded: true });
     mockUseGuardrailsEnabled.mockReturnValue(true);
     mockUseFetchAgentProfile.mockReturnValue({
       data: profile,
@@ -118,6 +152,17 @@ describe('AgentProfileDetailPage', () => {
       error: undefined,
       refresh: jest.fn(),
     });
+    mockUseFetchAIModels.mockReturnValue({
+      data: [
+        {
+          model_id: 'llama-4-scout', // eslint-disable-line camelcase
+          display_name: 'Llama 4 Scout', // eslint-disable-line camelcase
+        },
+      ],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    } as unknown as ReturnType<typeof useFetchAIModels>);
   });
 
   it('creates a shell-safe Responses API command only for HTTP endpoints', () => {
@@ -126,6 +171,20 @@ describe('AgentProfileDetailPage', () => {
     expect(buildResponseAPICurl("https://example.com/agent's-route")).toContain(
       "'https://example.com/agent'\"'\"'s-route/v1/responses'",
     );
+  });
+
+  it('does not fetch or render deployments when agent deployments are disabled', () => {
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: false, loaded: true });
+    mockUseGenAiAPI.mockReturnValue({
+      api: { getAgentDeployment: jest.fn() },
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    renderPage();
+
+    expect(mockUseFetchAgentDeployments).toHaveBeenCalledWith('123', { enabled: false });
+    expect(screen.queryByRole('heading', { name: /Deployments/ })).not.toBeInTheDocument();
   });
 
   it('shows the saved configuration and deployment summaries', () => {
@@ -138,7 +197,7 @@ describe('AgentProfileDetailPage', () => {
     renderPage();
 
     expect(screen.getByRole('heading', { name: 'Saved configuration' })).toBeInTheDocument();
-    expect(screen.getByText('llama-4-scout')).toBeInTheDocument();
+    expect(screen.getByText('Llama 4 Scout')).toBeInTheDocument();
     expect(screen.getByText('hr-assistant')).toBeInTheDocument();
     expect(screen.getByText('v3')).toBeInTheDocument();
     expect(screen.getByText('jira')).toBeInTheDocument();
@@ -190,5 +249,27 @@ describe('AgentProfileDetailPage', () => {
       screen.getByText(/https:\/\/hr-chatbot\.example\.com\/v1\/responses/),
     ).toBeInTheDocument();
     expect(screen.getByText(/"input": "Hello, what can you help me with\?"/)).toBeInTheDocument();
+  });
+
+  it('expands and loads the deployment selected by the deployment query parameter', async () => {
+    const getAgentDeployment = jest.fn().mockResolvedValue({ ...deployment, config: profile });
+    mockUseGenAiAPI.mockReturnValue({
+      api: { getAgentDeployment },
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    renderPageWithDeployment(deployment.name);
+
+    await waitFor(() => {
+      expect(getAgentDeployment).toHaveBeenCalledWith({ id: deployment.name });
+    });
+    expect(screen.getByText('Deployed snapshot')).toBeInTheDocument();
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    });
   });
 });

@@ -16,6 +16,7 @@ import {
 } from '../../../pages/pipelines';
 import { verifyRelativeURL } from '../../../utils/url';
 import { argoAlert } from '../../../pages/pipelines/argoAlert';
+import { toastNotifications } from '../../../pages/components/ToastNotifications';
 
 const pipelineYamlPath = './cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml';
 const argoWorkflowPipeline = './cypress/tests/mocked/pipelines/argo-workflow-pipeline.yaml';
@@ -88,6 +89,13 @@ describe('Pipeline Import and Upload', () => {
     cy.wait('@refreshPipelines');
     cy.wait('@getPipeline');
     cy.wait('@getPipelineVersion');
+
+    toastNotifications
+      .findToastNotification(0)
+      .should(
+        'contain.text',
+        `Pipeline ${uploadedMockPipeline.display_name} successfully imported`,
+      );
 
     verifyRelativeURL(
       `/develop-train/pipelines/definitions/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
@@ -240,6 +248,9 @@ describe('Pipeline Import and Upload', () => {
     pipelineImportModal.findImportModalError().contains('Pipeline update and recompile required');
     argoAlert.findCloudServiceReleaseNotesLink().should('exist');
     argoAlert.findSelfManagedReleaseNotesLink().should('exist');
+    toastNotifications
+      .findToastNotificationList()
+      .should('not.contain.text', 'successfully imported');
   });
 
   it('imports a new pipeline by url', () => {
@@ -439,6 +450,13 @@ describe('Pipeline Import and Upload', () => {
 
     cy.wait('@getPipeline');
     cy.wait('@getPipelineVersion');
+
+    toastNotifications
+      .findToastNotification(0)
+      .should(
+        'contain.text',
+        `Pipeline version ${uploadedMockPipelineVersion.display_name} successfully imported`,
+      );
 
     verifyRelativeURL(
       `/develop-train/pipelines/definitions/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,

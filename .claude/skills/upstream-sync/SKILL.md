@@ -202,7 +202,7 @@ Ask the user if they're ready to open a PR. If not, exit gracefully.
 
 **Build PR content:**
 
-First, read the PR template at `.github/pull_request_template.md` to get the current structure and "Request review criteria" checklist. The PR body should follow this template's structure.
+First, read the PR template at `.github/pull_request_template.md`. The PR body should follow this template's Problem / Solution / Evidence structure (fill required sections; omit unused optional content).
 
 **[Normal Mode]** Title format:
 ```text
@@ -216,20 +216,28 @@ Sync from <owner>/<repo> <7-char-sha>
 
 Body sections (following the PR template structure):
 
-**[PR Test Mode] Description section:**
+**[PR Test Mode] Problem / Solution:**
 ```markdown
-## Description
+## Problem
+
+Need a temporary sync of [<owner>/<repo>#<pr-number>](https://github.com/<owner>/<repo>/pull/<pr-number>) into odh-dashboard so the upstream change can be tested before it merges.
+
+## Solution
 
 **This is a temporary test sync and should not be merged.**
 
-This PR syncs the changes from [<owner>/<repo>#<pr-number>](https://github.com/<owner>/<repo>/pull/<pr-number>) into odh-dashboard so they can be tested before the upstream PR merges. The branch is available for local testing or CI validation.
+This PR syncs the changes from that upstream PR. The branch is available for local testing or CI validation.
 ```
 
-Then include the "Conflicts Resolved" subsection (if any), "How Has This Been Tested?", "Test Impact", and "Request review criteria" sections as normal.
+Then include Evidence as below. If conflicts were resolved, note them under Solution (or a short "Conflicts Resolved" subsection there).
 
-**[Normal Mode] Description section:**
+**[Normal Mode] Problem / Solution:**
 ```markdown
-## Description
+## Problem
+
+odh-dashboard's copy of `<package-name>` is behind upstream and needs the listed upstream changes.
+
+## Solution
 
 Sync to pull in changes from:
 * https://github.com/<owner>/<repo>/pull/<PR1>
@@ -251,24 +259,16 @@ The following conflicts were resolved during this sync:
 
 **If there were no conflicts**, omit the "Conflicts Resolved" subsection entirely.
 
-**How Has This Been Tested? section:**
+**Evidence section:**
 ```markdown
-## How Has This Been Tested?
+## Evidence
 
 Tested by running the federated <package-name> package locally, verifying existing behavior in the files this diff touches, and verifying the incoming changes.
 
 Also ran available test scripts in `packages/<package-name>/upstream/frontend`.
+
+Automated coverage: upstream changes include their own tests.
 ```
-
-**Test Impact section:**
-```markdown
-## Test Impact
-
-Upstream changes include their own tests.
-```
-
-**Request review criteria section:**
-Copy the "Request review criteria" section exactly as it appears in `.github/pull_request_template.md`, including all checklist items. It is not hard-coded here, read it from the template file to ensure it stays current.
 
 **Push and create PR:**
 

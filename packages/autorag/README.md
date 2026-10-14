@@ -17,10 +17,11 @@ This systematic approach helps data scientists and ML engineers build higher-qua
 
 This repository contains the **web interface and backend service** for AutoRAG within the ODH Dashboard ecosystem. It provides:
 
-- **React Frontend**: PatternFly v6-based UI for managing AutoRAG workflows (currently placeholder implementation)
+- **React Frontend**: PatternFly v6 UI when hosted by the ODH/RHOAI Dashboard;
+  Kubeflow mode uses Material UI.
 - **Go BFF (Backend-for-Frontend)**: API gateway that serves static assets, handles authentication, and facilitates cluster integration
 
-**Current Maturity**: This is an early-stage project with functional infrastructure but limited UI features. The architecture supports three deployment modes (standalone, kubeflow, federated), with the BFF currently providing essential authentication and cluster access capabilities.
+**Release status**: AutoRAG is targeted for GA promotion in RHOAI 3.6. The main dashboard gates its UI and BFF separately; see [the GA enablement audit](docs/overview.md#ga-enablement-and-compatibility) for the flag mapping, cluster prerequisites, and Gen AI Studio timeline dependency.
 
 ## Contributing
 
