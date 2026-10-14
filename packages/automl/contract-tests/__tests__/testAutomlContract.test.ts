@@ -586,6 +586,22 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
+      it('should create a tabular pipeline run with the quality preset', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-tabular-quality',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TABULAR_CSV_FILE,
+          label_column: 'target',
+          task_type: 'binary',
+          preset: 'quality',
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+      });
+
       it('should return 400 for non-ASCII label_column', async () => {
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'contract-test-arabic-label-column',
