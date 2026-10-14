@@ -28,7 +28,6 @@ const initAllTabs = () => {
       disableCustomServingRuntimes: false,
       llmdTemplates: true,
       vLLMDeploymentOnMaaS: true,
-      runtimeCatalog: true,
     }),
   );
   // Serving-runtime templates list + llmd config list, so tab content mounts without 500s.

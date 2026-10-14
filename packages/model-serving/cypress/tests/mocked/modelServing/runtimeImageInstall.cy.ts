@@ -24,7 +24,10 @@ const acceleratorConfigModel = {
   plural: 'llminferenceserviceconfigs',
 };
 
-const initialize = (runtimeCatalogFlagEnabled: boolean, acceleratorEnabled = true) => {
+const initialize = ({
+  modelServingEnabled = true,
+  acceleratorEnabled = true,
+}: { modelServingEnabled?: boolean; acceleratorEnabled?: boolean } = {}) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -34,11 +37,10 @@ const initialize = (runtimeCatalogFlagEnabled: boolean, acceleratorEnabled = tru
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disableModelServing: false,
+      disableModelServing: !modelServingEnabled,
       disableKServe: false,
       disableLLMd: false,
       vLLMDeploymentOnMaaS: acceleratorEnabled,
-      runtimeCatalog: runtimeCatalogFlagEnabled,
     }),
   );
   cy.interceptOdh('GET /api/cluster-settings', {
@@ -102,9 +104,9 @@ const mockRuntimeImageActionData = (): RuntimeImageInstallActionDataForTest => {
 };
 
 describe('Runtime image Install extension navigation', () => {
-  it('should not mount the install page when the runtime library area is disabled', () => {
+  it('should not mount the install page when model serving is disabled', () => {
     asProductAdminUser();
-    initialize(false);
+    initialize({ modelServingEnabled: false });
     runtimeImageInstallPage.visitInstallDirectly('preview-vllm-0-6-0');
     runtimeImageInstallPage.findPageTitle('vLLM 0.6.0').should('not.exist');
     runtimeImageInstallPage.findInvalidDataAlert().should('not.exist');
@@ -112,7 +114,7 @@ describe('Runtime image Install extension navigation', () => {
 
   it('should not allow a non-admin user to open the route', () => {
     asProjectEditUser();
-    initialize(true);
+    initialize();
     runtimeImageInstallPage.visitInstallDirectly('preview-vllm-0-6-0');
     pageNotfound.findPage().should('exist');
     runtimeImageInstallPage.findInvalidDataAlert().should('not.exist');
@@ -120,7 +122,7 @@ describe('Runtime image Install extension navigation', () => {
 
   it('should handle a runtime image with no supported resources', () => {
     asProductAdminUser();
-    initialize(true);
+    initialize();
     runtimeImageInstallPage.visitInstallDirectly('empty-preview');
     runtimeImageInstallPage.loadNoResourceRouterState(runtimeDetailsRoute);
     runtimeImageInstallPage.findNoResourcesMessage().should('exist');
@@ -130,7 +132,7 @@ describe('Runtime image Install extension navigation', () => {
 
   it('should show an actionable unavailable state on direct navigation without router data', () => {
     asProductAdminUser();
-    initialize(true);
+    initialize();
     runtimeImageInstallPage.visitInstallDirectly('preview-vllm-0-6-0');
     runtimeImageInstallPage.findInvalidDataAlert().should('exist');
     runtimeImageInstallPage.findReturn().click();
@@ -139,7 +141,7 @@ describe('Runtime image Install extension navigation', () => {
 
   it('should hide the LLM install target when its feature gate is inactive', () => {
     asProductAdminUser();
-    initialize(true, false);
+    initialize({ acceleratorEnabled: false });
     visitInstallWithActionData();
     runtimeImageInstallPage.findAcceleratorRadio().should('not.exist');
     runtimeImageInstallPage.findServingRuntimeRadio().should('exist');
@@ -147,7 +149,7 @@ describe('Runtime image Install extension navigation', () => {
 
   it('should create a prefilled LLM accelerator config and redirect to its list', () => {
     asProductAdminUser();
-    initialize(true);
+    initialize();
     const createdConfig = mockLLMInferenceServiceConfigK8sResource({
       name: 'vllm-0-6-0',
       displayName: 'vLLM 0.6.0',
@@ -197,7 +199,7 @@ describe('Runtime image Install extension navigation', () => {
 
   it('should install a prefilled Serving runtime template and redirect to its list', () => {
     asProductAdminUser();
-    initialize(true);
+    initialize();
     const template = mockServingRuntimeTemplateK8sResource({
       name: 'vllm-0-6-0',
       modelTypes: [ServingRuntimeModelType.GENERATIVE],

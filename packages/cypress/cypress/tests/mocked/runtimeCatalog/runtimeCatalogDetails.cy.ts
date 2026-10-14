@@ -90,8 +90,11 @@ spec:
             memory: 8Gi
 `;
 
-const setupRuntimeCatalog = (enabled = true): void => {
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ runtimeCatalog: enabled }));
+const setupRuntimeCatalog = (modelServingEnabled = true): void => {
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ disableModelServing: !modelServingEnabled }),
+  );
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -264,10 +267,10 @@ describe('Runtime image library details', () => {
     cy.testA11y();
   });
 
-  it('does not expose details when the feature flag is disabled', () => {
+  it('does not expose details when model serving is disabled', () => {
     setupRuntimeCatalog(false);
     runtimeCatalogDetailsPage.visit(runtimeId);
-    cy.location('pathname').should('eq', `${settingsUrl}/general-settings`);
+    pageNotfound.findPage().should('exist');
     runtimeCatalogDetailsPage.findPage().should('not.exist');
     cy.testA11y();
   });

@@ -105,7 +105,6 @@ const initIntercepts = (): void => {
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
-      runtimeCatalog: true,
     }),
   );
   setupModelCatalogIntercepts();

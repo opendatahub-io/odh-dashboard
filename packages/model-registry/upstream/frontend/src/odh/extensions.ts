@@ -112,7 +112,7 @@ const extensions: (
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
+      required: [SupportedArea.MODEL_SERVING, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',
@@ -127,7 +127,7 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
+      required: [SupportedArea.MODEL_SERVING, ADMIN_USER],
     },
     properties: {
       path: `${RUNTIME_CATALOG_TAB_PATH}/:runtimeId`,
