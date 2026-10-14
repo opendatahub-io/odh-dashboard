@@ -29,6 +29,8 @@ func TestE2EDashboardLifecycle(t *testing.T) {
 
 func TestE2EDashboardRemovedState(t *testing.T) {
 	requireManagedFixture(t)
+	previousRoute, err := waitForAdmittedHTTPRoute(k8sClient, testNamespace, dashboardUID, operandReadyTimeout)
+	require.NoError(t, err)
 
 	t.Cleanup(func() {
 		require.NoError(t, patchDashboardManagementState(common.Managed))
@@ -49,6 +51,7 @@ func TestE2EDashboardRemovedState(t *testing.T) {
 		metav1.ConditionFalse,
 		fixtureReadyTimeout,
 	))
+	require.NoError(t, waitForOwnedOperandDeletion(k8sClient, testNamespace, dashboardUID, operandReadyTimeout))
 
 	dashboard := &dashboardv1alpha1.Dashboard{}
 	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard))
@@ -62,6 +65,9 @@ func TestE2EDashboardRemovedState(t *testing.T) {
 		metav1.ConditionTrue,
 		fixtureReadyTimeout,
 	))
+	recreatedRoute, err := waitForAdmittedHTTPRoute(k8sClient, testNamespace, dashboardUID, operandReadyTimeout)
+	require.NoError(t, err)
+	require.NotEqual(t, previousRoute.UID, recreatedRoute.UID)
 }
 
 func patchDashboardManagementState(state common.ManagementState) error {
