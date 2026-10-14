@@ -563,6 +563,17 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       ['http://model-a.svc:8080', 'http://model-a.svc:8080/v1'],
       ['http://model-a.svc:8080/', 'http://model-a.svc:8080/v1'],
       ['http://model-a.svc:8080/v1', 'http://model-a.svc:8080/v1'],
+      ['http://model-a.svc:8080?key=value', 'http://model-a.svc:8080/v1?key=value'],
+      ['http://model-a.svc:8080/#section', 'http://model-a.svc:8080/v1#section'],
+      [
+        'http://model-a.svc:8080/v1/?key=value#section',
+        'http://model-a.svc:8080/v1?key=value#section',
+      ],
+      [
+        'http://model-a.svc:8080/api/?key=value#section',
+        'http://model-a.svc:8080/api/v1?key=value#section',
+      ],
+      ['', ''],
     ])('should submit cluster model URL %s as %s', async (serviceUrl, expectedUrl) => {
       const renderResult = renderForm();
 
@@ -585,7 +596,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
 
     it('should preserve a manually entered external endpoint URL', async () => {
       const renderResult = renderForm();
-      const externalUrl = 'https://external.example.com/custom/openai';
+      const externalUrl = 'https://external.example.com/custom/openai?key=value#section';
 
       act(() => {
         renderResult.result.current.handleModelDropdownSelect(

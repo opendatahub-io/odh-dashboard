@@ -768,8 +768,14 @@ export function useStartEvaluationRunForm({
 
     const resolvedEndpointUrl = (() => {
       if (values.sourceMode === 'model' && values.modelSelection === 'cluster') {
-        const serviceUrl = selectedInferenceServiceRef.current?.url?.replace(/\/+$/, '') ?? '';
-        return serviceUrl && !serviceUrl.endsWith('/v1') ? `${serviceUrl}/v1` : serviceUrl;
+        const serviceUrl = selectedInferenceServiceRef.current?.url ?? '';
+        if (!serviceUrl) {
+          return '';
+        }
+        const url = new URL(serviceUrl);
+        const pathname = url.pathname.replace(/\/+$/, '');
+        url.pathname = pathname.endsWith('/v1') ? pathname : `${pathname}/v1`;
+        return url.toString();
       }
       if (values.sourceMode === 'model' || values.sourceMode === 'agent') {
         return values.endpointUrl.trim();
