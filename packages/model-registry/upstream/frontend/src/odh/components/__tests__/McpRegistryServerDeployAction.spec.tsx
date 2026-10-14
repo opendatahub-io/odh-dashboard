@@ -1,6 +1,6 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
@@ -11,6 +11,7 @@ import {
   type McpServerDeployReadiness,
 } from '~/odh/types/mcpDeploymentTypes';
 import McpRegistryServerDeployAction from '~/odh/components/McpRegistryServerDeployAction';
+import { MCP_GATEWAY_POPOVER_BODY_ID } from '~/odh/components/McpGatewayRequiredPopover';
 import { MCP_GATEWAY_SETUP_DOCS_URL } from '~/odh/const';
 
 jest.mock('~/odh/hooks/useMcpServerDeployAvailable', () => ({
@@ -258,6 +259,40 @@ describe('McpRegistryServerDeployAction', () => {
     await userEvent.click(docsLink);
     expect(openSpy).toHaveBeenCalledWith(MCP_GATEWAY_SETUP_DOCS_URL);
     openSpy.mockRestore();
+  });
+
+  it('should let keyboard users reach the docs link from the blocked Deploy button', async () => {
+    setReadiness(
+      {
+        gatewayRequired: true,
+        deployable: false,
+        reason: McpDeployReadinessReason.NO_GATEWAY_AVAILABLE,
+      },
+      true,
+    );
+    renderAction({ deployData: openShiftDeployData });
+
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    await userEvent.tab();
+    expect(button).toHaveFocus();
+    const popover = await screen.findByTestId('mcp-deploy-gateway-popover');
+    expect(popover).toHaveTextContent(NO_GATEWAY_TOOLTIP);
+    // Screen readers announce the explanation with the button.
+    expect(button).toHaveAttribute('aria-describedby', MCP_GATEWAY_POPOVER_BODY_ID);
+    expect(document.getElementById(MCP_GATEWAY_POPOVER_BODY_ID)).toHaveTextContent(
+      NO_GATEWAY_TOOLTIP,
+    );
+
+    await userEvent.tab();
+    expect(screen.getByTestId('mcp-deploy-gateway-docs-link')).toHaveFocus();
+    expect(screen.getByTestId('mcp-deploy-gateway-popover')).toBeInTheDocument();
+
+    // Escape closes the popover and returns focus to Deploy.
+    await userEvent.keyboard('{Escape}');
+    expect(button).toHaveFocus();
+    await waitFor(() =>
+      expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument(),
+    );
   });
 
   it('should enable Deploy when a required gateway is available', async () => {

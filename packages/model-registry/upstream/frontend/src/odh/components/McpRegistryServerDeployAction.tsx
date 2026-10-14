@@ -1,10 +1,12 @@
 import React from 'react';
-import { Button, ButtonVariant, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
+import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
 import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
 import type { McpDeployModalData, McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
-import McpGatewayDocsLink from '~/odh/components/McpGatewayDocsLink';
+import McpGatewayRequiredPopover, {
+  MCP_GATEWAY_POPOVER_BODY_ID,
+} from '~/odh/components/McpGatewayRequiredPopover';
 import { getMcpDeployReadinessBlock } from '~/odh/utils/mcpDeployReadiness';
 
 type DeployButtonState = {
@@ -53,6 +55,7 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
     deployData?.image,
   );
   const [openModal, setOpenModal] = React.useState(false);
+  const deployButtonRef = React.useRef<HTMLButtonElement>(null);
 
   const buttonState = React.useMemo<DeployButtonState>(() => {
     if (disabledReason) {
@@ -80,8 +83,11 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
     return { enabled: true, loading: false };
   }, [disabledReason, loaded, available, deployData, readiness, readinessLoaded, readinessError]);
 
+  const showGatewayPopover = !!buttonState.showGatewayDocs && !!buttonState.tooltip;
+
   const deployButton = (
     <Button
+      ref={deployButtonRef}
       variant={ButtonVariant.primary}
       onClick={() => {
         if (buttonState.enabled) {
@@ -90,6 +96,7 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
       }}
       isAriaDisabled={!buttonState.enabled}
       isLoading={buttonState.loading}
+      aria-describedby={showGatewayPopover ? MCP_GATEWAY_POPOVER_BODY_ID : undefined}
       data-testid="mcp-registry-deploy-action-button"
     >
       Deploy
@@ -100,19 +107,13 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
     if (!buttonState.tooltip) {
       return deployButton;
     }
-    // A popover instead of a tooltip so the docs link can be clicked. It opens on hover like
-    // a tooltip, and the host page header has no room for the link next to its own actions.
-    if (buttonState.showGatewayDocs) {
+    // A popover instead of a tooltip so the docs link can be reached with the mouse or the
+    // keyboard; the host page header has no room for the link next to its own actions.
+    if (showGatewayPopover) {
       return (
-        <Popover
-          triggerAction="hover"
-          headerContent="MCP gateway required"
-          bodyContent={buttonState.tooltip}
-          footerContent={<McpGatewayDocsLink />}
-          data-testid="mcp-deploy-gateway-popover"
-        >
+        <McpGatewayRequiredPopover explanation={buttonState.tooltip} triggerRef={deployButtonRef}>
           {deployButton}
-        </Popover>
+        </McpGatewayRequiredPopover>
       );
     }
     return <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>;
