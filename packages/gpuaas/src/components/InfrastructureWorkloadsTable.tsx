@@ -43,6 +43,19 @@ import {
 import { getHardwareProfileRefFromAnnotations } from '../utils/hardwareModels';
 
 type FilterValues = InfrastructureWorkloadsFilterValues;
+type LocalFilterValues = Omit<FilterValues, 'status'>;
+
+const getNextFilterValues = (
+  current: LocalFilterValues,
+  type: Exclude<InfrastructureWorkloadsFilterType, 'status'>,
+  value: string,
+): LocalFilterValues => {
+  const nextValue = current[type].includes(value)
+    ? current[type].filter((selectedValue) => selectedValue !== value)
+    : [...current[type], value];
+
+  return { ...current, [type]: nextValue };
+};
 
 type InfrastructureWorkloadsTableProps = {
   workloads: InfrastructureWorkloadRow[];
@@ -51,7 +64,7 @@ type InfrastructureWorkloadsTableProps = {
   notebookStates: NotebookState[];
   failedSources: string[];
   overviewStatusFilters: string[];
-  onOverviewStatusFiltersChange: (statuses: string[]) => void;
+  onOverviewStatusFiltersChange: React.Dispatch<React.SetStateAction<string[]>>;
 };
 
 type InfrastructureWorkloadTableRowProps = {
@@ -173,8 +186,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [searchValue, setSearchValue] = React.useState('');
   const [filterType, setFilterType] = React.useState<InfrastructureWorkloadsFilterType>('status');
-  const [filterValues, setFilterValues] = React.useState<FilterValues>({
-    status: overviewStatusFilters,
+  const [filterValues, setFilterValues] = React.useState<LocalFilterValues>({
     type: [],
     hardwareProfile: [],
   });
@@ -186,10 +198,6 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   React.useEffect(() => {
     setIsPartialFailureDismissed(false);
   }, [failedSourcesKey]);
-
-  React.useEffect(() => {
-    setFilterValues((current) => ({ ...current, status: overviewStatusFilters }));
-  }, [overviewStatusFilters]);
 
   const closeStatusModal = React.useCallback(() => setSelectedWorkload(undefined), []);
 
@@ -248,13 +256,18 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   };
 
   const filteredWorkloads = React.useMemo(() => {
+    const selectedFilterValues: FilterValues = {
+      status: overviewStatusFilters,
+      ...filterValues,
+    };
+
     return filterInfrastructureWorkloads(
       workloadsWithWorkbenchStatus,
       searchValue,
       filterType,
-      filterValues[filterType],
+      selectedFilterValues[filterType],
     );
-  }, [filterType, filterValues, searchValue, workloadsWithWorkbenchStatus]);
+  }, [filterType, filterValues, overviewStatusFilters, searchValue, workloadsWithWorkbenchStatus]);
 
   const availableFilterValues = React.useMemo<FilterValues>(
     () => ({
@@ -270,25 +283,30 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
 
   const toggleFilterValue = React.useCallback(
     (type: InfrastructureWorkloadsFilterType, value: string) => {
-      setFilterValues((current) => {
-        const nextValue = current[type].includes(value)
-          ? current[type].filter((selectedValue) => selectedValue !== value)
-          : [...current[type], value];
-        const next = { ...current, [type]: nextValue };
-        if (type === 'status') {
-          onOverviewStatusFiltersChange(nextValue);
-        }
-        return next;
-      });
+      if (type === 'status') {
+        onOverviewStatusFiltersChange((current) =>
+          current.includes(value)
+            ? current.filter((selectedValue) => selectedValue !== value)
+            : [...current, value],
+        );
+        return;
+      }
+
+      setFilterValues((current) => getNextFilterValues(current, type, value));
     },
     [onOverviewStatusFiltersChange],
   );
 
   const clearFilters = React.useCallback(() => {
     setSearchValue('');
-    setFilterValues({ status: [], type: [], hardwareProfile: [] });
+    setFilterValues({ type: [], hardwareProfile: [] });
     onOverviewStatusFiltersChange([]);
   }, [onOverviewStatusFiltersChange]);
+
+  const selectedFilterValues: FilterValues = React.useMemo(
+    () => ({ status: overviewStatusFilters, ...filterValues }),
+    [filterValues, overviewStatusFilters],
+  );
 
   const columns = React.useMemo(
     () => getInfrastructureWorkloadsTableColumns(kueueEnabled),
@@ -335,7 +353,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
                 searchValue={searchValue}
                 filterType={filterType}
                 availableFilterValues={availableFilterValues}
-                selectedFilterValues={filterValues}
+                selectedFilterValues={selectedFilterValues}
                 onSearchChange={setSearchValue}
                 onFilterTypeChange={setFilterType}
                 onFilterValueChange={toggleFilterValue}

@@ -91,6 +91,10 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-workloads-empty');
   }
 
+  findWorkloadsError() {
+    return cy.findByTestId('infrastructure-workloads-error');
+  }
+
   findWorkloadsPartialFailure() {
     return cy.findByTestId('infrastructure-workloads-partial-error');
   }

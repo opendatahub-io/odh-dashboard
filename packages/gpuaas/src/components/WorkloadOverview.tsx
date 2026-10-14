@@ -130,15 +130,17 @@ const WorkloadStatusPopover: React.FC<WorkloadStatusPopoverProps> = ({
     bodyContent={
       <>
         {onViewInTable && (
-          <Button variant="link" isInline onClick={onViewInTable}>
+          <Button variant="link" isInline className="pf-v6-u-mb-sm" onClick={onViewInTable}>
             View in table
           </Button>
         )}
-        {Object.entries(details).map(([detail, count]) => (
-          <Content component="small" key={detail}>
-            {count} {detail}
-          </Content>
-        ))}
+        <Flex direction={{ default: 'column' }} gap={{ default: 'gapNone' }}>
+          {Object.entries(details).map(([detail, count]) => (
+            <FlexItem key={detail}>
+              {count} {detail}
+            </FlexItem>
+          ))}
+        </Flex>
       </>
     }
   >
@@ -155,25 +157,27 @@ const WorkloadStatusControl: React.FC<WorkloadStatusControlProps> = ({
   onPopoverClose,
   onViewInTable,
   children,
-}) => (
-  <WorkloadStatusPopover
-    bucket={bucket}
-    details={details}
-    visible={visiblePopover?.bucket === bucket && visiblePopover.source === source}
-    onOpen={() => onPopoverOpen(bucket, source)}
-    onClose={onPopoverClose}
-    onViewInTable={
-      onViewInTable
-        ? () => {
-            onPopoverClose();
-            onViewInTable(bucket);
-          }
-        : undefined
-    }
-  >
-    {children}
-  </WorkloadStatusPopover>
-);
+}) => {
+  if (!onViewInTable) {
+    return children;
+  }
+
+  return (
+    <WorkloadStatusPopover
+      bucket={bucket}
+      details={details}
+      visible={visiblePopover?.bucket === bucket && visiblePopover.source === source}
+      onOpen={() => onPopoverOpen(bucket, source)}
+      onClose={onPopoverClose}
+      onViewInTable={() => {
+        onPopoverClose();
+        onViewInTable(bucket);
+      }}
+    >
+      {children}
+    </WorkloadStatusPopover>
+  );
+};
 
 const WorkloadStatusCounts: React.FC<WorkloadStatusCountsProps> = ({
   counts,
@@ -193,21 +197,27 @@ const WorkloadStatusCounts: React.FC<WorkloadStatusCountsProps> = ({
           visiblePopover={visiblePopover}
           onPopoverOpen={onPopoverOpen}
           onPopoverClose={onPopoverClose}
-          onViewInTable={onViewInTable}
+          onViewInTable={counts[bucket] > 0 ? onViewInTable : undefined}
         >
-          <Button
-            variant="plain"
-            isInline
-            isDisabled={!onViewInTable}
-            data-testid={`workload-count-${bucket}`}
-          >
-            <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
-              <Title headingLevel="h3" size="lg">
-                {counts[bucket]}
-              </Title>
-              <Content component="p">{labels[bucket]}</Content>
-            </Flex>
-          </Button>
+          {counts[bucket] > 0 ? (
+            <Button variant="plain" isInline data-testid={`workload-count-${bucket}`}>
+              <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <Title headingLevel="h3" size="lg">
+                  {counts[bucket]}
+                </Title>
+                <Content component="p">{labels[bucket]}</Content>
+              </Flex>
+            </Button>
+          ) : (
+            <div data-testid={`workload-count-${bucket}`}>
+              <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <Title headingLevel="h3" size="lg">
+                  {counts[bucket]}
+                </Title>
+                <Content component="p">{labels[bucket]}</Content>
+              </Flex>
+            </div>
+          )}
         </WorkloadStatusControl>
       </FlexItem>
     ))}

@@ -347,6 +347,25 @@ describe('GPUaaS Infrastructure Workloads', () => {
     infrastructurePage.findWorkloadsEmptyState().should('exist');
   });
 
+  it('should show an error when no workloads load after a source failure', () => {
+    initWorkloadsIntercepts(false);
+    cy.interceptK8sList({ model: RayJobModel, ns: PROJECT_A }, { statusCode: 500 }).as(
+      'rayJobsRequest',
+    );
+    infrastructurePage.visit(false);
+    infrastructurePage.findWorkloadsTab().click();
+
+    cy.wait('@rayJobsRequest');
+    infrastructurePage
+      .findWorkloadsError()
+      .should('be.visible')
+      .and('contain.text', 'Unable to load workloads')
+      .and('contain.text', 'Workload data could not be loaded. Refresh to try again.');
+    infrastructurePage.findWorkloadOverview().should('not.exist');
+    infrastructurePage.findWorkloadsTableSection().should('not.exist');
+    infrastructurePage.findWorkloadsEmptyState().should('not.exist');
+  });
+
   it('should show successful workloads with a warning when one workload source fails', () => {
     initWorkloadsIntercepts();
     cy.interceptK8sList({ model: RayJobModel, ns: PROJECT_A }, { statusCode: 500 }).as(

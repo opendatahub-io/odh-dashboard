@@ -143,6 +143,7 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
     notebookStates,
     scrollToWorkloadsTable,
   );
+  const hasBlockingWorkloadFailure = failedSources.length > 0 && workloads.length === 0;
   if (!loaded) {
     return (
       <Bullseye style={{ minHeight: '50vh' }} data-testid="infrastructure-workloads-loading">
@@ -159,6 +160,19 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
         title={error.message}
         data-testid="infrastructure-workloads-error"
       />
+    );
+  }
+
+  if (hasBlockingWorkloadFailure) {
+    return (
+      <Alert
+        isInline
+        variant="danger"
+        title="Unable to load workloads"
+        data-testid="infrastructure-workloads-error"
+      >
+        Workload data could not be loaded. Refresh to try again.
+      </Alert>
     );
   }
 
