@@ -355,11 +355,11 @@
 }
 
 .evalhub-benchmark-suite-card__counter--run-count {
-  font-size: var(--pf-t--global--font--size--xs);
+  font-size: var(--pf-t--global--font--size--sm);
 
   .evalhub-benchmark-suite-card__counter-value > svg {
-    height: var(--pf-t--global--icon--size--md);
-    width: var(--pf-t--global--icon--size--md);
+    height: var(--pf-t--global--icon--size--lg);
+    width: var(--pf-t--global--icon--size--lg);
   }
 }
 

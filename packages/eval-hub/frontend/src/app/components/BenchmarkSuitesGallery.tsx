@@ -958,10 +958,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             )}
           </ToolbarContent>
           {hasActiveFilters && (
-            <ToolbarContent
-              className="evalhub-benchmark-suite-gallery__active-filters"
-              data-testid="benchmark-suites-active-filters"
-            >
+            <ToolbarContent className="pf-v6-u-pt-0" data-testid="benchmark-suites-active-filters">
               <ToolbarGroup variant="filter-group">
                 <SelectedFilterGroup
                   categoryName="Search"

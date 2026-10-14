@@ -447,10 +447,11 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
           justifyContent={{
-            default: showRunCount ? 'justifyContentSpaceBetween' : 'justifyContentFlexEnd',
+            default: showRunCount ? 'justifyContentSpaceBetween' : 'justifyContentFlexStart',
           }}
           className="evalhub-benchmark-suite-card__footer-content"
         >
+          <FlexItem>{actionFooter}</FlexItem>
           {showRunCount && (
             <FlexItem>
               <Flex
@@ -474,7 +475,6 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
               </Flex>
             </FlexItem>
           )}
-          <FlexItem>{actionFooter}</FlexItem>
         </Flex>
       </CardFooter>
     </Card>

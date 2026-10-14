@@ -177,6 +177,11 @@ describe('BenchmarkSuiteCard', () => {
       'aria-label',
       'Run Count: Number of successful executions of this suite',
     );
+    expect(
+      screen
+        .getByTestId('benchmark-suite-card-primary-action-run-count-suite')
+        .compareDocumentPosition(runCount),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 
     fireEvent.mouseEnter(runCount);
     expect(
@@ -195,6 +200,13 @@ describe('BenchmarkSuiteCard', () => {
       />,
     );
 
+    const primaryAction = screen.getByTestId(
+      'benchmark-suite-card-primary-action-hidden-run-count-suite',
+    );
+    expect(primaryAction).toBeInTheDocument();
+    expect(primaryAction.closest('.evalhub-benchmark-suite-card__footer-content')).toHaveClass(
+      'pf-m-justify-content-flex-start',
+    );
     expect(
       screen.queryByTestId('benchmark-suite-card-run-count-hidden-run-count-suite'),
     ).not.toBeInTheDocument();

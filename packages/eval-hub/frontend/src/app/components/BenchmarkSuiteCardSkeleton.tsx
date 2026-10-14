@@ -56,8 +56,8 @@ const BenchmarkSuiteCardSkeleton: React.FC = () => (
         className="evalhub-benchmark-suite-card__footer-content"
         aria-hidden="true"
       >
-        <Skeleton width="4rem" />
         <Skeleton width="4.5rem" height="2.25rem" />
+        <Skeleton width="4rem" />
       </Flex>
     </CardFooter>
   </Card>

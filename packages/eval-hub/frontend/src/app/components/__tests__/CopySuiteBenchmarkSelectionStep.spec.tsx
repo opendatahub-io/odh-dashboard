@@ -235,7 +235,17 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to previous page' })[0]);
     fireEvent.click(screen.getByTestId('benchmark-catalog-checkbox-benchmark-10'));
 
-    expect(screen.getByTestId('benchmark-catalog-checkbox-benchmark-00')).not.toBeDisabled();
+    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
+      '1 out of 20 remaining',
+    );
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
+    const releasedBenchmark = screen.getByTestId('benchmark-catalog-checkbox-benchmark-19');
+    expect(releasedBenchmark).not.toBeDisabled();
+    fireEvent.click(releasedBenchmark);
+    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
+      '0 out of 20 remaining',
+    );
   });
 
   it('should reject an over-limit selection until it is reduced', () => {
