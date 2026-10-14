@@ -173,6 +173,10 @@ describe('External vector store full lifecycle', () => {
         .last()
         .should('contain.text', testData.seed.expectedContentFragment);
       genAiPlayground.findFileSearchResults({ timeout: 30000 }).should('exist');
+      genAiPlayground.findFileSearchResultsToggle().click();
+      genAiPlayground
+        .findFileSearchResults({ timeout: 30000 })
+        .should('contain.text', testData.seed.expectedContentFragment);
     },
   );
 });
