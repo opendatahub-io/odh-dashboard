@@ -142,6 +142,8 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
         overrides['llmd-serving/gateway'] = {
           isDisabled: true,
           selections: [MAAS_DEFAULT_GATEWAY],
+          // Clear Project-members hiding so the locked MaaS gateway chip/warning can show
+          hiddenOptions: undefined,
           disabledTooltip:
             'Models available as a service (MaaS) are automatically routed through the maas-default-gateway | openshift-ingress gateway.',
           labelHelpPopover: {
