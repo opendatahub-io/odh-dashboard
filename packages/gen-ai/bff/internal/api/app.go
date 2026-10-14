@@ -95,7 +95,6 @@ type App struct {
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
-	clusterDomain           string
 	sandboxMu               sync.RWMutex
 	sandboxesAvailable      bool
 	sandboxWatcherDone      chan struct{}
@@ -368,17 +367,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	fileUploadJobTracker := services.NewFileUploadJobTracker(memStore, logger)
 	logger.Info("Initialized file upload job tracker")
 
-	// Cache cluster domain at startup using service account
-	var clusterDomain string
-	if !cfg.MockK8sClient {
-		if domain, err := k8s.GetClusterDomainUsingServiceAccount(context.Background(), logger); err != nil {
-			logger.Error("Failed to get cluster domain at startup, MaaS autodiscovery will be unavailable", "error", err)
-		} else {
-			clusterDomain = domain
-			logger.Info("Cached cluster domain for MaaS autodiscovery", "domain", clusterDomain)
-		}
-	}
-
 	// GatewayDomain is used to construct the base_url for the remote::passthrough
 	// provider in OGX configs
 	if cfg.GatewayDomain == "" {
@@ -402,7 +390,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
-		clusterDomain:           clusterDomain,
 		fileUploadJobTracker:    fileUploadJobTracker,
 		cleanupFuncs:            cleanupFuncs,
 	}
@@ -487,6 +474,14 @@ func (app *App) Routes() http.Handler {
 	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
 	apiRouter.POST(constants.ResponsesPassthroughPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.LlamaStackPassthroughResponseHandler))))
 
+	// Responses relay — forwards embedded-playground requests to a same-origin
+	// target endpoint via the externally accessed gateway route. Deliberately
+	// registered without namespace/SSAR middleware: the relay performs no k8s
+	// operations, the embedded namespace belongs to the target service, and the
+	// user's own bearer token is forwarded so every hop after this one
+	// (kube-rbac-proxy, module proxy, target BFF) re-authenticates it.
+	apiRouter.POST(constants.ResponsesRelayPath, app.ResponsesRelayHandler)
+
 	// Vector Stores (LlamaStack)
 	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoresHandler))))
 	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackCreateVectorStoreHandler))))
@@ -498,6 +493,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
 	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
+	apiRouter.POST(constants.DocumentsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDocumentUploadHandler))))
 
 	// Audio Transcription (ASR)
 	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler)))))
@@ -514,7 +510,7 @@ func (app *App) Routes() http.Handler {
 
 	// AI Assets Models (Kubernetes + MaaS)
 	// AttachBFFMaaSClient middleware enables MaaS model fetching when sources=maas query param is used
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
+	apiRouter.GET(constants.ModelsAAPath, app.AttachOptionalNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
 	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
 	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
 
@@ -582,7 +578,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
-	apiRouter.POST(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentDeploymentHandler)))
+	apiRouter.GET(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.ListAgentDeploymentsHandler)))
+	apiRouter.GET(constants.AgentDeploymentIDPath, app.AttachNamespace(app.RequireAccessToService(app.GetAgentDeploymentHandler)))
+	apiRouter.DELETE(constants.AgentDeploymentIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentDeploymentHandler)))
+	apiRouter.POST(constants.AgentDeploymentsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachBFFMLflowClient(app.CreateAgentDeploymentHandler)))))
 
 	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
 	// OGX forwards the user JWT via Authorization: Bearer (from passthrough_api_key

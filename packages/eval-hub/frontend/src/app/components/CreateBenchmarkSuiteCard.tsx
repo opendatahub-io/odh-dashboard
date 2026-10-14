@@ -7,11 +7,13 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 type CreateBenchmarkSuiteCardProps = {
   createSuiteRoute?: string;
+  createSuiteRouteState?: unknown;
   onCreateSuite?: () => void;
 };
 
 const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
   createSuiteRoute,
+  createSuiteRouteState,
   onCreateSuite = () => undefined,
 }) => (
   <Card
@@ -35,7 +37,9 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
         <Button
           className="evalhub-create-suite-card__button"
           variant="secondary"
-          component={(props) => <Link {...props} to={createSuiteRoute} />}
+          component={(props) => (
+            <Link {...props} to={createSuiteRoute} state={createSuiteRouteState} />
+          )}
           onClick={() =>
             trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
               surface: 'collection_gallery',

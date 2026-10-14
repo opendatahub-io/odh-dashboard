@@ -14,53 +14,74 @@ import {
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
-import { ConnectionModel } from '~/app/types';
+import { ConnectionModel, ConnectionRef, ConnectionWarning } from '~/app/types';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
+import {
+  CONNECTION_UNAVAILABLE_LABEL,
+  getConnectionDisplayName,
+  getConnectionKey,
+  shouldDisplayConnectionWarning,
+} from '~/app/utilities/connectionUtils';
 
-type DataLocationSectionProps =
-  | {
-      connections: ConnectionModel[];
-      connectionsLoaded: boolean;
-      connectionsError?: Error;
-      pathLabel?: never;
-      showConnection?: never;
-      isConnectionReadOnly?: never;
-    }
-  | {
-      pathLabel?: string;
-      showConnection?: boolean;
-      isConnectionReadOnly?: boolean;
-      connections?: never;
-      connectionsLoaded?: never;
-      connectionsError?: never;
-    };
+type DataLocationSectionProps = {
+  connections?: ConnectionModel[];
+  connectionDisplayData?: ConnectionModel[];
+  connectionsLoaded?: boolean;
+  connectionsError?: Error;
+  connectionWarnings?: ConnectionWarning[];
+  showDchFallbackWarning?: boolean;
+  showRhaiLookupWarning?: boolean;
+  currentConnection?: ConnectionRef | null;
+  pathLabel?: string;
+  isConnectionDisabled?: boolean;
+};
 
 const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   const {
     connections = [],
+    connectionDisplayData,
     connectionsLoaded = true,
     connectionsError,
+    connectionWarnings = [],
+    showDchFallbackWarning,
+    showRhaiLookupWarning,
+    currentConnection,
     pathLabel = 'Path',
-    showConnection = false,
-    isConnectionReadOnly = false,
+    isConnectionDisabled = false,
   } = props;
-  const isEditMode = !('connections' in props);
   const { control } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const [isConnectionOpen, setIsConnectionOpen] = React.useState(false);
+  const displayConnections = connectionDisplayData ?? connections;
+  const showFallbackWarning = showDchFallbackWarning ?? currentConnection?.type === 'dch';
+  const showRhaiWarning = showRhaiLookupWarning ?? currentConnection?.type === 'secret';
+  const connectionsResolved = connectionsLoaded && !connectionsError;
+  const currentConnectionUnavailable =
+    !!currentConnection &&
+    connectionsResolved &&
+    !displayConnections.some(
+      (connection) => getConnectionKey(connection) === getConnectionKey(currentConnection),
+    );
 
   const getToggleLabel = (value: string): string => {
     if (!value) {
       return 'Select a connection';
     }
-    const match = connections.find((c) => c.name === value);
-    return match?.displayName || match?.name || value;
+    const match = displayConnections.find((connection) => getConnectionKey(connection) === value);
+    const current =
+      currentConnection && getConnectionKey(currentConnection) === value
+        ? currentConnection
+        : undefined;
+    return getConnectionDisplayName(
+      current || match || value,
+      displayConnections,
+      connectionsLoaded,
+      connectionsError,
+    );
   };
 
   return (
-    <FormSection title="Data location" titleElement="h2">
-      <Content component="p">
-        Specify where the data is stored by selecting a connection or providing path details.
-      </Content>
+    <FormSection title="Asset location" titleElement="h2">
+      <Content component="p">Specify where the data is stored within a connection.</Content>
 
       {connectionsError ? (
         <Alert
@@ -73,56 +94,96 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
         </Alert>
       ) : null}
 
-      {!isEditMode || showConnection ? (
-        <Controller
-          name="connection"
-          control={control}
-          render={({ field }) => (
-            <FormGroup label="Connection" fieldId="data-connection">
-              <Select
-                isOpen={isConnectionOpen}
-                selected={field.value}
-                onSelect={(_event, value) => {
-                  field.onChange(String(value));
-                  setIsConnectionOpen(false);
-                }}
-                onOpenChange={setIsConnectionOpen}
-                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsConnectionOpen((prev) => !prev)}
-                    isExpanded={isConnectionOpen}
-                    isFullWidth
-                    isDisabled={!!connectionsError || isConnectionReadOnly}
-                    data-testid="data-connection-toggle"
-                  >
-                    {!connectionsLoaded ? <Spinner size="sm" /> : getToggleLabel(field.value)}
-                  </MenuToggle>
-                )}
-              >
-                <SelectList>
-                  {connections.length === 0 ? (
-                    <SelectOption value="" isDisabled>
-                      No connections available
-                    </SelectOption>
-                  ) : (
-                    connections.map((conn) => (
-                      <SelectOption
-                        key={conn.name}
-                        value={conn.name}
-                        description={conn.connectionType}
-                        data-testid={`connection-option-${conn.name}`}
-                      >
-                        {conn.displayName || conn.name}
-                      </SelectOption>
-                    ))
-                  )}
-                </SelectList>
-              </Select>
-            </FormGroup>
-          )}
-        />
+      {connectionWarnings
+        .filter((warning) =>
+          shouldDisplayConnectionWarning(warning, showFallbackWarning, showRhaiWarning),
+        )
+        .map((warning) => (
+          <Alert
+            key={warning.code}
+            variant="warning"
+            isInline
+            title={warning.message}
+            data-testid="connections-warning"
+          />
+        ))}
+      {currentConnectionUnavailable ? (
+        <Alert
+          variant="warning"
+          isInline
+          title={CONNECTION_UNAVAILABLE_LABEL}
+          data-testid="connection-unavailable-warning"
+        >
+          This saved connection is currently unavailable. You can keep this reference or select
+          another connection.
+        </Alert>
       ) : null}
+      <Controller
+        name="connection"
+        control={control}
+        render={({ field }) => (
+          <FormGroup label="Connection" fieldId="data-connection">
+            <Content component="p">
+              Select the connection in this project where the data is located.
+            </Content>
+            <Select
+              isOpen={isConnectionOpen}
+              selected={field.value}
+              onSelect={(_event, value) => {
+                field.onChange(String(value));
+                setIsConnectionOpen(false);
+              }}
+              onOpenChange={setIsConnectionOpen}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsConnectionOpen((prev) => !prev)}
+                  isExpanded={isConnectionOpen}
+                  isFullWidth
+                  isDisabled={!connectionsLoaded || !!connectionsError || isConnectionDisabled}
+                  className="odh-data-registry-registration-form__connection-toggle"
+                  data-testid="data-connection-toggle"
+                >
+                  {!connectionsLoaded && !connectionsError && !field.value ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    getToggleLabel(field.value)
+                  )}
+                </MenuToggle>
+              )}
+            >
+              <SelectList>
+                {currentConnectionUnavailable ? (
+                  <SelectOption value={getConnectionKey(currentConnection)}>
+                    {CONNECTION_UNAVAILABLE_LABEL}
+                  </SelectOption>
+                ) : null}
+                {connections.length === 0 ? (
+                  <SelectOption value="" isDisabled>
+                    No connections available
+                  </SelectOption>
+                ) : (
+                  connections.map((connection) => (
+                    <SelectOption
+                      key={getConnectionKey(connection)}
+                      value={getConnectionKey(connection)}
+                      description={connection.connectionType}
+                      data-testid={`connection-option-${getConnectionKey(connection)}`}
+                    >
+                      {getConnectionDisplayName(
+                        connection,
+                        displayConnections,
+                        connectionsLoaded,
+                        connectionsError,
+                      )}
+                    </SelectOption>
+                  ))
+                )}
+              </SelectList>
+            </Select>
+          </FormGroup>
+        )}
+      />
 
       <Controller
         name="path"

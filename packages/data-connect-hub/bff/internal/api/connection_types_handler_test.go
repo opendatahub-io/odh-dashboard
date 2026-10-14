@@ -119,7 +119,7 @@ func TestGetConnectionTypeHandlerForwardsUpstreamRequest(t *testing.T) {
 		_, err := w.Write([]byte(`{
 			"metadata":{"id":"provider/type one","tenant_id":"test-project","created_at":"2026-09-08T16:00:00Z","updated_at":"2026-09-09T16:00:00Z"},
 			"resource":{"name":"Provider type","provider":"provider","credentials_fields":[]},
-			"status":{"capabilities":{"flight":false,"rest":true}}
+			"status":{"flight_ready":true}
 		}`))
 		require.NoError(t, err)
 	}))
@@ -137,6 +137,7 @@ func TestGetConnectionTypeHandlerForwardsUpstreamRequest(t *testing.T) {
 	var envelope ConnectionTypeEnvelope
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
 	require.Equal(t, "provider/type one", envelope.Data.Metadata.ID)
+	require.True(t, envelope.Data.Status.FlightReady)
 }
 
 func TestGetConnectionTypeHandlerHandlesInvalidUpstreamResponse(t *testing.T) {

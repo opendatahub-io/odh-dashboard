@@ -38,6 +38,8 @@ export type ActiveIconVariant = 'sync' | 'pulse';
 
 export type StandardTaskNodeData = {
   pipelineTask: PipelineTask;
+  /** Model record key for model terminus nodes; display labels may not be unique. */
+  modelKey?: string;
   runStatus?: RunStatus;
   activeIconVariant?: ActiveIconVariant;
   badge?: string;

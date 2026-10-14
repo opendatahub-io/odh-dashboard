@@ -18,4 +18,9 @@ describe('EvalHubHeader', () => {
     render(<EvalHubHeader title="Custom Title" />);
     expect(screen.getByText('Custom Title')).toBeInTheDocument();
   });
+
+  it('should render project content alongside the title', () => {
+    render(<EvalHubHeader title="Evaluations" projectContent={<span>Project selector</span>} />);
+    expect(screen.getByText('Project selector')).toBeInTheDocument();
+  });
 });

@@ -1,10 +1,15 @@
 import { DEFAULT_TASK_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
 import {
+  NODE_FONT,
+  NODE_HEIGHT,
+  NODE_PADDING,
+  NODE_WIDTH,
+} from '@odh-dashboard/autox-core/ui/utils';
+import {
   PipelineTask,
   PipelineNodeModelExpanded,
   type ActiveIconVariant,
 } from '~/app/types/topology';
-import { NODE_FONT, NODE_HEIGHT, NODE_PADDING, NODE_WIDTH } from './const';
 
 let cachedCtx: CanvasRenderingContext2D | null = null;
 const getCanvasContext = (): CanvasRenderingContext2D | null => {
@@ -40,6 +45,7 @@ export type CreateNodeOptions = {
   runAfterTasks?: string[];
   runStatus?: RunStatus;
   activeIconVariant?: ActiveIconVariant;
+  patternKey?: string;
 };
 
 export const createNode = ({
@@ -49,6 +55,7 @@ export const createNode = ({
   runAfterTasks,
   runStatus,
   activeIconVariant,
+  patternKey,
 }: CreateNodeOptions): PipelineNodeModelExpanded => ({
   id,
   label,
@@ -60,5 +67,6 @@ export const createNode = ({
     pipelineTask,
     runStatus,
     activeIconVariant,
+    patternKey,
   },
 });

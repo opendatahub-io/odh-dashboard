@@ -1,0 +1,28 @@
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  name: default-profile
+  annotations:
+    opendatahub.io/dashboard-feature-visibility: '[]'
+    opendatahub.io/description: >-
+      A CPU-only profile sized for local model-serving development.
+    opendatahub.io/disabled: 'false'
+    opendatahub.io/display-name: Default profile
+    opendatahub.io/managed: 'false'
+spec:
+  identifiers:
+    - defaultCount: 1
+      displayName: CPU
+      identifier: cpu
+      maxCount: 4
+      minCount: 1
+      resourceType: CPU
+    - defaultCount: 2Gi
+      displayName: Memory
+      identifier: memory
+      maxCount: 8Gi
+      minCount: 1Gi
+      resourceType: Memory
+  scheduling:
+    type: Node
+    node: {}

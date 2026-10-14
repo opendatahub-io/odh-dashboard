@@ -20,10 +20,17 @@ import {
   EvalHubServerHealthResponse,
   CreateEvaluationJobRequest,
   CreateEvaluationJobResponse,
+  HardwareProfileValidationRequest,
+  HardwareProfileValidationResponse,
   CreateCollectionRequest,
   EvaluationJob,
   EvaluationJobsResponse,
   InferenceServicesResponse,
+  KueueAvailability,
+  KueueWorkloadStatus,
+  KueueWorkloadStatusesResponse,
+  HardwareProfile,
+  HardwareProfilesResponse,
   ListCollectionsParams,
   ListEvaluationJobsParams,
   NamespaceKind,
@@ -226,6 +233,77 @@ export const getEvalHubServerHealth =
       throw new Error('Invalid server health response format');
     });
 
+export const getKueueAvailability =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<KueueAvailability> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/kueue/availability`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<KueueAvailability>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid Kueue availability response format');
+    });
+
+export const getKueueWorkloadStatuses =
+  (hostPath: string, namespace: string, evaluationIds: string[]) =>
+  (opts: APIOptions): Promise<KueueWorkloadStatus[]> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/kueue/workloads`,
+        // eslint-disable-next-line camelcase -- Query parameter follows the BFF OpenAPI contract.
+        { namespace, evaluation_ids: evaluationIds.join(',') },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<KueueWorkloadStatusesResponse>(response)) {
+        return response.data.items;
+      }
+      throw new Error('Invalid Kueue Workload status response format');
+    });
+
+export const getHardwareProfiles =
+  (hostPath: string, namespace: string) =>
+  (opts: APIOptions): Promise<HardwareProfile[]> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/hardwareprofiles`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<HardwareProfilesResponse | HardwareProfile[]>(response)) {
+        const { data } = response;
+        return Array.isArray(data) ? data : data.items;
+      }
+      throw new Error('Invalid HardwareProfile response format');
+    });
+
+export const validateHardwareProfiles =
+  (hostPath: string, namespace: string, request: HardwareProfileValidationRequest) =>
+  (opts: APIOptions): Promise<HardwareProfileValidationResponse> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/hardwareprofiles/validate`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<HardwareProfileValidationResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid HardwareProfiles validation response format');
+    });
+
 export const getEvaluationJobs =
   (hostPath: string, params?: ListEvaluationJobsParams) =>
   (opts: APIOptions): Promise<EvaluationJob[]> => {
@@ -250,7 +328,15 @@ export const getEvaluationJobs =
     }
 
     return handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, opts),
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, {
+        ...opts,
+        headers: {
+          ...opts.headers,
+          // The list changes immediately after a run is created. Do not let the browser reuse
+          // a pre-create response.
+          'Cache-Control': 'no-cache',
+        },
+      }),
     ).then((response) => {
       if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
         const { data } = response;
@@ -315,9 +401,7 @@ export const getCollection =
     return handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
-          collectionId,
-        )}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
         { namespace },
         opts,
       ),
@@ -339,14 +423,20 @@ export const deleteCollection =
     return handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
-          collectionId,
-        )}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
         {},
         { namespace },
         { ...opts, parseJSON: false },
       ),
-    ).then(() => undefined);
+    ).then((response) => {
+      // A successful delete returns 204 with an empty body. The shared REST
+      // helper does not reject based on HTTP status, so a non-empty response
+      // indicates that the BFF returned an error payload instead.
+      if (typeof response === 'string' && response.trim() !== '') {
+        throw new Error(response);
+      }
+      return undefined;
+    });
   };
 
 export const patchCollection =
@@ -465,9 +555,7 @@ export const cloneCollection =
     return handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
-          collectionId,
-        )}/clones`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}/clones`,
         request,
         { namespace },
         opts,
@@ -567,9 +655,7 @@ export const getCatalogSecurityArtifacts =
     return handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(
-          sourceId,
-        )}/security_artifacts/${encodeURIComponent(modelName)}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(sourceId)}/security_artifacts/${encodeURIComponent(modelName)}`,
         queryParams,
         opts,
       ),
@@ -623,9 +709,7 @@ export const getEvaluationJobLogs =
     if (params?.since_seconds != null) {
       queryParams.set('since_seconds', String(params.since_seconds));
     }
-    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(
-      jobId,
-    )}/logs?${queryParams.toString()}`;
+    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/logs?${queryParams.toString()}`;
     const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new LogFetchError(
@@ -665,9 +749,7 @@ export const getEvaluationJobBenchmarkLogs =
     if (params?.since_seconds != null) {
       queryParams.set('since_seconds', String(params.since_seconds));
     }
-    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(
-      jobId,
-    )}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
+    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
     const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new LogFetchError(

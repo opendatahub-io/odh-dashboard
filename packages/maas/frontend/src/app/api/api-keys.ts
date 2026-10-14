@@ -5,6 +5,7 @@ import {
   isModArchResponse,
   restCREATE,
   restDELETE,
+  restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
 import type {
@@ -14,6 +15,7 @@ import type {
   CreateAPIKeyRequest,
   CreateAPIKeyResponse,
   APIKey,
+  APIKeyConfig,
   SubscriptionDetail,
 } from '~/app/types/api-key';
 
@@ -53,6 +55,24 @@ const isCreateAPIKeyResponse = (v: unknown): v is CreateAPIKeyResponse =>
 
 const isBulkRevokeResponse = (v: unknown): v is BulkRevokeResponse =>
   isRecord(v) && typeof v.revokedCount === 'number' && typeof v.message === 'string';
+
+const isAPIKeyConfig = (v: unknown): v is APIKeyConfig =>
+  isRecord(v) &&
+  typeof v.max_expiration_days === 'number' &&
+  typeof v.ephemeral_max_expiration === 'string';
+
+/** GET /api/v1/api-keys-config - API key configuration limits (max expiration) */
+export const getApiKeyConfig =
+  (hostPath = '') =>
+  (opts: APIOptions): Promise<APIKeyConfig> =>
+    handleRestFailures(
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/api-keys-config`, {}, opts),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isAPIKeyConfig(response.data)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
 
 /** POST /api/v1/api-keys/search - Search API keys with optional filters, sorting, and pagination */
 export const searchApiKeys =

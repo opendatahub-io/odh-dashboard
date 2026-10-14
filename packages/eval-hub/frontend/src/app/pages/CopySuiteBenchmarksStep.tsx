@@ -2,7 +2,6 @@ import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   Button,
-  Content,
   EmptyState,
   EmptyStateActions,
   EmptyStateBody,
@@ -129,8 +128,6 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
             : undefined
         }
       >
-        <PageHeader />
-
         {hasBenchmarks ? (
           <Sidebar hasGutter className="evalhub-copy-suite-benchmarks-step__layout">
             <SidebarPanel
@@ -282,13 +279,6 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
     </div>
   );
 };
-
-const PageHeader: React.FC = () => (
-  <Content component="p" data-testid="copy-suite-benchmarks-description">
-    Choose the primary metric, benchmark parameters, and threshold used to calculate the result for
-    each benchmark.
-  </Content>
-);
 
 type EmptyBenchmarksStateProps = {
   onBack: () => void;

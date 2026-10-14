@@ -108,7 +108,7 @@ If key found: ✅. If Jira MCP or JIRA_TOKEN available, verify issue exists and 
 
 ## Test Impact
 
-Invoke `/test-impact-review` with changed paths and the PR body when available. Use its status and evidence directly; it owns whether a code change has tests, a substantive rationale, or is not applicable.
+Invoke `/test-impact-review` with changed paths, the PR body, and enough of the diff/tests when available. Use its status and aspect table directly. It owns assurance-grade **Automation**, **Efficiency**, and **Evidence depth**.
 
 ## PR Body
 

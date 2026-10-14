@@ -446,7 +446,7 @@ func SetupMock(mockK8sClient client.Client, ctx context.Context) error {
 	}
 
 	// mock-test namespaces matching GetNamespaces mock, with vector stores only
-	for _, ns := range []string{"mock-test-namespace-1", "mock-test-namespace-2", "mock-test-namespace-3", "mock-test-namespace-4", "empty-test-namespace"} {
+	for _, ns := range []string{"mock-test-namespace-1", "mock-test-namespace-2", "mock-test-namespace-3", "mock-test-namespace-4", "empty-test-namespace", "mock-audio-namespace"} {
 		if err := createNamespace(mockK8sClient, ctx, ns); err != nil {
 			return fmt.Errorf("failed to create %s namespace: %w", ns, err)
 		}
@@ -603,7 +603,7 @@ func createOGXServer(k8sClient client.Client, ctx context.Context, namespace str
 			},
 		},
 		Spec: ogxapi.OGXServerSpec{
-			Distribution: ogxapi.DistributionSpec{Name: "rh-dev"},
+			Distribution: ogxapi.DistributionSpec{Name: "rh"},
 			OverrideConfig: &ogxapi.ConfigMapKeyRef{
 				Name: "llama-stack-config",
 				Key:  "config.yaml",

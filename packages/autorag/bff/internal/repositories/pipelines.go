@@ -402,8 +402,8 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if req.MaaSSecretName == "" {
 		missing = append(missing, "maas_secret_name")
 	}
-	if req.VectorDBSecretName == "" {
-		missing = append(missing, "vector_db_secret_name")
+	if req.DBSecretName == "" {
+		missing = append(missing, "db_secret_name")
 	}
 	if len(req.EmbeddingsModels) == 0 {
 		missing = append(missing, "embedding_models")
@@ -447,8 +447,16 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		return NewValidationError(fmt.Sprintf("invalid preset %q: must be one of speed, balanced", *req.Preset))
 	}
 
+	preset := constants.DefaultPreset
+	if req.Preset != nil {
+		preset = *req.Preset
+	}
 	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {
-		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric))
+		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q", req.OptimizationMetric))
+	}
+	metric := constants.NormalizeOptimizationMetric(req.OptimizationMetric, preset)
+	if !constants.ValidOptimizationMetricsByPreset[preset][metric] {
+		return NewValidationError(fmt.Sprintf("optimization_metric %q is not available for preset %q", req.OptimizationMetric, preset))
 	}
 
 	if req.OptimizationMaxRagPatterns != nil {
@@ -499,7 +507,7 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		"input_data_bucket_name": req.InputDataBucketName,
 		"input_data_keys":        req.InputDataKeys,
 		"maas_secret_name":       req.MaaSSecretName,
-		"vector_db_secret_name":  req.VectorDBSecretName,
+		"db_secret_name":         req.DBSecretName,
 	}
 
 	preset := constants.DefaultPreset
@@ -511,10 +519,7 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 	params["embedding_models"] = req.EmbeddingsModels
 	params["generation_models"] = req.GenerationModels
 
-	metric := req.OptimizationMetric
-	if metric == "" {
-		metric = constants.DefaultOptimizationMetric
-	}
+	metric := constants.NormalizeOptimizationMetric(req.OptimizationMetric, preset)
 	params["optimization_metric"] = metric
 
 	maxRagPatterns := constants.DefaultMaxRagPatterns

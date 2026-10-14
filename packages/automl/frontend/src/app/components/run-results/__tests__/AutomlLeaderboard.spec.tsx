@@ -11,10 +11,10 @@ import { PRESET_FASTER } from '~/app/utilities/const';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 
 // Mock empty state component
-jest.mock('~/app/components/empty-states/AutomlRunInProgress', () => ({
-  __esModule: true,
-  default: ({ namespace }: { namespace: string }) => (
-    <div data-testid="run-in-progress">Pipeline running in namespace: {namespace}</div>
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
+  RunInProgress: ({ viewRunsRoute }: { viewRunsRoute: string }) => (
+    <div data-testid="run-in-progress">Pipeline running, view runs at: {viewRunsRoute}</div>
   ),
 }));
 
@@ -195,7 +195,7 @@ interface RenderWithContextOptions {
   modelsLoading?: boolean;
   modelsError?: boolean;
   modelsLoadError?: Error;
-  onRetryModels?: () => void;
+  onRetryModels?: () => Promise<void>;
   taskType?: string;
   namespace?: string;
   onViewDetails?: (modelName: string, rank: number) => void;
@@ -625,7 +625,11 @@ describe('AutomlLeaderboard component', () => {
         namespace: 'my-project',
       });
 
-      expect(screen.getByText('Pipeline running in namespace: my-project')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Pipeline running, view runs at: /develop-train/automl/experiments/my-project',
+        ),
+      ).toBeInTheDocument();
     });
   });
 
@@ -1100,7 +1104,7 @@ describe('AutomlLeaderboard component', () => {
 
       // Open modal and uncheck F1
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      const f1Checkbox = screen.getByTestId('column-check-metric:f1');
+      const f1Checkbox = screen.getByTestId('column-check-metric-f1');
       expect(f1Checkbox).not.toBeDisabled();
       fireEvent.click(f1Checkbox);
       fireEvent.click(screen.getByText('Save'));
@@ -1121,7 +1125,7 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('metric-f1-1')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       fireEvent.click(screen.getByText('Save'));
 
       expect(screen.queryByTestId('metric-f1-1')).not.toBeInTheDocument();
@@ -1155,7 +1159,7 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       fireEvent.click(screen.getByText('Cancel'));
 
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
@@ -1176,7 +1180,7 @@ describe('AutomlLeaderboard component', () => {
       expect(modelLinks[0]).toHaveTextContent('Logistic Regression');
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       fireEvent.click(screen.getByText('Save'));
 
       modelLinks = screen.getAllByTestId(/^model-link-/);
@@ -1197,7 +1201,7 @@ describe('AutomlLeaderboard component', () => {
 
       // Now hide that column
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       fireEvent.click(screen.getByText('Save'));
 
       // Table should still render (sort reset to rank)
@@ -1348,7 +1352,7 @@ describe('AutomlLeaderboard component', () => {
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByTestId('column-check-metric-f1'));
       expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
     });
 

@@ -199,6 +199,23 @@ export type WBTolerationsTestData = {
   deletedStatusBadge: string;
 };
 
+export type WBNodeSelectorsTestData = {
+  testNamespace: string;
+  testDescription: string;
+  workbenchNameA: string;
+  workbenchNameB: string;
+  notebookImageName: string;
+  resourceYamlPathA: string;
+  resourceYamlPathB: string;
+  hardwareProfileNameA: string;
+  hardwareProfileNameB: string;
+  hardwareProfileDeploymentSizeA: string;
+  hardwareProfileDeploymentSizeB: string;
+  nodeSelectorKey: string;
+  nodeSelectorValue: string;
+  tolerationValue: string;
+};
+
 export type ModifyHardwareProfileTestData = {
   wbTolerationsTestNamespace: string;
   wbTolerationsTestDescription: string;
@@ -239,6 +256,7 @@ export type WBStorageClassesTestData = {
   mountPathA: string;
   mountPathB: string;
   mountPathC: string;
+  isS390x?: boolean;
 };
 
 export type ClusterStorageAccessModesTestData = {
@@ -275,6 +293,8 @@ export type CommandLineResult = {
   stderr: string;
 };
 
+export type FileMapping = Record<string, string>;
+
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
   OCP_API_URL?: string;
@@ -299,6 +319,7 @@ export type TestConfig = {
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
+  FILEMAPPING?: FileMapping;
 };
 
 export type DataScienceProjectData = {
@@ -537,9 +558,15 @@ export type ModelTolerationsTestData = {
   tolerationValue: string;
   hardwareProfileDeploymentSize: string;
   modelName: string;
+  dataConnectionName: string;
   modelFilePath: string;
   modelFormat: string;
   servingRuntime: string;
+  clusterRole?: string;
+  isS390x?: boolean;
+  servingRuntimeName?: string;
+  servingRuntimeYamlPath?: string;
+  inferenceServicePatch?: string;
 };
 
 export type NotebookTolerationsTestData = {
@@ -589,7 +616,16 @@ export type ModelRegistryTestData = {
   modelFormatTensorflow: string;
   formatVersion3_0: string;
   uriVersion2: string;
+  /** Standard KServe (Knative/Serverless) — status.deploymentMode is 'Standard'. */
   deploymentType: string;
+  /**
+   * KServe RawDeployment — status.deploymentMode is 'RawDeployment'.
+   * Terminal load failures are signalled by:
+   *   targetModelState === 'FailedToLoad'
+   *   transitionStatus === 'BlockedByFailedLoad'
+   *   modelStatus.lastFailureInfo.reason / .message
+   */
+  rawDeploymentType: string;
 
   newNameSuffix: string;
   newDescription: string;
@@ -771,6 +807,22 @@ export type GenAiTestData = {
   servingRuntimesPath: string;
 };
 
+export type GenAiTracingTestData = {
+  modelId: string;
+  modelType: string;
+  displayName: string;
+  endpointUrl: string;
+  lsdServiceName: string;
+  lsdPodPrefix: string;
+  lsdPodReadyTimeout: string;
+  tracing: {
+    testPrompt: string;
+    mlflowTraceDetailExpectedSpans: string[];
+    openTelemetryCondition: string;
+    tempoCondition: string;
+  };
+};
+
 export type CustomEndpointTestData = {
   modelId: string;
   modelType: string;
@@ -845,6 +897,8 @@ export type EvalHubTestData = {
 export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
   /** Base name for the tenant suite created by this spec. */
   suiteName: string;
+  /** Category IDs assigned to suites created from this fixture. */
+  suiteDomains: string[];
   /** Provider ID used to disambiguate benchmark IDs in the catalog. */
   benchmarkProviderId: string;
   /** LM Evaluation Harness benchmarks added to each tenant suite. */
@@ -907,6 +961,39 @@ export type ModelAsAServiceTestData = {
   kind: string;
 };
 
+export type ExternalModelTestData = {
+  kind: string;
+  projectResourceName: string;
+  existingSecretName: string;
+  createSecretName: string;
+  externalProviderName: string;
+  providerDescription: string;
+  providerReferenceName: string;
+  externalModelName: string;
+  externalModelDescription: string;
+  providerType: string;
+  providerEndpoint: string;
+  providerAuthType: string;
+  providerPhase: string;
+  providerConfigPair: {
+    key: string;
+    value: string;
+  };
+  targetModel: string;
+  weight: number;
+  weightPercentage: number;
+  providerRef: {
+    displayName: string;
+    providerType: string;
+    endpoint: string;
+    newSecret: {
+      name: string;
+      apiKey: string;
+    };
+  };
+  pathPlaceholderKey: string;
+};
+
 export enum ApiKeyStatus {
   active = 'Active',
   expired = 'Expired',
@@ -923,6 +1010,16 @@ export enum PhaseStatus {
   UNAVAILABLE = 'Unavailable',
   UNHEALTHY = 'Unhealthy',
   UNKNOWN = 'Unknown',
+}
+
+export enum APIFormat {
+  OPENAI_CHAT = 'OpenAI Chat',
+  MESSAGES = 'Anthropic Messages',
+}
+
+export enum Path {
+  OPENAI_CHAT = '/v1/chat/completions',
+  MESSAGES = '/v1/messages',
 }
 
 export type TrainJobTestData = {
@@ -1030,6 +1127,11 @@ export type MlflowExperimentsTestData = {
   nonExistentExperiment: string;
 };
 
+export type MlflowAgentObservabilityTestData = {
+  projectName: string;
+  experimentName: string;
+};
+
 export type AutoragTestData = {
   projectNamePrefix: string;
   dspaSecretName: string;
@@ -1043,15 +1145,6 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
-};
-
-export type AgentRuntimesTestData = {
-  pageTitle: string;
-  projectResourceName: string;
-  filterSearchTerm: string;
-  filterOptionStatus: string;
-  statusPending: string;
-  statusReady: string;
 };
 
 export type MlflowIrisRunData = {

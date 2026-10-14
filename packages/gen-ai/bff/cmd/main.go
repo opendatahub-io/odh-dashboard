@@ -23,6 +23,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
+func distributionNameDefault() string {
+	return getEnvAsString("DISTRIBUTION_NAME", "rh")
+}
+
 func main() {
 	var cfg config.EnvConfig
 	var certFile, keyFile string
@@ -43,7 +47,7 @@ func main() {
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
 	flag.StringVar(&cfg.APIPathPrefix, "api-path-prefix", getEnvAsString("API_PATH_PREFIX", "/api/v1"), "API path prefix for BFF endpoints (e.g., /api/v1)")
 	flag.StringVar(&cfg.PathPrefix, "path-prefix", getEnvAsString("PATH_PREFIX", "/gen-ai"), "Path prefix for BFF endpoints (e.g., /gen-ai)")
-	flag.StringVar(&cfg.DistributionName, "distribution-name", getEnvAsString("DISTRIBUTION_NAME", "rh-dev"), "Custom distribution name/image")
+	flag.StringVar(&cfg.DistributionName, "distribution-name", distributionNameDefault(), "Custom distribution name/image")
 
 	// Llama Stack configuration
 	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
@@ -54,9 +58,6 @@ func main() {
 	// NeMo Guardrails configuration
 	flag.StringVar(&cfg.NemoGuardrailsURL, "nemo-guardrails-url", getEnvAsString("NEMO_GUARDRAILS_URL", ""), "NeMo Guardrails server URL for content moderation")
 	flag.BoolVar(&cfg.MockNemoClient, "mock-nemo", getEnvAsBool("MOCK_NEMO_CLIENT", false), "Use mock NeMo Guardrails client")
-
-	// MaaS configuration
-	flag.StringVar(&cfg.MaaSURL, "maas-url", getEnvAsString("MAAS_URL", ""), "MaaS server URL for proxying requests")
 
 	// MLflow configuration
 	flag.StringVar(&cfg.MLflowURL, "mlflow-url", getEnvAsString("MLFLOW_URL", ""), "MLflow tracking server URL")

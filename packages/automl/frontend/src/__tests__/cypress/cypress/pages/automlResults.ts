@@ -1,5 +1,3 @@
-const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 class AutomlResultsPage {
   visit(namespace: string, runId: string) {
     cy.visit(`/develop-train/automl/results/${namespace}/${runId}`);
@@ -37,7 +35,8 @@ class AutomlResultsPage {
   }
 
   findColumnCheck(column: string) {
-    return cy.findByTestId(`column-check-${column}`);
+    const sanitizedColumn = column.replace(/[^a-zA-Z0-9_-]/g, '-');
+    return cy.findByTestId(`column-check-${sanitizedColumn}`);
   }
 
   findManageColumnsSaveButton() {
@@ -63,7 +62,7 @@ class AutomlResultsPage {
   }
 
   findModelSelectorOption(name: string) {
-    return cy.findByRole('menuitem', { name: new RegExp(escapeRegExp(name)) });
+    return this.findModelSelectorDropdown().findDropdownItem(name, 'model-selector-menu');
   }
 
   findTab(tabName: string) {

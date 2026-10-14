@@ -62,7 +62,7 @@ type CreateAutoRAGRunRequest struct {
 	EmbeddingsModels           []string `json:"embedding_models"`
 	GenerationModels           []string `json:"generation_models"`
 	OptimizationMetric         string   `json:"optimization_metric,omitempty"`
-	VectorDBSecretName         string   `json:"vector_db_secret_name"`
+	DBSecretName               string   `json:"db_secret_name"`
 	OptimizationMaxRagPatterns *int     `json:"optimization_max_rag_patterns,omitempty"`
 }
 

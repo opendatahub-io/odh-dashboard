@@ -15,6 +15,7 @@ import {
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
+import DeploymentsBannerSlot from '../deployments/DeploymentsBannerSlot';
 
 const ModelsProjectDetailsView: React.FC<{
   project: ProjectKind;
@@ -106,11 +107,14 @@ const ModelsProjectDetailsView: React.FC<{
             clearErrorSelectingPlatform={clearProjectPlatformError}
           />
         ) : (
-          <ProjectDeploymentsTable
-            modelServingPlatform={activePlatform}
-            deployments={deployments}
-            loaded={deploymentsLoaded}
-          />
+          <>
+            <DeploymentsBannerSlot />
+            <ProjectDeploymentsTable
+              modelServingPlatform={activePlatform}
+              deployments={deployments}
+              loaded={deploymentsLoaded}
+            />
+          </>
         ))}
     </DetailsSection>
   );

@@ -124,6 +124,7 @@ type ImageStreamAnnotations = Partial<{
   'opendatahub.io/notebook-image-name': string;
   'opendatahub.io/notebook-image-url': string;
   'opendatahub.io/notebook-image-order': string;
+  'opendatahub.io/notebook-tier': string;
 }>;
 
 type ImageStreamSpecTagAnnotations = Partial<{
@@ -335,14 +336,15 @@ export type DSPipelineMlflowKind = {
  * Managed pipelines configuration.
  *
  * CURRENT (AutoML/AutoRAG pattern):
- * - The UI sends an empty object {} to enable managed pipelines.
- * - The operator injects the image and other fields.
+ * - The operator defaults managed pipelines to enabled when managedPipelines/enabled is omitted.
+ * - The UI sets enabled explicitly; the operator injects the image and other fields.
  *
  * DEPRECATED (InstructLab pattern):
  * - instructLab.state: Legacy pattern for single InstructLab pipeline management
  * - Use the new pattern for all new implementations
  */
 export type DSPipelineManagedPipelinesImageKind = {
+  enabled?: boolean;
   image?: string;
   pipelines?: Array<{ name: string }>;
 };

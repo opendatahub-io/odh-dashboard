@@ -4,29 +4,23 @@ This guide outlines how to run the upstream Model Registry and integrate it with
 
 ## Prerequisites
 
-1. **Start the ODH Backend:**
-   Ensure your ODH backend server is running. Run in the root of the ODH project:
+1. **Start the ODH Dashboard:**
+   Start the dashboard backend on port `4000` and the host frontend on port `4010`. Run in the repository root:
 
    ```bash
-   pnpm run dev:backend
-   ```
-
-2. **Start the ODH Frontend:**
-   The main ODH dashboard frontend application must also be running. Run in the root of the ODH project:
-
-   ```bash
-   pnpm run dev:frontend
+   pnpm run dev
    ```
 
    **Important:** Do not use `pnpm run start:dev:ext` for the ODH frontend when testing this upstream integration.
 
-3. **Model Registry UI Requirements:**
+2. **Start the Model Registry federated module:**
    Ensure you have met the [frontend requirements] and [BFF requirements] for the Model Registry UI. You can run Model Registry in either **mocked mode** or **federated mode**. For testing ODH integration, use **federated mode**.
 
    ```bash
-   cd packages/model-registry/upstream
-   make dev-start-federated
+   pnpm --filter @odh-dashboard/model-registry start:dev
    ```
+
+   This ODH wrapper runs the Model Registry frontend on port `9100` and its BFF on port `4005`. Do not invoke `upstream`'s `make dev-start-federated` directly for ODH integration: its default BFF port is `4000`, which conflicts with the dashboard backend.
 
    Now you need to port forward the Model Catalog service to allow the Model Registry to communicate with it. In a separate terminal, run:
 

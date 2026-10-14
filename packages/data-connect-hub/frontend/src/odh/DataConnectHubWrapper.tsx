@@ -8,6 +8,7 @@ import {
 } from 'mod-arch-core';
 import { URL_PREFIX } from '~/app/utilities/const';
 import AppRoutes from '~/app/AppRoutes';
+import ToastNotifications from '~/app/components/ToastNotifications';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
@@ -20,6 +21,7 @@ const ModArchWrapper: React.FC = () => (
     <BrowserStorageContextProvider>
       <NotificationContextProvider>
         <AppRoutes />
+        <ToastNotifications />
       </NotificationContextProvider>
     </BrowserStorageContextProvider>
   </ModularArchContextProvider>

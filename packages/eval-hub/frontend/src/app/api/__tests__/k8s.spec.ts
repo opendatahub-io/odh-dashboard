@@ -16,6 +16,9 @@ import {
   getCollections,
   getEvalHubCRStatus,
   getEvalHubServerHealth,
+  validateHardwareProfiles,
+  getKueueWorkloadStatuses,
+  getEvaluationJobs,
   getEvaluationJob,
   getProviders,
   createEvaluationJob,
@@ -31,6 +34,8 @@ import type {
   CreateEvaluationJobRequest,
   EvalHubCRStatus,
   EvaluationJob,
+  HardwareProfileValidationResponse,
+  KueueWorkloadStatus,
   Provider,
 } from '~/app/types';
 
@@ -149,6 +154,87 @@ describe('getEvalHubCRStatus', () => {
       expect.any(Object),
       expect.any(Object),
     );
+  });
+});
+
+describe('getKueueWorkloadStatuses', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('returns Kueue Workload statuses from the BFF response', async () => {
+    const statuses: KueueWorkloadStatus[] = [
+      {
+        evaluation_id: 'job-1',
+        queue_name: 'default',
+        state: 'queued',
+        message: 'Waiting for quota',
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items: statuses } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getKueueWorkloadStatuses('', 'test-ns', ['job-1', 'job-2'])({});
+
+    expect(result).toEqual(statuses);
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/kueue/workloads',
+      { namespace: 'test-ns', evaluation_ids: 'job-1,job-2' },
+      {},
+    );
+  });
+
+  it('rejects an invalid BFF response', async () => {
+    mockRestGET.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(getKueueWorkloadStatuses('', 'test-ns', ['job-1'])({})).rejects.toThrow(
+      'Invalid Kueue Workload status response format',
+    );
+  });
+});
+
+describe('validateHardwareProfiles', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should return validation results for the requested profiles', async () => {
+    const validation: HardwareProfileValidationResponse = {
+      items: [{ compatible: false, hardware_profile: 'cpu-small', mismatches: [] }],
+    };
+    mockRestCREATE.mockResolvedValue({ data: validation });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const request = {
+      hardware_profiles: ['cpu-small', 'cpu-large'],
+      provider_ids: ['provider-a'],
+    };
+    const result = await validateHardwareProfiles('', 'test-ns', request)({});
+
+    expect(result).toEqual(validation);
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/hardwareprofiles/validate',
+      request,
+      { namespace: 'test-ns' },
+      {},
+    );
+  });
+
+  it('should reject an invalid validation response', async () => {
+    mockRestCREATE.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(
+      validateHardwareProfiles('', 'test-ns', {
+        hardware_profiles: ['cpu-small'],
+        provider_ids: ['provider-a'],
+      })({}),
+    ).rejects.toThrow('Invalid HardwareProfiles validation response format');
   });
 });
 
@@ -399,6 +485,14 @@ describe('deleteCollection', () => {
     await expect(deleteCollection('', 'my-ns', 'col-1')({})).resolves.toBeUndefined();
   });
 
+  it('should reject when the BFF returns an error body', async () => {
+    mockRestDELETE.mockResolvedValue('{"message":"Delete failed"}');
+
+    await expect(deleteCollection('', 'my-ns', 'col-1')({})).rejects.toThrow(
+      '{"message":"Delete failed"}',
+    );
+  });
+
   it('should encode the collection ID in the URL', async () => {
     mockRestDELETE.mockResolvedValue({});
 
@@ -492,6 +586,24 @@ describe('cloneCollection', () => {
     await expect(
       cloneCollection('', 'test-ns', 'col-1', { name: 'Cloned suite' })({}),
     ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+  });
+
+  it('should send an empty override object when cloning a collection as-is', async () => {
+    const collection = {
+      name: 'Cloned suite',
+      resource: { id: 'cloned-col-1' },
+    };
+    mockRestCREATE.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(cloneCollection('', 'test-ns', 'col-1', {})({})).resolves.toEqual(collection);
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col-1/clones',
+      {},
+      { namespace: 'test-ns' },
+      {},
+    );
   });
 });
 
@@ -1017,6 +1129,33 @@ describe('getProviders', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].benchmarks).toBeUndefined();
+  });
+});
+
+describe('getEvaluationJobs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should bypass cached responses while preserving request options', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+    const opts = { headers: { 'X-Test': 'value' } };
+
+    await getEvaluationJobs('', { namespace: 'my-ns' })(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/jobs',
+      { namespace: 'my-ns' },
+      {
+        headers: {
+          'X-Test': 'value',
+          'Cache-Control': 'no-cache',
+        },
+      },
+    );
   });
 });
 

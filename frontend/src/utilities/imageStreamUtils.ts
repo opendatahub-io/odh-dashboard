@@ -143,6 +143,7 @@ export const mapImageStreamToBYONImage = (image: ImageStreamKind): BYONImage => 
     recommendedAcceleratorIdentifiers: safeJSONParse<string>(
       annotations[ImageStreamAnnotation.RECOMMENDED_ACCELERATORS],
     ),
+    tier: annotations[ImageStreamAnnotation.NOTEBOOK_TIER] || 'custom',
     isOOTB: isOOTBImage,
   };
 };

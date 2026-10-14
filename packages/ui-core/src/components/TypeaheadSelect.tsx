@@ -276,15 +276,16 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   ]);
 
   const groupedSelections = React.useMemo(() => {
-    const group: Record<string, TypeaheadSelectOption[]> = {};
+    const group = new Map<string, TypeaheadSelectOption[]>();
     const noGroup: TypeaheadSelectOption[] = [];
 
     filteredSelections.forEach((option) => {
       if (option.group) {
-        if (option.group in group) {
-          group[option.group].push(option);
+        const groupOptions = group.get(option.group);
+        if (groupOptions) {
+          groupOptions.push(option);
         } else {
-          group[option.group] = [option];
+          group.set(option.group, [option]);
         }
       } else {
         noGroup.push(option);
@@ -309,7 +310,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       }
     }
 
-    Object.entries(groupedSelections.group).forEach(([groupName, groupOptions]) => {
+    groupedSelections.group.forEach((groupOptions, groupName) => {
       if (isCollapsible) {
         items.push(createGroupToggleOption(groupName));
         if (!isGroupCollapsed(groupName)) {
@@ -670,7 +671,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       : groupedSelections.noGroup;
 
     const createNode = createOption ? tSelectOption(createOption, idx++) : null;
-    const groupEntries = Object.entries(groupedSelections.group);
+    const groupEntries = Array.from(groupedSelections.group.entries());
     const groupOpts = groupEntries.map(([groupName, group], groupIndex) => {
       const { node, nextIndex } = tGroupOption(
         groupName,

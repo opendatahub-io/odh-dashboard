@@ -13,6 +13,12 @@ export const PLAYGROUND_AGENT_EVENTS = {
 
   DETAILS_EDIT_SELECTED: 'Playground Agent Details Edit Selected',
   DETAILS_DELETE_EXECUTED: 'Playground Agent Details Delete Executed',
+
+  DEPLOYMENT_INITIATED: 'Playground Deployment Initiated',
+  DEPLOYMENT_SUBMITTED: 'Playground Deployment Submitted',
+  DEPLOYMENT_DETAILS_VIEWED: 'Playground Deployment Details Viewed',
+  DEPLOYMENT_STATUS_FILTER_SELECTED: 'Playground Deployment Status Filter Selected',
+  DEPLOYMENT_DELETE_CONFIRMED: 'Playground Deployment Delete Confirmed',
 } as const;
 
 export type TryInPlaygroundSelectedProperties = {
@@ -68,4 +74,22 @@ export type DetailsEditSelectedProperties = {
 
 export type DetailsDeleteExecutedProperties = {
   agentID: string;
+};
+
+export type DeploymentInitiatedProperties = {
+  source: 'playground' | 'configurationDetails';
+};
+
+export type DeploymentSubmittedProperties = {
+  outcome: 'submit' | 'cancel';
+};
+
+export type DeploymentDetailsViewedProperties = Record<string, never>;
+
+export type DeploymentStatusFilterSelectedProperties = {
+  filterType: 'all' | 'deployed' | 'notDeployed';
+};
+
+export type DeploymentDeleteConfirmedProperties = {
+  outcome: 'submit' | 'cancel';
 };

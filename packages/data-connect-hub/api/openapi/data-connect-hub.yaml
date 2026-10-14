@@ -82,6 +82,39 @@ paths:
       operationId: getConnections
       summary: Get data connections
       description: Returns the data connections belonging to the selected project.
+    post:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConnectionRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ConnectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/ConflictResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: createConnection
+      summary: Create a data connection
+      description: Creates a data connection in the selected project using inline credentials.
   /api/v1/connection-types:
     summary: Path used to list connection types for a project.
     get:
@@ -187,8 +220,83 @@ paths:
       operationId: deleteConnection
       summary: Delete a data connection
       description: Deletes a data connection from the selected project.
+  /api/v1/test/credentials:
+    summary: Path used to test data connection credentials.
+    post:
+      tags:
+        - DataOperation
+      summary: Test connection credentials
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestCredentialsRequest'
+      responses:
+        '204':
+          description: Credentials verified successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: testCredentials
+      description: Tests credentials against the selected data source without creating a connection.
 components:
   schemas:
+    CreateConnectionRequest:
+      type: object
+      required:
+        - name
+        - data_connection_type_id
+        - format
+        - credentials
+        - properties
+      properties:
+        name:
+          type: string
+        data_connection_type_id:
+          type: string
+        format:
+          type: string
+          enum: [tabular, binary]
+        credentials:
+          type: object
+          required:
+            - secret
+            - properties
+          properties:
+            secret:
+              type: string
+            properties:
+              type: object
+              additionalProperties:
+                type: string
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+    TestCredentialsRequest:
+      type: object
+      required:
+        - data_connection_type_id
+        - credentials
+      properties:
+        data_connection_type_id:
+          type: string
+        credentials:
+          type: object
+          additionalProperties:
+            type: string
     Config:
       required:
         - userId
@@ -251,6 +359,40 @@ components:
               type: string
             updated_at:
               type: string
+    ConnectionTypeEnumValue:
+      type: object
+      required:
+        - value
+        - label
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+    ConnectionTypeField:
+      type: object
+      required:
+        - name
+        - label
+        - required
+        - type
+      properties:
+        name:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        required:
+          type: boolean
+        type:
+          type: string
+        enum_values:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectionTypeEnumValue'
+        default_value:
+          type: string
     ConnectionType:
       required:
         - metadata
@@ -292,50 +434,20 @@ components:
             credentials_fields:
               type: array
               items:
-                type: object
-                required:
-                  - name
-                  - label
-                  - required
-                  - type
-                properties:
-                  name:
-                    type: string
-                  label:
-                    type: string
-                  description:
-                    type: string
-                    nullable: true
-                  required:
-                    type: boolean
-                  type:
-                    type: string
-                  enum_values:
-                    type: array
-                    nullable: true
-                    items:
-                      type: object
-                      required:
-                        - value
-                        - label
-                      properties:
-                        value:
-                          type: string
-                        label:
-                          type: string
-                  default_value:
-                    type: string
-                    nullable: true
+                $ref: '#/components/schemas/ConnectionTypeField'
         status:
           type: object
+          required:
+            - flight_ready
           properties:
-            capabilities:
-              type: object
-              properties:
-                flight:
-                  type: boolean
-                rest:
-                  type: boolean
+            flight_ready:
+              type: boolean
+            flight_url:
+              type: string
+            message:
+              type: string
+            updated_at:
+              type: string
     NoContent:
       description: Successful operation with no response body.
     BaseResource:
@@ -568,6 +680,12 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
       description: Bad Request parameters
+    UnprocessableEntity:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: The request was well-formed but could not be processed.
     Unauthorized:
       content:
         application/json:
@@ -631,6 +749,19 @@ components:
                 items:
                   $ref: '#/components/schemas/Connection'
       description: List of data connections for a project.
+    ConnectionResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+              data:
+                $ref: '#/components/schemas/Connection'
+      description: Created data connection.
     ConnectionTypesResponse:
       content:
         application/json:

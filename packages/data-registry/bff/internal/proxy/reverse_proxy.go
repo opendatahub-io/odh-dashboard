@@ -59,8 +59,8 @@ type DataRegistryProxyConfig struct {
 	// identity headers the upstream trusts (X-User and legacy Kubeflow headers) are always
 	// stripped outright — see NewDataRegistryReverseProxy.
 	AuthHeaderFn func(*http.Request) string
-	// UserIDFn returns the verified user ID to send upstream as X-User. The upstream Data
-	// Registry API reads this header to set registered_by / updated_by on assets.
+	// UserIDFn returns the verified user ID to send upstream as X-User when the upstream
+	// implementation needs the authenticated identity for auditing.
 	UserIDFn func(*http.Request) string
 	// InsecureSkipVerify skips upstream TLS certificate verification (dev only).
 	InsecureSkipVerify bool
@@ -116,10 +116,9 @@ func NewDataRegistryReverseProxy(cfg DataRegistryProxyConfig) *httputil.ReverseP
 				}
 			}
 
-			// The upstream Data Registry API trusts these headers for user attribution (e.g. the
-			// `registered_by` field on registered assets). As with Authorization above, a
-			// caller-supplied value must never be forwarded verbatim — only the BFF's own
-			// verified identity may assert who the caller is.
+			// The upstream Data Registry API trusts these headers for user attribution. As with
+			// Authorization above, caller-supplied values must never be forwarded verbatim — only
+			// the BFF's own verified identity may assert who the caller is.
 			pr.Out.Header.Del(constants.XUserHeader)
 			pr.Out.Header.Del(kubeflowUserIDHeader)
 			pr.Out.Header.Del(kubeflowUserGroupsHeader)

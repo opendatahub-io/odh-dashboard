@@ -11,6 +11,10 @@ class EvaluationsPage {
     return cy.findByTestId('create-evaluation-button', options);
   }
 
+  findEvaluateTab(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('evaluate-tab', options);
+  }
+
   findEvaluateTabContent(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('evaluate-tab-content', options);
   }

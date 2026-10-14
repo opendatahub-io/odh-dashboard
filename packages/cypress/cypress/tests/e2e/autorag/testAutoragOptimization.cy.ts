@@ -87,7 +87,7 @@ describe('AutoRAG Optimization E2E', () => {
 
       cy.step('Select faithfulness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
-      autoragConfigurePage.findMetricOption('faithfulness').click();
+      autoragConfigurePage.findMetricOption('unitxt:faithfulness').click();
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage
@@ -174,7 +174,7 @@ describe('AutoRAG Optimization completion results E2E', () => {
 
       cy.step('Select faithfulness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
-      autoragConfigurePage.findMetricOption('faithfulness').click();
+      autoragConfigurePage.findMetricOption('unitxt:faithfulness').click();
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage

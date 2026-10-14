@@ -24,7 +24,7 @@
     },
     "service": {
       "name": "odh-dashboard-data-connect-hub-ui",
-      "port": 9143
+      "port": 9243
     }
   },
   "bffConfig": {

@@ -87,6 +87,14 @@ const (
 	ModelTransferJobPath       = ModelTransferJobListPath + "/:" + ModelTransferJobName
 	ModelTransferJobEventsPath = ModelTransferJobPath + "/events"
 
+	// Serving runtime catalog (downstream-only implementations)
+	ServingRuntimeID                = "id"
+	ServingRuntimeCatalogPathPrefix = ApiPathPrefix + "/serving_runtime_catalog"
+	ServingRuntimeListPath          = ServingRuntimeCatalogPathPrefix + "/serving_runtimes"
+	ServingRuntimeFilterOptionsPath = ServingRuntimeListPath + "_filter_options"
+	ServingRuntimePath              = ServingRuntimeListPath + "/:" + ServingRuntimeID
+	ServingRuntimeVersionsPath      = ServingRuntimePath + "/versions"
+
 	// Agent catalog
 	AgentId                   = "agent_id"
 	AgentCatalogPathPrefix    = ApiPathPrefix + "/agent_catalog"
@@ -104,6 +112,8 @@ const (
 	McpServersToolListPath        = McpServerPath + "/tools"
 	McpServerLogoPath             = McpServerPath + "/logo"
 	MCPServerConverterPath        = McpServerPath + "/mcpserver"
+	// Downstream-only: deploy prerequisites for a catalog MCP server.
+	McpServerDeployReadinessPath = McpServerPath + "/deploy_readiness"
 
 	// Swagger UI (interactive API docs)
 	SwaggerPath    = ApiPathPrefix + "/swagger"
@@ -134,6 +144,12 @@ const (
 	// Kubernetes resource handlers - these have no upstream implementation and must be overridden downstream
 	handlerKubernetesServicesListID HandlerID = "kubernetes:services:list"
 
+	// Serving runtime catalog handlers - downstream-only
+	handlerServingRuntimeListID          HandlerID = "servingRuntimeCatalog:list"
+	handlerServingRuntimeFilterOptionsID HandlerID = "servingRuntimeCatalog:filterOptions"
+	handlerServingRuntimeGetID           HandlerID = "servingRuntimeCatalog:get"
+	handlerServingRuntimeVersionsID      HandlerID = "servingRuntimeCatalog:versions"
+
 	// MCPServer deployment handlers - downstream-only
 	handlerMcpDeploymentListID     HandlerID = "mcpDeployment:list"
 	handlerMcpDeploymentGetID      HandlerID = "mcpDeployment:get"
@@ -141,6 +157,9 @@ const (
 	handlerMcpDeploymentUpdateID   HandlerID = "mcpDeployment:update"
 	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
 	handlerMCPServerConverterGetID HandlerID = "mcpServer:converter:get"
+
+	// MCP server deploy readiness handler - downstream-only
+	handlerMcpServerDeployReadinessGetID HandlerID = "mcpServer:deployReadiness:get"
 )
 
 type App struct {
@@ -452,6 +471,13 @@ func (app *App) Routes() http.Handler {
 					app.EndpointNotImplementedHandler("MCPServer converter")))
 			}),
 		)
+		apiRouter.GET(
+			McpServerDeployReadinessPath,
+			app.handlerWithOverride(handlerMcpServerDeployReadinessGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(
+					app.EndpointNotImplementedHandler("MCP server deploy readiness"))))
+			}),
+		)
 
 		//SettingsPath: Certificate endpoints
 		apiRouter.GET(CertificatesPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetCertificatesHandler)))
@@ -477,6 +503,20 @@ func (app *App) Routes() http.Handler {
 		apiRouter.DELETE(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.DeleteCatalogSourceConfigHandler)))
 		apiRouter.DELETE(ModelCatalogSettingsSourceConfigCredentialsPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.ClearCatalogSourceCredentialsHandler)))
 		apiRouter.POST(CatalogSourcePreviewPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.CreateCatalogSourcePreviewHandler))))
+
+		// Serving runtime catalog endpoints - downstream implementations.
+		apiRouter.GET(ServingRuntimeListPath, app.handlerWithOverride(handlerServingRuntimeListID, func() httprouter.Handle {
+			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog list"))
+		}))
+		apiRouter.GET(ServingRuntimeFilterOptionsPath, app.handlerWithOverride(handlerServingRuntimeFilterOptionsID, func() httprouter.Handle {
+			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog filter options"))
+		}))
+		apiRouter.GET(ServingRuntimePath, app.handlerWithOverride(handlerServingRuntimeGetID, func() httprouter.Handle {
+			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog get"))
+		}))
+		apiRouter.GET(ServingRuntimeVersionsPath, app.handlerWithOverride(handlerServingRuntimeVersionsID, func() httprouter.Handle {
+			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog versions"))
+		}))
 
 		// Agent catalog endpoints
 		apiRouter.GET(AgentListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAllAgentsHandler)))

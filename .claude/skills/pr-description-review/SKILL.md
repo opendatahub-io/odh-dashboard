@@ -35,7 +35,7 @@ Score these three aspects:
 
 2. **Solution** — What changed and why this approach. The body explains what the PR does and the reasoning behind the chosen approach. Missing or placeholder-only → ❌. Present but vague → ⚠️.
 
-3. **Evidence** — Proof the change works. Commands run, test results, CI links, cluster checks, screenshots, or log snippets. When changed paths include `.tsx`, `.css`, or `.scss`, look for image or GIF evidence; missing visual evidence for UI changes is a ⚠️ (folded into this aspect, not a separate row). Missing or placeholder-only → ❌. Present but thin (e.g., "tested locally" with no details) → ⚠️.
+3. **Evidence** — Proof the change works. Commands run, test results, CI links, cluster checks, screenshots, or log snippets. When changed paths include `.tsx`, `.css`, or `.scss`, look for visual evidence (screenshot, GIF, or video/recording attachment, including `user-attachments` media links); missing visual evidence for UI changes is a ⚠️ (folded into this aspect, not a separate row). Missing or placeholder-only → ❌. Present but thin (e.g., "tested locally" with no details) → ⚠️.
 
 One classic `## Description` may satisfy **both** Problem and Solution when both substances are clearly present. Do not require separate headings.
 

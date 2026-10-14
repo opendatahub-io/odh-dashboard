@@ -1,20 +1,19 @@
 import { Alert, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
-import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
+import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
-import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import PipelineServerSetup from '~/app/components/empty-states/PipelineServerSetup';
-import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import {
   shouldShowManagedPipelinesMissing,
   shouldShowNoDSPAEmptyState,
   shouldShowPipelineServerNotReady,
+  getPipelineErrorCode,
 } from '~/app/utilities/pipelineServerEmptyState';
 import { automlConfigurePathname } from '~/app/utilities/routes';
-import { parseErrorStatus } from '~/app/utilities/utils';
 
 export type AutomlExperimentsListStatus = {
   /** True once pipeline definitions and runs have finished loading without a blocking list error. */
@@ -47,11 +46,6 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   );
 
   const {
-    loaded: defsLoaded,
-    error: defsError,
-    refresh: refreshDefs,
-  } = usePipelineDefinitions(effectiveNamespace);
-  const {
     runs,
     totalSize,
     page,
@@ -63,8 +57,8 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     refresh: refreshRuns,
   } = usePipelineRuns(effectiveNamespace);
 
-  const loaded = defsLoaded && runsLoaded;
-  const loadError = defsError ?? runsError;
+  const loaded = runsLoaded;
+  const loadError = runsError;
   const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
@@ -118,15 +112,11 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     };
   }, [effectiveNamespace, hasLoadError, loaded, hasExperiments]);
 
-  const errorCode = loadError
-    ? (getGenericErrorCode(loadError) ??
-      (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
-    : undefined;
+  const errorCode = loadError ? getPipelineErrorCode(loadError) : undefined;
 
   const handleServerReady = React.useCallback(() => {
-    void refreshDefs();
     refreshRuns();
-  }, [refreshDefs, refreshRuns]);
+  }, [refreshRuns]);
 
   React.useEffect(() => {
     if (serverBusy && (loaded || loadError)) {
@@ -190,6 +180,9 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     return (
       <EmptyExperimentsState
         createExperimentRoute={`${automlConfigurePathname}/${effectiveNamespace}`}
+        title="Create an AutoML optimization run"
+        description="Test different model configurations to find the best-performing solution for classification, regression, and time series problems."
+        iconImage={typedEmptyImage(ProjectObjectType.pipeline, 'MissingModel')}
         dataTestId="empty-experiments-state"
       />
     );

@@ -26,8 +26,11 @@ export const AIAssetsPage: React.FC = () => {
   const { namespace, tab: tabParam } = useParams<{ namespace: string; tab: string }>();
   const navigate = useNavigate();
 
-  const defaultTab = tabExtensions[0]?.properties.id || '';
-  const isValidTab = tabExtensions.some((ext) => ext.properties.id === tabParam);
+  const visibleTabExtensions = namespace
+    ? tabExtensions
+    : tabExtensions.filter((extension) => extension.properties.id === 'models');
+  const defaultTab = visibleTabExtensions[0]?.properties.id || '';
+  const isValidTab = visibleTabExtensions.some((ext) => ext.properties.id === tabParam);
   const activeTabKey = isValidTab ? String(tabParam) : defaultTab;
 
   return (
@@ -57,7 +60,7 @@ export const AIAssetsPage: React.FC = () => {
           aria-label="AI Assets tabs"
           role="region"
         >
-          {tabExtensions.map((extension) => (
+          {visibleTabExtensions.map((extension) => (
             <Tab
               key={extension.properties.id}
               eventKey={extension.properties.id}
@@ -86,7 +89,7 @@ export const AIAssetsPage: React.FC = () => {
       </PageSection>
 
       <PageSection>
-        {tabExtensions.map((extension) => (
+        {visibleTabExtensions.map((extension) => (
           <TabContent
             key={extension.properties.id}
             id={`${extension.properties.id}-tab-content`}

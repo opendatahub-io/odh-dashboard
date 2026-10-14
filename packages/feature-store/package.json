@@ -74,7 +74,7 @@
     "@patternfly/react-styles": "^6",
     "@patternfly/react-table": "^6",
     "@patternfly/react-tokens": "^6",
-    "@patternfly/react-topology": "^6",
+    "@patternfly/react-topology": "~6.6.0",
     "react": "^18",
     "react-dom": "^18",
     "react-router": "^7",

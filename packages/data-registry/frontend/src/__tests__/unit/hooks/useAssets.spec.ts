@@ -2,6 +2,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import * as api from '~/app/api/dataRegistry';
 import { useAssets } from '~/app/hooks/useAssets';
+import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
+import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
 jest.mock('~/app/api/dataRegistry');
 
@@ -26,34 +28,24 @@ describe('useAssets', () => {
     });
     mockFetchAssets.mockResolvedValue({
       assets: [
-        {
+        mockAssetResponse({
           name: 'test-table',
-          asset_type: 'table',
-          format: 'parquet',
-          location: 's3://bucket/path',
           description: 'A test table',
           labels: ['production'],
           collection: 'default',
-          connection_ref: null,
-          owner: 'user1',
           properties: { domain: 'finance' },
-          registered_by: 'user1',
-          created_at: '2026-01-01',
-        },
+        }),
       ],
     });
     mockFetchVolumes.mockResolvedValue({
       volumes: [
-        {
+        mockVolumeInfo({
           name: 'test-volume',
-          'catalog-name': 'project',
-          'schema-name': 'default',
-          'volume-type': 'application/pdf',
-          'storage-location': 's3://bucket/docs',
-          'created-at': '2026-01-01',
+          collection: 'default',
+          format: 'documents',
+          storage_location: 's3://bucket/docs',
           properties: { description: 'PDF docs' },
-          config: {},
-        },
+        }),
       ],
     });
 
@@ -79,25 +71,22 @@ describe('useAssets', () => {
     mockFetchAssets.mockResolvedValue({ assets: [] });
     mockFetchVolumes.mockResolvedValue({
       volumes: [
-        {
+        mockVolumeInfo({
           name: 'labeled-volume',
-          'catalog-name': 'project',
-          'schema-name': 'col1',
-          'volume-type': 'documents',
-          'storage-location': '/data',
+          collection: 'col1',
+          format: 'documents',
+          storage_location: '/data',
           labels: ['production', 'ml-data'],
           properties: { description: 'Volume with labels' },
-          config: {},
-        },
-        {
+        }),
+        mockVolumeInfo({
           name: 'unlabeled-volume',
-          'catalog-name': 'project',
-          'schema-name': 'col1',
-          'volume-type': 'images',
-          'storage-location': '/images',
+          collection: 'col1',
+          format: 'images',
+          storage_location: '/images',
+          labels: [],
           properties: {},
-          config: {},
-        },
+        }),
       ],
     });
 

@@ -111,8 +111,15 @@ export const CONFIG_EXAMPLES_HELPER = (
   </>
 );
 
-export const WEIGHT_POPOVER_CONTENT =
-  'Weights are relative integers that determine traffic distribution. The system calculates percentages from the ratio of all weights. Set to 0 to temporarily disable a provider without removing it. Example: weights of 5, 3, 2 result in 50%, 30%, 20% traffic split.';
+export const WEIGHT_POPOVER_CONTENT: React.ReactNode = (
+  <>
+    Weights control how traffic is split when a model references multiple providers. For example,
+    weights of 2 and 1 mean the first provider gets twice as much traffic as the second (67% / 33%).
+    <br />
+    <br />
+    Set a weight to 0 to temporarily disable a provider without removing it.
+  </>
+);
 
 export const EXCLUDED_FROM_ROUTING_POPOVER_CONTENT =
   'This provider reference will not receive any traffic but remains configured for easy re-enablement. Set weight to 1 or higher to include it in routing again. In the actual CRD, a weight of 0 removes the provider reference from active routing.';

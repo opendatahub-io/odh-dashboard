@@ -5,9 +5,8 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useParams } from 'react-router';
 import AutomlExperiments from '~/app/components/experiments/AutomlExperiments';
-import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
-import type { PipelineDefinition, PipelineRun } from '~/app/types';
+import type { PipelineRun } from '~/app/types';
 
 const mockGetGenericErrorCode = jest.fn();
 jest.mock('@odh-dashboard/k8s-core/api/errorUtils', () => ({
@@ -17,10 +16,6 @@ jest.mock('@odh-dashboard/k8s-core/api/errorUtils', () => ({
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: jest.fn(),
-}));
-
-jest.mock('~/app/hooks/usePipelineDefinitions', () => ({
-  usePipelineDefinitions: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/usePipelineRuns', () => ({
@@ -69,17 +64,7 @@ jest.mock('~/app/components/AutomlRunsTable', () => {
 });
 
 const mockUseParams = jest.mocked(useParams);
-const mockUsePipelineDefinitions = jest.mocked(usePipelineDefinitions);
 const mockUsePipelineRuns = jest.mocked(usePipelineRuns);
-
-const mockPipelineDefinitions: PipelineDefinition[] = [
-  {
-    pipeline_id: 'p1',
-    display_name: 'Pipeline 1',
-    created_at: '2025-01-01',
-    description: 'Desc 1',
-  },
-];
 
 const mockRuns: PipelineRun[] = [
   {
@@ -91,13 +76,6 @@ const mockRuns: PipelineRun[] = [
     pipeline_version_reference: { pipeline_id: 'p1', pipeline_version_id: 'v1' },
   },
 ];
-
-const defaultDefsState = {
-  pipelineDefinitions: mockPipelineDefinitions,
-  loaded: true,
-  error: undefined as Error | undefined,
-  refresh: jest.fn().mockResolvedValue(undefined),
-};
 
 const defaultRunsState = {
   runs: mockRuns,
@@ -121,15 +99,10 @@ describe('AutomlExperiments', () => {
     jest.resetAllMocks();
     mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUseParams.mockReturnValue({ namespace: 'my-namespace' });
-    mockUsePipelineDefinitions.mockReturnValue(defaultDefsState);
     mockUsePipelineRuns.mockReturnValue(defaultRunsState);
   });
 
   it('should show spinner when loading', () => {
-    mockUsePipelineDefinitions.mockReturnValue({
-      ...defaultDefsState,
-      loaded: false,
-    });
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
       loaded: false,

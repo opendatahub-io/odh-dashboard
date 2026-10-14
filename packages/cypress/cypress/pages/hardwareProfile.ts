@@ -52,6 +52,10 @@ class HardwareProfileRow extends TableRow {
     return this.find().pfSwitch('enable-switch');
   }
 
+  findDRAHelpButton() {
+    return this.find().findByTestId('dra-enable-switch-help');
+  }
+
   findAllFeaturesText() {
     return this.find().findByTestId('feature-visibility-all');
   }
@@ -443,6 +447,10 @@ class EditHardwareProfile extends ManageHardwareProfile {
   findViewAllHardwareProfilesButton() {
     return cy.findByTestId('view-all-hardware-profiles');
   }
+
+  findDRANotSupportedState() {
+    return cy.findByTestId('dra-hardware-profile-not-editable');
+  }
 }
 
 class DuplicateHardwareProfile extends ManageHardwareProfile {
@@ -457,6 +465,10 @@ class DuplicateHardwareProfile extends ManageHardwareProfile {
 
   findViewAllHardwareProfilesButton() {
     return cy.findByTestId('view-all-hardware-profiles');
+  }
+
+  findDRANotSupportedState() {
+    return cy.findByTestId('dra-hardware-profile-not-editable');
   }
 }
 

@@ -1,7 +1,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import { fetchS3Json } from '~/app/hooks/queries';
-import { parseEvaluationResultsArtifact } from '~/app/hooks/evaluationResultsSchema';
+import { useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
+import { parseEvaluationResultsArtifact } from '~/app/hooks/evaluationResultsSchema';
 
 export type RawEvaluationResult = unknown;
 
@@ -15,6 +15,7 @@ export function usePatternEvaluationResults(
   patternName?: string,
   enabled = false,
 ): UseQueryResult<AutoRAGEvaluationResult[], Error> {
+  const { fetchS3Json } = useS3FileFetchers();
   const key =
     ragPatternsBasePath && patternName
       ? `${ragPatternsBasePath}/${patternName}/evaluation_results.json`

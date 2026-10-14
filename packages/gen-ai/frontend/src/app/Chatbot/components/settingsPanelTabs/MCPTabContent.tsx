@@ -16,6 +16,7 @@ interface MCPTabContentProps {
   initialServerStatuses?: Map<string, ServerStatusInfo>;
   onActiveToolsCountChange: (count: number) => void;
   onToolsWarningChange: (show: boolean) => void;
+  onMissingAuthServersChange?: (serverNames: string[]) => void;
 }
 
 const MCPTabContent: React.FunctionComponent<MCPTabContentProps> = ({
@@ -30,6 +31,7 @@ const MCPTabContent: React.FunctionComponent<MCPTabContentProps> = ({
   initialServerStatuses,
   onActiveToolsCountChange,
   onToolsWarningChange,
+  onMissingAuthServersChange,
 }) => (
   <TabContentWrapper title="MCP servers" titleTestId="mcp-servers-section-title">
     <MCPServersPanel
@@ -45,6 +47,7 @@ const MCPTabContent: React.FunctionComponent<MCPTabContentProps> = ({
       initialServerStatuses={initialServerStatuses}
       onToolsWarningChange={onToolsWarningChange}
       onActiveToolsCountChange={onActiveToolsCountChange}
+      onMissingAuthServersChange={onMissingAuthServersChange}
     />
   </TabContentWrapper>
 );

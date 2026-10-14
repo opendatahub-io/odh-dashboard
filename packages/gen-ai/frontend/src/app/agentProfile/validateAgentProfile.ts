@@ -59,8 +59,14 @@ export const buildValidationWarnings = (
 
   // MCP servers: warn for any server key that couldn't be resolved to a known server.
   spec.mcpServers?.forEach((s) => {
-    const key = s.serverRef.key ?? s.serverRef.name;
-    if (!mcpServers.find((ms) => ms.name === key)) {
+    const key = 'serverRef' in s ? (s.serverRef.key ?? s.serverRef.name) : s.name;
+    const matchingServer =
+      'source' in s
+        ? mcpServers.find((ms) => ms.name === key && ms.source === 'registry')
+        : s.serverRef.kind === 'ConfigMap'
+          ? mcpServers.find((ms) => ms.name === key && ms.source === 'configmap')
+          : mcpServers.find((ms) => ms.name === key);
+    if (!matchingServer) {
       warnings.push({ message: `MCP server "${key}" is no longer available.`, tab: 'mcp' });
     }
   });

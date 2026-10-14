@@ -6,8 +6,6 @@ import {
   ModalBody,
   ModalFooter,
   Alert,
-  TextInput,
-  FormGroup,
   List,
   ListItem,
 } from '@patternfly/react-core';
@@ -29,7 +27,6 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
   collection,
   onDeleted,
 }) => {
-  const [confirmText, setConfirmText] = React.useState('');
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -43,7 +40,6 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
     setError('');
     try {
       await deleteCollection(project, collection.name);
-      setConfirmText('');
       onDeleted();
       onClose();
     } catch (err) {
@@ -58,7 +54,6 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
   }, [collection, project, onDeleted, onClose]);
 
   const handleClose = React.useCallback(() => {
-    setConfirmText('');
     setError('');
     onClose();
   }, [onClose]);
@@ -74,7 +69,7 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
       variant="small"
       data-testid="delete-collection-modal"
     >
-      <ModalHeader title={`Delete collection "${collection.name}"?`} />
+      <ModalHeader title="Delete collection?" titleIconVariant="warning" />
       <ModalBody>
         {hasAssets ? (
           <Alert variant="warning" isInline title="Collection is not empty">
@@ -94,16 +89,9 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
               </Alert>
             ) : null}
             <p>
-              This action cannot be undone. Type <strong>{collection.name}</strong> to confirm.
+              The <strong>{collection.name}</strong> collection will be deleted. It contains no data
+              assets.
             </p>
-            <FormGroup label="Collection name" fieldId="confirm-delete">
-              <TextInput
-                id="confirm-delete"
-                value={confirmText}
-                onChange={(_event, value) => setConfirmText(value)}
-                data-testid="confirm-delete-input"
-              />
-            </FormGroup>
           </>
         )}
       </ModalBody>
@@ -113,7 +101,7 @@ const DeleteCollectionModal: React.FC<DeleteCollectionModalProps> = ({
           submitButtonVariant="danger"
           onSubmit={handleDelete}
           onCancel={handleClose}
-          isSubmitDisabled={hasAssets || confirmText !== collection.name || isDeleting}
+          isSubmitDisabled={hasAssets || isDeleting}
           isSubmitLoading={isDeleting}
           submitButtonTestId="confirm-delete-button"
         />

@@ -1,12 +1,19 @@
 import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import ChatbotHeaderActions from '~/app/Chatbot/ChatbotHeaderActions';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   useFeatureFlag: jest.fn(() => [false]),
+}));
+
+jest.mock('~/app/hooks/useGenAiAgentDeploymentEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 // Mock the store
@@ -17,6 +24,8 @@ jest.mock('~/app/Chatbot/store', () => ({
 }));
 
 const mockUseChatbotConfigStore = jest.mocked(useChatbotConfigStore);
+const mockUseGenAiAgentDeploymentEnabled = jest.mocked(useGenAiAgentDeploymentEnabled);
+const mockUseFeatureFlag = jest.mocked(useFeatureFlag);
 
 const createContextValue = (overrides = {}) => ({
   models: [],
@@ -66,6 +75,8 @@ describe('ChatbotHeaderActions', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseFeatureFlag.mockReturnValue([false, jest.fn()]);
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: false, loaded: true });
     mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
       if (typeof selector === 'function') {
         // Return test values based on what the selector is asking for
@@ -75,6 +86,111 @@ describe('ChatbotHeaderActions', () => {
         });
       }
       return undefined;
+    });
+  });
+
+  describe('Deploy agent menu item', () => {
+    it('only renders for a loaded profile when agent deployments are enabled', async () => {
+      const user = userEvent.setup();
+      const onDeploy = jest.fn();
+      mockUseFeatureFlag.mockReturnValue([true, jest.fn()]);
+      mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: true, loaded: true });
+      mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
+        if (typeof selector === 'function') {
+          return selector({
+            configurations: { default: { selectedModel: 'test-model' } },
+            configIds: ['default'],
+            profileApplied: true,
+          });
+        }
+        return undefined;
+      });
+
+      render(
+        <TestWrapper contextValue={createContextValue()}>
+          <ChatbotHeaderActions {...defaultProps} onDeploy={onDeploy} />
+        </TestWrapper>,
+      );
+
+      await user.click(screen.getByTestId('header-kebab-menu-toggle'));
+      await user.click(screen.getByText('Deploy agent'));
+
+      expect(onDeploy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render when agent configuration management is disabled', async () => {
+      const user = userEvent.setup();
+      mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: true, loaded: true });
+      mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
+        if (typeof selector === 'function') {
+          return selector({
+            configurations: { default: { selectedModel: 'test-model' } },
+            configIds: ['default'],
+            profileApplied: true,
+          });
+        }
+        return undefined;
+      });
+
+      render(
+        <TestWrapper contextValue={createContextValue()}>
+          <ChatbotHeaderActions {...defaultProps} />
+        </TestWrapper>,
+      );
+
+      await user.click(screen.getByTestId('header-kebab-menu-toggle'));
+
+      expect(screen.queryByTestId('deploy-agent-menu-item')).not.toBeInTheDocument();
+    });
+
+    it('lists existing deployments and opens the selected deployment', async () => {
+      const user = userEvent.setup();
+      const onDeploymentSelect = jest.fn();
+      mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: true, loaded: true });
+      mockUseChatbotConfigStore.mockImplementation((selector: unknown) => {
+        if (typeof selector === 'function') {
+          return selector({
+            configurations: { default: { selectedModel: 'test-model' } },
+            configIds: ['default'],
+            profileApplied: true,
+          });
+        }
+        return undefined;
+      });
+
+      render(
+        <TestWrapper contextValue={createContextValue()}>
+          <ChatbotHeaderActions
+            {...defaultProps}
+            deployments={[
+              {
+                name: 'hr-chatbot',
+                displayName: 'HR Chatbot',
+                createdAt: '2026-10-02T20:33:00Z',
+                namespace: '',
+                agentProfileId: '',
+                state: 'ready',
+              },
+              {
+                name: 'hr-chatbot-v2',
+                displayName: 'HR Chatbot v2',
+                createdAt: '2026-10-02T20:34:00Z',
+                namespace: '',
+                agentProfileId: '',
+                state: 'ready',
+              },
+            ]}
+            onDeploymentSelect={onDeploymentSelect}
+          />
+        </TestWrapper>,
+      );
+
+      await user.click(screen.getByTestId('header-kebab-menu-toggle'));
+
+      expect(screen.getByText('Deployments (2)')).toBeInTheDocument();
+      expect(screen.getAllByText(/Oct 2/)).toHaveLength(2);
+      await user.click(screen.getByText('HR Chatbot v2'));
+      expect(onDeploymentSelect).toHaveBeenCalledWith('hr-chatbot-v2');
     });
   });
 

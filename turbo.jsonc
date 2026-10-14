@@ -31,7 +31,11 @@
       "dependsOn": ["^type-check"]
     },
     "test:contract": {
-      "inputs": ["contract-tests/**", "upstream/bff/**"],
+      "inputs": [
+        "contract-tests/**",
+        "upstream/bff/**",
+        "upstream/workspaces/backend/**"
+      ],
       "outputs": ["contract-tests/contract-test-results/**"]
     },
 

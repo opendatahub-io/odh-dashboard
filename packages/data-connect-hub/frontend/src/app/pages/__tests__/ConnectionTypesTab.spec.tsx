@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import ConnectionTypesTab from '~/app/pages/ConnectionTypesTab';
@@ -30,13 +30,20 @@ const connectionTypes = [
       provider: 'custom-provider',
       description: 'A community data source.',
     },
+    status: { flight_ready: false },
   }),
 ];
+
+const LocationDisplay = () => {
+  const location = useLocation();
+  return <span data-testid="location">{location.pathname + location.search}</span>;
+};
 
 const renderTab = () =>
   render(
     <MemoryRouter initialEntries={['/connection-types?project=test-project']}>
       <ConnectionTypesTab namespace="test-project" />
+      <LocationDisplay />
     </MemoryRouter>,
   );
 
@@ -46,28 +53,36 @@ describe('ConnectionTypesTab', () => {
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
   });
 
-  it('should load and group connection types by provider', () => {
+  it('should load and group connection types by capability', () => {
     renderTab();
 
     expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project');
-    expect(screen.getByRole('heading', { name: 'Red Hat connections' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Other connections' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Full integration' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Credentials only' })).toBeTruthy();
     expect(screen.getByText('S3')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Custom source')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Red Hat partner connections' })).toBeNull();
   });
 
-  it('should show only the selected connection group', async () => {
+  it('should navigate to the selected connection type details', async () => {
     const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        mockConnectionType({
+          metadata: { id: 'provider/type one' },
+          resource: { name: 'Provider type' },
+        }),
+      ],
+      true,
+      undefined,
+    ]);
     renderTab();
 
-    await user.click(screen.getByRole('button', { name: 'Other connections' }));
+    await user.click(screen.getByRole('button', { name: 'Provider type' }));
 
-    expect(screen.queryByRole('heading', { name: 'Red Hat connections' })).toBeNull();
-    expect(screen.getByRole('heading', { name: 'Other connections' })).toBeTruthy();
-    expect(screen.queryByText('S3')).toBeNull();
-    expect(screen.getByText('PostgreSQL')).toBeTruthy();
+    expect(screen.getByTestId('location').textContent).toBe(
+      '/connection-types/provider%2Ftype%20one?project=test-project',
+    );
   });
 
   it('should filter connection types by name or description', async () => {
@@ -123,8 +138,8 @@ describe('ConnectionTypesTab', () => {
     );
 
     expect(screen.getByText('No matching data connection types')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Red Hat connections' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Other connections' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
   });
 
   it('should render the getting-started state when no connection types exist', () => {

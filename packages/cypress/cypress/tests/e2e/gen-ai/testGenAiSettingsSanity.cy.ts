@@ -20,6 +20,7 @@ import {
   forceDashboardConfigRefresh,
   createGenAiPromptViaAPI,
   deleteGenAiPromptViaAPI,
+  waitForNemoGuardrailsReady,
 } from '../../../utils/oc_commands/genAi';
 import {
   enableMlflowBackend,
@@ -33,9 +34,15 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
-describe('Verify settings in playground using custom endpoint', { testIsolation: false }, () => {
+const SHARED_STATE_SUITE_CONFIG = {
+  testIsolation: false,
+  retries: { runMode: 0, openMode: 0 },
+};
+
+describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUITE_CONFIG, () => {
   let testData: CustomEndpointTestData;
   let portForwardHandle: PortForwardHandle | null = null;
+  let nemoPortForwardHandle: PortForwardHandle | null = null;
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
@@ -96,6 +103,7 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
 
   after(() => {
     stopPortForward(portForwardHandle);
+    stopPortForward(nemoPortForwardHandle);
 
     cy.step('Delete test prompt from MLflow');
     deleteGenAiPromptViaAPI(projectName, testData.prompt.name);
@@ -168,6 +176,10 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
       tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
+      cy.step('Navigate to AI asset endpoints page');
+      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+      genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
+
       cy.step('Add endpoint to playground');
       genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
@@ -176,6 +188,14 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
 
       cy.step('Wait for OGX Server to be ready');
       waitForOGXServerReady(projectName);
+
+      cy.step('Wait for NemoGuardrails to be ready');
+      waitForNemoGuardrailsReady(projectName);
+
+      cy.step('Start port-forward for NeMo Guardrails');
+      startPortForward(projectName, 'nemoguardrails', 8443, 3000, 443).then((handle) => {
+        nemoPortForwardHandle = handle;
+      });
 
       cy.step('Wait for playground service to be created');
       waitForResource('service', testData.lsdServiceName, projectName);
@@ -190,62 +210,6 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
       startPortForward(projectName, testData.lsdServiceName, 8321).then((handle) => {
         portForwardHandle = handle;
       });
-    },
-  );
-
-  it(
-    'Verify guardrails lifecycle — user input toggle blocks malicious message',
-    {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
-    },
-    () => {
-      cy.step('Navigate to playground with guardrails enabled');
-      genAiPlayground.navigateToPlaygroundWithGuardrails(projectName);
-
-      cy.step('Open settings panel and navigate to Guardrails tab');
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findGuardrailsTab().should('be.visible').click();
-
-      cy.step('Verify guardrails panel shows model dropdown and both toggles defaulting to OFF');
-      genAiPlayground.findGuardrailsSection().should('be.visible');
-      genAiPlayground.findGuardrailModelToggle().should('be.visible');
-      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
-      genAiPlayground.findModelOutputGuardrailsSwitch().should('not.be.checked');
-
-      cy.step(`Select guardrail model ending with "${testData.displayName}"`);
-      genAiPlayground.selectGuardrailModel(testData.displayName);
-      genAiPlayground.findGuardrailModelToggle().should('contain', testData.displayName);
-
-      cy.step('Toggle user input guardrails ON');
-      genAiPlayground.toggleUserInputGuardrails(true);
-      genAiPlayground.findUserInputGuardrailsSwitch().should('be.checked');
-
-      cy.step(`Send safe message: "${testData.guardrails.safeMessage}"`);
-      genAiPlayground.sendMessage(testData.guardrails.safeMessage);
-      genAiPlayground
-        .findUserMessage()
-        .should('exist')
-        .and('contain', testData.guardrails.safeMessage);
-
-      cy.step('Verify assistant responds normally (safe message passes input guardrail)');
-      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
-      genAiPlayground.findAssistantMessage({ timeout: 120000 }).should('exist').and('not.be.empty');
-
-      cy.step(`Send malicious message: "${testData.guardrails.maliciousMessage}"`);
-      genAiPlayground.sendMessage(testData.guardrails.maliciousMessage);
-      genAiPlayground
-        .findAllUserMessages()
-        .last()
-        .should('exist')
-        .and('contain', testData.guardrails.maliciousMessage);
-
-      cy.step('Verify input guardrail violation alert is displayed');
-      genAiPlayground.findGuardrailViolationAlert({ timeout: 120000 }).should('exist');
-
-      cy.step('Toggle user input guardrails OFF and clear chat');
-      genAiPlayground.toggleUserInputGuardrails(false);
-      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
-      genAiPlayground.clearChat();
     },
   );
 
@@ -316,15 +280,22 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
       tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
-      cy.step('Navigate to playground with prompt management enabled');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+      cy.step('Navigate to playground with RAG enabled');
+      genAiPlayground.navigateToPlaygroundWithRag(projectName);
 
       cy.step('Open settings panel and navigate to Knowledge tab');
       genAiPlayground.ensureSettingsPanelOpen();
       genAiPlayground.findKnowledgeTab().should('be.visible').click();
 
-      cy.step('Upload RAG document via the message bar attachment');
-      genAiPlayground.uploadDocumentViaAttachMenu(`cypress/fixtures/${testData.rag.fixturePath}`);
+      cy.step('Select uploaded documents as the Knowledge source');
+      genAiPlayground.findKnowledgeModeUploadRadio().should('be.visible').click();
+
+      cy.step('Enable RAG in the Knowledge tab');
+      genAiPlayground.findRagToggle().should('not.be.checked').click({ force: true });
+      genAiPlayground.findRagToggle().should('be.checked');
+
+      cy.step('Upload RAG document from the Knowledge tab');
+      genAiPlayground.uploadDocumentToKnowledge(`cypress/fixtures/${testData.rag.fixturePath}`);
 
       cy.step('Confirm upload in source settings modal');
       genAiPlayground.findSourceSettingsModal().should('be.visible');
@@ -363,122 +334,58 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   );
 
   it(
-    'Verify agent configuration persistence — save, load, update, and delete',
+    'Verify guardrails lifecycle — user input toggle blocks malicious message',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@AgentConfig', '@NonConcurrent'],
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
-      // ── Step 1: select model + load prompt + save as agent ────────────────
-      cy.step('Navigate to playground with agent management enabled');
-      genAiPlayground.navigateToPlaygroundWithAgentManagement(projectName);
+      cy.step('Navigate to playground with guardrails enabled');
+      genAiPlayground.navigateToPlaygroundWithGuardrails(projectName);
 
-      cy.step(`Select ${testData.displayName} model from dropdown`);
-      genAiPlayground.selectModelFromDropdown(testData.displayName);
-      genAiPlayground.verifyModelIsSelected(testData.displayName);
-
-      cy.step('Open settings panel and load saved prompt from registry');
+      cy.step('Open settings panel and navigate to Guardrails tab');
       genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
-      genAiPlayground.findLoadPromptButton().should('be.visible').click();
-      genAiPlayground.findPromptManagementModal().should('exist');
-      genAiPlayground.findPromptTableRow(testData.prompt.name).should('be.visible').click();
-      genAiPlayground.findPromptLoadConfirmButton().should('be.enabled').click();
+      genAiPlayground.findGuardrailsTab().should('be.visible').click();
+
+      cy.step('Verify guardrails panel shows model dropdown and both toggles defaulting to OFF');
+      genAiPlayground.findGuardrailsSection().should('be.visible');
+      genAiPlayground.findGuardrailModelToggle().should('be.visible');
+      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
+      genAiPlayground.findModelOutputGuardrailsSwitch().should('not.be.checked');
+
+      cy.step(`Select guardrail model ending with "${testData.displayName}"`);
+      genAiPlayground.selectGuardrailModel(testData.displayName);
+      genAiPlayground.findGuardrailModelToggle().should('contain', testData.displayName);
+
+      cy.step('Toggle user input guardrails ON');
+      genAiPlayground.toggleUserInputGuardrails(true);
+      genAiPlayground.findUserInputGuardrailsSwitch().should('be.checked');
+
+      cy.step(`Send safe message: "${testData.guardrails.safeMessage}"`);
+      genAiPlayground.sendMessage(testData.guardrails.safeMessage);
       genAiPlayground
-        .findPromptNameTitle()
-        .should('be.visible')
-        .and('contain', testData.prompt.name);
+        .findUserMessage()
+        .should('exist')
+        .and('contain', testData.guardrails.safeMessage);
 
-      cy.step('Navigate to Knowledge tab and enable RAG (vector store already populated)');
-      genAiPlayground.findKnowledgeTab().should('be.visible').click();
-      genAiPlayground.findRagToggle().should('not.be.checked').click({ force: true });
-      genAiPlayground.findRagToggle().should('be.checked');
+      cy.step('Verify assistant responds normally (safe message passes input guardrail)');
+      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
+      genAiPlayground.findAssistantMessage({ timeout: 120000 }).should('exist').and('not.be.empty');
 
-      cy.step('Save current configuration as a new agent');
-      genAiPlayground.findSettingsPanelSaveAsButton().should('be.visible').click();
-      genAiPlayground.findSaveAgentProfileModal().should('be.visible');
-      genAiPlayground.findSaveAgentNameInput().clear().type(testData.agent.name);
-      genAiPlayground.findSaveAgentSubmitButton().should('be.enabled').click();
-      genAiPlayground.findSaveAgentProfileModal().should('not.exist');
-
-      // ── Step 2: load agent from AAE and verify settings are restored ──────
-      cy.step('Navigate to AI Assets Agents tab');
-      genAiPlayground.navigateToAssetsWithAgentManagement(projectName);
-      genAiPlayground.findAgentsTab().should('be.visible').click();
-      genAiPlayground.findAgentRowByName(testData.agent.name).should('be.visible');
-
-      cy.step('Open the agent in playground via Try in Playground');
-      genAiPlayground.findTryInPlaygroundByName(testData.agent.name).should('be.visible').click();
-      cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
-
-      cy.step('Verify agent name appears in playground header');
-      genAiPlayground.findAgentNameTitle({ timeout: 10000 }).should('contain', testData.agent.name);
-
-      cy.step('Verify model, RAG, and prompt are restored from agent configuration');
-      genAiPlayground.verifyModelIsSelected(testData.displayName);
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findKnowledgeTab().should('be.visible').click();
-      genAiPlayground.findRagToggle().should('be.checked');
-      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
+      cy.step(`Send malicious message: "${testData.guardrails.maliciousMessage}"`);
+      genAiPlayground.sendMessage(testData.guardrails.maliciousMessage);
       genAiPlayground
-        .findPromptNameTitle()
-        .should('be.visible')
-        .and('contain', testData.prompt.name);
+        .findAllUserMessages()
+        .last()
+        .should('exist')
+        .and('contain', testData.guardrails.maliciousMessage);
 
-      // ── Step 3: turn off RAG, clear prompt, overwrite the saved agent ─────
-      cy.step('Turn off RAG in Knowledge tab');
-      genAiPlayground.findKnowledgeTab().should('be.visible').click();
-      genAiPlayground.findRagToggle().should('be.checked').click({ force: true });
-      genAiPlayground.findRagToggle().should('not.be.checked');
+      cy.step('Verify input guardrail violation alert is displayed');
+      genAiPlayground.findGuardrailViolationAlert({ timeout: 120000 }).should('exist');
 
-      cy.step('Switch to second prompt to modify the prompt configuration');
-      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
-      genAiPlayground.findLoadPromptButton().should('be.visible').click();
-      genAiPlayground.findPromptManagementModal().should('exist');
-      genAiPlayground.findPromptTableRow(testData.prompt2.name).should('be.visible').click();
-      genAiPlayground.findPromptLoadConfirmButton().should('be.enabled').click();
-      genAiPlayground
-        .findPromptNameTitle()
-        .should('be.visible')
-        .and('contain', testData.prompt2.name);
-
-      cy.step('Save updated configuration to the existing agent (overwrite)');
-      genAiPlayground.findSettingsPanelSaveButton().should('be.visible').and('be.enabled').click();
-      genAiPlayground.findSaveAgentProfileModal().should('be.visible');
-      genAiPlayground.findSaveAgentSubmitButton().should('be.enabled').click();
-      genAiPlayground.findSaveAgentProfileModal().should('not.exist');
-      genAiPlayground.findAgentUnsavedIndicator().should('not.exist');
-
-      // ── Step 4: fresh playground → load agent → verify updated settings ───
-      cy.step('Navigate to fresh playground without a pre-loaded agent');
-      genAiPlayground.navigateToPlaygroundWithAgentManagement(projectName);
-
-      cy.step('Load the agent from the settings panel');
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.loadAgentByName(testData.agent.name);
-      genAiPlayground.findAgentNameTitle({ timeout: 10000 }).should('contain', testData.agent.name);
-
-      cy.step('Verify updated settings: RAG is off and second prompt is loaded');
-      genAiPlayground.findKnowledgeTab().should('be.visible').click();
-      genAiPlayground.findRagToggle().should('not.be.checked');
-      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
-      genAiPlayground
-        .findPromptNameTitle()
-        .should('be.visible')
-        .and('contain', testData.prompt2.name);
-
-      // ── Step 5: delete agent from AAE and verify it is gone ───────────────
-      cy.step('Navigate to AI Assets Agents tab to delete the agent');
-      genAiPlayground.navigateToAssetsWithAgentManagement(projectName);
-      genAiPlayground.findAgentsTab().should('be.visible').click();
-      genAiPlayground.findAgentRowByName(testData.agent.name).should('be.visible');
-      genAiPlayground.findAgentKebabByName(testData.agent.name).click();
-      genAiPlayground.findDeleteAgentDropdownItem().should('be.visible').click();
-      genAiPlayground.findDeleteAgentModal().should('be.visible');
-      genAiPlayground.findDeleteAgentConfirmButton().should('be.enabled').click();
-
-      cy.step('Verify agent is no longer visible in the Agents table');
-      genAiPlayground.findDeleteAgentModal().should('not.exist');
-      genAiPlayground.findAgentProfilesEmptyState().should('be.visible');
+      cy.step('Toggle user input guardrails OFF and clear chat');
+      genAiPlayground.toggleUserInputGuardrails(false);
+      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
+      genAiPlayground.clearChat();
     },
   );
 

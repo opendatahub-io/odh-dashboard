@@ -230,6 +230,37 @@ func validateModuleAPIResponse(statusCode int, contentType string, body []byte) 
 	return nil
 }
 
+// validatePersesDashboardsResponse requires a real dashboard list containing a
+// deployed dashboard, so authentication errors, SPA fallbacks, and empty lists
+// cannot satisfy the observability E2E check.
+func validatePersesDashboardsResponse(statusCode int, contentType string, body []byte, expectedDashboard string) error {
+	if statusCode != http.StatusOK {
+		return fmt.Errorf("unexpected Perses API status %d", statusCode)
+	}
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return fmt.Errorf("parse Perses API content type: %w", err)
+	}
+	if mediaType != "application/json" {
+		return fmt.Errorf("unexpected Perses API content type %q", contentType)
+	}
+	var dashboards []struct {
+		Kind     string `json:"kind"`
+		Metadata struct {
+			Name string `json:"name"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal(body, &dashboards); err != nil {
+		return fmt.Errorf("decode Perses dashboard list: %w", err)
+	}
+	for _, dashboard := range dashboards {
+		if dashboard.Kind == "Dashboard" && dashboard.Metadata.Name == expectedDashboard {
+			return nil
+		}
+	}
+	return fmt.Errorf("missing expected Perses dashboard %q in response", expectedDashboard)
+}
+
 func bodyStartsWithHTML(body []byte) bool {
 	trimmed := bytes.TrimSpace(bytes.TrimPrefix(body, []byte{0xef, 0xbb, 0xbf}))
 	trimmed = bytes.ToLower(trimmed)
@@ -277,6 +308,40 @@ func findCoreDeployment(deployments []appsv1.Deployment) (*appsv1.Deployment, er
 		}
 	}
 	return nil, fmt.Errorf("owned core Dashboard Deployment was not found")
+}
+
+func selectCoreOperandInventory(inventory operandInventory, platform string) (operandInventory, error) {
+	coreName := map[string]string{
+		platformODH:   "odh-dashboard",
+		platformRHOAI: "rhods-dashboard",
+	}[platform]
+	if coreName == "" {
+		return operandInventory{}, fmt.Errorf("unsupported platform %q", platform)
+	}
+
+	selected := operandInventory{}
+	for i := range inventory.deployments {
+		if inventory.deployments[i].Name == coreName {
+			selected.deployments = append(selected.deployments, inventory.deployments[i])
+		}
+	}
+	for i := range inventory.services {
+		if inventory.services[i].Name == coreName {
+			selected.services = append(selected.services, inventory.services[i])
+		}
+	}
+
+	missing := make([]string, 0, 2)
+	if len(selected.deployments) == 0 {
+		missing = append(missing, "Deployment/"+coreName)
+	}
+	if len(selected.services) == 0 {
+		missing = append(missing, "Service/"+coreName)
+	}
+	if len(missing) > 0 {
+		return operandInventory{}, fmt.Errorf("missing core operand resources: %s", strings.Join(missing, ", "))
+	}
+	return selected, nil
 }
 
 func anyReadyPod(pods []corev1.Pod) bool {

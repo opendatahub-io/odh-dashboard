@@ -1,0 +1,9 @@
+# The Kueue E2E provisions these resources uniquely for its ephemeral EvalHub tenant.
+projectNamePrefix: eval-hub-kueue-e2e
+flavorNamePrefix: evalhub-e2e-flavor
+clusterQueueNamePrefix: evalhub-e2e-cluster-queue
+localQueueNamePrefix: evalhub-e2e-local-queue
+hardwareProfileNamePrefix: evalhub-e2e-queue-profile
+hardwareProfileResourceYamlPath: resources/hardwareProfile/evalhub_kueue_profile.yaml
+cpuQuota: 8
+memoryQuota: 32

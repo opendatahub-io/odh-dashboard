@@ -330,14 +330,9 @@ describe('An admin can manage MaaS authorization policies and control model acce
         createApiKeyModal
           .findSubscriptionModelRateLimit(modelName)
           .should('contain.text', tokenLimit);
-        createApiKeyModal.findExpirationToggle().click();
-        createApiKeyModal.findExpirationOption('custom').click();
-        createApiKeyModal.findCustomDaysInput().clear().type(testData.apiKeyExpirationTimeInvalid);
-        createApiKeyModal.findSubmitButton().click();
-        createApiKeyModal.findErrorAlert().should('exist');
-        createApiKeyModal.findExpirationToggle().click();
-        createApiKeyModal.findExpirationOption('custom').click();
-        createApiKeyModal.findCustomDaysInput().clear().type(apiKeyExpirationTime);
+        createApiKeyModal.setAfterDays(200);
+        createApiKeyModal.findSubmitButton().should('be.disabled');
+        createApiKeyModal.setAfterDays(Number(apiKeyExpirationTime));
         createApiKeyModal.findSubmitButton().should('be.enabled');
         createApiKeyModal.findSubmitButton().click();
 

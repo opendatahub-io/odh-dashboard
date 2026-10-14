@@ -1,12 +1,12 @@
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 import React from 'react';
 import {
   useS3ListFilesQuery,
-  fetchS3Json,
-  AutomlModelSchema,
-  isRawTimeseriesModelV34,
-} from '~/app/hooks/queries';
-import { getFiles as getS3Files } from '~/app/api/s3.ts';
+  useS3ListFilesQueries,
+  useS3FileFetchers,
+  useS3CacheActions,
+} from '@odh-dashboard/autox-core/ui/hooks';
+import { AutomlModelSchema, isRawTimeseriesModelV34 } from '~/app/hooks/modelSchema';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
@@ -30,7 +30,7 @@ type UseAutomlResultsReturn = {
   isError: boolean;
   error: Error | undefined;
   modelsBasePath?: string;
-  refetch: () => void;
+  refetch: () => Promise<void>;
 };
 
 /**
@@ -77,6 +77,8 @@ export function useAutomlResults(
   namespace?: string,
   pipelineRun?: PipelineRun,
 ): UseAutomlResultsReturn {
+  const { fetchS3Json } = useS3FileFetchers();
+  const { invalidateS3Results } = useS3CacheActions();
   // Step 0: Discover the training task directory under the run prefix.
   // The pipeline uses preset-based condition branches that produce different task
   // names (e.g. "autogluon-models-training" for balanced, "autogluon-models-training-2"
@@ -94,7 +96,6 @@ export function useAutomlResults(
     data: runLevelFiles,
     isLoading: isRunLevelLoading,
     isError: isRunLevelError,
-    refetch: refetchRunLevel,
   } = useS3ListFilesQuery(namespace, runLevelPrefix);
 
   // Find the training task directory whose name starts with the expected pattern
@@ -112,7 +113,6 @@ export function useAutomlResults(
     isLoading: isS3Loading,
     isFetching: isS3Fetching,
     isError: isS3Error,
-    refetch: refetchS3Files,
   } = useS3ListFilesQuery(namespace, candidateModelsPrefix);
 
   // Only expose modelsBasePath when S3 listing succeeded and returned results
@@ -123,39 +123,19 @@ export function useAutomlResults(
 
   // Step 2: Fetch model artifact directories from each common prefix
   const modelArtifactsDirectory = 'models_artifact';
-  const modelArtifactQueries = useQueries({
-    queries: (s3Files?.common_prefixes ?? [])
-      .filter((prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0)
-      .map((prefixObj) => {
-        const path = `${prefixObj.prefix}${modelArtifactsDirectory}`;
-        return {
-          queryKey: ['automl', 's3Files', namespace, path],
-          queryFn: async ({ signal }) => {
-            if (!namespace) {
-              throw new Error('namespace is required');
-            }
-            return getS3Files(
-              '',
-              { signal },
-              {
-                namespace,
-                path,
-              },
-            );
-          },
-          enabled: Boolean(namespace && s3Files?.common_prefixes),
-          retry: false,
-        };
-      }),
-    combine: (results) => ({
-      data: results
-        .filter((r) => !r.isError)
-        .map((r) => r.data)
-        .filter((d): d is S3ListObjectsResponse => d !== undefined),
-      isPending: results.some((r) => r.isPending),
-      isError: results.length > 0 && results.every((r) => r.isError),
-    }),
-  });
+  const modelArtifactPaths = (s3Files?.common_prefixes ?? [])
+    .filter((prefixObj) => typeof prefixObj.prefix === 'string' && prefixObj.prefix.length > 0)
+    .map((prefixObj) => `${prefixObj.prefix}${modelArtifactsDirectory}`);
+  const modelArtifactQueryResults = useS3ListFilesQueries(namespace, modelArtifactPaths);
+  const modelArtifactQueries = {
+    data: modelArtifactQueryResults
+      .filter((r) => !r.isError)
+      .map((r) => r.data)
+      .filter((d): d is S3ListObjectsResponse => d !== undefined),
+    isPending: modelArtifactQueryResults.some((r) => r.isPending),
+    isError:
+      modelArtifactQueryResults.length > 0 && modelArtifactQueryResults.every((r) => r.isError),
+  };
 
   // Step 3: Extract all model paths from the artifact directories
   const modelDirectories = React.useMemo(
@@ -207,7 +187,7 @@ export function useAutomlResults(
     queries: modelDirectories.map(({ name, directory, artifactDirectory }) => {
       const modelJsonPath = `${directory}model.json`;
       return {
-        queryKey: ['automl', 's3File', namespace, name, modelJsonPath],
+        queryKey: ['s3File', namespace, modelJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace) {
             throw new Error('namespace is required');
@@ -302,7 +282,10 @@ export function useAutomlResults(
       if (!entry.name || !entry.model) {
         // eslint-disable-next-line no-console
         console.warn(
-          `Skipping model with incomplete data: ${JSON.stringify({ name: entry.name, hasModel: !!entry.model })}`,
+          `Skipping model with incomplete data: ${JSON.stringify({
+            name: entry.name,
+            hasModel: !!entry.model,
+          })}`,
         );
         return;
       }
@@ -335,13 +318,10 @@ export function useAutomlResults(
       (modelQueries.isError ? new Error('Failed to fetch model data') : undefined)
     : undefined;
 
-  const queryClient = useQueryClient();
-  const refetch = React.useCallback(() => {
-    refetchRunLevel();
-    refetchS3Files();
-    queryClient.invalidateQueries({ queryKey: ['automl', 's3Files', namespace] });
-    queryClient.invalidateQueries({ queryKey: ['automl', 's3File', namespace] });
-  }, [refetchRunLevel, refetchS3Files, queryClient, namespace]);
+  const refetch = React.useCallback(
+    () => invalidateS3Results(namespace),
+    [invalidateS3Results, namespace],
+  );
 
   return {
     models,

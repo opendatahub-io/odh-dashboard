@@ -11,11 +11,12 @@ import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExterna
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ExternalModelRequest, VerifyExternalModelRequest } from '~/app/types';
 import useAiAssetCustomEndpointsEnabled from '~/app/hooks/useAiAssetCustomEndpointsEnabled';
+import GenAiCoreNoProjects from '~/app/GenAiCoreNoProjects';
 
 const AIAssetsModelsTab: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels, refresh: refreshPlaygroundModels } = useFetchLlamaModels(
-    undefined,
+    !namespace,
     true,
   );
 
@@ -23,6 +24,7 @@ const AIAssetsModelsTab: React.FC = () => {
   const { data: lsdStatus } = useFetchLSDStatus();
   const { api, apiAvailable } = useGenAiAPI();
   const isExternalModelsEnabled = useAiAssetCustomEndpointsEnabled();
+  const canManageEndpoints = isExternalModelsEnabled && !!namespace;
 
   // Modal state
   const [isCreateEndpointModalOpen, setIsCreateEndpointModalOpen] = React.useState(false);
@@ -89,7 +91,11 @@ const AIAssetsModelsTab: React.FC = () => {
     );
   }
 
-  const emptyState = isExternalModelsEnabled ? (
+  if (!namespace && models.length === 0) {
+    return <GenAiCoreNoProjects />;
+  }
+
+  const emptyState = canManageEndpoints ? (
     <ModelsEmptyState
       title="No endpoints available"
       description={
@@ -116,7 +122,7 @@ const AIAssetsModelsTab: React.FC = () => {
         </Content>
       }
       actionButtonText="Deploy a model"
-      actionButtonHref={`/ai-hub/deployments/${namespace?.name ?? ''}`}
+      actionButtonHref={`/ai-hub/deployments/${namespace.name}`}
       secondaryActionButtonText="Create endpoint"
       handleSecondaryActionButtonClick={() => {
         fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
@@ -166,7 +172,7 @@ const AIAssetsModelsTab: React.FC = () => {
           playgroundModels={playgroundModels}
           lsdStatus={lsdStatus}
           toolbarActions={
-            isExternalModelsEnabled ? (
+            canManageEndpoints ? (
               <Button
                 variant="primary"
                 onClick={() => {
@@ -181,10 +187,12 @@ const AIAssetsModelsTab: React.FC = () => {
               </Button>
             ) : undefined
           }
-          onDelete={isExternalModelsEnabled ? handleDeleteExternalModel : undefined}
+          onDelete={canManageEndpoints ? handleDeleteExternalModel : undefined}
+          showPlaygroundColumn={!!namespace}
+          showModelStatusPopover={!!namespace}
         />
       )}
-      {isExternalModelsEnabled && (
+      {canManageEndpoints && (
         <CreateExternalEndpointModal
           isOpen={isCreateEndpointModalOpen}
           onClose={() => setIsCreateEndpointModalOpen(false)}

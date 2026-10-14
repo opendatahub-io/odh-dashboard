@@ -426,7 +426,7 @@ describe('AIModelTableRow', () => {
         model_source_type: 'maas',
       });
       const playgroundModel = createMockPlaygroundModel(
-        'maas-publishers/llm/models/gemini',
+        'publishers/llm/models/gemini',
         'maas-vllm-inference-1',
       );
 

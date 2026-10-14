@@ -121,6 +121,19 @@ func (m *mockK8sRepo) GetFilteredSecrets(k8sService kubernetes.Service, ctx cont
 	return args.Get(0).([]models.SecretListItem), args.Error(1)
 }
 
+func (m *mockK8sRepo) GetFilteredSecretsByProvider(k8sService kubernetes.Service, ctx context.Context, namespace string, secretType string, provider string) ([]models.SecretListItem, error) {
+	var args mock.Arguments
+	if provider == "" {
+		args = m.MethodCalled("GetFilteredSecrets", k8sService, ctx, namespace, secretType)
+	} else {
+		args = m.MethodCalled("GetFilteredSecretsByProvider", k8sService, ctx, namespace, secretType, provider)
+	}
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.SecretListItem), args.Error(1)
+}
+
 func (m *mockK8sRepo) GetSecretCredentials(k8sService kubernetes.Service, ctx context.Context, namespace, name string) (map[string]string, error) {
 	args := m.Called(k8sService, ctx, namespace, name)
 	if args.Get(0) == nil {
@@ -223,4 +236,30 @@ func (m *mockPipelinesRepo) EnableManagedPipelines(ctx context.Context, namespac
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*pipelines.EnableManagedPipelinesResult), args.Error(1)
+}
+
+// --- Mock Responses Repository ---
+
+type mockResponsesRepo struct {
+	mock.Mock
+}
+
+func (m *mockResponsesRepo) ValidateResponses(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest) error {
+	args := m.Called(ctx, params, req)
+	return args.Error(0)
+}
+func (m *mockResponsesRepo) HandleResponses(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest) (*models.RAGResponse, error) {
+	args := m.Called(ctx, params, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RAGResponse), args.Error(1)
+}
+
+func (m *mockResponsesRepo) HandleResponsesStream(ctx context.Context, params repositories.ResponsesParams, req *models.ResponsesRequest, onDelta func(string)) (*models.RAGStreamResult, error) {
+	args := m.Called(ctx, params, req, onDelta)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RAGStreamResult), args.Error(1)
 }

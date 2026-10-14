@@ -39,6 +39,14 @@ const createMockCollection = (
 ): Collection => {
   const collectionDomains = domains.filter((domain) => !isMockEvaluationTarget(domain));
   const evaluationTargets = domains.filter(isMockEvaluationTarget);
+  const tasks = collectionDomains.includes('code')
+    ? ['code_generation']
+    : collectionDomains.includes('traces')
+      ? ['trace_analysis']
+      : collectionDomains.includes('safety')
+        ? ['safety']
+        : ['general'];
+  const modalities = collectionDomains.includes('code') ? ['text', 'code'] : ['text'];
 
   return {
     resource: {
@@ -51,8 +59,10 @@ const createMockCollection = (
     domains: collectionDomains,
     evaluation_targets: evaluationTargets,
     industries: MOCK_COLLECTION_INDUSTRIES[id] ?? [],
+    tasks,
+    modalities,
     description,
-    tags: domains,
+    tags: collectionDomains,
     benchmarks: benchmarkIds.map((benchmarkId, index) => ({
       id: benchmarkId,
       provider_id: 'mock_eval_suite',
@@ -145,8 +155,15 @@ export const mockBenchmarkSuiteCollections = (): Collection[] => [
 ];
 
 export const mockCuratedBenchmarkSuiteCollections = (
-  evaluationTarget: 'agent' | 'model',
+  evaluationTarget?: 'agent' | 'model',
 ): Collection[] => {
+  if (!evaluationTarget) {
+    return addCuratedIndexes([
+      ...mockCuratedBenchmarkSuiteCollections('agent'),
+      ...mockCuratedBenchmarkSuiteCollections('model'),
+    ]);
+  }
+
   if (evaluationTarget === 'agent') {
     return addCuratedIndexes([
       createMockCollection(

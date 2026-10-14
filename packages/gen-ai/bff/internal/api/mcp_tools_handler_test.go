@@ -239,7 +239,8 @@ var _ = Describe("MCPToolsHandler", func() {
 			assert.Equal(t, "/mcp-registry/servers/com.example/kubernetes?workspace=demo", path)
 			return marshalToResponse(map[string]interface{}{
 				"data": map[string]interface{}{
-					"name": "com.example/kubernetes",
+					"name":   "com.example/kubernetes",
+					"status": "active",
 					"access_endpoints": []map[string]interface{}{
 						{
 							"endpoint_url":   serverURL,
@@ -407,7 +408,8 @@ var _ = Describe("ResolveRegistryServerConfig", func() {
 			assert.Equal(t, "/mcp-registry/servers/com.example/kubernetes?workspace=default", path)
 			return marshalToResponse(map[string]interface{}{
 				"data": map[string]interface{}{
-					"name": "com.example/kubernetes",
+					"name":   "com.example/kubernetes",
+					"status": "active",
 					"access_endpoints": []map[string]interface{}{
 						{
 							"endpoint_url":   serverURL,
@@ -422,6 +424,24 @@ var _ = Describe("ResolveRegistryServerConfig", func() {
 		require.NoError(t, err)
 		assert.Equal(t, serverURL, cfg.URL)
 		assert.Equal(t, "streamable-http", cfg.Transport)
+	})
+
+	It("returns not found when server is inactive", func() {
+		t := GinkgoT()
+		mockBFFClient.CallHandler = func(_ context.Context, _, _ string, _ interface{}, response interface{}) error {
+			return marshalToResponse(map[string]interface{}{
+				"data": map[string]interface{}{
+					"name":   "com.example/kubernetes",
+					"status": "inactive",
+					"access_endpoints": []map[string]interface{}{{
+						"endpoint_url": "https://kubernetes-mcp.example.com/mcp",
+					}},
+				},
+			}, response)
+		}
+
+		_, err := app.resolveRegistryServerConfig(context.Background(), "default", "com.example/kubernetes", mockBFFClient)
+		require.ErrorIs(t, err, ErrRegistryMCPServerNotFound)
 	})
 
 	It("returns not found when server has no access endpoint", func() {

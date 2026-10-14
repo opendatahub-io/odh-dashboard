@@ -216,6 +216,64 @@ func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, 
 	return identity.UserID, nil
 }
 
+func (kc *InternalKubernetesClient) GetKueueAvailability(ctx context.Context, _ *RequestIdentity, namespace string) (*models.KueueAvailability, error) {
+	config, err := helper.GetKubeconfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kubeconfig for Kueue lookup: %w", err)
+	}
+	dynamicClient, err := dynamicFromConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client for Kueue lookup: %w", err)
+	}
+	return getCachedKueueAvailability(ctx, dynamicClient, namespace, kueueAvailabilityCacheKey(namespace, kc.Token.Raw()))
+}
+
+func (kc *InternalKubernetesClient) GetKueueWorkloadStatuses(ctx context.Context, _ *RequestIdentity, namespace string, evaluationIDs []string) (*models.KueueWorkloadStatusesResponse, error) {
+	config, err := helper.GetKubeconfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kubeconfig for Kueue Workload lookup: %w", err)
+	}
+	dynamicClient, err := dynamicFromConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client for Kueue Workload lookup: %w", err)
+	}
+	return getKueueWorkloadStatuses(ctx, dynamicClient, namespace, evaluationIDs)
+}
+
+func (kc *InternalKubernetesClient) ListHardwareProfiles(ctx context.Context, _ *RequestIdentity, evaluationNamespace, hardwareProfilesNamespace string) (*models.HardwareProfilesResponse, error) {
+	config, err := helper.GetKubeconfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kubeconfig for HardwareProfile lookup: %w", err)
+	}
+	dynamicClient, err := dynamicFromConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create dynamic client for HardwareProfile lookup: %w", err)
+	}
+	availability, err := getCachedKueueAvailability(ctx, dynamicClient, evaluationNamespace, kueueAvailabilityCacheKey(evaluationNamespace, kc.Token.Raw()))
+	if err != nil {
+		return nil, err
+	}
+	return listHardwareProfilesForAvailability(
+		ctx,
+		dynamicClient,
+		evaluationNamespace,
+		hardwareProfilesNamespace,
+		availability,
+	)
+}
+
+func (kc *InternalKubernetesClient) GetMissingHardwareProfileLocalQueueName(ctx context.Context, _ *RequestIdentity, evaluationNamespace, hardwareProfilesNamespace, profileName string) (string, bool, error) {
+	config, err := helper.GetKubeconfig()
+	if err != nil {
+		return "", false, fmt.Errorf("failed to get kubeconfig for HardwareProfile lookup: %w", err)
+	}
+	dynamicClient, err := dynamicFromConfig(config)
+	if err != nil {
+		return "", false, fmt.Errorf("failed to create dynamic client for HardwareProfile lookup: %w", err)
+	}
+	return getMissingHardwareProfileLocalQueueName(ctx, dynamicClient, evaluationNamespace, hardwareProfilesNamespace, profileName)
+}
+
 // CanListEvalHubInstances performs a SubjectAccessReview on behalf of the identified user
 // to check whether they have permission to access EvalHub evaluations in the given namespace.
 // Checks the virtual "evaluations" resource provisioned by the TrustyAI operator per-tenant

@@ -1,5 +1,10 @@
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
-import extensions, { GUARDRAILS, MODEL_AS_SERVICE_CAMEL, GEN_AI_TRACING } from '~/odh/extensions';
+import extensions, {
+  GEN_AI_AGENT_DEPLOYMENT,
+  GEN_AI_TRACING,
+  GUARDRAILS,
+  MODEL_AS_SERVICE_CAMEL,
+} from '~/odh/extensions';
 
 const findArea = (id: string) => {
   const area = extensions.find((ext) => ext.type === 'app.area' && ext.properties.id === id);
@@ -97,6 +102,15 @@ describe('modelAsService area extension', () => {
     });
 
     expect(result).toBe(false);
+  });
+});
+
+describe('genAiAgentDeployment area extension', () => {
+  it('should be controlled by the genAiAgentDeployment feature flag', () => {
+    const area = findArea(GEN_AI_AGENT_DEPLOYMENT);
+
+    expect(area.properties.reliantAreas).toEqual(['plugin-gen-ai']);
+    expect(area.properties.featureFlags).toEqual([GEN_AI_AGENT_DEPLOYMENT]);
   });
 });
 

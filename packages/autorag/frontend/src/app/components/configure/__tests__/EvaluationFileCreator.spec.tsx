@@ -3,14 +3,16 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import EvaluationFileCreator from '~/app/components/configure/EvaluationFileCreator';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
+import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 
-jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual('~/app/hooks/mutations'),
+jest.mock('~/app/hooks/useUploadToStorageMutation', () => ({
+  ...jest.requireActual('~/app/hooks/useUploadToStorageMutation'),
   useUploadToStorageMutation: jest.fn(),
 }));
 
 const mockNotificationError = jest.fn();
+let mockS3FileExplorerProps:
+  { selectableExtensions?: string[]; unselectableReason?: string } | undefined;
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(() => ({
     success: jest.fn(),
@@ -27,12 +29,17 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
     isOpen,
     onClose,
     onSelectFiles,
+    selectableExtensions,
+    unselectableReason,
   }: {
     isOpen: boolean;
     onClose: () => void;
     onSelectFiles: (files: Array<{ name: string; path: string }>) => void;
-  }) =>
-    isOpen ? (
+    selectableExtensions?: string[];
+    unselectableReason?: string;
+  }) => {
+    mockS3FileExplorerProps = { selectableExtensions, unselectableReason };
+    return isOpen ? (
       <div data-testid="s3-file-explorer-creator">
         <button data-testid="s3-creator-close" onClick={onClose}>
           Close
@@ -55,7 +62,8 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
           Select Single
         </button>
       </div>
-    ) : null,
+    ) : null;
+  },
 }));
 
 const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
@@ -75,6 +83,7 @@ describe('EvaluationFileCreator', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockS3FileExplorerProps = undefined;
     mockUseUploadToStorageMutation.mockReturnValue({
       mutateAsync: mockUploadMutateAsync,
     } as unknown as ReturnType<typeof useUploadToStorageMutation>);
@@ -84,13 +93,13 @@ describe('EvaluationFileCreator', () => {
     it('should render nothing when isOpen is false', () => {
       render(<EvaluationFileCreator {...defaultProps} isOpen={false} />);
 
-      expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('evaluation-creator-tearsheet')).not.toBeInTheDocument();
     });
 
     it('should render the modal when isOpen is true', () => {
       render(<EvaluationFileCreator {...defaultProps} />);
 
-      expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('evaluation-creator-tearsheet')).toBeInTheDocument();
       expect(screen.getByText('Create an evaluation source')).toBeInTheDocument();
     });
 
@@ -257,6 +266,19 @@ describe('EvaluationFileCreator', () => {
       await user.click(screen.getByTestId('eval-select-documents'));
 
       expect(screen.getByTestId('s3-file-explorer-creator')).toBeInTheDocument();
+    });
+
+    it('should pass audio-inclusive extensions and the supported-format reason to S3FileExplorer', () => {
+      render(<EvaluationFileCreator {...defaultProps} />);
+
+      expect(mockS3FileExplorerProps?.selectableExtensions?.slice(-3)).toEqual([
+        'mp3',
+        'wav',
+        'm4a',
+      ]);
+      expect(mockS3FileExplorerProps?.unselectableReason).toBe(
+        'You can only select PDF, DOCX, PPTX, Markdown, HTML, Plain text, OpenDocument Text, OpenDocument Presentation, AsciiDoc, LaTeX, EPUB, EML, MSG, Markdown (Quarto), R Markdown, XHTML, JPEG, PNG, TIFF, MP3, WAV, or M4A files',
+      );
     });
 
     it('should add selected documents and deduplicate', async () => {

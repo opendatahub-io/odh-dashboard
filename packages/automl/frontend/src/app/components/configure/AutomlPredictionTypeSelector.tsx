@@ -20,7 +20,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { WarningTriangleIcon } from '@patternfly/react-icons';
-import type { ColumnSchema } from '~/app/hooks/queries';
+import type { ColumnSchema } from '~/app/hooks/useS3GetFileSchemaQuery';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { findTimestampColumn } from '~/app/utilities/columnUtils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';

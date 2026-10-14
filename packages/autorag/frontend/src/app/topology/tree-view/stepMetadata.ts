@@ -4,7 +4,11 @@ import {
   findComponentTaskInRunDetails,
 } from '~/app/hooks/useComponentStatuses';
 import type { PipelineRun, PipelineRunTaskDetail } from '~/app/types';
-import { resolveStageLabel, resolveStepLabel } from '~/app/topology/stageMapLabels';
+import {
+  getPatternRowLabel,
+  resolveStageLabel,
+  resolveStepLabel,
+} from '~/app/topology/stageMapLabels';
 import { formatDurationBetween } from '~/app/utilities/utils';
 import {
   getStageDescriptionFromMap,
@@ -218,9 +222,15 @@ export const getStepMetadata = (
     });
   }
 
-  if (/^.+__pattern__branch-\d+$/.test(nodeId)) {
+  const parsedNodeId = parseStageMapNodeId(nodeId);
+  if (parsedNodeId?.type === 'branch_pattern') {
+    const displayLabel = label.trim();
+    const patternLabel =
+      displayLabel && displayLabel !== '.'
+        ? displayLabel
+        : getPatternRowLabel(parsedNodeId.branchIndex);
     return resolveMetadata({
-      description: `Pattern path for ${label}.`,
+      description: `Pattern path for ${patternLabel}.`,
       details: DEFAULT_DETAILS,
     });
   }

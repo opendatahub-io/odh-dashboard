@@ -22,15 +22,19 @@ const (
 	SwaggerUIPath   = PathPrefix + "/swagger-ui"
 
 	// OGX Server CR-backed endpoints (URL paths remain /lsd/... for frontend compatibility)
-	ModelsListPath             = ApiPathPrefix + "/lsd/models"
-	VectorStoresListPath       = ApiPathPrefix + "/lsd/vectorstores"
-	VectorStoresDeletePath     = ApiPathPrefix + "/lsd/vectorstores/delete"
-	ResponsesPath              = ApiPathPrefix + "/lsd/responses"
-	ResponsesPassthroughPath   = ApiPathPrefix + "/lsd/responses/passthrough"
-	FilesListPath              = ApiPathPrefix + "/lsd/files"
-	FilesUploadPath            = ApiPathPrefix + "/lsd/files/upload"
-	FilesUploadStatusPath      = ApiPathPrefix + "/lsd/files/upload/status"
-	FilesDeletePath            = ApiPathPrefix + "/lsd/files/delete"
+	ModelsListPath           = ApiPathPrefix + "/lsd/models"
+	VectorStoresListPath     = ApiPathPrefix + "/lsd/vectorstores"
+	VectorStoresDeletePath   = ApiPathPrefix + "/lsd/vectorstores/delete"
+	ResponsesPath            = ApiPathPrefix + "/lsd/responses"
+	ResponsesPassthroughPath = ApiPathPrefix + "/lsd/responses/passthrough"
+	ResponsesRelayPath       = ApiPathPrefix + "/lsd/responses/relay"
+	FilesListPath            = ApiPathPrefix + "/lsd/files"
+	FilesUploadPath          = ApiPathPrefix + "/lsd/files/upload"
+	FilesUploadStatusPath    = ApiPathPrefix + "/lsd/files/upload/status"
+	FilesDeletePath          = ApiPathPrefix + "/lsd/files/delete"
+	// DocumentsPath accepts text-based Playground attachments and returns the
+	// OGX file reference plus text extracted by the file-processors API.
+	DocumentsPath              = ApiPathPrefix + "/lsd/documents"
 	MediaFilesUploadPath       = ApiPathPrefix + "/lsd/files/media"
 	AudioTranscriptionsPath    = ApiPathPrefix + "/lsd/audio/transcriptions"
 	VectorStoreFilesListPath   = ApiPathPrefix + "/lsd/vectorstores/files"
@@ -81,7 +85,8 @@ const (
 	AgentProfileIDPath = ApiPathPrefix + "/agent-profiles/:id"
 
 	// Agent Deployments endpoints
-	AgentDeploymentsPath = ApiPathPrefix + "/agent-deployments"
+	AgentDeploymentsPath  = ApiPathPrefix + "/agent-deployments"
+	AgentDeploymentIDPath = AgentDeploymentsPath + "/:id"
 
 	// GenAI Proxy — OpenAI-compatible surface for OGX's remote::passthrough provider.
 	// OGX base_url must include the namespace: .../api/v1/genai-proxy/ns/<namespace>

@@ -142,6 +142,53 @@ describe('useServerSelection', () => {
     expect(result.current.isInitialLoadComplete).toBe(true);
   });
 
+  it('should preserve a selected server hidden from the currently available list', () => {
+    const { result, rerender } = renderHook(
+      ({ servers }: { servers: MCPServer[] }) =>
+        useServerSelection({
+          transformedServers: servers,
+          initialSelectedServerIds: ['server1', 'server2'],
+          onSelectionChange: mockOnSelectionChange,
+        }),
+      { initialProps: { servers: [mockServers[0]] } },
+    );
+
+    expect(result.current.selectedServers.map((server) => server.id)).toEqual(['server1']);
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server1', 'server2']);
+
+    rerender({ servers: mockServers });
+    expect(result.current.selectedServers.map((server) => server.id)).toEqual([
+      'server1',
+      'server2',
+    ]);
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server1', 'server2']);
+  });
+
+  it('should restore a selected server that temporarily becomes unavailable', () => {
+    const { result, rerender } = renderHook(
+      ({ servers }: { servers: MCPServer[] }) =>
+        useServerSelection({
+          transformedServers: servers,
+          initialSelectedServerIds: ['server1', 'server2'],
+          onSelectionChange: mockOnSelectionChange,
+        }),
+      { initialProps: { servers: mockServers } },
+    );
+
+    rerender({ servers: [mockServers[0]] });
+    expect(result.current.selectedServers.map((server) => server.id)).toEqual(['server1']);
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server1', 'server2']);
+
+    rerender({ servers: mockServers });
+    expect(result.current.selectedServers.map((server) => server.id)).toEqual([
+      'server1',
+      'server2',
+    ]);
+
+    act(() => result.current.setSelectedServers([mockServers[0]]));
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server1']);
+  });
+
   it('should manually update selected servers', () => {
     const { result } = renderHook(() =>
       useServerSelection({

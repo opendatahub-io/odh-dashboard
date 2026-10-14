@@ -13,17 +13,17 @@ describe('Configure Schema', () => {
     test_data_bucket_name: 'test-bucket',
     test_data_key: 'test/data.csv',
     maas_secret_name: 'maas-secret',
-    vector_db_secret_name: 'vector-db-secret',
+    db_secret_name: 'vector-db-secret',
     generation_models: ['gpt-4'],
     embedding_models: ['text-embedding-3'],
-    optimization_metric: 'faithfulness' as const,
+    optimization_metric: 'unitxt:faithfulness' as const,
     optimization_max_rag_patterns: 10,
   };
 
   it('should use canonical defaults', () => {
     expect(schema.defaults.input_data_keys).toEqual([]);
     expect(schema.defaults.maas_secret_name).toBe('');
-    expect(schema.defaults.vector_db_secret_name).toBe('');
+    expect(schema.defaults.db_secret_name).toBe('');
     expect(schema.defaults).not.toHaveProperty('input_data_key');
     expect(schema.defaults).not.toHaveProperty('ogx_secret_name');
     expect(schema.defaults).not.toHaveProperty('vector_io_provider_id');
@@ -31,6 +31,46 @@ describe('Configure Schema', () => {
 
   it('should accept canonical connection and corpus fields', () => {
     expect(schema.full.safeParse(validData).success).toBe(true);
+  });
+
+  it('should reject RAGAS metrics for the speed preset', () => {
+    const result = schema.full.safeParse({
+      ...validData,
+      preset: 'speed',
+      optimization_metric: 'ragas:faithfulness',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ['optimization_metric'],
+            message: expect.stringContaining('not available for preset "speed"'),
+          }),
+        ]),
+      );
+    }
+  });
+
+  it('should accept RAGAS metrics for the balanced preset', () => {
+    expect(
+      schema.full.safeParse({
+        ...validData,
+        preset: 'balanced',
+        optimization_metric: 'ragas:faithfulness',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('should accept valid speed preset metrics', () => {
+    expect(
+      schema.full.safeParse({
+        ...validData,
+        preset: 'speed',
+        optimization_metric: 'unitxt:answer_correctness',
+      }).success,
+    ).toBe(true);
   });
 
   it('should accept one valid canonical corpus location', () => {
@@ -47,7 +87,7 @@ describe('Configure Schema', () => {
     const result = schema.full.safeParse({
       ...validData,
       maas_secret_name: '',
-      vector_db_secret_name: '',
+      db_secret_name: '',
     });
     expect(result.success).toBe(false);
   });

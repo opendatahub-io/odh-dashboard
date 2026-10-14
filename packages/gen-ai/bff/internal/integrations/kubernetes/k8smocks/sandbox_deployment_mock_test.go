@@ -37,7 +37,6 @@ func TestMockSandboxDeploymentPersistsResources(t *testing.T) {
 		ProfileID:               profileID,
 		LlamaStackConfigMapName: llamaConfig.Name,
 		WrapperAppConfigMapName: wrapperConfig.Name,
-		Image:                   "example.com/ogx:mock",
 	})
 	require.NoError(t, err)
 	require.Equal(t, "mock-agent", sandboxName)
@@ -100,4 +99,7 @@ func TestMockSandboxDeploymentPersistsResources(t *testing.T) {
 	require.True(t, found)
 	require.Equal(t, "mock-agent-mock-agent-namespace.apps.example.com", host)
 	require.Len(t, route.GetOwnerReferences(), 1)
+
+	require.NoError(t, mockClient.DeleteAgentDeployment(ctx, namespace, sandboxName))
+	require.Error(t, ctrlClient.Get(ctx, client.ObjectKeyFromObject(mockSandbox(namespace, sandboxName)), mockSandbox(namespace, sandboxName)))
 }

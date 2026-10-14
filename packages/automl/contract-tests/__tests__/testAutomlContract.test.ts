@@ -435,6 +435,35 @@ describe('AutoML API Contract Tests', () => {
       });
     });
 
+    it('should list only objects under the requested path prefix', async () => {
+      const path = 'automl input data/timeseries/';
+      const result = await apiClient.get(
+        `/api/v1/s3/files?namespace=${NS}&secretName=${SECRET}&bucket=${BUCKET}&path=${encodeURIComponent(
+          path,
+        )}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const responseData = result.response.data as {
+          data?: {
+            prefix?: string;
+            contents?: Array<{ key?: string }>;
+            common_prefixes?: Array<{ prefix?: string }>;
+          };
+        };
+        expect(responseData.data?.prefix).toBe(path);
+        expect(responseData.data?.contents?.length).toBeGreaterThan(0);
+        expect(responseData.data?.contents?.every(({ key }) => key?.startsWith(path))).toBe(true);
+        expect(
+          responseData.data?.common_prefixes?.every(({ prefix }) => prefix?.startsWith(path)),
+        ).toBe(true);
+      }
+    });
+
     it('should list files via DSPA mode', async () => {
       const result = await apiClient.get(`/api/v1/s3/files?namespace=${NS}`);
       expect(result).toMatchContract(apiSchema, {
@@ -550,6 +579,22 @@ describe('AutoML API Contract Tests', () => {
           preset: 'speed',
           eval_metric: 'roc_auc_ovo',
           top_n: 5,
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+      });
+
+      it('should create a tabular pipeline run with the quality preset', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-tabular-quality',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TABULAR_CSV_FILE,
+          label_column: 'target',
+          task_type: 'binary',
+          preset: 'quality',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',

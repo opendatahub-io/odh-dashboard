@@ -5,7 +5,7 @@ type MetadataStringValue = {
 
 type MetadataDoubleValue = {
   metadataType: 'MetadataDoubleValue';
-  double_value: number;
+  double_value: number | null;
 };
 
 type MetadataBoolValue = {
@@ -62,22 +62,26 @@ export type SecurityInsight = {
   result: string;
 };
 
-const formatRate = (value: number | undefined): string => {
+const formatRate = (value: number | undefined, lowerIsBetter = false): string => {
   if (value === undefined) {
     return '';
   }
   const normalized = value > 1 ? value : value * 100;
-  return `${normalized.toFixed(1)}%`;
+  const displayValue = lowerIsBetter ? 100 - normalized : normalized;
+  return `${displayValue.toFixed(1)}%`;
 };
 
 export const mapArtifactToInsight = (artifact: CatalogSecurityArtifact): SecurityInsight => {
   const props = artifact.customProperties;
+  const lowerIsBetter = props?.lower_is_better?.bool_value === true;
+  const result = props?.result?.double_value;
+  const validResult = typeof result === 'number' && Number.isFinite(result) ? result : undefined;
 
   return {
     evaluation: props?.evaluation?.string_value ?? '',
     category: props?.category?.string_value ?? '',
     benchmarkName: props?.benchmark?.string_value ?? '',
     benchmarkDescription: props?.description?.string_value ?? '',
-    result: formatRate(props?.result?.double_value),
+    result: formatRate(validResult, lowerIsBetter),
   };
 };

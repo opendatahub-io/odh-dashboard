@@ -299,6 +299,51 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 	})
 
+	t.Run("database provider filters Neo4j credentials", func(t *testing.T) {
+		allSecrets := []kubernetes.SecretInfo{
+			vectorDBSecret("vector-db", map[string]string{"MILVUS_URI": "https://milvus.example.com"}),
+			vectorDBSecret("neo4j", map[string]string{
+				"NEO4J_URI":      "neo4j://neo4j.example.com:7687",
+				"NEO4J_USERNAME": "neo4j",
+			}),
+		}
+		k8s := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return allSecrets, nil
+			},
+		}
+		result, err := repo.GetFilteredSecretsByProvider(k8s, context.Background(), "ns", "database", "neo4j")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 1 || result[0].Name != "neo4j" || result[0].Type != "neo4j" {
+			t.Fatalf("unexpected Neo4j secrets: %+v", result)
+		}
+	})
+
+	t.Run("database filtering excludes mixed-provider secrets and preserves annotations", func(t *testing.T) {
+		mixed := vectorDBSecret("mixed-database", map[string]string{
+			"MILVUS_URI": "https://milvus.example.com",
+			"NEO4J_URI":  "neo4j://neo4j.example.com:7687",
+		})
+		annotated := annotatedSecret("annotated-neo4j", "database", map[string]string{
+			"NEO4J_URI": "neo4j://neo4j.example.com:7687",
+		})
+		k8s := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{mixed, annotated}, nil
+			},
+		}
+
+		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "database")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 1 || result[0].Name != "annotated-neo4j" || result[0].Type != "database" {
+			t.Fatalf("unexpected database secrets: %+v", result)
+		}
+	})
+
 	t.Run("invalid type returns error", func(t *testing.T) {
 		_, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "invalid")
 		if err == nil {

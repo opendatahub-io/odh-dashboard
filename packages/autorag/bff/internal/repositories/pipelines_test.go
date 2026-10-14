@@ -51,7 +51,7 @@ func (m *mockPipelinesService) GetPipelineInputParameters(ctx context.Context, n
 		"embedding_model_id",
 		"chunking_method",
 		"input_data_secret_name",
-		"vector_db_secret_name",
+		"db_secret_name",
 	}, nil
 }
 func (m *mockPipelinesService) TerminateRun(ctx context.Context, namespace, runID string) error {
@@ -118,7 +118,7 @@ func validRequest() models.CreateAutoRAGRunRequest {
 		MaaSSecretName:      "maas-secret",
 		EmbeddingsModels:    []string{"embedding-model"},
 		GenerationModels:    []string{"generation-model"},
-		VectorDBSecretName:  "vector-db-secret",
+		DBSecretName:        "vector-db-secret",
 	}
 }
 
@@ -138,7 +138,7 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		}
 		for _, field := range []string{"display_name", "test_data_secret_name", "test_data_bucket_name",
 			"test_data_key", "input_data_secret_name", "input_data_bucket_name", "input_data_keys",
-			"maas_secret_name", "vector_db_secret_name", "embedding_models", "generation_models"} {
+			"maas_secret_name", "db_secret_name", "embedding_models", "generation_models"} {
 			if !strings.Contains(err.Error(), field) {
 				t.Errorf("error should mention %q: %v", field, err)
 			}
@@ -202,12 +202,61 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("valid optimization_metric values", func(t *testing.T) {
-		for _, metric := range []string{"faithfulness", "answer_correctness", "context_correctness"} {
+	t.Run("valid optimization_metric values by preset", func(t *testing.T) {
+		for _, test := range []struct {
+			preset  string
+			metrics []string
+		}{
+			{
+				preset: "speed",
+				metrics: []string{
+					constants.MetricUnitxtFaithfulness,
+					constants.MetricUnitxtAnswerCorrectness,
+					constants.MetricCustomOverallScore,
+				},
+			},
+			{
+				preset: "balanced",
+				metrics: []string{
+					constants.MetricUnitxtFaithfulness,
+					constants.MetricUnitxtAnswerCorrectness,
+					constants.MetricCustomOverallScore,
+					constants.MetricRagasFaithfulness,
+					constants.MetricRagasAnswerRelevancy,
+					constants.MetricRagasContextPrecision,
+					constants.MetricRagasContextRecall,
+				},
+			},
+		} {
+			for _, metric := range test.metrics {
+				t.Run(test.preset+"/"+metric, func(t *testing.T) {
+					req := validRequest()
+					req.Preset = ptr(test.preset)
+					req.OptimizationMetric = metric
+					if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
+						t.Fatalf("metric %q should be valid: %v", metric, err)
+					}
+				})
+			}
+		}
+	})
+
+	t.Run("normalizes legacy faithfulness by preset", func(t *testing.T) {
+		for _, test := range []struct {
+			preset string
+			want   string
+		}{
+			{preset: "speed", want: constants.MetricUnitxtFaithfulness},
+			{preset: "balanced", want: constants.MetricRagasFaithfulness},
+		} {
 			req := validRequest()
-			req.OptimizationMetric = metric
+			req.Preset = ptr(test.preset)
+			req.OptimizationMetric = "faithfulness"
 			if err := ValidateCreateAutoRAGRunRequest(req); err != nil {
-				t.Errorf("metric %q should be valid: %v", metric, err)
+				t.Fatalf("legacy metric should be valid: %v", err)
+			}
+			if got := BuildPipelineRunInput(req, "pid", "vid").RuntimeConfig.Parameters["optimization_metric"]; got != test.want {
+				t.Errorf("metric = %v, want %q", got, test.want)
 			}
 		}
 	})
@@ -221,6 +270,34 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "optimization_metric") {
 			t.Errorf("error should mention optimization_metric: %v", err)
+		}
+	})
+
+	t.Run("rejects RAGAS metrics for the speed preset", func(t *testing.T) {
+		for _, metric := range []string{
+			constants.MetricRagasFaithfulness,
+			constants.MetricRagasAnswerRelevancy,
+			constants.MetricRagasContextPrecision,
+			constants.MetricRagasContextRecall,
+		} {
+			t.Run(metric, func(t *testing.T) {
+				req := validRequest()
+				req.Preset = ptr("speed")
+				req.OptimizationMetric = metric
+				if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
+					t.Fatal("expected preset-specific validation error")
+				}
+			})
+		}
+	})
+
+	t.Run("rejects forbidden and unsupported bare metrics", func(t *testing.T) {
+		for _, metric := range []string{"context_correctness", "answer_correctness", "overall_score"} {
+			req := validRequest()
+			req.OptimizationMetric = metric
+			if err := ValidateCreateAutoRAGRunRequest(req); err == nil {
+				t.Errorf("metric %q should be rejected", metric)
+			}
 		}
 	})
 
@@ -304,8 +381,8 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["maas_secret_name"] != "maas-secret" {
 			t.Errorf("maas_secret_name = %v", params["maas_secret_name"])
 		}
-		if params["vector_db_secret_name"] != "vector-db-secret" {
-			t.Errorf("vector_db_secret_name = %v", params["vector_db_secret_name"])
+		if params["db_secret_name"] != "vector-db-secret" {
+			t.Errorf("db_secret_name = %v", params["db_secret_name"])
 		}
 		if _, ok := params["ogx_secret_name"]; ok {
 			t.Error("ogx_secret_name should not be forwarded")
@@ -320,9 +397,9 @@ func TestBuildPipelineRunInput(t *testing.T) {
 
 	t.Run("custom optimization_metric", func(t *testing.T) {
 		req := validRequest()
-		req.OptimizationMetric = "answer_correctness"
+		req.OptimizationMetric = constants.MetricUnitxtAnswerCorrectness
 		kfp := BuildPipelineRunInput(req, "pid", "vid")
-		if kfp.RuntimeConfig.Parameters["optimization_metric"] != "answer_correctness" {
+		if kfp.RuntimeConfig.Parameters["optimization_metric"] != constants.MetricUnitxtAnswerCorrectness {
 			t.Errorf("metric = %v", kfp.RuntimeConfig.Parameters["optimization_metric"])
 		}
 	})
@@ -332,7 +409,7 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		req.InputDataKeys = []string{"docs/first/", "docs/second/"}
 		req.EmbeddingsModels = []string{"model-a", "model-b"}
 		req.GenerationModels = []string{"gen-1"}
-		req.VectorDBSecretName = "provider-x"
+		req.DBSecretName = "provider-x"
 		req.OptimizationMaxRagPatterns = ptr(10)
 		req.Description = "test description"
 
@@ -347,8 +424,8 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if len(genModels) != 1 || genModels[0] != "gen-1" {
 			t.Errorf("generation_models = %v", params["generation_models"])
 		}
-		if params["vector_db_secret_name"] != "provider-x" {
-			t.Errorf("vector_db_secret_name = %v", params["vector_db_secret_name"])
+		if params["db_secret_name"] != "provider-x" {
+			t.Errorf("db_secret_name = %v", params["db_secret_name"])
 		}
 		inputDataKeys, ok := params["input_data_keys"].([]string)
 		if !ok || len(inputDataKeys) != 2 || inputDataKeys[0] != "docs/first/" || inputDataKeys[1] != "docs/second/" {
@@ -381,8 +458,8 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if _, ok := params["maas_secret_name"]; !ok {
 			t.Error("maas_secret_name should be forwarded")
 		}
-		if _, ok := params["vector_db_secret_name"]; !ok {
-			t.Error("vector_db_secret_name should be forwarded")
+		if _, ok := params["db_secret_name"]; !ok {
+			t.Error("db_secret_name should be forwarded")
 		}
 		for _, legacyKey := range []string{"ogx_secret_name", "vector_io_provider_id"} {
 			if _, ok := params[legacyKey]; ok {
@@ -769,8 +846,8 @@ func TestCreateRun(t *testing.T) {
 		if gotInput.RuntimeConfig.Parameters["maas_secret_name"] != "maas-secret" {
 			t.Error("maas_secret_name not forwarded")
 		}
-		if gotInput.RuntimeConfig.Parameters["vector_db_secret_name"] != "vector-db-secret" {
-			t.Error("vector_db_secret_name not forwarded")
+		if gotInput.RuntimeConfig.Parameters["db_secret_name"] != "vector-db-secret" {
+			t.Error("db_secret_name not forwarded")
 		}
 		if _, ok := gotInput.RuntimeConfig.Parameters["ogx_secret_name"]; ok {
 			t.Error("ogx_secret_name should not be forwarded")
@@ -820,7 +897,7 @@ func TestValidateCreateIndexingPipelineRunRequest(t *testing.T) {
 			"input_data_secret_name": "input-secret",
 			"input_data_bucket_name": "input-bucket",
 			"maas_secret_name":       "maas-secret",
-			"vector_db_secret_name":  "vector-db-secret",
+			"db_secret_name":         "vector-db-secret",
 		},
 	}
 
@@ -891,7 +968,7 @@ func TestCreateIndexingRun(t *testing.T) {
 					"custom_pipeline_input",
 					"embedding_model_id",
 					"input_data_secret_name",
-					"vector_db_secret_name",
+					"db_secret_name",
 				}, nil
 			},
 			createPipelineRunFn: func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
@@ -909,7 +986,7 @@ func TestCreateIndexingRun(t *testing.T) {
 				"embedding_model_id":     "embed-model",
 				"chunking_method":        "recursive",
 				"input_data_secret_name": "input-secret",
-				"vector_db_secret_name":  "vector-db-secret",
+				"db_secret_name":         "vector-db-secret",
 				"custom_pipeline_input":  "custom-value",
 				"provider_type":          "milvus",
 			},
@@ -926,8 +1003,8 @@ func TestCreateIndexingRun(t *testing.T) {
 		if gotInput.RuntimeConfig.Parameters["chunking_method"] != "recursive" {
 			t.Errorf("chunking_method = %v", gotInput.RuntimeConfig.Parameters["chunking_method"])
 		}
-		if gotInput.RuntimeConfig.Parameters["vector_db_secret_name"] != "vector-db-secret" {
-			t.Errorf("vector_db_secret_name = %v", gotInput.RuntimeConfig.Parameters["vector_db_secret_name"])
+		if gotInput.RuntimeConfig.Parameters["db_secret_name"] != "vector-db-secret" {
+			t.Errorf("db_secret_name = %v", gotInput.RuntimeConfig.Parameters["db_secret_name"])
 		}
 		if gotInput.RuntimeConfig.Parameters["custom_pipeline_input"] != "custom-value" {
 			t.Errorf("custom_pipeline_input = %v", gotInput.RuntimeConfig.Parameters["custom_pipeline_input"])

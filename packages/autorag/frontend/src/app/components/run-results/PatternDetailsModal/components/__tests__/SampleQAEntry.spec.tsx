@@ -105,7 +105,7 @@ describe('SampleQAEntry', () => {
       />,
     );
 
-    expect(screen.getByTestId('qa-metric-group-unitxt')).toHaveTextContent('Answer faithfulness');
+    expect(screen.getByTestId('qa-metric-group-unitxt')).toHaveTextContent('Faithfulness (Unitxt)');
     expect(screen.getByTestId('qa-metric-group-ragas')).toHaveTextContent('Answer relevancy');
     expect(screen.getByTestId('qa-metric-group-custom')).toHaveTextContent('Overall score');
     expect(screen.getByText('Ragas')).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe('SampleQAEntry', () => {
 
     expect(screen.getByTestId('qa-metric-group-ragas')).toBeInTheDocument();
     expect(screen.getByTestId('qa-metric-scores-q0')).toHaveTextContent(
-      'Answer faithfulness: 0.770',
+      'Faithfulness (RAGAS): 0.770',
     );
   });
 
@@ -143,7 +143,7 @@ describe('SampleQAEntry', () => {
     );
 
     expect(screen.getByTestId('duplicate-metric-scores')).toHaveTextContent(
-      'Answer faithfulness: N/A',
+      'Faithfulness (Unitxt): N/A',
     );
     expect(screen.getByTestId('qa-metric-group-unitxt').querySelectorAll('strong')).toHaveLength(2);
   });
