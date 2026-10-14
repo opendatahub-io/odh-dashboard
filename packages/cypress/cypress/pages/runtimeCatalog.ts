@@ -1,5 +1,7 @@
 import type { UserAuthConfig } from '../types';
 
+const HARDWARE_FILTER_TEST_ID_PREFIX = 'runtime-catalog-filter-hardware-';
+
 const RUNTIME_CATALOG_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
 
@@ -77,6 +79,15 @@ class RuntimeCatalogPage {
 
   findHardwareFilterCheckboxes() {
     return cy.findByTestId('runtime-catalog-filter-hardware').find('input[type="checkbox"]');
+  }
+
+  // Reads the hardware value a filter checkbox selects from its data-testid.
+  getHardwareFilterValue($checkbox: JQuery<HTMLElement>): string {
+    return ($checkbox.attr('data-testid') ?? '').replace(HARDWARE_FILTER_TEST_ID_PREFIX, '');
+  }
+
+  findHardwareFilterChip(hardware: string) {
+    return cy.findByTestId(`runtime-catalog-filter-chip-hardware-${hardware}`);
   }
 
   findHardwareFilterChips() {

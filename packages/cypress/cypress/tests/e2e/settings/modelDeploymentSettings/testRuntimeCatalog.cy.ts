@@ -11,17 +11,18 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 describe('Verify the Runtime image library on Model deployment settings', () => {
   let testData: Record<string, string>;
 
-  retryableBefore(() => {
-    return cy
-      .fixture('e2e/settings/runtimeCatalog/testRuntimeCatalog.yaml', 'utf8')
-      .then((yamlContent: string) => {
+  before(() => {
+    // Loaded outside retryableBefore so non-admin runs, which skip admin setup, still get it
+    cy.fixture('e2e/settings/runtimeCatalog/testRuntimeCatalog.yaml', 'utf8').then(
+      (yamlContent: string) => {
         testData = yaml.load(yamlContent) as Record<string, string>;
+      },
+    );
+  });
 
-        cy.step(
-          'Verify the model catalog backend that serves the runtime image library is deployed',
-        );
-        return verifyModelCatalogDeployment();
-      });
+  retryableBefore(() => {
+    cy.step('Verify the model catalog backend that serves the runtime image library is deployed');
+    return verifyModelCatalogDeployment();
   });
 
   it(
@@ -41,10 +42,17 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
       runtimeCatalogPage.findCardDetailLinks().should('have.length.at.least', 1);
 
       cy.step('Filter by the first available hardware option');
-      runtimeCatalogPage.findHardwareFilterCheckboxes().first().check();
+      runtimeCatalogPage
+        .findHardwareFilterCheckboxes()
+        .first()
+        .then(($checkbox) => {
+          const hardware = runtimeCatalogPage.getHardwareFilterValue($checkbox);
+          cy.wrap($checkbox).check();
+          runtimeCatalogPage.findHardwareFilterChip(hardware).should('exist');
+        });
       runtimeCatalogPage.findHardwareFilterChips().should('have.length', 1);
 
-      cy.step('Verify runtime image cards match the hardware filter');
+      cy.step('Verify runtime image cards are displayed for the selected hardware');
       runtimeCatalogPage.findCardDetailLinks().should('have.length.at.least', 1);
 
       cy.step('Open the first filtered runtime image');
