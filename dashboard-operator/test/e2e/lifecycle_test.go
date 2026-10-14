@@ -9,9 +9,11 @@ import (
 	dashboardv1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 func TestE2EDashboardLifecycle(t *testing.T) {
@@ -51,7 +53,11 @@ func TestE2EDashboardRemovedState(t *testing.T) {
 		metav1.ConditionFalse,
 		fixtureReadyTimeout,
 	))
-	require.NoError(t, waitForOwnedOperandDeletion(k8sClient, testNamespace, dashboardUID, operandReadyTimeout))
+	// Removed intentionally preserves the Dashboard PDB, so wait only for the
+	// core workload and route that teardown owns instead of the full deletion
+	// predicate used when the Dashboard CR itself is deleted.
+	waitForObjectAbsent(t, &gatewayv1.HTTPRoute{}, previousRoute.Name)
+	waitForObjectAbsent(t, &appsv1.Deployment{}, previousRoute.Name)
 
 	dashboard := &dashboardv1alpha1.Dashboard{}
 	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKey{Name: dashboardv1alpha1.DashboardInstanceName}, dashboard))
