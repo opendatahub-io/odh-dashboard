@@ -124,7 +124,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     }
 
     if (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled) {
-      settings.managedPipelines = enableManagedPipelines ? {} : undefined;
+      settings.managedPipelines = enableManagedPipelines ? { pipelines: [] } : undefined;
     }
 
     if (mlflowChanged) {
