@@ -1,6 +1,5 @@
 import React from 'react';
-import { Button, ButtonVariant, Flex, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
-import { HelpIcon } from '@patternfly/react-icons';
+import { Button, ButtonVariant, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
 import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
 import type { McpDeployModalData, McpDeployment } from '~/odh/types/mcpDeploymentTypes';
@@ -97,39 +96,31 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
     </Button>
   );
 
+  const renderDeployButton = () => {
+    if (!buttonState.tooltip) {
+      return deployButton;
+    }
+    // A popover instead of a tooltip so the docs link can be clicked. It opens on hover like
+    // a tooltip, and the host page header has no room for the link next to its own actions.
+    if (buttonState.showGatewayDocs) {
+      return (
+        <Popover
+          triggerAction="hover"
+          headerContent="MCP gateway required"
+          bodyContent={buttonState.tooltip}
+          footerContent={<McpGatewayDocsLink />}
+          data-testid="mcp-deploy-gateway-popover"
+        >
+          {deployButton}
+        </Popover>
+      );
+    }
+    return <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>;
+  };
+
   return (
     <FlexItem>
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        spaceItems={{ default: 'spaceItemsXs' }}
-        flexWrap={{ default: 'nowrap' }}
-      >
-        <FlexItem>
-          {buttonState.tooltip ? (
-            <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>
-          ) : (
-            deployButton
-          )}
-        </FlexItem>
-        {/* The host page header has little width to spare next to its own actions, so the
-            docs link lives in a popover instead of inline like on the catalog page. */}
-        {buttonState.showGatewayDocs && buttonState.tooltip ? (
-          <FlexItem>
-            <Popover
-              headerContent="MCP gateway required"
-              bodyContent={buttonState.tooltip}
-              footerContent={<McpGatewayDocsLink />}
-            >
-              <Button
-                icon={<HelpIcon />}
-                variant="plain"
-                aria-label="Why can't I deploy this MCP server?"
-                data-testid="mcp-deploy-gateway-help"
-              />
-            </Popover>
-          </FlexItem>
-        ) : null}
-      </Flex>
+      {renderDeployButton()}
       {openModal && deployData && (
         <McpDeployModal
           data={deployData}
