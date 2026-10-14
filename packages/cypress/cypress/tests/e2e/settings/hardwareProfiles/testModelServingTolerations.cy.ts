@@ -73,8 +73,9 @@ describe('ModelServing - tolerations tests', () => {
       const { servingRuntimeName, servingRuntimeYamlPath } = testData;
       if (isS390x && servingRuntimeName && servingRuntimeYamlPath) {
         cy.log(`Creating ServingRuntime for s390x: ${servingRuntimeName}`);
-        // Clean up any existing Template/ServingRuntime then apply fresh via Template resource.
-        cleanupTemplates(servingRuntimeName).then(() => {
+        // Clean up any existing Template/ServingRuntime (fail setup if stale ones can't be
+        // removed) then apply fresh via Template resource.
+        cleanupTemplates(servingRuntimeName, { failOnError: true }).then(() => {
           createCustomResource(applicationNamespace, servingRuntimeYamlPath).then((result) => {
             if (result.exitCode !== 0) {
               throw new Error(`Failed to create ServingRuntime template: ${result.stderr}`);

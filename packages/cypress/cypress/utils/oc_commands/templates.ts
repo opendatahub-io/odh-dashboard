@@ -1,5 +1,6 @@
 import { pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult } from '../../types';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import { replacePlaceholdersInYaml } from '../yaml_files';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
@@ -27,30 +28,70 @@ export const waitForTemplateByServingRuntimeName = (
   });
 };
 
+type TemplateList = {
+  items?: {
+    metadata?: { name?: string };
+    objects?: { kind?: string; metadata?: { name?: string } }[];
+  }[];
+};
+
 /**
  * Cleans up OpenShift templates by searching for a template whose nested ServingRuntime object
  * has the provided resource name.
  * If a matching template is found, it deletes the template; otherwise, it logs a message
  * and continues with the test execution.
  *
+ * Lookup and delete failures are always logged. They only fail the test when `failOnError` is
+ * true (use it in setup so stale templates cannot silently survive); leave it false in teardown
+ * so cleanup problems do not replace the test's own result.
+ *
  * @param servingRuntimeName - The nested ServingRuntime metadata.name to search for in Template.objects.
+ * @param options.failOnError - Throw if the template lookup or any template deletion fails (default: false).
  * @returns A Cypress.Chainable that resolves to the result of the delete command or
  *          the original command execution result if no matching template is found.
  */
 export const cleanupTemplates = (
   servingRuntimeName: string,
+  { failOnError = false }: { failOnError?: boolean } = {},
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand =
-    `oc get templates -ojson -n ${applicationNamespace}` +
-    ` | jq -r --arg name "${servingRuntimeName}" ` +
-    `'.items[] | select(.objects[]? | select(.kind == "ServingRuntime") | (.metadata?.name? // "") == $name) | .metadata.name'`;
+  const reportError = (message: string): void => {
+    cy.log(`ERROR: ${message}`);
+    if (failOnError) {
+      throw new Error(message);
+    }
+  };
+
+  const ocCommand = `oc get templates -ojson -n ${applicationNamespace}`;
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    const templateNames = result.stdout
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
+    if (result.exitCode !== 0) {
+      reportError(
+        `Failed to list templates while cleaning up ServingRuntime "${servingRuntimeName}": ${maskSensitiveInfo(
+          result.stderr,
+        )}`,
+      );
+      return cy.wrap(result);
+    }
+
+    let templateNames: string[] = [];
+    try {
+      const { items = [] } = JSON.parse(result.stdout) as TemplateList;
+      templateNames = items
+        .filter((item) =>
+          item.objects?.some(
+            (obj) =>
+              obj.kind === 'ServingRuntime' && (obj.metadata?.name ?? '') === servingRuntimeName,
+          ),
+        )
+        .map((item) => item.metadata?.name)
+        .filter((name): name is string => !!name);
+    } catch (e) {
+      reportError(
+        `Failed to parse template list while cleaning up ServingRuntime "${servingRuntimeName}"`,
+      );
+      return cy.wrap(result);
+    }
 
     if (templateNames.length > 0) {
       if (templateNames.length === 1) {
@@ -69,9 +110,16 @@ export const cleanupTemplates = (
         }
 
         const deleteCommand = `oc delete template ${templateNames[idx]} -n ${applicationNamespace}`;
-        return cy
-          .exec(deleteCommand, { failOnNonZeroExit: false })
-          .then(() => deleteTemplates(idx + 1));
+        return cy.exec(deleteCommand, { failOnNonZeroExit: false }).then((deleteResult) => {
+          if (deleteResult.exitCode !== 0) {
+            reportError(
+              `Failed to delete template "${templateNames[idx]}": ${maskSensitiveInfo(
+                deleteResult.stderr,
+              )}`,
+            );
+          }
+          return deleteTemplates(idx + 1);
+        });
       };
 
       return deleteTemplates();
