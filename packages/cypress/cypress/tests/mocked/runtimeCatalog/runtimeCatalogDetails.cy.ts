@@ -21,7 +21,7 @@ const runtimeFamily = {
 };
 const servingRuntimeTemplate =
   '{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"mock-vllm-0-6-0"},"spec":{"supportedModelFormats":[{"name":"safetensors"}],"protocolVersions":["v2"],"containers":[{"name":"kserve-container","image":"registry.example.com/mock/vllm:0.6.0"}]}}';
-const llmInferenceServiceTemplate =
+const llmInferenceServiceConfig =
   '{"apiVersion":"serving.kserve.io/v1alpha2","kind":"LLMInferenceServiceConfig","metadata":{"name":"mock-vllm-0-6-0","labels":{"opendatahub.io/config-type":"accelerator","opendatahub.io/dashboard":"true"}},"spec":{"model":{"uri":"hf://example/mock-model","name":"mock-model"},"template":{"containers":[{"name":"main","resources":{"limits":{"cpu":"4","memory":"16Gi"},"requests":{"cpu":"2","memory":"8Gi"}}}]}}}';
 const runtimeVersions = {
   items: [
@@ -35,7 +35,7 @@ const runtimeVersions = {
       supportedModelFormats: [{ name: 'safetensors' }],
       publishedDate: '2024-04-01T00:00:00Z',
       servingRuntimeTemplate,
-      llmInferenceServiceTemplate,
+      llmInferenceServiceConfig,
     },
   ],
   size: 1,

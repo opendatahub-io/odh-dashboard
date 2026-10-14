@@ -37,6 +37,11 @@ import {
   validateProfileWarning,
 } from './utils';
 import { HardwareProfileFeatureVisibilityTitles } from './manage/const';
+import {
+  DRA_HARDWARE_PROFILE_DUPLICATE_DISABLED_MESSAGE,
+  DRA_HARDWARE_PROFILE_EDIT_DISABLED_MESSAGE,
+} from './const';
+import { isDRAHardwareProfile } from '../../shared/utils';
 
 type HardwareProfilesTableRowProps = {
   rowIndex: number;
@@ -105,6 +110,10 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           navigate(
             `/settings/environment-setup/hardware-profiles/edit/${hardwareProfile.metadata.name}`,
           ),
+        ...(isDRAHardwareProfile(hardwareProfile) && {
+          isAriaDisabled: true,
+          tooltipProps: { content: DRA_HARDWARE_PROFILE_EDIT_DISABLED_MESSAGE },
+        }),
       },
     ],
     verbModelAccess('update', HardwareProfileModel),
@@ -117,6 +126,10 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
           navigate(
             `/settings/environment-setup/hardware-profiles/duplicate/${hardwareProfile.metadata.name}`,
           ),
+        ...(isDRAHardwareProfile(hardwareProfile) && {
+          isAriaDisabled: true,
+          tooltipProps: { content: DRA_HARDWARE_PROFILE_DUPLICATE_DISABLED_MESSAGE },
+        }),
       },
     ],
     verbModelAccess('create', HardwareProfileModel),

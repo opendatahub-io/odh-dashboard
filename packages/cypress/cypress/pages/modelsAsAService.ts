@@ -1941,6 +1941,10 @@ class ExternalModelsPage {
     return cy.findByTestId('add-external-model-button');
   }
 
+  findDeletedProviderRefsAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('deleted-provider-refs-alert');
+  }
+
   findMaaSPublishedPostDeployAlert() {
     return cy.findByTestId('maas-published-post-deploy-alert');
   }
@@ -1953,6 +1957,14 @@ class ExternalModelsPage {
 class ProviderRefTableRow extends Contextual<HTMLElement> {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Provider"]');
+  }
+
+  findMissingProviderIcon(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-testid^="provider-ref-missing-"]');
+  }
+
+  findMissingProviderPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(/^provider-ref-missing-popover-/);
   }
 
   findTargetModelId(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2260,13 +2272,25 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
     return this.find().findByTestId('provider-ref-provider-select');
   }
 
+  findSelectExistingProviderRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-source-existing');
+  }
+
+  findCreateNewProviderRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-source-create-new');
+  }
+
+  findNoExternalProvidersHelper(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-external-providers-helper');
+  }
+
   selectProvider(displayName: string): void {
     this.findProviderSelect().click();
     cy.findByRole('option', { name: displayName }).click();
   }
 
   selectCreateNewProvider(): void {
-    this.find().findByTestId('provider-source-create-new').click();
+    this.findCreateNewProviderRadio().click();
   }
 
   selectProviderType(value: string): void {
@@ -2415,6 +2439,10 @@ class ExternalModelTableRow extends TableRow {
 
   findMissingMaaSModelRefWarningPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-model-missing-maas-model-ref-popover');
+  }
+
+  findDeletedProviderIcon(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-model-deleted-provider-icon');
   }
 
   findExpandedProviderRow(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -308,7 +308,10 @@ describe('Verify models can be deployed from model registry', () => {
       // eslint-disable-next-line cypress/no-unnecessary-waiting
       cy.wait(20000);
       cy.then(() => {
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        checkInferenceServiceState(resourceName, projectName, {
+          checkReady: true,
+          isLargeModel: true,
+        });
       });
       // Check deployment link and verify status in deployments view
       modelRegistry.visitWithRegistry(registryName);

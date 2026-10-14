@@ -30,7 +30,9 @@ export const useHardwareProfileBindingState = (
   const {
     globalProfiles: [globalProfilesList, globalProfilesLoaded, globalProfilesError],
     projectProfiles: [projectProfilesList, projectProfilesLoaded, projectProfilesError],
-  } = useHardwareProfilesByFeatureVisibility(visibility, hardwareProfileNamespace);
+  } = useHardwareProfilesByFeatureVisibility(visibility, hardwareProfileNamespace, {
+    includeDRA: true,
+  });
 
   const profile = React.useMemo(() => {
     return [...globalProfilesList, ...projectProfilesList].find(

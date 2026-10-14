@@ -713,6 +713,41 @@ describe('Workbench Hardware Profiles', () => {
       editSpawnerPage.findAlertMessage().should('not.exist');
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
     });
+
+    it('should show an assigned DRA hardware profile as selected with the locked message and no customization', () => {
+      initIntercepts();
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          ...mockGlobalScopedHardwareProfiles,
+          mockHardwareProfile({
+            name: 'dra-profile',
+            displayName: 'DRA Profile',
+            dra: { resourceClaimTemplateName: 'single-gpu' },
+          }),
+        ]),
+      );
+      cy.interceptK8sList(
+        NotebookModel,
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'dra-profile',
+            hardwareProfileNamespace: 'opendatahub',
+            displayName: 'Test Notebook',
+          }),
+        ]),
+      );
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+      );
+
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
+      hardwareProfileSection.findSelect().should('be.enabled');
+      hardwareProfileSection.findDRALockedMessage().should('exist');
+      hardwareProfileSection.findCustomizeSection().should('not.exist');
+    });
   });
 
   describe('Hardware Profile Dropdown Ordering', () => {

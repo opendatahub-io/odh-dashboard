@@ -1,28 +1,41 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ConnectionModel, ConnectionRef } from '~/app/types';
-import { getConnectionDisplayName } from '~/app/utilities/connectionUtils';
+import {
+  CONNECTION_UNAVAILABLE_LABEL,
+  getConnectionDisplayName,
+} from '~/app/utilities/connectionUtils';
 
 type ConnectionRefLinkProps = {
   connectionRef?: ConnectionRef | string | null;
   connections?: ConnectionModel[];
-  linkTo?: string;
+  connectionsLoaded?: boolean;
+  connectionsError?: Error;
+  linkTo?: string | ((connectionRef: ConnectionRef) => string);
 };
 
 const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({
   connectionRef,
   connections = [],
+  connectionsLoaded = false,
+  connectionsError,
   linkTo,
 }) => {
   if (!connectionRef) {
     return <>-</>;
   }
 
-  const label = getConnectionDisplayName(connectionRef, connections);
+  const label = getConnectionDisplayName(
+    connectionRef,
+    connections,
+    connectionsLoaded,
+    connectionsError,
+  );
 
-  if (linkTo && typeof connectionRef !== 'string') {
+  if (linkTo && typeof connectionRef !== 'string' && label !== CONNECTION_UNAVAILABLE_LABEL) {
+    const destination = typeof linkTo === 'string' ? linkTo : linkTo(connectionRef);
     return (
-      <Link to={linkTo} data-testid="connection-ref-link">
+      <Link to={destination} data-testid="connection-ref-link">
         {label}
       </Link>
     );
