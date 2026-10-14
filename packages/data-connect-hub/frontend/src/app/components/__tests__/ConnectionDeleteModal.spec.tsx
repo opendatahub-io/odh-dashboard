@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { deleteConnection } from '~/app/api/dch';
 import ConnectionDeleteModal from '~/app/components/ConnectionDeleteModal';
@@ -93,6 +93,58 @@ describe('ConnectionDeleteModal', () => {
       expect(onError).toHaveBeenCalledWith(new Error('delete failed'));
     });
     expect(onSuccess).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('ignores a successful delete that resolves after unmount', async () => {
+    const user = userEvent.setup();
+    let resolveDelete: () => void = () => undefined;
+    const pendingDelete = new Promise<void>((resolve) => {
+      resolveDelete = resolve;
+    });
+    const deleteRequest = jest.fn(() => pendingDelete);
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const onClose = jest.fn();
+    mockDeleteConnection.mockImplementation(() => deleteRequest);
+
+    const { unmount } = renderModal({ onSuccess, onError, onClose });
+    await user.click(screen.getByTestId('delete-confirm'));
+    unmount();
+
+    await act(async () => {
+      resolveDelete();
+      await pendingDelete;
+    });
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('ignores a failed delete that rejects after unmount', async () => {
+    const user = userEvent.setup();
+    let rejectDelete: (reason?: unknown) => void = () => undefined;
+    const pendingDelete = new Promise<void>((_resolve, reject) => {
+      rejectDelete = reject;
+    });
+    const deleteRequest = jest.fn(() => pendingDelete);
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const onClose = jest.fn();
+    mockDeleteConnection.mockImplementation(() => deleteRequest);
+
+    const { unmount } = renderModal({ onSuccess, onError, onClose });
+    await user.click(screen.getByTestId('delete-confirm'));
+    unmount();
+
+    await act(async () => {
+      rejectDelete(new Error('delete failed'));
+      await pendingDelete.catch(() => undefined);
+    });
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });
 });

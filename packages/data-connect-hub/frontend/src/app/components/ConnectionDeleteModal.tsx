@@ -26,6 +26,9 @@ const ConnectionDeleteModal: React.FC<ConnectionDeleteModalProps> = ({
     operationRef.current += 1;
     setDeleting(false);
     setError(undefined);
+    return () => {
+      operationRef.current += 1;
+    };
   }, [connection.metadata.id, namespace]);
 
   const handleClose = () => {

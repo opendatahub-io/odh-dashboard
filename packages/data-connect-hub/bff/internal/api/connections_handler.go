@@ -98,6 +98,9 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, _ 
 			return
 		}
 		connections = response.Items
+		for i := range connections {
+			normalizeConnectionProperties(&connections[i])
+		}
 		if connections == nil {
 			connections = []Connection{}
 		}
@@ -170,6 +173,11 @@ func (app *App) GetConnectionHandler(w http.ResponseWriter, r *http.Request, par
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to decode data connection: %w", err))
 			return
 		}
+		if err := validateConnection(connection); err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+		normalizeConnectionProperties(&connection)
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, ConnectionResponse{Data: connection}, nil); err != nil {
@@ -184,6 +192,12 @@ func mockConnection(namespace, connectionID string) (Connection, bool) {
 		}
 	}
 	return Connection{}, false
+}
+
+func normalizeConnectionProperties(connection *Connection) {
+	if connection.Resource.Properties == nil {
+		connection.Resource.Properties = map[string]string{}
+	}
 }
 
 func mockConnections(namespace string) []Connection {

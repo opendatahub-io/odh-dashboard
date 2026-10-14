@@ -25,10 +25,7 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon, InProgressIcon, SearchIcon } from '@patternfly/react-icons';
-import {
-  t_global_font_weight_body_bold as BodyBoldFontWeight,
-  t_global_icon_color_status_info_default as InfoIconColor,
-} from '@patternfly/react-tokens';
+import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link, useLocation } from 'react-router-dom';
 import { createConnection, verifyConnection } from '~/app/api/dch';
@@ -37,6 +34,7 @@ import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
+import { isValidTimestamp, statusVariant } from '~/app/utilities/connectionStatus';
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
 type ConnectionsTabProps = { namespace: string; isActive?: boolean };
@@ -57,15 +55,6 @@ export const synchronizeTypeSelection = (
     ? current
     : next;
 };
-
-const statusVariant = {
-  ready: 'success',
-  ingestion_not_ready: 'danger',
-  not_ready: 'danger',
-} as const;
-
-const isValidTimestamp = (timestamp?: string): timestamp is string =>
-  Boolean(timestamp && !Number.isNaN(new Date(timestamp).getTime()));
 
 const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = true }) => {
   const { search } = useLocation();
@@ -405,7 +394,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                 <Tr key={connection.metadata.id}>
                   <Td dataLabel="Name">
                     <Link
-                      style={{ fontWeight: BodyBoldFontWeight.var }}
+                      className="pf-v6-u-font-weight-bold"
                       to={{ pathname: connection.metadata.id, search }}
                     >
                       {connection.resource.name}

@@ -85,6 +85,35 @@ func TestGetConnectionsHandlerReturnsMockConnections(t *testing.T) {
 	require.Equal(t, "warehouse", envelope.Data[0].Resource.Name)
 }
 
+func TestGetConnectionsHandlerNormalizesMissingProperties(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{"items":[{
+			"metadata":{"id":"connection-1"},
+			"resource":{"name":"warehouse","data_connection_type_id":"postgresql","format":"tabular"},
+			"status":{"state":"ready"}
+		}]}`))
+		require.NoError(t, err)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+		repositories:            repositories.NewRepositories(),
+	}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections?namespace=test-project")
+
+	app.GetConnectionsHandler(response, request, httprouter.Params{})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var envelope ConnectionsEnvelope
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Len(t, envelope.Data, 1)
+	require.Equal(t, map[string]string{}, envelope.Data[0].Resource.Properties)
+}
+
 func TestGetConnectionHandlerReturnsMockConnection(t *testing.T) {
 	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
 	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/connection-1?namespace=test-project")
@@ -168,6 +197,34 @@ func TestGetConnectionHandlerForwardsUpstreamRequest(t *testing.T) {
 	require.Equal(t, "2026-09-08T16:00:00Z", envelope.Data.Metadata.UpdatedAt)
 }
 
+func TestGetConnectionHandlerNormalizesMissingProperties(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{
+			"metadata":{"id":"connection-1"},
+			"resource":{"name":"warehouse","data_connection_type_id":"postgresql","format":"tabular"},
+			"status":{"state":"ready"}
+		}`))
+		require.NoError(t, err)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+		repositories:            repositories.NewRepositories(),
+	}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/connection-1?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "connection-1"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var envelope ConnectionResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Equal(t, map[string]string{}, envelope.Data.Resource.Properties)
+}
+
 func TestGetConnectionHandlerHandlesUpstreamFailures(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -179,6 +236,12 @@ func TestGetConnectionHandlerHandlesUpstreamFailures(t *testing.T) {
 			name:           "malformed response",
 			upstreamStatus: http.StatusOK,
 			upstreamBody:   `{"metadata":`,
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "invalid response",
+			upstreamStatus: http.StatusOK,
+			upstreamBody:   `{}`,
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
@@ -294,8 +357,8 @@ func TestCreateConnectionRequestValidation(t *testing.T) {
 	}
 
 	require.NoError(t, validateCreateConnectionRequest(valid))
-	require.Error(t, validateCreatedConnection(Connection{}))
-	require.NoError(t, validateCreatedConnection(mockConnections("test-project")[0]))
+	require.Error(t, validateConnection(Connection{}))
+	require.NoError(t, validateConnection(mockConnections("test-project")[0]))
 }
 
 func TestCreateConnectionHandlerNegativePaths(t *testing.T) {

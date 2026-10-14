@@ -101,7 +101,8 @@ func (app *App) CreateConnectionHandler(w http.ResponseWriter, r *http.Request, 
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to decode created data connection: %w", err))
 		return
 	}
-	if err := validateCreatedConnection(created); err != nil {
+	normalizeConnectionProperties(&created)
+	if err := validateConnection(created); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -139,12 +140,12 @@ func validateCreateConnectionRequest(request CreateConnectionRequest) error {
 	return nil
 }
 
-func validateCreatedConnection(connection Connection) error {
+func validateConnection(connection Connection) error {
 	if connection.Metadata.ID == "" || connection.Resource.Name == "" ||
 		connection.Resource.DataConnectionTypeID == "" ||
 		(connection.Resource.Format != "tabular" && connection.Resource.Format != "binary") ||
 		connection.Status.State == "" {
-		return fmt.Errorf("created connection response is missing required fields")
+		return fmt.Errorf("connection response is missing required fields")
 	}
 	return nil
 }

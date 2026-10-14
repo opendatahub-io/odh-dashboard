@@ -154,6 +154,20 @@ describe('ConnectionDetails', () => {
     expect(screen.getByRole('button', { name: 'Verify connection' })).toBeTruthy();
   });
 
+  it('renders the status when the last-tested timestamp is absent', () => {
+    mockUseConnection.mockReturnValue([
+      { ...connection, status: { state: 'ready' } },
+      true,
+      undefined,
+      refresh,
+    ]);
+
+    renderDetails();
+
+    expect(screen.getByTestId('connection-status-label').textContent).toBe('Verified');
+    expect(screen.getByTestId('connection-last-tested').textContent).toBe('-');
+  });
+
   it('verifies the connection and refreshes it', async () => {
     const user = userEvent.setup();
     const verifyRequest = jest.fn(() => Promise.resolve());

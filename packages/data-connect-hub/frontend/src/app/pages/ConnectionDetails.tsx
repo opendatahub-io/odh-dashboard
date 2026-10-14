@@ -45,19 +45,11 @@ import RelativeTimestamp from '~/app/components/RelativeTimestamp';
 import { useConnection } from '~/app/hooks/useConnection';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import { isValidTimestamp, statusVariant } from '~/app/utilities/connectionStatus';
 
 type ConnectionDetailsContentProps = {
   namespace: string;
 };
-
-const statusVariant = {
-  ready: 'success',
-  ingestion_not_ready: 'danger',
-  not_ready: 'danger',
-} as const;
-
-const isValidTimestamp = (timestamp?: string): timestamp is string =>
-  Boolean(timestamp && !Number.isNaN(new Date(timestamp).getTime()));
 
 const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ namespace }) => {
   const { connectionId = '' } = useParams<'connectionId'>();
@@ -247,7 +239,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                         >
                           Verifying
                         </Label>
-                      ) : connection && hasValidTimestamp ? (
+                      ) : connection ? (
                         <Label variant="outline" status={statusVariant[connection.status.state]}>
                           {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}
                         </Label>
