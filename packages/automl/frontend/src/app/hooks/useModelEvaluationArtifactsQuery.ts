@@ -15,11 +15,11 @@ import type {
 /* eslint-disable camelcase */
 const FeatureImportanceDataSchema: z.ZodType<FeatureImportanceData> = z.object({
   importance: z.record(z.string(), z.number()),
-  stddev: z.record(z.string(), z.number()).optional(),
-  p_value: z.record(z.string(), z.number()).optional(),
+  stddev: z.record(z.string(), z.number().nullable()).optional(),
+  p_value: z.record(z.string(), z.number().nullable()).optional(),
   n: z.record(z.string(), z.number()).optional(),
-  p99_high: z.record(z.string(), z.number()).optional(),
-  p99_low: z.record(z.string(), z.number()).optional(),
+  p99_high: z.record(z.string(), z.number().nullable()).optional(),
+  p99_low: z.record(z.string(), z.number().nullable()).optional(),
 });
 const ConfusionMatrixDataSchema: z.ZodType<ConfusionMatrixData> = z.record(
   z.string(),

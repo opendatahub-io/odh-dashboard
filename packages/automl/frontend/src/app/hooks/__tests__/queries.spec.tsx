@@ -645,6 +645,14 @@ describe('useModelEvaluationArtifactsQuery', () => {
     importance: { feature_a: 0.8, feature_b: 0.2 },
   };
 
+  const mockFeatureImportanceWithUnavailableStatistics = {
+    importance: { feature_a: 0.8, feature_b: 0.2 },
+    stddev: { feature_a: null, feature_b: null },
+    p_value: { feature_a: null, feature_b: null },
+    p99_high: { feature_a: null, feature_b: null },
+    p99_low: { feature_a: null, feature_b: null },
+  };
+
   const mockConfusionMatrix = {
     cat: { cat: 10, dog: 2 },
     dog: { cat: 1, dog: 15 },
@@ -733,6 +741,25 @@ describe('useModelEvaluationArtifactsQuery', () => {
     expect(result.current.confusionMatrix).toBeUndefined();
     expect(result.current.curves).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should preserve null values for unavailable feature importance statistics', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockBlobJsonResponse(mockFeatureImportanceWithUnavailableStatistics),
+    );
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
+      { wrapper: createWrapper().Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.featureImportance).toEqual(
+      mockFeatureImportanceWithUnavailableStatistics,
+    );
   });
 
   it('should load all artifacts for classification runs (isClassification=true)', async () => {
@@ -946,6 +973,26 @@ describe('useModelEvaluationArtifactsQuery', () => {
       expect(global.fetch).toHaveBeenCalledTimes(responses.length);
     },
   );
+
+  it.each([
+    { name: 'importance', artifact: { importance: { feature_a: null } } },
+    { name: 'n', artifact: { importance: { feature_a: 0.8 }, n: { feature_a: null } } },
+  ])('should reject null values in $name', async ({ artifact: invalidFeatureImportance }) => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockBlobJsonResponse(invalidFeatureImportance),
+    );
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
+      { wrapper: createWrapper().Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.featureImportance).toBeUndefined();
+  });
 
   it('should load back_testing.json for timeseries runs (isTimeseries=true)', async () => {
     const mockBackTesting = {

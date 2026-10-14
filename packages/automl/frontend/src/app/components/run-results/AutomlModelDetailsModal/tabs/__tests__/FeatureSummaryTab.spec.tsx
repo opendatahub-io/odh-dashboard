@@ -28,6 +28,14 @@ const sampleImportance: FeatureImportanceData = {
   },
 };
 
+const sampleImportanceWithUnavailableStatistics: FeatureImportanceData = {
+  importance: { color: 0.183, hair_length: 0.125 },
+  stddev: { color: null, hair_length: null },
+  p_value: { color: null, hair_length: null },
+  p99_high: { color: null, hair_length: null },
+  p99_low: { color: null, hair_length: null },
+};
+
 describe('FeatureSummaryTab', () => {
   it('should render skeleton loading state when isArtifactsLoading is true', () => {
     const { container } = render(<FeatureSummaryTab {...defaultProps} isArtifactsLoading />);
@@ -58,6 +66,21 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByText('12.5%')).toBeInTheDocument();
     expect(screen.getByText('9.8%')).toBeInTheDocument();
     expect(screen.getByText('7.6%')).toBeInTheDocument();
+  });
+
+  it('should render feature importance when unused statistics are null', () => {
+    render(
+      <FeatureSummaryTab
+        {...defaultProps}
+        featureImportance={sampleImportanceWithUnavailableStatistics}
+      />,
+    );
+
+    expect(screen.getByText('color')).toBeInTheDocument();
+    expect(screen.getByText('hair_length')).toBeInTheDocument();
+    expect(screen.getByText('18.3%')).toBeInTheDocument();
+    expect(screen.getByText('12.5%')).toBeInTheDocument();
+    expect(screen.queryByTestId('feature-no-data-empty-state')).not.toBeInTheDocument();
   });
 
   it('should sort features by importance descending by default', () => {
