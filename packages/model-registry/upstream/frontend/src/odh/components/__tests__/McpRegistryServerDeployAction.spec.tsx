@@ -248,6 +248,14 @@ describe('McpRegistryServerDeployAction', () => {
     await userEvent.click(button);
     expect(screen.queryByTestId('mcp-deploy-modal-stub')).not.toBeInTheDocument();
 
+    // The docs link is in a help popover, so it does not widen the host page header.
+    expect(screen.queryByTestId('mcp-deploy-gateway-docs-link')).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: "Why can't I deploy this MCP server?" }),
+    );
+    const popover = await screen.findByRole('dialog');
+    expect(popover).toHaveTextContent('MCP gateway required');
+    expect(popover).toHaveTextContent(tooltip);
     const docsLink = screen.getByTestId('mcp-deploy-gateway-docs-link');
     expect(docsLink).toHaveTextContent('How to set up an MCP gateway');
     await userEvent.click(docsLink);
@@ -261,7 +269,7 @@ describe('McpRegistryServerDeployAction', () => {
 
     const button = screen.getByTestId('mcp-registry-deploy-action-button');
     expect(button).not.toHaveAttribute('aria-disabled', 'true');
-    expect(screen.queryByTestId('mcp-deploy-gateway-docs-link')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-deploy-gateway-help')).not.toBeInTheDocument();
     await userEvent.click(button);
     expect(screen.getByTestId('mcp-deploy-modal-stub')).toBeInTheDocument();
   });
@@ -283,7 +291,7 @@ describe('McpRegistryServerDeployAction', () => {
 
     const button = screen.getByTestId('mcp-registry-deploy-action-button');
     expect(button).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.queryByTestId('mcp-deploy-gateway-docs-link')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-deploy-gateway-help')).not.toBeInTheDocument();
     await userEvent.hover(button);
     expect(
       await screen.findByText(
@@ -309,7 +317,7 @@ describe('McpRegistryServerDeployAction', () => {
     expect(
       await screen.findByText('Change this version to Active before deploying'),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId('mcp-deploy-gateway-docs-link')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-deploy-gateway-help')).not.toBeInTheDocument();
     unmount();
 
     mockUseMcpServerDeployAvailable.mockReturnValue({ available: false, loaded: true });
