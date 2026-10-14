@@ -559,6 +559,54 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
   });
 
   describe('Evaluation run submission', () => {
+    it.each([
+      ['http://model-a.svc:8080', 'http://model-a.svc:8080/v1'],
+      ['http://model-a.svc:8080/', 'http://model-a.svc:8080/v1'],
+      ['http://model-a.svc:8080/v1', 'http://model-a.svc:8080/v1'],
+    ])('should submit cluster model URL %s as %s', async (serviceUrl, expectedUrl) => {
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', [
+          { ...mockInferenceServices[0], url: serviceUrl },
+        ]);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+        '',
+        'test-ns',
+        expect.objectContaining({ model: expect.objectContaining({ url: expectedUrl }) }),
+      );
+    });
+
+    it('should preserve a manually entered external endpoint URL', async () => {
+      const renderResult = renderForm();
+      const externalUrl = 'https://external.example.com/custom/openai';
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect(
+          EXTERNAL_ENDPOINT_VALUE,
+          mockInferenceServices,
+        );
+        renderResult.result.current.setModelName('external-model');
+        renderResult.result.current.setEndpointUrl(externalUrl);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+        '',
+        'test-ns',
+        expect.objectContaining({ model: expect.objectContaining({ url: externalUrl }) }),
+      );
+    });
+
     it('should notify the parent and track the configured source after a successful submission', async () => {
       const onSuccess = jest.fn();
       const renderResult = renderForm({ trackingSource: 'copy_suite', onSuccess });
