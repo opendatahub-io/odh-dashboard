@@ -1,3 +1,5 @@
+import { getExactDatabaseOptionRegex } from '../../utils/autoragDatabaseOptionRegex';
+
 export const normalizeVisibleOptionLabel = (label: string): string =>
   label.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 
@@ -5,15 +7,6 @@ export const getExactVisibleOptionRegex = (label: string): RegExp => {
   const normalizedLabel = normalizeVisibleOptionLabel(label);
   const escapedLabel = normalizedLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`^${escapedLabel.replace(/ /g, '\\s+')}$`, 'i');
-};
-
-export const getExactDatabaseOptionRegex = (name: string): RegExp => {
-  const normalizedName = normalizeVisibleOptionLabel(name);
-  const escapedName = normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(
-    `^${escapedName.replace(/ /g, '\\s+')}(?:\\s+(?:Milvus|PGVector|Neo4j))?$`,
-    'i',
-  );
 };
 
 const getMetricOptionTestId = (value: string): string => {
