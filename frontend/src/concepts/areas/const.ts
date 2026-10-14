@@ -7,7 +7,6 @@ import {
 
 export const techPreviewFlags = {
   genAiTracing: false,
-  automl: false,
   guardrails: false,
   modelAsService: true,
   aiAssetCustomEndpoints: false,
@@ -83,6 +82,7 @@ export const modelServingFlags = {
 export const advancedAIMLFlags = {
   genAiStudio: true,
   promptManagement: true,
+  automl: true,
   autorag: true,
   disablePipelines: false,
   disableDistributedWorkloads: false,
@@ -289,6 +289,15 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_GEN_AI]: {
     featureFlags: ['genAiStudio'],
+  },
+  [SupportedArea.PLUGIN_AUTOML]: {
+    featureFlags: ['automl', 'disablePipelines'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+  },
+  [SupportedArea.PLUGIN_AUTORAG]: {
+    featureFlags: ['autorag', 'disablePipelines'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+    reliantAreas: [SupportedArea.PLUGIN_GEN_AI],
   },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],

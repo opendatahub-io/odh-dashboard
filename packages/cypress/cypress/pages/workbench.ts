@@ -512,8 +512,8 @@ class StorageTableRow extends TableRow {
 }
 
 class StorageTable {
-  find() {
-    return cy.findByTestId('cluster-storage-table');
+  find(timeout?: number) {
+    return cy.findByTestId('cluster-storage-table', timeout !== undefined ? { timeout } : {});
   }
 
   getRowById(id: number) {
@@ -536,6 +536,22 @@ class StorageTable {
         cy.contains(accessMode).should('exist');
       });
     });
+  }
+
+  /**
+   * Navigate to the cluster-storage sidebar section then verify the access mode.
+   * Use when the storage table is not yet visible and requires a sidebar click first.
+   * @param storageName - The name of the storage row to find
+   * @param accessMode - The expected access mode label (e.g., 'ReadWriteOnce')
+   * @param timeout - Optional timeout (ms) for the table to appear
+   */
+  verifyStorageAccessModeAfterNav(storageName: string, accessMode: string, timeout?: number) {
+    cy.findByTestId('cluster-storage-jump-link').find('a').should('be.visible').click();
+    this.find(timeout)
+      .contains('tr', storageName)
+      .within(() => {
+        cy.contains(accessMode).should('exist');
+      });
   }
 
   /**
@@ -668,11 +684,14 @@ class CreateSpawnerPage {
   }
 
   findNotebookImageSelector() {
-    return cy.findByTestId('workbench-image-stream-selection');
+    return cy.findByTestId('workbench-image-stream-selection').findByRole('combobox');
   }
 
   findNotebookImage(name: string) {
-    return this.findNotebookImageSelector().findDropdownItemByTestId(name).scrollIntoView();
+    return this.findNotebookImageSelector()
+      .findDropdownItemByTestId(name)
+      .findByRole('option')
+      .scrollIntoView();
   }
 
   findNotebookImageSearchSelector() {
@@ -947,7 +966,7 @@ class EditSpawnerPage extends CreateSpawnerPage {
   }
 
   shouldHaveNotebookImageSelectInput(name: string) {
-    cy.findByTestId('workbench-image-stream-selection').contains(name).should('exist');
+    this.findNotebookImageSelector().should('have.value', name);
     return this;
   }
 

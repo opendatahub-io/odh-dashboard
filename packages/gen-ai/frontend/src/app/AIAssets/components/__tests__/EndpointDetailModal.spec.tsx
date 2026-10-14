@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import EndpointDetailModal, {
@@ -80,26 +80,24 @@ describe('EndpointDetailModal', () => {
     expect(screen.getByDisplayValue('test-model-id')).toBeInTheDocument();
     expect(screen.getByText(/Use this exact identifier in the/)).toBeInTheDocument();
     expect(screen.getByText('Authentication')).toBeInTheDocument();
-    expect(
-      screen.getByText(/To authenticate requests to this model, use an existing API key/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/The API key must be scoped to a subscription that includes this model/),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'API keys' })).toHaveAttribute('href', '/maas/tokens');
+    const authenticationCopy = screen.getByTestId('endpoint-modal-authentication-copy');
+    expect(authenticationCopy).toHaveTextContent(
+      "To authenticate requests to this model, use an existing API key or create a new one from a subscription's details page. The API key must be scoped to a subscription that includes this model.",
+    );
+    expect(within(authenticationCopy).queryByRole('link')).not.toBeInTheDocument();
     const subscriptionsToggle = screen.getByRole('button', { name: 'View subscriptions' });
     expect(subscriptionsToggle).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(subscriptionsToggle);
     expect(screen.getByTestId('endpoint-modal-subscriptions-table')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Limited' })).toHaveAttribute(
       'href',
-      '/maas/maas-governance/subscriptions/view/limited',
+      '/maas/keys-and-subs/subscriptions/limited',
     );
     expect(screen.getByText('limited')).toBeInTheDocument();
     expect(screen.getByText('Lightweight access limited to smaller models.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Standard' })).toHaveAttribute(
       'href',
-      '/maas/maas-governance/subscriptions/view/standard',
+      '/maas/keys-and-subs/subscriptions/standard',
     );
     expect(screen.getByText('standard')).toBeInTheDocument();
     expect(screen.getByText('-')).toBeInTheDocument();
