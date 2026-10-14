@@ -5,6 +5,11 @@ import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
+import YAML from 'js-yaml';
 import { runtimeImageInstallPage } from '../../../pages/modelDeploymentSettings/runtimeImageInstall';
 import { runtimeCatalogDetailsPage } from '../../../pages/runtimeCatalogDetails';
 import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
@@ -23,8 +28,24 @@ const runtimeFamily = {
   capabilities: { supportedAccelerators: ['nvidia.com/gpu'] },
   publishedDate: '2024-02-01T00:00:00Z',
 };
-const servingRuntimeTemplate =
-  '{"apiVersion":"template.openshift.io/v1","kind":"Template","metadata":{"name":"mock-vllm-0-6-0","annotations":{"opendatahub.io/apiProtocol":"REST","opendatahub.io/model-type":"[\\"generative\\"]"}},"objects":[{"apiVersion":"serving.kserve.io/v1alpha1","kind":"ServingRuntime","metadata":{"name":"mock-vllm-0-6-0"},"spec":{"supportedModelFormats":[{"name":"safetensors"}],"protocolVersions":["v2"],"containers":[{"name":"kserve-container","image":"registry.example.com/mock/vllm:0.6.0"}]}}],"parameters":[]}';
+const servingRuntime = mockServingRuntimeK8sResource({
+  name: 'mock-vllm-0-6-0',
+  namespace: 'opendatahub',
+});
+servingRuntime.spec.containers[0].image = 'registry.example.com/mock/vllm:0.6.0';
+servingRuntime.spec.supportedModelFormats = [{ name: 'safetensors' }];
+servingRuntime.spec.protocolVersions = ['v2'];
+
+const servingRuntimeTemplate = JSON.stringify(
+  mockServingRuntimeTemplateK8sResource({
+    name: 'mock-vllm-0-6-0',
+    namespace: 'opendatahub',
+    apiProtocol: ServingRuntimeAPIProtocol.REST,
+    modelTypes: [ServingRuntimeModelType.GENERATIVE],
+    supportedModelFormats: [{ name: 'safetensors' }],
+    objects: [servingRuntime],
+  }),
+);
 const llmInferenceServiceConfig =
   '{"apiVersion":"serving.kserve.io/v1alpha2","kind":"LLMInferenceServiceConfig","metadata":{"name":"mock-vllm-0-6-0","labels":{"opendatahub.io/config-type":"accelerator","opendatahub.io/dashboard":"true"}},"spec":{"model":{"uri":"hf://example/mock-model","name":"mock-model"},"template":{"containers":[{"name":"main","resources":{"limits":{"cpu":"4","memory":"16Gi"},"requests":{"cpu":"2","memory":"8Gi"}}}]}}}';
 const runtimeVersions = {
@@ -46,28 +67,6 @@ const runtimeVersions = {
   pageSize: 1,
   nextPageToken: '',
 };
-const servingRuntimeYaml = `apiVersion: template.openshift.io/v1
-kind: Template
-metadata:
-  name: mock-vllm-0-6-0
-  annotations:
-    opendatahub.io/apiProtocol: REST
-    opendatahub.io/model-type: '["generative"]'
-objects:
-  - apiVersion: serving.kserve.io/v1alpha1
-    kind: ServingRuntime
-    metadata:
-      name: mock-vllm-0-6-0
-    spec:
-      supportedModelFormats:
-        - name: safetensors
-      protocolVersions:
-        - v2
-      containers:
-        - name: kserve-container
-          image: registry.example.com/mock/vllm:0.6.0
-parameters: []
-`;
 const llmInferenceServiceYaml = `apiVersion: serving.kserve.io/v1alpha2
 kind: LLMInferenceServiceConfig
 metadata:
@@ -200,7 +199,7 @@ describe('Runtime image library details', () => {
     runtimeImageInstallPage.findServingRuntimeEditor().waitForReady();
     runtimeImageInstallPage
       .findServingRuntimeEditor()
-      .containsText('image: registry.example.com/mock/vllm:0.6.0')
+      .containsText('name: mock-vllm-0-6-0')
       .should('be.visible');
     runtimeImageInstallPage.findServingRuntimeProtocol().should('contain.text', 'REST');
     runtimeImageInstallPage.findCreate().should('be.enabled').click();
@@ -210,10 +209,9 @@ describe('Runtime image library details', () => {
     });
     cy.wait('@servingRuntimeDryRun').then(({ request }) => {
       expect(request.query).to.deep.include({ dryRun: 'All' });
-      expect(request.body).to.deep.include({
-        kind: 'ServingRuntime',
-        metadata: { name: 'mock-vllm-0-6-0', namespace: 'opendatahub' },
-      });
+      expect(request.body.kind).to.equal('ServingRuntime');
+      expect(request.body.metadata.name).to.equal('mock-vllm-0-6-0');
+      expect(request.body.metadata.namespace).to.equal('opendatahub');
     });
     cy.wait('@createServingRuntimeTemplate').then(({ request }) => {
       expect(request.method).to.equal('POST');
@@ -252,7 +250,11 @@ describe('Runtime image library details', () => {
 
     stubClipboard('copiedYaml');
     runtimeCatalogDetailsPage.copyServingRuntimeYaml();
-    getClipboardContent('copiedYaml').its(0).should('equal', servingRuntimeYaml);
+    getClipboardContent('copiedYaml')
+      .its(0)
+      .then((copiedYaml) => {
+        expect(YAML.load(copiedYaml)).to.deep.equal(JSON.parse(servingRuntimeTemplate));
+      });
     runtimeCatalogDetailsPage.selectLlmInferenceServiceTab();
     runtimeCatalogDetailsPage
       .findLlmInferenceServicePanel()
