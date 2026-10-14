@@ -148,7 +148,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
+      genAiPlayground.navigateToAssets(projectName);
 
       cy.step('Create playground with the deployed model');
       genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
@@ -162,7 +162,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       waitForResource('service', testData.playgroundServiceName, projectName);
 
       cy.step('Start port-forward for LSD service');
-      startPortForward(projectName, testData.playgroundServiceName, 8321).then((handle) => {
+      startPortForward(projectName, testData.playgroundServiceName, 8321, 3000).then((handle) => {
         portForwardHandle = handle;
       });
 

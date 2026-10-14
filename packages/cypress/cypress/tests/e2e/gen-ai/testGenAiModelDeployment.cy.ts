@@ -104,7 +104,7 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
       );
 
       cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
+      genAiPlayground.navigateToAssets(projectName);
 
       cy.step('Click Create playground button');
       genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();

@@ -268,8 +268,8 @@ describe('AIAssetsModelsTab', () => {
   });
 
   describe('Create playground', () => {
-    const renderWithModels = () => {
-      mockUseAiAssetCustomEndpointsEnabled.mockReturnValue(true);
+    const renderWithModels = (customEndpointsEnabled = true) => {
+      mockUseAiAssetCustomEndpointsEnabled.mockReturnValue(customEndpointsEnabled);
       mockUseMergedModels.mockReturnValue({
         models: [
           {
@@ -333,6 +333,32 @@ describe('AIAssetsModelsTab', () => {
       expect(screen.getByTestId('create-endpoint-button').closest('button')).not.toHaveClass(
         'pf-m-tertiary',
       );
+    });
+
+    it('should show the Create playground button when custom endpoints are disabled and the playground is not created', () => {
+      renderWithModels(false);
+
+      const createPlaygroundButton = screen.getByTestId('create-playground-button');
+      expect(createPlaygroundButton).toBeInTheDocument();
+      expect(createPlaygroundButton.closest('button')).not.toBeDisabled();
+    });
+
+    it('should hide the Create endpoint button when custom endpoints are disabled', () => {
+      renderWithModels(false);
+
+      expect(screen.queryByTestId('create-endpoint-button')).not.toBeInTheDocument();
+    });
+
+    it('should hide all toolbar actions when custom endpoints are disabled and the playground is created', () => {
+      mockUseFetchLSDStatus.mockReturnValue({
+        data: createMockLsdStatus(),
+        loaded: true,
+        refresh: jest.fn(),
+      } as ReturnType<typeof useFetchLSDStatus>);
+      renderWithModels(false);
+
+      expect(screen.queryByTestId('create-playground-button')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('create-endpoint-button')).not.toBeInTheDocument();
     });
 
     it('should open the playground configuration modal when Create playground is clicked', () => {

@@ -188,7 +188,7 @@ const AIAssetsModelsTab: React.FC = () => {
           playgroundModels={playgroundModels}
           lsdStatus={lsdStatus}
           toolbarActions={
-            canManageEndpoints ? (
+            !!namespace && (!isPlaygroundCreated || canManageEndpoints) ? (
               <Flex gap={{ default: 'gapSm' }}>
                 {!isPlaygroundCreated && (
                   <FlexItem>
@@ -206,20 +206,22 @@ const AIAssetsModelsTab: React.FC = () => {
                     </Button>
                   </FlexItem>
                 )}
-                <FlexItem>
-                  <Button
-                    variant={isPlaygroundCreated ? ButtonVariant.primary : ButtonVariant.tertiary}
-                    onClick={() => {
-                      fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
-                        source: 'toolbar',
-                      });
-                      setIsCreateEndpointModalOpen(true);
-                    }}
-                    data-testid="create-endpoint-button"
-                  >
-                    Create endpoint
-                  </Button>
-                </FlexItem>
+                {canManageEndpoints && (
+                  <FlexItem>
+                    <Button
+                      variant={isPlaygroundCreated ? ButtonVariant.primary : ButtonVariant.tertiary}
+                      onClick={() => {
+                        fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
+                          source: 'toolbar',
+                        });
+                        setIsCreateEndpointModalOpen(true);
+                      }}
+                      data-testid="create-endpoint-button"
+                    >
+                      Create endpoint
+                    </Button>
+                  </FlexItem>
+                )}
               </Flex>
             ) : undefined
           }
