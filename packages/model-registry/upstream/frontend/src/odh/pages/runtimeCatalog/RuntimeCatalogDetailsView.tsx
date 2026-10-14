@@ -151,7 +151,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                       </Card>
                     </StackItem>
                     {selectedVersion?.servingRuntimeTemplate ||
-                    selectedVersion?.llmInferenceServiceTemplate ? (
+                    selectedVersion?.llmInferenceServiceConfig ? (
                       <StackItem>
                         <Card>
                           <CardHeader>
@@ -199,7 +199,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                   </Stack>
                                 </Tab>
                               )}
-                              {!!selectedVersion.llmInferenceServiceTemplate && (
+                              {!!selectedVersion.llmInferenceServiceConfig && (
                                 <Tab
                                   eventKey="llm-inference-service"
                                   data-testid="runtime-llm-inference-service-tab"
@@ -223,7 +223,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                     <StackItem>
                                       <CodeBlockComponent copyTestId="runtime-llm-inference-service-copy">
                                         {formatRuntimeTemplate(
-                                          selectedVersion.llmInferenceServiceTemplate,
+                                          selectedVersion.llmInferenceServiceConfig,
                                         )}
                                       </CodeBlockComponent>
                                     </StackItem>

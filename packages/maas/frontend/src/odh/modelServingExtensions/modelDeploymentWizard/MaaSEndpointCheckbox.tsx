@@ -141,7 +141,7 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
         };
         overrides['llmd-serving/gateway'] = {
           isDisabled: true,
-          selection: MAAS_DEFAULT_GATEWAY,
+          selections: [MAAS_DEFAULT_GATEWAY],
           disabledTooltip:
             'Models available as a service (MaaS) are automatically routed through the maas-default-gateway | openshift-ingress gateway.',
           labelHelpPopover: {

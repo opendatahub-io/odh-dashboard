@@ -18,6 +18,7 @@ import {
   formatIdentifierDetails,
   formatResource,
   getLocalQueueLabel,
+  isDRAHardwareProfile,
 } from '#~/concepts/hardwareProfiles/utils';
 import { UseHardwareProfileConfigResult } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
@@ -747,10 +748,87 @@ describe('applyHardwareProfileConfig', () => {
       'custom-path-test',
     );
   });
+
+  it('should keep the binding and existing resources without refreshing the resource version for a DRA hardware profile', () => {
+    const hardwareProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      namespace: 'opendatahub',
+      resourceVersion: '12345',
+      identifiers: [],
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const notebook = mockNotebookK8sResource({});
+    const existingResources = {
+      requests: { cpu: '1', memory: '2Gi' },
+      limits: { cpu: '1', memory: '2Gi' },
+    };
+    const config = {
+      selectedProfile: hardwareProfile,
+      useExistingSettings: true,
+      resources: existingResources,
+    };
+
+    const result = applyHardwareProfileConfig(notebook, config, paths);
+
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'dra-profile',
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
+      'opendatahub',
+    );
+    expect(
+      result.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'],
+    ).toBeUndefined();
+    expect(result.spec.template.spec.containers[0].resources).toEqual(existingResources);
+  });
+
+  it('should not create the container resources path for a DRA hardware profile when the workload has no resources', () => {
+    const hardwareProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      identifiers: [],
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const annotations: Record<string, string> = {};
+    const resource = {
+      apiVersion: 'serving.kserve.io/v1alpha1',
+      kind: 'LLMInferenceService',
+      metadata: { name: 'llm', namespace: 'test-ns', annotations },
+      spec: { template: {} },
+    };
+    // The form fills in empty requests and limits when the workload has none.
+    const config = {
+      selectedProfile: hardwareProfile,
+      useExistingSettings: true,
+      resources: { requests: {}, limits: {} },
+    };
+
+    const result = applyHardwareProfileConfig(resource, config, {
+      containerResourcesPath: 'spec.template.containers.0.resources',
+      tolerationsPath: 'spec.template.tolerations',
+      nodeSelectorPath: 'spec.template.nodeSelector',
+    });
+
+    expect(result.spec).toEqual({ template: {} });
+    expect(result.metadata.annotations['opendatahub.io/hardware-profile-name']).toBe('dra-profile');
+  });
 });
 
 describe('getLocalQueueLabel', () => {
   it('returns "Local queue"', () => {
     expect(getLocalQueueLabel()).toBe('Local queue');
+  });
+});
+
+describe('isDRAHardwareProfile', () => {
+  it('should return true when the profile references a ResourceClaimTemplate', () => {
+    expect(
+      isDRAHardwareProfile(
+        mockHardwareProfile({ dra: { resourceClaimTemplateName: 'single-gpu' } }),
+      ),
+    ).toBe(true);
+  });
+
+  it('should return false when the profile has no dra field', () => {
+    expect(isDRAHardwareProfile(mockHardwareProfile({}))).toBe(false);
   });
 });

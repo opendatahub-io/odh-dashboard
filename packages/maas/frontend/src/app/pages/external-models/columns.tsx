@@ -24,8 +24,8 @@ export const externalModelsColumns: SortableData<ExternalModel>[] = [
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),
   },
   {
-    label: 'Provider',
-    field: 'externalProvider',
+    label: 'Provider references',
+    field: 'providerRefs',
     width: 30,
     sortable: false,
     info: {

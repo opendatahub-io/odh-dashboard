@@ -2,6 +2,9 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import { RecursivePartial } from '@odh-dashboard/foundation';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   fireModelDeployed as fireDeploymentFormTracking,
   type DeploymentTrackingProperties,
@@ -20,6 +23,7 @@ import { MODEL_CAPABILITIES_FIELD_ID } from '../../components/deploymentWizard/f
 import type { WizardFormState } from '../../components/deploymentWizard/useDeploymentWizardReducer';
 import type { InitialWizardFormData } from '../types/form-data';
 import type { ExternalDataMap } from '../../components/deploymentWizard/ExternalDataLoader';
+import { DeploymentAssemblyResources } from '../../../extension-points/deployment-wizard';
 
 export const getBaseModelDeployedTrackingProperties = (
   formState: WizardFormState,
@@ -63,14 +67,16 @@ export const useModelDeployedTracking = (
   platformId?: string,
   isEdit?: boolean,
   externalData?: ExternalDataMap,
-  deploymentKind: 'inferenceService' | 'llmInferenceService' = 'inferenceService',
-  kueueQueueName?: string,
+  resources?: RecursivePartial<DeploymentAssemblyResources>,
 ): {
   fireModelDeployedTracking: (outcome: 'submit' | 'cancel', success?: boolean) => Promise<void>;
 } => {
   const location = useLocation();
   const trackEvent = useTrackEvent();
   const { getTrackingProperties } = useWizardTrackingProperties(formState, platformId);
+
+  const isKueueFeatureEnabled = useIsAreaAvailable(SupportedArea.KUEUE).status;
+  const kueueQueueName = resources?.model?.metadata?.labels?.[KUEUE_QUEUE_LABEL];
 
   const fireModelDeployedTracking = React.useCallback(
     async (outcome: 'submit' | 'cancel', success?: boolean) => {
@@ -86,13 +92,17 @@ export const useModelDeployedTracking = (
         additionalProperties: {
           ...getBaseModelDeployedTrackingProperties(formState),
           ...platformTrackingProperties,
-          hasKueueEnabled: Boolean(kueueQueueName),
-          kueueSubState: 'none',
-          isKueueBlocking: false,
+          ...(isKueueFeatureEnabled
+            ? {
+                hasKueueEnabled: Boolean(kueueQueueName),
+                kueueSubState: 'none',
+                isKueueBlocking: false,
+                kueueQueueName,
+              }
+            : undefined),
           admittedReplicaCount: 0,
           primaryDeploymentStatus: 'Pending',
-          deploymentKind,
-          kueueQueueName,
+          deploymentKind: resources?.model?.kind,
         },
       });
 
@@ -110,7 +120,8 @@ export const useModelDeployedTracking = (
       trackEvent,
       isEdit,
       externalData,
-      deploymentKind,
+      isKueueFeatureEnabled,
+      resources?.model?.kind,
       kueueQueueName,
     ],
   );
