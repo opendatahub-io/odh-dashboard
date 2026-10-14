@@ -18,6 +18,6 @@ type ModelList = {
 export declare const useCatalogModelsBySources: (sourceId?: string, sourceLabel?: string, pageSize?: number, searchQuery?: string, filterData?: ModelCatalogFilterStates, filterOptions?: CatalogFilterOptionsList | null, filterQuery?: string, sortBy?: string | null, sortOrder?: string, performanceParams?: {
     targetRPS?: number;
     latencyProperty?: string;
-    recommendations?: boolean;
+    orderBy?: string;
 }) => ModelList;
 export {};
