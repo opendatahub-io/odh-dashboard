@@ -3,6 +3,7 @@ kind: Template
 metadata:
   name: ibmz-triton-rest
   annotations:
+    opendatahub.io/runtime-version: v1.6.0
     opendatahub.io/apiProtocol: REST
     opendatahub.io/model-type: '["predictive"]'
     opendatahub.io/modelServingSupport: '["single"]'
@@ -16,6 +17,7 @@ objects:
     metadata:
       name: ibmz-triton-rest
       annotations:
+        opendatahub.io/runtime-version: v1.6.0
         prometheus.kserve.io/path: /metrics
         prometheus.kserve.io/port: "8002"
         openshift.io/display-name: IBM Z Triton Inference Server
@@ -50,7 +52,14 @@ objects:
               cpu: "2"
               memory: 4Gi
           ports:
-            - containerPort: 8000
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            - name: grpc
+              containerPort: 8001
+              protocol: TCP
+            - name: metrics
+              containerPort: 8002
               protocol: TCP
       protocolVersions:
         - v2

@@ -1,0 +1,16 @@
+# testModelPvcDeployment.cy.ts Test Data - s390x #
+# OpenVINO Model Server is not available on s390x.
+# Uses IBM Z Triton Inference Server with a python model from ods-ci-wisdom (BUCKET_3).
+projectResourceName: 'test-model-pvc-deployment'
+projectDisplayName: 'Test Model PVC Deployment'
+singleModelName: 'test-model'
+resourceType: 'InferenceService'
+modelOpenVinoExamplePath: 'triton/model_repository'
+pvStorageName: 'model-pvc-e2e'
+modelFormat: 'python - 1'
+servingRuntime: 'IBM Z Triton Inference Server'
+servingRuntimeName: 'ibmz-triton-rest'
+servingRuntimeYamlPath: 'resources/modelServing/ibmz-triton-rest.yaml'
+servingRuntimeVersionStatus: 'Latest'
+awsBucket: 'BUCKET_3'
+isS390x: true

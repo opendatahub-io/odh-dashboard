@@ -1,0 +1,9 @@
+# testSingleModelAdminCreation.cy.ts Test Data - s390x #
+# vLLM CPU (.x86.) ServingRuntime is not available on s390x.
+# Uses the ppc64le/s390x-compatible vLLM CPU runtime instead.
+projectSingleModelAdminResourceName: "cy-legacy-deployment"
+singleModelAdminName: "cy-legacy-model"
+modelLocationURI: "hf://facebook/opt-125m"
+servingRuntime: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
+hardwareProfileName: "cypress-llmd-hardware-profile-model"
+connectionNameSuffix: '-connection'

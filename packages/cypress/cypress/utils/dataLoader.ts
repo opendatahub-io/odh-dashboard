@@ -81,7 +81,7 @@ export const loadRuntimeLibraryAcceleratorFixture = (
 
 // Load fixture function that returns DataScienceProjectData
 export const loadDSPFixture = (fixturePath: string): Cypress.Chainable<DataScienceProjectData> =>
-  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+  loadYamlFixture(fixturePath).then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as DataScienceProjectData;
     return data;
   });

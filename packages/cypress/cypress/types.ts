@@ -404,6 +404,10 @@ export type DataScienceProjectData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
+  isS390x?: boolean;
+  awsBucket?: 'BUCKET_1' | 'BUCKET_3';
+  servingRuntimeName?: string;
+  servingRuntimeYamlPath?: string;
 };
 
 export type NIMProjectScopedTestData = {

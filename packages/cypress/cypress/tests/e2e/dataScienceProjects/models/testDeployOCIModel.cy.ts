@@ -32,7 +32,7 @@ let modelFormat: string;
 let servingRuntime: string;
 let isS390x: boolean;
 const uuid = generateTestUUID();
-const applicationNamespace: string = Cypress.env('APPLICATIONS_NAMESPACE');
+const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string | undefined;
 
 const updateSecretDetailsFile = (
   secretValue: string,
@@ -90,8 +90,13 @@ describe(
           if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
             const runtimeYamlPath = testData.servingRuntimeYamlPath;
             cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
-            cleanupTemplates(testData.servingRuntimeName).then(() => {
-              createCustomResource(applicationNamespace, runtimeYamlPath);
+            cleanupTemplates(testData.servingRuntime).then(() => {
+              if (!applicationNamespace) {
+                throw new Error('APPLICATIONS_NAMESPACE is not configured.');
+              }
+              createCustomResource(applicationNamespace, runtimeYamlPath).then((result) => {
+                expect(result.exitCode).to.equal(0);
+              });
             });
           }
 
@@ -103,7 +108,7 @@ describe(
     after(() => {
       if (isS390x && testData.servingRuntimeName) {
         cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
-        cleanupTemplates(testData.servingRuntimeName);
+        cleanupTemplates(testData.servingRuntime);
       }
       // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
       // TODO: Review this timeout once RHOAIENG-19969 is resolved

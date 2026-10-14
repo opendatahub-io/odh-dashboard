@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{POD_NAME}}
+  namespace: {{NAMESPACE}}
+spec:
+  securityContext:
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+  containers:
+    - name: s3-downloader
+      # IBM Z Triton image is proven to pull in user namespaces on s390x clusters.
+      # curl 8.20 ships with --aws-sigv4 support — no extra packages needed.
+      image: icr.io/ibmz/ibmz-accelerated-for-nvidia-triton-inference-server:1.6.0
+      command: ["/bin/bash", "-c"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        capabilities:
+          drop:
+            - ALL
+      args:
+        - |
+          set -e
+          ENDPOINT="{{AWS_S3_ENDPOINT}}"
+          ENDPOINT="${ENDPOINT%/}"
+          BUCKET="{{AWS_S3_BUCKET}}"
+          PREFIX="{{MODEL_PATH}}"
+          REGION="{{AWS_DEFAULT_REGION}}"
+          DEST="/mnt/models"
+
+          # URL-encode the prefix (replace / with %2F)
+          ENCODED_PREFIX=$(echo "${PREFIX}" | sed 's|/|%2F|g')
+
+          echo "Listing objects under s3://${BUCKET}/${PREFIX} ..."
+          LIST_URL="${ENDPOINT}/${BUCKET}?list-type=2&prefix=${ENCODED_PREFIX}&max-keys=1000"
+
+          KEYS=$(curl -sSf \
+            --aws-sigv4 "aws:amz:${REGION}:s3" \
+            --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+            "${LIST_URL}" \
+            | python3 -c "
+          import sys, xml.etree.ElementTree as ET
+          tree = ET.fromstring(sys.stdin.read())
+          for k in tree.findall('.//{*}Key'):
+              if not k.text.endswith('/'):
+                  print(k.text)
+          ")
+
+          if [ -z "$KEYS" ]; then
+            echo "ERROR: no objects found under ${BUCKET}/${PREFIX}"
+            exit 1
+          fi
+
+          echo "Found objects:"
+          echo "$KEYS"
+
+          echo "$KEYS" | while IFS= read -r KEY; do
+            # Keep the full key path: the InferenceService mounts the PVC with
+            # subPath=<model path>, so files must live under /mnt/models/<model path>/.
+            OUT="${DEST}/${KEY}"
+            mkdir -p "$(dirname "${OUT}")"
+            echo "Downloading ${KEY} -> ${OUT}"
+            curl -sSf \
+              --aws-sigv4 "aws:amz:${REGION}:s3" \
+              --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+              "${ENDPOINT}/${BUCKET}/${KEY}" \
+              -o "${OUT}"
+          done
+
+          touch "${DEST}/.copy-complete"
+          echo "S3 copy completed successfully"
+      volumeMounts:
+        - name: model-store
+          mountPath: /mnt/models
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "{{AWS_ACCESS_KEY_ID}}"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "{{AWS_SECRET_ACCESS_KEY}}"
+        - name: AWS_DEFAULT_REGION
+          value: "{{AWS_DEFAULT_REGION}}"
+        - name: AWS_S3_ENDPOINT
+          value: "{{AWS_S3_ENDPOINT}}"
+        - name: AWS_S3_BUCKET
+          value: "{{AWS_S3_BUCKET}}"
+  volumes:
+    - name: model-store
+      persistentVolumeClaim:
+        claimName: {{PVC_NAME}}
+  restartPolicy: Never
