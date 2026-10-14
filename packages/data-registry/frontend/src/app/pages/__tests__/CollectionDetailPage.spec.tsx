@@ -43,7 +43,9 @@ describe('CollectionDetailPage', () => {
     jest
       .mocked(useCollectionsHook.useCollections)
       .mockReturnValue([[], true, undefined, jest.fn()]);
-    jest.mocked(useConnectionsHook.useConnections).mockReturnValue([[], true, undefined]);
+    jest
+      .mocked(useConnectionsHook.useConnections)
+      .mockReturnValue([[], true, undefined, jest.fn().mockResolvedValue([]), []]);
     jest.mocked(useLabelsHook.useLabels).mockReturnValue([[], true, undefined, jest.fn()]);
   });
 

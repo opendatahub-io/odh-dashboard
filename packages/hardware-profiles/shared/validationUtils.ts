@@ -10,7 +10,7 @@ import {
   splitValueUnit,
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
-import { formatResourceValue } from './utils';
+import { formatResourceValue, isDRAHardwareProfile } from './utils';
 
 export enum ValidationErrorCodes {
   LIMIT_BELOW_REQUEST = 'limit_below_request',
@@ -113,7 +113,7 @@ export const hardwareProfileValidationSchema = z
     useExistingSettings: z.boolean(),
   })
   .superRefine((data, ctx) => {
-    if (!data.selectedProfile?.spec.identifiers) {
+    if (!data.selectedProfile?.spec.identifiers || isDRAHardwareProfile(data.selectedProfile)) {
       return;
     }
 

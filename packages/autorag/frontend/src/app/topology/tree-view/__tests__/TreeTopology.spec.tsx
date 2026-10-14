@@ -104,6 +104,36 @@ describe('TreeTopology', () => {
     expect(screen.getByTestId('tree-topology-surface')).toBeInTheDocument();
   });
 
+  it('should merge updated topology models to preserve existing graph elements', async () => {
+    const updatedTopology: TreeTopologyData = {
+      nodes: [
+        {
+          ...topology.nodes[0],
+          label: 'Updated Node A',
+          data: { label: 'Updated Node A', stepState: 'active' },
+        },
+      ],
+      edges: [],
+    };
+    const { rerender } = render(<TreeTopology topology={topology} />);
+
+    expect(await screen.findByTestId('tree-topology')).toBeInTheDocument();
+    const controller = visualizationInstances[0];
+
+    // First call creates the initial graph; the next call applies the current topology.
+    await waitFor(() => {
+      expect(controller.fromModel).toHaveBeenCalledTimes(2);
+    });
+    expect(controller.fromModel.mock.calls[1][1]).toBe(true);
+
+    rerender(<TreeTopology topology={updatedTopology} />);
+
+    await waitFor(() => {
+      expect(controller.fromModel).toHaveBeenCalledTimes(3);
+    });
+    expect(controller.fromModel.mock.calls[2][1]).toBe(true);
+  });
+
   it('should clear the controller when loading starts so stale graph data cannot render', async () => {
     const { rerender } = render(<TreeTopology topology={topology} />);
 

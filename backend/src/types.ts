@@ -920,6 +920,7 @@ export type ContainerResources = {
     cpu?: string | number;
     memory?: string;
   } & Record<string, unknown>;
+  claims?: { name: string; request?: string }[];
 };
 
 export type PodAffinity = {
@@ -996,6 +997,9 @@ export type HardwareProfileKind = K8sResourceCommon & {
       resourceType?: string;
     }[];
     nodeSelector?: NodeSelector;
+    dra?: {
+      resourceClaimTemplateName: string;
+    };
   };
 };
 

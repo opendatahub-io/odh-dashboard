@@ -28,6 +28,31 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-workloads');
   }
 
+  findWorkloadsCard() {
+    return cy.findByTestId('infrastructure-workloads-card');
+  }
+
+  scrollToWorkloadsCard() {
+    this.findWorkloadsCard().scrollIntoView();
+    return this;
+  }
+
+  findWorkloadOverview() {
+    return cy.findByTestId('workload-overview');
+  }
+
+  findWorkloadCount(bucket: string) {
+    return cy.findByTestId(`workload-count-${bucket}`);
+  }
+
+  findViewInTableButton() {
+    return cy.findByRole('button', { name: 'View in table' });
+  }
+
+  findWorkloadsTableSection() {
+    return cy.findByTestId('infrastructure-workloads-table-section');
+  }
+
   findWorkloadRow(name: string, options?: Cypress.Timeoutable) {
     return cy.findByTestId(`infrastructure-workload-row-${name}`, options);
   }
@@ -64,6 +89,10 @@ class InfrastructurePage {
 
   findWorkloadsEmptyState() {
     return cy.findByTestId('infrastructure-workloads-empty');
+  }
+
+  findWorkloadsError() {
+    return cy.findByTestId('infrastructure-workloads-error');
   }
 
   findWorkloadsPartialFailure() {
