@@ -24,12 +24,12 @@ describe('RuntimeImageInstallAction', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(
-      screen.getByRole('button', {
-        name: 'Install',
-      }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('runtime-image-install'));
+    const installLink = screen.getByRole('link', { name: 'Install' });
+    expect(installLink).toHaveAttribute(
+      'href',
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/preview-vllm-0-6-0/install',
+    );
+    fireEvent.click(installLink);
     expect(screen.getByTestId('route-data')).toHaveTextContent(
       JSON.stringify({
         pathname:

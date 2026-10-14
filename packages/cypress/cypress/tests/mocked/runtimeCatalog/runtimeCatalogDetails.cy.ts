@@ -152,7 +152,7 @@ describe('Runtime image library details', () => {
     runtimeCatalogDetailsPage
       .findContainerImageInput()
       .should('have.value', 'registry.example.com/mock/vllm:0.6.0');
-    runtimeCatalogDetailsPage.findButton('Install').should('be.visible');
+    runtimeCatalogDetailsPage.findLink('Install').should('be.visible');
     runtimeCatalogDetailsPage.findServingRuntimeTab().should('be.visible');
     runtimeCatalogDetailsPage
       .findServingRuntimePanel()
@@ -180,7 +180,7 @@ describe('Runtime image library details', () => {
     ).as('createServingRuntimeTemplate');
 
     runtimeCatalogDetailsPage.visit(runtimeId);
-    runtimeCatalogDetailsPage.findButton('Install').click();
+    runtimeCatalogDetailsPage.findLink('Install').click();
 
     cy.location('pathname').should(
       'eq',
