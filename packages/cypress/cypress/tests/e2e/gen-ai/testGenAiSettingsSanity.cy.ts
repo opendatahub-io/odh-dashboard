@@ -180,8 +180,8 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
       genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
 
-      cy.step('Add endpoint to playground');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      cy.step('Create playground with the endpoint');
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
@@ -193,7 +193,10 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       waitForNemoGuardrailsReady(projectName);
 
       cy.step('Start port-forward for NeMo Guardrails');
-      startPortForward(projectName, 'nemoguardrails', 8443, 3000, 443).then((handle) => {
+      // Local port must match the BFF's NEMO_GUARDRAILS_URL (https://localhost:9443 — see
+      // packages/gen-ai/.env.local.example); otherwise the BFF fails closed with
+      // guardrail_service_unavailable and no violation alert is ever rendered.
+      startPortForward(projectName, 'nemoguardrails', 9443, 3000, 443).then((handle) => {
         nemoPortForwardHandle = handle;
       });
 

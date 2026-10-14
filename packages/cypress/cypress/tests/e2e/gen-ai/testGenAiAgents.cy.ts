@@ -124,8 +124,8 @@ describe('Verify agent deployments using a custom endpoint', { testIsolation: fa
       genAiPlayground.findCreateEndpointSubmitButton().should('be.enabled').click();
       genAiPlayground.findCreateExternalModelModal().should('not.exist');
 
-      cy.step('Add the Gemini endpoint to Playground and wait for OGX');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      cy.step('Create the playground with the Gemini endpoint and wait for OGX');
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
