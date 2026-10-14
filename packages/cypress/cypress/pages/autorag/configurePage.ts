@@ -234,6 +234,10 @@ class AutoragConfigurePage {
     return cy.findByRole('option', { name: getExactVisibleOptionRegex(name) });
   }
 
+  findDatabaseOption(name: string) {
+    return cy.findAllByRole('option').findByText(getExactVisibleOptionRegex(name));
+  }
+
   // Evaluation dataset — PF FileUpload renders input with id from field.name
   findEvaluationFileInput() {
     return cy.findByTestId('evaluation-file-selector').find('input[type="file"]');

@@ -409,7 +409,7 @@ export const configureAutoragRun = (
       .find('input')
       .clear()
       .type(testData.vectorDbSecretName);
-    autoragConfigurePage.findSelectOption(testData.vectorDbSecretName).click();
+    autoragConfigurePage.findDatabaseOption(testData.vectorDbSecretName).click();
   }
   cy.step('Select the configured hosted generation and embedding models');
   autoragConfigurePage.findSelectModelsButton().click();
