@@ -292,6 +292,19 @@ describe('EvaluationStatusModal progress tab', () => {
     );
   });
 
+  it('should show Pending without queue details for a queue-assigned job when the Kueue integration is disabled', () => {
+    // Default availability mock (availability undefined) models the disabled integration.
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'default' } };
+
+    renderModal(job);
+
+    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Pending');
+    expect(screen.getByTestId('benchmark-name-header')).not.toHaveTextContent('Waiting for quota');
+    expect(screen.getByTestId('status-description')).toHaveTextContent('Evaluation job is pending');
+  });
+
   it('should preserve a terminal EvalHub status when Kueue is stale', () => {
     mockUseKueueWorkloadStatuses.mockReturnValue({
       statusesByEvaluationId: new Map([
