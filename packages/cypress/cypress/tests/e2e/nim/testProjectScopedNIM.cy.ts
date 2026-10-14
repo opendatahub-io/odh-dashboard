@@ -112,10 +112,7 @@ describe('A user can deploy a project-scoped NIM', () => {
     },
     () => {
       cy.step('Log in as odh-admin and open the project Settings tab');
-      cy.visitWithLogin(
-        `/projects/${projectName}?section=settings&devFeatureFlags=nimWizard=true`,
-        LDAP_ADMIN_USER,
-      );
+      cy.visitWithLogin(`/projects/${projectName}?section=settings`, LDAP_ADMIN_USER);
 
       cy.step('Verify the NIM settings card offers to add a personal API key');
       projectDetailsSettingsTab.findNIMEnableButton().should('be.visible').click();
