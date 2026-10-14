@@ -41,6 +41,9 @@ describe('BenchmarkSuiteCard', () => {
       'aria-label',
       'Metrics',
     );
+    expect(screen.getByTestId('benchmark-suite-card-footer-metrics-model-suite')).toContainElement(
+      screen.getByTestId('benchmark-suite-card-metrics-model-suite'),
+    );
     expect(screen.getByTestId('benchmark-suite-card-benchmarks-model-suite')).toHaveAttribute(
       'aria-label',
       'Benchmarks: benchmark-1, benchmark-2',

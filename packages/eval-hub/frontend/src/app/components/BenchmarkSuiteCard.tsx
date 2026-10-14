@@ -439,7 +439,10 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       </CardBody>
       <CardFooter className="evalhub-benchmark-suite-card__footer">
         {metricNames.length > 0 && (
-          <div className="evalhub-benchmark-suite-card__footer-metrics">
+          <div
+            className="evalhub-benchmark-suite-card__footer-metrics"
+            data-testid={`benchmark-suite-card-footer-metrics-${collection.resource.id}`}
+          >
             {metricNames.length > VISIBLE_METRICS_COUNT ? (
               <Tooltip content={metricsTooltip}>{metricsLabelGroup}</Tooltip>
             ) : (
