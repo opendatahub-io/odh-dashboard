@@ -8,6 +8,7 @@ import (
 	k8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestValidateDSPAURL(t *testing.T) {
@@ -278,11 +279,23 @@ func TestExtractObjectStorageSpec(t *testing.T) {
 type mockK8sClient struct {
 	k8s.Client
 	listResourcesFn       func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
+	getResourceFn         func(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
+	patchResourceFn       func(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string, patchType types.PatchType, patchData []byte) (*unstructured.Unstructured, error)
+	patchDeploymentFn     func(ctx context.Context, namespace, name string, patchType types.PatchType, patchData []byte) error
 	discoverResourceGVRFn func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
 }
 
 func (m *mockK8sClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
 	return m.listResourcesFn(ctx, gvr, namespace)
+}
+func (m *mockK8sClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+	return m.getResourceFn(ctx, gvr, namespace, name)
+}
+func (m *mockK8sClient) PatchResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string, patchType types.PatchType, patchData []byte) (*unstructured.Unstructured, error) {
+	return m.patchResourceFn(ctx, gvr, namespace, name, patchType, patchData)
+}
+func (m *mockK8sClient) PatchDeployment(ctx context.Context, namespace, name string, patchType types.PatchType, patchData []byte) error {
+	return m.patchDeploymentFn(ctx, namespace, name, patchType, patchData)
 }
 func (m *mockK8sClient) DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
 	return m.discoverResourceGVRFn(ctx, group, resource, namespace, knownVersions)

@@ -464,5 +464,5 @@ export function setupTenantAndDeployModel(
   );
 
   cy.step('Wait for InferenceService to be Ready');
-  checkInferenceServiceState(inferenceServiceName, ns, { checkReady: true });
+  checkInferenceServiceState(inferenceServiceName, ns, { checkReady: true, isLargeModel: true });
 }

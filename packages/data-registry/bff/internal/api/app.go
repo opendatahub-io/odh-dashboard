@@ -144,18 +144,24 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	bffConfig.MockBFFClients = cfg.MockBFFClients
 	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
 
-	// Apply target-specific configuration overrides from CLI flags/env vars here.
-	// Example: to configure a target BFF, add fields to EnvConfig and apply them:
-	//
-	//   if targetCfg := bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS); targetCfg != nil {
-	//       targetCfg.ServiceName = cfg.BFFTargetServiceName
-	//       targetCfg.Port = cfg.BFFTargetServicePort
-	//       targetCfg.DevOverrideURL = cfg.BFFTargetDevURL
-	//   }
+	if cfg.BFFDCHServiceName != "" {
+		bffConfig.ServiceConfigs[bffclient.BFFTargetDCH] = &bffclient.BFFServiceConfig{
+			Target:          bffclient.BFFTargetDCH,
+			ServiceName:     cfg.BFFDCHServiceName,
+			Namespace:       cfg.BFFDCHServiceNamespace,
+			Port:            cfg.BFFDCHServicePort,
+			PathPrefix:      "/api/v1",
+			TLSEnabled:      cfg.BFFDCHTLSEnabled,
+			AuthMethod:      config.AuthMethodUser,
+			AuthTokenHeader: cfg.BFFDCHAuthTokenHeader,
+			AuthTokenPrefix: cfg.BFFDCHAuthTokenPrefix,
+			DevOverrideURL:  cfg.BFFDCHDevURL,
+		}
+	}
 
 	if cfg.MockBFFClients {
 		logger.Info("Using mock BFF client factory")
-		bffFactory = bffmocks.NewMockClientFactory(logger)
+		bffFactory = bffmocks.NewMockClientFactoryWithConfig(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	} else {
 		logger.Info("Using real BFF client factory")
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)

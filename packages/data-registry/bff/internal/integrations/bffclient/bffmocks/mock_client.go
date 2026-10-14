@@ -3,8 +3,10 @@ package bffmocks
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"sync"
 
 	"github.com/opendatahub-io/data-registry/bff/internal/integrations/bffclient"
@@ -36,6 +38,22 @@ func NewMockBFFClient(target bffclient.BFFTarget) *MockBFFClient {
 func (m *MockBFFClient) Call(ctx context.Context, method, path string, body interface{}, response interface{}) error {
 	if m.CallHandler != nil {
 		return m.CallHandler(ctx, method, path, body, response)
+	}
+	if m.target == bffclient.BFFTargetDCH {
+		parsed, err := url.Parse(path)
+		if err != nil {
+			return err
+		}
+		var payload string
+		switch parsed.Path {
+		case "/connections":
+			payload = fmt.Sprintf(`{"data":[{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440000","tenant_id":%q},"resource":{"name":"Production data","data_connection_type_id":"s3"}}]}`, parsed.Query().Get("namespace"))
+		case "/connection-types":
+			payload = `{"data":[{"metadata":{"id":"s3"},"resource":{"name":"Object storage","provider":"s3"}}]}`
+		}
+		if payload != "" {
+			return json.Unmarshal([]byte(payload), response)
+		}
 	}
 
 	return bffclient.NewNotFoundError(m.target, fmt.Sprintf("mock not implemented for %s %s on target %s — set CallHandler to customize", method, path, m.target))
@@ -88,6 +106,9 @@ func (f *MockClientFactory) CreateClient(target bffclient.BFFTarget, authToken s
 
 // CreateClientWithHeaders creates a new mock BFF client (headers are ignored in mock)
 func (f *MockClientFactory) CreateClientWithHeaders(target bffclient.BFFTarget, _ string, _ map[string]string) bffclient.BFFClientInterface {
+	if target == bffclient.BFFTargetDCH && !f.IsTargetConfigured(target) {
+		return nil
+	}
 	// Check if client already exists (read lock)
 	f.clientsMu.RLock()
 	if client, ok := f.clients[target]; ok {
@@ -121,7 +142,10 @@ func (f *MockClientFactory) GetConfig(target bffclient.BFFTarget) *bffclient.BFF
 }
 
 // IsTargetConfigured always returns true for mock factory (all targets available)
-func (f *MockClientFactory) IsTargetConfigured(_ bffclient.BFFTarget) bool {
+func (f *MockClientFactory) IsTargetConfigured(target bffclient.BFFTarget) bool {
+	if target == bffclient.BFFTargetDCH {
+		return f.config.GetServiceConfig(target) != nil
+	}
 	return true
 }
 
