@@ -27,15 +27,19 @@ describe('getImageStreamTier', () => {
     ['custom', 'custom'],
     ['unknown', 'unknown'],
     ['', 'custom'],
-    ['Secure', 'Secure'],
-    ['toString', 'toString'],
-    ['Red Hat provided', 'Red Hat provided'],
+    ['Secure', 'secure'],
+    ['SECURE', 'secure'],
+    ['Community', 'community'],
+    ['Custom', 'custom'],
+    ['toString', 'tostring'],
+    ['Red Hat provided', 'red hat provided'],
     [undefined, 'custom'],
   ])('should resolve annotation %s to %s', (annotation, expected) => {
     const image = mockImageStreamK8sResource({
       opts: { metadata: { annotations: { [ImageStreamAnnotation.NOTEBOOK_TIER]: annotation } } },
     });
     expect(getImageStreamTier(image)).toBe(expected);
+    expect(image.metadata.annotations?.[ImageStreamAnnotation.NOTEBOOK_TIER]).toBe(annotation);
   });
 
   it('should default to custom when annotations are absent', () => {
@@ -46,14 +50,17 @@ describe('getImageStreamTier', () => {
 });
 
 describe('compareImageStreamTier', () => {
-  it('should put secure first, then sort other tiers alphabetically and preserve image order without mutating input', () => {
+  it('should pin secure, community, custom before other tiers and preserve image order without mutating input', () => {
     const images = [
       ['custom-first', undefined, '1'],
-      ['community', 'community', '1'],
+      ['community', 'Community', '1'],
       ['secure-later', 'secure', '10'],
-      ['unknown', 'future-tier', '2'],
-      ['secure-first', 'secure', '2'],
-      ['secure-tied', 'secure', '2'],
+      ['unknown', 'unknown', '2'],
+      ['standard', 'standard', '1'],
+      ['alpha', 'alpha', '1'],
+      ['custom-later', 'Custom', '10'],
+      ['secure-first', 'Secure', '2'],
+      ['secure-tied', 'SECURE', '2'],
     ].map(([name, tier, order]) =>
       mockImageStreamK8sResource({
         name,
@@ -74,6 +81,9 @@ describe('compareImageStreamTier', () => {
       'secure-later',
       'community',
       'custom-first',
+      'custom-later',
+      'alpha',
+      'standard',
       'unknown',
     ]);
     expect(images).toEqual(original);

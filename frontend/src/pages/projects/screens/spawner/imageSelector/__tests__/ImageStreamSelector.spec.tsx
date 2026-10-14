@@ -13,8 +13,11 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 
-const createImages = (namespace = 'dashboard') =>
-  [undefined, 'community', 'secure', 'unknown'].map((tier, index) =>
+const createImages = (
+  namespace = 'dashboard',
+  tiers: (string | undefined)[] = [undefined, 'community', 'secure', 'unknown'],
+) =>
+  tiers.map((tier, index) =>
     mockImageStreamK8sResource({
       name: `image-${index}`,
       displayName: `Image ${index}`,
@@ -75,6 +78,61 @@ describe('ImageStreamSelector', () => {
     expect(onSelect).toHaveBeenCalledWith(images[3]);
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
+
+  it.each([false, true])(
+    'should pin mixed-case tiers as Secure, Community, Custom in project-scoped mode %s',
+    (projectScoped) => {
+      mockUseIsAreaAvailable.mockReturnValue({
+        ...mockUseIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED),
+        status: projectScoped,
+      });
+      const tiers = ['Custom', 'Secure', 'community', 'secure', 'standard', 'unknown', 'alpha'];
+      render(
+        <ImageStreamSelector
+          imageStreams={createImages('dashboard', tiers)}
+          currentProjectStreams={createImages('project', tiers)}
+          currentProject="project"
+          buildStatuses={[]}
+          onImageStreamSelect={jest.fn()}
+        />,
+      );
+      fireEvent.click(
+        projectScoped
+          ? screen.getByTestId('image-stream-selector-toggle')
+          : screen.getByRole('combobox'),
+      );
+      const expected = [
+        'Image 1Secure',
+        'Image 3Secure',
+        'Image 2Community',
+        'Image 0Custom',
+        'Image 6Alpha',
+        'Image 4Standard',
+        'Image 5Unknown',
+      ];
+      if (projectScoped) {
+        ['project-scoped-notebook-images', 'global-scoped-notebook-images'].forEach((testId) => {
+          const group = within(screen.getByTestId(testId));
+          const items = group.getAllByRole('menuitem');
+          expect(items).toHaveLength(expected.length);
+          items.forEach((item, index) => expect(item).toHaveTextContent(expected[index]));
+          expect(group.getAllByRole('separator')).toHaveLength(5);
+        });
+      } else {
+        expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([
+          'Secure',
+          'Community',
+          'Custom',
+          'Alpha',
+          'Standard',
+          'Unknown',
+        ]);
+        const items = screen.getAllByRole('option');
+        expect(items).toHaveLength(expected.length);
+        items.forEach((item, index) => expect(item).toHaveTextContent(expected[index]));
+      }
+    },
+  );
 
   it.each([false, true])(
     'should filter by display name, resource name, and tier with project-scoped mode %s',
