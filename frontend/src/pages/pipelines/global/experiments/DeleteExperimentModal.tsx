@@ -40,7 +40,7 @@ const DeleteExperimentModal: React.FC<DeleteExperimentModalProps> = ({ experimen
           }
           fireFormTrackingEvent(eventName, {
             outcome: TrackingOutcome.submit,
-            success: true,
+            success: false,
             error: errorCategory(e),
           });
 

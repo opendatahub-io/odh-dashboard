@@ -149,7 +149,7 @@ describe('PipelinesList', () => {
       buildMockPipelineVersions([]),
     );
     cy.intercept('DELETE', '**/apis/v2beta1/pipelines/**', {
-      forceNetworkError: true,
+      body: { error: message, code: 13, message },
     }).as('deletePipelineFailure');
     projectDetails.visitSection(projectName, 'pipelines-projects');
     pipelinesTable
@@ -160,6 +160,7 @@ describe('PipelinesList', () => {
     captureTracking();
     pipelineDeleteModal.findSubmitButton().click();
     cy.wait('@deletePipelineFailure');
+    pipelineDeleteModal.find().should('contain.text', message);
     expectSafeTracking('Pipeline Deleted', { success: false, error: 'unknown_error' }, message);
   });
 

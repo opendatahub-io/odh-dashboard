@@ -2,6 +2,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { buildMockExperimentKF } from '#~/__mocks__/mockExperimentKF';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
@@ -35,7 +36,11 @@ describe('DeleteExperimentModal', () => {
     expect(deleteExperiment).toHaveBeenCalledWith({}, experiment.experiment_id);
     expect(fireFormTrackingEvent).toHaveBeenCalledWith(
       'Experiment Deleted',
-      expect.objectContaining({ error: 'unknown_error' }),
+      expect.objectContaining({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: 'unknown_error',
+      }),
     );
     expect(JSON.stringify(jest.mocked(fireFormTrackingEvent).mock.calls)).not.toContain(message);
     expect(onCancel).not.toHaveBeenCalled();

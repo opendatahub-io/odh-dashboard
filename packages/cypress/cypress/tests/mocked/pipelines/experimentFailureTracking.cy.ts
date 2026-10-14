@@ -42,7 +42,7 @@ describe('Pipeline experiment failure tracking', () => {
     createRunPage.mockGetPipelineVersions(projectName, [version], pipeline.pipeline_id);
     activeRunsTable.mockGetActiveRuns([], projectName);
     cy.intercept('POST', `**/api/service/pipelines/${projectName}/dspa/apis/v2beta1/experiments`, {
-      forceNetworkError: true,
+      body: { error: message, code: 13, message },
     }).as('createExperimentFailure');
     pipelineRunsGlobal.visit(projectName);
     pipelineRunsGlobal.findCreateRunButton().click();
@@ -53,7 +53,7 @@ describe('Pipeline experiment failure tracking', () => {
     captureTracking();
     createExperimentModal.findSubmitButton().click();
     cy.wait('@createExperimentFailure');
-    createExperimentModal.findErrorAlert().should('be.visible');
+    createExperimentModal.find().should('contain.text', message);
     expectSafeTracking('Run Group Created', { success: false, error: 'unknown_error' }, message);
   });
 });

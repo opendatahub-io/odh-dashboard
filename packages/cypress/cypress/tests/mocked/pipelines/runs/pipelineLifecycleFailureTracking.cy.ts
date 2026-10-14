@@ -26,12 +26,13 @@ describe('Pipeline lifecycle failure tracking', () => {
     cy.intercept(
       'POST',
       `**/api/service/pipelines/${projectName}/dspa/apis/v2beta1/runs/${runToArchive.run_id}*`,
-      { forceNetworkError: true },
+      { body: { error: message, code: 13, message } },
     );
     activeRunsTable.getRowByName(runToArchive.display_name).findKebabAction('Archive').click();
     archiveRunModal.findConfirmInput().type(runToArchive.display_name);
     captureTracking();
     archiveRunModal.findSubmitButton().click();
+    archiveRunModal.find().should('contain.text', message);
     expectSafeTracking(
       'Pipeline Runs Archived',
       { success: false, error: 'unknown_error' },

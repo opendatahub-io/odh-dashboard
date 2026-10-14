@@ -2,6 +2,7 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockDataSciencePipelineApplicationK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { DSPipelineAPIServerStore } from '@odh-dashboard/internal/k8sTypes.ts';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
@@ -454,16 +455,13 @@ describe('Pipeline Server', () => {
     pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
     deleteModal.findInput().fill('Test Project pipeline server');
     cy.intercept('GET', '**/api/k8s/**', {
-      forceNetworkError: true,
+      statusCode: 500,
+      body: mock500Error({ message }),
     }).as('getPipelineServerFailure');
     captureTracking();
     deleteModal.findSubmitButton().click();
     cy.wait('@getPipelineServerFailure');
-    expectSafeTracking(
-      'Pipeline Server Deleted',
-      { success: false, error: 'unknown_error' },
-      message,
-    );
+    expectSafeTracking('Pipeline Server Deleted', { success: false, error: 'k8s_500' }, message);
   });
 
   it('View pipeline server', () => {
