@@ -12,7 +12,7 @@ modelType: 'Generative AI model (Example, LLM)'
 modelLocationURI: 'hf://facebook/opt-125m'
 existingImage: '- name: main'
 replaceImage: "- name: main\n        image: quay.io/pierdipi/vllm-cpu:latest"
-replaceImageArm64: "- name: main\n        image: vllm/vllm-openai-cpu:latest-arm64\n        args: [--model, facebook/opt-125m, --dtype, float32, --max-model-len, '1024']"
+replaceImageArm64: "- name: main\n        image: docker.io/vllm/vllm-openai-cpu:latest\n        args: [--model, facebook/opt-125m, --dtype, float32, --max-model-len, '1024']"
 connectionNameSuffix: '-connection'
 yamlEditorModelName: 'facebook-opt-125m-single'
 
