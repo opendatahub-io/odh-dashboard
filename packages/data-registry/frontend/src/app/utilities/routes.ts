@@ -1,3 +1,5 @@
+import type { ConnectionRef } from '~/app/types';
+
 export const browseUrl = (project?: string): string => {
   const base = '/ai-hub/data/browse';
   if (!project) {
@@ -23,3 +25,9 @@ export const collectionDetailUrl = (project: string, collection: string): string
 
 export const projectConnectionsUrl = (project: string): string =>
   `/projects/${encodeURIComponent(project)}?section=connections`;
+
+export const projectDchConnectionsUrl = (project: string): string =>
+  `/ai-hub/connections/connections?project=${encodeURIComponent(project)}`;
+
+export const projectConnectionUrl = (project: string, connectionRef: ConnectionRef): string =>
+  connectionRef.type === 'dch' ? projectDchConnectionsUrl(project) : projectConnectionsUrl(project);
