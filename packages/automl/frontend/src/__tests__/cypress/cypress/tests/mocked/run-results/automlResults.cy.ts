@@ -23,6 +23,60 @@ const MODEL_NAMES = [
 const TOP_FEATURES = ['Name', 'Pclass', 'Sex'];
 
 describe('AutoML Results Page', () => {
+  describe('Header', () => {
+    it('should show the run name as the final breadcrumb item without a page header', () => {
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
+
+      // Final breadcrumb reflects the run name; no separate page header/subtext.
+      // The separator renders as &nbsp; (U+00A0), which contain.text does not
+      // normalize — normalize the actual text before comparing.
+      automlResultsPage.findResultsBreadcrumbRunName().should(($el) => {
+        expect($el.text().replace(/\u00a0/g, ' ')).to.contain('binary results');
+      });
+      cy.findByTestId('app-page-title').should('not.exist');
+    });
+
+    it('should place run actions beside the breadcrumb', () => {
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
+
+      // The actions share the breadcrumb row — aligned with the run-name
+      // breadcrumb and to its right — rather than stacking in a page header.
+      automlResultsPage.findResultsBreadcrumbRunName().then(($crumb) => {
+        automlResultsPage.findRunDetailsButton().then(($actions) => {
+          const crumb = $crumb[0].getBoundingClientRect();
+          const actions = $actions[0].getBoundingClientRect();
+          expect(actions.top, 'actions row top').to.be.lessThan(crumb.bottom);
+          expect(actions.bottom, 'actions row bottom').to.be.greaterThan(crumb.top);
+          expect(actions.left, 'actions right of breadcrumb').to.be.greaterThan(crumb.right);
+        });
+      });
+
+      // At a narrower viewport the actions stay reachable without page-level
+      // horizontal overflow.
+      cy.viewport(900, 660);
+      automlResultsPage.findRunDetailsButton().should('be.visible');
+      cy.document().then((doc) => {
+        expect(doc.documentElement.scrollWidth, 'no horizontal overflow').to.be.at.most(
+          doc.documentElement.clientWidth,
+        );
+      });
+    });
+
+    it('should toggle the step details panel with the Show/Hide details control', () => {
+      automlResultsPage.visit(NAMESPACE, RUN_ID);
+
+      cy.findByTestId('hide-details').should('contain.text', 'Hide details');
+      cy.findByTestId('close-step-details').click();
+      // PF keeps the panel wrapper mounted when collapsed (hidden via transform) — assert the hidden attribute
+      cy.findByTestId('step-details-drawer-panel').should('have.attr', 'hidden');
+      cy.findByTestId('show-details').should('contain.text', 'Show details');
+
+      cy.findByTestId('show-details').click();
+      cy.findByTestId('step-details-drawer-panel').should('be.visible');
+      cy.findByTestId('hide-details').should('contain.text', 'Hide details');
+    });
+  });
+
   describe('Leaderboard', () => {
     it('should display leaderboard with model rows', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);
@@ -145,7 +199,8 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findRunDetailsDrawerPanel().should('be.visible');
 
       automlResultsPage.findRunDetailsDrawerCloseButton().click();
-      automlResultsPage.findRunDetailsDrawerPanel().should('not.be.visible');
+      // PF keeps the panel wrapper mounted when collapsed (hidden via transform) — assert the hidden attribute
+      automlResultsPage.findRunDetailsDrawerPanel().should('have.attr', 'hidden');
     });
   });
 });

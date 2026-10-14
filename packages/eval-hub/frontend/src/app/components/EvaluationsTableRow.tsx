@@ -36,6 +36,7 @@ type EvaluationsTableRowProps = {
   onSelectionChange: (checked: boolean) => void;
   kueueWorkloadStatus?: KueueWorkloadStatus;
   isKueueWorkloadStatusLoading?: boolean;
+  isKueueEnabled: boolean;
 };
 
 const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
@@ -52,6 +53,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   onSelectionChange,
   kueueWorkloadStatus,
   isKueueWorkloadStatusLoading = false,
+  isKueueEnabled,
 }) => {
   const navigate = useNavigate();
   const [showStopModal, setShowStopModal] = React.useState(false);
@@ -77,7 +79,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   // Keep the list assignment available so a queued run does not briefly fall back to Pending.
   const queue =
     getEvaluationQueue(effectiveJob) ?? getEvaluationQueue(job) ?? kueueWorkloadStatus?.queue_name;
-  const isQueued = currentState === 'pending' && Boolean(queue);
+  // RHOAIENG-99645: queue assignments can persist in evaluation responses after the Kueue
+  // integration is disabled — only surface the queued display when the integration is enabled.
+  const isQueued = isKueueEnabled && currentState === 'pending' && Boolean(queue);
   const isKueueStatusLoading =
     currentState === 'pending' && isKueueWorkloadStatusLoading && !kueueWorkloadStatus && !queue;
 

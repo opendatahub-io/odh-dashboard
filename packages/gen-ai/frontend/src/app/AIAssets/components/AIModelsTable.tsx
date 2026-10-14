@@ -15,8 +15,6 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
-import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
-import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import useChatPlaygroundEnabled from '~/app/hooks/useChatPlaygroundEnabled';
 import {
   AssetsFilterColors,
@@ -123,9 +121,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   showModelStatusPopover = true,
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
-  const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const isChatPlaygroundEnabled = useChatPlaygroundEnabled();
-  const [existingCollections] = useFetchVectorStores();
 
   // Check if any models are custom endpoints to determine if we need the action column
   const hasCustomEndpoints = models.some((model) => model.model_source_type === 'custom_endpoint');
@@ -170,14 +166,10 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           lsdStatus={lsdStatus}
           key={`${model.model_source_type}-${model.model_id}`}
           model={model}
-          allModels={models}
           playgroundModels={playgroundModels}
           onDelete={onDelete}
           showActionColumn={hasCustomEndpoints && !!onDelete}
           showPlaygroundColumn={isChatPlaygroundEnabled && showPlaygroundColumn}
-          allCollections={allCollections}
-          collectionsLoaded={collectionsLoaded}
-          existingCollections={existingCollections}
         />
       )}
     />

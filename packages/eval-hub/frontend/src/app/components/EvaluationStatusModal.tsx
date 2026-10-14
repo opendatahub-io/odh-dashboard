@@ -429,7 +429,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       (job ? getEvaluationQueue(job) : undefined) ??
       kueueWorkloadStatus?.queue_name)
     : undefined;
-  const isQueued = state === 'pending' && Boolean(queue);
+  // RHOAIENG-99645: queue assignments can persist in evaluation responses after the Kueue
+  // integration is disabled — only surface the queued display when the integration is enabled.
+  const isQueued = isKueueEnabled && state === 'pending' && Boolean(queue);
   const isKueueStatusLoading =
     state === 'pending' &&
     !kueueWorkloadStatus &&
