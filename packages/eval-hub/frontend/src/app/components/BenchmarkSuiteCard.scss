@@ -75,9 +75,9 @@
   }
 
   .evalhub-benchmark-suite-card__loading-title {
-    flex: 0 0 1.5rem;
-    max-height: 1.5rem;
-    min-height: 1.5rem;
+    flex: 0 0 var(--pf-t--global--font--size--xl);
+    max-height: var(--pf-t--global--font--size--xl);
+    min-height: var(--pf-t--global--font--size--xl);
     overflow: hidden;
     white-space: nowrap;
   }
