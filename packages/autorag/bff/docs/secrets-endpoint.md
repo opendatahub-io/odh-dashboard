@@ -26,11 +26,11 @@ The endpoint:
    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
    - **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets containing required OGX keys
    - **`type=maas`**: Filters for secrets containing `MAAS_BASE_URL` and `MAAS_API_KEY`
-   - **`type=vector-db`**: Filters for the union of Milvus and PGVector credential key sets
-   - **`type=database`**: Filters for Milvus, PGVector, or Neo4j credentials; `provider` narrows the result
+   - **`type=vector-db`**: Filters for the union of Milvus and PGVector credentials with every required value non-empty after trimming whitespace
+   - **`type=database`**: Filters for Milvus, PGVector, or Neo4j credentials with every provider-required value non-empty after trimming whitespace; `provider` narrows the result
 3. Returns the Kubernetes UID, name, and type of each matching secret
    - The `type` field is determined by:
-     1. The filter uses case-sensitive key-presence matching.
+     1. Database provider filters use case-sensitive key matching and require every required value to be non-empty after trimming whitespace. Other filters retain their existing key-presence semantics.
      2. A non-empty `opendatahub.io/connection-type` annotation may still determine the returned `type` field after a secret matches.
    - If a secret doesn't match any known type and has no connection-type annotation, the `type` field is omitted from the response
    - If a secret matches multiple types via key detection, the first matching type is returned
@@ -63,12 +63,12 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 
 **Currently Supported Vector Database Types:**
 
-| Vector Database | Required Keys                                                                         | Optional Keys                        |
-| --------------- | ------------------------------------------------------------------------------------- | ------------------------------------ |
-| **Milvus**      | `MILVUS_URI`                                                                          | `MILVUS_TOKEN`, `MILVUS_CA_CERT`     |
-| **PGVector**    | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` | `PGVECTOR_CA_CERT`                   |
+| Vector Database | Required Keys                                                                         | Optional Keys                    |
+| --------------- | ------------------------------------------------------------------------------------- | -------------------------------- |
+| **Milvus**      | `MILVUS_URI`                                                                          | `MILVUS_TOKEN`, `MILVUS_CA_CERT` |
+| **PGVector**    | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` | `PGVECTOR_CA_CERT`               |
 
-The `vector-db` result is the deduplicated union of these two key sets. Filtering is based on key presence only: empty values, extra keys, mixed database families, and OGX keys are not excluded. The legacy `MILVUS_SERVER_CERT` key excludes a Secret from Milvus classification only; a complete PGVector Secret remains classified as PGVector.
+The `vector-db` result is the deduplicated union of these two key sets. Database provider classification requires every required value to be non-empty after trimming whitespace; extra keys, mixed database families, and OGX keys are not excluded. The legacy `MILVUS_SERVER_CERT` key excludes a Secret from Milvus classification only; a complete PGVector Secret remains classified as PGVector.
 
 The optional `*_CA_CERT` keys hold a PEM-encoded CA certificate that the BFF adds to its trust pool to verify TLS connections to vector databases with privately-signed certificates.
 
@@ -80,7 +80,7 @@ The optional `*_CA_CERT` keys hold a PEM-encoded CA certificate that the BFF add
 | **PGVector** | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
 | **Neo4j**    | `NEO4J_URI`, `NEO4J_PASSWORD`                                                         |
 
-The `database` result uses key-presence matching for all three providers and excludes secrets matching more than one provider. `provider=neo4j` requires `NEO4J_URI` and `NEO4J_PASSWORD` and returns only unambiguous Neo4j connections. Optional CA keys are `MILVUS_CA_CERT`, `PGVECTOR_CA_CERT`, and `NEO4J_CA_CERT`; `MILVUS_SERVER_CERT` excludes Milvus classification only.
+The `database` result requires every required value for all three providers to be non-empty after trimming whitespace and excludes secrets matching more than one provider. `provider=neo4j` requires non-empty `NEO4J_URI` and `NEO4J_PASSWORD` values and returns only unambiguous Neo4j connections. Optional CA keys are `MILVUS_CA_CERT`, `PGVECTOR_CA_CERT`, and `NEO4J_CA_CERT`; `MILVUS_SERVER_CERT` excludes Milvus classification only.
 
 ## Response Format
 
@@ -202,7 +202,7 @@ Matching requires both `MAAS_BASE_URL` and `MAAS_API_KEY` to be present. Credent
 GET /api/v1/secrets?namespace=my-namespace&type=vector-db
 ```
 
-This returns the deduplicated union of Milvus and PGVector key sets using presence-only matching.
+This returns the deduplicated union of Milvus and PGVector key sets when all required provider values are non-empty after trimming whitespace.
 
 ## Implementation Details
 
@@ -297,8 +297,8 @@ The endpoint supports filtering modes based on the `type` parameter:
    - Empty values and additional keys are allowed
 
 5. **`type=vector-db`**: Filters for vector database secrets
-   - Returns the deduplicated union of `MILVUS_URI` and the complete PGVector key set; `MILVUS_SERVER_CERT` excludes Milvus classification only
-   - Uses key presence only; empty values and additional or mixed keys are allowed; a complete PGVector Secret with `MILVUS_SERVER_CERT` remains selectable
+   - Returns the deduplicated union of `MILVUS_URI` and the complete PGVector key set when all required values are non-empty after trimming whitespace; `MILVUS_SERVER_CERT` excludes Milvus classification only
+   - Additional or mixed keys are allowed; a complete PGVector Secret with `MILVUS_SERVER_CERT` remains selectable
 
 Invalid type values result in a 400 Bad Request error.
 

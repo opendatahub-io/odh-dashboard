@@ -177,6 +177,40 @@ var fakeSecrets = map[string][]v1.Secret{
 				"NEO4J_URI": []byte("neo4j://neo4j.example.com:7687"),
 			},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "milvus-empty-uri", Namespace: "my-project"},
+			Data:       map[string][]byte{"MILVUS_URI": []byte{}},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "milvus-whitespace-uri", Namespace: "my-project"},
+			Data:       map[string][]byte{"MILVUS_URI": []byte(" \t")},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "pgvector-empty-password", Namespace: "my-project"},
+			Data: map[string][]byte{
+				"PGVECTOR_HOST": []byte("pgvector.example.com"), "PGVECTOR_PORT": []byte("5432"),
+				"PGVECTOR_DB": []byte("vector"), "PGVECTOR_USER": []byte("vector"), "PGVECTOR_PASSWORD": []byte{},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "pgvector-whitespace-host", Namespace: "my-project"},
+			Data: map[string][]byte{
+				"PGVECTOR_HOST": []byte(" \t"), "PGVECTOR_PORT": []byte("5432"),
+				"PGVECTOR_DB": []byte("vector"), "PGVECTOR_USER": []byte("vector"), "PGVECTOR_PASSWORD": []byte("fake-pgvector-password"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "neo4j-empty-password", Namespace: "my-project"},
+			Data: map[string][]byte{
+				"NEO4J_URI": []byte("neo4j://neo4j.example.com:7687"), "NEO4J_PASSWORD": []byte{},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "neo4j-whitespace-uri", Namespace: "my-project"},
+			Data: map[string][]byte{
+				"NEO4J_URI": []byte(" \t"), "NEO4J_PASSWORD": []byte("fake-neo4j-password"),
+			},
+		},
 	},
 }
 

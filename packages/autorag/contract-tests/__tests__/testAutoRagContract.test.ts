@@ -261,6 +261,34 @@ describe('AutoRAG API Contract Tests', () => {
       }
     });
 
+    it.each([
+      ['milvus', ['vector-db']],
+      ['pgvector', ['pgvector-legacy-key']],
+    ])('should classify only non-empty %s credentials', async (provider, expectedNames) => {
+      const result = await apiClient.get(
+        `/api/v1/secrets?namespace=${NS}&type=database&provider=${provider}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (result.response.data as { data: { name: string }[] }).data;
+        expect(secrets.map((secret) => secret.name)).toEqual(expectedNames);
+        expect(secrets.map((secret) => secret.name)).not.toEqual(
+          expect.arrayContaining([
+            'milvus-empty-uri',
+            'milvus-whitespace-uri',
+            'pgvector-empty-password',
+            'pgvector-whitespace-host',
+            'neo4j-empty-password',
+            'neo4j-whitespace-uri',
+          ]),
+        );
+      }
+    });
+
     it('should return 400 when namespace parameter is missing', async () => {
       const result = await apiClient.get('/api/v1/secrets');
       expect(result.success).toBe(false);
