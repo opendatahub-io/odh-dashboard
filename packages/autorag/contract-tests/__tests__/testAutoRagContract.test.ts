@@ -219,6 +219,36 @@ describe('AutoRAG API Contract Tests', () => {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
         status: 200,
       });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as {
+            data: {
+              name: string;
+              data: Record<string, string>;
+              databaseProviders?: string[];
+            }[];
+          }
+        ).data;
+        const byName = (name: string) => secrets.find((secret) => secret.name === name);
+        expect(byName('vector-db')?.databaseProviders).toEqual(['milvus']);
+        expect(byName('pgvector-legacy-key')?.databaseProviders).toEqual(['pgvector']);
+        expect(byName('neo4j')?.databaseProviders).toEqual(['neo4j']);
+        expect(byName('ambiguous-database')?.databaseProviders).toEqual(['milvus', 'neo4j']);
+        for (const name of [
+          'milvus-empty-uri',
+          'milvus-whitespace-uri',
+          'pgvector-empty-password',
+          'pgvector-whitespace-host',
+          'neo4j-empty-password',
+          'neo4j-whitespace-uri',
+        ]) {
+          expect(byName(name)?.databaseProviders).toBeUndefined();
+        }
+        expect(JSON.stringify(secrets)).not.toContain('https://milvus.example.com:19530');
+        expect(JSON.stringify(secrets)).not.toContain('fake-pgvector-password');
+        expect(JSON.stringify(secrets)).not.toContain('fake-neo4j-password');
+      }
     });
 
     it('should retrieve storage secrets when type=storage', async () => {
@@ -239,8 +269,13 @@ describe('AutoRAG API Contract Tests', () => {
       });
       expect(result.success).toBe(true);
       if (result.success) {
-        const secrets = (result.response.data as { data: { name: string }[] }).data;
+        const secrets = (
+          result.response.data as {
+            data: { name: string; databaseProviders?: string[] }[];
+          }
+        ).data;
         expect(secrets.map((secret) => secret.name)).toEqual(['neo4j', 'neo4j-legacy-key']);
+        expect(secrets.map((secret) => secret.databaseProviders)).toEqual([['neo4j'], ['neo4j']]);
       }
     });
 
@@ -253,11 +288,30 @@ describe('AutoRAG API Contract Tests', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         const secrets = (
-          result.response.data as { data: { name: string; data: Record<string, string> }[] }
+          result.response.data as {
+            data: { name: string; data: Record<string, string>; databaseProviders?: string[] }[];
+          }
         ).data;
-        expect(secrets.map((secret) => secret.name)).toEqual(['vector-db', 'pgvector-legacy-key']);
+        expect(secrets.map((secret) => secret.name)).toEqual([
+          'vector-db',
+          'pgvector-legacy-key',
+          'ambiguous-database',
+        ]);
         expect(secrets[0].data).toHaveProperty('MILVUS_CA_CERT');
         expect(secrets[0].data).not.toHaveProperty('MILVUS_SERVER_CERT');
+        expect(secrets.find((secret) => secret.name === 'vector-db')?.databaseProviders).toEqual([
+          'milvus',
+        ]);
+        expect(
+          secrets.find((secret) => secret.name === 'pgvector-legacy-key')?.databaseProviders,
+        ).toEqual(['pgvector']);
+        expect(
+          secrets.find((secret) => secret.name === 'pgvector-legacy-key')?.data,
+        ).toHaveProperty('MILVUS_URI', '[REDACTED]');
+        expect(
+          secrets.find((secret) => secret.name === 'ambiguous-database')?.databaseProviders,
+        ).toEqual(['milvus', 'neo4j']);
+        expect(JSON.stringify(secrets)).not.toContain('fake-neo4j-password');
       }
     });
 
@@ -274,8 +328,13 @@ describe('AutoRAG API Contract Tests', () => {
       });
       expect(result.success).toBe(true);
       if (result.success) {
-        const secrets = (result.response.data as { data: { name: string }[] }).data;
+        const secrets = (
+          result.response.data as {
+            data: { name: string; databaseProviders?: string[] }[];
+          }
+        ).data;
         expect(secrets.map((secret) => secret.name)).toEqual(expectedNames);
+        expect(secrets.every((secret) => secret.databaseProviders?.length === 1)).toBe(true);
         expect(secrets.map((secret) => secret.name)).not.toEqual(
           expect.arrayContaining([
             'milvus-empty-uri',

@@ -24,12 +24,29 @@ func TestNewFromSecretData_DispatchesToMilvus(t *testing.T) {
 func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
 	_, err := NewFromSecretData(context.Background(), map[string][]byte{
 		"PGVECTOR_HOST":     []byte("127.0.0.1"),
+		"PGVECTOR_PORT":     []byte("5432"),
 		"PGVECTOR_DB":       []byte("db"),
 		"PGVECTOR_USER":     []byte("user"),
 		"PGVECTOR_PASSWORD": []byte("password"),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "literal IP")
+}
+
+func TestNewFromSecretData_PgvectorWithMilvusLegacyKeysDispatchesToPgvector(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"PGVECTOR_HOST":      []byte("127.0.0.1"),
+		"PGVECTOR_PORT":      []byte("5432"),
+		"PGVECTOR_DB":        []byte("db"),
+		"PGVECTOR_USER":      []byte("user"),
+		"PGVECTOR_PASSWORD":  []byte("password"),
+		"MILVUS_URI":         []byte("https://milvus.example.com:19530"),
+		"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pgvector")
+	assert.NotContains(t, err.Error(), "milvus connect")
 }
 
 func TestValidateMilvusEndpoint_RejectsDirectLocalhost(t *testing.T) {

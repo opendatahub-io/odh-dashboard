@@ -240,26 +240,26 @@ paths:
       summary: Get filtered secrets
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
-         Key matching is case-sensitive; keys must be uppercase. Database and vector-db classification requires every provider-required value to be non-empty after trimming whitespace.
+        Key matching is case-sensitive; keys must be uppercase. Database and vector-db classification requires every provider-required value to be non-empty after trimming whitespace.
 
-          Database and vector-db filtering uses case-sensitive required keys whose values must be non-empty after trimming whitespace. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys or values for filtering.
-         Supported key sets include:
-            - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
-            - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
-            - 'maas': MAAS_BASE_URL, MAAS_API_KEY
-             - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD; optional CA keys are MILVUS_CA_CERT and PGVECTOR_CA_CERT
-             - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI and NEO4J_PASSWORD; optional CA keys are MILVUS_CA_CERT, PGVECTOR_CA_CERT, and NEO4J_CA_CERT
+        Database and vector-db filtering uses case-sensitive required keys whose values must be non-empty after trimming whitespace. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys or values for filtering.
+        Supported key sets include:
+        - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
+        - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
+        - 'maas': MAAS_BASE_URL, MAAS_API_KEY
+        - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD; optional CA keys are MILVUS_CA_CERT and PGVECTOR_CA_CERT
+        - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI and NEO4J_PASSWORD; optional CA keys are MILVUS_CA_CERT, PGVECTOR_CA_CERT, and NEO4J_CA_CERT
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
         The data field lists all keys present, allowing clients to validate additional use-case-specific requirements.
 
-         Type filtering with ?type= parameter:
-         - 'storage': Returns secrets containing a configured storage key set
-         - 'ogx': Returns secrets containing both OGX keys
-         - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
-           - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets when all required values are non-empty after trimming whitespace; MILVUS_SERVER_CERT excludes Milvus classification only
-           - 'database': Returns complete database secrets with all provider-required values non-empty after trimming whitespace; provider can narrow the result to milvus, pgvector, or neo4j
+        Type filtering with ?type= parameter:
+        - 'storage': Returns secrets containing a configured storage key set
+        - 'ogx': Returns secrets containing both OGX keys
+        - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
+        - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets when all required values are non-empty after trimming whitespace; MILVUS_SERVER_CERT excludes Milvus classification only
+        - 'database': Returns complete database secrets with all provider-required values non-empty after trimming whitespace; provider can narrow the result to milvus, pgvector, or neo4j
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
     summary: Path used to retrieve credential data from a named secret.
@@ -1184,6 +1184,14 @@ components:
         - data
       type: object
       properties:
+        databaseProviders:
+          type: array
+          items:
+            type: string
+            enum: [milvus, pgvector, neo4j]
+          description: >-
+            Authoritative database-provider classifications computed from the raw Secret values.
+            Values are never included; an empty or omitted field means no supported provider matched.
         uuid:
           type: string
           description: The Kubernetes UID of the secret

@@ -43,7 +43,7 @@ describe('vector database connection schemas', () => {
       const result = parseVectorDbConnection(provider, {});
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues.some((issue) => issue.message === 'invalid_type')).toBe(false);
+        expect(result.error.issues.some((issue) => issue.code === 'invalid_type')).toBe(false);
         const requiredFields =
           provider === 'milvus'
             ? ['MILVUS_URI']

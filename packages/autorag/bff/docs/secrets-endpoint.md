@@ -80,7 +80,7 @@ The optional `*_CA_CERT` keys hold a PEM-encoded CA certificate that the BFF add
 | **PGVector** | `PGVECTOR_HOST`, `PGVECTOR_PORT`, `PGVECTOR_DB`, `PGVECTOR_USER`, `PGVECTOR_PASSWORD` |
 | **Neo4j**    | `NEO4J_URI`, `NEO4J_PASSWORD`                                                         |
 
-The `database` result requires every required value for all three providers to be non-empty after trimming whitespace and excludes secrets matching more than one provider. `provider=neo4j` requires non-empty `NEO4J_URI` and `NEO4J_PASSWORD` values and returns only unambiguous Neo4j connections. Optional CA keys are `MILVUS_CA_CERT`, `PGVECTOR_CA_CERT`, and `NEO4J_CA_CERT`; `MILVUS_SERVER_CERT` excludes Milvus classification only.
+The `database` result requires every required value for a matching provider to be non-empty after trimming whitespace and excludes secrets matching more than one provider. `provider=neo4j` requires non-empty `NEO4J_URI` and `NEO4J_PASSWORD` values and returns only unambiguous Neo4j connections. Optional CA keys are `MILVUS_CA_CERT`, `PGVECTOR_CA_CERT`, and `NEO4J_CA_CERT`; `MILVUS_SERVER_CERT` excludes Milvus classification only.
 
 ## Response Format
 
@@ -93,6 +93,7 @@ The response follows the envelope pattern:
       "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "name": "aws-secret-1",
       "type": "s3",
+      "databaseProviders": [],
       "data": {
         "AWS_ACCESS_KEY_ID": "[REDACTED]",
         "AWS_DEFAULT_REGION": "[REDACTED]",

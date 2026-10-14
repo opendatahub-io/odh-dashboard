@@ -164,6 +164,7 @@ var fakeSecrets = map[string][]v1.Secret{
 				"PGVECTOR_DB":        []byte("vector"),
 				"PGVECTOR_USER":      []byte("vector"),
 				"PGVECTOR_PASSWORD":  []byte("fake-pgvector-password"),
+				"MILVUS_URI":         []byte("https://milvus.example.com:19530"),
 				"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
 			},
 		},
@@ -175,6 +176,13 @@ var fakeSecrets = map[string][]v1.Secret{
 			},
 			Data: map[string][]byte{
 				"NEO4J_URI": []byte("neo4j://neo4j.example.com:7687"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "ambiguous-database", Namespace: "my-project"},
+			Data: map[string][]byte{
+				"MILVUS_URI": []byte("https://milvus.example.com:19530"),
+				"NEO4J_URI":  []byte("neo4j://neo4j.example.com:7687"), "NEO4J_PASSWORD": []byte("fake-neo4j-password"),
 			},
 		},
 		{

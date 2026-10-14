@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"strings"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
@@ -32,25 +32,6 @@ var maasTypeRequiredKeys = map[string][]string{
 	},
 }
 
-var vectorDBTypeRequiredKeys = map[string][]string{
-	"milvus": {"MILVUS_URI"},
-	"pgvector": {
-		"PGVECTOR_HOST",
-		"PGVECTOR_PORT",
-		"PGVECTOR_DB",
-		"PGVECTOR_USER",
-		"PGVECTOR_PASSWORD",
-	},
-}
-
-var databaseTypeRequiredKeys = map[string][]string{
-	"milvus":   {"MILVUS_URI"},
-	"pgvector": vectorDBTypeRequiredKeys["pgvector"],
-	"neo4j":    {"NEO4J_URI", "NEO4J_PASSWORD"},
-}
-
-var databaseProviderOrder = []string{"milvus", "pgvector", "neo4j"}
-
 var allowedSecretKeys = map[string]bool{
 	"AWS_S3_BUCKET": true,
 }
@@ -61,27 +42,8 @@ func NewK8sRepository() *K8sRepository {
 	return &K8sRepository{}
 }
 
-func hasAllNonEmptyKeys(secret kubernetes.SecretInfo, keys []string) bool {
-	for _, key := range keys {
-		if strings.TrimSpace(secret.Data[key]) == "" {
-			return false
-		}
-	}
-	return true
-}
-
 func matchingDatabaseProviders(secret kubernetes.SecretInfo) []string {
-	hasLegacyMilvusKey := kubernetes.SecretInfoHasAllKeys(secret, []string{"MILVUS_SERVER_CERT"})
-	providers := make([]string, 0, len(databaseProviderOrder))
-	for _, provider := range databaseProviderOrder {
-		if provider == "milvus" && hasLegacyMilvusKey {
-			continue
-		}
-		if hasAllNonEmptyKeys(secret, databaseTypeRequiredKeys[provider]) {
-			providers = append(providers, provider)
-		}
-	}
-	return providers
+	return database.ClassifyStrings(secret.Data)
 }
 
 func filterDatabaseSecretInfos(
@@ -102,15 +64,21 @@ func filterDatabaseSecretInfos(
 func filterVectorDBSecretInfos(secretInfos []kubernetes.SecretInfo) []kubernetes.SecretInfo {
 	filtered := make([]kubernetes.SecretInfo, 0, len(secretInfos))
 	for _, secret := range secretInfos {
-		hasMilvus := !kubernetes.SecretInfoHasAllKeys(secret, []string{"MILVUS_SERVER_CERT"}) &&
-			hasAllNonEmptyKeys(secret, vectorDBTypeRequiredKeys["milvus"])
-		hasPGVector := hasAllNonEmptyKeys(secret, vectorDBTypeRequiredKeys["pgvector"])
-		if hasMilvus ||
-			hasPGVector {
+		providers := matchingDatabaseProviders(secret)
+		if containsProvider(providers, database.Milvus) || containsProvider(providers, database.PGVector) {
 			filtered = append(filtered, secret)
 		}
 	}
 	return filtered
+}
+
+func containsProvider(providers []string, provider string) bool {
+	for _, candidate := range providers {
+		if candidate == provider {
+			return true
+		}
+	}
+	return false
 }
 
 // GetFilteredSecrets retrieves secrets from a namespace and filters them based on secretType.
@@ -166,12 +134,13 @@ func (r *K8sRepository) GetFilteredSecretsByProvider(
 		redactedData := kubernetes.RedactSecretData(secret.Data, allowedSecretKeys)
 
 		result = append(result, models.SecretListItem{
-			UUID:        secret.UUID,
-			Name:        secret.Name,
-			Type:        responseType,
-			Data:        redactedData,
-			DisplayName: secret.DisplayName,
-			Description: secret.Description,
+			UUID:              secret.UUID,
+			Name:              secret.Name,
+			Type:              responseType,
+			Data:              redactedData,
+			DatabaseProviders: matchingDatabaseProviders(secret),
+			DisplayName:       secret.DisplayName,
+			Description:       secret.Description,
 		})
 	}
 

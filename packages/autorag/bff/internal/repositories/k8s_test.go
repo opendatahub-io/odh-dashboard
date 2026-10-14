@@ -134,26 +134,6 @@ func annotatedSecret(name, connType string, data map[string]string) kubernetes.S
 	}
 }
 
-func TestHasAllNonEmptyKeys(t *testing.T) {
-	requiredKeys := []string{"required"}
-	for _, tt := range []struct {
-		name  string
-		value string
-		want  bool
-	}{
-		{name: "non-empty", value: "value", want: true},
-		{name: "empty", value: "", want: false},
-		{name: "whitespace-only", value: " \t\n", want: false},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			secret := vectorDBSecret(tt.name, map[string]string{"required": tt.value})
-			if got := hasAllNonEmptyKeys(secret, requiredKeys); got != tt.want {
-				t.Errorf("hasAllNonEmptyKeys() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestMatchingDatabaseProvidersRequiresNonEmptyValues(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -173,7 +153,7 @@ func TestMatchingDatabaseProvidersRequiresNonEmptyValues(t *testing.T) {
 		{name: "whitespace Neo4j URI", provider: "neo4j", data: map[string]string{"NEO4J_URI": "\t", "NEO4J_PASSWORD": "password"}},
 		{name: "whitespace Neo4j password", provider: "neo4j", data: map[string]string{"NEO4J_URI": "neo4j://example", "NEO4J_PASSWORD": " \t"}},
 	}
-	pgvectorKeys := databaseTypeRequiredKeys["pgvector"]
+	pgvectorKeys := []string{"PGVECTOR_HOST", "PGVECTOR_PORT", "PGVECTOR_DB", "PGVECTOR_USER", "PGVECTOR_PASSWORD"}
 	validPGVector := map[string]string{
 		"PGVECTOR_HOST": "host", "PGVECTOR_PORT": "5432", "PGVECTOR_DB": "db", "PGVECTOR_USER": "user", "PGVECTOR_PASSWORD": "password",
 	}

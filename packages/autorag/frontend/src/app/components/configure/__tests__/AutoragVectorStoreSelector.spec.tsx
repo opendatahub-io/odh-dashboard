@@ -228,6 +228,80 @@ describe('AutoragVectorStoreSelector', () => {
     expect(screen.getByTestId('vector-db-modal')).toBeInTheDocument();
   });
 
+  it.each([
+    ['missing metadata', undefined],
+    ['empty metadata', []],
+    ['ambiguous metadata', ['milvus', 'pgvector']],
+  ])('should reject a new connection with %s', async (_name, databaseProviders) => {
+    let values: typeof schema.defaults | undefined;
+    mockVectorRefresh = async () => [
+      {
+        name: 'new-vector-db-secret',
+        uuid: 'new-vector-db-secret',
+        data: { MILVUS_URI: '[REDACTED]' },
+        ...(databaseProviders === undefined ? {} : { databaseProviders }),
+      } as SecretListItem,
+    ];
+    render(
+      <FormWrapper onChange={(nextValues) => (values = nextValues)}>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+    fireEvent.click(screen.getByTestId('add-database-connection-button'));
+
+    await expect(mockVectorModalOnSubmit?.('new-vector-db-secret')).rejects.toThrow(
+      'invalid or mismatched provider metadata',
+    );
+    expect(values).toBeUndefined();
+  });
+
+  it('should reject a new connection whose provider does not match the requested provider', async () => {
+    mockVectorRefresh = async () => [
+      {
+        name: 'new-vector-db-secret',
+        uuid: 'new-vector-db-secret',
+        data: { PGVECTOR_HOST: '[REDACTED]' },
+        databaseProviders: ['pgvector'],
+      },
+    ];
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+    fireEvent.click(screen.getByTestId('add-database-dropdown-toggle'));
+    await screen.findByTestId('add-milvus-connection-option');
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Add Milvus connection' }));
+    await screen.findByTestId('vector-db-modal');
+
+    await expect(mockVectorModalOnSubmit?.('new-vector-db-secret')).rejects.toThrow(
+      'invalid or mismatched provider metadata',
+    );
+  });
+
+  it('should select a new connection with matching provider metadata', async () => {
+    let values: typeof schema.defaults | undefined;
+    mockVectorRefresh = async () => [
+      {
+        name: 'new-vector-db-secret',
+        uuid: 'new-vector-db-secret',
+        data: { MILVUS_URI: '[REDACTED]' },
+        databaseProviders: ['milvus'],
+      },
+    ];
+    render(
+      <FormWrapper onChange={(nextValues) => (values = nextValues)}>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+    fireEvent.click(screen.getByTestId('add-database-connection-button'));
+
+    await act(async () => {
+      await expect(mockVectorModalOnSubmit?.('new-vector-db-secret')).resolves.toBeUndefined();
+    });
+    expect(values?.db_secret_name).toBe('new-vector-db-secret');
+  });
+
   it('should preserve a selected Graph RAG connection when the selector remounts', () => {
     const ControlledSelector = () => {
       const [mode, setMode] = React.useState<'simple' | 'graph'>('simple');
