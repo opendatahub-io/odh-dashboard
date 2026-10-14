@@ -22,11 +22,11 @@ type NamespaceInfo struct {
 
 // SecretInfo contains filtered secret data with type detection
 type SecretInfo struct {
-	UUID        string            `json:"uuid"`
-	Name        string            `json:"name"`
-	Type        string            `json:"type,omitempty"`
-	Data        map[string]string `json:"data"`
-	DatabaseProviders []string    `json:"databaseProviders,omitempty"`
-	DisplayName string            `json:"displayName,omitempty"`
-	Description string            `json:"description,omitempty"`
+	UUID              string            `json:"uuid"`
+	Name              string            `json:"name"`
+	Type              string            `json:"type,omitempty"`
+	Data              map[string]string `json:"data"`
+	DatabaseProviders []string          `json:"databaseProviders,omitempty"`
+	DisplayName       string            `json:"displayName,omitempty"`
+	Description       string            `json:"description,omitempty"`
 }

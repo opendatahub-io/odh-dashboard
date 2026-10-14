@@ -231,7 +231,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
               initialProvider={modalProvider}
               allowedProviders={mode === 'graph' ? ['neo4j'] : ['milvus', 'pgvector']}
               onClose={() => setIsConnectionModalOpen(false)}
-              onSubmit={async (secretName) => {
+              onSubmit={async (secretName, provider) => {
                 const refresh = secretsRefreshRef.current;
                 if (!refresh) {
                   throw new Error('The database connection list could not be refreshed.');
@@ -246,7 +246,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                 const providerType = getVectorStoreProviderTypeFromDatabaseProviders(
                   secret.databaseProviders,
                 );
-                if (providerType !== modalProvider) {
+                if (providerType !== provider) {
                   throw new Error(
                     'The new database connection has invalid or mismatched provider metadata.',
                   );

@@ -363,7 +363,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(result) != 2 || result[0].Name != "vector-db" || result[1].Name != "pgvector-legacy-key" {
+		if len(result) != 3 || result[0].Name != "vector-db" || result[1].Name != "legacy-milvus" || result[2].Name != "pgvector-legacy-key" {
 			t.Fatalf("unexpected vector-db secrets: %+v", result)
 		}
 		if result[0].Data["MILVUS_URI"] != "[REDACTED]" {

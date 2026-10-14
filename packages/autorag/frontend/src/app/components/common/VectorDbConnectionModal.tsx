@@ -32,7 +32,7 @@ type Props = {
   initialProvider?: Provider;
   allowedProviders?: readonly Provider[];
   onClose: () => void;
-  onSubmit: (secretName: string) => void | Promise<void>;
+  onSubmit: (secretName: string, provider: Provider) => void | Promise<void>;
 };
 
 type Provider = VectorDbProvider;
@@ -148,7 +148,7 @@ const VectorDbConnectionModal: React.FC<Props> = ({
         await createSecretMutation.mutateAsync(secret);
         createdSecretRef.current = secret;
       }
-      await onSubmit(k8sName);
+      await onSubmit(k8sName, provider);
       onClose();
     } catch (error) {
       setSubmitError(

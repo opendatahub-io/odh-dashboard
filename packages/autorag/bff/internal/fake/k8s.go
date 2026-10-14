@@ -164,7 +164,6 @@ var fakeSecrets = map[string][]v1.Secret{
 				"PGVECTOR_DB":        []byte("vector"),
 				"PGVECTOR_USER":      []byte("vector"),
 				"PGVECTOR_PASSWORD":  []byte("fake-pgvector-password"),
-				"MILVUS_URI":         []byte("https://milvus.example.com:19530"),
 				"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
 			},
 		},

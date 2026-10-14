@@ -279,7 +279,7 @@ describe('AutoRAG API Contract Tests', () => {
       }
     });
 
-    it('should classify canonical Milvus secrets and reject legacy certificate shapes', async () => {
+    it('should classify canonical and legacy Milvus secrets and redact certificate values', async () => {
       const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=vector-db`);
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
@@ -294,11 +294,13 @@ describe('AutoRAG API Contract Tests', () => {
         ).data;
         expect(secrets.map((secret) => secret.name)).toEqual([
           'vector-db',
+          'legacy-milvus',
           'pgvector-legacy-key',
           'ambiguous-database',
         ]);
-        expect(secrets[0].data).toHaveProperty('MILVUS_CA_CERT');
+        expect(secrets[0].data).toHaveProperty('MILVUS_CA_CERT', '[REDACTED]');
         expect(secrets[0].data).not.toHaveProperty('MILVUS_SERVER_CERT');
+        expect(secrets[1].data).toHaveProperty('MILVUS_SERVER_CERT', '[REDACTED]');
         expect(secrets.find((secret) => secret.name === 'vector-db')?.databaseProviders).toEqual([
           'milvus',
         ]);
@@ -307,16 +309,19 @@ describe('AutoRAG API Contract Tests', () => {
         ).toEqual(['pgvector']);
         expect(
           secrets.find((secret) => secret.name === 'pgvector-legacy-key')?.data,
-        ).toHaveProperty('MILVUS_URI', '[REDACTED]');
+        ).toHaveProperty('MILVUS_SERVER_CERT', '[REDACTED]');
         expect(
           secrets.find((secret) => secret.name === 'ambiguous-database')?.databaseProviders,
         ).toEqual(['milvus', 'neo4j']);
-        expect(JSON.stringify(secrets)).not.toContain('fake-neo4j-password');
+        const responsePayload = JSON.stringify(secrets);
+        expect(responsePayload).not.toContain('canonical-ca-certificate');
+        expect(responsePayload).not.toContain('legacy-certificate');
+        expect(responsePayload).not.toContain('fake-neo4j-password');
       }
     });
 
     it.each([
-      ['milvus', ['vector-db']],
+      ['milvus', ['vector-db', 'legacy-milvus']],
       ['pgvector', ['pgvector-legacy-key']],
     ])('should classify only non-empty %s credentials', async (provider, expectedNames) => {
       const result = await apiClient.get(

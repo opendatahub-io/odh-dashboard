@@ -17,13 +17,9 @@ var requiredKeys = map[string][]string{
 }
 
 // Classify returns every provider whose required values are present and non-empty.
-// MILVUS_SERVER_CERT is a legacy marker that excludes only Milvus.
 func Classify(data map[string][]byte) []string {
 	providers := make([]string, 0, len(providerOrder))
 	for _, provider := range providerOrder {
-		if provider == Milvus && hasKey(data, "MILVUS_SERVER_CERT") {
-			continue
-		}
 		if hasAllNonEmptyValues(data, requiredKeys[provider]) {
 			providers = append(providers, provider)
 		}
@@ -40,11 +36,6 @@ func ClassifyStrings(data map[string]string) []string {
 		values[key] = []byte(value)
 	}
 	return Classify(values)
-}
-
-func hasKey(data map[string][]byte, key string) bool {
-	_, ok := data[key]
-	return ok
 }
 
 func hasAllNonEmptyValues(data map[string][]byte, keys []string) bool {

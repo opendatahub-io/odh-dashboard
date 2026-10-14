@@ -195,7 +195,7 @@ paths:
             - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
             - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
             - 'maas': Filters for hosted MaaS secrets (classification keys: MAAS_BASE_URL, MAAS_API_KEY)
-            - 'vector-db': Filters for Milvus (MILVUS_URI) or complete PGVector credentials; MILVUS_SERVER_CERT excludes Milvus classification only
+            - 'vector-db': Filters for Milvus (MILVUS_URI) or complete PGVector credentials; MILVUS_CA_CERT is canonical and MILVUS_SERVER_CERT is its legacy alias
             - 'database': Filters for complete Milvus, PGVector, or Neo4j credentials; Neo4j requires NEO4J_URI and NEO4J_PASSWORD
             - Omit for all secrets
 
@@ -247,8 +247,8 @@ paths:
         - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
         - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
         - 'maas': MAAS_BASE_URL, MAAS_API_KEY
-        - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD; optional CA keys are MILVUS_CA_CERT and PGVECTOR_CA_CERT
-        - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI and NEO4J_PASSWORD; optional CA keys are MILVUS_CA_CERT, PGVECTOR_CA_CERT, and NEO4J_CA_CERT
+        - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD; MILVUS_CA_CERT is canonical, MILVUS_SERVER_CERT is a legacy fallback alias, and PGVECTOR_CA_CERT is optional
+        - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI and NEO4J_PASSWORD; MILVUS_CA_CERT is canonical, MILVUS_SERVER_CERT is a legacy fallback alias, and PGVECTOR_CA_CERT and NEO4J_CA_CERT are optional
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
@@ -258,7 +258,7 @@ paths:
         - 'storage': Returns secrets containing a configured storage key set
         - 'ogx': Returns secrets containing both OGX keys
         - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
-        - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets when all required values are non-empty after trimming whitespace; MILVUS_SERVER_CERT excludes Milvus classification only
+        - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets when all required values are non-empty after trimming whitespace; legacy keys do not exclude a provider
         - 'database': Returns complete database secrets with all provider-required values non-empty after trimming whitespace; provider can narrow the result to milvus, pgvector, or neo4j
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
@@ -1142,12 +1142,14 @@ components:
                   description: >-
                     One of the supported provider key sets with every required value non-empty after trimming whitespace: Milvus requires MILVUS_URI;
                     PGVector requires PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER,
-                    and PGVECTOR_PASSWORD. MILVUS_SERVER_CERT excludes a Secret from Milvus
-                    classification but does not exclude a complete PGVector Secret.
+                    and PGVECTOR_PASSWORD. MILVUS_CA_CERT is the canonical Milvus CA key;
+                    MILVUS_SERVER_CERT is accepted as a legacy fallback only when the canonical key
+                    is absent or blank.
                   example: ['MILVUS_URI']
                 commonOptionalKeys:
                   description: >-
-                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT. PGVector may include
+                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT or the legacy MILVUS_SERVER_CERT
+                    alias. When both CA keys are non-blank, MILVUS_CA_CERT wins. PGVector may include
                     PGVECTOR_CA_CERT. These keys are optional and do not replace classification keys.
                   example: ['MILVUS_TOKEN', 'MILVUS_CA_CERT', 'PGVECTOR_CA_CERT']
         database:
@@ -1163,7 +1165,8 @@ components:
                   example: ['NEO4J_URI', 'NEO4J_PASSWORD']
                 commonOptionalKeys:
                   description: >-
-                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT; PGVector may include
+                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT or the legacy MILVUS_SERVER_CERT
+                    alias; when both CA keys are non-blank, MILVUS_CA_CERT wins. PGVector may include
                     PGVECTOR_CA_CERT; Neo4j may include NEO4J_USERNAME, NEO4J_DATABASE, and
                     NEO4J_CA_CERT. These keys are optional and do not replace classification keys.
                   example:
