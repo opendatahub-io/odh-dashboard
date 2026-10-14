@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -17,11 +19,19 @@ import (
 
 type McpServerDeployReadinessEnvelope api.Envelope[models.McpServerDeployReadiness, api.None]
 
-// Keep this ID in sync with the route key in internal/api/app.go.
-const mcpServerDeployReadinessGetHandlerID = api.HandlerID("mcpServer:deployReadiness:get")
+// Keep these IDs in sync with the route keys in internal/api/app.go.
+const (
+	mcpServerDeployReadinessGetHandlerID = api.HandlerID("mcpServer:deployReadiness:get")
+	mcpDeployReadinessGetHandlerID       = api.HandlerID("mcpDeployment:readiness:get")
+)
 
 // openShiftMcpServerCatalogName is the catalog name of the MCP server for Red Hat OpenShift.
 const openShiftMcpServerCatalogName = "com.redhat/openshift-mcp-server"
+
+// openShiftMcpServerImageRepository matches the last path segment of the MCP server for
+// Red Hat OpenShift image repository (for example openshift-mcp-server-rhel9), on any
+// registry or organization, so mirrored images match too.
+var openShiftMcpServerImageRepository = regexp.MustCompile(`^openshift-mcp-server(-rhel[0-9]+)?$`)
 
 var newMcpLifecycleOperatorReader = func(app *api.App) redhatrepos.MCPLifecycleOperatorReader {
 	if app != nil && app.Config().MockK8Client {
@@ -32,6 +42,7 @@ var newMcpLifecycleOperatorReader = func(app *api.App) redhatrepos.MCPLifecycleO
 
 func init() {
 	api.RegisterHandlerOverride(mcpServerDeployReadinessGetHandlerID, overrideMcpServerDeployReadiness)
+	api.RegisterHandlerOverride(mcpDeployReadinessGetHandlerID, overrideMcpDeployReadiness)
 }
 
 // mcpServerRequiresGateway reports whether a catalog server may only be deployed when an
@@ -42,6 +53,45 @@ func init() {
 // more servers here.
 func mcpServerRequiresGateway(server *models.McpServer) bool {
 	return server != nil && server.Name == openShiftMcpServerCatalogName
+}
+
+// mcpImageRequiresGateway reports whether deploying the given image requires an MCP
+// gateway. Only the image decides: it is what gets deployed, while MCP registry names come
+// from user-editable server.json and can be reused for other images or changed for this one.
+//
+// Deprecated: RHOAI 3.6 stopgap for RHAISTRAT-2790, see mcpServerRequiresGateway.
+func mcpImageRequiresGateway(image string) bool {
+	return isOpenShiftMcpServerImage(image)
+}
+
+// isOpenShiftMcpServerImage reports whether an image reference points to the MCP server
+// for Red Hat OpenShift, ignoring the registry, organization, tag, and digest.
+func isOpenShiftMcpServerImage(ref string) bool {
+	ref = strings.ToLower(strings.TrimSpace(ref))
+	for _, scheme := range []string{"oci://", "docker://"} {
+		ref = strings.TrimPrefix(ref, scheme)
+	}
+	if i := strings.Index(ref, "@"); i >= 0 {
+		ref = ref[:i]
+	}
+	if i := strings.LastIndex(ref, "/"); i >= 0 {
+		ref = ref[i+1:]
+	}
+	if i := strings.Index(ref, ":"); i >= 0 {
+		ref = ref[:i]
+	}
+	return openShiftMcpServerImageRepository.MatchString(ref)
+}
+
+// evaluateMcpGatewayReadiness reads the MCPLifecycleOperator CR with the BFF service
+// account and decides whether a server that requires an MCP gateway can be deployed.
+func evaluateMcpGatewayReadiness(ctx context.Context, app *api.App, reader redhatrepos.MCPLifecycleOperatorReader, logArgs ...any) models.McpServerDeployReadiness {
+	obj, getErr := reader.Get(ctx)
+	readiness, evalErr := redhatrepos.EvaluateMcpGatewayReadiness(obj, getErr)
+	if evalErr != nil {
+		app.Logger().Error("MCP gateway readiness check failed; blocking deploy", append(logArgs, "error", evalErr)...)
+	}
+	return readiness
 }
 
 func overrideMcpServerDeployReadiness(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
@@ -75,18 +125,47 @@ func overrideMcpServerDeployReadiness(app *api.App, _ func() httprouter.Handle) 
 
 		readiness := models.McpServerDeployReadiness{Deployable: true}
 		if mcpServerRequiresGateway(server) { //nolint:staticcheck // Deprecated helper is used until catalog metadata exists.
-			obj, getErr := reader.Get(r.Context())
-			var evalErr error
-			readiness, evalErr = redhatrepos.EvaluateMcpGatewayReadiness(obj, getErr)
-			if evalErr != nil {
-				app.Logger().Error("MCP gateway readiness check failed; blocking deploy", "serverId", serverId, "error", evalErr)
-			}
+			readiness = evaluateMcpGatewayReadiness(r.Context(), app, reader, "serverId", serverId)
 		}
 
 		if err := app.WriteJSON(w, http.StatusOK, McpServerDeployReadinessEnvelope{Data: readiness}, nil); err != nil {
 			app.ServerError(w, r, err)
 		}
 	})))
+}
+
+// overrideMcpDeployReadiness reports whether an MCP server image can be deployed to a
+// namespace, for deploy entry points that have no catalog server ID (the MCP registry).
+func overrideMcpDeployReadiness(app *api.App, _ func() httprouter.Handle) httprouter.Handle {
+	reader := newMcpLifecycleOperatorReader(app)
+
+	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		namespace, ok := namespaceFromContext(app, w, r)
+		if !ok {
+			return
+		}
+
+		// The gateway status is read with the BFF service account, so check the caller's
+		// own permission to deploy here for every auth method.
+		if !requireMcpServersAccess(app, w, r, namespace, "create") {
+			return
+		}
+
+		image := strings.TrimSpace(r.URL.Query().Get("image"))
+		if image == "" {
+			app.BadRequest(w, r, fmt.Errorf("image is required"))
+			return
+		}
+
+		readiness := models.McpServerDeployReadiness{Deployable: true}
+		if mcpImageRequiresGateway(image) { //nolint:staticcheck // Deprecated helper is used until catalog metadata exists.
+			readiness = evaluateMcpGatewayReadiness(r.Context(), app, reader, "namespace", namespace, "image", image)
+		}
+
+		if err := app.WriteJSON(w, http.StatusOK, McpServerDeployReadinessEnvelope{Data: readiness}, nil); err != nil {
+			app.ServerError(w, r, err)
+		}
+	})
 }
 
 // mcpCatalogLookupError forwards the catalog's HTTP status (for example 404 for an unknown
