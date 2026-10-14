@@ -14,6 +14,6 @@ describe('portalLogout', () => {
 
     portalLogout(redirect);
 
-    expect(redirect).toHaveBeenCalledWith('/oauth2/sign_out?rd=%2Fmaas-consumer-portal%2F');
+    expect(redirect).toHaveBeenCalledWith('/oauth2/sign_out?rd=%2Fmaas-portal%2F');
   });
 });

@@ -4,7 +4,6 @@ import {
   Alert,
   Breadcrumb,
   BreadcrumbItem,
-  Button,
   Card,
   CardBody,
   CardHeader,
@@ -31,9 +30,19 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
+import { RUNTIME_CATALOG_DETAILS_ACTION_GROUP } from '~/odh/extension-points/runtime-image-install-action';
+import { RUNTIME_CATALOG_TAB_PATH } from '~/odh/routes/runtimeCatalog/runtimeCatalog';
 import { ServingRuntime, ServingRuntimeVersion } from '~/odh/types/servingRuntimeCatalogTypes';
-import { formatRuntimePublishedDate, formatRuntimeTemplate } from './runtimeCatalogDetailsUtils';
+import {
+  buildRuntimeImageInstallActionData,
+  formatRuntimePublishedDate,
+  formatRuntimeTemplate,
+} from './runtimeCatalogDetailsUtils';
+import { getRuntimeCatalogDetailsRoute } from './utils/runtimeCatalogUtils';
 
 export type RuntimeCatalogDetailsViewProps = {
   breadcrumbs: { title: string; href: string }[];
@@ -53,6 +62,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
   notFound = false,
 }) => {
   const { runtimeId = '' } = useParams<{ runtimeId: string }>();
+  const actionExtensions = useExtensions(isActionExtension);
   const selectedVersion = runtimeVersions.length > 0 ? runtimeVersions[0] : undefined;
   const runtimeNotFound = notFound || (!!runtimeDetails && runtimeId !== runtimeDetails.id);
   const modelFormats = (
@@ -111,9 +121,18 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                   </Flex>
                 </FlexItem>
                 <FlexItem>
-                  <Button variant="primary" isDisabled>
-                    Create
-                  </Button>
+                  <ExtensibleActions
+                    actions={actionExtensions}
+                    group={RUNTIME_CATALOG_DETAILS_ACTION_GROUP}
+                    componentProps={{
+                      actionData: buildRuntimeImageInstallActionData({
+                        runtime: runtimeDetails,
+                        version: selectedVersion,
+                        cancelReturnRoute: getRuntimeCatalogDetailsRoute(runtimeDetails.id ?? ''),
+                        libraryReturnRoute: RUNTIME_CATALOG_TAB_PATH,
+                      }),
+                    }}
+                  />
                 </FlexItem>
               </Flex>
             </StackItem>
@@ -132,7 +151,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                       </Card>
                     </StackItem>
                     {selectedVersion?.servingRuntimeTemplate ||
-                    selectedVersion?.llmInferenceServiceTemplate ? (
+                    selectedVersion?.llmInferenceServiceConfig ? (
                       <StackItem>
                         <Card>
                           <CardHeader>
@@ -180,7 +199,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                   </Stack>
                                 </Tab>
                               )}
-                              {!!selectedVersion.llmInferenceServiceTemplate && (
+                              {!!selectedVersion.llmInferenceServiceConfig && (
                                 <Tab
                                   eventKey="llm-inference-service"
                                   data-testid="runtime-llm-inference-service-tab"
@@ -204,7 +223,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                     <StackItem>
                                       <CodeBlockComponent copyTestId="runtime-llm-inference-service-copy">
                                         {formatRuntimeTemplate(
-                                          selectedVersion.llmInferenceServiceTemplate,
+                                          selectedVersion.llmInferenceServiceConfig,
                                         )}
                                       </CodeBlockComponent>
                                     </StackItem>
