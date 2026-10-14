@@ -58,6 +58,7 @@ export type CreateConnectionWizardProps = {
   namespace: string;
   onClose: () => void;
   onCreate?: (data: CreateConnectionFormData, selectedNamespace: string) => void | Promise<void>;
+  initialFormData?: Partial<CreateConnectionFormData>;
 };
 
 const INITIAL_FORM_DATA: CreateConnectionFormData = {
@@ -75,7 +76,7 @@ const StepHeader: React.FC<{ title: string; description: React.ReactNode }> = ({
   title,
   description,
 }) => (
-  <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
+  <Stack hasGutter className="dch-connection-wizard-step-header">
     <StackItem>
       <Content component={ContentVariants.h2}>{title}</Content>
     </StackItem>
@@ -204,6 +205,8 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
           <FormGroup label="Project" isRequired fieldId="connection-project">
             <Select
               isOpen={isNamespaceSelectOpen}
+              maxMenuHeight="12.5rem"
+              isScrollable
               selected={selectedNamespace}
               onSelect={(_event, selection) => {
                 onNamespaceChange(String(selection));
@@ -223,7 +226,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
                 </MenuToggle>
               )}
             >
-              <SelectList style={{ maxHeight: '200px', overflow: 'auto' }}>
+              <SelectList>
                 {namespaces.map((project) => (
                   <SelectOption key={project.name} value={project.name}>
                     {project.displayName ?? project.name}
@@ -531,6 +534,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
 type PropertyRow = { id: number; key: string; value: string };
 
+const createPropertyRows = (properties: Record<string, string>): PropertyRow[] =>
+  Object.entries(properties).map(([key, value], index) => ({ id: index + 1, key, value }));
+
 export const getPropertyErrors = (properties: PropertyRow[]): Record<number, string> => {
   const errors: Record<number, string> = {};
   const normalizedKeys = new Map<string, number[]>();
@@ -659,8 +665,7 @@ const KeyValueInput: React.FC<KeyValueInputProps> = ({
 type CreateConnectionWizardFooterProps = {
   onCreate: () => void;
   isCreating: boolean;
-  hasConnectionType: boolean;
-  hasConnectionTypesReady: boolean;
+  hasSelectedConnectionType: boolean;
   hasValidDetails: boolean;
   hasValidConfiguration: boolean;
 };
@@ -668,8 +673,7 @@ type CreateConnectionWizardFooterProps = {
 const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> = ({
   onCreate,
   isCreating,
-  hasConnectionType,
-  hasConnectionTypesReady,
+  hasSelectedConnectionType,
   hasValidDetails,
   hasValidConfiguration,
 }) => {
@@ -679,7 +683,7 @@ const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> 
   const isNextDisabled = (() => {
     switch (activeStep.index) {
       case 1:
-        return !hasConnectionType || !hasConnectionTypesReady;
+        return !hasSelectedConnectionType;
       case 2:
         return !hasValidDetails;
       case 3:
@@ -743,8 +747,16 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   namespace,
   onClose,
   onCreate,
+  initialFormData: propInitialFormData,
 }) => {
-  const [formData, setFormData] = React.useState<CreateConnectionFormData>(INITIAL_FORM_DATA);
+  let initialFormData = INITIAL_FORM_DATA;
+  if (propInitialFormData) {
+    initialFormData = { ...initialFormData, ...propInitialFormData };
+  }
+  const [formData, setFormData] = React.useState<CreateConnectionFormData>(initialFormData);
+  const [sessionStartIndex, setSessionStartIndex] = React.useState(1);
+  const [hasResolvedSessionStartIndex, setHasResolvedSessionStartIndex] = React.useState(false);
+  const [isOpenSessionReady, setIsOpenSessionReady] = React.useState(false);
   const [selectedNamespace, setSelectedNamespace] = React.useState(namespace);
   const [isCreating, setIsCreating] = React.useState(false);
   const [isVerifying, setIsVerifying] = React.useState(false);
@@ -754,11 +766,14 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     connectionTypeName: string;
     namespace: string;
   }>();
-  const [propertyRows, setPropertyRows] = React.useState<PropertyRow[]>([]);
+  const [propertyRows, setPropertyRows] = React.useState<PropertyRow[]>(() =>
+    createPropertyRows(initialFormData.properties),
+  );
   const [touchedProperties, setTouchedProperties] = React.useState<Set<number>>(new Set());
-  const propertyIdRef = React.useRef(0);
+  const propertyIdRef = React.useRef(propertyRows.length);
   const verificationRequestRef = React.useRef(0);
   const verificationAbortRef = React.useRef<AbortController>();
+  const wasOpenRef = React.useRef(false);
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
     selectedNamespace,
     isOpen,
@@ -773,11 +788,22 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   );
   const hasConnectionType = Boolean(formData.data_connection_type_id);
   const hasConnectionTypesReady = connectionTypesLoaded && !connectionTypesError;
+  const hasSelectedConnectionType = hasConnectionTypesReady && Boolean(selectedConnectionType);
+  const defaultCredentials = React.useMemo(
+    () =>
+      Object.fromEntries(
+        (selectedConnectionType?.resource.credentials_fields ?? [])
+          .filter((field) => field.default_value !== undefined)
+          .map((field) => [field.name, field.default_value ?? '']),
+      ),
+    [selectedConnectionType],
+  );
+  const hasMissingCredentialDefaults = Object.keys(defaultCredentials).some(
+    (name) => !(name in formData.credentials.properties),
+  );
   const hasNamespacesReady = namespacesLoaded && !namespacesError;
   const hasValidDetails =
-    hasConnectionType &&
-    hasConnectionTypesReady &&
-    Boolean(selectedConnectionType) &&
+    hasSelectedConnectionType &&
     hasNamespacesReady &&
     Boolean(selectedNamespace) &&
     isValidConnectionName(formData.name);
@@ -791,6 +817,69 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     requiredCredentialFields.every((field) =>
       hasCredentialValue(formData.credentials.properties[field.name]),
     );
+  const needsInitialValidationData =
+    hasConnectionType &&
+    Boolean(selectedNamespace) &&
+    isValidConnectionName(formData.name) &&
+    hasValidProperties;
+  const canResolveStartIndex =
+    isOpenSessionReady &&
+    (!hasSelectedConnectionType || !hasMissingCredentialDefaults) &&
+    (!hasConnectionType || connectionTypesLoaded || Boolean(connectionTypesError)) &&
+    (!needsInitialValidationData || namespacesLoaded || Boolean(namespacesError));
+  const calculatedStartIndex = hasValidConfiguration
+    ? 4
+    : hasValidDetailsWithProperties
+      ? 3
+      : hasSelectedConnectionType
+        ? 2
+        : 1;
+  const startIndex = hasResolvedSessionStartIndex
+    ? sessionStartIndex
+    : canResolveStartIndex
+      ? calculatedStartIndex
+      : 1;
+
+  React.useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      const initialPropertyRows = createPropertyRows(initialFormData.properties);
+      setFormData(initialFormData);
+      setSelectedNamespace(namespace);
+      setPropertyRows(initialPropertyRows);
+      setTouchedProperties(new Set());
+      propertyIdRef.current = initialPropertyRows.length;
+      setIsOpenSessionReady(true);
+    } else if (!isOpen && wasOpenRef.current) {
+      setIsOpenSessionReady(false);
+      setHasResolvedSessionStartIndex(false);
+      setSessionStartIndex(1);
+    }
+    wasOpenRef.current = isOpen;
+  }, [initialFormData, isOpen, namespace]);
+  React.useEffect(() => {
+    if (isOpen && isOpenSessionReady && hasSelectedConnectionType && hasMissingCredentialDefaults) {
+      setFormData((current) => ({
+        ...current,
+        credentials: {
+          ...current.credentials,
+          properties: { ...defaultCredentials, ...current.credentials.properties },
+        },
+      }));
+    }
+  }, [
+    defaultCredentials,
+    hasMissingCredentialDefaults,
+    hasSelectedConnectionType,
+    isOpen,
+    isOpenSessionReady,
+  ]);
+  React.useEffect(() => {
+    if (isOpen && !hasResolvedSessionStartIndex && canResolveStartIndex) {
+      setSessionStartIndex(calculatedStartIndex);
+      setHasResolvedSessionStartIndex(true);
+    }
+  }, [calculatedStartIndex, canResolveStartIndex, hasResolvedSessionStartIndex, isOpen]);
+
   const invalidateVerification = React.useCallback(() => {
     verificationRequestRef.current += 1;
     verificationAbortRef.current?.abort();
@@ -809,7 +898,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     const selectedType = connectionTypes.find(
       (connectionType) => connectionType.metadata.id === connectionTypeId,
     );
-    const defaultCredentials = Object.fromEntries(
+    const defaultsForType = Object.fromEntries(
       (selectedType?.resource.credentials_fields ?? [])
         .filter((field) => field.default_value !== undefined)
         .map((field) => [field.name, field.default_value ?? '']),
@@ -817,7 +906,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     setFormData((current) => ({
       ...current,
       data_connection_type_id: connectionTypeId,
-      credentials: { ...current.credentials, properties: defaultCredentials },
+      credentials: { ...current.credentials, properties: defaultsForType },
     }));
     setConnectionTypeWarning(undefined);
   };
@@ -923,14 +1012,18 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     }
   };
   const resetForm = React.useCallback(() => {
-    setFormData(INITIAL_FORM_DATA);
+    const initialPropertyRows = createPropertyRows(initialFormData.properties);
+    setFormData(initialFormData);
+    setIsOpenSessionReady(false);
+    setHasResolvedSessionStartIndex(false);
+    setSessionStartIndex(1);
     setSelectedNamespace(namespace);
     setIsCreating(false);
     invalidateVerification();
-    setPropertyRows([]);
+    setPropertyRows(initialPropertyRows);
     setTouchedProperties(new Set());
-    propertyIdRef.current = 0;
-  }, [invalidateVerification, namespace]);
+    propertyIdRef.current = initialPropertyRows.length;
+  }, [invalidateVerification, namespace, initialFormData]);
   const handleClose = React.useCallback(() => {
     if (!isCreating) {
       resetForm();
@@ -972,6 +1065,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       data-testid="create-connection-tearsheet"
     >
       <Wizard
+        key={startIndex}
+        startIndex={startIndex}
         onClose={handleClose}
         header={
           <WizardHeader
@@ -986,8 +1081,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
           <CreateConnectionWizardFooter
             onCreate={handleCreate}
             isCreating={isCreating}
-            hasConnectionType={hasConnectionType}
-            hasConnectionTypesReady={hasConnectionTypesReady}
+            hasSelectedConnectionType={hasSelectedConnectionType}
             hasValidDetails={hasValidDetailsWithProperties}
             hasValidConfiguration={hasValidConfiguration}
           />
@@ -1007,7 +1101,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
         <WizardStep
           name="Connection details"
           id="connection-details-step"
-          isDisabled={!hasConnectionType || !hasConnectionTypesReady}
+          isDisabled={!hasSelectedConnectionType}
         >
           <ConnectionDetailsStep
             namespaces={availableNamespaces}

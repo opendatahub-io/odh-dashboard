@@ -1,3 +1,4 @@
+import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
 import { GENERAL_SETTINGS_PATH } from './const';
 import type { PlaceholderRuntimeImageActionData } from './placeholder-types';
 import { ServingRuntimeAPIProtocol, ServingRuntimeModelType } from '../../shared';
@@ -14,15 +15,46 @@ export const mockRuntimeImageActionData = (): PlaceholderRuntimeImageActionData 
     runtimeImageName: 'vLLM 0.6.0',
     cancelReturnRoute: GENERAL_SETTINGS_PATH,
     deploymentResources: {
-      servingRuntimeTemplate: {
-        servingRuntimeYaml: 'apiVersion: serving.kserve.io/v1alpha1\nkind: ServingRuntime\n',
-        apiProtocol: ServingRuntimeAPIProtocol.REST,
-        modelTypes: [ServingRuntimeModelType.GENERATIVE],
-      },
-      llmAcceleratorConfiguration: {
-        displayName: 'vLLM 0.6.0',
-        configYaml: 'apiVersion: serving.kserve.io/v1alpha1\nkind: LLMInferenceServiceConfig\n',
-      },
+      servingRuntimeTemplate: JSON.stringify({
+        apiVersion: 'template.openshift.io/v1',
+        kind: 'Template',
+        metadata: {
+          name: 'template-vllm-0-6-0',
+          namespace: 'opendatahub',
+          annotations: {
+            'opendatahub.io/apiProtocol': ServingRuntimeAPIProtocol.REST,
+            'opendatahub.io/model-type': JSON.stringify([ServingRuntimeModelType.GENERATIVE]),
+          },
+        },
+        objects: [
+          {
+            apiVersion: 'serving.kserve.io/v1alpha1',
+            kind: 'ServingRuntime',
+            metadata: { name: 'vllm-0-6-0' },
+            spec: {
+              containers: [{ name: 'vllm', image: 'quay.io/example/vllm:0.6.0' }],
+              supportedModelFormats: [{ name: 'vllm' }],
+            },
+          },
+        ],
+        parameters: [],
+      } satisfies TemplateKind),
+      llmInferenceServiceConfig: JSON.stringify({
+        apiVersion: 'serving.kserve.io/v1alpha2',
+        kind: 'LLMInferenceServiceConfig',
+        metadata: {
+          name: 'vllm-0-6-0',
+          annotations: {
+            'openshift.io/display-name': 'vLLM 0.6.0',
+            'opendatahub.io/runtime-version': '0.6.0',
+          },
+        },
+        spec: {
+          template: {
+            containers: [{ name: 'main', image: 'quay.io/example/vllm:0.6.0' }],
+          },
+        },
+      } satisfies K8sDSGResource),
     },
   };
 };

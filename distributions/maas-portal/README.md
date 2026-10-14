@@ -2,9 +2,15 @@
 
 Portal for MaaS API key management and AI asset endpoints. Bundles the `maas` and `gen-ai` packages.
 
-In production the portal is served at `https://<gateway-domain>/maas-consumer-portal/`. Its router, static assets, and MaaS/GenAI browser API calls use that base path; the Gateway strips the prefix before forwarding to the existing Core-BFF and shared module BFF contracts. The portal can remain available when the core dashboard operand is removed. The shared gateway retains the OAuth callback and sign-out endpoints.
+For production lifecycle, routing, federation, RBAC, migration, and rollout, see
+[MaaS Portal](../../docs/maas-portal.md). Custom Perses services must meet the
+operator's [Perses service requirements](../../docs/dashboard-operator.md#perses-service-requirements).
 
-Production observability remains available in portal-only deployments. Custom Perses services must meet the operator's [Perses service requirements](../../docs/dashboard-operator.md#perses-service-requirements).
+## Browser Path Rollout
+
+Deploy the `/maas-portal` HTTPRoute together with a Core-BFF image containing a portal frontend built for `/maas-portal/`. Build the image from this revision using `distributions/core-bff/Dockerfile.workspace`; the bundle is served from `/static/maas-portal` through the `maas-portal` Service. See the [production rollout requirements](../../docs/maas-portal.md#upgrade-migration-and-rollout).
+
+The no-slash URL `/maas-portal` redirects to `/maas-portal/`. Check the portal root, deep links, static assets, API requests, Kubernetes watches, Perses, and logout with the core dashboard both Managed and Removed.
 
 ## Running locally
 
@@ -39,7 +45,7 @@ For certificate-verified cluster proxying, set `ODH_DASHBOARD_CA_FILE` to the PE
 
 ### Mode B: External-cluster development (no port-forwards)
 
-Serve the portal locally and proxy its API requests through the deployed portal's HTTPRoute. The proxy preserves `/maas-consumer-portal`, so this works when the core dashboard operand is removed. Log in with `oc` first, then run:
+Serve the portal locally and proxy its API requests through the deployed portal's HTTPRoute. The proxy preserves `/maas-portal`, so this works when the core dashboard operand is removed. Log in with `oc` first, then run:
 
 ```bash
 cd distributions/maas-portal
@@ -92,7 +98,7 @@ pnpm run dev
 
 All three BFF targets use `https://` because on-cluster BFFs serve over TLS. The Core BFF target is used for the operator subscription status request.
 
-For a portal-only deployment, forward `svc/maas-consumer-portal 8943:8443` instead of `svc/"$APP" 8943:8943`. Keep `CORE_BFF_TARGET=https://localhost:8943`; Kubernetes API requests and watches will use the portal's Core BFF.
+For a portal-only deployment, forward `svc/maas-portal 8943:8443` instead of `svc/"$APP" 8943:8943`. Keep `CORE_BFF_TARGET=https://localhost:8943`; Kubernetes API requests and watches will use the portal's Core BFF.
 
 #### Optional: Run the Core BFF locally
 

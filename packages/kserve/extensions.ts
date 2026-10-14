@@ -370,7 +370,7 @@ const extensions: (
   {
     type: 'model-serving.runtime-image/install-target',
     flags: {
-      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+      required: [SupportedArea.CUSTOM_RUNTIMES, SupportedArea.K_SERVE, ADMIN_USER],
     },
     properties: {
       id: 'servingRuntimeTemplate',

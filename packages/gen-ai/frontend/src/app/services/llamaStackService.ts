@@ -755,8 +755,14 @@ export const createResponse =
 /**
  * Passthrough request for embedded chatbot mode.
  * Sends a raw Responses API body directly to the BFF, bypassing the
- * normal OGX (Open GenAI Stack) flow. The BFF proxies to the OGX instance using
- * the specified connection secret.
+ * normal OGX (Open Gen AI Stack) flow.
+ *
+ * - Without `responsesEndpointUrl`: the BFF proxies to the OGX instance using
+ *   the specified connection secret (`/lsd/responses/passthrough`).
+ * - With `responsesEndpointUrl`: the request is routed through the BFF relay
+ *   (`/lsd/responses/relay?target=...`), which forwards it — with the user's
+ *   bearer token — to the embedder-controlled same-origin target (e.g.
+ *   AutoRAG's responses endpoint) via the externally accessed gateway route.
  *
  * Always uses streaming (BFF forces stream: true).
  */
@@ -767,12 +773,24 @@ export const createPassthroughResponse = (
   body: Record<string, unknown>,
   onStreamData: (chunk: string, clearPrevious?: boolean) => void,
   abortSignal?: AbortSignal,
+  responsesEndpointUrl?: string,
 ): Promise<SimplifiedResponseData> => {
   const trimmed = bffBasePath.replace(/\/+$/, '');
   const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
-  const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(
-    namespace,
-  )}&secretName=${encodeURIComponent(secretName)}`;
+  let url: string;
+  if (responsesEndpointUrl) {
+    // The request body carries prompts and conversation content, so the
+    // target must stay same-origin: reject absolute URLs and
+    // protocol-relative URLs such as `//evil.example`.
+    if (!responsesEndpointUrl.startsWith('/') || responsesEndpointUrl.startsWith('//')) {
+      return Promise.reject(new Error('Invalid responses endpoint URL'));
+    }
+    url = `${base}/lsd/responses/relay?target=${encodeURIComponent(responsesEndpointUrl)}`;
+  } else {
+    url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(
+      namespace,
+    )}&secretName=${encodeURIComponent(secretName)}`;
+  }
 
   return new Promise((resolve, reject) => {
     fetch(url, {
@@ -790,23 +808,40 @@ export const createPassthroughResponse = (
           try {
             const errorBody = await response.text();
             const errorData = JSON.parse(errorBody);
-            errorMessage = errorData?.error?.message || errorMessage;
-          } catch {
+            if (
+              responsesEndpointUrl &&
+              errorData?.error &&
+              typeof errorData.error === 'object' &&
+              typeof errorData.error.message === 'string' &&
+              errorData.error.message.trim().length > 0
+            ) {
+              // Structured errors from the responses endpoint keep their code
+              // and trace id.
+              throw new ApiErrorClass(errorData.error, errorData.trace_id);
+            }
+            if (!responsesEndpointUrl) {
+              errorMessage = errorData?.error?.message || errorMessage;
+            }
+          } catch (error) {
+            if (error instanceof ApiErrorClass) {
+              throw error;
+            }
             // ignore
           }
 
-          // Differentiated error messages for embedded mode
-          if (response.status === 502 || response.status === 503) {
+          // Differentiated error messages for the default GenAI passthrough;
+          // the responses endpoint returns its own error envelope.
+          if (!responsesEndpointUrl && (response.status === 502 || response.status === 503)) {
             throw new Error(
               'The OGX instance is not responding. Check that the instance is running and reachable.',
             );
           }
-          if (response.status === 404) {
+          if (!responsesEndpointUrl && response.status === 404) {
             throw new Error(
               `The connection secret '${secretName}' was not found in namespace '${namespace}'.`,
             );
           }
-          if (response.status === 403) {
+          if (!responsesEndpointUrl && response.status === 403) {
             throw new Error(
               'You do not have permission to access this resource. Contact your administrator.',
             );
@@ -823,6 +858,18 @@ export const createPassthroughResponse = (
         let completeResponseData: BackendResponseData | null = null;
         let metricsData: ResponseMetrics | null = null;
         const decoder = new TextDecoder();
+        let readerCancelled = false;
+        let streamCompleted = false;
+        const cancelReader = async () => {
+          if (!readerCancelled) {
+            readerCancelled = true;
+            try {
+              await reader.cancel('Streaming error');
+            } catch {
+              // Preserve the parsed SSE error when cancellation fails.
+            }
+          }
+        };
 
         try {
           let done = false;
@@ -842,8 +889,17 @@ export const createPassthroughResponse = (
                     const data = JSON.parse(line.slice(6));
 
                     if (data.error) {
-                      await reader.cancel('Streaming error');
+                      await cancelReader();
                       reject(new ApiErrorClass(data.error, data.trace_id));
+                      return;
+                    }
+                    if (data.type === 'error') {
+                      const message =
+                        typeof data.message === 'string' && data.message.trim().length > 0
+                          ? data.message
+                          : 'The response stream returned an error.';
+                      await cancelReader();
+                      reject(new Error(message));
                       return;
                     }
 
@@ -890,7 +946,17 @@ export const createPassthroughResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
+                    await cancelReader();
                     reject(new ApiErrorClass(data.error, data.trace_id));
+                    return;
+                  }
+                  if (data.type === 'error') {
+                    const message =
+                      typeof data.message === 'string' && data.message.trim().length > 0
+                        ? data.message
+                        : 'The response stream returned an error.';
+                    await cancelReader();
+                    reject(new Error(message));
                     return;
                   }
 
@@ -899,6 +965,7 @@ export const createPassthroughResponse = (
                     onStreamData(data.delta);
                   } else if (data.type === 'response.refusal.delta' && data.delta) {
                     if (fullContent.length > 0) {
+                      await cancelReader();
                       reject(
                         new ApiErrorClass({
                           code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
@@ -922,7 +989,11 @@ export const createPassthroughResponse = (
               }
             }
           }
+          streamCompleted = true;
         } finally {
+          if (!streamCompleted) {
+            await cancelReader();
+          }
           reader.releaseLock();
         }
 

@@ -50,7 +50,7 @@ interface ChatbotConfigInstanceProps {
   hasAudioInCurrentMessage?: boolean;
   hasAudioInConversation?: boolean;
   onViewTrace?: (traceId: string) => void;
-  onViewDocument?: (attachment: DocumentAttachment) => void;
+  onViewDocument?: (attachment: DocumentAttachment, documentCount: number) => void;
   documentAttachments?: DocumentAttachment[];
 }
 
@@ -174,6 +174,8 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     bffBasePath: embeddedConfig?.bffBasePath ?? '',
     namespace: embeddedConfig?.namespace ?? '',
     secretName: embeddedConfig?.secretName ?? '',
+    responsesEndpointUrl: embeddedConfig?.responsesEndpointUrl,
+    additionalMetadata: embeddedConfig?.additionalMetadata,
     responsesTemplate: embeddedConfig?.responsesTemplate ?? {
       model: '',
       stream: true,

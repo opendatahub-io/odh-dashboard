@@ -15,6 +15,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -482,6 +484,12 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
 		Status: v1alpha1.DashboardStatus{
+			// Seed legacy status to verify the old condition is removed even when
+			// module-demand reconciliation fails before reaching the portal step.
+			Status: common.Status{Conditions: []common.Condition{{
+				Type: ctrlpkg.LegacyConditionMaaSConsumerPortalAvailable, Status: metav1.ConditionTrue,
+				Reason: "Deployed", LastTransitionTime: metav1.Now(),
+			}}},
 			MaaSPortalURL:         "https://previous.example.com/",
 			MaaSConsumerPortalURL: "https://previous.example.com/",
 		},
@@ -511,6 +519,9 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	require.NotNil(t, condition)
 	assert.Equal(t, metav1.ConditionFalse, condition.Status)
 	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
+	assert.Nil(t, conditions.FindStatusCondition(updated, ctrlpkg.LegacyConditionMaaSConsumerPortalAvailable), "early failure status must discard legacy portal availability")
+	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSPortalURL)
 	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSConsumerPortalURL)
 }
@@ -1202,6 +1213,62 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 				tt.deletedDep, tt.deletedSA, tt.deletedCR, tt.deletedCRB)
 		})
 	}
+}
+
+func TestReconcile_Removed_WithoutHTTPRouteRESTMapping(t *testing.T) {
+	s := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		},
+	}
+	managedConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name:      "dashboard-core-config",
+		Namespace: testNamespace,
+		Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+	}}
+
+	httpRouteListAttempts := 0
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, managedConfigMap).
+		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+				if list.GetObjectKind().GroupVersionKind() == gatewayv1.SchemeGroupVersion.WithKind("HTTPRouteList") {
+					httpRouteListAttempts++
+					return &meta.NoKindMatchError{GroupKind: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute").GroupKind()}
+				}
+				return delegate.List(ctx, list, opts...)
+			},
+		}).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: client.ObjectKeyFromObject(dashboard),
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+	assert.Positive(t, httpRouteListAttempts)
+	assert.True(t, k8serrors.IsNotFound(cli.Get(
+		context.Background(),
+		client.ObjectKeyFromObject(managedConfigMap),
+		&corev1.ConfigMap{},
+	)), "teardown should continue when the HTTPRoute REST mapping is unavailable")
 }
 
 func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, delDep, delSA, delCR, delCRB string) {

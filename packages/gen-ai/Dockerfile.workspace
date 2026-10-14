@@ -25,9 +25,13 @@ ARG PLATFORM_MODE
 
 WORKDIR /usr/src/workspace
 
+# Install the pinned pnpm CLI from the npm-prefetched bootstrap package.
+COPY --chown=default:root prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
+
 ### Workspace setup
 # Copy root workspace manifest and lockfile for pnpm workspace resolution
 COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=default:root .npmrc ./
 # Copy the frontend workspace manifest so its dependencies can be resolved if referenced
 COPY --chown=default:root frontend/package.json ./frontend/
 # Copy required shared workspace packages needed for module builds
@@ -56,8 +60,10 @@ COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 USER default
 
 # Install pnpm and workspace dependencies
-RUN npm install -g pnpm@11.22.0
-RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
+ENV PATH="/usr/src/workspace/prefetch/pnpm/node_modules/.bin:${PATH}"
+RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit --no-fund --no-progress \
+    && test "$(pnpm --version)" = "11.22.0"
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile --prefer-offline
 
 # Build the module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}

@@ -87,7 +87,7 @@ func TestMaaSPortalManifestInfo(t *testing.T) {
 	info := maasPortalManifestInfo("/base")
 	assert.Equal(t, "/base", info.Path)
 	assert.Equal(t, "distributions", info.ContextDir)
-	assert.Equal(t, "maas-consumer-portal", info.SourcePath)
+	assert.Equal(t, "maas-portal", info.SourcePath)
 }
 
 func TestMaaSPortalURL(t *testing.T) {
@@ -100,7 +100,7 @@ func TestMaaSPortalURL(t *testing.T) {
 		{
 			name:    "derives path URL from gateway domain",
 			domain:  "rh-ai.apps.example.com",
-			wantURL: "https://rh-ai.apps.example.com/maas-consumer-portal/",
+			wantURL: "https://rh-ai.apps.example.com/maas-portal/",
 			wantOK:  true,
 		},
 		{

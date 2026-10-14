@@ -1,114 +1,81 @@
 import * as React from 'react';
+import type { WorkingProjectIdentity } from '@odh-dashboard/foundation';
 
-export type ProjectIdentity = {
-  name: string;
-  displayName?: string;
-};
+/** The existing ui-core contract shares the platform-neutral identity with the resolution policy. */
+export type ProjectIdentity = WorkingProjectIdentity;
 
-export type WorkingProjectSelectionState =
-  | { status: 'provider-absent' }
-  | { status: 'loading' }
-  | {
-      status: 'ready';
-      projects: [ProjectIdentity, ...ProjectIdentity[]];
-      activeProject: ProjectIdentity;
-    }
-  | { status: 'no-accessible-projects'; projects: []; activeProject: null }
-  | {
-      status: 'list-unavailable';
-      /** Identities individually validated by the provider; not a complete project list. */
-      providerValidatedProjects: ProjectIdentity[];
-      activeProject: ProjectIdentity | null;
-    }
-  | { status: 'provider-error'; error: Error };
-
-export type ProvidedWorkingProjectState = Exclude<
-  WorkingProjectSelectionState,
-  { status: 'provider-absent' }
->;
+/** Lifecycle of the host's project source as exposed through the working-project context. */
+export type WorkingProjectStatus =
+  /** No working-project provider is mounted above the consumer. */
+  | 'provider-absent'
+  /** The host's project source is loading; previously supplied projects may be stale. */
+  | 'loading'
+  /** Listing succeeded and the supplied list contains at least one project. */
+  | 'listed'
+  /** Listing succeeded with an empty supplied list; this is not an authorization verdict. */
+  | 'empty-list'
+  /** Projects cannot be listed; individually validated projects may still be available. */
+  | 'listing-unavailable'
+  /** The host's project source failed, not the React provider itself. */
+  | 'project-source-error';
 
 export type WorkingProjectContextType = {
-  state: WorkingProjectSelectionState;
+  status: WorkingProjectStatus;
+  projects: readonly ProjectIdentity[];
+  activeProject: ProjectIdentity | null;
   selectProject: (project: ProjectIdentity) => void;
 };
 
 export type WorkingProjectProviderProps = {
   children: React.ReactNode;
-  state: ProvidedWorkingProjectState;
+  projects: readonly ProjectIdentity[];
+  activeProject: ProjectIdentity | null;
   onProjectChange: (project: ProjectIdentity) => void;
+  /** Omit for a successfully listed source; only a host adapter knows its lifecycle. */
+  status?: 'loading' | 'listed' | 'listing-unavailable' | 'project-source-error';
 };
 
-const providerAbsentState: WorkingProjectSelectionState = { status: 'provider-absent' };
-
 export const WorkingProjectContext = React.createContext<WorkingProjectContextType>({
-  state: providerAbsentState,
+  status: 'provider-absent',
+  projects: [],
+  activeProject: null,
   selectProject: () => undefined,
 });
 
-const getSelectableProjects = (state: WorkingProjectSelectionState): ProjectIdentity[] => {
-  switch (state.status) {
-    case 'ready':
-      return state.projects;
-    case 'list-unavailable':
-      return state.providerValidatedProjects;
-    case 'provider-absent':
-    case 'loading':
-    case 'no-accessible-projects':
-    case 'provider-error':
-      return [];
-  }
-};
+const noProjects: readonly ProjectIdentity[] = [];
 
 export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   children,
-  state,
+  projects,
+  activeProject,
   onProjectChange,
+  status: sourceStatus = 'listed',
 }) => {
-  const providerState = React.useMemo<WorkingProjectSelectionState>(() => {
-    if (state.status === 'ready') {
-      const activeProject = state.projects.find(({ name }) => name === state.activeProject.name);
-
-      if (!activeProject) {
-        return {
-          status: 'provider-error',
-          error: new Error('The active project must belong to the provider-known project set.'),
-        };
-      }
-
-      return activeProject === state.activeProject ? state : { ...state, activeProject };
-    }
-
-    if (state.status === 'list-unavailable' && state.activeProject) {
-      const activeProject = state.providerValidatedProjects.find(
-        ({ name }) => name === state.activeProject?.name,
-      );
-
-      if (!activeProject) {
-        return { ...state, activeProject: null };
-      }
-
-      return activeProject === state.activeProject ? state : { ...state, activeProject };
-    }
-
-    return state;
-  }, [state]);
+  // A list supplied while loading or after an error may be stale. With listing unavailable,
+  // only identities explicitly supplied by the host have been validated.
+  const knownProjects =
+    sourceStatus === 'loading' || sourceStatus === 'project-source-error' ? noProjects : projects;
+  const status: WorkingProjectStatus =
+    sourceStatus === 'listed' && knownProjects.length === 0 ? 'empty-list' : sourceStatus;
+  const knownActiveProject =
+    knownProjects.find(({ name }) => name === activeProject?.name) ??
+    (status === 'listed' ? knownProjects[0] : null) ??
+    null;
 
   const selectProject = React.useCallback(
     (project: ProjectIdentity): void => {
-      const selectableProject = getSelectableProjects(providerState).find(
-        ({ name }) => name === project.name,
-      );
+      const selectableProject = knownProjects.find(({ name }) => name === project.name);
 
       if (selectableProject) {
         onProjectChange(selectableProject);
       }
     },
-    [onProjectChange, providerState],
+    [onProjectChange, knownProjects],
   );
 
   const value = React.useMemo(
-    () => ({ state: providerState, selectProject }),
-    [providerState, selectProject],
+    () => ({ status, projects: knownProjects, activeProject: knownActiveProject, selectProject }),
+    [status, knownProjects, knownActiveProject, selectProject],
   );
 
   return <WorkingProjectContext.Provider value={value}>{children}</WorkingProjectContext.Provider>;

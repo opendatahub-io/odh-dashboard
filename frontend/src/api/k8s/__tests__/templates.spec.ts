@@ -1,4 +1,5 @@
 import { K8sStatus, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
+import YAML from 'yaml';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { genRandomChars } from '@odh-dashboard/foundation';
 import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
@@ -87,6 +88,27 @@ describe('assembleServingRuntimeTemplate', () => {
       [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
     );
     expect(result).toStrictEqual(servingRuntimeTemplatesMock);
+  });
+
+  it('should assemble install metadata from edited form inputs instead of copying source Template annotations', () => {
+    const source = mockServingRuntimeTemplateK8sResource({
+      apiProtocol: ServingRuntimeAPIProtocol.REST,
+      modelTypes: [ServingRuntimeModelType.PREDICTIVE],
+    });
+    const result = assembleServingRuntimeTemplate(
+      YAML.stringify(source.objects[0]),
+      namespace,
+      ServingRuntimeAPIProtocol.GRPC,
+      [ServingRuntimeModelType.GENERATIVE],
+    );
+    expect(result.metadata.annotations).toEqual(
+      expect.objectContaining({
+        'opendatahub.io/modelServingSupport': JSON.stringify([ServingRuntimePlatform.SINGLE]),
+        'opendatahub.io/model-type': JSON.stringify([ServingRuntimeModelType.GENERATIVE]),
+        'opendatahub.io/apiProtocol': ServingRuntimeAPIProtocol.GRPC,
+      }),
+    );
+    expect(result.objects[0]).toEqual(source.objects[0]);
   });
 
   it('should throw an error when servingRuntime name doesnt exist', () => {

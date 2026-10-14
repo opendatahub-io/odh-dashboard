@@ -39,6 +39,7 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   featureStoreAdmin?: boolean;
+  dataRegistry?: boolean;
   genAiStudio?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
@@ -95,7 +96,7 @@ export const mockDashboardConfig = ({
   genAiStudio = true,
   genAiTracing = false,
   automl = false,
-  autorag = false,
+  autorag = true,
   modelAsService = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
@@ -128,6 +129,7 @@ export const mockDashboardConfig = ({
   disableKueue = true,
   disableFeatureStore = true,
   featureStoreAdmin = false,
+  dataRegistry = false,
   trainingJobs = true,
   observabilityDashboard = true,
   disableLLMd = false,
@@ -326,6 +328,7 @@ export const mockDashboardConfig = ({
       disableKueue,
       disableFeatureStore,
       featureStoreAdmin,
+      dataRegistry,
       trainingJobs,
       observabilityDashboard,
       disableLLMd,

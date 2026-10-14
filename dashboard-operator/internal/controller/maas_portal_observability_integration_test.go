@@ -124,7 +124,7 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 			podLabel, found, err := unstructured.NestedString(portalPeer, "podSelector", "matchLabels", "app.kubernetes.io/part-of")
 			require.NoError(t, err)
 			require.True(t, found)
-			require.Equal(t, "maas-consumer-portal", podLabel)
+			require.Equal(t, "maas-portal", podLabel)
 			namespace, found, err := unstructured.NestedString(portalPeer, "namespaceSelector", "matchLabels", "kubernetes.io/metadata.name")
 			require.NoError(t, err)
 			require.True(t, found)
@@ -142,7 +142,7 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 				configuredObservability := dashboard.Spec.Observability
 				coreConfig := getConfigMap(t, "dashboard-core-config")
 				portal := &appsv1.Deployment{}
-				require.NoError(t, persesClient.Get(ctx, client.ObjectKey{Name: "maas-consumer-portal", Namespace: integrationNamespace}, portal))
+				require.NoError(t, persesClient.Get(ctx, client.ObjectKey{Name: "maas-portal", Namespace: integrationNamespace}, portal))
 				portalUID := portal.UID
 				dashboard.Spec.Observability = &v1alpha1.ObservabilitySpec{Enabled: false}
 				require.NoError(t, persesClient.Update(ctx, dashboard))
@@ -156,7 +156,7 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 				assert.Equal(t, portalUID, portal.UID)
 				require.NoError(t, persesClient.Get(ctx, client.ObjectKeyFromObject(service), &corev1.Service{}))
 				assert.Equal(t, "Disabled", conditionReason(getDashboard(t), conditionObservabilityAvailable))
-				for _, configMap := range []string{"federation-config", "maas-consumer-portal-federation-config"} {
+				for _, configMap := range []string{"federation-config", "maas-portal-federation-config"} {
 					assert.Nil(t, findFederationEntry(parseFederationEntries(t, getConfigMap(t, configMap)), "perses"))
 				}
 				dashboard = getDashboard(t)
@@ -184,13 +184,13 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 				assert.Equal(t, originalUIDs[i], resource.GetUID(), "observability must be retained through core removal")
 			}
 			assert.Equal(t, metav1.ConditionTrue, conditionStatus(getDashboard(t), conditionObservabilityAvailable))
-			entries := parseFederationEntries(t, getConfigMap(t, "maas-consumer-portal-federation-config"))
+			entries := parseFederationEntries(t, getConfigMap(t, "maas-portal-federation-config"))
 			require.NotNil(t, findFederationEntry(entries, "perses"))
 			assert.True(t, apierrors.IsNotFound(persesClient.Get(ctx, client.ObjectKey{Name: "dashboard-core-config", Namespace: integrationNamespace}, &corev1.ConfigMap{})))
 
 			// Make the portal healthy so its own readiness retry cannot mask an
 			// observability failure that otherwise would never be retried.
-			for _, name := range []string{"maas-consumer-portal", "maas-ui", "gen-ai-ui"} {
+			for _, name := range []string{"maas-portal", "maas-ui", "gen-ai-ui"} {
 				deployment := &appsv1.Deployment{}
 				require.NoError(t, persesClient.Get(ctx, client.ObjectKey{Name: name, Namespace: integrationNamespace}, deployment))
 				deployment.Status.ObservedGeneration = deployment.Generation
@@ -200,7 +200,7 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 				require.NoError(t, persesClient.Status().Update(ctx, deployment))
 			}
 			route := &gatewayv1.HTTPRoute{}
-			require.NoError(t, persesClient.Get(ctx, client.ObjectKey{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
+			require.NoError(t, persesClient.Get(ctx, client.ObjectKey{Name: "maas-portal", Namespace: integrationNamespace}, route))
 			route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
 				{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 				{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
@@ -213,7 +213,7 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 			validManifest, err := os.ReadFile(configMapPath)
 			require.NoError(t, err)
 			require.NoError(t, os.WriteFile(configMapPath, append(validManifest, []byte("  invalid key: rejected\n")...), 0644))
-			federation := getConfigMap(t, "maas-consumer-portal-federation-config")
+			federation := getConfigMap(t, "maas-portal-federation-config")
 			assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, reconcile(t, r).RequeueAfter)
 			failedDashboard := getDashboard(t)
 			assert.Equal(t, "DeployFailed", conditionReason(failedDashboard, conditionObservabilityAvailable))
@@ -246,7 +246,7 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 				assert.True(t, apierrors.IsNotFound(persesClient.Get(ctx, client.ObjectKeyFromObject(resource), resource)), resource.GetName())
 			}
 			assert.Equal(t, "Disabled", conditionReason(getDashboard(t), conditionObservabilityAvailable))
-			entries = parseFederationEntries(t, getConfigMap(t, "maas-consumer-portal-federation-config"))
+			entries = parseFederationEntries(t, getConfigMap(t, "maas-portal-federation-config"))
 			assert.Nil(t, findFederationEntry(entries, "perses"))
 			dashboard = getDashboard(t)
 			dashboard.Spec.Observability = configuredObservability
