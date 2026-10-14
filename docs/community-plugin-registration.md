@@ -114,6 +114,20 @@ community entries and does not fail reconciliation. CAI must cause an existing
 reconciliation trigger after creating, changing, or deleting the source; the
 normal integration mechanism is a main Dashboard Deployment event.
 
+The generated `federation-config` ConfigMap keeps three operator-owned data
+keys:
+
+- `dashboard-federation-config.json` contains Dashboard-owned entries.
+- `community-federation-config.json` contains accepted community entries.
+- `module-federation-config.json` contains the effective combined runtime
+  configuration and remains the only key injected into Dashboard.
+
+If the community source cannot be read because of a transient API or RBAC
+error, the operator retains the last-known-good community key while rebuilding
+Dashboard entries and the effective runtime configuration. A confirmed missing
+source instead clears the community key and removes its entries from the
+runtime configuration.
+
 Accepted entries are sorted with built-in entries before the generated
 `federation-config` is written. This makes the effective configuration and its
 deployment hash deterministic. A material accepted-entry change updates the

@@ -97,6 +97,9 @@ func validateCommunityFederationEntry(entry federationEntry, existingNames map[s
 	if _, exists := existingNames[entry.Name]; exists {
 		return fmt.Errorf("community plugin entry key %q collides with an existing federation entry", entry.Name)
 	}
+	if entry.Backend == nil {
+		return errors.New("community plugin entry must include a backend")
+	}
 	if err := validateCommunityRemoteEntryPath(entry.Backend.RemoteEntry); err != nil {
 		return err
 	}
@@ -214,6 +217,42 @@ func communityFederationEntries(
 			continue
 		}
 
+		entries = append(entries, entry)
+	}
+
+	return entries, nil
+}
+
+// lastKnownGoodCommunityFederationEntries returns the explicitly persisted
+// community entries from the operator-owned federation ConfigMap. It is used
+// only when the optional source cannot be read, so a transient source failure
+// neither removes accepted community plugins nor blocks Dashboard updates.
+func (r *DashboardReconciler) lastKnownGoodCommunityFederationEntries(ctx context.Context) ([]federationEntry, error) {
+	existing := &corev1.ConfigMap{}
+	key := client.ObjectKey{Name: federationConfigMapName, Namespace: r.ApplicationsNamespace}
+	if err := r.Get(ctx, key, existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("getting generated federation ConfigMap: %w", err)
+	}
+
+	existingData, exists := existing.Data[communityFederationConfigKey]
+	if !exists {
+		return nil, nil
+	}
+	var existingEntries []federationEntry
+	if err := json.Unmarshal([]byte(existingData), &existingEntries); err != nil {
+		return nil, fmt.Errorf("decoding generated federation entries: %w", err)
+	}
+
+	existingNames := reservedDashboardFederationNames()
+	entries := make([]federationEntry, 0, len(existingEntries))
+	for _, entry := range existingEntries {
+		if err := validateCommunityFederationEntry(entry, existingNames); err != nil {
+			return nil, fmt.Errorf("validating last-known-good community entry %q: %w", entry.Name, err)
+		}
+		existingNames[entry.Name] = struct{}{}
 		entries = append(entries, entry)
 	}
 

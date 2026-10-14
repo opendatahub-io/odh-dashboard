@@ -32,10 +32,13 @@ import (
 )
 
 const (
-	federationConfigMapName  = "federation-config"
-	federationConfigKey      = "module-federation-config.json"
-	moduleComponentLabel     = "app.kubernetes.io/component"
-	dataConnectHubModuleName = "dataConnectHub"
+	federationConfigMapName      = "federation-config"
+	federationConfigKey          = "module-federation-config.json"
+	dashboardFederationConfigKey = "dashboard-federation-config.json"
+	communityFederationConfigKey = "community-federation-config.json"
+	runtimeFederationConfigKey   = federationConfigKey
+	moduleComponentLabel         = "app.kubernetes.io/component"
+	dataConnectHubModuleName     = "dataConnectHub"
 )
 
 var moduleFederationRemoteName = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
@@ -360,17 +363,33 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 	statuses map[string]v1alpha1.ModuleStatus,
 	dashboard *v1alpha1.Dashboard,
 ) (*corev1.ConfigMap, error) {
-	entries := r.dashboardFederationEntries(statuses, dashboard)
+	dashboardEntries := r.dashboardFederationEntries(statuses, dashboard)
 
-	communityEntries, err := communityFederationEntries(ctx, r.Client, entries)
+	communityEntries, err := communityFederationEntries(ctx, r.Client, dashboardEntries)
 	if err != nil {
-		return nil, fmt.Errorf("reading community plugin federation entries: %w", err)
+		// The community source is optional. Retain its last-known-good entries so
+		// a read failure cannot block Dashboard federation updates or cause a
+		// transient disappearance of every accepted community plugin.
+		log.FromContext(ctx).Error(err, "Unable to read community plugin federation entries; retaining last-known-good entries")
+		communityEntries, err = r.lastKnownGoodCommunityFederationEntries(ctx)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "Unable to retain last-known-good community plugin federation entries")
+			communityEntries = nil
+		}
 	}
 
-	entries = append(entries, communityEntries...)
-	data, err := marshalFederationEntries(entries)
+	dashboardData, err := marshalFederationEntries(dashboardEntries)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal federation config: %w", err)
+		return nil, fmt.Errorf("marshalling Dashboard federation config: %w", err)
+	}
+	communityData, err := marshalFederationEntries(communityEntries)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling community federation config: %w", err)
+	}
+	runtimeEntries := append(append([]federationEntry{}, dashboardEntries...), communityEntries...)
+	runtimeData, err := marshalFederationEntries(runtimeEntries)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling runtime federation config: %w", err)
 	}
 
 	cm := &corev1.ConfigMap{
@@ -383,7 +402,9 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 			Namespace: r.ApplicationsNamespace,
 		},
 		Data: map[string]string{
-			federationConfigKey: string(data),
+			dashboardFederationConfigKey: string(dashboardData),
+			communityFederationConfigKey: string(communityData),
+			runtimeFederationConfigKey:   string(runtimeData),
 		},
 	}
 
@@ -498,7 +519,7 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 		return "", fmt.Errorf("deploying federation ConfigMap: %w", err)
 	}
 
-	return fedCM.Data[federationConfigKey], nil
+	return fedCM.Data[runtimeFederationConfigKey], nil
 }
 
 // preservePersesFederationEntry retains the last-known-good Perses entry while

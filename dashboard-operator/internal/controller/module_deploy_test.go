@@ -375,6 +375,7 @@ func TestBuildFederationConfigMap_CommunityPluginsNamespaceOrConfigMapAbsentPres
 	}
 	baseline, err := ctrlpkg.BuildFederationConfigMap(withoutSource, statuses, dashboard)
 	require.NoError(t, err)
+	assert.Equal(t, "[]", baseline.Data["community-federation-config.json"])
 
 	communityNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}}
 	withNamespaceWithoutSource := &ctrlpkg.DashboardReconciler{
@@ -387,6 +388,82 @@ func TestBuildFederationConfigMap_CommunityPluginsNamespaceOrConfigMapAbsentPres
 	require.NoError(t, err)
 
 	assert.Equal(t, baseline.Data["module-federation-config.json"], withoutConfigMap.Data["module-federation-config.json"])
+}
+
+func TestBuildFederationConfigMap_RetainsCommunityPluginsWhenSourceReadFails(t *testing.T) {
+	for _, tt := range []struct {
+		name             string
+		includeNamespace bool
+		failsGet         func(client.ObjectKey) bool
+	}{
+		{
+			name: "namespace lookup",
+			failsGet: func(key client.ObjectKey) bool {
+				return key.Name == ctrlpkg.CommunityPluginsNamespace && key.Namespace == ""
+			},
+		},
+		{
+			name:             "ConfigMap lookup",
+			includeNamespace: true,
+			failsGet: func(key client.ObjectKey) bool {
+				return key.Name == "community-plugins-config" && key.Namespace == ctrlpkg.CommunityPluginsNamespace
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testScheme(t)
+			lastKnownGood := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "federation-config", Namespace: testNamespace},
+				Data: map[string]string{"community-federation-config.json": `[
+  {
+    "name": "lastKnownGoodPlugin",
+    "backend": {
+      "remoteEntry": "/remoteEntry.js",
+      "service": {"name": "plugin-ui", "namespace": "cai-plugin-system", "port": 8080}
+    },
+    "proxyService": [{
+      "path": "/community-plugins/lastKnownGoodPlugin/api",
+      "pathRewrite": "/api",
+      "service": {"name": "plugin-bff", "namespace": "cai-plugin-system", "port": 3000}
+    }]
+  }
+
+]`},
+			}
+			objects := []client.Object{lastKnownGood}
+			if tt.includeNamespace {
+				objects = append(objects, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ctrlpkg.CommunityPluginsNamespace}})
+			}
+			cli := fake.NewClientBuilder().WithScheme(s).WithObjects(objects...).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+						if tt.failsGet(key) {
+							return assert.AnError
+						}
+						return delegate.Get(ctx, key, obj, opts...)
+					},
+				}).Build()
+			r := &ctrlpkg.DashboardReconciler{
+				Client:                cli,
+				Scheme:                s,
+				Platform:              cluster.OpenDataHub,
+				ApplicationsNamespace: testNamespace,
+			}
+
+			cm, err := ctrlpkg.BuildFederationConfigMap(r, allDeployedStatuses(), &v1alpha1.Dashboard{})
+			require.NoError(t, err)
+
+			var entries []map[string]interface{}
+			require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
+			byName := make(map[string]map[string]interface{}, len(entries))
+			for _, entry := range entries {
+				byName[entry["name"].(string)] = entry
+			}
+			assert.Contains(t, byName, "lastKnownGoodPlugin")
+			assert.Contains(t, byName, "modelRegistry", "Dashboard-owned entries must still be regenerated")
+			assert.Contains(t, cm.Data["community-federation-config.json"], "lastKnownGoodPlugin")
+		})
+	}
 }
 
 func TestBuildFederationConfigMap_MergesCommunityPluginWithDashboardEntries(t *testing.T) {
@@ -429,6 +506,10 @@ func TestBuildFederationConfigMap_MergesCommunityPluginWithDashboardEntries(t *t
 
 	cm, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
 	require.NoError(t, err)
+	assert.Len(t, cm.Data, 3)
+	assert.Contains(t, cm.Data, "dashboard-federation-config.json")
+	assert.Contains(t, cm.Data, "community-federation-config.json")
+	assert.Contains(t, cm.Data, "module-federation-config.json")
 
 	var entries []map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
@@ -462,6 +543,15 @@ func TestBuildFederationConfigMap_MergesCommunityPluginWithDashboardEntries(t *t
 	assert.Contains(t, dashboardModule, "proxyService")
 	assert.NotContains(t, dashboardModule, "remoteEntry")
 	assert.NotContains(t, dashboardModule, "service")
+
+	var dashboardEntries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(cm.Data["dashboard-federation-config.json"]), &dashboardEntries))
+	assert.NotContains(t, dashboardEntries, community)
+	var savedCommunityEntries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(cm.Data["community-federation-config.json"]), &savedCommunityEntries))
+	require.Len(t, savedCommunityEntries, 2)
+	assert.Equal(t, "analyticsPlugin", savedCommunityEntries[0]["name"])
+	assert.Equal(t, "communityPluginsAdmin", savedCommunityEntries[1]["name"])
 
 	require.NoError(t, cli.Delete(context.Background(), communitySource))
 	withoutCommunity, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})

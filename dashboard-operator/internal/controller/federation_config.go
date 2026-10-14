@@ -45,6 +45,9 @@ func explicitFederationTarget(authorize, tls bool, service serviceRef) federatio
 }
 
 func marshalFederationEntries(entries []federationEntry) ([]byte, error) {
+	if entries == nil {
+		entries = []federationEntry{}
+	}
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Name < entries[j].Name
 	})
