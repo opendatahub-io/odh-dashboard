@@ -33,7 +33,7 @@ const EvalHubEmptyState: React.FC = () => {
             variant="primary"
             data-testid="create-evaluation-button"
             onClick={() => {
-              trackEvalHubEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED);
+              trackEvalHubEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED, {});
               navigate({ search: '?tab=evaluate' });
             }}
           >

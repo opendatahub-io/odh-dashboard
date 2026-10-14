@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import isEqual from 'lodash-es/isEqual';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import {
   getThresholdInputValue,
@@ -1107,7 +1108,8 @@ export function useCopySuiteForm({
       trackEvalHubEvent(
         EVAL_HUB_EVENTS.COLLECTION_SAVED,
         {
-          outcome: 'success',
+          outcome: TrackingOutcome.submit,
+          success: true,
           collectionName: savedCollection.name,
           saveMode: isCreateMode ? 'create' : isEditMode ? 'edit' : 'copy',
         },
@@ -1128,7 +1130,8 @@ export function useCopySuiteForm({
         trackEvalHubEvent(
           EVAL_HUB_EVENTS.COLLECTION_SAVED,
           {
-            outcome: 'error',
+            outcome: TrackingOutcome.submit,
+            success: false,
             // eslint-disable-next-line camelcase -- API tracking field name.
             error_category: e instanceof Error ? e.name : 'unknown_error',
             saveMode: isCreateMode ? 'create' : isEditMode ? 'edit' : 'copy',

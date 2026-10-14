@@ -1,3 +1,5 @@
+import type { TrackingOutcome } from '@odh-dashboard/ui-core';
+
 export const EVAL_HUB_EVENTS = {
   PAGE_VIEWED: 'Evaluations Page Viewed',
   START_EVALUATION_SELECTED: 'Evaluations Start Evaluation Selected',
@@ -39,6 +41,9 @@ export const EVAL_HUB_EVENTS = {
   COLLECTION_DELETED: 'evalhub.collection.deleted',
 } as const;
 
+export type EvalHubCollectionSurface =
+  'collection_gallery' | 'my_benchmark_suites' | 'curated_gallery';
+
 /**
  * `source` identifies which page/surface the user initiated the evaluation flow from.
  * Currently always 'evaluations_page', but future entry points (e.g. a model detail
@@ -47,7 +52,7 @@ export const EVAL_HUB_EVENTS = {
 export type EvaluationRunStartedProperties = {
   source: string;
   evaluationName?: string;
-  sourceType?: 'inference_endpoint' | 'pre_recorded_responses';
+  sourceType?: 'model' | 'agent' | 'pre_recorded_responses';
   modelName?: string;
   endpointOrigin?: string;
   hasAPIKey?: boolean;
@@ -56,7 +61,7 @@ export type EvaluationRunStartedProperties = {
   hasAccessToken?: boolean;
   hasAdditionalArguments?: boolean;
   countOfAdditionalArguments?: number;
-  outcome?: string;
+  outcome?: TrackingOutcome;
   success?: boolean;
   errorName?: string;
 };
@@ -77,8 +82,9 @@ export type EvaluationDeletedProperties = {
 };
 
 export type ExternalLinkClickedProperties = {
-  href: string;
-  section?: string;
+  url: string;
+  benchmarkId: string;
+  surface: string;
 };
 
 export type MlflowExperimentSelectedProperties = {
@@ -94,8 +100,8 @@ export type ResultBenchmarkCardSelectedProperties = {
 
 export type BenchmarkRunSelectedProperties = {
   collectionName?: string;
-  /** Array of benchmark type IDs. Serialised as a JSON string when sent to Segment. */
-  benchmarkTypes: string[];
+  /** JSON-serialised array of benchmark type IDs. */
+  benchmarkTypes: string;
   runType: 'single' | 'collection';
   countOfBenchmarks: number;
 };
@@ -179,4 +185,108 @@ export type SecurityInsightsPaginationChangedProperties = {
   page: number;
   perPage: number;
   totalItems: number;
+};
+
+export type PageViewedProperties = {
+  surface: string;
+};
+
+export type StartEvaluationSelectedProperties = Record<string, never>;
+
+export type CollectionGalleryViewedProperties = {
+  surface: EvalHubCollectionSurface;
+};
+
+export type CollectionTileProperties = {
+  collectionName: string;
+  surface: EvalHubCollectionSurface;
+};
+
+export type JobCreateOpenedProperties = {
+  surface: string;
+};
+
+export type JobCreateValidationFailedProperties = {
+  validation_error_category: 'form_invalid' | 'parameters_not_object' | 'parameters_invalid_json';
+};
+
+export type ComparisonViewRenderedProperties = {
+  surface: string;
+  countOfRuns: number;
+};
+
+export type JobDetailOpenedProperties = {
+  evaluationName: string;
+  state: string;
+};
+
+export type FailureDetailOpenedProperties = {
+  evaluationName: string;
+  failure_category: string;
+  benchmarkIndex?: number;
+};
+
+export type CollectionCustomizeProperties = CollectionTileProperties;
+
+export type CollectionCreateOpenedProperties = {
+  surface: EvalHubCollectionSurface;
+};
+
+export type CollectionSavedProperties = {
+  outcome: TrackingOutcome.submit;
+  success: boolean;
+  collectionName?: string;
+  saveMode: 'create' | 'edit' | 'copy';
+  error_category?: string;
+};
+
+export type ReportGenerationTriggeredProperties = Record<string, never>;
+
+export type CollectionDeletedProperties = {
+  collectionName: string;
+  outcome: 'success' | 'error';
+  error_category?: string;
+};
+
+export type EvalHubEventName = (typeof EVAL_HUB_EVENTS)[keyof typeof EVAL_HUB_EVENTS];
+
+export type EvalHubEventProperties = {
+  [EVAL_HUB_EVENTS.PAGE_VIEWED]: PageViewedProperties;
+  [EVAL_HUB_EVENTS.START_EVALUATION_SELECTED]: StartEvaluationSelectedProperties;
+  [EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED]: EvaluationRunStartedProperties;
+  [EVAL_HUB_EVENTS.EVALUATION_COMPLETED]: EvaluationCompletedProperties;
+  [EVAL_HUB_EVENTS.EVALUATION_DELETED]: EvaluationDeletedProperties;
+  [EVAL_HUB_EVENTS.EVALUATION_STOPPED]: EvaluationDeletedProperties;
+  [EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED]: ExternalLinkClickedProperties;
+  [EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED]: MlflowExperimentSelectedProperties;
+  [EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED]: ResultBenchmarkCardSelectedProperties;
+  [EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED]: BenchmarkRunSelectedProperties;
+  [EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED]: CompareRunSelectedProperties;
+  [EVAL_HUB_EVENTS.COMPARE_INITIATED]: CompareInitiatedProperties;
+  [EVAL_HUB_EVENTS.COMPARE_BENCHMARK_CHOSEN]: CompareBenchmarkChosenProperties;
+  [EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED]: RunSourceSelectedProperties;
+  [EVAL_HUB_EVENTS.RUN_MODEL_SELECTED]: RunModelSelectedProperties;
+  [EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED]: ExternalConnectionTestedProperties;
+  [EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED]: RunThresholdChangedProperties;
+  [EVAL_HUB_EVENTS.RUN_METRIC_SELECTED]: RunMetricSelectedProperties;
+  [EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED]: RunParameterChangedProperties;
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED]: SecurityInsightsViewedProperties;
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED]: SecurityInsightsFilterTypeChangedProperties;
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED]: SecurityInsightsFilterAppliedProperties;
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED]: SecurityInsightsSortChangedProperties;
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED]: SecurityInsightsPaginationChangedProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED]: CollectionGalleryViewedProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED]: CollectionTileProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED]: CollectionTileProperties;
+  [EVAL_HUB_EVENTS.JOB_CREATE_OPENED]: JobCreateOpenedProperties;
+  [EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED]: JobCreateValidationFailedProperties;
+  [EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED]: ComparisonViewRenderedProperties;
+  [EVAL_HUB_EVENTS.JOB_DETAIL_OPENED]: JobDetailOpenedProperties;
+  [EVAL_HUB_EVENTS.FAILURE_DETAIL_OPENED]: FailureDetailOpenedProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED]: CollectionCustomizeProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED]: CollectionTileProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED]: CollectionCreateOpenedProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_SAVED]: CollectionSavedProperties;
+  [EVAL_HUB_EVENTS.REPORT_GENERATION_TRIGGERED]: ReportGenerationTriggeredProperties;
+  [EVAL_HUB_EVENTS.COLLECTION_DELETED]: CollectionDeletedProperties;
 };

@@ -4,6 +4,9 @@ import {
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import type { EvalHubEventName, EvalHubEventProperties } from './evalhubTrackingConstants';
+
+export type { EvalHubCollectionSurface } from './evalhubTrackingConstants';
 
 declare global {
   interface Window {
@@ -13,9 +16,6 @@ declare global {
 
 export type EvalHubCollectionType = 'system' | 'custom' | 'unknown';
 
-export type EvalHubCollectionSurface =
-  'collection_gallery' | 'my_benchmark_suites' | 'curated_gallery';
-
 export type EvalHubTrackingContext = {
   collectionType?: EvalHubCollectionType;
   providerType?: string;
@@ -23,10 +23,10 @@ export type EvalHubTrackingContext = {
 
 export type EvalHubTrackingProperties = Record<string, unknown>;
 
-export type EvalHubTrackingOnce = (
-  eventName: string,
+export type EvalHubTrackingOnce = <TEventName extends EvalHubEventName>(
+  eventName: TEventName,
   key: string,
-  properties?: EvalHubTrackingProperties,
+  properties: EvalHubEventProperties[TEventName],
   context?: EvalHubTrackingContext,
 ) => void;
 
@@ -83,9 +83,9 @@ const getFormTrackingProperties = (
   return formProperties;
 };
 
-export const trackEvalHubEvent = (
-  eventName: string,
-  properties: EvalHubTrackingProperties = {},
+export const trackEvalHubEvent = <TEventName extends EvalHubEventName>(
+  eventName: TEventName,
+  properties: EvalHubEventProperties[TEventName],
   context: EvalHubTrackingContext = {},
 ): void => {
   const enrichedProps = {
@@ -97,17 +97,18 @@ export const trackEvalHubEvent = (
   };
 
   // Use fireFormTrackingEvent for events with a form outcome (submit/cancel)
-  if (isTrackingOutcome(properties.outcome)) {
-    fireFormTrackingEvent(eventName, getFormTrackingProperties(enrichedProps, properties.outcome));
+  const outcome = 'outcome' in properties ? properties.outcome : undefined;
+  if (isTrackingOutcome(outcome)) {
+    fireFormTrackingEvent(eventName, getFormTrackingProperties(enrichedProps, outcome));
   } else {
     fireMiscTrackingEvent(eventName, enrichedProps);
   }
 };
 
-const trackEvalHubEventOnceInScope = (
-  eventName: string,
+const trackEvalHubEventOnceInScope = <TEventName extends EvalHubEventName>(
+  eventName: TEventName,
   key: string,
-  properties: EvalHubTrackingProperties = {},
+  properties: EvalHubEventProperties[TEventName],
   context: EvalHubTrackingContext = {},
   viewKeys?: Set<string>,
 ): void => {
