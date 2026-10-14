@@ -7,6 +7,10 @@ import { runtimeCatalogDetailsPage } from '../../../../pages/runtimeCatalogDetai
 import { pageNotfound } from '../../../../pages/pageNotFound';
 import { verifyModelCatalogDeployment } from '../../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../../utils/retryableHooks';
+import {
+  interceptRuntimeCatalogList,
+  verifyRuntimeCatalogListFilteredByHardware,
+} from '../../../../utils/runtimeCatalogUtils';
 
 describe('Verify the Runtime image library on Model deployment settings', () => {
   let testData: Record<string, string>;
@@ -27,7 +31,11 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
 
   it(
     'Admin can filter the runtime image library, open a runtime image and see the Install action',
-    { tags: ['@Dashboard', '@Featureflagged', '@RuntimeCatalog'] },
+    {
+      // @Maintain until the catalog server serves runtime images and the Install action is
+      // registered on the details page (RHOAIENG-96642); the non-admin test runs today.
+      tags: ['@Dashboard', '@Featureflagged', '@RuntimeCatalog', '@Maintain'],
+    },
     () => {
       cy.step('Log in as admin with the runtimeCatalog feature flag enabled');
       cy.visitWithLogin(`/${testData.devFeatureFlagsQuery}`, LDAP_ADMIN_USER);
@@ -47,8 +55,12 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
         .first()
         .then(($checkbox) => {
           const hardware = runtimeCatalogPage.getHardwareFilterValue($checkbox);
+          interceptRuntimeCatalogList();
           cy.wrap($checkbox).check();
           runtimeCatalogPage.findHardwareFilterChip(hardware).should('exist');
+
+          cy.step('Verify the runtime image list is requested with the selected hardware');
+          verifyRuntimeCatalogListFilteredByHardware(hardware);
         });
       runtimeCatalogPage.findHardwareFilterChips().should('have.length', 1);
 
