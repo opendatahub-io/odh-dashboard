@@ -122,9 +122,7 @@ const interceptShouldShowSecurityArtifacts = (hasData = true) => {
   cy.intercept(
     {
       method: 'GET',
-      url: new RegExp(
-        `/model-registry/api/${API_VERSION}/model_catalog/sources/.*/security_artifacts/.*`,
-      ),
+      url: new RegExp(`/eval-hub/api/${API_VERSION}/catalog/sources/.*/security_artifacts/.*`),
     },
     {
       body: {
@@ -152,6 +150,8 @@ const interceptShouldShowQualityArtifacts = (hasData = true) => {
     {
       method: 'GET',
       url: new RegExp(`/eval-hub/api/${API_VERSION}/catalog/sources/.*/quality_artifacts/.*`),
+      query: { pageSize: '1' },
+      times: 1,
     },
     {
       body: {
@@ -223,8 +223,8 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
   });
 
   it('should show quality insights when evaluation artifacts exist', () => {
-    interceptShouldShowQualityArtifacts(true);
     interceptQualityArtifacts();
+    interceptShouldShowQualityArtifacts(true);
     modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
 
     modelDetailsPage.findQualityInsightsTab().should('exist');

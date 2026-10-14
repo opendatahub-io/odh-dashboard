@@ -15,6 +15,29 @@ type UseQualityArtifactsResult = {
 
 const EMPTY_RESPONSE: CatalogQualityArtifactList = { items: [] };
 
+const fetchAllQualityArtifacts = async (
+  fetchPage: (nextPageToken?: string) => Promise<CatalogQualityArtifactList>,
+): Promise<CatalogQualityArtifactList> => {
+  const items: CatalogQualityArtifactList['items'] = [];
+  const seenTokens = new Set<string>();
+  let nextPageToken: string | undefined;
+
+  do {
+    const response = await fetchPage(nextPageToken);
+    items.push(...response.items);
+    nextPageToken = response.nextPageToken?.trim() || undefined;
+
+    if (nextPageToken && seenTokens.has(nextPageToken)) {
+      throw new Error('Catalog quality artifacts pagination returned a repeated page token.');
+    }
+    if (nextPageToken) {
+      seenTokens.add(nextPageToken);
+    }
+  } while (nextPageToken);
+
+  return { items };
+};
+
 const useQualityArtifacts = (
   sourceId: string,
   modelName: string,
@@ -23,7 +46,16 @@ const useQualityArtifacts = (
 ): UseQualityArtifactsResult => {
   const callback = React.useCallback<FetchStateCallbackPromise<CatalogQualityArtifactList>>(
     (opts: APIOptions) =>
-      getCatalogQualityArtifacts('', sourceId, modelName, namespace, pageSize)(opts),
+      fetchAllQualityArtifacts((nextPageToken) =>
+        getCatalogQualityArtifacts(
+          '',
+          sourceId,
+          modelName,
+          namespace,
+          pageSize,
+          nextPageToken,
+        )(opts),
+      ),
     [sourceId, modelName, namespace, pageSize],
   );
 

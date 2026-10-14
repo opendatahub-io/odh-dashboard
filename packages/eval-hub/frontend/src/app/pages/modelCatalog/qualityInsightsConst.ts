@@ -42,7 +42,10 @@ export const getQualityFilterValue = (
   }
 };
 
-export const getQualitySortableValue = (insight: QualityInsight, columnIndex: number): string => {
+export const getQualitySortableValue = (
+  insight: QualityInsight,
+  columnIndex: number,
+): string | number | undefined => {
   switch (columnIndex) {
     case 0:
       return insight.evaluation.toLowerCase();
@@ -51,7 +54,7 @@ export const getQualitySortableValue = (insight: QualityInsight, columnIndex: nu
     case 2:
       return insight.benchmarkName.toLowerCase();
     case 3:
-      return insight.result.toLowerCase();
+      return insight.score;
     default:
       return '';
   }

@@ -653,7 +653,14 @@ export const getCatalogSecurityArtifacts =
   };
 
 export const getCatalogQualityArtifacts =
-  (hostPath: string, sourceId: string, modelName: string, namespace?: string, pageSize?: number) =>
+  (
+    hostPath: string,
+    sourceId: string,
+    modelName: string,
+    namespace?: string,
+    pageSize?: number,
+    nextPageToken?: string,
+  ) =>
   (opts: APIOptions): Promise<CatalogQualityArtifactList> => {
     const queryParams: Record<string, string> = {};
     if (namespace) {
@@ -661,6 +668,9 @@ export const getCatalogQualityArtifacts =
     }
     if (pageSize != null) {
       queryParams.pageSize = String(pageSize);
+    }
+    if (nextPageToken) {
+      queryParams.nextPageToken = nextPageToken;
     }
 
     return handleRestFailures(

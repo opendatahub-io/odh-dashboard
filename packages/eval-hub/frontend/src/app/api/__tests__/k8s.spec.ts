@@ -26,6 +26,7 @@ import {
   isLogServerError,
   getEvaluationJobLogs,
   getEvaluationJobBenchmarkLogs,
+  getCatalogQualityArtifacts,
 } from '~/app/api/k8s';
 import type {
   Collection,
@@ -124,6 +125,35 @@ describe('getEvalHubCRStatus', () => {
       expect.any(String),
       expect.any(Object),
       expect.any(Object),
+    );
+  });
+});
+
+describe('getCatalogQualityArtifacts', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should include page size and next page token in the request', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const opts = {};
+    await getCatalogQualityArtifacts(
+      '',
+      'source-1',
+      'model-1',
+      'namespace-1',
+      100,
+      'token-2',
+    )(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/catalog/sources/source-1/quality_artifacts/model-1',
+      { namespace: 'namespace-1', pageSize: '100', nextPageToken: 'token-2' },
+      opts,
     );
   });
 });

@@ -60,6 +60,7 @@ export type QualityInsight = {
   category: string;
   benchmarkName: string;
   benchmarkDescription: string;
+  score: number | undefined;
   result: string;
 };
 
@@ -73,6 +74,7 @@ export const mapArtifactToQualityInsight = (artifact: CatalogQualityArtifact): Q
     category: props?.category?.string_value ?? '',
     benchmarkName: props?.benchmark?.string_value ?? '',
     benchmarkDescription: props?.description?.string_value ?? '',
+    score: validResult,
     result: formatRate(validResult),
   };
 };

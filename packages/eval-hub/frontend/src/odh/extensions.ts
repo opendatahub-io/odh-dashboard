@@ -84,7 +84,8 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
       title: 'Safety and security insights',
       group: 'model-catalog.details',
       component: () => import('../app/pages/modelCatalog/SecurityInsightsTab'),
-      shouldShow: (props) => hasCatalogArtifacts(props, 'security_artifacts'),
+      shouldShow: (props) =>
+        hasCatalogArtifacts(props, 'security_artifacts', {}, '/eval-hub/api/v1/catalog/sources'),
     },
   } satisfies DetailTabExtension,
   {

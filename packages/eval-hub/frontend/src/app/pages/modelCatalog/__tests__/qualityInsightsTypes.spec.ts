@@ -30,6 +30,7 @@ describe('mapArtifactToQualityInsight', () => {
       category: 'code',
       benchmarkName: 'HumanEval',
       benchmarkDescription: 'Writes correct Python functions.',
+      score: 0.628,
       result: '62.8%',
     });
   });
@@ -40,6 +41,7 @@ describe('mapArtifactToQualityInsight', () => {
       category: '',
       benchmarkName: '',
       benchmarkDescription: '',
+      score: undefined,
       result: '',
     });
   });
@@ -77,6 +79,7 @@ describe('mapArtifactToQualityInsight', () => {
       category: 'reasoning',
       benchmarkName: 'BBH',
       benchmarkDescription: 'Reasoning benchmark.',
+      score: 0.254732,
       result: '25.5%',
     });
   });

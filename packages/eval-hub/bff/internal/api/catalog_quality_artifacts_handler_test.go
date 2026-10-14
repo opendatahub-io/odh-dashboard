@@ -4,8 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 
+	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
@@ -57,13 +61,17 @@ func TestGetCatalogModelQualityArtifactsHandlerAddsEvaluationFilter(t *testing.T
 
 	client.CallHandler = func(_ context.Context, method, path string, _ interface{}, response interface{}) error {
 		assert.Equal(t, http.MethodGet, method)
-		assert.Contains(t, path, "/model_catalog/sources/sample-source/artifacts/granite-8b")
-		assert.Contains(t, path, "artifactType=metrics-artifact")
-		assert.Contains(t, path, "filterQuery=metricsType.string_value%3D%22evaluation-metrics%22")
-		assert.Contains(t, path, "pageSize=1")
-		assert.Contains(t, path, "nextPageToken=token-2")
-		assert.Contains(t, path, "orderBy=created_at")
-		assert.Contains(t, path, "sortOrder=desc")
+		parsedURL, err := url.Parse(path)
+		require.NoError(t, err)
+		assert.Equal(t, "/model_catalog/sources/sample-source/artifacts/granite-8b", parsedURL.Path)
+		assert.Equal(t, url.Values{
+			"artifactType":  {qualityArtifactType},
+			"filterQuery":   {qualityFilterQuery},
+			"pageSize":      {"1"},
+			"nextPageToken": {"token-2"},
+			"orderBy":       {"created_at"},
+			"sortOrder":     {"desc"},
+		}, parsedURL.Query())
 		result, ok := response.(*models.CatalogQualityArtifactListEnvelope)
 		require.True(t, ok)
 		result.Data = &models.CatalogQualityArtifactList{}
@@ -79,6 +87,58 @@ func TestGetCatalogModelQualityArtifactsHandlerAddsEvaluationFilter(t *testing.T
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
+}
+
+func TestGetCatalogModelQualityArtifactsHandlerEscapesSourceID(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com", Token: "test-token"}
+	mockFactory := bffmocks.NewMockClientFactory(testLogger)
+	client := mockFactory.CreateClient(bffclient.BFFTargetModelCatalog, "test-token").(*bffmocks.MockBFFClient)
+
+	client.CallHandler = func(_ context.Context, _, path string, _ interface{}, response interface{}) error {
+		parsedURL, err := url.Parse(path)
+		require.NoError(t, err)
+		assert.Equal(t, "/model_catalog/sources/source%20id/artifacts/granite-8b", parsedURL.EscapedPath())
+		result, ok := response.(*models.CatalogQualityArtifactListEnvelope)
+		require.True(t, ok)
+		result.Data = &models.CatalogQualityArtifactList{}
+		return nil
+	}
+
+	_, response, err := setupApiTestWithBFFClientFactory[models.CatalogQualityArtifactListEnvelope](
+		http.MethodGet,
+		ApiPathPrefix+"/catalog/sources/source%20id/quality_artifacts/granite-8b?namespace=kubeflow",
+		identity,
+		mockFactory,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+}
+
+func TestGetCatalogModelQualityArtifactsHandlerRejectsEmptyOrDotSegmentSourceID(t *testing.T) {
+	for _, sourceID := range []string{"", ".", ".."} {
+		t.Run(sourceID, func(t *testing.T) {
+			mockFactory := bffmocks.NewMockClientFactory(testLogger)
+			client := mockFactory.CreateClient(bffclient.BFFTargetModelCatalog, "test-token").(*bffmocks.MockBFFClient)
+			client.CallHandler = func(_ context.Context, _, _ string, _ interface{}, _ interface{}) error {
+				t.Fatal("upstream client should not be called for a dot-segment source ID")
+				return nil
+			}
+
+			req := httptest.NewRequest(http.MethodGet, ApiPathPrefix+"/catalog/sources/"+sourceID+"/quality_artifacts/granite-8b", http.NoBody)
+			ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetModelCatalog)), client)
+			req = req.WithContext(ctx)
+			recorder := httptest.NewRecorder()
+			app := &App{logger: testLogger}
+
+			app.GetCatalogModelQualityArtifactsHandler(recorder, req, httprouter.Params{
+				{Key: CatalogSourceID, Value: sourceID},
+				{Key: CatalogModelName, Value: "/granite-8b"},
+			})
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		})
+	}
 }
 
 func TestGetCatalogModelQualityArtifactsHandlerBFFError(t *testing.T) {

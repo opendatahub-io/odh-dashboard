@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -146,8 +147,13 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 }
 
 func (c *HTTPBFFClient) isPathAllowed(path string) bool {
+	parsedURL, err := url.Parse(path)
+	if err != nil {
+		return false
+	}
+
 	for _, pattern := range c.allowedPaths {
-		if strings.Contains(path, pattern) {
+		if strings.Contains(parsedURL.Path, pattern) {
 			return true
 		}
 	}

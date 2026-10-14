@@ -83,11 +83,16 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
   }, [insights, filterValue, activeFilter]);
 
   const sorted = React.useMemo(() => {
-    const asc = filtered.toSorted((a, b) =>
-      getQualitySortableValue(a, sortConfig.index).localeCompare(
-        getQualitySortableValue(b, sortConfig.index),
-      ),
-    );
+    const asc = filtered.toSorted((a, b) => {
+      const aValue = getQualitySortableValue(a, sortConfig.index);
+      const bValue = getQualitySortableValue(b, sortConfig.index);
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return aValue - bValue;
+      }
+
+      return String(aValue ?? '').localeCompare(String(bValue ?? ''));
+    });
     return sortConfig.direction === 'desc' ? asc.toReversed() : asc;
   }, [filtered, sortConfig]);
 

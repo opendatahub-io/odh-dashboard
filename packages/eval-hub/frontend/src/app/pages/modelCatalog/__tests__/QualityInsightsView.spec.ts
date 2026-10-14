@@ -78,6 +78,7 @@ describe('QualityInsightsView', () => {
         category: 'code',
         benchmarkName: 'HumanEval',
         benchmarkDescription: 'Writes correct Python functions.',
+        score: 0.628,
         result: '62.8%',
       },
       {
@@ -85,6 +86,7 @@ describe('QualityInsightsView', () => {
         category: 'reasoning',
         benchmarkName: 'BBH',
         benchmarkDescription: 'Challenging reasoning tasks.',
+        score: 0.491,
         result: '49.1%',
       },
     ];
@@ -107,6 +109,7 @@ describe('QualityInsightsView', () => {
       category: 'reasoning',
       benchmarkName: `Benchmark ${20 - index}`,
       benchmarkDescription: 'Benchmark description',
+      score: 0.5,
       result: '50.0%',
     }));
 
@@ -128,5 +131,33 @@ describe('QualityInsightsView', () => {
     );
     expect(rows()).toHaveLength(1);
     expect(rows()[0]).toHaveTextContent('Evaluation');
+  });
+
+  it('sorts evaluation scores numerically', async () => {
+    mockInsightsData = [
+      {
+        evaluation: 'Higher score',
+        category: 'reasoning',
+        benchmarkName: 'Benchmark A',
+        benchmarkDescription: 'Benchmark description',
+        score: 0.9,
+        result: '90.0%',
+      },
+      {
+        evaluation: 'Lower score',
+        category: 'reasoning',
+        benchmarkName: 'Benchmark B',
+        benchmarkDescription: 'Benchmark description',
+        score: 0.85,
+        result: '85.0%',
+      },
+    ];
+
+    await renderView();
+    fireEvent.click(
+      screen.getByRole('columnheader', { name: 'Evaluation score' }).querySelector('button')!,
+    );
+
+    expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Lower score');
   });
 });

@@ -9,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/eval-hub/bff/internal/models"
+	"github.com/opendatahub-io/eval-hub/bff/internal/repositories"
 )
 
 const (
@@ -33,6 +34,10 @@ func (app *App) GetCatalogModelQualityArtifactsHandler(w http.ResponseWriter, r 
 		app.badRequestResponse(w, r, fmt.Errorf("missing required path parameter: source_id"))
 		return
 	}
+	if sourceID == "." || sourceID == ".." {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid path parameter: source_id"))
+		return
+	}
 
 	modelName := strings.TrimPrefix(ps.ByName("model_name"), "/")
 	if modelName == "" {
@@ -40,13 +45,14 @@ func (app *App) GetCatalogModelQualityArtifactsHandler(w http.ResponseWriter, r 
 		return
 	}
 
+	encodedSourceID := url.PathEscape(sourceID)
 	encodedModelName := url.PathEscape(modelName)
-	catalogPath := fmt.Sprintf(qualityArtifactsPath, sourceID, encodedModelName)
+	catalogPath := fmt.Sprintf(qualityArtifactsPath, encodedSourceID, encodedModelName)
 
-	query := r.URL.Query()
+	query := repositories.FilterPageValues(r.URL.Query())
 	query.Set("artifactType", qualityArtifactType)
 	query.Set("filterQuery", qualityFilterQuery)
-	catalogPath += "?" + query.Encode()
+	catalogPath = repositories.UrlWithParams(catalogPath, query)
 
 	var envelope models.CatalogQualityArtifactListEnvelope
 	if err := mcClient.Call(ctx, http.MethodGet, catalogPath, nil, &envelope); err != nil {
