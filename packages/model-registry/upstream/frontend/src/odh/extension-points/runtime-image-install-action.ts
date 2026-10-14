@@ -7,7 +7,7 @@ export type RuntimeImageInstallActionData = {
   libraryReturnRoute: string;
   deploymentResources: {
     servingRuntimeTemplate?: string;
-    /** Catalog field is `ServingRuntimeVersion.llmInferenceServiceTemplate`. */
+    /** Catalog field is `ServingRuntimeVersion.llmInferenceServiceConfig`. */
     llmInferenceServiceConfig?: string;
   };
 };
