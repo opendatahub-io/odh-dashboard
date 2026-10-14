@@ -11,7 +11,6 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
-    "test:unit": "tsx --test cypress/utils/autoragDatabaseOptionRegex.test.ts",
     "open:mock": "cross-env CY_MOCK=1 CY_WS_PORT=9002 cypress open",
     "open:e2e": "cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\"",
     "record:open": "cross-env CY_RECORD=1 cypress open",

@@ -237,7 +237,10 @@ class AutoragConfigurePage {
   }
 
   findDatabaseOption(name: string) {
-    return cy.findByRole('option', { name: getExactDatabaseOptionRegex(name) });
+    return cy
+      .findAllByRole('option', { name: getExactDatabaseOptionRegex(name) })
+      .filter(':not([aria-disabled="true"])')
+      .should('have.length', 1);
   }
 
   // Evaluation dataset — PF FileUpload renders input with id from field.name
