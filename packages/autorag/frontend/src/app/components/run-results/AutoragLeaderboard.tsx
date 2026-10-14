@@ -11,11 +11,10 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
   Label,
   Skeleton,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
@@ -1141,7 +1140,33 @@ function AutoragLeaderboard({
   return (
     <Card>
       <CardBody>
-        <Content component={ContentVariants.h3}>Results</Content>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        >
+          <FlexItem>
+            <Content component={ContentVariants.h3}>Results</Content>
+          </FlexItem>
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+              <FlexItem>
+                <Content component={ContentVariants.small} data-testid="columns-selected-count">
+                  {visibleColumns.length}/{columnDefs.length} columns selected
+                </Content>
+              </FlexItem>
+              <FlexItem>
+                <Button
+                  variant="link"
+                  icon={<ColumnsIcon />}
+                  onClick={() => setIsManageColumnsOpen(true)}
+                  data-testid="manage-columns-button"
+                >
+                  Manage columns
+                </Button>
+              </FlexItem>
+            </Flex>
+          </FlexItem>
+        </Flex>
         {Object.values(patterns).some(
           (pattern) => !isPatternRankable(pattern, optimizationMetric),
         ) && (
@@ -1154,25 +1179,6 @@ function AutoragLeaderboard({
             Patterns without exactly one finite objective metric are shown as unranked.
           </Alert>
         )}
-        <Toolbar hasNoPadding>
-          <ToolbarContent alignItems="center">
-            <ToolbarItem>
-              <Content component={ContentVariants.small} data-testid="columns-selected-count">
-                {visibleColumns.length}/{columnDefs.length} columns selected
-              </Content>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button
-                variant="link"
-                icon={<ColumnsIcon />}
-                onClick={() => setIsManageColumnsOpen(true)}
-                data-testid="manage-columns-button"
-              >
-                Manage columns
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
         <InnerScrollContainer>
           <Table
             aria-label="AutoRAG Pattern Leaderboard"
