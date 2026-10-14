@@ -1,15 +1,6 @@
 import * as React from 'react';
 import { ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import {
-  Button,
-  Flex,
-  FlexItem,
-  Icon,
-  Popover,
-  Split,
-  SplitItem,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Icon, Popover, Split, SplitItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { InfoCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
@@ -43,7 +34,7 @@ import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/u
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { useWorkbenchFeatureStores } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import { NotebookImageStatus } from './const';
+import { KUEUE_ANOMALY_POPOVER_BODY, NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
 import NotebookFeatureStoreList from './NotebookFeatureStoreList';
@@ -79,6 +70,12 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isKueueAnomalyPopoverVisible, setIsKueueAnomalyPopoverVisible] = React.useState(false);
+  const setKueueAnomalyPopoverVisibility = (visible: boolean) => {
+    setIsKueueAnomalyPopoverVisible((previousVisible) =>
+      previousVisible === visible ? previousVisible : visible,
+    );
+  };
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const notification = useNotification();
@@ -231,17 +228,26 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                 )}
                 {showKueueAnomalyIndicator && (
                   <FlexItem>
-                    <Tooltip content="This workbench is not managed by Kueue. It was created without a queue assignment and will bypass queue-based resource management in this Kueue-enabled project.">
-                      <Icon
-                        role="button"
-                        status="warning"
+                    <Popover
+                      alertSeverityVariant="warning"
+                      headerIcon={<ExclamationTriangleIcon />}
+                      bodyContent={KUEUE_ANOMALY_POPOVER_BODY}
+                      showClose
+                      withFocusTrap={false}
+                      isVisible={isKueueAnomalyPopoverVisible}
+                      shouldOpen={() => setKueueAnomalyPopoverVisibility(true)}
+                      shouldClose={() => setKueueAnomalyPopoverVisibility(false)}
+                    >
+                      <DashboardPopupIconButton
                         data-testid="kueue-anomaly-indicator"
                         aria-label="Workbench bypasses Kueue queue management"
-                        tabIndex={0}
-                      >
-                        <ExclamationTriangleIcon />
-                      </Icon>
-                    </Tooltip>
+                        icon={
+                          <Icon status="warning">
+                            <ExclamationTriangleIcon />
+                          </Icon>
+                        }
+                      />
+                    </Popover>
                   </FlexItem>
                 )}
               </Flex>
@@ -311,7 +317,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                   bindingStateLoaded,
                   loadError: bindingStateLoadError,
                 }}
-                onExpandRow={() => setExpanded(true)}
               />
             </FlexItem>
           </Flex>

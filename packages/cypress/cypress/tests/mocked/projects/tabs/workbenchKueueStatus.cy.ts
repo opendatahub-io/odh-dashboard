@@ -507,7 +507,7 @@ describe('Workbench page — Kueue & Status', () => {
         .findHaveNotebookStatusText()
         .should('have.text', 'Requeued')
         .click();
-      workbenchStatusModal.find().should('contain.text', 'attempt 2');
+      workbenchStatusModal.find().should('contain.text', 'Attempt 2');
       workbenchStatusModal.findProgressTab().click();
       workbenchStatusModal
         .findProgressStepByLabel('Waiting for resources in test-queue')

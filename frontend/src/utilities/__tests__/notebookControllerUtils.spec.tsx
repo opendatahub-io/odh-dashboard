@@ -477,7 +477,7 @@ describe('buildInitialProgressSteps', () => {
     const kueue = steps
       .find((s) => s.stepKind === 'pod_assigned')
       ?.subSteps?.find((s) => s.stepKind === 'kueue');
-    expect(kueue?.label).toContain('attempt 3');
+    expect(kueue?.label).toContain('Attempt 3');
     expect(kueue?.label).toContain('my-queue');
   });
 

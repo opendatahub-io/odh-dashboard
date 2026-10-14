@@ -34,8 +34,9 @@ type HardwareProfileDetailsPopoverProps = {
   nodeSelector?: NodeSelector;
   hardwareProfile?: HardwareProfileKind;
   tableView?: boolean;
-  onExpandRow?: () => void;
 };
+const noHardwareProfileMessage =
+  "This workbench isn't using a hardware profile. Edit the workbench to assign one.";
 
 const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps> = ({
   localQueueName,
@@ -44,7 +45,6 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   nodeSelector,
   hardwareProfile,
   tableView = false,
-  onExpandRow,
 }) => {
   const { localQueues } = React.useContext(LocalQueuesContext);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
@@ -90,7 +90,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   const headerContent = hardwareProfile
     ? `${getHardwareProfileDisplayName(hardwareProfile)} details`
     : noHpTableView
-    ? 'No hardware profile defined'
+    ? 'No hardware profile'
     : 'Existing settings';
 
   const triggerLabel =
@@ -131,10 +131,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
                 ))}
             </>
           ) : noHpTableView ? (
-            <StackItem>
-              No hardware profile is defined for this workbench. It&apos;s using its current
-              resource settings, so default, minimum, and maximum values aren&apos;t available.
-            </StackItem>
+            <StackItem>{noHardwareProfileMessage}</StackItem>
           ) : !localQueueName ? (
             <StackItem>
               No matching hardware profile found, using existing settings. Default, min, and max
@@ -164,20 +161,6 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
             </StackItem>
           )}
         </Stack>
-      }
-      footerContent={
-        noHpTableView && onExpandRow ? (
-          <Button
-            variant="link"
-            isInline
-            onClick={() => {
-              onExpandRow();
-              setIsPopoverVisible(false);
-            }}
-          >
-            Expand row
-          </Button>
-        ) : undefined
       }
     >
       <Button

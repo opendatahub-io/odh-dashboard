@@ -329,10 +329,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         (kueueStatus.status === KueueWorkloadStatus.Queued ||
           kueueStatus.status === KueueWorkloadStatus.Inadmissible)
       ) {
-        kueueTitle = `${message} (${formatQueuePosition(
-          kueueStatus.queuePosition,
-          kueueStatus.queueName,
-        )})`;
+        kueueTitle = formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName);
       } else {
         kueueTitle = message;
       }
