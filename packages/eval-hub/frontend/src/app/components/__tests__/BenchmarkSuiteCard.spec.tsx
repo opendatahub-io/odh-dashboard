@@ -24,39 +24,26 @@ describe('BenchmarkSuiteCard', () => {
     );
 
     expect(screen.getByTestId('benchmark-suite-card-model-suite')).toHaveTextContent('Model suite');
-    expect(screen.queryByText('2 benchmarks')).not.toBeInTheDocument();
-    expect(screen.getByText('Safety')).toBeInTheDocument();
-    expect(screen.queryByText('Model')).not.toBeInTheDocument();
-    expect(screen.queryByText('MC1 accuracy')).not.toBeInTheDocument();
-    expect(screen.queryByText('Toxicity score')).not.toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suite-card-benchmarks-model-suite')).toHaveTextContent(
-      '2',
+    expect(screen.getByText(collection.description!)).toHaveAttribute(
+      'title',
+      collection.description,
     );
-    expect(screen.getByTestId('benchmark-suite-card-metrics-model-suite')).toHaveTextContent('2');
+    expect(
+      screen.getByTestId('benchmark-suite-card-evaluation-targets-model-suite'),
+    ).toHaveTextContent('2 evaluations');
+    expect(screen.getByTestId('benchmark-suite-card-benchmarks-model-suite')).toHaveTextContent(
+      '2 benchmarks',
+    );
+    expect(screen.queryByTestId('benchmark-suite-card-tags-model-suite')).not.toBeInTheDocument();
+    expect(screen.getByText('MC1 accuracy')).toBeInTheDocument();
+    expect(screen.getByText('Toxicity score')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-metrics-model-suite')).toHaveAttribute(
       'aria-label',
-      'Metrics: MC1 accuracy, Toxicity score',
+      'Metrics',
     );
-    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
-    /*
-    expect(
-      screen.getByTestId('benchmark-suite-card-evaluation-targets-model-suite'),
-    ).toHaveTextContent('2');
-    expect(
-      screen.getByTestId('benchmark-suite-card-evaluation-targets-model-suite'),
-    ).toHaveAttribute('aria-label', 'Evaluation targets: Agent, Model');
-    */
-    expect(
-      screen.queryByTestId('benchmark-suite-card-evaluation-targets-model-suite'),
-    ).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-benchmarks-model-suite')).toHaveAttribute(
       'aria-label',
       'Benchmarks: benchmark-1, benchmark-2',
-    );
-    const categoryTag = screen.getByText('Safety');
-    const metricsSummary = screen.getByTestId('benchmark-suite-card-metrics-model-suite');
-    expect(categoryTag.compareDocumentPosition(metricsSummary)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
 
@@ -73,13 +60,45 @@ describe('BenchmarkSuiteCard', () => {
     expect(fallbackDescription.tagName).toBe('EM');
   });
 
-  it('should show benchmark names and fall back to IDs in the benchmark count tooltip', async () => {
+  it('should collapse metric labels with a more label', () => {
     render(
       <BenchmarkSuiteCard
         collection={mockCollection({
-          id: 'benchmark-tooltip-suite',
-          benchmarkIds: ['benchmark-two', 'benchmark-one'],
+          id: 'metric-labels-suite',
+          benchmarkIds: ['benchmark-1', 'benchmark-2', 'benchmark-3', 'benchmark-4', 'benchmark-5'],
+          benchmarkMetrics: [
+            'accuracy',
+            'bias_score',
+            'toxicity_score',
+            'robustness',
+            'truthfulness',
+          ],
         })}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(screen.getByText('2 more')).toBeInTheDocument();
+    expect(screen.getByText('Accuracy')).toBeInTheDocument();
+    expect(screen.getByText('Bias score')).toBeInTheDocument();
+    expect(screen.queryByText('Truthfulness')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('2 more'));
+
+    expect(screen.getByText('Robustness')).toBeInTheDocument();
+    expect(screen.getByText('Truthfulness')).toBeVisible();
+  });
+
+  it('should show benchmark names and fall back to IDs in the benchmark count tooltip', async () => {
+    const collection = mockCollection({
+      id: 'benchmark-tooltip-suite',
+      benchmarkIds: ['benchmark-two', 'benchmark-one'],
+    });
+    collection.evaluation_targets = ['model', 'agent'];
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
         benchmarkNameMap={new Map([['safety_eval_suite:benchmark-one', 'Benchmark One']])}
         primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
@@ -97,10 +116,11 @@ describe('BenchmarkSuiteCard', () => {
     expect(
       screen.getByTestId('benchmark-suite-card-benchmarks-benchmark-tooltip-suite'),
     ).toHaveAttribute('aria-label', 'Benchmarks: Benchmark One, benchmark-two');
+    expect(screen.queryByText('Evaluation targets')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent')).not.toBeInTheDocument();
+    expect(screen.queryByText('Model')).not.toBeInTheDocument();
   });
 
-  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
-  /*
   it('should show evaluation targets in the evaluation target count tooltip', async () => {
     render(
       <BenchmarkSuiteCard
@@ -121,22 +141,22 @@ describe('BenchmarkSuiteCard', () => {
     expect(await screen.findByText('Agent')).toBeInTheDocument();
     expect(screen.getByText('Model')).toBeInTheDocument();
   });
-  */
 
-  it('should hide the evaluation target count', () => {
+  it('should use the singular evaluation target label for one target', () => {
     render(
       <BenchmarkSuiteCard
         collection={{
-          ...mockCollection({ id: 'evaluation-targets-tooltip-suite' }),
-          evaluation_targets: ['model', 'agent'],
+          ...mockCollection({ id: 'single-evaluation-target-suite' }),
+          evaluation_targets: ['agent'],
         }}
         primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
     );
 
+    expect(screen.getByText('Agent evaluation')).toBeInTheDocument();
     expect(
       screen.queryByTestId(
-        'benchmark-suite-card-evaluation-targets-evaluation-targets-tooltip-suite',
+        'benchmark-suite-card-evaluation-targets-single-evaluation-target-suite',
       ),
     ).not.toBeInTheDocument();
   });
@@ -151,6 +171,7 @@ describe('BenchmarkSuiteCard', () => {
     );
 
     const runCount = screen.getByTestId('benchmark-suite-card-run-count-run-count-suite');
+    expect(runCount).toHaveTextContent('Run');
     expect(runCount).toHaveTextContent('3');
     expect(runCount).toHaveAttribute(
       'aria-label',
@@ -342,12 +363,16 @@ describe('BenchmarkSuiteCard', () => {
       />,
     );
 
-    fireEvent.click(screen.getByTestId('benchmark-suite-card-name-model-suite'));
+    const suiteName = screen.getByTestId('benchmark-suite-card-name-model-suite');
+
+    expect(suiteName).toHaveClass('pf-m-link', 'pf-m-inline');
+
+    fireEvent.click(suiteName);
 
     expect(onSelect).toHaveBeenCalledWith(collection);
   });
 
-  it('should render tags from the tags field instead of domains or evaluation targets', () => {
+  it('should render the category and evaluation target instead of collection tags or domains', () => {
     render(
       <BenchmarkSuiteCard
         collection={{
@@ -363,32 +388,14 @@ describe('BenchmarkSuiteCard', () => {
       />,
     );
 
-    expect(screen.getByText('Collection tag')).toBeInTheDocument();
-    expect(screen.getByText('Collection tag').closest('.pf-v6-c-label')).toHaveClass(
-      'pf-m-outline',
-    );
+    expect(
+      screen.queryByTestId('benchmark-suite-card-tags-collection-tags-suite'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Collection tag')).not.toBeInTheDocument();
     expect(screen.queryByText('Domain value')).not.toBeInTheDocument();
-    expect(screen.queryByText('Primary category')).not.toBeInTheDocument();
-    expect(screen.queryByText('Model')).not.toBeInTheDocument();
-  });
-
-  it('should render tags in alphabetical order', () => {
-    render(
-      <BenchmarkSuiteCard
-        collection={mockCollection({
-          id: 'alphabetized-tags-suite',
-          tags: ['zebra', 'alpha', 'middle'],
-        })}
-        primaryAction={{ label: 'Run', onClick: jest.fn() }}
-      />,
-    );
-
-    expect(screen.getByText('Alpha').compareDocumentPosition(screen.getByText('Middle'))).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-    expect(screen.getByText('Middle').compareDocumentPosition(screen.getByText('Zebra'))).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
+    expect(screen.getByText('Primary category')).toBeInTheDocument();
+    expect(screen.getByText('Model evaluation')).toBeInTheDocument();
+    expect(screen.getByText('2 benchmarks')).toBeInTheDocument();
   });
 
   it.each([
@@ -400,6 +407,7 @@ describe('BenchmarkSuiteCard', () => {
     ['trustworthiness', 'red'],
     ['multilingual', 'teal'],
     ['multimodal', 'orangered'],
+    ['safety', 'yellow'],
   ])('should render the %s domain icon with the %s color', (domain, color) => {
     render(
       <BenchmarkSuiteCard

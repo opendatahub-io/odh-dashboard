@@ -184,7 +184,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 <Alert
                   variant="warning"
                   isInline
-                  title="Not all collections are shown"
+                  title="Not all benchmark suites are shown"
                   data-testid="collections-truncation-alert"
                   style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                 >
@@ -297,8 +297,8 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 <Bullseye data-testid="collections-empty-state">
                   <Content component="p">
                     {nameFilter || categoryFilter.length > 0
-                      ? 'No collections match the current filters.'
-                      : 'No collections available.'}
+                      ? 'No benchmark suites match the current filters.'
+                      : 'No benchmark suites available.'}
                   </Content>
                 </Bullseye>
               ) : (

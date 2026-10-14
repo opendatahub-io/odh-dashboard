@@ -3,6 +3,10 @@
   justify-content: start;
 }
 
+.evalhub-benchmark-suite-gallery__search-input {
+  width: calc(var(--pf-t--global--spacer--xl) * 7);
+}
+
 .evalhub-benchmark-suite-gallery__container {
   position: relative;
 }
@@ -19,4 +23,8 @@
   height: auto;
   min-height: 300px;
   padding-block-start: var(--pf-t--global--spacer--2xl);
+}
+
+.evalhub-benchmark-suite-gallery__active-filters {
+  padding-block-start: 0;
 }
