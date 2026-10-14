@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, ButtonVariant, Flex, FlexItem, Tooltip } from '@patternfly/react-core';
+import { Button, ButtonVariant, Flex, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
+import { HelpIcon } from '@patternfly/react-icons';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
 import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
 import type { McpDeployModalData, McpDeployment } from '~/odh/types/mcpDeploymentTypes';
@@ -98,11 +99,10 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
 
   return (
     <FlexItem>
-      {/* Stack the docs link under the button: the host page header has little width to spare. */}
       <Flex
-        direction={{ default: 'column' }}
-        alignItems={{ default: 'alignItemsFlexStart' }}
-        spaceItems={{ default: 'spaceItemsSm' }}
+        alignItems={{ default: 'alignItemsCenter' }}
+        spaceItems={{ default: 'spaceItemsXs' }}
+        flexWrap={{ default: 'nowrap' }}
       >
         <FlexItem>
           {buttonState.tooltip ? (
@@ -111,9 +111,22 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
             deployButton
           )}
         </FlexItem>
-        {buttonState.showGatewayDocs ? (
+        {/* The host page header has little width to spare next to its own actions, so the
+            docs link lives in a popover instead of inline like on the catalog page. */}
+        {buttonState.showGatewayDocs && buttonState.tooltip ? (
           <FlexItem>
-            <McpGatewayDocsLink />
+            <Popover
+              headerContent="MCP gateway required"
+              bodyContent={buttonState.tooltip}
+              footerContent={<McpGatewayDocsLink />}
+            >
+              <Button
+                icon={<HelpIcon />}
+                variant="plain"
+                aria-label="Why can't I deploy this MCP server?"
+                data-testid="mcp-deploy-gateway-help"
+              />
+            </Popover>
           </FlexItem>
         ) : null}
       </Flex>
