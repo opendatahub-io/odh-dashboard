@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { renderHook, act } from '@testing-library/react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import * as React from 'react';
 import useSourceManagement from '~/app/Chatbot/hooks/useSourceManagement';
 import { uploadSource } from '~/app/services/llamaStackService';
@@ -11,6 +12,10 @@ import {
   mockDropEvent,
   mockUploadResult,
 } from './useSourceManagement.test-utils';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+}));
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -313,6 +318,18 @@ describe('useSourceManagement', () => {
       expect(mockUploadFile).toHaveBeenCalledWith(mockFile, mockSourceSettings);
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
+
+      expect(mockOnShowErrorAlert).toHaveBeenCalledWith(
+        expect.stringContaining('Upload failed'),
+        expect.any(String),
+      );
+      expect(fireFormTrackingEvent).toHaveBeenCalledWith(
+        'Playground RAG Upload File',
+        expect.objectContaining({ success: false, error: 'unknown_error' }),
+      );
+      expect(JSON.stringify(jest.mocked(fireFormTrackingEvent).mock.calls)).not.toContain(
+        'Upload failed',
+      );
 
       // When upload fails, the file is removed from filesWithSettings (not marked as 'failed')
       expect(result.current.filesWithSettings).toHaveLength(0);
