@@ -20,6 +20,7 @@ import { createProject, updateProject } from '#~/api';
 import { useUser } from '#~/redux/selectors';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -53,7 +54,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
       outcome: TrackingOutcome.submit,
       success: false,
       projectName: '',
-      error: e.message,
+      error: errorCategory(e),
     });
     setError(e);
     setFetching(false);

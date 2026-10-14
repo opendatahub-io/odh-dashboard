@@ -4,6 +4,7 @@ import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { patchNotebookImage } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import { NotebookKind, ImageStreamSpecTagType, ImageStreamKind } from '#~/k8sTypes';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { NotebookState } from '#~/pages/projects/notebook/types';
@@ -73,7 +74,7 @@ const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterPro
     fireFormTrackingEvent('Workbench Created', {
       outcome: TrackingOutcome.submit,
       success: false,
-      error: e.message,
+      error: errorCategory(e),
     });
     setError(e);
     setCreateInProgress(false);

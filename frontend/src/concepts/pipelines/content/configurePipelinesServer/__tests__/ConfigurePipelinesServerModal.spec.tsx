@@ -410,7 +410,7 @@ describe('ConfigurePipelinesServerModal', () => {
       expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Pipeline Server Configured', {
         outcome: 'submit',
         success: false,
-        error: error.message,
+        error: 'unknown_error',
       });
     });
 

@@ -25,6 +25,7 @@ import {
 } from '#~/concepts/pipelines/content/const';
 import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 type CreateExperimentModalProps = {
   onClose: (experiment?: ExperimentKF) => void;
@@ -148,7 +149,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({
                 fireFormTrackingEvent(eventName, {
                   outcome: TrackingOutcome.submit,
                   success: false,
-                  error: e,
+                  error: errorCategory(e),
                 });
               });
           }}

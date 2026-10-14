@@ -25,6 +25,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import { ModelRegistryModel } from '#~/api';
 import {
@@ -303,7 +304,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           fireFormTrackingEvent(updateEventName, {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: e.message,
+            error: errorCategory(e),
           });
         }
         setIsSubmitting(false);
@@ -381,7 +382,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           fireFormTrackingEvent(createEventName, {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: e.message,
+            error: errorCategory(e),
           });
         }
         setIsSubmitting(false);
