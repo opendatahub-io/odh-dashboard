@@ -1,6 +1,7 @@
 import type { RuntimeImageInstallTargetExtension } from '../../../../extension-points/runtime-image-install-target';
 import { isRuntimeImageInstallTargetExtension } from '../../../../extension-points/runtime-image-install-target';
 import {
+  getInstallTargets,
   getAvailableInstallTargets,
   getMatchingInstallTarget,
   getRuntimeImageInstallRoute,
@@ -29,8 +30,9 @@ const servingRuntimeTarget: RuntimeImageInstallTargetExtension = {
     description: 'Serving runtime description',
     selectedState: {
       listName: 'Serving runtime templates',
-      description: 'and the legacy deployment wizard.',
+      description: 'and the inference service deployment wizard.',
     },
+    installTargetName: 'serving runtime template',
     configureStepLabel: 'Configure template',
     component: () => Promise.resolve({ default: () => null }),
   },
@@ -46,6 +48,7 @@ const acceleratorTarget: RuntimeImageInstallTargetExtension = {
       listName: 'LLM accelerator configurations',
       description: 'and the LLM inference service deployment wizard.',
     },
+    installTargetName: 'LLM accelerator configuration',
     configureStepLabel: 'Configure accelerator',
     component: () => Promise.resolve({ default: () => null }),
   },
@@ -79,6 +82,20 @@ describe('install target discovery', () => {
         'servingRuntimeTemplate',
       ),
     ).toBe(servingRuntimeTarget);
+  });
+
+  it('should retain all valid contributed options independently of resource data', () => {
+    expect(
+      getInstallTargets([servingRuntimeTarget, servingRuntimeTarget, acceleratorTarget]),
+    ).toEqual([servingRuntimeTarget, acceleratorTarget]);
+    const invalidTarget = {
+      ...servingRuntimeTarget,
+      properties: { ...servingRuntimeTarget.properties, component: undefined },
+    } as unknown as RuntimeImageInstallTargetExtension;
+    expect(getInstallTargets([invalidTarget, servingRuntimeTarget])).toEqual([
+      servingRuntimeTarget,
+    ]);
+    expect(getInstallTargets([invalidTarget])).toEqual([]);
   });
 
   it('should include the first active extension for each target with corresponding data', () => {
