@@ -594,6 +594,46 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       );
     });
 
+    it('should report an invalid cluster URL and allow a retry', async () => {
+      const onRunFailure = jest.fn();
+      const renderResult = renderForm({
+        collection: mockCollection,
+        isCollectionFlow: true,
+        onRunFailure,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', [
+          { ...mockInferenceServices[0], url: 'not-a-url' },
+        ]);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+      expect(onRunFailure).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'The selected model endpoint URL is invalid.' }),
+        mockCollection,
+      );
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Invalid request',
+        'The selected model endpoint URL is invalid.',
+      );
+      expect(renderResult.result.current.isSubmitting).toBe(false);
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1);
+    });
+
     it('should preserve a manually entered external endpoint URL', async () => {
       const renderResult = renderForm();
       const externalUrl = 'https://external.example.com/custom/openai?key=value#section';
