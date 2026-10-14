@@ -976,6 +976,14 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		return nil
 	}
 
+	// Remove ingress before its backend workloads. Gateway API is optional on
+	// supported platforms, so a missing HTTPRoute mapping must not block teardown.
+	httpRoutes := &unstructured.UnstructuredList{}
+	httpRoutes.SetGroupVersionKind(gatewayv1.SchemeGroupVersion.WithKind("HTTPRouteList"))
+	if err := deleteTyped(httpRoutes, "HTTPRoute", matchLabels, inNamespace); err != nil && !meta.IsNoMatchError(err) {
+		return err
+	}
+
 	var deployments appsv1.DeploymentList
 	if err := r.List(ctx, &deployments, matchLabels, inNamespace); err != nil {
 		return fmt.Errorf("listing Deployments: %w", err)

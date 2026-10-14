@@ -74,7 +74,7 @@ The controller follows a sequential pipeline on each reconcile:
 
 The controller supports `managementState: Removed` on the Dashboard CR. When set:
 
-1. Resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings, except shared resources still needed by a managed MaaS Portal
+1. Resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (HTTPRoutes, Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings, except shared resources still needed by a managed MaaS Portal. HTTPRoute cleanup is skipped when the Gateway API mapping is unavailable.
 2. Enabled observability resources are retained while the portal is managed, including resources in a separate monitoring namespace; otherwise they are cleaned up
 3. Core-dashboard conditions are updated with reason `Removed` and informational severity. If no MaaS Portal is managed, status remains `phase: NotReady`; if a MaaS Portal is managed, its health determines the aggregate `Ready` condition and `phase`.
 4. `status.url` and distribution status are cleared; `status.moduleStatuses` continues to reflect aggregate module demand
