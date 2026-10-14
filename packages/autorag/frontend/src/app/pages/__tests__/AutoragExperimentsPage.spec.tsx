@@ -169,7 +169,15 @@ describe('AutoragExperimentsPage', () => {
     ).toBeInTheDocument();
     expect(mockCanCreateRun).toBe(true);
     expect(mockCreateRunDisabledReason).toBeUndefined();
-    expect(screen.queryByTestId('autorag-prerequisite-status')).not.toBeInTheDocument();
+    expect(screen.getByTestId('autorag-prerequisite-status')).toHaveClass('pf-m-success');
+    expect(screen.getByTestId('autorag-prerequisite-status')).toHaveTextContent(
+      'AutoRAG prerequisites are ready',
+    );
+    expect(screen.getByTestId('autorag-prerequisite-status')).toHaveTextContent(
+      'All required connections are configured.',
+    );
+    expect(screen.getByTestId('autorag-vector-store-status')).toHaveTextContent('Configured');
+    expect(screen.getByTestId('autorag-maas-status')).toHaveTextContent('Configured');
   });
 
   it('shows separate missing prerequisite statuses and disables run creation', () => {

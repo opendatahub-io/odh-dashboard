@@ -83,9 +83,7 @@ const AutoRAGPrerequisiteStatus: React.FC<PrerequisiteStatusProps> = ({
   maasEndpoint,
 }) => {
   const statuses = [vectorStore, maasEndpoint];
-  if (statuses.every((status) => status === 'configured')) {
-    return null;
-  }
+  const allConfigured = statuses.every((status) => status === 'configured');
 
   const hasUnknown = statuses.includes('unknown');
   const isChecking = statuses.includes('checking');
@@ -97,9 +95,15 @@ const AutoRAGPrerequisiteStatus: React.FC<PrerequisiteStatusProps> = ({
     missing.push('a MaaS endpoint');
   }
 
-  let message = `Configure ${missing.join(' and ')} in this project before creating an AutoRAG run.`;
-  let title = 'AutoRAG prerequisites need attention';
-  let alertVariant: 'danger' | 'info' | 'warning' = 'warning';
+  let message = allConfigured
+    ? 'All required connections are configured.'
+    : `Configure ${missing.join(' and ')} in this project before creating an AutoRAG run.`;
+  let title = allConfigured
+    ? 'AutoRAG prerequisites are ready'
+    : 'AutoRAG prerequisites need attention';
+  let alertVariant: 'danger' | 'info' | 'success' | 'warning' = allConfigured
+    ? 'success'
+    : 'warning';
   if (hasUnknown) {
     message = `One or more connection statuses could not be checked. Refresh the page to try again.${missingPrerequisitesMessage(missing)}`;
     title = 'Could not verify AutoRAG prerequisites';
