@@ -8,6 +8,10 @@ import { UserSubscription } from '~/app/types/subscriptions';
 
 export type UseApiKeysPageLoadReturn = UseApiKeysTableStateReturn & {
   isMaasAdmin: boolean;
+  isMaasAdminLoaded: boolean;
+  maxExpirationDays: number;
+  apiKeyConfigLoaded: boolean;
+  apiKeyConfigError: Error | undefined;
   loadError: Error | undefined;
   loaded: boolean;
   hasAnyApiKeys: boolean;
@@ -23,11 +27,16 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
     hasAnyApiKeys,
     hasAnyApiKeysLoaded,
     hasAnyApiKeysError,
+    maxExpirationDays,
+    apiKeyConfigLoaded,
+    apiKeyConfigError,
     refresh,
     subscriptions,
   } = useKeysAndSubsContext();
   const tableState = useApiKeysTableState();
 
+  // Config failures must not block listing/revoking; the create modal surfaces them.
+  // Do not wait on api-key config — it is only needed when creating a key.
   const loadError = hasAnyApiKeysError ?? isMaasAdminError ?? tableState.error;
 
   const loaded = hasAnyApiKeysLoaded && isMaasAdminLoaded && tableState.loaded && !loadError;
@@ -40,6 +49,10 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
   return {
     ...tableState,
     isMaasAdmin,
+    isMaasAdminLoaded,
+    maxExpirationDays,
+    apiKeyConfigLoaded,
+    apiKeyConfigError,
     loadError,
     loaded,
     hasAnyApiKeys,

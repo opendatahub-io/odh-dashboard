@@ -22,7 +22,11 @@ export type K8sApi = {
   getNamespaces: (hostPath: string) => (opts: APIOptions) => Promise<NamespaceKind[]>;
   getSecrets: (
     hostPath: string,
-  ) => (namespace: string, type?: string) => (opts: APIOptions) => Promise<SecretListItem[]>;
+  ) => (
+    namespace: string,
+    type?: string,
+    provider?: 'milvus' | 'pgvector' | 'neo4j',
+  ) => (opts: APIOptions) => Promise<SecretListItem[]>;
 };
 
 /**
@@ -56,11 +60,14 @@ export function createK8sApi(urlPrefix: string, bffApiVersion: string): K8sApi {
 
   const getSecrets =
     (hostPath: string) =>
-    (namespace: string, type?: string) =>
+    (namespace: string, type?: string, provider?: 'milvus' | 'pgvector' | 'neo4j') =>
     (opts: APIOptions): Promise<SecretListItem[]> => {
       const queryParams: Record<string, string> = { namespace };
       if (type) {
         queryParams.type = type;
+      }
+      if (provider) {
+        queryParams.provider = provider;
       }
       return handleRestFailures(
         restGET(hostPath, `${urlPrefix}/api/${bffApiVersion}/secrets`, queryParams, opts),

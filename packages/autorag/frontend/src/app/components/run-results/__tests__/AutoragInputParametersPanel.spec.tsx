@@ -130,13 +130,13 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         input_data_keys: ['documents/a.pdf'],
         maas_secret_name: 'maas-secret',
-        vector_db_secret_name: 'vector-db-secret',
+        db_secret_name: 'vector-db-secret',
       },
     });
 
     expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
     expect(screen.getByText('MaaS connection')).toBeInTheDocument();
-    expect(screen.getByText('Vector database connection')).toBeInTheDocument();
+    expect(screen.getByText('Database connection')).toBeInTheDocument();
     expect(screen.getByText('documents/a.pdf')).toBeInTheDocument();
     expect(screen.getByText('maas-secret')).toBeInTheDocument();
     expect(screen.getByText('vector-db-secret')).toBeInTheDocument();
@@ -187,7 +187,7 @@ describe('AutoragInputParametersPanel', () => {
             max_combinations: 8,
             duration_seconds: 10,
             settings: {
-              vector_store_binding: {
+              store_binding: {
                 provider_type: 'milvus',
                 collection_name: 'vs-1',
               },

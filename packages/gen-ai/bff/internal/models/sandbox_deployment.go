@@ -25,6 +25,7 @@ type AgentDeploymentCreateResponse struct {
 // deployment label or was created without one.
 type AgentDeploymentSummary struct {
 	Name           string        `json:"name"`
+	DisplayName    string        `json:"displayName"`
 	Namespace      string        `json:"namespace"`
 	AgentProfileID string        `json:"agentProfileId"`
 	RouteURL       string        `json:"routeUrl,omitempty"`

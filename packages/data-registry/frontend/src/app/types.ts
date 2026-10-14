@@ -58,6 +58,29 @@ export type StructuredFormat =
 
 export type AssetFormat = UnstructuredFormat | StructuredFormat;
 
+export const LICENSE_VALUES = [
+  'internal-use',
+  'cc-by-4.0',
+  'apache-2.0',
+  'proprietary',
+  'restricted',
+] as const;
+
+export type LicenseType = (typeof LICENSE_VALUES)[number];
+
+export const MATURITY_VALUES = ['experimental', 'staging', 'production', 'deprecated'] as const;
+
+export type MaturityType = (typeof MATURITY_VALUES)[number];
+
+export const PII_STATUS_VALUES = [
+  'none',
+  'contains-pii',
+  'contains-sensitive',
+  'anonymized',
+] as const;
+
+export type PiiStatus = (typeof PII_STATUS_VALUES)[number];
+
 export type AssetResponseBase = {
   name: string;
   uuid: string;
@@ -114,10 +137,10 @@ export type CreateVolumeRequest = {
   connection_ref?: ConnectionRef | null;
   description?: string;
   purpose?: string;
-  license?: string;
-  maturity?: string;
+  license?: LicenseType | null;
+  maturity?: MaturityType | null;
   domain?: string;
-  pii?: string;
+  pii?: PiiStatus | null;
   labels?: string[];
   properties?: Record<string, string>;
 };
@@ -129,10 +152,10 @@ export type CreateGenericTableRequest = {
   connection_ref?: ConnectionRef | null;
   description?: string;
   purpose?: string;
-  license?: string;
-  maturity?: string;
+  license?: LicenseType | null;
+  maturity?: MaturityType | null;
   domain?: string;
-  pii?: string;
+  pii?: PiiStatus | null;
   labels?: string[];
   schema_fields?: SchemaField[];
   properties?: Record<string, string>;

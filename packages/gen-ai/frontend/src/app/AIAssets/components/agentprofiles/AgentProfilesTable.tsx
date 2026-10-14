@@ -10,15 +10,19 @@ import {
   Label,
   MenuToggle,
   SearchInput,
+  ToggleGroup,
+  ToggleGroupItem,
   Toolbar,
   ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
 import { CloseIcon, FilterIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Table, DashboardEmptyTableView } from 'mod-arch-shared';
-import { AgentProfileSummary } from '~/app/agentProfile/types';
+import { AgentDeploymentSummary, AgentProfileSummary } from '~/app/agentProfile/types';
 import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import AgentProfileTableRow from './AgentProfileTableRow';
 import AgentProfileColumns from './AgentProfileColumns';
 
@@ -36,12 +40,18 @@ const INITIAL_FILTER: FilterData = { name: undefined, description: undefined };
 
 type AgentProfilesTableProps = {
   profiles: AgentProfileSummary[];
+  deployments: AgentDeploymentSummary[];
+  deploymentsLoaded: boolean;
   onDelete: (profileId: string) => Promise<void>;
   onRefresh: () => void;
 };
 
+type DeploymentFilter = 'all' | 'deployed' | 'not-deployed';
+
 const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   profiles,
+  deployments,
+  deploymentsLoaded,
   onDelete,
   onRefresh,
 }) => {
@@ -49,6 +59,7 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterKey, setCurrentFilterKey] = React.useState<FilterKey>('name');
   const [searchValue, setSearchValue] = React.useState('');
+  const [deploymentFilter, setDeploymentFilter] = React.useState<DeploymentFilter>('all');
   const { enabled: isAgentDeploymentEnabled, loaded: agentDeploymentAvailabilityLoaded } =
     useGenAiAgentDeploymentEnabled();
   const columns = React.useMemo(
@@ -66,9 +77,43 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
     setSearchValue('');
   }, []);
 
+  const handleDeploymentFilterChange = React.useCallback((filterType: DeploymentFilter) => {
+    setDeploymentFilter(filterType);
+    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_STATUS_FILTER_SELECTED, {
+      filterType: filterType === 'not-deployed' ? 'notDeployed' : filterType,
+    });
+  }, []);
+
+  const deployedProfileIds = React.useMemo(
+    () => new Set(deployments.map((deployment) => deployment.agentProfileId)),
+    [deployments],
+  );
+  const deploymentsByProfileId = React.useMemo(() => {
+    const byProfileId = new Map<string, AgentDeploymentSummary[]>();
+    deployments.forEach((deployment) => {
+      const profileDeployments = byProfileId.get(deployment.agentProfileId);
+      if (profileDeployments) {
+        profileDeployments.push(deployment);
+      } else {
+        byProfileId.set(deployment.agentProfileId, [deployment]);
+      }
+    });
+    return byProfileId;
+  }, [deployments]);
+  const deployedProfileCount = React.useMemo(
+    () => profiles.filter((profile) => deployedProfileIds.has(profile.profileId)).length,
+    [deployedProfileIds, profiles],
+  );
+
   const filteredProfiles = React.useMemo(
     () =>
       profiles.filter((p) => {
+        if (deploymentFilter === 'deployed' && !deployedProfileIds.has(p.profileId)) {
+          return false;
+        }
+        if (deploymentFilter === 'not-deployed' && deployedProfileIds.has(p.profileId)) {
+          return false;
+        }
         if (
           filterData.name &&
           !p.displayName.toLowerCase().includes(filterData.name.toLowerCase())
@@ -83,7 +128,7 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
         }
         return true;
       }),
-    [profiles, filterData],
+    [profiles, filterData, deploymentFilter, deployedProfileIds],
   );
 
   const activeFilters = FILTER_KEYS.filter((key) => filterData[key] != null);
@@ -92,6 +137,35 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
     <Toolbar data-testid="agent-profiles-table-toolbar">
       <ToolbarContent>
         <ToolbarGroup variant="filter-group">
+          {isAgentDeploymentEnabled && (
+            <ToolbarItem className="pf-v6-u-mr-sm">
+              <ToggleGroup
+                aria-label="Agent deployment filters"
+                data-testid="agent-deployment-filters"
+              >
+                <ToggleGroupItem
+                  text={`All (${profiles.length})`}
+                  isSelected={deploymentFilter === 'all'}
+                  onChange={() => handleDeploymentFilterChange('all')}
+                  data-testid="agent-deployment-filter-all"
+                />
+                <ToggleGroupItem
+                  text={`Deployed (${deployedProfileCount})`}
+                  isSelected={deploymentFilter === 'deployed'}
+                  onChange={() => handleDeploymentFilterChange('deployed')}
+                  isDisabled={!deploymentsLoaded}
+                  data-testid="agent-deployment-filter-deployed"
+                />
+                <ToggleGroupItem
+                  text={`Not deployed (${profiles.length - deployedProfileCount})`}
+                  isSelected={deploymentFilter === 'not-deployed'}
+                  onChange={() => handleDeploymentFilterChange('not-deployed')}
+                  isDisabled={!deploymentsLoaded}
+                  data-testid="agent-deployment-filter-not-deployed"
+                />
+              </ToggleGroup>
+            </ToolbarItem>
+          )}
           <ToolbarItem>
             <Dropdown
               isOpen={isFilterDropdownOpen}
@@ -205,6 +279,8 @@ const AgentProfilesTable: React.FC<AgentProfilesTableProps> = ({
         <AgentProfileTableRow
           key={profile.profileId}
           profile={profile}
+          deployments={deploymentsByProfileId.get(profile.profileId) ?? []}
+          deploymentsLoading={isAgentDeploymentEnabled && !deploymentsLoaded}
           onDelete={onDelete}
           onRefresh={onRefresh}
           showEndpointsColumn={isAgentDeploymentEnabled}

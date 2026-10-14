@@ -1245,8 +1245,8 @@ func (app *App) getGuardrailModelEndpointAndKey(ctx context.Context, guardrailMo
 		}
 
 		guardrailModelID = maasModelID
-		if app.resolveMaaSBaseURL() == "" {
-			return "", "", fmt.Errorf("MaaS is not available (no MAAS_URL or cluster domain configured)")
+		if _, err := resolveMaaSGatewayURL(ctx); err != nil {
+			return "", "", fmt.Errorf("MaaS is not available via the MaaS BFF: %w", err)
 		}
 		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, guardrailModelID, subscription)
 		if token == "" {

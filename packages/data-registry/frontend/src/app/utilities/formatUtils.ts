@@ -1,20 +1,44 @@
+import type { StructuredFormat, UnstructuredFormat } from '~/app/types';
+
 type FormatBadge = {
-  text: string;
   color: 'blue' | 'green' | 'orange' | 'purple' | 'red' | 'grey' | 'teal' | 'orangered' | 'yellow';
 };
 
 export type AssetType = 'table' | 'volume';
 
-const UNSTRUCTURED_FORMATS = [
-  'documents',
-  'images',
-  'audio',
-  'video',
-  'binary',
-  'other',
-  'application/pdf',
-  'pdf',
-];
+type FormatSelectOption<T extends string> = {
+  key: T;
+  label: string;
+};
+
+export const STRUCTURED_FORMAT_OPTIONS = [
+  { key: 'iceberg', label: 'Apache Iceberg' },
+  { key: 'parquet', label: 'Apache Parquet' },
+  { key: 'csv', label: 'CSV' },
+  { key: 'delta', label: 'Delta Lake' },
+  { key: 'postgresql', label: 'PostgreSQL' },
+  { key: 'milvus', label: 'Milvus' },
+  { key: 'other', label: 'Other structured' },
+] satisfies FormatSelectOption<StructuredFormat>[];
+
+export const UNSTRUCTURED_FORMAT_OPTIONS = [
+  { key: 'documents', label: 'Documents' },
+  { key: 'images', label: 'Images' },
+  { key: 'audio', label: 'Audio' },
+  { key: 'video', label: 'Video' },
+  { key: 'binary', label: 'Binary' },
+  { key: 'other', label: 'Other unstructured' },
+] satisfies FormatSelectOption<UnstructuredFormat>[];
+
+export const STRUCTURED_FORMAT_VALUES: StructuredFormat[] = STRUCTURED_FORMAT_OPTIONS.map(
+  ({ key }) => key,
+);
+
+export const UNSTRUCTURED_FORMAT_VALUES: UnstructuredFormat[] = UNSTRUCTURED_FORMAT_OPTIONS.map(
+  ({ key }) => key,
+);
+
+const UNSTRUCTURED_FORMATS = [...UNSTRUCTURED_FORMAT_VALUES, 'application/pdf', 'pdf'];
 
 const UNSTRUCTURED_FORMAT_LABELS: Record<string, string> = {
   documents: 'Documents',
@@ -28,17 +52,17 @@ const UNSTRUCTURED_FORMAT_LABELS: Record<string, string> = {
 };
 
 const FORMAT_BADGES: Record<string, FormatBadge> = {
-  iceberg: { text: 'Structured', color: 'yellow' },
-  parquet: { text: 'Structured', color: 'teal' },
-  csv: { text: 'Structured', color: 'grey' },
-  postgresql: { text: 'Structured', color: 'grey' },
-  milvus: { text: 'Structured', color: 'grey' },
-  delta: { text: 'Structured', color: 'grey' },
-  documents: { text: 'Unstructured', color: 'grey' },
-  images: { text: 'Unstructured', color: 'grey' },
-  audio: { text: 'Unstructured', color: 'grey' },
-  video: { text: 'Unstructured', color: 'grey' },
-  binary: { text: 'Unstructured', color: 'grey' },
+  iceberg: { color: 'yellow' },
+  parquet: { color: 'teal' },
+  csv: { color: 'grey' },
+  postgresql: { color: 'grey' },
+  milvus: { color: 'grey' },
+  delta: { color: 'grey' },
+  documents: { color: 'grey' },
+  images: { color: 'grey' },
+  audio: { color: 'grey' },
+  video: { color: 'grey' },
+  binary: { color: 'grey' },
 };
 
 export type FormatOption = {
@@ -49,29 +73,33 @@ export type FormatOption = {
 };
 
 export const FORMAT_OPTIONS: FormatOption[] = [
-  { key: 'iceberg', value: 'iceberg', label: 'Apache Iceberg', assetType: 'table' },
-  { key: 'parquet', value: 'parquet', label: 'Apache Parquet', assetType: 'table' },
-  { key: 'csv', value: 'csv', label: 'CSV', assetType: 'table' },
-  { key: 'delta', value: 'delta', label: 'Delta Lake', assetType: 'table' },
-  { key: 'postgresql', value: 'postgresql', label: 'PostgreSQL', assetType: 'table' },
-  { key: 'milvus', value: 'milvus', label: 'Milvus', assetType: 'table' },
-  { key: 'other-structured', value: 'other', label: 'Other structured', assetType: 'table' },
-  { key: 'documents', value: 'documents', label: 'Documents', assetType: 'volume' },
-  { key: 'images', value: 'images', label: 'Images', assetType: 'volume' },
-  { key: 'audio', value: 'audio', label: 'Audio', assetType: 'volume' },
-  { key: 'video', value: 'video', label: 'Video', assetType: 'volume' },
-  { key: 'binary', value: 'binary', label: 'Binary', assetType: 'volume' },
-  { key: 'other-unstructured', value: 'other', label: 'Other unstructured', assetType: 'volume' },
+  ...STRUCTURED_FORMAT_OPTIONS.map(({ key, label }) => ({
+    key: key === 'other' ? 'other-structured' : key,
+    value: key,
+    label,
+    assetType: 'table' as const,
+  })),
+  ...UNSTRUCTURED_FORMAT_OPTIONS.map(({ key, label }) => ({
+    key: key === 'other' ? 'other-unstructured' : key,
+    value: key,
+    label,
+    assetType: 'volume' as const,
+  })),
 ];
 
-export const getFormatBadge = (format: string, assetType?: AssetType): FormatBadge => {
-  if (format.toLowerCase() === 'other') {
-    return assetType === 'volume'
-      ? { text: 'Unstructured', color: 'grey' }
-      : { text: 'Structured', color: 'grey' };
-  }
-  return FORMAT_BADGES[format.toLowerCase()] ?? { text: 'Unknown', color: 'grey' };
+export const DEFAULT_FORMATS: Record<string, string> = {
+  unstructured: 'other',
+  structured: 'iceberg',
 };
+
+export const isStructuredFormat = (format: string): format is StructuredFormat =>
+  STRUCTURED_FORMAT_VALUES.some((value) => value === format);
+
+export const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
+  UNSTRUCTURED_FORMAT_VALUES.some((value) => value === format);
+
+export const getFormatBadge = (format: string): FormatBadge =>
+  FORMAT_BADGES[format.toLowerCase()] ?? { color: 'grey' };
 
 export const normalizeUnstructuredFormat = (format?: string): string => {
   const normalizedFormat = format?.toLowerCase();

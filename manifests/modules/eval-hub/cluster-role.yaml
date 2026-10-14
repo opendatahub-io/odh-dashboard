@@ -28,13 +28,18 @@ rules:
       - namespaces
     verbs:
       - get
+  # Kueue API permissions are temporarily disabled while the correct token
+  # ownership for EvalHub Kueue discovery is confirmed. Without these rules,
+  # the optional Kueue feature remains unavailable and the UI hides its
+  # Kueue-dependent controls.
+  #
   # Detect a Kueue operator installation.
-  - apiGroups:
-      - kueue.openshift.io
-    resources:
-      - kueues
-    verbs:
-      - list
+  # - apiGroups:
+  #     - kueue.openshift.io
+  #   resources:
+  #     - kueues
+  #   verbs:
+  #     - list
   # Support installations where DataScienceCluster manages Kueue.
   - apiGroups:
       - datasciencecluster.opendatahub.io
@@ -44,17 +49,17 @@ rules:
       - list
   # Evaluations can run in any tenant namespace. The BFF lists these resources
   # only in the namespace that passed the user's EvalHub access check.
-  - apiGroups:
-      - kueue.x-k8s.io
-    resources:
-      - localqueues
-      - workloads
-    verbs:
-      - list
+  # - apiGroups:
+  #     - kueue.x-k8s.io
+  #   resources:
+  #     - localqueues
+  #     - workloads
+  #   verbs:
+  #     - list
   # Queue position is optional; the BFF still reports status without it.
-  - apiGroups:
-      - visibility.kueue.x-k8s.io
-    resources:
-      - localqueues/pendingworkloads
-    verbs:
-      - get
+  # - apiGroups:
+  #     - visibility.kueue.x-k8s.io
+  #   resources:
+  #     - localqueues/pendingworkloads
+  #   verbs:
+  #     - get

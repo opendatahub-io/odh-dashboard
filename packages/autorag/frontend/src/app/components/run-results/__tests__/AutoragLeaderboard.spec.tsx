@@ -54,7 +54,7 @@ const createMockPattern = (
   max_combinations: 10,
   duration_seconds: 120,
   settings: {
-    vector_store_binding: {
+    store_binding: {
       provider_type: 'milvus',
       collection_name: 'vs_collection0',
     },
@@ -195,7 +195,7 @@ const mockPatternsWithMalformedSettings: Record<string, AutoragPattern> = {
       faithfulness: 0.88,
     }),
     settings: {
-      vector_store_binding: {
+      store_binding: {
         provider_type: 'milvus',
         collection_name: 'vs_collection0',
       },

@@ -33,10 +33,16 @@ func TestListAgentDeployments(t *testing.T) {
 		dashboardLabel: dashboardLabelValue, agentProfileIDLabel: profileOne,
 	}, "agents.x-k8s.io/sandbox-name-hash=ready")
 	readySandbox.SetCreationTimestamp(metav1.NewTime(time.Date(2026, time.July, 30, 6, 30, 0, 0, time.UTC)))
+	readySandbox.SetAnnotations(map[string]string{deploymentDisplayNameAnnotation: "Ready agent"})
 	failedSandbox := testSandbox(namespace, "failed-agent", map[string]string{
 		dashboardLabel: dashboardLabelValue, agentProfileIDLabel: profileTwo,
 	}, "agents.x-k8s.io/sandbox-name-hash=failed")
 	failedSandbox.SetCreationTimestamp(metav1.NewTime(time.Date(2026, time.July, 28, 6, 30, 0, 0, time.UTC)))
+	terminatingSandbox := testSandbox(namespace, "terminating-agent", map[string]string{
+		dashboardLabel: dashboardLabelValue, agentProfileIDLabel: profileOne,
+	}, "agents.x-k8s.io/sandbox-name-hash=terminating")
+	terminatingSandbox.SetFinalizers([]string{"agents.x-k8s.io/sandbox-cleanup"})
+	terminatingSandbox.SetDeletionTimestamp(&metav1.Time{Time: time.Date(2026, time.July, 31, 6, 30, 0, 0, time.UTC)})
 	legacySandbox := testSandbox(namespace, "legacy-agent", map[string]string{
 		dashboardLabel: dashboardLabelValue,
 	}, "agents.x-k8s.io/sandbox-name-hash=legacy")
@@ -49,6 +55,7 @@ func TestListAgentDeployments(t *testing.T) {
 	objects := []client.Object{
 		readySandbox,
 		failedSandbox,
+		terminatingSandbox,
 		legacySandbox,
 		nonDashboardSandbox,
 		otherNamespaceSandbox,
@@ -70,6 +77,8 @@ func TestListAgentDeployments(t *testing.T) {
 	require.Len(t, response.Deployments, 3)
 	assert.Equal(t, 3, response.TotalCount)
 	assert.Equal(t, []string{"ready-agent", "legacy-agent", "failed-agent"}, deploymentNames(response.Deployments))
+	assert.Equal(t, "Ready agent", response.Deployments[0].DisplayName)
+	assert.Equal(t, "legacy-agent", response.Deployments[1].DisplayName)
 	assert.Equal(t, profileOne, response.Deployments[0].AgentProfileID)
 	assert.Equal(t, agentDeploymentStateReady, response.Deployments[0].State)
 	assert.Equal(t, "https://ready-agent-agent-namespace.apps.example.com", response.Deployments[0].RouteURL)
@@ -78,6 +87,14 @@ func TestListAgentDeployments(t *testing.T) {
 	assert.Equal(t, agentDeploymentStateCreating, response.Deployments[1].State)
 	assert.Equal(t, agentDeploymentStateFailed, response.Deployments[2].State)
 	assert.Equal(t, "ImagePullBackOff", response.Deployments[2].LastError)
+
+	displayNameTaken, err := kc.IsAgentDeploymentDisplayNameTaken(context.Background(), namespace, "Ready agent")
+	require.NoError(t, err)
+	assert.True(t, displayNameTaken)
+
+	displayNameTaken, err = kc.IsAgentDeploymentDisplayNameTaken(context.Background(), namespace, "terminating-agent")
+	require.NoError(t, err)
+	assert.False(t, displayNameTaken)
 
 	filtered, err := kc.ListAgentDeployments(context.Background(), namespace, profileTwo)
 	require.NoError(t, err)

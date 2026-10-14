@@ -122,26 +122,6 @@ class EndpointModalPage {
   findModal(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('endpoint-detail-modal');
   }
-
-  findSubscriptionSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-subscription-select');
-  }
-
-  findGenerateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-generate-api-key');
-  }
-
-  findApiKeyInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-api-key-input');
-  }
-
-  findApiKeyToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-api-key-toggle');
-  }
-
-  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-close');
-  }
 }
 
 export const modelsTabPage = new ModelsTabPage();

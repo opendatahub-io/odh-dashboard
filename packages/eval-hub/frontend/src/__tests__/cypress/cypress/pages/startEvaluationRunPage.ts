@@ -17,6 +17,10 @@ class StartEvaluationRunPage {
     return cy.findByTestId('benchmark-name-display');
   }
 
+  findRunDescription() {
+    return cy.findByTestId('start-evaluation-run-description');
+  }
+
   findEvaluationNameInput() {
     return cy.findByTestId('evaluation-name-input');
   }
@@ -55,6 +59,10 @@ class StartEvaluationRunPage {
 
   findModelPickerSelect() {
     return cy.findByTestId('model-picker-select');
+  }
+
+  findExternalModelOption() {
+    return cy.findByTestId('model-option-external');
   }
 
   findModelNameInput() {
@@ -131,6 +139,14 @@ class StartEvaluationRunPage {
 
   findLoadError() {
     return cy.findByTestId('start-evaluation-load-error');
+  }
+
+  findNotificationTitle(title: string) {
+    return cy.findByTestId('toast-notification-alert').findByText(title);
+  }
+
+  findNotificationMessage(message: string | RegExp) {
+    return cy.findByTestId('toast-notification-alert').findByText(message);
   }
 }
 

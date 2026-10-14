@@ -16,7 +16,7 @@ export {
 } from '../components/deploymentWizard/fields/ModelServerTemplateSelectField';
 
 export {
-  AvailableAiAssetsFieldsComponent,
+  GenAiStudioAvailabilityFields,
   isValidModelAvailabilityFieldsData,
   modelAvailabilityFieldsSchema,
   useModelAvailabilityFields,

@@ -60,7 +60,7 @@ const EmbeddingSchema = z
   })
   .passthrough();
 
-const VectorStoreBindingSchema = z.preprocess(
+const StoreBindingSchema = z.preprocess(
   (value) => {
     if (!isRecord(value) || Array.isArray(value)) {
       return value;
@@ -74,15 +74,45 @@ const VectorStoreBindingSchema = z.preprocess(
   },
   z
     .object({
-      provider_type: z.string(),
-      collection_name: z.string(),
+      provider_type: z.enum(['milvus', 'pgvector', 'neo4j']),
+      collection_name: z.string().optional(),
+    })
+    .passthrough(),
+);
+
+const LegacyStoreBindingSchema = z.preprocess(
+  (value) => {
+    if (!isRecord(value) || Array.isArray(value)) {
+      return value;
+    }
+
+    const providerType =
+      value.provider_type === 'remote::milvus'
+        ? 'milvus'
+        : value.provider_type === 'remote::pgvector'
+          ? 'pgvector'
+          : value.provider_type;
+    return {
+      ...value,
+      provider_type: providerType,
+      ...(!('collection_name' in value) && typeof value.vector_store_id === 'string'
+        ? { collection_name: value.vector_store_id }
+        : {}),
+    };
+  },
+  z
+    .object({
+      provider_type: z.enum(['milvus', 'pgvector', 'neo4j']),
+      collection_name: z.string().optional(),
     })
     .passthrough(),
 );
 
 const PatternSettingsSchema = z
   .object({
-    vector_store_binding: VectorStoreBindingSchema.optional(),
+    store_binding: StoreBindingSchema.optional(),
+    // Historical canonical artifacts are accepted and normalized by useAutoragResults.
+    vector_store_binding: LegacyStoreBindingSchema.optional(),
     chunking: ChunkingSchema,
     embedding: EmbeddingSchema,
     retrieval: RetrievalSchema,

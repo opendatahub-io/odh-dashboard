@@ -131,6 +131,44 @@ describe('Edit Table Asset', () => {
     });
   });
 
+  it('should preserve unknown governance values when only the description changes', () => {
+    const legacyTableResponse = mockAssetResponse({
+      name: 'legacy-table',
+      description: 'Legacy table',
+      collection: 'analytics',
+      properties: {
+        license: 'MIT',
+        maturity: 'legacy',
+        pii: 'yes',
+      },
+    });
+    cy.intercept(
+      'GET',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/legacy-table`,
+      { body: legacyTableResponse },
+    ).as('getLegacyTable');
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/legacy-table`,
+      { body: legacyTableResponse },
+    ).as('updateLegacyTable');
+
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/legacy-table');
+    cy.wait('@getLegacyTable');
+
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
+    editAssetModal.findDescriptionInput().clear();
+    editAssetModal.findDescriptionInput().type('Updated legacy description');
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@updateLegacyTable').then((interception) => {
+      expect(interception.request.body).to.not.have.property('license');
+      expect(interception.request.body).to.not.have.property('maturity');
+      expect(interception.request.body).to.not.have.property('pii');
+    });
+  });
+
   it('should clear the purpose when it is removed', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
@@ -147,11 +185,11 @@ describe('Edit Table Asset', () => {
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateTable').then((interception) => {
-      expect(interception.request.body).to.have.property('purpose', '');
+      expect(interception.request.body).to.have.property('purpose', null);
     });
   });
 
-  it('should submit explicit empty values for optional table metadata', () => {
+  it('should omit unchanged unset optional table metadata', () => {
     cy.intercept(
       'GET',
       `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/unclassified-data`,
@@ -171,10 +209,38 @@ describe('Edit Table Asset', () => {
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateTableWithoutOptionalMetadata').then((interception) => {
+      expect(interception.request.body).not.to.have.property('license');
+      expect(interception.request.body).not.to.have.property('maturity');
+      expect(interception.request.body).not.to.have.property('pii');
+    });
+  });
+
+  it('should clear nullable table metadata', () => {
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
+    cy.wait('@getTable');
+
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { body: tableResponse },
+    ).as('clearTableMetadata');
+
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
+
+    editAssetModal.findLicenseToggle().click();
+    editAssetModal.findClearLicenseOption().click();
+    editAssetModal.findMaturityToggle().click();
+    editAssetModal.findClearMaturityOption().click();
+    editAssetModal.findPiiToggle().click();
+    editAssetModal.findClearPiiOption().click();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@clearTableMetadata').then((interception) => {
       expect(interception.request.body).to.include({
-        license: '',
-        maturity: '',
-        pii: '',
+        license: null,
+        maturity: null,
+        pii: null,
       });
     });
   });
@@ -196,13 +262,13 @@ describe('Edit Table Asset', () => {
     assetDetailPage.findEditAction().click();
     editAssetModal.shouldBeOpen();
 
-    editAssetModal.findLabel('production').should('exist');
-    editAssetModal.findLabel('claims').should('exist');
+    editAssetModal.findLabelInput(0).should('have.value', 'production');
+    editAssetModal.findLabelInput(1).should('have.value', 'claims');
 
     editAssetModal.findAddLabelButton().click();
-    editAssetModal.findLabelsInput().type('new-label{enter}');
+    editAssetModal.findLabelInput(2).type('new-label');
 
-    editAssetModal.removeLabel('production');
+    editAssetModal.removeLabel(0);
 
     editAssetModal.findSaveButton().click();
 
@@ -244,6 +310,27 @@ describe('Edit Table Asset', () => {
     });
   });
 
+  it('should not remove a custom property when its value is cleared', () => {
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
+    cy.wait('@getTable');
+
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { body: tableResponse },
+    ).as('preserveCustomProperty');
+
+    assetDetailPage.findActionsToggle().click();
+    assetDetailPage.findEditAction().click();
+    editAssetModal.findCustomPropertyValue(0).clear();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@preserveCustomProperty').then((interception) => {
+      expect(interception.request.body).not.to.have.property('remove_properties');
+      expect(interception.request.body.properties).not.to.have.property('custom-key');
+    });
+  });
+
   it('should display schema section and add a column', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
@@ -259,7 +346,7 @@ describe('Edit Table Asset', () => {
     editAssetModal.shouldBeOpen();
 
     editAssetModal.findSchemaColumnName(0).should('have.value', 'id');
-    editAssetModal.findSchemaColumnTypeToggle(0).should('contain.text', 'integer');
+    editAssetModal.findSchemaColumnTypeToggle(0).should('contain.text', 'Integer');
     editAssetModal.findSchemaColumnName(1).should('have.value', 'amount');
 
     editAssetModal.findAddColumnButton().click();
@@ -274,13 +361,25 @@ describe('Edit Table Asset', () => {
     });
   });
 
-  it('should disable custom property removal in edit mode', () => {
+  it('should remove custom properties in edit mode', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { body: tableResponse },
+    ).as('removeCustomProperty');
+
     assetDetailPage.findActionsToggle().click();
     assetDetailPage.findEditAction().click();
-    editAssetModal.findCustomPropertyRemove(0).should('be.disabled');
+    editAssetModal.findCustomPropertyRemove(0).click();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@removeCustomProperty').then((interception) => {
+      expect(interception.request.body.remove_properties).to.include('custom-key');
+      expect(interception.request.body.properties).not.to.have.property('custom-key');
+    });
   });
 
   it('should close modal on cancel', () => {
@@ -394,7 +493,7 @@ describe('Edit Volume Asset', () => {
     editAssetModal.findSaveButton().click();
 
     cy.wait('@updateVolume').then((interception) => {
-      expect(interception.request.body).to.have.property('purpose', '');
+      expect(interception.request.body).to.have.property('purpose', null);
     });
   });
 });

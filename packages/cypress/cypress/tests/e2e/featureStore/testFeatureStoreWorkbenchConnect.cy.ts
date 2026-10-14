@@ -14,7 +14,6 @@ import {
 } from '../../../utils/oc_commands/featureStoreResources';
 import { retryableBefore, wasSetupPerformed } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { isRHOAI } from '../../../utils/oc_commands/applications';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { createRegistryStep, deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { projectDetails, projectListPage } from '../../../pages/projects';
@@ -27,72 +26,49 @@ describe('Verify user can connect Feature Stores to Workbenches', () => {
   let fsProjectName: string;
   let dspProjectName: string;
   let workbenchName: string;
-  let skipTest = false;
   const uuid = generateTestUUID();
-
-  const shouldSkip = () => {
-    if (skipTest) {
-      cy.log('Skipping test - Feature Store is RHOAI-specific and not available on ODH.');
-      return true;
-    }
-    return false;
-  };
 
   retryableBefore(() => {
     cy.step('Ensure admin oc session for setup');
     ensureAdminOcSession();
 
-    cy.step('Check if the operator is RHOAI');
-    isRHOAI().then((rhoai) => {
-      if (!rhoai) {
-        cy.log('ODH detected, skipping RHOAI-specific test.');
-        skipTest = true;
-      }
-    });
+    cy.fixture('e2e/featureStoreResources/testFeatureStoreResources.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as FeatureStoreTestData;
+        fsProjectName = `${testData.projectName}-wb-${uuid}`;
+        dspProjectName = `${testData.dspProjectName}-${uuid}`;
+        workbenchName = `${testData.workbenchName}-${uuid}`;
+      })
+      .then(() => {
+        cy.step(`Create Feature Store namespace: ${fsProjectName}`);
+        createCleanProject(fsProjectName);
 
-    cy.then(() => {
-      if (skipTest) {
-        return;
-      }
-
-      cy.fixture('e2e/featureStoreResources/testFeatureStoreResources.yaml', 'utf8')
-        .then((yamlContent: string) => {
-          testData = yaml.load(yamlContent) as FeatureStoreTestData;
-          fsProjectName = `${testData.projectName}-wb-${uuid}`;
-          dspProjectName = `${testData.dspProjectName}-${uuid}`;
-          workbenchName = `${testData.workbenchName}-${uuid}`;
-        })
-        .then(() => {
-          cy.step(`Create Feature Store namespace: ${fsProjectName}`);
-          createCleanProject(fsProjectName);
-
-          // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
-          // in the permitted namespace (the dashboard login user reads the registry).
-          return addUserToProject(fsProjectName, LDAP_ADMIN_USER.USERNAME, 'admin');
-        })
-        .then(() => {
-          cy.step(`Apply FeatureStore CR in namespace: ${fsProjectName}`);
-          createRegistryStep(fsProjectName);
-          createFeatureStoreCR(fsProjectName, testData.feastInstanceName);
-        })
-        .then(() => {
-          return applyFeastPermissionViaSdk(fsProjectName, testData.feastInstanceName, {
-            namespaces: [fsProjectName],
-          });
-        })
-        .then(() => {
-          cy.step(`Create Data Science Project namespace: ${dspProjectName}`);
-          return deleteOpenShiftProject(dspProjectName, {
-            wait: true,
-            ignoreNotFound: true,
-          }).then(() => createOpenShiftProject(dspProjectName));
+        // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
+        // in the permitted namespace (the dashboard login user reads the registry).
+        return addUserToProject(fsProjectName, LDAP_ADMIN_USER.USERNAME, 'admin');
+      })
+      .then(() => {
+        cy.step(`Apply FeatureStore CR in namespace: ${fsProjectName}`);
+        createRegistryStep(fsProjectName);
+        createFeatureStoreCR(fsProjectName, testData.feastInstanceName);
+      })
+      .then(() => {
+        return applyFeastPermissionViaSdk(fsProjectName, testData.feastInstanceName, {
+          namespaces: [fsProjectName],
         });
-    });
+      })
+      .then(() => {
+        cy.step(`Create Data Science Project namespace: ${dspProjectName}`);
+        return deleteOpenShiftProject(dspProjectName, {
+          wait: true,
+          ignoreNotFound: true,
+        }).then(() => createOpenShiftProject(dspProjectName));
+      });
   });
 
   after(() => {
-    if (!wasSetupPerformed() || shouldSkip()) {
-      cy.log('Skipping cleanup: Setup was not performed or tests were skipped');
+    if (!wasSetupPerformed()) {
+      cy.log('Skipping cleanup: Setup was not performed');
       return;
     }
     cy.step('Restore admin oc session for cleanup');
@@ -114,10 +90,6 @@ describe('Verify user can connect Feature Stores to Workbenches', () => {
       tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Sanity', '@SanitySet1'],
     },
     () => {
-      if (shouldSkip()) {
-        return;
-      }
-
       cy.step('Log in as admin user');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
 

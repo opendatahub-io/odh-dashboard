@@ -15,12 +15,13 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
+    # RHOAIENG-96237 removes this guard after registering the dedicated Konflux
+    # Component, ServiceAccount, and image credentials in the tenant namespace.
     pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "pull_request"
+      false && event == "pull_request"
       && target_branch == "main"
       && ( "dashboard-operator/test/e2e/**".pathChanged()
             || "dashboard-operator/api/**".pathChanged()
-            || "dashboard-operator/config/crd/bases/**".pathChanged()
             || "dashboard-operator/go.mod".pathChanged()
             || "dashboard-operator/go.sum".pathChanged()
             || "dashboard-operator/Dockerfile.e2e".pathChanged()

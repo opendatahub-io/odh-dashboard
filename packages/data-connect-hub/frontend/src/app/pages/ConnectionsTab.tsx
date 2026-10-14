@@ -7,6 +7,7 @@ import {
   EmptyState,
   EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
   HelperText,
   HelperTextItem,
@@ -27,7 +28,8 @@ import { EllipsisVIcon, FilterIcon, InProgressIcon, SearchIcon } from '@patternf
 import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { DeleteModal } from '@odh-dashboard/ui-core';
-import { deleteConnection, verifyConnection } from '~/app/api/dch';
+import { createConnection, deleteConnection, verifyConnection } from '~/app/api/dch';
+import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
@@ -78,6 +80,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const [deleteTarget, setDeleteTarget] = React.useState<Connection>();
   const [deleteError, setDeleteError] = React.useState<Error>();
   const [deleting, setDeleting] = React.useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [sortColumn, setSortColumn] = React.useState<'name' | 'type' | 'status'>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const deleteOperationRef = React.useRef(0);
@@ -148,31 +151,6 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           variant={EmptyStateVariant.lg}
         >
           <Spinner size="xl" />
-        </EmptyState>
-      </PageSection>
-    );
-  }
-
-  if (connections.length === 0) {
-    return (
-      <PageSection isFilled>
-        <p className="pf-v6-u-mb-md">
-          View and manage the data connections available in this project. This registry provides a
-          structured way to store and configure namespace-scoped connections for use by catalog
-          assets and workloads.
-        </p>
-        <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-md">
-          Data connections
-        </Title>
-        <EmptyState
-          headingLevel="h3"
-          icon={() => <img src={emptyStateImage} alt="" width={108} height={108} />}
-          titleText="Get started with data connections"
-        >
-          <EmptyStateBody>
-            Create a connection in this project to link storage credentials to catalog assets and
-            workloads.
-          </EmptyStateBody>
         </EmptyState>
       </PageSection>
     );
@@ -319,56 +297,67 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       </Title>
       <Toolbar isStatic>
         <ToolbarContent>
-          <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
-            <ToolbarGroup variant="filter-group">
-              <ToolbarItem>
-                <Dropdown
-                  isOpen={typeOpen}
-                  onOpenChange={setTypeOpen}
-                  onSelect={() => setTypeOpen(true)}
-                  toggle={(ref) => (
-                    <MenuToggle
-                      ref={ref}
-                      icon={<FilterIcon />}
-                      onClick={() => setTypeOpen((open) => !open)}
+          {connections.length > 0 && (
+            <>
+              <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
+                <ToolbarGroup variant="filter-group">
+                  <ToolbarItem>
+                    <Dropdown
+                      isOpen={typeOpen}
+                      onOpenChange={setTypeOpen}
+                      onSelect={() => setTypeOpen(true)}
+                      toggle={(ref) => (
+                        <MenuToggle
+                          ref={ref}
+                          icon={<FilterIcon />}
+                          onClick={() => setTypeOpen((open) => !open)}
+                        >
+                          {activeTypes.length === typeIds.length
+                            ? 'Type'
+                            : `Type: ${activeTypes.length} selected`}
+                        </MenuToggle>
+                      )}
                     >
-                      {activeTypes.length === typeIds.length
-                        ? 'Type'
-                        : `Type: ${activeTypes.length} selected`}
-                    </MenuToggle>
-                  )}
-                >
-                  <DropdownList>
-                    {typeIds.map((id) => (
-                      <DropdownItem
-                        key={id}
-                        value={id}
-                        hasCheckbox
-                        isSelected={activeTypes.includes(id)}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          toggleType(id);
-                        }}
-                      >
-                        {getTypeName(id)}
-                      </DropdownItem>
-                    ))}
-                  </DropdownList>
-                </Dropdown>
+                      <DropdownList>
+                        {typeIds.map((id) => (
+                          <DropdownItem
+                            key={id}
+                            value={id}
+                            hasCheckbox
+                            isSelected={activeTypes.includes(id)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleType(id);
+                            }}
+                          >
+                            {getTypeName(id)}
+                          </DropdownItem>
+                        ))}
+                      </DropdownList>
+                    </Dropdown>
+                  </ToolbarItem>
+                </ToolbarGroup>
+              </ToolbarToggleGroup>
+              <ToolbarItem>
+                <SearchInput
+                  aria-label="Filter by name"
+                  placeholder="Filter by name..."
+                  value={nameFilter}
+                  onChange={(_event, value) => setNameFilter(value)}
+                  onClear={() => setNameFilter('')}
+                />
               </ToolbarItem>
-            </ToolbarGroup>
-          </ToolbarToggleGroup>
-          <ToolbarItem>
-            <SearchInput
-              aria-label="Filter by name"
-              placeholder="Filter by name..."
-              value={nameFilter}
-              onChange={(_event, value) => setNameFilter(value)}
-              onClear={() => setNameFilter('')}
-            />
-          </ToolbarItem>
+            </>
+          )}
+          {connections.length > 0 ? (
+            <ToolbarItem>
+              <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>
+                Create connection
+              </Button>
+            </ToolbarItem>
+          ) : null}
         </ToolbarContent>
-        {activeTypes.length < typeIds.length && (
+        {connections.length > 0 && activeTypes.length < typeIds.length && (
           <ToolbarContent>
             <ToolbarItem>
               <LabelGroup categoryName="Type">
@@ -382,133 +371,155 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           </ToolbarContent>
         )}
       </Toolbar>
-      <Table aria-label="Data connections" variant="compact" data-testid="connections-table">
-        <Thead>
-          <Tr>
-            <Th sort={getSort(0)}>Name</Th>
-            <Th sort={getSort(1)}>Type</Th>
-            <Th sort={getSort(2)}>Status</Th>
-            <Th screenReaderText="Actions" />
-          </Tr>
-        </Thead>
-        <Tbody>
-          {filtered.length === 0 ? (
+      {connections.length === 0 ? (
+        <EmptyState
+          headingLevel="h3"
+          icon={() => <img src={emptyStateImage} alt="" width={320} height={320} />}
+          titleText="Get started with data connections"
+        >
+          <EmptyStateBody>
+            Create a connection in this project to link storage credentials to catalog assets and
+            workloads.
+          </EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>
+                Create connection
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
+      ) : (
+        <Table aria-label="Data connections" variant="compact" data-testid="connections-table">
+          <Thead>
             <Tr>
-              <Td colSpan={4}>
-                <EmptyState
-                  headingLevel="h3"
-                  icon={SearchIcon}
-                  titleText={hasFilters ? 'No results found' : 'No data connections found'}
-                >
-                  <EmptyStateBody>
-                    {hasFilters
-                      ? 'Adjust your filters and try again.'
-                      : 'There are no data connections in this project.'}
-                  </EmptyStateBody>
-                  {hasFilters && (
-                    <EmptyStateActions>
-                      <Button
-                        variant="link"
-                        onClick={() => {
-                          setNameFilter('');
-                          setSelectedTypes(typeIds);
-                        }}
-                      >
-                        Clear all filters
-                      </Button>
-                    </EmptyStateActions>
-                  )}
-                </EmptyState>
-              </Td>
+              <Th sort={getSort(0)}>Name</Th>
+              <Th sort={getSort(1)}>Type</Th>
+              <Th sort={getSort(2)}>Status</Th>
+              <Th screenReaderText="Actions" />
             </Tr>
-          ) : (
-            sorted.map((connection) => (
-              <Tr key={connection.metadata.id}>
-                <Td dataLabel="Name">{connection.resource.name}</Td>
-                <Td dataLabel="Type">{getTypeName(connection.resource.data_connection_type_id)}</Td>
-                <Td dataLabel="Status">
-                  {verifying.has(connection.metadata.id) ? (
-                    <Label
-                      color="blue"
-                      variant="outline"
-                      icon={<InProgressIcon color={InfoIconColor.var} className="ai-u-spin" />}
-                    >
-                      Verifying
-                    </Label>
-                  ) : isValidTimestamp(connection.status.updated_at) ? (
-                    <>
-                      <Label variant="outline" status={statusVariant[connection.status.state]}>
-                        {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}
-                      </Label>
-                      <HelperText>
-                        <HelperTextItem>
-                          Last tested {new Date(connection.status.updated_at).toLocaleString()}
-                        </HelperTextItem>
-                      </HelperText>
-                    </>
-                  ) : (
-                    <Label variant="outline" color="grey">
-                      Unverified
-                    </Label>
-                  )}
-                  {verificationErrors.has(connection.metadata.id) && (
-                    <HelperText>
-                      <HelperTextItem variant="error">
-                        {verificationErrors.get(connection.metadata.id)?.message}
-                      </HelperTextItem>
-                    </HelperText>
-                  )}
-                </Td>
-                <Td isActionCell>
-                  <Dropdown
-                    isOpen={actionsFor === connection.metadata.id}
-                    onOpenChange={(open) =>
-                      setActionsFor(open ? connection.metadata.id : undefined)
-                    }
-                    popperProps={{ placement: 'bottom-end' }}
-                    toggle={(ref) => (
-                      <MenuToggle
-                        ref={ref}
-                        variant="plain"
-                        aria-label={`Actions for ${connection.resource.name}`}
-                        onClick={() =>
-                          setActionsFor(
-                            actionsFor === connection.metadata.id
-                              ? undefined
-                              : connection.metadata.id,
-                          )
-                        }
-                      >
-                        <EllipsisVIcon />
-                      </MenuToggle>
-                    )}
+          </Thead>
+          <Tbody>
+            {filtered.length === 0 ? (
+              <Tr>
+                <Td colSpan={4}>
+                  <EmptyState
+                    headingLevel="h3"
+                    icon={SearchIcon}
+                    titleText={hasFilters ? 'No results found' : 'No data connections found'}
                   >
-                    <DropdownList>
-                      <DropdownItem
-                        isDisabled={verifying.has(connection.metadata.id)}
-                        onClick={() => void handleVerify(connection.metadata.id)}
-                      >
-                        Verify connection
-                      </DropdownItem>
-                      <DropdownItem
-                        onClick={() => {
-                          setActionsFor(undefined);
-                          deleteOperationRef.current += 1;
-                          setDeleteTarget(connection);
-                          setDeleteError(undefined);
-                          setDeleting(false);
-                        }}
-                      >
-                        Delete
-                      </DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
+                    <EmptyStateBody>
+                      {hasFilters
+                        ? 'Adjust your filters and try again.'
+                        : 'There are no data connections in this project.'}
+                    </EmptyStateBody>
+                    {hasFilters && (
+                      <EmptyStateActions>
+                        <Button
+                          variant="link"
+                          onClick={() => {
+                            setNameFilter('');
+                            setSelectedTypes(typeIds);
+                          }}
+                        >
+                          Clear all filters
+                        </Button>
+                      </EmptyStateActions>
+                    )}
+                  </EmptyState>
                 </Td>
               </Tr>
-            ))
-          )}
-        </Tbody>
-      </Table>
+            ) : (
+              sorted.map((connection) => (
+                <Tr key={connection.metadata.id}>
+                  <Td dataLabel="Name">{connection.resource.name}</Td>
+                  <Td dataLabel="Type">
+                    {getTypeName(connection.resource.data_connection_type_id)}
+                  </Td>
+                  <Td dataLabel="Status">
+                    {verifying.has(connection.metadata.id) ? (
+                      <Label
+                        color="blue"
+                        variant="outline"
+                        icon={<InProgressIcon color={InfoIconColor.var} className="ai-u-spin" />}
+                      >
+                        Verifying
+                      </Label>
+                    ) : isValidTimestamp(connection.status.updated_at) ? (
+                      <>
+                        <Label variant="outline" status={statusVariant[connection.status.state]}>
+                          {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}
+                        </Label>
+                        <HelperText>
+                          <HelperTextItem>
+                            Last tested {new Date(connection.status.updated_at).toLocaleString()}
+                          </HelperTextItem>
+                        </HelperText>
+                      </>
+                    ) : (
+                      <Label variant="outline" color="grey">
+                        Unverified
+                      </Label>
+                    )}
+                    {verificationErrors.has(connection.metadata.id) && (
+                      <HelperText>
+                        <HelperTextItem variant="error">
+                          {verificationErrors.get(connection.metadata.id)?.message}
+                        </HelperTextItem>
+                      </HelperText>
+                    )}
+                  </Td>
+                  <Td isActionCell>
+                    <Dropdown
+                      isOpen={actionsFor === connection.metadata.id}
+                      onOpenChange={(open) =>
+                        setActionsFor(open ? connection.metadata.id : undefined)
+                      }
+                      popperProps={{ placement: 'bottom-end' }}
+                      toggle={(ref) => (
+                        <MenuToggle
+                          ref={ref}
+                          variant="plain"
+                          aria-label={`Actions for ${connection.resource.name}`}
+                          onClick={() =>
+                            setActionsFor(
+                              actionsFor === connection.metadata.id
+                                ? undefined
+                                : connection.metadata.id,
+                            )
+                          }
+                        >
+                          <EllipsisVIcon />
+                        </MenuToggle>
+                      )}
+                    >
+                      <DropdownList>
+                        <DropdownItem
+                          isDisabled={verifying.has(connection.metadata.id)}
+                          onClick={() => void handleVerify(connection.metadata.id)}
+                        >
+                          Verify connection
+                        </DropdownItem>
+                        <DropdownItem
+                          onClick={() => {
+                            setActionsFor(undefined);
+                            deleteOperationRef.current += 1;
+                            setDeleteTarget(connection);
+                            setDeleteError(undefined);
+                            setDeleting(false);
+                          }}
+                        >
+                          Delete
+                        </DropdownItem>
+                      </DropdownList>
+                    </Dropdown>
+                  </Td>
+                </Tr>
+              ))
+            )}
+          </Tbody>
+        </Table>
+      )}
       {deleteTarget && (
         <DeleteModal
           title={`Permanently delete connection "${deleteTarget.resource.name}"?`}
@@ -528,6 +539,15 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           may also lose access.
         </DeleteModal>
       )}
+      <CreateConnectionWizard
+        isOpen={isCreateModalOpen}
+        namespace={namespace}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={async (data, selectedNamespace) => {
+          await createConnection('')({}, selectedNamespace, data);
+          refresh();
+        }}
+      />
     </PageSection>
   );
 };

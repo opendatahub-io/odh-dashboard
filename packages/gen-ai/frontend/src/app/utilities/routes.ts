@@ -18,4 +18,7 @@ export const genAiAiAssetsRoute = (namespace?: string): string =>
 export const genAiAiAssetsTabRoute = (namespace: string, tab: string): string =>
   `${aiAssetsRootPath}/${namespace}/${tab}`;
 
+export const genAiAgentProfileDetailRoute = (namespace: string, profileId: string): string =>
+  `${aiAssetsRootPath}/${namespace}/agentprofile/${profileId}`;
+
 export const maasTokensPath = '/maas/tokens';

@@ -38,7 +38,7 @@
 
 ## Known Issues / Gotchas
 
-- Without mocks, missing `LLAMA_STACK_URL` or `MAAS_URL` causes immediate BFF exit unless the corresponding mock flags are on.
+- Without mocks, missing `LLAMA_STACK_URL` causes immediate BFF exit unless the corresponding mock flag is on.
 - SSE streaming: disable reverse-proxy buffering (e.g. `X-Accel-Buffering: no` on nginx) or responses stall.
 - `AIAssetsMaaSTab` is a cross-package contract with the host — coordinate API/prop changes.
 - Delve (`dlv`) and `README.md` / `make dev-start-debug` are required for the documented debugger workflow.

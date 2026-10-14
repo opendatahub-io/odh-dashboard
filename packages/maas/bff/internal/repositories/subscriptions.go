@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -115,7 +116,7 @@ func (r *SubscriptionsRepository) CreateSubscription(ctx context.Context, reques
 	kubeClient := client.GetDynamicClient()
 
 	// Build and create the MaaSSubscription CR in the configured namespace
-	subObj := buildSubscriptionUnstructured(request.Name, r.namespace, request.DisplayName, request.Description, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
+	subObj := buildSubscriptionUnstructured(request.Name, r.namespace, request.DisplayName, request.Description, request.Owner, request.ModelRefs, request.TokenMetadata, request.InferencePriority)
 	createdSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Create(ctx, subObj, metav1.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
@@ -187,9 +188,12 @@ func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name s
 	}
 
 	// Update the subscription spec and annotations
-	updateSubscriptionSpec(existingObj, request.DisplayName, request.Description, request.Owner, request.ModelRefs, request.TokenMetadata, request.Priority)
+	updateSubscriptionSpec(existingObj, request.DisplayName, request.Description, request.Owner, request.ModelRefs, request.TokenMetadata, request.InferencePriority)
 	updatedSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Update(ctx, existingObj, metav1.UpdateOptions{})
 	if err != nil {
+		if k8sErrors.IsConflict(err) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("failed to update MaaSSubscription: %w", err)
 	}
 
@@ -346,14 +350,18 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 	sub.ConditionType = ready.ConditionType
 	sub.LastTransitionTime = ready.LastTransitionTime
 
-	priority, _, _ := unstructured.NestedFieldNoCopy(content, "spec", "priority")
-	if priority != nil {
-		switch v := priority.(type) {
-		case int64:
-			sub.Priority = int32(v)
-		case float64:
-			sub.Priority = int32(v)
+	if objectivesReady := extractConditionByType(content, "InferenceObjectivesReady"); objectivesReady.ConditionType != "" {
+		sub.InferenceObjectivesReady = &models.ConditionSummary{
+			Type:               objectivesReady.ConditionType,
+			Status:             objectivesReady.Status,
+			Reason:             objectivesReady.Reason,
+			Message:            objectivesReady.Message,
+			LastTransitionTime: objectivesReady.LastTransitionTime,
 		}
+	}
+
+	if priority, ok := int32FromUnstructured(content, "spec", "inferencePriority"); ok {
+		sub.InferencePriority = &priority
 	}
 
 	sub.Owner.Groups = []models.GroupReference{}
@@ -365,6 +373,8 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 			}
 		}
 	}
+
+	statusByKey := indexFlowControlStatusesByKey(content)
 
 	sub.ModelRefs = []models.ModelSubscriptionRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
@@ -400,6 +410,13 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 				if perToken, ok := br["perToken"].(string); ok {
 					ref.BillingRate = &models.BillingRate{PerToken: perToken}
 				}
+			}
+			if status, ok := statusByKey[ref.Namespace+"/"+ref.Name]; ok {
+				ref.ObjectiveName = status.ObjectiveName
+				ref.TargetPool = status.TargetPool
+				ref.Ready = status.Ready
+				ref.Reason = status.Reason
+				ref.Message = status.Message
 			}
 			sub.ModelRefs = append(sub.ModelRefs, ref)
 		}
@@ -521,7 +538,7 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 
 // --- Builder helpers: Go models -> Unstructured ---
 
-func buildSubscriptionUnstructured(name, namespace, displayName, description string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) *unstructured.Unstructured {
+func buildSubscriptionUnstructured(name, namespace, displayName, description string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, inferencePriority *int32) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSSubscription")
@@ -540,9 +557,11 @@ func buildSubscriptionUnstructured(name, namespace, displayName, description str
 	}
 
 	spec := map[string]interface{}{
-		"priority":  int64(priority),
 		"owner":     buildOwnerSpec(owner),
 		"modelRefs": buildModelSubscriptionRefs(modelRefs),
+	}
+	if inferencePriority != nil {
+		spec["inferencePriority"] = int64(*inferencePriority)
 	}
 
 	if tokenMetadata != nil {
@@ -710,7 +729,7 @@ func buildTokenMetadata(tm *models.TokenMetadata) map[string]interface{} {
 	return meta
 }
 
-func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, description string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) {
+func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, description string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, inferencePriority *int32) {
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
@@ -731,7 +750,13 @@ func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, descrip
 	if existingSpec == nil {
 		existingSpec = map[string]interface{}{}
 	}
-	existingSpec["priority"] = int64(priority)
+
+	delete(existingSpec, "inference_priority")
+	if inferencePriority != nil {
+		existingSpec["inferencePriority"] = int64(*inferencePriority)
+	} else {
+		delete(existingSpec, "inferencePriority")
+	}
 	existingOwner, _ := existingSpec["owner"].(map[string]interface{})
 	existingSpec["owner"] = mergeOwnerSpec(existingOwner, owner)
 	existingModelRefs, _ := existingSpec["modelRefs"].([]interface{})
@@ -742,4 +767,78 @@ func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, descrip
 	}
 
 	obj.Object["spec"] = existingSpec
+}
+
+func int32FromUnstructured(content map[string]interface{}, fields ...string) (int32, bool) {
+	raw, found, err := unstructured.NestedFieldNoCopy(content, fields...)
+	if !found || err != nil || raw == nil {
+		return 0, false
+	}
+	switch v := raw.(type) {
+	case int64:
+		if v < math.MinInt32 || v > math.MaxInt32 {
+			return 0, false
+		}
+		return int32(v), true
+	case float64:
+		if v < math.MinInt32 || v > math.MaxInt32 || v != math.Trunc(v) {
+			return 0, false
+		}
+		return int32(v), true
+	case int32:
+		return v, true
+	case int:
+		if v < math.MinInt32 || v > math.MaxInt32 {
+			return 0, false
+		}
+		return int32(v), true
+	default:
+		return 0, false
+	}
+}
+
+type flowControlStatusFields struct {
+	ObjectiveName string
+	TargetPool    string
+	Ready         *bool
+	Reason        string
+	Message       string
+}
+
+// indexFlowControlStatusesByKey indexes status.flowControlStatuses by "namespace/name".
+func indexFlowControlStatusesByKey(content map[string]interface{}) map[string]flowControlStatusFields {
+	statusRefs, _, _ := unstructured.NestedSlice(content, "status", "flowControlStatuses")
+	idx := make(map[string]flowControlStatusFields, len(statusRefs))
+	for _, item := range statusRefs {
+		statusMap, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		name, _ := statusMap["name"].(string)
+		ns, _ := statusMap["namespace"].(string)
+		if name == "" {
+			continue
+		}
+		status := flowControlStatusFields{}
+		if v, ok := statusMap["objectiveName"].(string); ok {
+			status.ObjectiveName = v
+		}
+		if pool, ok := statusMap["inferencePool"].(map[string]interface{}); ok {
+			if poolName, ok := pool["name"].(string); ok {
+				status.TargetPool = poolName
+			}
+		}
+		if ready, ok := statusMap["ready"].(bool); ok {
+			readyCopy := ready
+			status.Ready = &readyCopy
+		}
+		if v, ok := statusMap["reason"].(string); ok {
+			status.Reason = v
+		}
+		if v, ok := statusMap["message"].(string); ok {
+			status.Message = v
+		}
+		idx[ns+"/"+name] = status
+	}
+	return idx
 }

@@ -31,12 +31,14 @@ const navigateToConfigure = () => {
 
 const selectMaaSAndStorageSecrets = () => {
   cy.findByTestId('autorag-name-input').type('Test Experiment');
+  cy.findByTestId('maas-secret-selector', { timeout: 60000 }).should('not.be.disabled');
   autoragConfigurePage.selectMaaSSecret(MAAS_SECRET);
   cy.findByTestId('autorag-next-button').should('be.enabled');
   cy.findByTestId('autorag-next-button').click();
   cy.findByTestId('configure-step-subtitle').should('be.visible');
 
   // Select S3 connection — wait for secrets to load
+  cy.findByTestId('aws-secret-selector', { timeout: 60000 }).should('exist').and('not.be.disabled');
   autoragConfigurePage.selectStorageSecret(STORAGE_SECRET);
 };
 
@@ -120,7 +122,7 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findTableRow('Q1').should('be.visible');
 
     // Edit the row
-    evaluationFileCreator.findKebabAction('Q1', 'Edit').click();
+    evaluationFileCreator.clickKebabAction('Q1', 'Edit');
     evaluationFileCreator.findQuestionInput().should('have.value', 'Q1');
     evaluationFileCreator.findAnswerInput().should('have.value', 'A1');
 
@@ -129,7 +131,7 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findTableRow('Q1').should('be.visible');
 
     // Delete the row
-    evaluationFileCreator.findKebabAction('Q1', 'Delete').click();
+    evaluationFileCreator.clickKebabAction('Q1', 'Delete');
     evaluationFileCreator.findEmptyState().should('be.visible');
   });
 

@@ -915,60 +915,14 @@ paths:
   # ===========================================================================
   # Data Registry proxy routes — search (RHOAI extension)
   # ===========================================================================
-  /api/v1/search/{project}:
-    get:
-      tags: [search]
-      operationId: proxySearchDataRegistryByProject
-      summary: Project-scoped global search alias (proxied)
-      description: |
-        Pass-through proxy for `GET /v1/search/{project}`. This route is reserved for a future
-        global Feast search integration; the UI continues to use `/api/v1/{project}/search`.
-      parameters:
-        - $ref: "data-registry-api.yaml#/components/parameters/project"
-        - name: query
-          in: query
-          schema:
-            type: string
-            default: ""
-        - name: namespace
-          in: query
-          schema:
-            type: string
-        - name: type
-          in: query
-          schema:
-            $ref: "data-registry-api.yaml#/components/schemas/SearchAssetType"
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 500
-            default: 50
-      responses:
-        "200":
-          description: Search results with scoring
-          content:
-            application/json:
-              schema:
-                $ref: "data-registry-api.yaml#/components/schemas/SearchResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
-
   /api/v1/{project}/search:
     get:
       tags: [search]
       operationId: proxySearchDataRegistry
-      summary: Full-text search with relevance scoring (proxied)
+      summary: Search data assets within a project (proxied)
       description: |
         Pass-through proxy for `GET /v1/{project}/search` on the upstream Data Registry API.
-        Searches data registry assets within a single RHOAI project.
+        Searches tables, volumes, and collections within a single RHOAI project.
       parameters:
         - $ref: "data-registry-api.yaml#/components/parameters/project"
         - name: query
@@ -976,12 +930,12 @@ paths:
           schema:
             type: string
             default: ""
-          description: Text search across name, description, and properties. Empty returns all.
+          description: Text search across name, description, metadata values, schema fields, and storage URI. Empty returns all.
         - name: namespace
           in: query
           schema:
             type: string
-          description: Filter to a single collection
+          description: Filter to a single collection. Tables and volumes only; collection rows are excluded.
         - name: namespaces
           in: query
           schema:
@@ -990,19 +944,14 @@ paths:
               type: string
           style: form
           explode: true
-          description: Filter to multiple collections
-        - name: type
-          in: query
-          schema:
-            $ref: "data-registry-api.yaml#/components/schemas/SearchAssetType"
-          description: |
-            Filter by asset type. Values: `table`, `volume`, `collection`,
-            `iceberg_table`, `document_collection`, `vector_index`, `dataset`
+          description: Filter to multiple collections (union)
         - name: asset_type
           in: query
           schema:
-            $ref: "data-registry-api.yaml#/components/schemas/SearchAssetType"
-          description: Alternative to `type` parameter (same values accepted)
+            type: string
+          description: |
+            Optional type filter. Known values are `table`, `volume`, `collection`,
+            `dataset`, and `iceberg_table`. Unknown values return an empty result list.
         - name: properties
           in: query
           schema:
@@ -1011,19 +960,25 @@ paths:
               type: string
           style: form
           explode: true
-          description: Property filters as `key:value` pairs (all must match)
+          description: Property filters as `key:value` pairs. All pairs must match.
         - name: label
           in: query
           schema:
             type: string
-          description: Filter results to assets that have this label
+          description: Case-insensitive substring match on an asset label.
         - name: sort_by
           in: query
           schema:
             type: string
             enum: [score, name]
             default: score
-          description: Sort by relevance or alphabetical
+          description: Sort by score or alphabetical name
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: Sort direction; defaults to descending score or ascending name.
         - name: page
           in: query
           schema:
@@ -1037,7 +992,7 @@ paths:
             type: integer
             minimum: 1
             maximum: 500
-          description: Results per page (alternative to `limit`)
+          description: Results per page; when both are sent, `page_size` wins.
         - name: limit
           in: query
           schema:
@@ -1045,10 +1000,10 @@ paths:
             minimum: 1
             maximum: 500
             default: 50
-          description: Results per page (used when `page_size` is not specified)
+          description: Results per page when `page_size` is omitted
       responses:
         "200":
-          description: Search results with scoring
+          description: Search results with nested pagination
           content:
             application/json:
               schema:
@@ -1063,9 +1018,9 @@ paths:
                     properties:
                       format: iceberg
                     score: 100
-                total: 1
-                page: 1
-                limit: 50
+                pagination:
+                  page: 1
+                  limit: 50
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":

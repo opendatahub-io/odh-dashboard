@@ -821,11 +821,11 @@ export const cleanupRegisteredModelsFromPostgresDatabase = (
       const escapeSql = (name: string) => name.replace(/'/g, "''");
       const modelNamesStr = modelNames.map((name) => `'${escapeSql(name)}'`).join(', ');
       const sqlCommands = [
-        `DELETE FROM contextproperty WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
-        `DELETE FROM parentcontext WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr})) OR parent_context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
-        `DELETE FROM association WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
-        `DELETE FROM attribution WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
-        `DELETE FROM context WHERE name IN (${modelNamesStr});`,
+        `DELETE FROM "ContextProperty" WHERE context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM "ParentContext" WHERE context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr})) OR parent_context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM "Association" WHERE context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM "Attribution" WHERE context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM "Context" WHERE name IN (${modelNamesStr});`,
       ].join(' ');
 
       const escapeShellDoubleQuotes = (s: string) => s.replace(/["$`\\]/g, '\\$&');

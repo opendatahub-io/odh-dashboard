@@ -21,7 +21,9 @@ import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useLabels } from '~/app/hooks/useLabels';
+import { useConnections } from '~/app/hooks/useConnections';
 import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
+import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import RegistryTable from '~/app/components/RegistryTable';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
 import ManageLabelsModal from '~/app/components/ManageLabelsModal';
@@ -104,6 +106,8 @@ const DataRegistryPage: React.FC = () => {
   const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
+  const [returnToRegisterData, setReturnToRegisterData] = React.useState(false);
+  const returnToEditRef = React.useRef<(() => void) | undefined>(undefined);
   const [projectCreationFailure, setProjectCreationFailure] = React.useState<string>();
 
   const { preferredNamespace, updatePreferredNamespace } =
@@ -178,17 +182,42 @@ const DataRegistryPage: React.FC = () => {
     collectionNames,
   );
   const [labels, , , labelsRefresh] = useLabels(selectedProject);
+  const [connections] = useConnections(selectedProject);
 
-  const hasWriteAccess = !is403Error(assetsError) && !is403Error(collectionsError);
+  const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, collectionsError);
 
-  const handleRefresh = React.useCallback(() => {
-    assetsRefresh();
-    collectionsRefresh();
-    labelsRefresh();
+  const handleRefresh = React.useCallback(async () => {
+    await Promise.all([assetsRefresh(), collectionsRefresh(), labelsRefresh()]);
   }, [assetsRefresh, collectionsRefresh, labelsRefresh]);
+
+  const handleCollectionsModalClose = React.useCallback(async () => {
+    setIsCollectionsModalOpen(false);
+    if (returnToRegisterData) {
+      await assetsRefresh();
+      setReturnToRegisterData(false);
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    const returnToEdit = returnToEditRef.current;
+    returnToEditRef.current = undefined;
+    returnToEdit?.();
+  }, [assetsRefresh, returnToRegisterData]);
+
+  const handleLabelsModalClose = React.useCallback(() => {
+    setIsLabelsModalOpen(false);
+    if (returnToRegisterData) {
+      setReturnToRegisterData(false);
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    const returnToEdit = returnToEditRef.current;
+    returnToEditRef.current = undefined;
+    returnToEdit?.();
+  }, [returnToRegisterData]);
 
   const handleProjectSelect = React.useCallback(
     (projectName: string) => {
+      returnToEditRef.current = undefined;
       const namespace = projectNamespaces.find((project) => project.name === projectName);
       if (namespace) {
         updatePreferredNamespace(namespace);
@@ -287,6 +316,9 @@ const DataRegistryPage: React.FC = () => {
   return (
     <>
       <PageSection hasBodyWrapper={false}>
+        <Content component="p" className="pf-v6-u-mb-xs">
+          View and manage this project’s data assets where information is located.
+        </Content>
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
           <FlexItem>
             <ProjectSelector
@@ -309,41 +341,43 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
-          <PageSection hasBodyWrapper={false} className="odh-data-registry__header">
-            <span className="odh-data-registry__tab">Registry</span>
-          </PageSection>
-          <PageSection hasBodyWrapper={false}>
-            <Content component="p">
-              View and manage data assets registered in the selected project. The data registry
-              provides a structured and organized way to discover, share, version, and connect
-              schemas, datasets, and data sources.
-            </Content>
-          </PageSection>
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError ?? collectionsError}
             labels={labels}
             project={selectedProject}
-            onManageCollections={() => {
+            connections={connections}
+            onManageCollections={(onReturnToEdit) => {
+              setReturnToRegisterData(false);
               if (!collectionsError) {
+                returnToEditRef.current = onReturnToEdit;
                 setIsCollectionsModalOpen(true);
+              } else {
+                onReturnToEdit?.();
               }
             }}
-            onManageLabels={() => setIsLabelsModalOpen(true)}
-            onRegisterData={() => setIsRegisterModalOpen(true)}
+            onManageLabels={(onReturnToEdit) => {
+              returnToEditRef.current = onReturnToEdit;
+              setReturnToRegisterData(false);
+              setIsLabelsModalOpen(true);
+            }}
+            onRegisterData={() => {
+              setReturnToRegisterData(false);
+              setIsRegisterModalOpen(true);
+            }}
             onRetry={handleRefresh}
             hasWriteAccess={hasWriteAccess}
           />
           <ManageCollectionsModal
             isOpen={isCollectionsModalOpen}
-            onClose={() => setIsCollectionsModalOpen(false)}
+            onClose={handleCollectionsModalClose}
             project={selectedProject}
             onRefresh={handleRefresh}
           />
           <ManageLabelsModal
             isOpen={isLabelsModalOpen}
-            onClose={() => setIsLabelsModalOpen(false)}
+            onClose={handleLabelsModalClose}
             project={selectedProject}
             labels={labels}
             assets={assets}
@@ -357,7 +391,13 @@ const DataRegistryPage: React.FC = () => {
             onCreated={handleRefresh}
             onManageCollections={() => {
               setIsRegisterModalOpen(false);
+              setReturnToRegisterData(true);
               setIsCollectionsModalOpen(true);
+            }}
+            onManageLabels={() => {
+              setIsRegisterModalOpen(false);
+              setReturnToRegisterData(true);
+              setIsLabelsModalOpen(true);
             }}
           />
         </>

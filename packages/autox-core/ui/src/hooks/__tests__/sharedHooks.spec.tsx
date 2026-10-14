@@ -39,11 +39,25 @@ describe('shared AutoX hooks', () => {
   it('should list secrets and forward the request signal', async () => {
     const getSecrets = jest.mocked(k8sApi.getSecrets);
     const getSecretsRequest = jest.fn().mockResolvedValue([]);
-    getSecrets.mockReturnValue((() => getSecretsRequest) as never);
+    const getSecretsRequestFactory = jest.fn(() => getSecretsRequest);
+    getSecrets.mockReturnValue(getSecretsRequestFactory as never);
     const { result } = renderHook(() => useSecretsQuery('ns', 'storage'), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getSecrets).toHaveBeenCalledWith('');
     expect(getSecretsRequest).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
+  });
+
+  it('should include the provider in the secret query and request', async () => {
+    const getSecrets = jest.mocked(k8sApi.getSecrets);
+    const getSecretsRequest = jest.fn().mockResolvedValue([]);
+    const getSecretsRequestFactory = jest.fn(() => getSecretsRequest);
+    getSecrets.mockReturnValue(getSecretsRequestFactory as never);
+
+    const { result } = renderHook(() => useSecretsQuery('ns', 'database', 'neo4j'), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(getSecrets).toHaveBeenCalledWith('');
+    expect(getSecretsRequestFactory).toHaveBeenCalledWith('ns', 'database', 'neo4j');
   });
 
   it('should create secrets through the mutation hook', async () => {

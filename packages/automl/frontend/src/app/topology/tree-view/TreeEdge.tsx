@@ -1,12 +1,10 @@
 import * as React from 'react';
 import {
-  t_global_color_brand_default as colorBrand,
   t_global_color_status_danger_default as colorStatusDanger,
   t_global_border_color_default as borderColorDefault,
 } from '@patternfly/react-tokens';
 import { Edge, GraphElement, observer, isEdge, Node } from '@patternfly/react-topology';
-import { buildTreeEdgePath } from '@odh-dashboard/autox-core/ui/utils';
-import { isBranchCorridorNodeId } from './stageMapStepMetadata';
+import { buildTreeEdgePath, fanOutLabelClearX } from '@odh-dashboard/autox-core/ui/utils';
 import { isTreeNodeData } from './treeStepState';
 
 type TreeEdgeProps = {
@@ -14,8 +12,6 @@ type TreeEdgeProps = {
 };
 
 const COLORS = {
-  completed: borderColorDefault.var,
-  active: colorBrand.var,
   failed: colorStatusDanger.var,
   default: borderColorDefault.var,
 };
@@ -26,48 +22,37 @@ const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {
   const sourceState = isTreeNodeData(sourceData) ? sourceData.stepState : 'pending';
   const targetState = isTreeNodeData(targetData) ? targetData.stepState : 'pending';
 
-  if (sourceState === 'completed' && targetState === 'completed') {
-    return COLORS.completed;
-  }
-
   if (sourceState === 'failed' && targetState === 'failed') {
     return COLORS.failed;
   }
 
-  if (sourceState === 'active' && targetState === 'active') {
-    return COLORS.active;
-  }
-
+  // Keep active and completed connectors neutral; status color belongs to the nodes.
   return COLORS.default;
 };
 
-const getEdgeStrokeWidth = (sourceNode: Node, targetNode: Node): number => {
-  const sourceData = sourceNode.getData();
-  const targetData = targetNode.getData();
-  const sourceState = isTreeNodeData(sourceData) ? sourceData.stepState : 'pending';
-  const targetState = isTreeNodeData(targetData) ? targetData.stepState : 'pending';
-
-  if (sourceState === 'active' && targetState === 'active') {
-    const sourceId = sourceNode.getId();
-    const targetId = targetNode.getId();
-    if (isBranchCorridorNodeId(sourceId) || isBranchCorridorNodeId(targetId)) {
-      return 2.5;
-    }
-  }
-
-  return 1.5;
+type TreeEdgeData = {
+  clearLabelLane?: boolean;
 };
+
+const isTreeEdgeData = (data: unknown): data is TreeEdgeData =>
+  typeof data === 'object' && data !== null;
 
 const TreeEdgeInner: React.FC<{ edge: Edge }> = observer(({ edge }) => {
   const sourceNode = edge.getSource();
   const targetNode = edge.getTarget();
+  const targetBounds = targetNode.getBounds();
+  const edgeData = edge.getData();
+  const clearX =
+    isTreeEdgeData(edgeData) && edgeData.clearLabelLane
+      ? fanOutLabelClearX(targetBounds.x)
+      : undefined;
 
   return (
     <path
-      d={buildTreeEdgePath(sourceNode.getBounds(), targetNode.getBounds())}
+      d={buildTreeEdgePath(sourceNode.getBounds(), targetBounds, { clearX })}
       fill="none"
       stroke={getEdgeColor(sourceNode, targetNode)}
-      strokeWidth={getEdgeStrokeWidth(sourceNode, targetNode)}
+      strokeWidth={1.5}
       strokeLinecap="round"
       data-testid={`tree-edge-${edge.getId()}`}
     />

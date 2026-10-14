@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: RHOAI Data Registry API
-  version: 0.8.0
+  version: 0.8.2
   description: |
     The RHOAI Data Registry exposes an **Iceberg REST-compatible API** for
     registering, discovering, and managing data assets across OpenShift AI projects.
@@ -30,7 +30,7 @@ info:
 
     All endpoints require a Bearer token (`Authorization: Bearer <token>`).
     A kube-rbac-proxy sidecar authenticates via Kubernetes TokenReview and authorizes
-    via SAR against the RHOAI project extracted from the URL path.
+    via SubjectAccessReview (SAR) against the RHOAI project extracted from the URL path.
 
     ## Authorization
 
@@ -846,17 +846,66 @@ paths:
   /v1/{project}/search:
     get:
       operationId: searchDataRegistry
-      summary: Full-text search with relevance scoring
+      summary: Search data assets within a project
       description: |
-        Searches Data Registry assets within a single RHOAI project. The Data Registry
-        implementation may delegate internally to Feast's global search capability while
-        applying the project scope from the path.
+        Search registered tables, volumes, and collections **inside the Kubernetes
+        project named by `{project}`**. Path `{project}` is an exact, case-sensitive
+        Kubernetes namespace (`SavedDataset.namespace`).
 
-        **Scoring tiers:** exact name match (100), name substring (90),
-        description match (80), property value match (60), fuzzy match (40).
+        **Query text (`query`).** Case-insensitive. Empty or omitted includes every
+        in-scope asset that passes filters, each with `score` `0`.
 
-        When no `namespace` filter is set, collections themselves are included
-        in search results alongside tables and volumes.
+        Scoring (first matching bucket wins; integer scores only):
+        - `100` — exact match on name
+        - `90` — name contains the query
+        - `80` — description contains the query
+        - `60` — a searchable **value** contains the query: first-class metadata
+          (`description` is scored at 80; otherwise `owner`, `format`, labels,
+          collection properties, user `properties` values — not keys), schema
+          column name / type / description, or `storage_location` URI
+        - `40` — fuzzy name match (Jaccard ≥ 0.75, query length ≥ 3)
+
+        Non-matching rows are omitted. Hits are slim: `type`, `namespace`
+        (one-element collection array), `name`, `description`, `properties`,
+        `score`. Clients that need `format`, `owner`, `labels`, or storage
+        should GET the asset.
+
+        **Type filter (`asset_type` only).** There is no `type` query parameter.
+        Case-insensitive. Aliases: `dataset` → tables; `iceberg_table` → tables
+        whose format is `iceberg`. Unknown `asset_type` values return HTTP 200
+        with `results: []` (not 400). Result `type` is only `table`, `volume`,
+        or `collection`.
+
+        **Collection filter.** `namespace` and `namespaces` are aliases for
+        SavedDataset `collection`. Case-insensitive exact match. Omitted or
+        empty means all collections, including the implicit `default`
+        collection. When a collection filter is set, collection rows are
+        omitted from `results`.
+
+        **Label filter.** Single `label` query parameter: case-insensitive
+        **substring** on asset labels. Collection rows are omitted when
+        `label` is set. This is not generic-table `GET .../generic-tables?label=`
+        (exact membership).
+
+        **Property filter.** Repeat `properties=key:value`. AND across pairs.
+        Case-insensitive substring on values. Missing `:`, empty key, or empty
+        value → 400. A colon inside the key (`properties.a:b=x`) is 400.
+
+        **Pagination / sort.** `page` (1-based, default 1). `limit` (default 50,
+        max 500). `page_size` is an alias of `limit`; when both are sent,
+        `page_size` wins. `sort_by` is `score` (default) or `name`. `sort_order`
+        is `asc` or `desc`; when omitted, `desc` for `score` and `asc` for
+        `name`. Name sort is case-insensitive.
+
+        **Pagination object.** Nested Feast `paginate_and_sort` shape: `page`,
+        `limit`, and when there is at least one hit `totalCount` / `totalPages`.
+        `hasNext` / `hasPrevious` appear only when true. Zero hits omit
+        `totalCount` (and typically `totalPages`). `page` below 1, `page` past
+        `totalPages` when hits exist, or `page>1` when there are zero hits →
+        400. `limit` / `page_size` above 500 → 400.
+
+        **Errors.** Validation failures use Iceberg `ErrorResponse`
+        `{error: {message, type, code}}`.
       tags: [search]
       x-rhoai-extension: true
       parameters:
@@ -866,12 +915,17 @@ paths:
           schema:
             type: string
             default: ''
-          description: Text search across name, description, and properties. Empty returns all.
+          description: |
+            Text search across name, description, metadata values, schema
+            fields, and storage URI. Empty returns all in-scope assets at
+            score 0.
         - name: namespace
           in: query
           schema:
             type: string
-          description: Filter to a single collection (Level 3 — tables and volumes only, no collections in results)
+          description: |
+            Filter to a single collection (SavedDataset.collection). Tables
+            and volumes only — collection rows are excluded from results.
         - name: namespaces
           in: query
           schema:
@@ -880,19 +934,16 @@ paths:
               type: string
           style: form
           explode: true
-          description: Filter to multiple collections
-        - name: type
-          in: query
-          schema:
-            $ref: '#/components/schemas/SearchAssetType'
-          description: |
-            Filter by asset type. Values: `table`, `volume`, `collection`,
-            `iceberg_table`, `document_collection`, `vector_index`, `dataset`
+          description: Filter to multiple collections (union). Same semantics as `namespace`.
         - name: asset_type
           in: query
           schema:
-            $ref: '#/components/schemas/SearchAssetType'
-          description: Alternative to `type` parameter (same values accepted)
+            type: string
+          description: |
+            Optional type filter. Not a closed enum. Known values: `table`,
+            `volume`, `collection`, `dataset` (alias of `table`),
+            `iceberg_table` (tables with format `iceberg`). Unknown values
+            yield HTTP 200 and an empty `results` list.
         - name: properties
           in: query
           schema:
@@ -901,19 +952,31 @@ paths:
               type: string
           style: form
           explode: true
-          description: Property filters as `key:value` pairs (all must match)
+          description: |
+            Property filters as `key:value` pairs. All pairs must match
+            (AND). Values are case-insensitive substrings.
         - name: label
           in: query
           schema:
             type: string
-          description: Filter results to assets that have this label
+          description: |
+            Case-insensitive substring match on an asset label. A single
+            parameter (not repeated AND).
         - name: sort_by
           in: query
           schema:
             type: string
             enum: [score, name]
             default: score
-          description: Sort by relevance or alphabetical
+          description: Sort by score or alphabetical name
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: |
+            Sort direction. When omitted: `desc` if `sort_by=score`, `asc`
+            if `sort_by=name`.
         - name: page
           in: query
           schema:
@@ -927,7 +990,9 @@ paths:
             type: integer
             minimum: 1
             maximum: 500
-          description: Results per page (alternative to `limit`)
+          description: |
+            Results per page. When both `page_size` and `limit` are sent,
+            `page_size` wins.
         - name: limit
           in: query
           schema:
@@ -935,62 +1000,16 @@ paths:
             minimum: 1
             maximum: 500
             default: 50
-          description: Results per page (used when `page_size` is not specified)
+          description: Results per page when `page_size` is omitted
       responses:
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '200':
-          description: Search results with scoring
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SearchResponse'
-
-  /v1/search/{project}:
-    get:
-      operationId: searchDataRegistryByProject
-      summary: Project-scoped global search alias
-      description: |
-        Project-scoped alias for the global Feast search implementation. The UI continues to
-        use `/v1/{project}/search`; this endpoint is reserved for a future integration that
-        delegates to global `/search` internally.
-      tags: [search]
-      x-rhoai-extension: true
-      parameters:
-        - $ref: '#/components/parameters/project'
-        - name: query
-          in: query
-          schema:
-            type: string
-            default: ''
-          description: Text search across name, description, and properties. Empty returns all.
-        - name: namespace
-          in: query
-          schema:
-            type: string
-          description: Filter to a single collection.
-        - name: type
-          in: query
-          schema:
-            $ref: '#/components/schemas/SearchAssetType'
-          description: Filter by asset type.
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 500
-            default: 50
-          description: Results per page.
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '200':
-          description: Search results with scoring
+          description: Search results with nested pagination
           content:
             application/json:
               schema:
@@ -1054,6 +1073,13 @@ components:
 
     Conflict:
       description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    BadRequest:
+      description: Invalid request parameters
       content:
         application/json:
           schema:
@@ -1457,6 +1483,21 @@ components:
         Supported format for a structured asset. UI labels are Apache Iceberg, Parquet, CSV,
         Delta Lake, PostgreSQL, Milvus, and Other.
 
+    LicenseType:
+      type: string
+      enum: [internal-use, cc-by-4.0, apache-2.0, proprietary, restricted]
+      description: Allowed data license values.
+
+    MaturityType:
+      type: string
+      enum: [experimental, staging, production, deprecated]
+      description: Asset lifecycle stage.
+
+    PiiStatus:
+      type: string
+      enum: [none, contains-pii, contains-sensitive, anonymized]
+      description: PII classification for an asset.
+
     CreateAssetRequest:
       description: |
         Request model for registering an asset. Storage references are optional: metadata-only
@@ -1485,16 +1526,22 @@ components:
           type: string
           description: Intended use of the data. Round-trips as `properties.purpose`.
         license:
-          type: string
+          anyOf:
+            - $ref: '#/components/schemas/LicenseType'
+            - type: 'null'
           description: Data license or usage terms. Round-trips as `properties.license`.
         maturity:
-          type: string
-          description: 'Lifecycle stage (e.g. experimental, staging, production, deprecated). Round-trips as `properties.maturity`.'
+          anyOf:
+            - $ref: '#/components/schemas/MaturityType'
+            - type: 'null'
+          description: "Lifecycle stage (e.g. experimental, staging, production, deprecated). Round-trips as `properties.maturity`."
         domain:
           type: string
           description: Business domain. Round-trips as `properties.domain`.
         pii:
-          type: string
+          anyOf:
+            - $ref: '#/components/schemas/PiiStatus'
+            - type: 'null'
           description: PII classification. Round-trips as `properties.pii`.
         labels:
           type: array
@@ -1539,20 +1586,26 @@ components:
         description:
           type: string
         purpose:
-          type: string
-          description: Intended use of the data. Updates `properties.purpose` when supplied.
+          type: ['string', 'null']
+          description: Intended use of the data. Updates `properties.purpose` when supplied. Null clears.
         license:
-          type: string
-          description: Data license or usage terms. Updates `properties.license` when supplied.
+          anyOf:
+            - $ref: '#/components/schemas/LicenseType'
+            - type: 'null'
+          description: Data license or usage terms. Updates `properties.license` when supplied. Null clears.
         maturity:
-          type: string
-          description: 'Lifecycle stage (e.g. experimental, staging, production, deprecated). Updates `properties.maturity` when supplied.'
+          anyOf:
+            - $ref: '#/components/schemas/MaturityType'
+            - type: 'null'
+          description: "Lifecycle stage. Updates `properties.maturity` when supplied. Null clears."
         domain:
-          type: string
-          description: Business domain. Updates `properties.domain` when supplied.
+          type: ['string', 'null']
+          description: Business domain. Updates `properties.domain` when supplied. Null clears.
         pii:
-          type: string
-          description: PII classification. Updates `properties.pii` when supplied.
+          anyOf:
+            - $ref: '#/components/schemas/PiiStatus'
+            - type: 'null'
+          description: PII classification. Updates `properties.pii` when supplied. Null clears.
         add_labels:
           type: array
           items:
@@ -1563,14 +1616,24 @@ components:
           items:
             type: string
           description: Labels to remove from this asset.
+        remove_properties:
+          type: array
+          items:
+            type: string
+          description: |
+            Property keys to remove from the asset. Only user-defined (custom)
+            keys may be removed. Governance keys (purpose, license, maturity,
+            domain, pii) are rejected with 400. Keys in both properties and
+            remove_properties are rejected with 400.
         properties:
           type: object
           additionalProperties:
             type: string
           description: |
-            Arbitrary metadata updates. Keys are merged into the existing property map;
-            omitted keys remain unchanged. Governance keys use `purpose`, `license`,
-            `maturity`, `domain`, and `pii`.
+            Arbitrary metadata updates. Keys are merged into the existing
+            property map; omitted keys remain unchanged. To remove a key,
+            use remove_properties. Governance keys use purpose, license,
+            maturity, domain, and pii.
 
     UpdateVolumeRequest:
       description: Partial update for an unstructured asset.
@@ -1602,7 +1665,7 @@ components:
           description: Column name
         type:
           type: string
-          description: 'Data type (e.g. string, integer, long, float, double, decimal, boolean, date, timestamp, binary)'
+          description: "Data type (e.g. string, integer, long, float, double, decimal, boolean, date, timestamp, binary)"
         description:
           type: string
           description: Human-readable column description
@@ -1757,51 +1820,79 @@ components:
 
     # ----- Search -----
 
-    SearchAssetType:
+    SearchResultType:
       type: string
-      enum: [table, volume, collection, iceberg_table, document_collection, vector_index, dataset]
-      description: Canonical asset type accepted by search filters and returned in search results.
+      enum: [table, volume, collection]
+      description: |
+        Asset class on a search hit after alias resolution. Never `dataset`,
+        `iceberg_table`, `document_collection`, or `vector_index`.
 
     SearchResult:
       type: object
-      required: [type, namespace, name]
+      required: [type, namespace, name, score]
       properties:
         type:
-          $ref: '#/components/schemas/SearchAssetType'
+          $ref: '#/components/schemas/SearchResultType'
         namespace:
           type: array
           minItems: 1
           maxItems: 1
           items:
             type: string
+          description: |
+            Collection name (SavedDataset.collection) as a one-element array.
+            Implicit `default` when the asset has no collection.
         name:
           type: string
+          description: Unscoped asset name (not `project/collection/name`)
         description:
           type: ['string', 'null']
         properties:
           type: object
           additionalProperties:
             type: string
+          description: |
+            User tags plus note keys (`purpose`, `license`, `maturity`,
+            `domain`, `pii`). Does not include `format`, `owner`, or labels.
         score:
           type: integer
-          default: 0
+          description: Relevance 100, 90, 80, 60, 40, or 0 (empty query)
+
+    SearchPagination:
+      type: object
+      required: [page, limit]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+        totalCount:
+          type: integer
+          minimum: 0
+          description: Omitted when there are zero hits
+        totalPages:
+          type: integer
+          minimum: 0
+          description: Omitted when there are zero hits
+        hasNext:
+          type: boolean
+          description: Present only when true
+        hasPrevious:
+          type: boolean
+          description: Present only when true
 
     SearchResponse:
       type: object
-      required: [query, results]
+      required: [query, results, pagination]
       properties:
         query:
           type: string
+          description: Echo of the request `query` parameter
         results:
           type: array
           items:
             $ref: '#/components/schemas/SearchResult'
-        total:
-          type: integer
-          default: 0
-        page:
-          type: integer
-          default: 1
-        limit:
-          type: integer
-          default: 50
+        pagination:
+          $ref: '#/components/schemas/SearchPagination'

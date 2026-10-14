@@ -20,6 +20,10 @@ class HomePage {
     return cy.findByTestId('app-page-title');
   }
 
+  findTaskShortcut(taskId: string) {
+    return cy.findByTestId(`task-link-${taskId}`);
+  }
+
   initHomeIntercepts(config: Parameters<typeof mockDashboardConfig>[0] = {}) {
     cy.interceptOdh('GET /api/config', mockDashboardConfig(config));
   }

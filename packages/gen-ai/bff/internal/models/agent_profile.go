@@ -89,11 +89,16 @@ type ConfigMapRef struct {
 	Key  string `json:"key" yaml:"key"`
 }
 
-// MCPServerReference points to an MCP server configuration
+// MCPServerReference points to either a Kubernetes-backed MCP server configuration or an
+// MLflow MCP Registry server. Exactly one reference form is accepted.
 type MCPServerReference struct {
-	ServerRef      MCPServerRef    `json:"serverRef" yaml:"serverRef"`
+	ServerRef      *MCPServerRef   `json:"serverRef,omitempty" yaml:"serverRef,omitempty"`
+	Name           string          `json:"name,omitempty" yaml:"name,omitempty"`
+	Source         string          `json:"source,omitempty" yaml:"source,omitempty"`
+	Version        string          `json:"version,omitempty" yaml:"version,omitempty"`
 	CredentialsRef *CredentialsRef `json:"credentialsRef,omitempty" yaml:"credentialsRef,omitempty"`
-	AllowedTools   []string        `json:"allowedTools,omitempty" yaml:"allowedTools,omitempty"`
+	// Nil omits the restriction; a pointer to an empty list explicitly allows no tools.
+	AllowedTools *[]string `json:"allowedTools,omitempty" yaml:"allowedTools,omitempty"`
 }
 
 // MCPServerRef can point to either a ConfigMap or MCPServer CRD

@@ -15,7 +15,17 @@ import { CodeIcon, ColumnsIcon, CogIcon, EllipsisVIcon, PlusIcon } from '@patter
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
+import { AgentDeploymentSummary } from '~/app/agentProfile/types';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
+
+const formatDeploymentDate = (createdAt: string): string =>
+  new Date(createdAt).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
 type ChatbotHeaderActionsProps = {
   onViewCode: () => void;
@@ -27,6 +37,9 @@ type ChatbotHeaderActionsProps = {
   onSaveAs: () => void;
   onLoad: () => void;
   onNew: () => void;
+  onDeploy?: () => void;
+  deployments?: AgentDeploymentSummary[];
+  onDeploymentSelect?: (deploymentName: string) => void;
   onSettingsClick: () => void;
   isSettingsOpen: boolean;
   isCompareMode: boolean;
@@ -42,6 +55,9 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onSaveAs,
   onLoad,
   onNew,
+  onDeploy = () => undefined,
+  deployments = [],
+  onDeploymentSelect = () => undefined,
   onSettingsClick,
   isSettingsOpen,
   isCompareMode,
@@ -53,6 +69,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const { enabled: agentDeploymentsEnabled } = useGenAiAgentDeploymentEnabled();
 
   const getDisabledReason = () => {
     if (!lastInput && !selectedModel) {
@@ -212,6 +229,38 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 >
                   Clear agent
                 </DropdownItem>
+              )}
+              {agentConfigManagementEnabled && agentDeploymentsEnabled && profileApplied && (
+                <DropdownItem
+                  onClick={!isCompareMode ? onDeploy : undefined}
+                  isAriaDisabled={isCompareMode}
+                  key="deploy-agent"
+                  description="Create an API endpoint from this agent"
+                  data-testid="deploy-agent-menu-item"
+                >
+                  Deploy agent
+                </DropdownItem>
+              )}
+              {agentDeploymentsEnabled && profileApplied && deployments.length > 0 && (
+                <>
+                  <Divider key="deployments-divider" />
+                  <DropdownItem key="deployments-heading" isAriaDisabled>
+                    Deployments ({deployments.length})
+                  </DropdownItem>
+                  {deployments.map((deployment) => (
+                    <DropdownItem
+                      key={deployment.name}
+                      onClick={
+                        !isCompareMode ? () => onDeploymentSelect(deployment.name) : undefined
+                      }
+                      isAriaDisabled={isCompareMode}
+                      description={formatDeploymentDate(deployment.createdAt)}
+                      data-testid={`agent-deployment-menu-item-${deployment.name}`}
+                    >
+                      {deployment.displayName || deployment.name}
+                    </DropdownItem>
+                  ))}
+                </>
               )}
               {agentConfigManagementEnabled && <Divider key="agent-divider" />}
               <DropdownItem

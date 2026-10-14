@@ -18,7 +18,7 @@ tokenRateLimit:
 # API Keys
 apiKeyName: 'test-api-key'
 apiKeyDescription: 'Cypress test: API key for'
-apiKeyExpirationTimeId: '30d'
-apiKeyExpirationTime: '30 days'
+apiKeyExpirationTimeId: '1d'
+apiKeyExpirationTime: '1 days'
 apiKeyExpirationTimeInvalid: '180d'
 apiKeyCount: 0

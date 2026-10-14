@@ -152,8 +152,13 @@ const getSelectedInputDataFile = (inputDataKey: string): ExplorerFile => {
 type AutoragConfigureProps = {
   initialValues?: Partial<ConfigureSchema> & Record<string, unknown>;
   initialInputDataSecret?: SecretSelection;
-  initialVectorDbSecret?: SecretSelection;
+  initialDatabaseSecret?: SecretSelection;
+  preserveInitialDatabaseSecret?: boolean;
   isReconfigure?: boolean;
+  ragMode?: 'simple' | 'graph';
+  selectedDatabaseSecret?: SecretSelection;
+  onRagModeChange?: (mode: 'simple' | 'graph') => void;
+  onDatabaseSecretChange?: (secret: SecretSelection | undefined) => void;
   onMaaSModelsReady?: (ready: boolean) => void;
 };
 
@@ -166,8 +171,13 @@ const MODEL_RESTORE_WARNING_MESSAGE =
 function AutoragConfigure({
   initialValues,
   initialInputDataSecret,
-  initialVectorDbSecret,
+  initialDatabaseSecret,
+  preserveInitialDatabaseSecret,
   isReconfigure = false,
+  ragMode,
+  selectedDatabaseSecret,
+  onRagModeChange,
+  onDatabaseSecretChange,
   onMaaSModelsReady,
 }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
@@ -860,11 +870,18 @@ function AutoragConfigure({
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
                     <FlexItem>
                       <ConfigureFormGroup
-                        label="Vector database connection"
-                        description="Provide connection details for a vector database."
+                        label="Database connection"
+                        description="Provide connection details for the selected RAG template."
                         isRequired
                       >
-                        <AutoragVectorStoreSelector initialSecret={initialVectorDbSecret} />
+                        <AutoragVectorStoreSelector
+                          initialSecret={initialDatabaseSecret}
+                          preserveInitialSelection={preserveInitialDatabaseSecret}
+                          mode={ragMode}
+                          selectedSecret={selectedDatabaseSecret}
+                          onModeChange={onRagModeChange}
+                          onSelectedSecretChange={onDatabaseSecretChange}
+                        />
                       </ConfigureFormGroup>
                     </FlexItem>
 

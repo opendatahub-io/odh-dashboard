@@ -211,4 +211,48 @@ describe('workloadHardwareProfileResolver', () => {
 
     expect(result).toBeUndefined();
   });
+
+  it('does not resolve a disabled profile during resource matching', () => {
+    const disabledProfile = {
+      ...servingProfile,
+      metadata: {
+        ...servingProfile.metadata,
+        annotations: {
+          ...servingProfile.metadata.annotations,
+          'opendatahub.io/disabled': 'true',
+        },
+      },
+    };
+
+    const result = resolveWorkloadHardwareProfileForRow(trainWorkload(), {
+      annotationSources: [],
+      hardwareProfileByKey: new Map(),
+      hardwareProfilesForMatching: [disabledProfile],
+      workloadType: QuotaUsageWorkloadTypes.Serve,
+    });
+
+    expect(result).toBeUndefined();
+  });
+
+  it('uses the HardwareProfile display-name annotation when resolving a match', () => {
+    const profile = {
+      ...servingProfile,
+      metadata: {
+        ...servingProfile.metadata,
+        annotations: {
+          ...servingProfile.metadata.annotations,
+          'opendatahub.io/display-name': 'GPU profile display name',
+        },
+      },
+    };
+
+    const result = resolveWorkloadHardwareProfileForRow(trainWorkload(), {
+      annotationSources: [],
+      hardwareProfileByKey: new Map(),
+      hardwareProfilesForMatching: [profile],
+      workloadType: QuotaUsageWorkloadTypes.Serve,
+    });
+
+    expect(result?.displayName).toBe('GPU profile display name');
+  });
 });

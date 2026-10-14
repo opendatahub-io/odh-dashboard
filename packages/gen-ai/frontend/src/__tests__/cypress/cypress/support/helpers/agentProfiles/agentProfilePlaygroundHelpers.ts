@@ -5,10 +5,10 @@ import {
   mockMLflowPromptsList,
   mockNamespace,
   mockNamespaces,
-  mockEmptyList,
+  mockAAModels,
   mockStatus,
 } from '~/__tests__/cypress/cypress/__mocks__';
-import type { AgentProfileSummary } from '~/app/agentProfile/types';
+import type { AgentProfile, AgentProfileSummary } from '~/app/agentProfile/types';
 
 // ---------------------------------------------------------------------------
 // Base playground intercepts (no E2E MCP config required)
@@ -46,7 +46,17 @@ export const setupPlaygroundBase = (namespace: string): void => {
       ],
     },
   );
-  cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
+  cy.interceptGenAi(
+    'GET /api/v1/aaa/models',
+    { query: { namespace } },
+    mockAAModels([
+      {
+        model_name: 'llama-3.1-8b-instruct',
+        model_id: 'llama-3.1-8b-instruct',
+        endpoints: [`http://llama-3.1-8b-instruct.${namespace}.svc.cluster.local:8080`],
+      },
+    ]),
+  );
   cy.interceptGenAi(
     'GET /api/v1/aaa/mcps',
     { query: { namespace } },
@@ -66,6 +76,7 @@ export const makeProfileResponse = (
     promptName: string;
     promptVersion: number;
     namespace: string;
+    mcpServers: AgentProfile['spec']['mcpServers'];
   }> = {},
 ): Record<string, unknown> => ({
   data: {
@@ -89,6 +100,7 @@ export const makeProfileResponse = (
           version: String(overrides.promptVersion ?? 1),
         },
       }),
+      ...(overrides.mcpServers && { mcpServers: overrides.mcpServers }),
     },
   },
 });
@@ -125,7 +137,11 @@ export const interceptExistingAgentProfile = (
   profileId: string,
   displayName: string,
   namespace: string,
-  opts: { promptName?: string; promptVersion?: number } = {},
+  opts: {
+    promptName?: string;
+    promptVersion?: number;
+    mcpServers?: AgentProfile['spec']['mcpServers'];
+  } = {},
 ): void => {
   cy.interceptGenAi(
     'GET /api/v1/agent-profiles/*',

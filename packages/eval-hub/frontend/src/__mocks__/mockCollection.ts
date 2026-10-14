@@ -1,7 +1,10 @@
 /* eslint-disable camelcase */
 import { Collection, CollectionsListResponse } from '~/app/types';
 
-export { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
+export {
+  mockBenchmarkSuiteCollections,
+  mockCuratedBenchmarkSuiteCollections,
+} from '~/app/mockBenchmarkSuiteCollections';
 
 type MockCollectionOptions = Partial<{
   id: string;

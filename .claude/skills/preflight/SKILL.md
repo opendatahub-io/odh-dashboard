@@ -202,7 +202,7 @@ Read [references/checks.md](references/checks.md) for the orchestration order an
 Invoke these reusable skills with the context gathered in Step 1. They own their respective domain judgments and status mapping; preflight only aggregates their results into the final readiness table:
 
 - `/ci-status-review` — provide PR metadata, sync state, affected paths, and raw CI data when already collected. It uses `analyze-ci.sh` and delegates failed-test classification to `/ci-flake-classifier`.
-- `/test-impact-review` — provide changed paths and the PR body when available.
+- `/test-impact-review` — provide changed paths, the PR body, and enough of the diff/tests when available.
 - `/pr-description-review` — provide the PR body and changed paths when a PR exists.
 
 Do not restate or independently reinterpret their criteria in preflight. If a skill cannot run, report that failure clearly in the results table rather than silently substituting a local heuristic.

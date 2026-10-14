@@ -18,6 +18,7 @@ import (
 
 type k8sRepository interface {
 	GetFilteredSecrets(k8sService kubernetes.Service, ctx context.Context, namespace string, secretType string) ([]models.SecretListItem, error)
+	GetFilteredSecretsByProvider(k8sService kubernetes.Service, ctx context.Context, namespace string, secretType string, provider string) ([]models.SecretListItem, error)
 	GetSecretCredentials(k8sService kubernetes.Service, ctx context.Context, namespace, name string) (map[string]string, error)
 }
 
@@ -89,7 +90,8 @@ func (h *K8sHandler) GetNamespacesHandler(w http.ResponseWriter, r *http.Request
 // GetSecretsHandler retrieves secrets from a namespace with optional filtering based on type.
 // Query parameters:
 //   - namespace (required): The namespace name to query secrets from
-//   - type (optional): Filter type - "storage", "ogx", "maas", or "vector-db", or empty for all secrets
+//   - type (optional): Filter type - "storage", "ogx", "maas", "vector-db", or "database"
+//   - provider (optional): Database provider filter for type=database
 //
 // Note: namespace is provided via the AttachNamespace middleware
 func (h *K8sHandler) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -102,12 +104,17 @@ func (h *K8sHandler) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _
 	}
 
 	secretType := r.URL.Query().Get("type")
-	if secretType != "" && secretType != "storage" && secretType != "ogx" && secretType != "maas" && secretType != "vector-db" {
-		badRequestResponse(h.logger, w, r, "query parameter 'type' must be 'storage', 'ogx', 'maas', 'vector-db', or omitted")
+	if secretType != "" && secretType != "storage" && secretType != "ogx" && secretType != "maas" && secretType != "vector-db" && secretType != "database" {
+		badRequestResponse(h.logger, w, r, "query parameter 'type' must be 'storage', 'ogx', 'maas', 'vector-db', 'database', or omitted")
+		return
+	}
+	provider := r.URL.Query().Get("provider")
+	if provider != "" && (secretType != "database" || (provider != "milvus" && provider != "pgvector" && provider != "neo4j")) {
+		badRequestResponse(h.logger, w, r, "query parameter 'provider' must be milvus, pgvector, or neo4j when type=database")
 		return
 	}
 
-	secrets, err := h.repo.GetFilteredSecrets(h.k8sService, ctx, namespace, secretType)
+	secrets, err := h.repo.GetFilteredSecretsByProvider(h.k8sService, ctx, namespace, secretType, provider)
 	if err != nil {
 		switch {
 		case errors.Is(err, kubernetes.ErrNotFound):

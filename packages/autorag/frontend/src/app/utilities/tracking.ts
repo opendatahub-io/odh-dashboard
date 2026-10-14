@@ -37,6 +37,7 @@ export const AUTORAG_EVENTS = {
   RESULTS_VIEWED: 'AutoRAG Results Viewed',
   PLAYGROUND_OPENED: 'AutoRAG Playground Opened',
   NOTEBOOK_DOWNLOADED: 'AutoRAG Notebook Downloaded',
+  STARTER_KIT_DOWNLOADED: 'AutoRAG Starter Kit Downloaded',
   RESULTS_COLUMN_TOGGLED: 'AutoRAG Results Column Toggled',
   PATTERN_DETAILS_VIEWED: 'AutoRAG Pattern Details Viewed',
   PATTERN_DETAILS_DOWNLOAD_INITIATED: 'AutoRAG Pattern Details Download Initiated',
@@ -153,7 +154,7 @@ export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties):
 };
 
 /** Categorized vector I/O provider type, derived from the `SUPPORTED_VECTOR_STORE_PROVIDER_TYPES` allowlist. */
-export type VectorStoreProviderType = 'milvus' | 'pgvector';
+export type VectorStoreProviderType = 'milvus' | 'pgvector' | 'neo4j';
 
 /**
  * Maps a raw vector store provider type (e.g. `"remote::milvus"`) to the categorized
@@ -167,10 +168,14 @@ export const toVectorStoreProviderType = (
   providerType: string,
 ): VectorStoreProviderType | undefined => {
   switch (providerType) {
+    case 'milvus':
     case 'remote::milvus':
       return 'milvus';
+    case 'pgvector':
     case 'remote::pgvector':
       return 'pgvector';
+    case 'neo4j':
+      return 'neo4j';
     default:
       return undefined;
   }
@@ -197,11 +202,15 @@ export const getVectorStoreProviderTypeFromSecretData = (
     'PGVECTOR_USER',
     'PGVECTOR_PASSWORD',
   ].every((key) => keys.has(key));
+  const hasNeo4j = keys.has('NEO4J_URI');
 
-  if (hasMilvus === hasPgvector) {
-    return undefined;
-  }
-  return hasMilvus ? 'milvus' : 'pgvector';
+  const providers = [
+    hasMilvus ? 'milvus' : undefined,
+    hasPgvector ? 'pgvector' : undefined,
+    hasNeo4j ? 'neo4j' : undefined,
+  ].filter((provider): provider is VectorStoreProviderType => provider !== undefined);
+
+  return providers.length === 1 ? providers[0] : undefined;
 };
 
 /**
@@ -576,6 +585,10 @@ export type NotebookDownloadedType = 'indexing' | 'inference' | 'other';
  */
 export const fireAutoragNotebookDownloaded = (notebookType: NotebookDownloadedType): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, { notebookType });
+};
+
+export const fireAutoragStarterKitDownloaded = (): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, { downloadType: 'starterKit' });
 };
 
 /**

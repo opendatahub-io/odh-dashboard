@@ -111,6 +111,14 @@ func TestCreateAgentProfile(t *testing.T) {
 						},
 						MaxNumResults: func() *int { v := 5; return &v }(),
 					},
+					MCPServers: []models.MCPServerReference{
+						{
+							Name:         "com.example/jira",
+							Source:       "mlflow",
+							Version:      "3",
+							AllowedTools: &[]string{"search_issues"},
+						},
+					},
 				},
 			},
 			wantErr: false,
@@ -136,6 +144,45 @@ func TestCreateAgentProfile(t *testing.T) {
 				assert.Equal(t, 0.7, *profile.Spec.Temperature)
 				assert.NotNil(t, profile.Spec.VectorStores)
 				assert.Len(t, profile.Spec.VectorStores.Stores, 1)
+				require.Len(t, profile.Spec.MCPServers, 1)
+				assert.Nil(t, profile.Spec.MCPServers[0].ServerRef)
+				assert.Equal(t, "com.example/jira", profile.Spec.MCPServers[0].Name)
+				assert.Equal(t, "mlflow", profile.Spec.MCPServers[0].Source)
+				assert.Equal(t, "3", profile.Spec.MCPServers[0].Version)
+				require.NotNil(t, profile.Spec.MCPServers[0].AllowedTools)
+				assert.Equal(t, []string{"search_issues"}, *profile.Spec.MCPServers[0].AllowedTools)
+			},
+		},
+		{
+			name: "successful creation - explicitly empty allowed tools",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata:   models.AgentProfileMetadata{Name: "670e8400-e29b-41d4-a716-446655440010"},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "No Tools Agent",
+					Model:       models.ModelReference{ID: "llama-3-8b", URI: "https://api.example.com/v1/models"},
+					MCPServers: []models.MCPServerReference{{
+						Name:         "com.example/jira",
+						Source:       "mlflow",
+						AllowedTools: &[]string{},
+					}},
+				},
+			},
+			validateFunc: func(t *testing.T, response *models.AgentProfileCreateResponse, cl client.Client) {
+				cm := &corev1.ConfigMap{}
+				require.NoError(t, cl.Get(context.Background(), client.ObjectKey{
+					Namespace: testNamespace,
+					Name:      response.Name,
+				}, cm))
+				assert.Contains(t, cm.Data["profile.yaml"], "allowedTools: []")
+
+				kc := &TokenKubernetesClient{Client: cl, Logger: slog.Default()}
+				profile, err := kc.GetAgentProfile(context.Background(), testNamespace, "670e8400-e29b-41d4-a716-446655440010")
+				require.NoError(t, err)
+				require.Len(t, profile.Spec.MCPServers, 1)
+				require.NotNil(t, profile.Spec.MCPServers[0].AllowedTools)
+				assert.Empty(t, *profile.Spec.MCPServers[0].AllowedTools)
 			},
 		},
 		{
@@ -482,6 +529,22 @@ func TestValidateAgentProfile(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid legacy MCPServer resource reference",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata:   models.AgentProfileMetadata{Name: "7439a6e0-968b-48d4-b2a0-4f410a5b2d99"},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Legacy Agent",
+					Model:       models.ModelReference{ID: "m", URI: "u"},
+					MCPServers: []models.MCPServerReference{{
+						ServerRef: &models.MCPServerRef{Kind: "MCPServer", Name: "legacy-server"},
+					}},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name:    "nil profile",
 			profile: nil,
 			wantErr: true,
@@ -687,7 +750,7 @@ func TestValidateAgentProfile(t *testing.T) {
 					Model:       models.ModelReference{ID: "m", URI: "u"},
 					MCPServers: []models.MCPServerReference{
 						{
-							ServerRef: models.MCPServerRef{
+							ServerRef: &models.MCPServerRef{
 								Kind: "ConfigMap",
 								Name: "mcp-servers",
 								// Key missing
@@ -698,6 +761,57 @@ func TestValidateAgentProfile(t *testing.T) {
 			},
 			wantErr: true,
 			errMsg:  "serverRef.key is required when kind is ConfigMap",
+		},
+		{
+			name: "MCP server - registry source must be mlflow",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata:   models.AgentProfileMetadata{Name: "63b8b609-35a4-41da-b094-0e498923c8e0"},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Test",
+					Model:       models.ModelReference{ID: "m", URI: "u"},
+					MCPServers:  []models.MCPServerReference{{Name: "jira", Source: "registry"}},
+				},
+			},
+			wantErr: true,
+			errMsg:  "unsupported registry source",
+		},
+		{
+			name: "MCP server - unsupported resource kind",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata:   models.AgentProfileMetadata{Name: "e91cffb1-9e3e-4288-813b-1ae6eb34acc7"},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Test",
+					Model:       models.ModelReference{ID: "m", URI: "u"},
+					MCPServers: []models.MCPServerReference{{
+						ServerRef: &models.MCPServerRef{Kind: "Secret", Name: "not-a-server", Key: "key"},
+					}},
+				},
+			},
+			wantErr: true,
+			errMsg:  "unsupported serverRef.kind",
+		},
+		{
+			name: "MCP server - resource and registry forms cannot be mixed",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata:   models.AgentProfileMetadata{Name: "4d1f8518-5f46-4a92-aef1-cb483909c22e"},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Test",
+					Model:       models.ModelReference{ID: "m", URI: "u"},
+					MCPServers: []models.MCPServerReference{{
+						ServerRef: &models.MCPServerRef{Kind: "ConfigMap", Name: "mcp-servers", Key: "jira"},
+						Name:      "jira",
+						Source:    "mlflow",
+					}},
+				},
+			},
+			wantErr: true,
+			errMsg:  "exactly one of serverRef or registry reference must be set",
 		},
 	}
 
@@ -713,4 +827,28 @@ func TestValidateAgentProfile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateAgentProfileRegistryMCPServer(t *testing.T) {
+	profile := &models.AgentProfile{
+		APIVersion: "genai.redhat.com/v1alpha1",
+		Kind:       "AgentProfile",
+		Metadata: models.AgentProfileMetadata{
+			Name: "d94c7e14-89ee-46db-9003-725d0789fa7a",
+		},
+		Spec: models.AgentProfileSpec{
+			DisplayName: "Registry Agent",
+			Model:       models.ModelReference{ID: "model", URI: "https://model.example.com"},
+			MCPServers: []models.MCPServerReference{
+				{
+					Name:         "com.example/jira",
+					Source:       "mlflow",
+					Version:      "3",
+					AllowedTools: &[]string{"search_issues"},
+				},
+			},
+		},
+	}
+
+	require.NoError(t, validateAgentProfile(profile))
 }

@@ -78,6 +78,7 @@ type KubernetesClientInterface interface {
 
 	// Agent Deployment operations
 	ListAgentDeployments(ctx context.Context, namespace, agentProfileID string) (*models.AgentDeploymentListResponse, error)
+	IsAgentDeploymentDisplayNameTaken(ctx context.Context, namespace, displayName string) (bool, error)
 	GetAgentDeployment(ctx context.Context, namespace, name string) (*models.AgentDeploymentSummary, error)
 	DeleteAgentDeployment(ctx context.Context, namespace, name string) error
 	CreateSandboxConfigMap(ctx context.Context, namespace string, profileID string, configYAML string) (*corev1.ConfigMap, error)

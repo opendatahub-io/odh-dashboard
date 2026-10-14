@@ -37,6 +37,7 @@ import {
   fireAutoragFlowExited,
   fireAutoragRunReconfigured,
   fireAutoragRunTriggered,
+  getVectorStoreProviderTypeFromSecretData,
   mapOptimizationMetric,
   mapOptimizationMetricEvaluator,
   TrackingOutcome,
@@ -72,18 +73,22 @@ type AutoragConfigurePageProps = {
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
   initialMaaSSecret?: SecretSelection;
-  initialVectorDbSecret?: SecretSelection;
+  initialDatabaseSecret?: SecretSelection;
+  preserveInitialDatabaseSecret?: boolean;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
   /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
   sourceRunName?: string;
 };
 
+type RagMode = 'simple' | 'graph';
+
 function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
   initialMaaSSecret,
-  initialVectorDbSecret,
+  initialDatabaseSecret,
+  preserveInitialDatabaseSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -145,6 +150,14 @@ function AutoragConfigurePage({
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
   const [maasModelsReady, setMaaSModelsReady] = useState(false);
+  const [ragMode, setRagMode] = useState<RagMode>(() =>
+    getVectorStoreProviderTypeFromSecretData(initialDatabaseSecret?.data) === 'neo4j'
+      ? 'graph'
+      : 'simple',
+  );
+  const [databaseSecret, setDatabaseSecret] = useState<SecretSelection | undefined>(
+    initialDatabaseSecret,
+  );
   // Populated by the Knowledge/Evaluation/Vector-store selectors via RunTriggeredTrackingContext
   // when the user actually (re)selects a source/provider in this session — see the context's
   // doc comment for why this can't be safely derived from form data alone. Read at submit time
@@ -574,8 +587,13 @@ function AutoragConfigurePage({
                   <AutoragConfigure
                     initialValues={initialValues}
                     initialInputDataSecret={initialInputDataSecret}
-                    initialVectorDbSecret={initialVectorDbSecret}
+                    initialDatabaseSecret={initialDatabaseSecret}
+                    preserveInitialDatabaseSecret={preserveInitialDatabaseSecret}
                     isReconfigure={!!sourceRunId}
+                    ragMode={ragMode}
+                    selectedDatabaseSecret={databaseSecret}
+                    onRagModeChange={setRagMode}
+                    onDatabaseSecretChange={setDatabaseSecret}
                     onMaaSModelsReady={setMaaSModelsReady}
                   />
                 )}

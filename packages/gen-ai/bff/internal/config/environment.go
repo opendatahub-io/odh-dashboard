@@ -45,12 +45,6 @@ type EnvConfig struct {
 	NemoGuardrailsURL string
 	MockNemoClient    bool
 
-	// MaaS (Model as a Service) Configuration
-	// MaaSURL is used as a guardrail-availability gate: when non-empty, MaaS features
-	// are considered available. Actual MaaS communication goes through the MaaS BFF
-	// (configured via BFF_MAAS_* inter-BFF settings, not this URL directly).
-	MaaSURL string
-
 	// MLflow Configuration
 	MLflowURL string
 

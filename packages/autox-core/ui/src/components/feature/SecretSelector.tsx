@@ -26,12 +26,30 @@ type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> &
   description?: React.ReactNode;
 };
 
+type DatabaseProvider = 'milvus' | 'pgvector' | 'neo4j';
+
+const getDatabaseProviders = (secret: SecretListItem): DatabaseProvider[] => {
+  const keys = new Set(Object.keys(secret.data ?? {}));
+  return [
+    keys.has('MILVUS_URI') ? 'milvus' : undefined,
+    ['PGVECTOR_HOST', 'PGVECTOR_PORT', 'PGVECTOR_DB', 'PGVECTOR_USER', 'PGVECTOR_PASSWORD'].every(
+      (key) => keys.has(key),
+    )
+      ? 'pgvector'
+      : undefined,
+    keys.has('NEO4J_URI') ? 'neo4j' : undefined,
+  ].filter((provider): provider is DatabaseProvider => provider !== undefined);
+};
+
 export type SecretSelectorProps = Omit<
   TypeaheadSelectProps,
   'selectOptions' | 'selected' | 'onSelect' | 'onChange'
 > & {
   namespace: string;
   type?: string;
+  provider?: 'milvus' | 'pgvector' | 'neo4j';
+  allowedProviders?: readonly ('milvus' | 'pgvector' | 'neo4j')[];
+  preserveSelectedValue?: boolean;
   value?: string;
   valueName?: string;
   onChange: (selection: SecretSelection | undefined) => void;
@@ -44,6 +62,9 @@ export type SecretSelectorProps = Omit<
 const SecretSelector: React.FC<SecretSelectorProps> = ({
   namespace,
   type,
+  provider,
+  allowedProviders,
+  preserveSelectedValue = false,
   value,
   valueName,
   onChange,
@@ -61,7 +82,12 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   ...props
 }) => {
   const [validationError, setValidationError] = React.useState<string>('');
-  const { data: secrets, isPending: loading, error, refetch } = useSecretsQuery(namespace, type);
+  const {
+    data: secrets,
+    isPending: loading,
+    error,
+    refetch,
+  } = useSecretsQuery(namespace, type, provider);
   const refresh = React.useCallback(async () => (await refetch()).data, [refetch]);
 
   React.useEffect(() => {
@@ -69,7 +95,23 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   }, [refresh, onRefreshReady]);
 
   const loaded = !loading;
-  const secretsList = React.useMemo(() => (Array.isArray(secrets) ? secrets : []), [secrets]);
+  const secretsList = React.useMemo(() => {
+    const allSecrets = Array.isArray(secrets) ? secrets : [];
+    if (!allowedProviders || !['database', 'vector-db'].includes(type ?? '')) {
+      return allSecrets;
+    }
+    const filteredSecrets = allSecrets.filter((secret) => {
+      const matchingProviders = getDatabaseProviders(secret);
+      return matchingProviders.length === 1 && allowedProviders.includes(matchingProviders[0]);
+    });
+    if (preserveSelectedValue && valueName) {
+      const selectedSecret = allSecrets.find((secret) => secret.name === valueName);
+      if (selectedSecret && !filteredSecrets.some((secret) => secret.name === valueName)) {
+        return [...filteredSecrets, selectedSecret];
+      }
+    }
+    return filteredSecrets;
+  }, [allowedProviders, preserveSelectedValue, secrets, type, valueName]);
   const hasSecrets = secretsList.length > 0;
   const hasError = !!error;
   const isLoading = !loaded;
@@ -157,12 +199,33 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
           content: secret.displayName || secret.name,
           value: secret.uuid,
           isSelected: secret.uuid === selectedValue,
+          isDisabled:
+            preserveSelectedValue &&
+            secret.name === valueName &&
+            type !== undefined &&
+            ['database', 'vector-db'].includes(type) &&
+            !!allowedProviders &&
+            (() => {
+              const matchingProviders = getDatabaseProviders(secret);
+              return (
+                matchingProviders.length !== 1 || !allowedProviders.includes(matchingProviders[0])
+              );
+            })(),
           description: labels.length ? (
             <LabelGroup className="pf-v6-u-mt-sm">{labels}</LabelGroup>
           ) : undefined,
         };
       }),
-    [secretsList, selectedValue, showDescription, showType],
+    [
+      allowedProviders,
+      preserveSelectedValue,
+      secretsList,
+      selectedValue,
+      showDescription,
+      showType,
+      type,
+      valueName,
+    ],
   );
 
   if (isLoading) {

@@ -1,13 +1,12 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
+import { useS3ListFilesQuery, useSecretsQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import { getMaaSModels } from '~/app/api/k8s';
 import type { MaaSModelsResponse } from '~/app/types';
 
 export { useManagedPipelinesQuery } from './useManagedPipelinesQuery';
 export { useSecretCredentialsQuery } from './useSecretCredentialsQuery';
-
-export { useS3ListFilesQuery };
+export { useS3ListFilesQuery, useSecretsQuery };
 
 export function useMaaSModelsQuery(
   namespace: string,

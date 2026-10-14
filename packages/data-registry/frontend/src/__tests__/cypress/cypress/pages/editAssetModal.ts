@@ -13,7 +13,7 @@ class EditAssetModal extends Modal {
     return cy.findByTestId('edit-asset-cancel');
   }
 
-  // Asset details section (shared with register-data, read-only in edit mode)
+  // Asset identity and format sections are shared with registration; edit keeps some fields read-only.
   findNameInput() {
     return cy.findByTestId('data-name-input');
   }
@@ -42,16 +42,12 @@ class EditAssetModal extends Modal {
     return cy.findByTestId('data-add-label-button');
   }
 
-  findLabelsInput() {
-    return cy.findByTestId('data-labels-input');
+  findLabelInput(index: number) {
+    return cy.findByTestId(`data-labels-input-${index}`);
   }
 
-  findLabel(name: string) {
-    return cy.findByTestId(`data-label-${name}`);
-  }
-
-  removeLabel(name: string) {
-    return cy.findByTestId(`data-label-remove-${name}`).click();
+  removeLabel(index: number) {
+    return cy.findByTestId(`data-label-remove-${index}`).click();
   }
 
   // Data location section
@@ -78,6 +74,18 @@ class EditAssetModal extends Modal {
 
   findPiiToggle() {
     return cy.findByTestId('data-pii-toggle');
+  }
+
+  findClearLicenseOption() {
+    return cy.findByTestId('data-license-toggle-clear');
+  }
+
+  findClearMaturityOption() {
+    return cy.findByTestId('data-maturity-toggle-clear');
+  }
+
+  findClearPiiOption() {
+    return cy.findByTestId('data-pii-toggle-clear');
   }
 
   // Custom properties section

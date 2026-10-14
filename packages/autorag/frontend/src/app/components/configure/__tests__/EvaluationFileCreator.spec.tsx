@@ -84,13 +84,13 @@ describe('EvaluationFileCreator', () => {
     it('should render nothing when isOpen is false', () => {
       render(<EvaluationFileCreator {...defaultProps} isOpen={false} />);
 
-      expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('evaluation-creator-tearsheet')).not.toBeInTheDocument();
     });
 
     it('should render the modal when isOpen is true', () => {
       render(<EvaluationFileCreator {...defaultProps} />);
 
-      expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('evaluation-creator-tearsheet')).toBeInTheDocument();
       expect(screen.getByText('Create an evaluation source')).toBeInTheDocument();
     });
 

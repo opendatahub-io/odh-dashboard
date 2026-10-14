@@ -1,17 +1,27 @@
+// Types ---------------------------------------------------------------------->
+
 export type Identified<I> = {
   id: I;
 };
+
 export type Labelled<L> = {
   label: L;
 };
+
 export type Described<D> = {
   description: D;
 };
+
 export type Valued<V> = {
   value: V;
 };
+
 export type Iconed<I> = {
   icon: I;
+};
+
+export type Colored<C> = {
+  color: C;
 };
 
 export type DisplayNameAnnotations = Partial<{
@@ -58,11 +68,9 @@ export type Connection = {
   };
 };
 
-export type ConnectionTypeGroup = 'all' | 'red_hat' | 'partner' | 'other';
+export type ConnectionTypeEnumValue = Labelled<string> & Valued<string>;
 
-type ConnectionTypeEnumValue = Labelled<string> & Valued<string>;
-
-type ConnectionTypeCredentialField = {
+export type ConnectionTypeCredentialField = {
   name: string;
   label: string;
   description?: string | null;
@@ -85,5 +93,39 @@ export type ConnectionType = {
     description?: string | null;
     credentials_fields: ConnectionTypeCredentialField[];
   };
-  status?: { capabilities: { flight: boolean; rest: boolean } };
+  status?: {
+    flight_ready: boolean;
+    flight_url?: string;
+    message?: string;
+    updated_at?: string;
+  };
 };
+
+export type TestCredentialsRequest = {
+  data_connection_type_id: string;
+  credentials: Record<string, string>;
+};
+
+export type CreateConnectionRequest = {
+  name: string;
+  data_connection_type_id: string;
+  format: 'tabular' | 'binary';
+  credentials: {
+    secret: string;
+    properties: Record<string, string>;
+  };
+  properties: Record<string, string>;
+};
+
+// Helpers -------------------------------------------------------------------->
+
+export function IdentifiedLabelledToValuedLabelled<I extends PropertyKey, L>(
+  original: Identified<I> & Labelled<L>,
+): Record<I, Valued<I> & Labelled<L>> {
+  return {
+    [original.id]: {
+      value: original.id,
+      label: original.label,
+    },
+  } as Record<I, Valued<I> & Labelled<L>>;
+}

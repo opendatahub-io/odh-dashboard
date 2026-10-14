@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestResolveSandboxMaaSGatewayURL(t *testing.T) {
+func TestResolveMaaSGatewayURL(t *testing.T) {
 	withMaaSClient := func(url string) context.Context {
 		client := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 		client.CallHandler = func(_ context.Context, method, path string, _ interface{}, response interface{}) error {
@@ -29,7 +29,7 @@ func TestResolveSandboxMaaSGatewayURL(t *testing.T) {
 	}
 
 	t.Run("returns the external MaaS API URL", func(t *testing.T) {
-		url, err := resolveSandboxMaaSGatewayURL(withMaaSClient("https://maas.apps.example.com/maas-api/"))
+		url, err := resolveMaaSGatewayURL(withMaaSClient("https://maas.apps.example.com/maas-api/"))
 
 		require.NoError(t, err)
 		assert.Equal(t, "https://maas.apps.example.com/maas-api", url)
@@ -42,26 +42,26 @@ func TestResolveSandboxMaaSGatewayURL(t *testing.T) {
 			bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS),
 		)
 
-		url, err := resolveSandboxMaaSGatewayURL(ctx)
+		url, err := resolveMaaSGatewayURL(ctx)
 
 		require.NoError(t, err)
 		assert.Equal(t, "https://maas.apps.example.com/maas-api", url)
 	})
 
 	t.Run("rejects an invalid gateway URL", func(t *testing.T) {
-		_, err := resolveSandboxMaaSGatewayURL(withMaaSClient("maas.apps.example.com/maas-api"))
+		_, err := resolveMaaSGatewayURL(withMaaSClient("maas.apps.example.com/maas-api"))
 
 		require.ErrorContains(t, err, "invalid gateway URL")
 	})
 
 	t.Run("rejects a URL without the MaaS API path", func(t *testing.T) {
-		_, err := resolveSandboxMaaSGatewayURL(withMaaSClient("https://maas.apps.example.com"))
+		_, err := resolveMaaSGatewayURL(withMaaSClient("https://maas.apps.example.com"))
 
 		require.ErrorContains(t, err, "/maas-api")
 	})
 
 	t.Run("requires a MaaS BFF client", func(t *testing.T) {
-		_, err := resolveSandboxMaaSGatewayURL(context.Background())
+		_, err := resolveMaaSGatewayURL(context.Background())
 
 		require.Error(t, err)
 		assert.ErrorAs(t, err, new(*bffclient.BFFClientError))

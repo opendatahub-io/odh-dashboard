@@ -1,6 +1,15 @@
 import * as React from 'react';
-import { Button, Content, Divider, Flex, FlexItem, Popover, Title } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon, TimesIcon } from '@patternfly/react-icons';
+import {
+  Button,
+  Content,
+  Divider,
+  Flex,
+  FlexItem,
+  Label,
+  Popover,
+  Title,
+} from '@patternfly/react-core';
+import { CheckCircleIcon, OutlinedQuestionCircleIcon, TimesIcon } from '@patternfly/react-icons';
 import { ChatbotHeaderMain } from '@patternfly/chatbot';
 import AiChatbotIcon from '~/app/images/icons/AiChatbotIcon';
 
@@ -20,6 +29,10 @@ interface ChatbotPaneHeaderProps {
   isProfileDirty?: boolean;
   /** Called when the user clicks "Clear agent" */
   onClearAgent?: () => void;
+  /** Number of deployments for the loaded agent profile */
+  deploymentCount?: number;
+  /** Called when the user opens the most recent deployment */
+  onDeploymentClick?: () => void;
   /** Whether the settings panel is open (highlights the active config label in compare mode) */
   isSettingsOpen?: boolean;
   /** Whether this pane is the active config in compare mode */
@@ -35,6 +48,8 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   agentName,
   isProfileDirty = false,
   onClearAgent,
+  deploymentCount = 0,
+  onDeploymentClick,
   isSettingsOpen,
   isActiveConfig,
 }) => {
@@ -128,6 +143,18 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                       />
                     </Popover>
                   </FlexItem>
+                  {deploymentCount > 0 && onDeploymentClick && (
+                    <FlexItem>
+                      <Label
+                        color="green"
+                        icon={<CheckCircleIcon />}
+                        onClick={onDeploymentClick}
+                        data-testid="agent-deployed-label"
+                      >
+                        {deploymentCount === 1 ? 'Deployed' : `Deployed (${deploymentCount})`}
+                      </Label>
+                    </FlexItem>
+                  )}
                   {isProfileDirty && (
                     <FlexItem>
                       <Content

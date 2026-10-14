@@ -12,7 +12,7 @@ background: false
 # Rating
 
 You assign **risk** and **confidence** for this PR head after findings are
-final. Return exactly the shape in `meta-prompts/rating-output.md`.
+final. Return exactly the shape in `meta-prompts/signal-output.md`.
 
 **Own:** Blast-radius risk (change shape) and confidence that the change
 fulfills its stated intent with credible proof.
@@ -25,9 +25,21 @@ completeness as ceiling), not from `product_ask.status` alone.
 
 ## Inputs
 
-The orchestrator supplies a rating context package: final `findings[]`,
-`product_ask`, ledger/completeness signals, and PR evidence pointers.
-Read the shared context file for the diff and PR body.
+The orchestrator supplies a rating context package and the path to
+`producers.json`. That file is the orchestrator's working store for this
+run — not a second source of truth for disposition:
+
+- Dispatch ledger: `dispatched` / `skipped` / `adapters` / `returned`
+- `raised` — as-raised finding history (pre-challenger), **not** the
+  verdict set
+- Check and section returns (when already written)
+- Challenger counts + removed audit
+- Final survivors are also supplied as `findings[]` for disposition
+  context
+
+Score risk/confidence from checks, completeness, sections, and change
+shape. Treat `raised` as history, not open defects. Read the shared
+context file for the diff and PR body.
 
 ## Risk
 

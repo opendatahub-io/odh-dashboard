@@ -1,0 +1,51 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: whisper-tiny-runtime
+  annotations:
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/runtime-version: v0.30.0
+    openshift.io/display-name: Whisper Tiny vLLM CPU Runtime
+  labels:
+    opendatahub.io/dashboard: 'true'
+spec:
+  annotations:
+    opendatahub.io/kserve-runtime: vllm
+    prometheus.io/path: /metrics
+    prometheus.io/port: '8080'
+  containers:
+    - args:
+        - --port=8080
+        - --model=/mnt/models
+        - --served-model-name={{.Name}}
+        # vLLM uses this option to size its CPU-memory reservation on the CPU backend.
+        # Keep it below the 6 GiB pod limit so the Whisper engine can start.
+        - --gpu-memory-utilization=0.5
+      command:
+        - python
+        - -m
+        - vllm.entrypoints.openai.api_server
+      env:
+        - name: HF_HOME
+          value: /tmp/hf_home
+        - name: VLLM_CACHE_ROOT
+          value: /tmp/vllm_cache
+        - name: TRITON_CACHE_DIR
+          value: /tmp/triton_cache
+      image: vllm/vllm-openai-cpu:v0.30.0
+      name: kserve-container
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+      volumeMounts:
+        - mountPath: /dev/shm
+          name: shm
+  multiModel: false
+  supportedModelFormats:
+    - autoSelect: true
+      name: vLLM
+  volumes:
+    - emptyDir:
+        medium: Memory
+        sizeLimit: 1Gi
+      name: shm

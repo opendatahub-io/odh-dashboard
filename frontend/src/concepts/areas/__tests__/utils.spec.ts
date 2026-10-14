@@ -323,6 +323,19 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.devFlags).toEqual({ guidedTour: 'off' });
         expect(isAvailable.featureFlags).toBe(null);
       });
+
+      it('should disable Unified Project Selector by default', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.UNIFIED_PROJECT_SELECTOR,
+          mockDashboardConfig({}).spec,
+          null,
+          null,
+        );
+
+        expect(isAvailable.status).toBe(false);
+        expect(isAvailable.devFlags).toEqual({ unifiedProjectSelector: 'off' });
+        expect(isAvailable.featureFlags).toBe(null);
+      });
     });
 
     describe('customCondition', () => {
@@ -770,6 +783,32 @@ describe('isAreaAvailable', () => {
         expect(result.status).toBe(false);
         expect(result.featureFlags).toEqual({ disableFeatureStore: 'on' });
         expect(result.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
+      });
+    });
+
+    describe('Data Registry', () => {
+      it('should enable when dataRegistry is true', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: true }).spec,
+          null,
+          null,
+        );
+
+        expect(result.status).toBe(true);
+        expect(result.featureFlags).toEqual({ dataRegistry: 'on' });
+      });
+
+      it('should disable when dataRegistry is false', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: false }).spec,
+          null,
+          null,
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.featureFlags).toEqual({ dataRegistry: 'off' });
       });
     });
   });

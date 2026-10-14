@@ -10,22 +10,10 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-// resolveMaaSBaseURL is retained for existing direct MaaS callers that have
-// not yet moved to the MaaS BFF gateway discovery contract.
-func (app *App) resolveMaaSBaseURL() string {
-	if app.config.MaaSURL != "" {
-		return app.config.MaaSURL
-	}
-	if app.clusterDomain != "" {
-		return fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
-	}
-	return ""
-}
-
-// resolveSandboxMaaSGatewayURL gets the externally reachable MaaS API base URL
-// from the MaaS BFF. Sandboxes run outside the dashboard namespace, so they
-// cannot use an in-cluster MaaS service URL.
-func resolveSandboxMaaSGatewayURL(ctx context.Context) (string, error) {
+// resolveMaaSGatewayURL gets the externally reachable MaaS API base URL from
+// the MaaS BFF. Consumers use this as the source of truth for MaaS availability
+// and for workloads, such as sandboxes, that run outside the dashboard namespace.
+func resolveMaaSGatewayURL(ctx context.Context) (string, error) {
 	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
 	if maasClient == nil {
 		return "", bffclient.NewServerUnavailableError(bffclient.BFFTargetMaaS)

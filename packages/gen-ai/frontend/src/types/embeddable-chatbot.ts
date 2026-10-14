@@ -1,9 +1,6 @@
 import type React from 'react';
 
-/**
- * OpenAI Responses API template structure used by AutoRAG to define
- * how queries should be sent to the OGX (Open GenAI Stack) instance.
- */
+/** OpenAI Responses API template used by embedded and passthrough flows. */
 type ResponsesTemplate = {
   model: string;
   stream: boolean;
@@ -12,32 +9,19 @@ type ResponsesTemplate = {
     | string
     | Array<{
         type: 'message';
-        role: 'user';
+        role: 'user' | 'assistant' | 'system';
         content: Array<{
           type: 'input_text';
           text: string;
         }>;
       }>;
-  metadata: {
-    autorag_run_id: string;
-    rag_pattern_name: string;
-  };
+  metadata: Record<string, string>;
   instructions: string;
-  tools: Array<{
-    type: 'file_search';
-    vector_store_ids: string[];
-    max_num_results: number;
-    ranking_options: {
-      search_mode: 'hybrid' | 'keyword' | 'semantic';
-      ranker_strategy: 'rrf' | 'linear' | 'cross_encoder';
-      ranker_k: number;
-      ranker_alpha: number;
-    };
-  }>;
+  tools: Array<{ type: string; [key: string]: unknown }>;
   tool_choice: {
     type: 'auto' | 'required' | 'none' | 'file_search';
   };
-  include: Array<'file_search_call.results' | 'file_search_call.output'>;
+  include: string[];
 };
 
 /**
@@ -49,8 +33,20 @@ type EmbeddableChatbotPlaygroundProps = {
   secretName: string;
   responsesTemplate: ResponsesTemplate;
   patternName?: string;
-  /** Base path for the BFF API, e.g. '/gen-ai/api/v1'. No trailing slash. If '/api/v1' is omitted it is appended automatically. */
+  /** Base path for the BFF API, e.g. '/gen-ai/api/v1'. No trailing slash. If '/api/v1' is omitted it is appended automatically. Used for both the passthrough and relay routes. */
   bffBasePath: string;
+  /**
+   * Same-origin path (with its own query string) of the responses endpoint to use
+   * instead of the OGX connection-secret flow, e.g. '/autorag/api/v1/responses?namespace=my-project'.
+   * Must start with a single '/' (absolute and protocol-relative URLs are rejected)
+   * and be under a module prefix the relay allows (currently '/autorag/'); the
+   * BFF rejects other destinations.
+   * Routed through the BFF responses relay, which forwards the user's bearer token
+   * to this path via the externally accessed gateway route.
+   */
+  responsesEndpointUrl?: string;
+  /** Additional key-value pairs merged into the request body's metadata field. */
+  additionalMetadata?: Record<string, string>;
   /** Custom content rendered in place of the default welcome prompt when no messages are present. */
   welcomeContent?: React.ReactNode;
   /** Custom text for the initial bot message. Pass empty string to hide it entirely. */

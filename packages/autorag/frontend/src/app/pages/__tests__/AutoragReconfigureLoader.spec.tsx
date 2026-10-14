@@ -1,8 +1,9 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/feature';
 import AutoragReconfigureLoader from '~/app/pages/AutoragReconfigureLoader';
 import type { PipelineRun } from '~/app/types';
 
@@ -94,11 +95,9 @@ const createRun = (parameters?: Record<string, unknown>): PipelineRun => ({
   runtime_config: parameters ? { parameters } : undefined,
 });
 
-const renderPage = () =>
+const renderPage = (client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
   render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
+    <QueryClientProvider client={client}>
       <AutoragReconfigureLoader />
     </QueryClientProvider>,
   );
@@ -139,7 +138,7 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialValues).toMatchObject({
       input_data_keys: ['legacy.pdf'],
       maas_secret_name: '',
-      vector_db_secret_name: '',
+      db_secret_name: '',
       generation_models: [],
       embedding_models: [],
     });
@@ -197,12 +196,117 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialValues).toMatchObject({
       input_data_keys: ['documents/a.pdf', 'documents/b.pdf'],
       maas_secret_name: 'maas',
-      vector_db_secret_name: 'vector-db',
+      db_secret_name: 'vector-db',
       generation_models: ['model-a'],
       embedding_models: ['model-b'],
     });
     expect(capturedProps.initialMaaSSecret).toMatchObject({ name: 'maas' });
-    expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'vector-db' });
+  });
+
+  it('should prefer db_secret_name over the legacy collision for form and secret selection', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'storage'
+          ? []
+          : type === 'maas'
+            ? []
+            : [
+                { name: 'canonical-db', type: 'database', data: { MILVUS_URI: '[REDACTED]' } },
+                { name: 'legacy-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } },
+              ],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'canonical-db',
+        vector_db_secret_name: 'legacy-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: 'canonical-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'canonical-db' });
+  });
+
+  it('should restore and select the legacy secret when the canonical value is empty', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'vector-db'
+          ? [{ name: 'legacy-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }]
+          : [],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: '',
+        vector_db_secret_name: 'legacy-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: 'legacy-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'legacy-db' });
+    expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
+  });
+
+  it('should use the legacy vector-db lookup for a historical mixed database secret', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'vector-db'
+          ? [
+              {
+                name: 'legacy-mixed-db',
+                type: 'vector-db',
+                data: {
+                  MILVUS_URI: '[REDACTED]',
+                  NEO4J_URI: '[REDACTED]',
+                },
+              },
+            ]
+          : [],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'legacy-mixed-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'legacy-mixed-db' });
+    expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "legacy-mixed-db" could not be found. Please select a new connection.',
+    );
   });
 
   it('should normalize legacy optimization metrics using the restored preset', async () => {
@@ -403,12 +507,12 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialValues).toMatchObject({
       input_data_keys: ['documents/input.pdf'],
       maas_secret_name: 'maas',
-      vector_db_secret_name: 'vector-db',
+      db_secret_name: 'vector-db',
       generation_models: ['model-a'],
       embedding_models: ['model-b'],
     });
     expect(capturedProps.initialMaaSSecret).toMatchObject({ name: 'maas' });
-    expect(capturedProps.initialVectorDbSecret).toMatchObject({ name: 'vector-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'vector-db' });
   });
 
   it('should prefer complete canonical values when legacy runtime keys are also present', async () => {
@@ -447,7 +551,7 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialValues).toMatchObject({
       input_data_keys: ['documents/input.pdf'],
       maas_secret_name: 'maas',
-      vector_db_secret_name: 'vector-db',
+      db_secret_name: 'vector-db',
       generation_models: ['model-a'],
       embedding_models: ['model-b'],
     });
@@ -480,7 +584,7 @@ describe('AutoragReconfigureLoader', () => {
       generation_models: [],
       embedding_models: ['model-b'],
       maas_secret_name: 'maas',
-      vector_db_secret_name: 'vector-db',
+      db_secret_name: 'vector-db',
     });
   });
 
@@ -508,7 +612,7 @@ describe('AutoragReconfigureLoader', () => {
     );
     expect(mockWarning).toHaveBeenCalledWith(
       'Connection secret not found',
-      'The previously used vector database connection "missing-vector-db" could not be found. Please select a new connection.',
+      'The previously used database connection "missing-vector-db" could not be found. Please select a new connection.',
     );
     expect(mockWarning).not.toHaveBeenCalledWith(
       'Some previously selected models are unavailable',
@@ -536,5 +640,197 @@ describe('AutoragReconfigureLoader', () => {
       'Unable to load connection secrets',
       'The previously used connection secrets could not be loaded. You will need to manually select connection secrets.',
     );
+  });
+
+  it('should wait for current and legacy database queries before warning about a missing connection', async () => {
+    let resolveDatabase: ((secrets: never[]) => void) | undefined;
+    let resolveLegacyDatabase: ((secrets: never[]) => void) | undefined;
+    const databaseQuery = new Promise<never[]>((resolve) => {
+      resolveDatabase = resolve;
+    });
+    const legacyDatabaseQuery = new Promise<never[]>((resolve) => {
+      resolveLegacyDatabase = resolve;
+    });
+    mockGetSecrets.mockImplementation((type: string) => {
+      if (type === 'database') {
+        return databaseQuery;
+      }
+      if (type === 'vector-db') {
+        return legacyDatabaseQuery;
+      }
+      return Promise.resolve([]);
+    });
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        vector_db_secret_name: 'missing-database',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+    await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+    );
+
+    await act(async () => {
+      resolveDatabase?.([]);
+    });
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+    );
+
+    await act(async () => {
+      resolveLegacyDatabase?.([]);
+    });
+    await screen.findByTestId('configure-page');
+    expect(mockWarning).toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+    );
+    expect(
+      mockWarning.mock.calls.filter(
+        ([title, body]) =>
+          title === 'Connection secret not found' &&
+          body ===
+            'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('should wait for a current database query before warning about a missing connection', async () => {
+    let resolveDatabase: ((secrets: never[]) => void) | undefined;
+    const databaseQuery = new Promise<never[]>((resolve) => {
+      resolveDatabase = resolve;
+    });
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? databaseQuery
+        : type === 'maas'
+          ? Promise.resolve([{ uuid: 'maas-uuid', name: 'maas', type: 'maas', data: {} }])
+          : Promise.resolve([]),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'missing-database',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+    await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(mockWarning).not.toHaveBeenCalledWith(
+      'Connection secret not found',
+      'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+    );
+
+    await act(async () => {
+      resolveDatabase?.([]);
+    });
+    await screen.findByTestId('configure-page');
+    await waitFor(() =>
+      expect(mockWarning).toHaveBeenCalledWith(
+        'Connection secret not found',
+        'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+      ),
+    );
+    expect(
+      mockWarning.mock.calls.filter(
+        ([title, body]) =>
+          title === 'Connection secret not found' &&
+          body ===
+            'The previously used database connection "missing-database" could not be found. Please select a new connection.',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('should not warn when a cached database miss is refetched and resolves the secret', async () => {
+    let resolveDatabase: ((secrets: SecretSelection[]) => void) | undefined;
+    const databaseQuery = new Promise<SecretSelection[]>((resolve) => {
+      resolveDatabase = resolve;
+    });
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? databaseQuery
+        : type === 'maas'
+          ? Promise.resolve([{ uuid: 'maas-uuid', name: 'maas', type: 'maas', data: {} }])
+          : Promise.resolve([]),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'database',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['secrets', 'test-ns', 'database'], []);
+
+    renderPage(queryClient);
+    await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(mockWarning).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveDatabase?.([{ uuid: 'database-uuid', name: 'database', type: 'database', data: {} }]);
+    });
+    await waitFor(() =>
+      expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'database' }),
+    );
+    expect(mockWarning).not.toHaveBeenCalled();
+  });
+
+  it('should not warn when a pending current database query resolves the matching secret', async () => {
+    let resolveDatabase: ((secrets: SecretSelection[]) => void) | undefined;
+    const databaseQuery = new Promise<SecretSelection[]>((resolve) => {
+      resolveDatabase = resolve;
+    });
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? databaseQuery
+        : type === 'maas'
+          ? Promise.resolve([{ uuid: 'maas-uuid', name: 'maas', type: 'maas', data: {} }])
+          : Promise.resolve([]),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'database',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+    await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(mockWarning).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveDatabase?.([{ uuid: 'database-uuid', name: 'database', type: 'database', data: {} }]);
+    });
+    await screen.findByTestId('configure-page');
+    expect(mockWarning).not.toHaveBeenCalled();
   });
 });

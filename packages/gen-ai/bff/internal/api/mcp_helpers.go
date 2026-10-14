@@ -207,8 +207,8 @@ func (app *App) resolveRegistryServerConfig(
 	}
 
 	server := envelope.Data
-	if len(server.AccessEndpoints) == 0 || server.AccessEndpoints[0].EndpointURL == "" {
-		return models.MCPServerConfig{}, fmt.Errorf("%w: no access endpoint for %s", ErrRegistryMCPServerNotFound, serverName)
+	if !isRegistryServerListable(server) {
+		return models.MCPServerConfig{}, fmt.Errorf("%w: %s is not active or has no access endpoint", ErrRegistryMCPServerNotFound, serverName)
 	}
 
 	endpoint := server.AccessEndpoints[0]

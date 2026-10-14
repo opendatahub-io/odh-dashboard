@@ -6,11 +6,13 @@ import useFetch, { type FetchStateObject } from '@odh-dashboard/ui-core/hooks/us
 import { fetchPersesDashboardsMetadata } from '../perses/perses-client';
 import { filterDashboards, THANOS_QUERIER_NON_TENANCY_ACCESS } from '../utils/dashboardUtils';
 
-type UsePersesDashboardsOptions = {
+export type UsePersesDashboardsOptions = {
   /**
    * When false, skips the Perses dashboard list request (e.g. DSCI already reports monitoring is not available).
    */
   fetchDashboardList?: boolean;
+  /** Same-origin Perses proxy used for dashboard discovery. */
+  persesProxyBasePath?: string;
 };
 
 type UsePersesDashboardsResult = Omit<FetchStateObject<DashboardResource[]>, 'data'> & {
@@ -24,6 +26,7 @@ export const usePersesDashboards = (
   options?: UsePersesDashboardsOptions,
 ): UsePersesDashboardsResult => {
   const fetchDashboardList = options?.fetchDashboardList ?? true;
+  const persesProxyBasePath = options?.persesProxyBasePath;
   const [canAccessThanosNonTenancy, thanosNonTenancyAccessLoaded] = useAccessReview(
     THANOS_QUERIER_NON_TENANCY_ACCESS,
   );
@@ -34,9 +37,9 @@ export const usePersesDashboards = (
       if (!fetchDashboardList) {
         return [];
       }
-      return fetchPersesDashboardsMetadata(opts.signal);
+      return fetchPersesDashboardsMetadata(opts.signal, persesProxyBasePath);
     },
-    [fetchDashboardList],
+    [fetchDashboardList, persesProxyBasePath],
   );
 
   const {

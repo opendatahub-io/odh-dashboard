@@ -44,6 +44,14 @@ class EvaluationFileCreator extends Modal {
   findKebabAction(question: string, action: string) {
     return this.findTableRow(question).findKebabAction(action);
   }
+
+  clickKebabAction(question: string, action: string) {
+    this.findKebabAction(question, action).then(($action) => {
+      // Clicking an action removes or re-renders the menu immediately, so Cypress's
+      // normal click command can report that the subject detached after the click.
+      $action[0].click();
+    });
+  }
 }
 
 class FileExplorer {
@@ -92,17 +100,72 @@ class FileExplorer {
 }
 
 class AutoragConfigurePage {
+  visit(namespace: string) {
+    cy.visit(`/gen-ai-studio/autorag/configure/${namespace}`);
+  }
+
+  findNameInput() {
+    return cy.findByTestId('autorag-name-input');
+  }
+
+  findNextButton() {
+    return cy.findByTestId('autorag-next-button');
+  }
+
+  findConfigureStepSubtitle() {
+    return cy.findByTestId('configure-step-subtitle');
+  }
+
+  findMaaSSecretSelector(options?: { timeout?: number }) {
+    return cy.findByTestId('maas-secret-selector', options);
+  }
+
+  findMaaSSecretInput() {
+    return this.findMaaSSecretSelector().find('input');
+  }
+
+  findStorageSecretSelector(options?: { timeout?: number }) {
+    return cy.findByTestId('aws-secret-selector', options);
+  }
+
+  findStorageSecretInput() {
+    return this.findStorageSecretSelector().find('input');
+  }
+
+  findSecretOption(secretName: string) {
+    return cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') });
+  }
+
+  findInputDataUploadToggle() {
+    return cy.findByTestId('input-data-source-upload-toggle');
+  }
+
+  findInputDataUploadFile() {
+    return cy.findByTestId('autorag-upload-file-input');
+  }
+
+  findUploadedInputDataFile() {
+    return cy.findByTestId('uploaded-file-cell');
+  }
+
   selectMaaSSecret(secretName: string) {
-    cy.findByTestId('maas-secret-selector').click();
-    cy.findByRole('option', { name: new RegExp(secretName, 'i') }).click();
+    const selectorTestId = 'maas-secret-selector';
+    cy.findByTestId(selectorTestId).click();
+    cy.findByTestId(selectorTestId).find('input').type(secretName);
+    cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
+      .should('be.visible')
+      .click();
+    cy.findByTestId(selectorTestId).find('input').should('have.value', secretName);
   }
 
   selectStorageSecret(secretName: string) {
-    cy.findByTestId('aws-secret-selector').should('exist').click();
-    cy.findByTestId('aws-secret-selector').find('input').type(secretName);
-    cy.findByRole('option', { name: new RegExp(secretName, 'i') })
+    const selectorTestId = 'aws-secret-selector';
+    cy.findByTestId(selectorTestId).click();
+    cy.findByTestId(selectorTestId).find('input').type(secretName);
+    cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') })
       .should('be.visible')
       .click();
+    cy.findByTestId(selectorTestId).find('input').should('have.value', secretName);
   }
 }
 
