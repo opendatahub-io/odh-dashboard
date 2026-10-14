@@ -728,6 +728,30 @@ describe('MCP Deploy from Catalog', () => {
       );
       mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
     });
+
+    it('should show the server-side gateway rejection in the deploy modal', () => {
+      // The BFF re-checks the gateway when creating, so a gateway that disappears after the
+      // page loaded (or a changed image) is rejected and the modal explains why.
+      const rejection =
+        'This MCP server requires an MCP gateway. No MCP gateway is available on this cluster.';
+      initDeployIntercepts({ readiness: { gatewayRequired: true, deployable: true } });
+      cy.intercept('POST', `${MCP_DEPLOYMENTS_API}*`, {
+        statusCode: 409,
+        body: { error: { code: '409', message: rejection } },
+      }).as('createDeploymentRejected');
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+      mcpServerDetailsPage.clickDeployButton();
+      cy.wait('@getConverter');
+      mcpDeployModal.shouldBeOpen();
+      mcpDeployModal.findNameInput().type('OpenShift MCP');
+      mcpDeployModal.selectProject('Test Project');
+      mcpDeployModal.findSubmitButton().click();
+
+      cy.wait('@createDeploymentRejected');
+      mcpDeployModal.findSubmitError().should('contain.text', rejection);
+      mcpDeployModal.shouldBeOpen();
+    });
   });
 
   it('should open deploy modal with pre-filled data from server details', () => {

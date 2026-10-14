@@ -1,8 +1,18 @@
 import React from 'react';
-import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
+import { Button, ButtonVariant, Flex, FlexItem, Tooltip } from '@patternfly/react-core';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
+import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
 import type { McpDeployModalData, McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
+import McpGatewayDocsLink from '~/odh/components/McpGatewayDocsLink';
+import { getMcpDeployReadinessBlock } from '~/odh/utils/mcpDeployReadiness';
+
+type DeployButtonState = {
+  enabled: boolean;
+  loading: boolean;
+  tooltip?: string;
+  showGatewayDocs?: boolean;
+};
 
 type McpRegistryServerDeployActionProps = {
   deployData?: McpDeployModalData;
@@ -26,6 +36,11 @@ const isMcpRegistryServerDeployActionProps = (
  * server via hooks and route params), this component accepts pre-computed
  * `McpDeployModalData` — the caller handles registry-to-modal data
  * conversion and provides an optional post-deploy callback.
+ *
+ * Deploy also waits for the deploy readiness of the prefilled image, so servers that
+ * require an MCP gateway (the MCP server for Red Hat OpenShift) stay blocked without one.
+ * Without a prefilled image the user enters one in the deploy modal, and the BFF checks it
+ * when creating the deployment.
  */
 const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps> = ({
   deployData,
@@ -33,33 +48,48 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
   onDeployed,
 }) => {
   const { available, loaded } = useMcpServerDeployAvailable();
+  const [readiness, readinessLoaded, readinessError] = useMcpImageDeployReadiness(
+    deployData?.namespace,
+    deployData?.image,
+  );
   const [openModal, setOpenModal] = React.useState(false);
 
-  const effectiveDisabledReason = React.useMemo(() => {
+  const buttonState = React.useMemo<DeployButtonState>(() => {
     if (disabledReason) {
-      return disabledReason;
+      return { enabled: false, loading: false, tooltip: disabledReason };
     }
     if (!loaded) {
-      return 'Checking deploy availability...';
+      return { enabled: false, loading: true, tooltip: 'Checking deploy availability...' };
     }
     if (!available) {
-      return 'MCP Lifecycle is not available in this cluster.';
+      return {
+        enabled: false,
+        loading: false,
+        tooltip: 'MCP Lifecycle is not available in this cluster.',
+      };
     }
-    return undefined;
-  }, [disabledReason, loaded, available]);
-
-  const canDeploy = !effectiveDisabledReason && !!deployData;
+    if (!deployData) {
+      return { enabled: false, loading: false };
+    }
+    if (deployData.image) {
+      const readinessBlock = getMcpDeployReadinessBlock(readiness, readinessLoaded, readinessError);
+      if (readinessBlock) {
+        return { enabled: false, ...readinessBlock };
+      }
+    }
+    return { enabled: true, loading: false };
+  }, [disabledReason, loaded, available, deployData, readiness, readinessLoaded, readinessError]);
 
   const deployButton = (
     <Button
       variant={ButtonVariant.primary}
       onClick={() => {
-        if (canDeploy) {
+        if (buttonState.enabled) {
           setOpenModal(true);
         }
       }}
-      isAriaDisabled={!canDeploy}
-      isLoading={!loaded && !disabledReason}
+      isAriaDisabled={!buttonState.enabled}
+      isLoading={buttonState.loading}
       data-testid="mcp-registry-deploy-action-button"
     >
       Deploy
@@ -68,11 +98,25 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
 
   return (
     <FlexItem>
-      {effectiveDisabledReason ? (
-        <Tooltip content={effectiveDisabledReason}>{deployButton}</Tooltip>
-      ) : (
-        deployButton
-      )}
+      {/* Stack the docs link under the button: the host page header has little width to spare. */}
+      <Flex
+        direction={{ default: 'column' }}
+        alignItems={{ default: 'alignItemsFlexStart' }}
+        spaceItems={{ default: 'spaceItemsSm' }}
+      >
+        <FlexItem>
+          {buttonState.tooltip ? (
+            <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>
+          ) : (
+            deployButton
+          )}
+        </FlexItem>
+        {buttonState.showGatewayDocs ? (
+          <FlexItem>
+            <McpGatewayDocsLink />
+          </FlexItem>
+        ) : null}
+      </Flex>
       {openModal && deployData && (
         <McpDeployModal
           data={deployData}
