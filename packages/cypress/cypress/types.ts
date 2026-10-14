@@ -1154,6 +1154,7 @@ export type RayJobE2eTestData = {
   gpuQuota: number;
   workerGroupName: string;
   rayImage: string;
+  rayImageArm64: string;
   rayVersion: string;
 };
 
@@ -1161,6 +1162,7 @@ export type RayJobTestData = {
   projectName: string;
   rayJobName: string;
   rayImage: string;
+  rayImageArm64: string;
   flavorName: string;
   clusterQueueName: string;
   localQueueName: string;

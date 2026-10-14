@@ -29,13 +29,9 @@ let modelDeploymentName: string;
 let modelFormat: string;
 let servingRuntime: string;
 const uuid = generateTestUUID();
-const secretDetailsFile = `/tmp/oci-data-connection-secret-${uuid}.json`;
+let secretDetailsFile: string;
 
-const updateSecretDetailsFile = (
-  secretValue: string,
-  fixtureRelativePath: string,
-  fixtureFullPath: string,
-) => {
+const updateSecretDetailsFile = (secretValue: string, fixtureRelativePath: string) => {
   return cy.fixture(fixtureRelativePath).then((templateContent) => {
     const updatedContent = {
       ...templateContent,
@@ -45,7 +41,11 @@ const updateSecretDetailsFile = (
         },
       },
     };
-    return cy.writeFile(fixtureFullPath, updatedContent, { log: false });
+    return cy
+      .task<string>('createOCISecretFile', updatedContent, { log: false })
+      .then((filePath) => {
+        secretDetailsFile = filePath;
+      });
   });
 };
 
@@ -67,7 +67,7 @@ describe(
           // Load fixture file and update with actual secret value
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
           const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
-          updateSecretDetailsFile(secretValue, secretDetailsFixture, secretDetailsFile);
+          updateSecretDetailsFile(secretValue, secretDetailsFixture);
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
           modelDeploymentName = testData.modelDeploymentName;
@@ -80,7 +80,9 @@ describe(
     });
 
     after(() => {
-      cy.task('deleteFile', secretDetailsFile);
+      if (secretDetailsFile) {
+        cy.task('deleteOCISecretFile', secretDetailsFile, { log: false });
+      }
       if (!projectName) {
         return;
       }

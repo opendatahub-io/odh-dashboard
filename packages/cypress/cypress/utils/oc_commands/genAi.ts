@@ -23,8 +23,8 @@ import type { GenAiTestData } from '../../types';
 export const deployGenAiModel = (
   projectName: string,
   testData: GenAiTestData,
-  servingRuntimeYamlPath = testData.servingRuntimeYamlPath,
-  servingRuntimeName = 'vllm-cpu-runtime-amd64',
+  servingRuntimeYamlPath: string,
+  servingRuntimeName: string,
 ): void => {
   const {
     inferenceServiceName,

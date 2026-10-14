@@ -17,11 +17,8 @@ import {
   getImageStreamDisplayName,
 } from '../../../../utils/oc_commands/imageStreams';
 import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
-import { skipOnArm } from '../../../../utils/skipUtils';
 
 describe('Workbenches - status tests', () => {
-  skipOnArm();
-
   let projectName: string;
   let projectDescription: string;
   let notebookImage: string;

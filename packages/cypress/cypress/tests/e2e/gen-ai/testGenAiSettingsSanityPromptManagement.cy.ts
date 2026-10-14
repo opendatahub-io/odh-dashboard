@@ -10,6 +10,7 @@ import {
   startPortForward,
   stopPortForward,
   waitForResource,
+  getClusterArchitecture,
   type PortForwardHandle,
 } from '../../../utils/oc_commands/baseCommands';
 import {
@@ -37,9 +38,7 @@ import {
   chatbotPromptDrawer,
   chatbotPromptAssistant,
 } from '../../../pages/chatbotPromptManagement';
-import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
-import { skipOnArm } from '../../../utils/skipUtils';
 
 type PromptManagementTestData = {
   globalPrompt: {
@@ -54,13 +53,12 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   let projectName: string;
   let globalNamespace: string;
   let servingRuntimeName: string;
+  let servingRuntimeYamlPath: string;
   let hardwareProfileName: string;
   let portForwardHandle: PortForwardHandle | null = null;
   const globalMLflowNamespacesBaselines: GlobalMLflowNamespacesBaseline[] = [];
   const uuid = generateTestUUID();
   const globalPromptName = `global-prompt-${uuid}`;
-
-  skipOnArm();
 
   retryableBefore(() => {
     cy.fixture('e2e/genAi/testGenAiModelDeployment.yaml', 'utf8')
@@ -73,9 +71,15 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       .then((yamlContent: string) => {
         promptManagementTestData = yaml.load(yamlContent) as PromptManagementTestData;
       })
-      .then(() => getVllmCpuAmd64RuntimeInfo())
-      .then((info) => {
-        servingRuntimeName = info.singleModelServingName;
+      .then(() => getClusterArchitecture())
+      .then((arch) => {
+        servingRuntimeYamlPath =
+          arch === 'arm64' ? testData.servingRuntimeArm64YamlPath : testData.servingRuntimeYamlPath;
+        return cy.fixture(servingRuntimeYamlPath, 'utf8');
+      })
+      .then((runtimeYaml: string) => {
+        const runtime = yaml.load(runtimeYaml) as { metadata: { name: string } };
+        servingRuntimeName = runtime.metadata.name;
         return cleanupServingRuntimeTemplate(servingRuntimeName);
       })
       .then(() => {
@@ -85,7 +89,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
           .then(() => waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME))
           .then(() => {
             cy.step('Deploy Gen AI model');
-            deployGenAiModel(projectName, testData);
+            deployGenAiModel(projectName, testData, servingRuntimeYamlPath, servingRuntimeName);
           });
       })
       .then(() => {
