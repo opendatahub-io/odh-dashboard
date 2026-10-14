@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,7 +34,11 @@ func egressAllowsPort(policy networkingv1.NetworkPolicy, port int32, peerMatches
 	for _, rule := range policy.Spec.Egress {
 		hasPort := false
 		for _, p := range rule.Ports {
-			if p.Port != nil && p.Port.IntVal == port {
+			// Treat a nil protocol as TCP (the Kubernetes default) and accept only TCP,
+			// so a UDP rule on the same port number does not satisfy the assertion.
+			if p.Port != nil &&
+				p.Port.IntVal == port &&
+				(p.Protocol == nil || *p.Protocol == corev1.ProtocolTCP) {
 				hasPort = true
 				break
 			}
@@ -64,8 +69,15 @@ func crossNamespacePeer(peer networkingv1.NetworkPolicyPeer) bool {
 // kubernetes.io/metadata.name value.
 func namespacePeer(name string) func(networkingv1.NetworkPolicyPeer) bool {
 	return func(peer networkingv1.NetworkPolicyPeer) bool {
+		// Require a namespaceSelector scoped to exactly the named namespace and nothing
+		// else: a future peer that adds labels, expressions, a podSelector, or an ipBlock
+		// would otherwise satisfy the test while narrowing the allowed Thanos endpoints.
 		return peer.NamespaceSelector != nil &&
-			peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] == name
+			peer.PodSelector == nil &&
+			peer.IPBlock == nil &&
+			len(peer.NamespaceSelector.MatchLabels) == 1 &&
+			peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] == name &&
+			len(peer.NamespaceSelector.MatchExpressions) == 0
 	}
 }
 
