@@ -558,9 +558,12 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         .findAllUserMessages()
         .last()
         .should(($message) => {
-          expect($message.text()).to.contain(transcribedText.trim());
           expect($message.text()).to.contain(testData.audio.prompt);
         });
+      genAiPlayground
+        .findSentAudioTile()
+        .should('be.visible')
+        .and('contain', testData.audio.fileName);
       genAiPlayground.findStopButton().should('not.exist');
       genAiPlayground.findChatbotErrorAlerts().should('not.exist');
       genAiPlayground.findAudioFileChip().should('not.exist');

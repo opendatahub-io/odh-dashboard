@@ -187,6 +187,10 @@ class GenAiPlayground {
     return cy.get('[data-testid="audio-file-chip"]');
   }
 
+  findSentAudioTile() {
+    return cy.get('[data-testid="sent-audio-tile"]');
+  }
+
   findAudioTranscriptionError() {
     return cy.get('[data-testid="audio-transcription-error"]');
   }
