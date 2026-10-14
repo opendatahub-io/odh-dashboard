@@ -7,7 +7,6 @@ import {
 
 export const techPreviewFlags = {
   genAiTracing: false,
-  automl: false,
   guardrails: false,
   modelAsService: true,
   aiAssetCustomEndpoints: false,
@@ -83,6 +82,7 @@ export const modelServingFlags = {
 export const advancedAIMLFlags = {
   genAiStudio: true,
   promptManagement: true,
+  automl: true,
   autorag: true,
   disablePipelines: false,
   disableDistributedWorkloads: false,
