@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import type { AIModel, LlamaModel } from '~/app/types';
+import type { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import AIModelTableRow from '~/app/AIAssets/components/AIModelTableRow';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
@@ -31,17 +31,6 @@ jest.mock('~/app/components/CapabilityBadges', () => ({
   __esModule: true,
   default: ({ capabilities }: { capabilities?: string[] }) => (
     <div data-testid="capability-badges">{(capabilities ?? []).join(',')}</div>
-  ),
-}));
-
-jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal', () => ({
-  __esModule: true,
-  default: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="configuration-modal">
-      <button onClick={onClose} data-testid="close-modal">
-        Close
-      </button>
-    </div>
   ),
 }));
 
@@ -111,14 +100,21 @@ const createMockPlaygroundModel = (modelId: string, providerPrefix = 'provider')
   owned_by: 'test-org',
 });
 
+const createMockLsdStatus = (): LlamaStackDistributionModel => ({
+  name: 'test-lsd',
+  phase: 'Ready',
+  version: 'v1',
+  distributionConfig: {
+    activeDistribution: 'test-distribution',
+    providers: [],
+    availableDistributions: {},
+  },
+});
+
 describe('AIModelTableRow', () => {
   const defaultProps = {
-    lsdStatus: null,
-    allModels: [] as AIModel[],
+    lsdStatus: null as LlamaStackDistributionModel | null,
     playgroundModels: [] as LlamaModel[],
-    allCollections: [],
-    collectionsLoaded: true,
-    existingCollections: [],
     showPlaygroundColumn: true,
   };
 
@@ -235,15 +231,15 @@ describe('AIModelTableRow', () => {
   });
 
   describe('Playground column', () => {
-    it('should show "Add to playground" button when model is not in playground', () => {
+    it('should show "Try in playground" button when model is not in playground', () => {
       const model = createMockAIModel();
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
+          <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
       );
 
-      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.getByText('Try in playground')).toBeInTheDocument();
     });
 
     it('should show "Try in playground" button when model is in playground', () => {
@@ -252,23 +248,40 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            lsdStatus={createMockLsdStatus()}
+          />
         </TestWrapper>,
       );
 
       expect(screen.getByText('Try in playground')).toBeInTheDocument();
     });
 
-    it('should disable "Add to playground" button when model is not Running', () => {
-      const model = createMockAIModel({ status: 'Stop' });
+    it('should disable "Try in playground" button when playground is not created', () => {
+      const model = createMockAIModel();
       render(
         <TestWrapper>
           <AIModelTableRow {...defaultProps} model={model} />
         </TestWrapper>,
       );
 
-      const button = screen.getByText('Add to playground');
+      const button = screen.getByText('Try in playground');
       expect(button.closest('button')).toBeDisabled();
+    });
+
+    it('should enable "Try in playground" button once the playground is created', () => {
+      const model = createMockAIModel();
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
+        </TestWrapper>,
+      );
+
+      const button = screen.getByText('Try in playground');
+      expect(button.closest('button')).not.toBeDisabled();
     });
 
     it('should disable "Try in playground" button when model is not Running', () => {
@@ -277,24 +290,17 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            lsdStatus={createMockLsdStatus()}
+          />
         </TestWrapper>,
       );
 
       const button = screen.getByText('Try in playground');
       expect(button.closest('button')).toBeDisabled();
-    });
-
-    it('should not disable "Add to playground" button when model is embedding type', () => {
-      const model = createMockAIModel({ model_type: 'embedding' });
-      render(
-        <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
-        </TestWrapper>,
-      );
-
-      const button = screen.getByText('Add to playground');
-      expect(button.closest('button')).not.toBeDisabled();
     });
 
     it('should disable "Try in playground" button when model is embedding type', () => {
@@ -303,45 +309,17 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            lsdStatus={createMockLsdStatus()}
+          />
         </TestWrapper>,
       );
 
       const button = screen.getByText('Try in playground');
       expect(button.closest('button')).toBeDisabled();
-    });
-
-    it('should open configuration modal when "Add to playground" is clicked', () => {
-      const model = createMockAIModel();
-      render(
-        <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
-        </TestWrapper>,
-      );
-
-      const addButton = screen.getByText('Add to playground');
-      fireEvent.click(addButton);
-
-      expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
-    });
-
-    it('should close configuration modal when closed', () => {
-      const model = createMockAIModel();
-      render(
-        <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
-        </TestWrapper>,
-      );
-
-      const addButton = screen.getByText('Add to playground');
-      fireEvent.click(addButton);
-
-      expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
-
-      const closeButton = screen.getByTestId('close-modal');
-      fireEvent.click(closeButton);
-
-      expect(screen.queryByTestId('configuration-modal')).not.toBeInTheDocument();
     });
 
     it('should navigate to playground when "Try in playground" is clicked', () => {
@@ -350,7 +328,12 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            lsdStatus={createMockLsdStatus()}
+          />
         </TestWrapper>,
       );
 
@@ -364,20 +347,23 @@ describe('AIModelTableRow', () => {
       });
     });
 
-    it('should pass model as extraSelectedModels when opening configuration modal', () => {
+    it('should navigate to playground without a preselected model when the model is not registered', () => {
       const model = createMockAIModel({ model_id: 'test-model-id' });
 
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
+          <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
       );
 
-      const addButton = screen.getByText('Add to playground');
-      fireEvent.click(addButton);
+      const tryButton = screen.getByText('Try in playground');
+      fireEvent.click(tryButton);
 
-      // The modal should be open with the model pre-selected
-      expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
+      expect(mockNavigate).toHaveBeenCalledWith('/gen-ai-studio/playground/test-namespace', {
+        state: {
+          model: undefined,
+        },
+      });
     });
 
     it('should show "Used in Playground settings" for ASR models instead of Try button', () => {
@@ -392,10 +378,9 @@ describe('AIModelTableRow', () => {
         'Used in Playground settings',
       );
       expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
-      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
     });
 
-    it('should not show "Add to playground" button for ASR models', () => {
+    it('should not show playground button for ASR models', () => {
       const model = createMockAIModel({ capabilities: ['audio-transcription'] });
       render(
         <TestWrapper>
@@ -410,11 +395,11 @@ describe('AIModelTableRow', () => {
       const model = createMockAIModel({ model_source_type: 'namespace' });
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
+          <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
       );
 
-      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.getByText('Try in playground')).toBeInTheDocument();
       expect(screen.queryByTestId('asr-playground-info')).not.toBeInTheDocument();
     });
   });
@@ -432,7 +417,12 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            lsdStatus={createMockLsdStatus()}
+          />
         </TestWrapper>,
       );
 
@@ -462,12 +452,12 @@ describe('AIModelTableRow', () => {
             {...defaultProps}
             model={namespaceModel}
             playgroundModels={[maasPlaygroundModel]}
+            lsdStatus={createMockLsdStatus()}
           />
         </TestWrapper>,
       );
 
       expect(screen.getByText('Try in playground')).toBeInTheDocument();
-      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
 
       // No tracking event should fire.
       expect(mockFireMiscTrackingEvent).not.toHaveBeenCalledWith(
@@ -482,7 +472,12 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            lsdStatus={createMockLsdStatus()}
+          />
         </TestWrapper>,
       );
 
@@ -496,22 +491,22 @@ describe('AIModelTableRow', () => {
   });
 
   describe('External models', () => {
-    it('should show "Add to playground" button for custom_endpoint models', () => {
+    it('should show enabled "Try in playground" button for custom_endpoint models', () => {
       const model = createMockAIModel({
         model_source_type: 'custom_endpoint',
         status: 'Running',
       });
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
+          <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
       );
 
-      expect(screen.getByText('Add to playground')).toBeInTheDocument();
-      expect(screen.getByText('Add to playground').closest('button')).not.toBeDisabled();
+      expect(screen.getByText('Try in playground')).toBeInTheDocument();
+      expect(screen.getByText('Try in playground').closest('button')).not.toBeDisabled();
     });
 
-    it('should open configuration modal when clicking "Add to playground" for external models', () => {
+    it('should disable "Try in playground" button for custom_endpoint models when playground is not created', () => {
       const model = createMockAIModel({
         model_source_type: 'custom_endpoint',
         status: 'Running',
@@ -522,10 +517,7 @@ describe('AIModelTableRow', () => {
         </TestWrapper>,
       );
 
-      const addButton = screen.getByText('Add to playground');
-      fireEvent.click(addButton);
-
-      expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
+      expect(screen.getByText('Try in playground').closest('button')).toBeDisabled();
     });
 
     it('should handle external models already in playground', () => {
@@ -538,7 +530,12 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            lsdStatus={createMockLsdStatus()}
+          />
         </TestWrapper>,
       );
 
@@ -555,7 +552,12 @@ describe('AIModelTableRow', () => {
 
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} playgroundModels={[playgroundModel]} />
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            lsdStatus={createMockLsdStatus()}
+          />
         </TestWrapper>,
       );
 
@@ -569,18 +571,18 @@ describe('AIModelTableRow', () => {
       });
     });
 
-    it('should enable "Add to playground" button for custom_endpoint models regardless of status', () => {
+    it('should enable "Try in playground" button for custom_endpoint models regardless of status', () => {
       const model = createMockAIModel({
         model_source_type: 'custom_endpoint',
         status: 'Stop',
       });
       render(
         <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
+          <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
         </TestWrapper>,
       );
 
-      const button = screen.getByText('Add to playground');
+      const button = screen.getByText('Try in playground');
       expect(button.closest('button')).not.toBeDisabled();
     });
   });
@@ -594,7 +596,6 @@ describe('AIModelTableRow', () => {
         </TestWrapper>,
       );
 
-      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
       expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
     });
 
@@ -608,13 +609,13 @@ describe('AIModelTableRow', () => {
             {...defaultProps}
             model={model}
             playgroundModels={[playgroundModel]}
+            lsdStatus={createMockLsdStatus()}
             showPlaygroundColumn={false}
           />
         </TestWrapper>,
       );
 
       expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
-      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
     });
   });
 });

@@ -81,13 +81,17 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 const KUEUE_STATUS_FILTERS: StatusFilter[] = ['queued', 'admitted', 'inadmissible'];
 
+// RHOAIENG-99645: queue assignments can persist in evaluation responses after the Kueue
+// integration is disabled — only classify a run as queued when the integration is enabled,
+// so it stays reachable through the Pending filter.
 const matchesStatusFilter = (
   job: EvaluationJob,
   selectedStatus: StatusFilter,
   kueueWorkloadStatus: KueueWorkloadStatus | undefined,
+  isKueueEnabled: boolean,
 ) => {
   const displayState = getEvaluationDisplayState(job.status.state, {
-    isQueued: isEvaluationJobQueued(job),
+    isQueued: isKueueEnabled && isEvaluationJobQueued(job),
     isPreStartFailure: isPreStartFailure(job),
     kueueWorkloadStatus,
   });
@@ -106,13 +110,14 @@ const getSortableValue = (
   job: EvaluationJob,
   columnIndex: number,
   kueueWorkloadStatus: KueueWorkloadStatus | undefined,
+  isKueueEnabled: boolean,
 ): string | number => {
   switch (columnIndex) {
     case 0:
       return getEvaluationName(job).toLowerCase();
     case 1:
       return getEvaluationDisplayState(job.status.state, {
-        isQueued: isEvaluationJobQueued(job),
+        isQueued: isKueueEnabled && isEvaluationJobQueued(job),
         isPreStartFailure: isPreStartFailure(job),
         kueueWorkloadStatus,
       });
@@ -215,6 +220,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
             job,
             selectedStatus,
             kueueWorkloadStatusesByEvaluationID.get(job.resource.id),
+            isKueueEnabled,
           );
         }
         if (!filterValue) {
@@ -231,6 +237,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
       selectedStatus,
       collectionNameMap,
       kueueWorkloadStatusesByEvaluationID,
+      isKueueEnabled,
     ],
   );
 
@@ -240,11 +247,13 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
         a,
         sortConfig.index,
         kueueWorkloadStatusesByEvaluationID.get(a.resource.id),
+        isKueueEnabled,
       );
       const bVal = getSortableValue(
         b,
         sortConfig.index,
         kueueWorkloadStatusesByEvaluationID.get(b.resource.id),
+        isKueueEnabled,
       );
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return aVal - bVal;
@@ -252,7 +261,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
       return String(aVal).localeCompare(String(bVal));
     });
     return sortConfig.direction === 'desc' ? sorted.reverse() : sorted;
-  }, [filteredEvaluations, kueueWorkloadStatusesByEvaluationID, sortConfig]);
+  }, [filteredEvaluations, kueueWorkloadStatusesByEvaluationID, sortConfig, isKueueEnabled]);
 
   const paginatedEvaluations = React.useMemo(
     () => sortedEvaluations.slice(perPage * (page - 1), perPage * page),
@@ -667,6 +676,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 isKueueWorkloadStatusLoading={
                   !kueueAvailabilityLoaded || (isKueueEnabled && isKueueWorkloadStatusesLoading)
                 }
+                isKueueEnabled={isKueueEnabled}
               />
             ))}
           </Tbody>

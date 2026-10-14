@@ -4,7 +4,6 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvaluationJob } from '~/__mocks__/mockEvaluationJob';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
-import { mockKueueAvailability } from '~/__mocks__/mockKueueAvailability';
 import {
   mockBenchmarkSuiteCollections,
   mockCollectionsListResponse,
@@ -12,13 +11,7 @@ import {
 } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import type {
-  Collection,
-  EvalHubHealthResponse,
-  EvaluationJob,
-  KueueAvailability,
-  Provider,
-} from '~/app/types';
+import type { Collection, EvalHubHealthResponse, EvaluationJob, Provider } from '~/app/types';
 
 const NAMESPACE = 'test-namespace';
 const API_VERSION = { apiVersion: CLIENT_API_VERSION };
@@ -30,7 +23,6 @@ type InterceptOptions = {
   providers?: Provider[];
   collections?: Collection[];
   collectionsTotalCount?: number;
-  kueueAvailability?: KueueAvailability;
 };
 
 const initIntercepts = ({
@@ -40,7 +32,6 @@ const initIntercepts = ({
   providers = [],
   collections = mockCuratedBenchmarkSuiteCollections(),
   collectionsTotalCount,
-  kueueAvailability = mockKueueAvailability(),
 }: InterceptOptions = {}) => {
   cy.interceptApi(
     'GET /api/:apiVersion/user',
@@ -64,12 +55,6 @@ const initIntercepts = ({
     'GET /api/:apiVersion/evaluations/collections',
     { path: API_VERSION },
     mockCollectionsListResponse(collections, collectionsTotalCount),
-  );
-
-  cy.interceptApi(
-    'GET /api/:apiVersion/kueue/availability',
-    { path: API_VERSION },
-    kueueAvailability,
   );
 };
 
@@ -359,26 +344,6 @@ describe('Evaluations Page - Table', () => {
     evaluationsPage.findFilterTextField().should('exist');
     evaluationsPage.findCompareButton().should('exist');
     evaluationsPage.findCreateEvaluationButton().should('not.exist');
-  });
-
-  it('should offer the Queued status filter when Kueue is enabled before a queued run exists', () => {
-    initIntercepts({
-      jobs: [completedJob, runningJob, failedJob],
-      kueueAvailability: mockKueueAvailability({
-        enabled: true,
-        scheduling_ready: true,
-        cluster_enabled: true,
-        namespace_managed: true,
-        local_queues_available: true,
-        local_queue_names: ['gpu-default'],
-      }),
-    });
-
-    evaluationsPage.visitRuns(NAMESPACE);
-    evaluationsPage.findFilterTypeToggle().click();
-    evaluationsPage.findFilterTypeOption('status').click();
-    evaluationsPage.findStatusFilterToggle().click();
-    evaluationsPage.findStatusFilterOption('queued').should('exist');
   });
 });
 

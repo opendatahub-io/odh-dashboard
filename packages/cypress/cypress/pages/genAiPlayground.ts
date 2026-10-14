@@ -100,8 +100,8 @@ class GenAiPlayground {
     return cy.findByTestId('empty-state');
   }
 
-  findAddToPlaygroundButton() {
-    return cy.findByTestId('ai-models-table').contains('button', 'Add to playground');
+  findCreatePlaygroundButton(options?: { timeout?: number }) {
+    return cy.findByTestId('create-playground-button', options);
   }
 
   findGoToPlaygroundLink(options?: { timeout?: number }) {
@@ -185,6 +185,10 @@ class GenAiPlayground {
 
   findAudioFileChip() {
     return cy.get('[data-testid="audio-file-chip"]');
+  }
+
+  findSentAudioTile() {
+    return cy.get('[data-testid="sent-audio-tile"]');
   }
 
   findAudioTranscriptionError() {
@@ -437,10 +441,6 @@ class GenAiPlayground {
 
   findVariableInputPanel() {
     return cy.findByTestId('prompt-variable-input-panel');
-  }
-
-  scrollPromptTabToBottom() {
-    return cy.findByTestId('chatbot-settings-page-tab-content-prompt').scrollTo('bottom');
   }
 
   findVariableInput(variableName: string) {
