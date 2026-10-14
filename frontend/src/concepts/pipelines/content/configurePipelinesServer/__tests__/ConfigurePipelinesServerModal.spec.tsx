@@ -391,7 +391,7 @@ describe('ConfigurePipelinesServerModal', () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('should handle submission errors', async () => {
+  it.each(['credentials', 'resource'])('should handle %s submission errors', async (stage) => {
     // Mock objectStorageIsValid to return true
     const {
       objectStorageIsValid,
@@ -399,7 +399,11 @@ describe('ConfigurePipelinesServerModal', () => {
     objectStorageIsValid.mockReturnValue(true);
 
     const error = new Error('Submission failed');
-    mockCreatePipelinesCR.mockRejectedValue(error);
+    if (stage === 'credentials') {
+      mockConfigureDSPipelineResourceSpec.mockRejectedValue(error);
+    } else {
+      mockCreatePipelinesCR.mockRejectedValue(error);
+    }
 
     renderModal();
 
@@ -414,7 +418,10 @@ describe('ConfigurePipelinesServerModal', () => {
       });
     });
 
-    expect(mockDeleteSecret).toHaveBeenCalled();
+    if (stage === 'resource') {
+      expect(mockDeleteSecret).toHaveBeenCalled();
+    }
+    expect(JSON.stringify(mockFireFormTrackingEvent.mock.calls)).not.toContain(error.message);
     expect(screen.getByText('Submission failed')).toBeInTheDocument();
   });
 
