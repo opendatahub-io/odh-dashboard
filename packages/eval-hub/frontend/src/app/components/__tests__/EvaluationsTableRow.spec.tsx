@@ -488,5 +488,38 @@ describe('EvaluationsTableRow', () => {
         expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
       );
     });
+
+    it('should omit the error category when the status message is empty', () => {
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+      const completedJob = mockEvaluationJob({ state: 'completed' });
+      completedJob.status.message = {};
+
+      rerender(renderTree(completedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'completed', error: undefined }),
+      );
+    });
+
+    it('should replace an unrecognized message code with unknown_error', () => {
+      const marker = 'failed: private-resource-name';
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+      const failedJob = mockEvaluationJob({ state: 'failed', statusMessage: 'Runtime crashed' });
+      if (failedJob.status.message) {
+        // eslint-disable-next-line camelcase -- API field name.
+        failedJob.status.message.message_code = marker;
+      }
+
+      rerender(renderTree(failedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
+      );
+      expect(JSON.stringify(mockFireMiscTrackingEvent.mock.calls)).not.toContain(marker);
+    });
   });
 });

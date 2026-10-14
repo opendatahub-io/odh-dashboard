@@ -13,6 +13,7 @@ describe('Evaluation failure tracking', () => {
   [
     { code: 'evaluation_job_updated', expected: 'evaluation_job_updated' },
     { code: undefined, expected: 'unknown_error' },
+    { code: 'review-secret-resource-95482', expected: 'unknown_error' },
   ].forEach(({ code, expected }) => {
     it(`should preserve the UI diagnostic and track ${expected}`, () => {
       const namespace = 'test-namespace';

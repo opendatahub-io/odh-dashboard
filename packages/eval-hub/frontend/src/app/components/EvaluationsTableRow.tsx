@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { evaluationErrorCategory } from '~/app/tracking/evaluationErrorCategory';
 import {
   formatDate,
   getAllBenchmarkNames,
@@ -141,8 +142,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         runOutcome,
         durationMs,
         benchmarkTypes,
-        error:
-          statusMessage === undefined ? undefined : (statusMessage.message_code ?? 'unknown_error'),
+        error: evaluationErrorCategory(statusMessage),
       });
     }
   }, [job.status.state]); // eslint-disable-line react-hooks/exhaustive-deps
