@@ -77,16 +77,8 @@ class ChatbotPromptAssistant {
     return cy.findByTestId('system-instructions-input');
   }
 
-  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-edit-button');
-  }
-
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-save-to-registry-button');
-  }
-
-  findSaveAsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-save-as-button');
   }
 
   findNameTitle(): Cypress.Chainable<JQuery<HTMLElement>> {

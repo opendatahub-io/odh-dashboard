@@ -246,7 +246,6 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
         'Verify the {{ }} template survived the MLflow round-trip and rendered a variable input',
       );
       genAiPlayground.findVariableInputPanel().should('be.visible');
-      genAiPlayground.scrollPromptTabToBottom();
       genAiPlayground.findVariableInput(testData.prompt.variableName).should('be.visible');
 
       cy.step('Fill in the variable value and confirm it is reflected in the panel');

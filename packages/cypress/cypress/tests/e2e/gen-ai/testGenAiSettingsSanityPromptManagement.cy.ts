@@ -200,11 +200,11 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       chatbotPromptAssistant.findNameTitle().should('contain.text', globalPromptName);
       chatbotPromptAssistant.findScopeLabel().should('contain.text', 'Global');
 
-      cy.step('Verify the loaded global prompt is not editable');
+      cy.step('Verify the loaded global prompt is editable');
       chatbotPromptAssistant
         .findTextarea()
         .should('have.value', promptManagementTestData.globalPrompt.template)
-        .and('have.attr', 'readonly');
+        .and('not.have.attr', 'readonly');
 
       cy.step('Send a message using the global prompt');
       genAiPlayground.sendMessage(testData.testMessage);
