@@ -1,4 +1,4 @@
-import { pollUntilSuccess } from './baseCommands';
+import { pollUntilSuccess, waitForNamespace } from './baseCommands';
 import type { CommandLineResult, DashboardConfig } from '../../types';
 import { handleOCCommandResult } from '../errorHandling';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -25,16 +25,24 @@ export const createOpenShiftProject = (
                 stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.exitCode}`);
     }
-    // Add dashboard label immediately after project creation
-    const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
-    return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
-      if (labelResult.exitCode !== 0) {
-        cy.log(`ERROR: Failed to add dashboard label to ${projectName}
-                  stdout: ${labelResult.stdout}
-                  stderr: ${labelResult.stderr}`);
-        throw new Error(`Label command failed with code ${labelResult.exitCode}`);
-      }
-      return cy.wrap(result);
+    // Wait until the namespace is patchable, then require the dashboard label
+    // and Active phase so the A.I. projects filter can see it.
+    return waitForNamespace(projectName, 30, 1000).then(() => {
+      const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
+      return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
+        if (labelResult.exitCode !== 0) {
+          throw new Error(
+            `Failed to add dashboard label to ${projectName}: ${
+              labelResult.stderr || labelResult.stdout
+            }`,
+          );
+        }
+        return pollUntilSuccess(
+          `oc get project ${projectName} -o json | jq -e '.metadata.labels["opendatahub.io/dashboard"] == "true" and .status.phase == "Active"'`,
+          `project ${projectName} dashboard-ready`,
+          { maxAttempts: 15, pollIntervalMs: 1000 },
+        ).then(() => cy.wrap(result));
+      });
     });
   });
 };
@@ -75,30 +83,22 @@ export const deleteOpenShiftProject = (
   });
 };
 
-/**
- * Assign a role to a user for an specific Project
- *
- * @param projectName OpenShift Project name
- * @param userName User
- * @param role OpenShift Role (edit, admin, view)
- * @returns Result Object of the operation
- */
-export const addUserToProject = (
+/** Deletes a project without waiting; logs failures but does not throw (for after hooks). */
+export const deleteOpenShiftProjectBestEffort = (
   projectName: string,
-  userName: string,
-  role = 'edit',
-): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc adm policy add-role-to-user ${role} ${userName} -n ${projectName}`;
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.exitCode !== 0) {
-      cy.log(`ERROR Assigning role ${role} to user *** in ${projectName} Project
-                stdout: ${result.stdout}
-                stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.exitCode}`);
-    }
-    return result;
-  });
-};
+): Cypress.Chainable<CommandLineResult> =>
+  cy
+    .exec(`oc delete project ${projectName} --wait=false --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        cy.log(
+          `WARNING: best-effort delete of ${projectName} returned exit ${result.exitCode}: ${result.stderr}`,
+        );
+      }
+      return cy.wrap(result);
+    });
 
 /** Deletes any existing project, waits until it is gone, then creates a fresh one. */
 export const recreateOpenShiftProject = (
@@ -124,7 +124,30 @@ export const recreateOpenShiftProject = (
     .then(() => createOpenShiftProject(projectName));
 };
 
-
+/**
+ * Assign a role to a user for an specific Project
+ *
+ * @param projectName OpenShift Project name
+ * @param userName User
+ * @param role OpenShift Role (edit, admin, view)
+ * @returns Result Object of the operation
+ */
+export const addUserToProject = (
+  projectName: string,
+  userName: string,
+  role = 'edit',
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc adm policy add-role-to-user ${role} ${userName} -n ${projectName}`;
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      cy.log(`ERROR Assigning role ${role} to user *** in ${projectName} Project
+                stdout: ${result.stdout}
+                stderr: ${result.stderr}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
+    }
+    return result;
+  });
+};
 
 export const addClusterRoleToUser = (
   clusterRole: string,
@@ -219,7 +242,7 @@ export const waitForUserProjectAccess = (
   interval = 2000,
 ): Cypress.Chainable<Cypress.Exec> =>
   pollUntilSuccess(
-    `oc get project ${project} --as=${user} -o name`,
+    `oc get projects --as=${user} -o name | grep -qxF 'project.project.openshift.io/${project}'`,
     `${user} access to ${project}`,
     {
       maxAttempts: attempts,

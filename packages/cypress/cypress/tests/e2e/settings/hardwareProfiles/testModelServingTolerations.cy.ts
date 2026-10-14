@@ -70,17 +70,16 @@ describe('ModelServing - tolerations tests', () => {
       cy.log(`Loaded project name: ${projectName}`);
       createCleanHardwareProfile(testData.resourceYamlPath);
 
-      if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
-        cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
+      const { servingRuntimeName, servingRuntimeYamlPath } = testData;
+      if (isS390x && servingRuntimeName && servingRuntimeYamlPath) {
+        cy.log(`Creating ServingRuntime for s390x: ${servingRuntimeName}`);
         // Clean up any existing Template/ServingRuntime then apply fresh via Template resource.
-        cleanupTemplates(testData.servingRuntimeName).then(() => {
-          createCustomResource(applicationNamespace, testData.servingRuntimeYamlPath).then(
-            (result) => {
-              if (result.exitCode !== 0) {
-                throw new Error(`Failed to create ServingRuntime template: ${result.stderr}`);
-              }
-            },
-          );
+        cleanupTemplates(servingRuntimeName).then(() => {
+          createCustomResource(applicationNamespace, servingRuntimeYamlPath).then((result) => {
+            if (result.exitCode !== 0) {
+              throw new Error(`Failed to create ServingRuntime template: ${result.stderr}`);
+            }
+          });
         });
       }
 
