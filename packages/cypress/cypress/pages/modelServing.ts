@@ -1125,7 +1125,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findModelFormatSelect() {
-    return cy.findByTestId('model-framework-select').should('exist');
+    return cy.findByTestId('model-framework-select');
   }
 
   openModelFormatSelect() {
