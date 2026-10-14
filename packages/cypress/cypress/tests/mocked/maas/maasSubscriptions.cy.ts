@@ -427,7 +427,7 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findPriorityMinusButton().should('be.disabled');
 
     createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('-2147483648123123'); // Out of range the input will snap to -1000000
+    createSubscriptionPage.findPriorityInput().type('-2147483648123123'); // Out of range the input will snap to -2147483648
     createSubscriptionPage.findPriorityInput().should('have.value', '-2147483648');
 
     createSubscriptionPage.findPriorityInput().clear();
@@ -435,7 +435,7 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findPriorityPlusButton().should('be.disabled');
 
     createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('2147483647123'); // Out of range the input will snap to 1000000
+    createSubscriptionPage.findPriorityInput().type('2147483647123'); // Out of range the input will snap to 2147483647
     createSubscriptionPage.findPriorityInput().should('have.value', '2147483647');
 
     // Set a priority
