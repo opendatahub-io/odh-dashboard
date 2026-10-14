@@ -1,7 +1,7 @@
 import { handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { describe, expect, it, jest } from '@jest/globals';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
-import { getConnectionType, testCredentials } from '~/app/api/dch';
+import { getConnection, getConnectionType, testCredentials } from '~/app/api/dch';
 
 jest.mock('mod-arch-core', () => {
   const { jest: jestMock } = require('@jest/globals') as typeof import('@jest/globals');
@@ -66,6 +66,59 @@ describe('getConnectionType', () => {
 
     await expect(getConnectionType('')({}, 'test-project', 'postgresql')).rejects.toThrow(
       'request failed',
+    );
+  });
+});
+
+describe('getConnection', () => {
+  const connection = {
+    metadata: { id: 'connection-1' },
+    resource: {
+      name: 'warehouse',
+      data_connection_type_id: 'postgresql',
+      format: 'tabular' as const,
+    },
+    status: { state: 'ready' as const },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockHandleRestFailures.mockImplementation((request) => request);
+    mockIsModArchResponse.mockReturnValue(true);
+  });
+
+  it('should return a connection from a valid response', async () => {
+    mockRestGET.mockResolvedValue({ data: connection });
+
+    await expect(getConnection('')({}, 'test-project', 'connection-1')).resolves.toEqual(
+      connection,
+    );
+  });
+
+  it('should encode the connection id and pass request options to restGET', async () => {
+    const opts = { signal: new AbortController().signal };
+    mockRestGET.mockResolvedValue({ data: connection });
+
+    await getConnection('/data-connect-hub')(opts, 'test-project', 'connection one');
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '/data-connect-hub',
+      '/data-connect-hub/api/v1/connections/connection%20one',
+      { namespace: 'test-project' },
+      opts,
+    );
+  });
+
+  it.each([
+    ['a non-mod-arch response', false, { data: connection }],
+    ['missing response data', true, { data: undefined }],
+    ['an invalid connection', true, { data: { metadata: {}, resource: {} } }],
+  ])('should reject %s', async (_description, isResponse, response) => {
+    mockIsModArchResponse.mockReturnValue(isResponse);
+    mockRestGET.mockResolvedValue(response);
+
+    await expect(getConnection('')({}, 'test-project', 'connection-1')).rejects.toThrow(
+      'Invalid response format',
     );
   });
 });

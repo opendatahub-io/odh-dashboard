@@ -57,6 +57,7 @@ func (app *App) CreateConnectionHandler(w http.ResponseWriter, r *http.Request, 
 		created.Resource.Name = request.Name
 		created.Resource.DataConnectionTypeID = request.DataConnectionTypeID
 		created.Resource.Format = request.Format
+		created.Resource.Properties = request.Properties
 		if err := app.WriteJSON(w, http.StatusCreated, ConnectionResponse{Data: created}, nil); err != nil {
 			app.serverErrorResponse(w, r, err)
 		}

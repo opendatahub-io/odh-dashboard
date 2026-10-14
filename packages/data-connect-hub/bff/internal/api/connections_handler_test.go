@@ -85,6 +85,134 @@ func TestGetConnectionsHandlerReturnsMockConnections(t *testing.T) {
 	require.Equal(t, "warehouse", envelope.Data[0].Resource.Name)
 }
 
+func TestGetConnectionHandlerReturnsMockConnection(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/connection-1?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "connection-1"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var envelope ConnectionResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Equal(t, "connection-1", envelope.Data.Metadata.ID)
+	require.Equal(t, "warehouse", envelope.Data.Resource.Name)
+	require.Equal(t, "2026-09-07T16:00:00Z", envelope.Data.Metadata.CreatedAt)
+	require.Equal(t, "2026-09-08T16:00:00Z", envelope.Data.Metadata.UpdatedAt)
+}
+
+func TestGetConnectionHandlerReturnsNotFoundInMockMode(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/missing?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "missing"}})
+
+	require.Equal(t, http.StatusNotFound, response.Code)
+}
+
+func TestGetConnectionHandlerValidatesRequest(t *testing.T) {
+	tests := []struct {
+		name   string
+		path   string
+		params httprouter.Params
+	}{
+		{name: "missing namespace", path: "/api/v1/connections/connection-1", params: httprouter.Params{{Key: "id", Value: "connection-1"}}},
+		{name: "invalid namespace", path: "/api/v1/connections/connection-1?namespace=Not_Valid", params: httprouter.Params{{Key: "id", Value: "connection-1"}}},
+		{name: "missing connection id", path: "/api/v1/connections/?namespace=test-project"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+			response, request := requestWithIdentity(t, http.MethodGet, tt.path)
+
+			app.GetConnectionHandler(response, request, tt.params)
+
+			require.Equal(t, http.StatusBadRequest, response.Code)
+		})
+	}
+}
+
+func TestGetConnectionHandlerForwardsUpstreamRequest(t *testing.T) {
+	var requestedPath string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestedPath = r.URL.EscapedPath()
+		require.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+		require.Equal(t, "test-project", r.Header.Get("X-Tenant-ID"))
+		require.Equal(t, "test-user", r.Header.Get("X-Remote-User"))
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{
+			"metadata":{"id":"connection one","tenant_id":"test-project","created_at":"2026-09-07T16:00:00Z","updated_at":"2026-09-08T16:00:00Z"},
+			"resource":{"name":"warehouse","data_connection_type_id":"postgresql","format":"tabular","credentials_ref":{"secret":"warehouse"},"properties":{}},
+			"status":{"state":"ready"}
+		}`))
+		require.NoError(t, err)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+		repositories:            repositories.NewRepositories(),
+	}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/connection%20one?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "connection one"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	require.Equal(t, "/api/v1alpha1/data/connections/connection%20one", requestedPath)
+	var envelope ConnectionResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Equal(t, "connection one", envelope.Data.Metadata.ID)
+	require.Equal(t, "2026-09-07T16:00:00Z", envelope.Data.Metadata.CreatedAt)
+	require.Equal(t, "2026-09-08T16:00:00Z", envelope.Data.Metadata.UpdatedAt)
+}
+
+func TestGetConnectionHandlerHandlesUpstreamFailures(t *testing.T) {
+	tests := []struct {
+		name           string
+		upstreamStatus int
+		upstreamBody   string
+		expectedStatus int
+	}{
+		{
+			name:           "malformed response",
+			upstreamStatus: http.StatusOK,
+			upstreamBody:   `{"metadata":`,
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "not found",
+			upstreamStatus: http.StatusNotFound,
+			upstreamBody:   `{"code":"connection_not_found","message":"connection does not exist"}`,
+			expectedStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.upstreamStatus)
+				_, err := w.Write([]byte(tt.upstreamBody))
+				require.NoError(t, err)
+			}))
+			defer upstream.Close()
+
+			app := &App{
+				config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+				logger:                  slog.Default(),
+				kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+				repositories:            repositories.NewRepositories(),
+			}
+			response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/connection-1?namespace=test-project")
+
+			app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "connection-1"}})
+
+			require.Equal(t, tt.expectedStatus, response.Code)
+		})
+	}
+}
+
 func TestMutationHandlersReturnNoContentInMockMode(t *testing.T) {
 	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
 

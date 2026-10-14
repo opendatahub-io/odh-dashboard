@@ -195,7 +195,31 @@ paths:
       summary: Verify a data connection
       description: Checks the connection and updates its readiness status.
   /api/v1/connections/{id}:
-    summary: Path used to delete a data connection.
+    summary: Path used to retrieve or delete a data connection.
+    get:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: getConnection
+      summary: Get a data connection
+      description: Returns a data connection belonging to the selected project.
     delete:
       tags:
         - DataOperation
@@ -347,6 +371,11 @@ components:
             format:
               type: string
               enum: [tabular, binary]
+            properties:
+              type: object
+              additionalProperties:
+                type: string
+              description: User-provided connection properties.
         status:
           type: object
           required:

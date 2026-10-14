@@ -48,9 +48,16 @@ const isConnection = (value: unknown): value is Connection => {
     typeof value.metadata.id === 'string' &&
     value.metadata.id.length > 0 &&
     (value.metadata.tenant_id === undefined || typeof value.metadata.tenant_id === 'string') &&
+    (value.metadata.created_at === undefined || typeof value.metadata.created_at === 'string') &&
+    (value.metadata.updated_at === undefined || typeof value.metadata.updated_at === 'string') &&
     typeof value.resource.name === 'string' &&
     typeof value.resource.data_connection_type_id === 'string' &&
     (value.resource.format === 'tabular' || value.resource.format === 'binary') &&
+    (value.resource.properties === undefined ||
+      (isRecord(value.resource.properties) &&
+        Object.entries(value.resource.properties).every(
+          ([key, propertyValue]) => typeof key === 'string' && typeof propertyValue === 'string',
+        ))) &&
     (value.status.state === 'ready' ||
       value.status.state === 'ingestion_not_ready' ||
       value.status.state === 'not_ready') &&
@@ -99,6 +106,23 @@ export const getConnections =
         Array.isArray(response.data) &&
         response.data.every(isConnection)
       ) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getConnection =
+  (hostPath: string) =>
+  (opts: APIOptions, namespace: string, connectionId: string): Promise<Connection> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(connectionId)}`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isConnection(response.data)) {
         return response.data;
       }
       throw new Error('Invalid response format');

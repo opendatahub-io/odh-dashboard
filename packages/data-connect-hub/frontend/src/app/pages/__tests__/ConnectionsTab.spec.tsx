@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { MemoryRouter } from 'react-router-dom';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
@@ -50,6 +51,13 @@ const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
+
+const renderConnectionsTab = (props: React.ComponentProps<typeof ConnectionsTab>) =>
+  render(
+    <MemoryRouter>
+      <ConnectionsTab {...props} />
+    </MemoryRouter>,
+  );
 
 const connections = [
   {
@@ -134,7 +142,7 @@ describe('ConnectionsTab', () => {
   });
 
   it('renders connection names and readable type names', () => {
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
@@ -143,7 +151,7 @@ describe('ConnectionsTab', () => {
 
   it('opens the create connection wizard from the toolbar', async () => {
     const user = userEvent.setup();
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
 
@@ -155,7 +163,7 @@ describe('ConnectionsTab', () => {
   });
 
   it('disables connection polling while the Connections tab is inactive', () => {
-    render(<ConnectionsTab namespace="test-project" isActive={false} />);
+    renderConnectionsTab({ namespace: 'test-project', isActive: false });
 
     expect(mockUseConnections).toHaveBeenCalledWith('test-project', false);
     expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project', false);
@@ -163,7 +171,7 @@ describe('ConnectionsTab', () => {
 
   it('filters connections by name', async () => {
     const user = userEvent.setup();
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
 
@@ -178,7 +186,7 @@ describe('ConnectionsTab', () => {
     mockVerifyConnection.mockImplementation(
       () => () => Promise.reject(new Error('verification failed')),
     );
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
     await user.click(screen.getByRole('menuitem', { name: 'Verify connection' }));
@@ -191,7 +199,7 @@ describe('ConnectionsTab', () => {
     const refresh = jest.fn();
     mockUseConnections.mockReturnValue([connections, true, undefined, refresh]);
     mockDeleteConnection.mockImplementation(() => (_opts, _namespace, _id) => Promise.resolve());
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
@@ -216,7 +224,7 @@ describe('ConnectionsTab', () => {
     mockDeleteConnection.mockImplementation(
       () => (_opts, _namespace, id) => (id === 'connection-1' ? firstDelete : secondDelete),
     );
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
@@ -239,7 +247,7 @@ describe('ConnectionsTab', () => {
 
   it('includes newly discovered connection types after polling', async () => {
     const user = userEvent.setup();
-    const { rerender } = render(<ConnectionsTab namespace="test-project" />);
+    const { rerender } = renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'S3' }));
@@ -254,21 +262,33 @@ describe('ConnectionsTab', () => {
       true,
       undefined,
     ]);
-    rerender(<ConnectionsTab namespace="test-project" />);
+    rerender(
+      <MemoryRouter>
+        <ConnectionsTab namespace="test-project" />
+      </MemoryRouter>,
+    );
 
     await waitFor(() => expect(screen.getByText('analytics')).toBeTruthy());
   });
 
   it('resets type selections when the project changes', async () => {
     const user = userEvent.setup();
-    const { rerender } = render(<ConnectionsTab key="project-one" namespace="project-one" />);
+    const { rerender } = render(
+      <MemoryRouter>
+        <ConnectionsTab key="project-one" namespace="project-one" />
+      </MemoryRouter>,
+    );
 
     await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'S3' }));
 
     mockUseConnections.mockReturnValue([[connections[1]], true, undefined, jest.fn()]);
     mockUseConnectionTypes.mockReturnValue([[connectionTypes[1]], true, undefined]);
-    rerender(<ConnectionsTab key="project-two" namespace="project-two" />);
+    rerender(
+      <MemoryRouter>
+        <ConnectionsTab key="project-two" namespace="project-two" />
+      </MemoryRouter>,
+    );
 
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Type' })[0]).toBeTruthy());
     expect(screen.getByText('object-store')).toBeTruthy();
@@ -278,7 +298,7 @@ describe('ConnectionsTab', () => {
     const user = userEvent.setup();
     mockUseConnections.mockReturnValue([[], true, undefined, jest.fn()]);
 
-    render(<ConnectionsTab namespace="empty-project" />);
+    renderConnectionsTab({ namespace: 'empty-project' });
 
     expect(screen.getByText('Get started with data connections')).toBeTruthy();
     expect(

@@ -72,6 +72,30 @@ describe('Data Connect Hub BFF Contract Tests', () => {
     });
   });
 
+  describe('Connection Endpoint', () => {
+    it('should retrieve a connection for a project', async () => {
+      const result = await apiClient.get('/api/v1/connections/connection-1?namespace=default');
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return not found for an unknown connection', async () => {
+      const result = await apiClient.get('/api/v1/connections/unknown?namespace=default');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          bffSchema,
+          {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          },
+        );
+      }
+    });
+  });
+
   describe('Test Credentials Endpoint', () => {
     it('should verify credentials for a connection type', async () => {
       const result = await apiClient.post('/api/v1/test/credentials?namespace=default', {
