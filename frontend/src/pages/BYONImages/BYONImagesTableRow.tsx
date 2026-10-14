@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { upperFirst } from 'lodash-es';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   DescriptionList,
@@ -10,6 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { BYONImage } from '#~/types';
 import { relativeTime } from '#~/utilities/time';
+import { getImageTierColor } from '#~/pages/projects/screens/spawner/imageSelector/imageTierUtils';
 import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProfiles';
 import { TableRowTitleDescription } from '#~/components/table';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
@@ -42,6 +44,7 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [isExpanded, setExpanded] = React.useState(false);
+  const tier = obj.tier || 'custom';
 
   const handleToggle = React.useCallback(
     async (visible: boolean) => {
@@ -80,11 +83,14 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             titleIcon={obj.isOOTB ? undefined : <ImageErrorStatus image={obj} />}
             wrapResourceTitle={false}
           />
-          {obj.isOOTB && (
-            <LabelGroup>
+          <LabelGroup>
+            {obj.isOOTB ? (
               <Label data-testid="pre-installed-label">{PreInstalledName}</Label>
-            </LabelGroup>
-          )}
+            ) : null}
+            <Label data-testid="image-tier-label" color={getImageTierColor(tier)}>
+              {upperFirst(tier)}
+            </Label>
+          </LabelGroup>
         </Td>
         <Td dataLabel="Enable" modifier="nowrap">
           <ImageStatusToggle
