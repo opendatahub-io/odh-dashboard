@@ -18,14 +18,18 @@ cd packages/data-registry
 
 ## Mock Development
 
-Use mock mode for normal UI and BFF development. It requires no cluster:
+Use mock mode for UI and BFF development when no Kubernetes cluster is needed:
 
 ```bash
 make dev-start
 ```
 
 This starts the frontend and BFF together. The BFF uses an envtest Kubernetes
-client and mocked upstream HTTP calls.
+client, but it does not mock the upstream Data Registry API. Registry API
+requests still require a reachable upstream configured with
+`DATA_REGISTRY_API_URL`; without one, registry routes return `503`. For fully
+mocked registry browsing and asset operations, use the mocked Cypress workflow
+described in [Testing](testing.md).
 
 Build the package without starting it:
 
