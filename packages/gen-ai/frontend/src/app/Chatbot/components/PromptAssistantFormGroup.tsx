@@ -62,7 +62,8 @@ export default function PromptAssistantFormGroup({
   const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
   const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
-  const [isTextAreaFocused, setIsTextAreaFocused] = React.useState(false);
+  // Keep auto-resize enabled after first focus; blurring should not shrink an edited prompt.
+  const [hasTextAreaBeenFocused, setHasTextAreaBeenFocused] = React.useState(false);
   const activeTemplate =
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
@@ -223,9 +224,9 @@ export default function PromptAssistantFormGroup({
             id="system-instructions-input"
             type="text"
             value={systemInstruction}
-            autoResize={isTextAreaFocused || !!activePrompt}
+            autoResize={hasTextAreaBeenFocused || !!activePrompt}
             resizeOrientation="vertical"
-            onFocus={() => setIsTextAreaFocused(true)}
+            onFocus={() => setHasTextAreaBeenFocused(true)}
             onChange={(_event, value) => handleTextChange(value)}
             aria-label="Prompt instructions input"
             rows={2}

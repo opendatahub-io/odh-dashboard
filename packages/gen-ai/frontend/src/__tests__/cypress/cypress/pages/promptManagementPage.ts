@@ -113,10 +113,6 @@ class PromptAssistant {
     return cy.findByTestId('system-instructions-input');
   }
 
-  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-edit-button');
-  }
-
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-save-to-registry-button');
   }
@@ -125,8 +121,8 @@ class PromptAssistant {
     return cy.findByTestId('prompt-revert-button');
   }
 
-  findResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-reset-button');
+  findClearLoadedPromptButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('clear-loaded-prompt-button');
   }
 
   findNameTitle(): Cypress.Chainable<JQuery<HTMLElement>> {

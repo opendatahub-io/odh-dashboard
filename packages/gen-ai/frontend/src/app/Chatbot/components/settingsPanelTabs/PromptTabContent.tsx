@@ -6,7 +6,12 @@ import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabCon
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import RhUiUploadIcon from '~/app/images/icons/RhUiUploadIcon';
-import { useChatbotConfigStore, selectDirtyPrompt, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
+import {
+  useChatbotConfigStore,
+  selectActivePrompt,
+  selectDirtyPrompt,
+  DEFAULT_CONFIG_ID,
+} from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
@@ -25,6 +30,7 @@ function PromptTabContent({
   onSystemInstructionChange,
 }: PromptTabContentProps): React.ReactNode {
   const { openModal } = usePlaygroundStore();
+  const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
   const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
   const isEdited = usePromptEdited(configId);
@@ -53,11 +59,20 @@ function PromptTabContent({
       () => {
         clearPromptState(configId, null);
         onSystemInstructionChange(DEFAULT_SYSTEM_INSTRUCTIONS);
+        fireMiscTrackingEvent('Playground Prompt Cleared', {
+          outcome: 'submit',
+          hadLoadedPrompt: !!activePrompt,
+        });
       },
       {
         title: 'Clear loaded prompt?',
         message: 'The loaded prompt and any unsaved changes will be removed.',
         confirmLabel: 'Clear',
+        onCancelTracking: () =>
+          fireMiscTrackingEvent('Playground Prompt Cleared', {
+            outcome: 'cancel',
+            hadLoadedPrompt: !!activePrompt,
+          }),
       },
     );
   }
@@ -84,17 +99,20 @@ function PromptTabContent({
       {confirmationModal}
       <TabContentWrapper
         title={dirtyPrompt?.name || 'New Prompt'}
+        titleTestId="prompt-name-title"
         titleActions={
-          <Tooltip content="Clear loaded prompt" position="top">
-            <span>
-              <DrawerCloseButton
-                data-testid="clear-loaded-prompt-button"
-                aria-label="Clear loaded prompt"
-                onClick={handleClearPromptClick}
-                title="Clear loaded prompt"
-              />
-            </span>
-          </Tooltip>
+          (activePrompt || isEdited) && (
+            <Tooltip content="Clear loaded prompt" position="top">
+              <span>
+                <DrawerCloseButton
+                  data-testid="clear-loaded-prompt-button"
+                  aria-label="Clear loaded prompt"
+                  onClick={handleClearPromptClick}
+                  title="Clear loaded prompt"
+                />
+              </span>
+            </Tooltip>
+          )
         }
         headerActions={buildHeaderActions()}
       >
