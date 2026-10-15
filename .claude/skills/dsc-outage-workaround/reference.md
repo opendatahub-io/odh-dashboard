@@ -2,7 +2,7 @@
 
 ## Governance
 
-The approved policy permits a temporary environmental workaround when a nightly failure is conclusively isolated to a DSC infrastructure issue rather than a dashboard code regression.
+The [Process Exception for Stable Merges During DSC Outages](https://docs.google.com/document/d/1ZksqSIcNFrCIZkTpqOlY0qO9_B7BbizbS7g9lXQQnr8/edit?tab=t.0) permits a temporary environmental workaround when a nightly failure is conclusively isolated to a DSC infrastructure issue rather than a dashboard code regression.
 
 Permitted workaround scope:
 
@@ -20,8 +20,9 @@ After remediation:
 1. Re-run the relevant E2E suite.
 2. Record a pass only when the suite passes.
 3. Use the partial-failure exception only when all core tests pass and the remaining failures are directly caused by the workaround.
-4. Log a blocking bug and formal exception approval.
-5. Proceed with a fast-forward-only merge to stable if all governance conditions are met.
+4. Log a blocking bug and record approval from the authority named in the linked policy.
+5. Record the approver, approval link, exact affected test scope, and causal evidence.
+6. Proceed with a fast-forward-only merge to stable if all governance conditions are met.
 
 ## Known issue: Feast TLS RBAC
 
@@ -54,65 +55,59 @@ The rendered Feast ClusterRole does not include that permission.
 ### Diagnosis commands
 
 ```bash
-oc get dsc default-dsc -o jsonpath='{range .status.conditions[*]}{.type}{"="}{.status}{"; reason="}{.reason}{"; message="}{.message}{"\n"}{end}'
+DSC_NAME="${DSC_NAME:-default-dsc}"
+APPS_NAMESPACE="${APPS_NAMESPACE:-redhat-ods-applications}"
 
-oc get feastoperator default-feastoperator -n redhat-ods-applications \
+oc get dsc "$DSC_NAME" \
+  -o jsonpath='{range .status.conditions[*]}{.type}{"="}{.status}{"; reason="}{.reason}{"; message="}{.message}{"\n"}{end}'
+
+oc get feastoperator default-feastoperator -n "$APPS_NAMESPACE" \
   -o jsonpath='{range .status.conditions[*]}{.type}{"="}{.status}{"; reason="}{.reason}{"; message="}{.message}{"\n"}{end}'
 
 oc get deployment feast-operator-controller-manager \
-  -n redhat-ods-applications -o wide
+  -n "$APPS_NAMESPACE" -o wide
 
-oc get pods -n redhat-ods-applications \
+oc get pods -n "$APPS_NAMESPACE" \
   -l control-plane=controller-manager -o wide
 
 oc auth can-i get apiservers.config.openshift.io/cluster \
-  --as=system:serviceaccount:redhat-ods-applications:feast-operator-controller-manager
+  --as="system:serviceaccount:${APPS_NAMESPACE}:feast-operator-controller-manager"
 ```
 
 ### Workaround
 
 ```bash
-oc apply -f - <<'EOF'
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: feast-operator-apiservers-workaround
-rules:
-- apiGroups: ["config.openshift.io"]
-  resources: ["apiservers"]
-  verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: feast-operator-apiservers-workaround
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: feast-operator-apiservers-workaround
-subjects:
-- kind: ServiceAccount
-  name: feast-operator-controller-manager
-  namespace: redhat-ods-applications
-EOF
+DSC_NAME="${DSC_NAME:-default-dsc}"
+APPS_NAMESPACE="${APPS_NAMESPACE:-redhat-ods-applications}"
+
+oc create clusterrole feast-operator-apiservers-workaround \
+  --verb=get,list,watch \
+  --resource=apiservers.config.openshift.io
+
+oc create clusterrolebinding feast-operator-apiservers-workaround \
+  --clusterrole=feast-operator-apiservers-workaround \
+  --serviceaccount="${APPS_NAMESPACE}:feast-operator-controller-manager"
 
 oc rollout restart deployment/feast-operator-controller-manager \
-  -n redhat-ods-applications
+  -n "$APPS_NAMESPACE"
 
 oc rollout status deployment/feast-operator-controller-manager \
-  -n redhat-ods-applications --timeout=180s
+  -n "$APPS_NAMESPACE" --timeout=180s
 ```
 
 ### Validation
 
 ```bash
-oc get dsc default-dsc \
+DSC_NAME="${DSC_NAME:-default-dsc}"
+APPS_NAMESPACE="${APPS_NAMESPACE:-redhat-ods-applications}"
+
+oc get dsc "$DSC_NAME" \
   -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
 
 oc get platform default \
   -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
 
-oc get feastoperator default-feastoperator -n redhat-ods-applications \
+oc get feastoperator default-feastoperator -n "$APPS_NAMESPACE" \
   -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
 ```
 

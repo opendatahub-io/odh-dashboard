@@ -1,7 +1,7 @@
 ---
 name: dsc-outage-workaround
-description: "Diagnose and safely remediate DataScienceCluster (DSC) infrastructure outages that block stable merges. Use when a nightly or stable merge is blocked by DSC NotReady, a module deployment failure, or a known environmental issue such as missing Feast TLS RBAC."
-argument-hint: "<diagnose|fix feast-rbac|verify> [--namespace redhat-ods-applications] [--dsc-name default-dsc] [--dry-run]"
+description: 'Diagnose and safely remediate DataScienceCluster (DSC) infrastructure outages that block stable merges. Use when a nightly or stable merge is blocked by DSC NotReady, a module deployment failure, or a known environmental issue such as missing Feast TLS RBAC.'
+argument-hint: '<diagnose|fix feast-rbac|verify> [--namespace redhat-ods-applications] [--dsc-name default-dsc] [--dry-run]'
 ---
 
 # DSC Outage Workaround
@@ -29,6 +29,7 @@ Do **not** use this skill when:
 - Command: `diagnose`, `fix feast-rbac`, or `verify`
 - DSC name: default `default-dsc`
 - Applications namespace: default `redhat-ods-applications`
+- The namespace must be a Kubernetes DNS label.
 
 ## Prerequisites
 
@@ -40,11 +41,12 @@ Do **not** use this skill when:
 
 1. Run `diagnose` before applying any fix.
 2. Never apply a workaround unless the diagnosis matches a known, narrowly scoped playbook.
-3. Record the exact resource names, commands, and validation output.
-4. Do not print or persist authentication tokens.
-5. After remediation, validate `DataScienceCluster`, `Platform`, and the affected module.
-6. Re-run the relevant end-to-end tests before deciding whether the stable merge can proceed.
-7. If tests remain failed for reasons directly caused by the workaround, do not treat the run as fully passing unless the documented partial-failure exception applies.
+3. Treat an unknown service-account permission check as inconclusive; do not use it as evidence for a fix.
+4. Record the exact resource names, commands, and validation output.
+5. Do not print or persist authentication tokens or raw operator logs.
+6. After remediation, validate `DataScienceCluster`, `Platform`, and the affected module.
+7. Re-run the relevant end-to-end tests before deciding whether the stable merge can proceed.
+8. If tests remain failed for reasons directly caused by the workaround, do not treat the run as fully passing unless the documented partial-failure exception applies.
 
 ## Execution
 
@@ -138,6 +140,14 @@ Proceed with the fast-forward-only stable merge only when:
 
 If the helper is unavailable, use the commands in `reference.md`.
 
+## Offline tests
+
+Run the focused helper tests with:
+
+```bash
+pnpm run test:dsc-workaround
+```
+
 ## Output
 
 Report:
@@ -150,11 +160,12 @@ Report:
 **Diagnosis:** <known issue or unknown>
 **Workaround applied:** <resource names or none>
 **Validation:**
+
 - DSC Ready: <true|false>
 - Platform Ready: <true|false>
 - Module Ready: <true|false>
-**E2E result:** <pass|fail|partial>
-**Merge decision:** <proceed|blocked>
+  **E2E result:** <pass|fail|partial>
+  **Merge decision:** <proceed|blocked>
 ```
 
 ## Rollback

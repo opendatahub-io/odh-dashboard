@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from typing import Any
@@ -14,19 +15,29 @@ DEFAULT_DSC = "default-dsc"
 DEFAULT_PLATFORM = "default"
 DEFAULT_NAMESPACE = "redhat-ods-applications"
 FEAST_ROLE_NAME = "feast-operator-apiservers-workaround"
+DEFAULT_COMMAND_TIMEOUT_SECONDS = 30
+WAIT_COMMAND_TIMEOUT_SECONDS = 240
+NAMESPACE_PATTERN = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 
 
 def run_command(
     command: list[str],
     input_text: str | None = None,
     check: bool = True,
+    timeout_seconds: int = DEFAULT_COMMAND_TIMEOUT_SECONDS,
 ) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        command,
-        input=input_text,
-        text=True,
-        capture_output=True,
-    )
+    try:
+        result = subprocess.run(
+            command,
+            input=input_text,
+            text=True,
+            capture_output=True,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(
+            f"Command timed out after {timeout_seconds} seconds: {' '.join(command)}"
+        ) from error
     if check and result.returncode != 0:
         message = result.stderr.strip() or result.stdout.strip() or "unknown error"
         raise RuntimeError(f"Command failed: {' '.join(command)}\n{message}")
@@ -50,6 +61,23 @@ def get_server() -> str:
 
 def assert_authenticated() -> None:
     run_command(["oc", "whoami"])
+
+
+def validate_namespace(namespace: str) -> None:
+    if len(namespace) > 63 or not NAMESPACE_PATTERN.fullmatch(namespace):
+        raise ValueError(
+            "Namespace must be a Kubernetes DNS label: "
+            "lowercase alphanumeric characters or '-', starting and ending "
+            "with an alphanumeric character, and at most 63 characters."
+        )
+
+
+def namespace_argument(namespace: str) -> str:
+    try:
+        validate_namespace(namespace)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+    return namespace
 
 
 def summarize_conditions(resource: dict[str, Any] | None) -> list[dict[str, str]]:
@@ -127,7 +155,7 @@ def role_has_required_rule(role: dict[str, Any] | None) -> bool:
     return False
 
 
-def feast_auth_allowed(namespace: str) -> bool:
+def feast_auth_status(namespace: str) -> str:
     service_account = (
         f"system:serviceaccount:{namespace}:feast-operator-controller-manager"
     )
@@ -143,7 +171,12 @@ def feast_auth_allowed(namespace: str) -> bool:
         ],
         check=False,
     )
-    return result.returncode == 0 and result.stdout.strip().lower() == "yes"
+    output = result.stdout.strip().lower()
+    if output == "yes" and result.returncode == 0:
+        return "allowed"
+    if output == "no" and result.returncode in (0, 1):
+        return "denied"
+    return "unknown"
 
 
 def crashing_pod_name(pods: dict[str, Any] | None) -> str | None:
@@ -152,15 +185,18 @@ def crashing_pod_name(pods: dict[str, Any] | None) -> str | None:
     for pod in pods.get("items", []):
         statuses = pod.get("status", {}).get("containerStatuses", [])
         if any(
-            status.get("state", {}).get("waiting", {}).get("reason")
-            in {"CrashLoopBackOff", "Error"}
+            (
+                status.get("state", {}).get("waiting", {}).get("reason")
+                == "CrashLoopBackOff"
+                or status.get("state", {}).get("terminated", {}).get("reason") == "Error"
+            )
             for status in statuses
         ):
             return pod.get("metadata", {}).get("name")
     return None
 
 
-def feast_logs(namespace: str, pod_name: str | None) -> str | None:
+def fetch_feast_logs(namespace: str, pod_name: str | None) -> str | None:
     if not pod_name:
         return None
     result = run_command(
@@ -189,7 +225,7 @@ def deployment_available(deployment: dict[str, Any] | None) -> bool:
         return False
     desired = deployment.get("spec", {}).get("replicas", 1)
     available = deployment.get("status", {}).get("availableReplicas", 0)
-    return available >= desired
+    return desired > 0 and available >= desired
 
 
 def feast_state(namespace: str) -> dict[str, Any]:
@@ -197,10 +233,10 @@ def feast_state(namespace: str) -> dict[str, Any]:
     pods = get_pods(namespace, "app.opendatahub.io/feastoperator=true")
     feast_operator = get_feast_operator(namespace)
     pod_name = crashing_pod_name(pods)
-    logs = feast_logs(namespace, pod_name)
+    logs = fetch_feast_logs(namespace, pod_name)
     role = get_workaround_role()
     binding = get_workaround_binding()
-    auth_allowed = feast_auth_allowed(namespace)
+    auth_status = feast_auth_status(namespace)
 
     known_error = bool(
         logs
@@ -209,6 +245,12 @@ def feast_state(namespace: str) -> dict[str, Any]:
     )
     diagnosis = "feast-tls-rbac-missing"
     recommended_fix = "feast-rbac"
+    local_outage_confirmed = (
+        not deployment_available(deployment)
+        and condition_status(feast_operator, "Ready") != "True"
+        and known_error
+        and auth_status == "denied"
+    )
 
     return {
         "deployment": {
@@ -219,15 +261,23 @@ def feast_state(namespace: str) -> dict[str, Any]:
         "crashing_pod": pod_name,
         "operator_conditions": summarize_conditions(feast_operator),
         "operator_ready": condition_status(feast_operator, "Ready") == "True",
-        "logs": logs,
+        "log_check": "matched" if known_error else "not-matched",
         "known_error": known_error,
-        "service_account_has_permission": auth_allowed,
+        "service_account_permission": auth_status,
         "workaround_role_exists": role is not None,
         "workaround_binding_exists": binding is not None,
         "workaround_role_has_required_rule": role_has_required_rule(role),
-        "diagnosis": diagnosis if known_error or not auth_allowed else None,
-        "recommended_fix": recommended_fix if known_error or not auth_allowed else None,
+        "diagnosis": diagnosis if local_outage_confirmed else None,
+        "recommended_fix": recommended_fix if local_outage_confirmed else None,
     }
+
+
+def feast_outage_matches_dsc(dsc: dict[str, Any], feast: dict[str, Any]) -> bool:
+    return (
+        condition_status(dsc, "Ready") == "False"
+        and set(failing_modules(dsc)) == {"DataReady"}
+        and feast.get("recommended_fix") == "feast-rbac"
+    )
 
 
 def diagnose(args: argparse.Namespace) -> dict[str, Any]:
@@ -242,6 +292,9 @@ def diagnose(args: argparse.Namespace) -> dict[str, Any]:
 
     dsc_ready = condition_status(dsc, "Ready") == "True"
     platform_ready = condition_status(platform, "Ready") == "True"
+    if not feast_outage_matches_dsc(dsc, feast):
+        feast["diagnosis"] = None
+        feast["recommended_fix"] = None
 
     return {
         "cluster": get_server(),
@@ -260,43 +313,55 @@ def diagnose(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-FEAST_RBAC_YAML_TEMPLATE = """apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: feast-operator-apiservers-workaround
-  labels:
-    app.opendatahub.io/feastoperator: "true"
-    platform.opendatahub.io/part-of: feastoperator-workaround
-rules:
-- apiGroups:
-  - config.openshift.io
-  resources:
-  - apiservers
-  verbs:
-  - get
-  - list
-  - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: feast-operator-apiservers-workaround
-  labels:
-    app.opendatahub.io/feastoperator: "true"
-    platform.opendatahub.io/part-of: feastoperator-workaround
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: feast-operator-apiservers-workaround
-subjects:
-- kind: ServiceAccount
-  name: feast-operator-controller-manager
-  namespace: __NAMESPACE__
-"""
+def feast_rbac_manifest(namespace: str) -> list[dict[str, Any]]:
+    validate_namespace(namespace)
+    return [
+        {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "ClusterRole",
+            "metadata": {
+                "name": FEAST_ROLE_NAME,
+                "labels": {
+                    "app.opendatahub.io/feastoperator": "true",
+                    "platform.opendatahub.io/part-of": "feastoperator-workaround",
+                },
+            },
+            "rules": [
+                {
+                    "apiGroups": ["config.openshift.io"],
+                    "resources": ["apiservers"],
+                    "verbs": ["get", "list", "watch"],
+                }
+            ],
+        },
+        {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "ClusterRoleBinding",
+            "metadata": {
+                "name": FEAST_ROLE_NAME,
+                "labels": {
+                    "app.opendatahub.io/feastoperator": "true",
+                    "platform.opendatahub.io/part-of": "feastoperator-workaround",
+                },
+            },
+            "roleRef": {
+                "apiGroup": "rbac.authorization.k8s.io",
+                "kind": "ClusterRole",
+                "name": FEAST_ROLE_NAME,
+            },
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": "feast-operator-controller-manager",
+                    "namespace": namespace,
+                }
+            ],
+        },
+    ]
 
 
-def feast_rbac_yaml(namespace: str) -> str:
-    return FEAST_RBAC_YAML_TEMPLATE.replace("__NAMESPACE__", namespace)
+def feast_rbac_json(namespace: str) -> str:
+    return json.dumps(feast_rbac_manifest(namespace), indent=2)
 
 
 def fix_feast_rbac(args: argparse.Namespace) -> dict[str, Any]:
@@ -312,7 +377,7 @@ def fix_feast_rbac(args: argparse.Namespace) -> dict[str, Any]:
     if args.dry_run:
         return {
             "action": "dry-run",
-            "patch": feast_rbac_yaml(args.namespace),
+            "patch": feast_rbac_manifest(args.namespace),
         }
 
     if not args.yes:
@@ -321,7 +386,10 @@ def fix_feast_rbac(args: argparse.Namespace) -> dict[str, Any]:
             "Ask the user for explicit authorization first."
         )
 
-    run_command(["oc", "apply", "-f", "-"], input_text=feast_rbac_yaml(args.namespace))
+    run_command(
+        ["oc", "apply", "-f", "-"],
+        input_text=feast_rbac_json(args.namespace),
+    )
     run_command(
         [
             "oc",
@@ -341,7 +409,8 @@ def fix_feast_rbac(args: argparse.Namespace) -> dict[str, Any]:
             "-n",
             args.namespace,
             "--timeout=180s",
-        ]
+        ],
+        timeout_seconds=WAIT_COMMAND_TIMEOUT_SECONDS,
     )
     run_command(
         [
@@ -350,7 +419,8 @@ def fix_feast_rbac(args: argparse.Namespace) -> dict[str, Any]:
             f"dsc/{args.dsc_name}",
             "--for=condition=Ready",
             "--timeout=180s",
-        ]
+        ],
+        timeout_seconds=WAIT_COMMAND_TIMEOUT_SECONDS,
     )
     run_command(
         [
@@ -359,7 +429,8 @@ def fix_feast_rbac(args: argparse.Namespace) -> dict[str, Any]:
             f"platform/{DEFAULT_PLATFORM}",
             "--for=condition=Ready",
             "--timeout=180s",
-        ]
+        ],
+        timeout_seconds=WAIT_COMMAND_TIMEOUT_SECONDS,
     )
 
     return {
@@ -389,8 +460,18 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
         "platform_ready": condition_status(platform, "Ready") == "True",
         "feast_operator_ready": condition_status(feast_operator, "Ready") == "True",
         "feast_deployment_available": deployment_available(deployment),
-        "feast_service_account_has_permission": feast_auth_allowed(args.namespace),
+        "feast_service_account_permission": feast_auth_status(args.namespace),
     }
+
+
+def verification_succeeded(result: dict[str, Any]) -> bool:
+    return (
+        result.get("dsc_ready") is True
+        and result.get("platform_ready") is True
+        and result.get("feast_operator_ready") is True
+        and result.get("feast_deployment_available") is True
+        and result.get("feast_service_account_permission") == "allowed"
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -398,7 +479,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--namespace", default=DEFAULT_NAMESPACE)
+    common.add_argument("--namespace", default=DEFAULT_NAMESPACE, type=namespace_argument)
     common.add_argument("--dsc-name", default=DEFAULT_DSC)
 
     diagnose_parser = subparsers.add_parser(
@@ -434,6 +515,8 @@ def main() -> int:
     try:
         result = args.func(args)
         print(json.dumps(result, indent=2))
+        if args.command == "verify" and not verification_succeeded(result):
+            return 2
         return 0
     except RuntimeError as error:
         print(json.dumps({"error": str(error)}, indent=2), file=sys.stderr)
