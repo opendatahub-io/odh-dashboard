@@ -55,12 +55,16 @@ class EvaluationFileCreator extends Modal {
 }
 
 class FileExplorer {
-  findBrowseBucketButton() {
-    return cy.findByTestId('browse-bucket-button');
+  findAddKnowledgeFilesButton() {
+    return cy.findByTestId('add-knowledge-files-button');
   }
 
   find() {
     return cy.findByTestId('file-explorer-table');
+  }
+
+  findModal() {
+    return cy.findByRole('dialog', { name: 'Select file or folder' });
   }
 
   // When multiple file explorer instances are open at once (e.g. document selector
@@ -96,6 +100,10 @@ class FileExplorer {
   navigateIntoFolder(folderName: string) {
     this.findFolder(folderName).click();
     return this;
+  }
+
+  findUploadInput() {
+    return this.findModal().findByTestId('file-explorer-upload-input');
   }
 }
 
@@ -136,18 +144,6 @@ class AutoragConfigurePage {
     return cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') });
   }
 
-  findInputDataUploadToggle() {
-    return cy.findByTestId('input-data-source-upload-toggle');
-  }
-
-  findInputDataUploadFile() {
-    return cy.findByTestId('autorag-upload-file-input');
-  }
-
-  findUploadedInputDataFile() {
-    return cy.findByTestId('uploaded-file-cell');
-  }
-
   selectMaaSSecret(secretName: string) {
     const selectorTestId = 'maas-secret-selector';
     cy.findByTestId(selectorTestId).click();
@@ -182,12 +178,16 @@ class EvaluationFileSelector {
     return this.find().findByRole('button', { name: 'Clear file' });
   }
 
-  findCreateButton() {
-    return cy.findByTestId('evaluation-create-button');
+  findActionsButton() {
+    return this.find().findByTestId('evaluation-file-actions');
   }
 
-  findS3BrowseButton() {
-    return this.find().findByRole('button', { name: /S3/i });
+  findCreateDatasetMenuItem() {
+    return this.find().findByRole('menuitem', { name: 'Create new evaluation dataset' });
+  }
+
+  findFileActionButton() {
+    return this.find().findByRole('button', { name: /^(Add file|Replace file)$/ });
   }
 }
 

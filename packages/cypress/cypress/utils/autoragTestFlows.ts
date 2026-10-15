@@ -334,21 +334,16 @@ export const configureAutoragRun = (
 
   cy.step('Upload document file');
   const uploadFileName = `${testData.documentFile.replace('.txt', '')}-${uuid}.txt`;
-  autoragConfigurePage.findUploadFileToggle().click();
+  autoragConfigurePage.findAddKnowledgeFilesButton().click();
+  autoragConfigurePage.findFileExplorerModal().should('be.visible');
   autoragConfigurePage
-    .findUploadFileInput()
+    .findFileExplorerUploadInput()
     .selectFile(
       { contents: `${RESOURCES_PATH}/${testData.documentFile}`, fileName: uploadFileName },
       { force: true },
     );
 
-  cy.step('Wait for upload to complete');
-  autoragConfigurePage.findUploadSpinner().should('not.exist');
-  autoragConfigurePage.findUploadedFileCell().should('be.visible');
-
-  cy.step('Verify uploaded file is browsable in file explorer and select it');
-  autoragConfigurePage.findSelectFileToggle().click();
-  autoragConfigurePage.findBrowseBucketButton().click();
+  cy.step('Wait for upload to complete and select the uploaded file');
   autoragConfigurePage.findFileExplorerTable().should('be.visible');
   autoragConfigurePage.findFileExplorerSearch().type(uploadFileName);
   autoragConfigurePage.findFileExplorerTable().contains('td', uploadFileName).should('be.visible');
@@ -373,20 +368,27 @@ export const configureAutoragRun = (
   cy.step('Verify created evaluation file appears in the selector');
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
-  cy.step('Clear creator-uploaded evaluation file to test dropzone upload path');
+  cy.step('Clear creator-uploaded evaluation file to test explorer upload path');
   autoragConfigurePage.findEvaluationFileClearButton().click();
   autoragConfigurePage.findEvaluationFileValue().should('have.value', '');
 
   cy.step('Upload evaluation dataset JSON');
   const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
+  autoragConfigurePage.findEvaluationFileActionButton().click();
+  autoragConfigurePage.findFileExplorerModal().should('be.visible');
   autoragConfigurePage
-    .findEvaluationFileInput()
+    .findFileExplorerUploadInput()
     .selectFile(
       { contents: `${RESOURCES_PATH}/${testData.evaluationFile}`, fileName: evalFileName },
       { force: true },
     );
 
-  cy.step('Wait for evaluation file upload to complete');
+  cy.step('Wait for evaluation file upload and confirm the selected file');
+  autoragConfigurePage.findFileExplorerTable().should('be.visible');
+  autoragConfigurePage.findFileExplorerSearch().type(evalFileName);
+  autoragConfigurePage.findFileExplorerTable().contains('td', evalFileName).should('be.visible');
+  autoragConfigurePage.findFileExplorerTable().contains('td', evalFileName).click();
+  autoragConfigurePage.findFileExplorerSelectBtn().click();
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
   cy.step('Select Simple RAG database connection');
