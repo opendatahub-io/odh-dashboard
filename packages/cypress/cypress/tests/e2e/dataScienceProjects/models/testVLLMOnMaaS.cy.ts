@@ -64,7 +64,8 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
         if (arch === 'arm64') {
           llmInferenceServiceConfigYamlPath =
             'resources/modelServing/llmd-inference-service-config-arm64.yaml';
-          expectedContainerImage = 'docker.io/vllm/vllm-openai-cpu:latest';
+          // Must match image tag in llmd-inference-service-config-arm64.yaml line 14
+          expectedContainerImage = 'docker.io/vllm/vllm-openai-cpu:v0.31.0';
         }
       })
       .then(() => {
