@@ -262,13 +262,25 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
       </React.Fragment>
     ));
 
-  const shouldRenderEmptySearchState =
-    (Boolean(normalizedSearchTerm) || hasFilters) && galleryCards.length === 0;
+  const shouldRenderEmptyState = connectionTypes.length === 0;
 
   const emptyState = (
     <EmptyState
       headingLevel="h3"
-      icon={() => <img src={emptyStateImage} alt="" width={108} height={108} />}
+      icon={() => <img src={emptyStateImage} alt="" width={320} height={320} />}
+      titleText="No matching data connection types"
+    >
+      <EmptyStateBody>No data connection types match your search or filter</EmptyStateBody>
+    </EmptyState>
+  );
+
+  const shouldRenderEmptySearchState =
+    (Boolean(normalizedSearchTerm) || hasFilters) && galleryCards.length === 0;
+
+  const emptySearchState = (
+    <EmptyState
+      headingLevel="h3"
+      icon={() => <img src={emptyStateImage} alt="" width={320} height={320} />}
       titleText="No matching data connection types"
     >
       <EmptyStateBody>No data connection types match your search or filter</EmptyStateBody>
@@ -279,7 +291,8 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     <Stack>
       <StackItem>{toolbar}</StackItem>
       <StackItem>{galleryCards}</StackItem>
-      {shouldRenderEmptySearchState && <StackItem>{emptyState}</StackItem>}
+      {shouldRenderEmptyState && <StackItem>{emptyState}</StackItem>}
+      {shouldRenderEmptySearchState && <StackItem>{emptySearchState}</StackItem>}
     </Stack>
   );
 };
