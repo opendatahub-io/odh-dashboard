@@ -70,6 +70,11 @@ data:
 one target. The frontend Service in `backend` serves the remote bundle; each
 `proxyService` entry can target a separate BFF Service.
 
+> **Warning**: Setting `authorize: true` on `backend` or `proxyService`
+> forwards the requesting user's bearer token to that Service. Enable it only
+> for a trusted Service that validates OpenShift tokens and authorizes the
+> caller; it is not required merely to make a Service reachable.
+
 The source schema deliberately uses `pathSuffix`, not `proxyService.path`.
 Dashboard owns the public route namespace and derives each generated path:
 
