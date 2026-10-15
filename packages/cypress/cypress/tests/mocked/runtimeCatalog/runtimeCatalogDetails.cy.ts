@@ -239,7 +239,6 @@ describe('Runtime library details', () => {
         cy.interceptOdh(
           'GET /api/config',
           mockDashboardConfig({
-            runtimeCatalog: true,
             disableModelServing: false,
             disableKServe: false,
             disableLLMd: false,
