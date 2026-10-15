@@ -13,6 +13,14 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByRole('heading', { name });
   }
 
+  findInstallAction() {
+    return this.findPage().findByTestId('runtime-image-install');
+  }
+
+  findInstallUnavailableTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
   findLatestBadge() {
     return this.findPage().findByTestId('runtime-catalog-details-latest');
   }

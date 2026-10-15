@@ -20,7 +20,7 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 }));
 jest.mock('#~/concepts/areas/AreaContext', () => ({
   AreaContext: jest.requireActual('react').createContext({
-    dscStatus: { components: { modelregistry: { registriesNamespace: 'odh-model-registries' } } },
+    aiHubInstancesNamespace: 'odh-model-registries',
   }),
 }));
 jest.mock('#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames', () => ({
