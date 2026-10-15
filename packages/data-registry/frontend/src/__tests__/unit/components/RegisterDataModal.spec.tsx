@@ -5,16 +5,19 @@ import userEvent from '@testing-library/user-event';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
 import * as connectionsHook from '~/app/hooks/useConnections';
+import * as labelsHook from '~/app/hooks/useLabels';
 import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
 jest.mock('~/app/api/dataRegistry');
 jest.mock('~/app/hooks/useConnections');
+jest.mock('~/app/hooks/useLabels');
 
 const mockCreateVolume = jest.mocked(dataRegistryApi.createVolume);
 const mockCreateGenericTable = jest.mocked(dataRegistryApi.createGenericTable);
 const mockUseConnections = jest.mocked(connectionsHook.useConnections);
+const mockUseLabels = jest.mocked(labelsHook.useLabels);
 
 const mockConnections = [
   mockRhaiConnection(),
@@ -47,6 +50,7 @@ describe('RegisterDataModal', () => {
       mockRefreshConnections,
       [],
     ]);
+    mockUseLabels.mockReturnValue([['gold', 'team a', 'production'], true, undefined, jest.fn()]);
   });
 
   it('should render modal with all form fields', () => {
@@ -265,7 +269,7 @@ describe('RegisterDataModal', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
     await user.click(screen.getByTestId('data-add-label-button'));
-    const labelInput = screen.getByTestId('data-labels-input-0');
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
     await user.type(labelInput, 'production');
 
     expect(labelInput).toHaveValue('production');
@@ -273,6 +277,25 @@ describe('RegisterDataModal', () => {
 
     await user.click(screen.getByTestId('data-label-remove-0'));
     expect(screen.queryByTestId('data-labels-input-0')).not.toBeInTheDocument();
+  });
+
+  it('should offer existing labels and allow new labels through typeahead', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.click(labelInput);
+
+    expect(screen.getByRole('option', { name: 'gold' })).toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: 'gold' }));
+    expect(labelInput).toHaveValue('gold');
+
+    await user.clear(labelInput);
+    await user.type(labelInput, 'team b');
+    const createOption = await screen.findByText('Create "team b"');
+    await user.click(createOption);
+    expect(labelInput).toHaveValue('team b');
   });
 
   it('should use a minus control for custom property rows', async () => {

@@ -21,8 +21,12 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import { useLabels } from '~/app/hooks/useLabels';
 import {
   DEFAULT_FORMATS,
   STRUCTURED_FORMAT_OPTIONS,
@@ -233,12 +237,14 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
 };
 
 type RegistrationOrganizationSectionProps = EditModeProps & {
+  project: string;
   collections?: string[];
   onManageCollections?: () => void;
   onManageLabels?: () => void;
 };
 
 export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationSectionProps> = ({
+  project,
   collections = [],
   isEditMode = false,
   onManageCollections,
@@ -251,10 +257,13 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
     setValue,
     watch,
   } = useFormContext<AssetFormData>();
+  const [availableLabels] = useLabels(project);
   const labels = watch('labels');
   const [isCollectionOpen, setIsCollectionOpen] = React.useState(false);
+  const [createdLabels, setCreatedLabels] = React.useState<string[]>([]);
   const labelIdsRef = React.useRef<string[]>([]);
   const nextLabelIdRef = React.useRef(0);
+  const initialLabelsRef = React.useRef(labels.filter(Boolean));
 
   while (labelIdsRef.current.length < labels.length) {
     labelIdsRef.current.push(`label-${nextLabelIdRef.current}`);
@@ -263,6 +272,17 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
   if (labelIdsRef.current.length > labels.length) {
     labelIdsRef.current.length = labels.length;
   }
+
+  const labelOptions = React.useMemo<TypeaheadSelectOption[]>(
+    () =>
+      [...new Set([...availableLabels, ...initialLabelsRef.current, ...createdLabels])].map(
+        (label) => ({
+          value: label,
+          content: label,
+        }),
+      ),
+    [availableLabels, createdLabels],
+  );
 
   const handleAddLabel = React.useCallback(() => {
     labelIdsRef.current.push(`label-${nextLabelIdRef.current}`);
@@ -378,11 +398,15 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
             className="pf-v6-u-mb-xs"
           >
             <FlexItem grow={{ default: 'grow' }}>
-              <TextInput
-                id={`data-labels-input-${index}`}
-                aria-label={`Label ${index + 1}`}
-                value={label}
-                onChange={(_event, value) => {
+              <TypeaheadSelect
+                selectOptions={labelOptions}
+                selected={label}
+                isCreatable
+                isRequired={false}
+                placeholder="e.g. gold, team a"
+                createOptionMessage={(newValue) => `Create "${newValue}"`}
+                maxMenuHeight="20rem"
+                onInputChange={(value) => {
                   const currentLabels = getValues('labels');
                   setValue(
                     'labels',
@@ -391,8 +415,25 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
                     ),
                   );
                 }}
-                placeholder="e.g. production, gold, pii"
-                data-testid={`data-labels-input-${index}`}
+                onSelect={(_event, value) => {
+                  const selectedLabel = String(value);
+                  if (!labelOptions.some((option) => option.value === selectedLabel)) {
+                    setCreatedLabels((currentLabels) =>
+                      currentLabels.includes(selectedLabel)
+                        ? currentLabels
+                        : [...currentLabels, selectedLabel],
+                    );
+                  }
+                  const currentLabels = getValues('labels');
+                  setValue(
+                    'labels',
+                    currentLabels.map((currentLabel, currentIndex) =>
+                      currentIndex === index ? selectedLabel : currentLabel,
+                    ),
+                  );
+                }}
+                dataTestId={`data-labels-input-${index}`}
+                toggleProps={{ 'aria-label': `Label ${index + 1}` }}
               />
             </FlexItem>
             <FlexItem>

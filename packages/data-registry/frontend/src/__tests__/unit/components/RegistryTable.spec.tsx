@@ -75,6 +75,8 @@ describe('RegistryTable', () => {
     renderTable();
     expect(screen.getByText('Apache Parquet')).toBeTruthy();
     expect(screen.getByText('Documents')).toBeTruthy();
+    expect(screen.getByText('Structured')).toBeTruthy();
+    expect(screen.getByText('Unstructured')).toBeTruthy();
   });
 
   it('should explain the asset location column', () => {

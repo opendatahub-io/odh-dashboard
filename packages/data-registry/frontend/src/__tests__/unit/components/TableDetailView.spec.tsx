@@ -149,11 +149,11 @@ describe('TableDetailView', () => {
     expect(screen.getByText('analytics')).toBeTruthy();
   });
 
-  it('should render a labels empty state when labels are empty', () => {
+  it('should render subtle italic text when labels are empty', () => {
     const asset = mockAssetResponse({ labels: [] });
     renderView(asset);
 
-    expect(screen.getByTestId('asset-labels-empty-state')).toBeInTheDocument();
+    expect(screen.getByTestId('asset-labels-empty')).toBeInTheDocument();
     expect(screen.getByText('No labels')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Create label' })).not.toBeInTheDocument();
   });
@@ -244,7 +244,7 @@ describe('TableDetailView', () => {
     expect(screen.getByTestId('asset-description')).toHaveTextContent('-');
     expect(screen.getByTestId('asset-location')).toHaveTextContent('-');
     expect(screen.getByTestId('asset-owner')).toHaveTextContent('-');
-    expect(screen.getByTestId('asset-labels-empty-state')).toHaveTextContent('No labels');
+    expect(screen.getByTestId('asset-labels-empty')).toHaveTextContent('No labels');
     expect(screen.getByTestId('asset-created-at')).toHaveTextContent('-');
     expect(screen.getByTestId('asset-updated-at')).toHaveTextContent('-');
     expect(screen.queryByTestId('properties-card')).not.toBeInTheDocument();

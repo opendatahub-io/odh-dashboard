@@ -251,6 +251,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
             <RegistrationAssetFormatSection />
             {assetType === 'structured' ? <SchemaSection /> : null}
             <RegistrationOrganizationSection
+              project={project}
               collections={collections}
               onManageCollections={onManageCollections}
               onManageLabels={onManageLabels}

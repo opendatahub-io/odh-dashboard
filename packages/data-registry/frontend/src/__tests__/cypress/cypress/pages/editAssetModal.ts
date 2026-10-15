@@ -43,7 +43,7 @@ class EditAssetModal extends Modal {
   }
 
   findLabelInput(index: number) {
-    return cy.findByTestId(`data-labels-input-${index}`);
+    return cy.findByTestId(`data-labels-input-${index}`).find('input');
   }
 
   removeLabel(index: number) {

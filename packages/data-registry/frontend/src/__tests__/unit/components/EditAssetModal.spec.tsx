@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import EditAssetModal from '~/app/components/EditAssetModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
 import * as connectionsHook from '~/app/hooks/useConnections';
+import * as labelsHook from '~/app/hooks/useLabels';
 import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
@@ -12,8 +13,10 @@ import { ConnectionRef } from '~/app/types';
 
 jest.mock('~/app/api/dataRegistry');
 jest.mock('~/app/hooks/useConnections');
+jest.mock('~/app/hooks/useLabels');
 
 const mockUseConnections = jest.mocked(connectionsHook.useConnections);
+const mockUseLabels = jest.mocked(labelsHook.useLabels);
 const mockUpdateGenericTable = jest.mocked(dataRegistryApi.updateGenericTable);
 const mockUpdateVolume = jest.mocked(dataRegistryApi.updateVolume);
 const refreshConnections = jest.fn();
@@ -31,6 +34,7 @@ describe('EditAssetModal', () => {
     jest.clearAllMocks();
     refreshConnections.mockResolvedValue([]);
     mockUseConnections.mockReturnValue([[], true, undefined, refreshConnections, []]);
+    mockUseLabels.mockReturnValue([['gold', 'team a', 'production'], true, undefined, jest.fn()]);
   });
 
   it('should hide while opening project label management and restore on return', async () => {
@@ -148,13 +152,17 @@ describe('EditAssetModal', () => {
 
     render(<TestHarness />);
 
-    expect(screen.getByTestId('data-labels-input-1')).toHaveValue('to-be-deleted');
+    expect(within(screen.getByTestId('data-labels-input-1')).getByRole('combobox')).toHaveValue(
+      'to-be-deleted',
+    );
     await user.click(screen.getByRole('button', { name: 'Manage labels' }));
 
     act(() => returnToEdit?.());
     await waitFor(() => expect(screen.getByTestId('edit-asset-modal')).toBeInTheDocument());
     expect(screen.queryByTestId('data-labels-input-1')).not.toBeInTheDocument();
-    expect(screen.getByTestId('data-labels-input-0')).toHaveValue('production');
+    expect(within(screen.getByTestId('data-labels-input-0')).getByRole('combobox')).toHaveValue(
+      'production',
+    );
   });
 
   describe.each(['table', 'volume'] as const)('%s connection updates', (kind) => {

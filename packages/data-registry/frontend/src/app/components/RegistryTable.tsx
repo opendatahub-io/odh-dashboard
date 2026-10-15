@@ -790,6 +790,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             ) : (
               paginatedAssets.map((asset) => {
                 const badge = getFormatBadge(asset.format);
+                const assetTypeLabel = asset.assetType === 'table' ? 'Structured' : 'Unstructured';
                 const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
                 const connectionRef = asset.rawAsset?.connection_ref;
                 const connectionType = connectionRef
@@ -825,12 +826,20 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                       ) : null}
                     </Td>
                     <Td dataLabel="Format">
-                      <Label variant="outline" color={badge.color}>
-                        {FORMAT_OPTIONS.find(
-                          (option) =>
-                            option.value === asset.format && option.assetType === asset.assetType,
-                        )?.label || asset.format}
-                      </Label>
+                      <Flex
+                        direction={{ default: 'column' }}
+                        alignItems={{ default: 'alignItemsCenter' }}
+                      >
+                        <Label variant="outline" color={badge.color}>
+                          {FORMAT_OPTIONS.find(
+                            (option) =>
+                              option.value === asset.format && option.assetType === asset.assetType,
+                          )?.label || asset.format}
+                        </Label>
+                        <Content component="small" className="pf-v6-u-text-color-subtle">
+                          {assetTypeLabel}
+                        </Content>
+                      </Flex>
                     </Td>
                     <Td dataLabel="Asset location">
                       {asset.connectionRef ? (

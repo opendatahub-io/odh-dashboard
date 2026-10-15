@@ -10,8 +10,6 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
-  EmptyState,
-  EmptyStateVariant,
   Grid,
   GridItem,
   Label,
@@ -22,7 +20,6 @@ import {
   TimestampTooltipVariant,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { PlusCircleIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import { AssetResponse, ConnectionModel, ConnectionWarning } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
@@ -320,13 +317,9 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({
                     ))}
                   </LabelGroup>
                 ) : (
-                  <EmptyState
-                    headingLevel="h3"
-                    titleText="No labels"
-                    icon={PlusCircleIcon}
-                    variant={EmptyStateVariant.xs}
-                    data-testid="asset-labels-empty-state"
-                  />
+                  <em className="pf-v6-u-text-color-subtle" data-testid="asset-labels-empty">
+                    No labels
+                  </em>
                 )}
               </CardBody>
             </Card>
