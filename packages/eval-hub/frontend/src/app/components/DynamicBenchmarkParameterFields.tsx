@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { Checkbox, FormGroup, Grid, GridItem, TextInput } from '@patternfly/react-core';
+import {
+  FormGroup,
+  Grid,
+  GridItem,
+  TextInput,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@patternfly/react-core';
 import type {
   CopySuiteBenchmarkParameter,
   CopySuiteBenchmarkParameterType,
@@ -12,10 +19,8 @@ type DynamicBenchmarkParameterFieldsProps = {
   onChange: (key: string, value: string | boolean) => void;
 };
 
-const parameterTypeToInputType = (
-  type: CopySuiteBenchmarkParameterType,
-): 'checkbox' | 'number' | 'text' =>
-  type === 'number' ? 'number' : type === 'boolean' ? 'checkbox' : 'text';
+const parameterTypeToInputType = (type: CopySuiteBenchmarkParameterType): 'number' | 'text' =>
+  type === 'number' ? 'number' : 'text';
 
 export const getBenchmarkParameterLabel = (key: string): string => {
   const words = key
@@ -47,14 +52,28 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
         return (
           <GridItem span={6} key={parameter.key}>
             <FormGroup label={getBenchmarkParameterLabel(parameter.key)} fieldId={fieldId}>
-              {inputType === 'checkbox' ? (
-                <Checkbox
-                  id={fieldId}
+              {parameter.type === 'boolean' ? (
+                <ToggleGroup
+                  aria-label={getBenchmarkParameterLabel(parameter.key)}
                   data-testid={`${itemId}-parameter-input-${parameter.key}`}
-                  isChecked={parameter.value === true}
-                  isDisabled={isDisabled}
-                  onChange={(_event, checked) => onChange(parameter.key, checked)}
-                />
+                >
+                  <ToggleGroupItem
+                    text="True"
+                    buttonId={`${fieldId}-true`}
+                    data-testid={`${itemId}-parameter-input-${parameter.key}-true`}
+                    isSelected={parameter.value === true}
+                    isDisabled={isDisabled}
+                    onChange={() => onChange(parameter.key, true)}
+                  />
+                  <ToggleGroupItem
+                    text="False"
+                    buttonId={`${fieldId}-false`}
+                    data-testid={`${itemId}-parameter-input-${parameter.key}-false`}
+                    isSelected={parameter.value === false}
+                    isDisabled={isDisabled}
+                    onChange={() => onChange(parameter.key, false)}
+                  />
+                </ToggleGroup>
               ) : (
                 <TextInput
                   id={fieldId}
