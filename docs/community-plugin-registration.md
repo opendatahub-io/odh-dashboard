@@ -70,6 +70,12 @@ data:
 one target. The frontend Service in `backend` serves the remote bundle; each
 `proxyService` entry can target a separate BFF Service.
 
+Community registration is for Dashboard UI extensions, so every entry must
+provide a Module Federation `backend`. `proxyService` optionally supports that
+remote's API calls; Dashboard does not support proxy-only community entries.
+Deploy services without a Dashboard UI through their installer-owned networking
+and exposure instead.
+
 > **Warning**: Setting `authorize: true` on `backend` or `proxyService`
 > forwards the requesting user's bearer token to that Service. Enable it only
 > for a trusted Service that validates OpenShift tokens and authorizes the
