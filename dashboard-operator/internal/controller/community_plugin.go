@@ -198,7 +198,6 @@ func communityPluginsConfigMap(ctx context.Context, reader client.Reader) (*core
 func communityFederationEntries(
 	ctx context.Context,
 	reader client.Reader,
-	existingEntries []federationEntry,
 ) ([]federationEntry, error) {
 	source, err := communityPluginsConfigMap(ctx, reader)
 	if err != nil {
@@ -209,9 +208,6 @@ func communityFederationEntries(
 	}
 
 	existingNames := reservedDashboardFederationNames()
-	for _, entry := range existingEntries {
-		existingNames[entry.Name] = struct{}{}
-	}
 
 	entries := make([]federationEntry, 0, len(source.Data))
 	for name, rawEntry := range source.Data {

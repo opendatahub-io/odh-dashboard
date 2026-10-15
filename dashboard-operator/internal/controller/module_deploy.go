@@ -365,7 +365,7 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 ) (*corev1.ConfigMap, error) {
 	dashboardEntries := r.dashboardFederationEntries(statuses, dashboard)
 
-	communityEntries, err := communityFederationEntries(ctx, r.Client, dashboardEntries)
+	communityEntries, err := communityFederationEntries(ctx, r.Client)
 	if err != nil {
 		// The community source is optional. Retain its last-known-good entries so
 		// a read failure cannot block Dashboard federation updates or cause a
