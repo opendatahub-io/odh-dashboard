@@ -97,6 +97,25 @@ describe('buildRuntimeImageInstallActionData', () => {
     expect(payload.hardware).toBe('nvidia.com/gpu, amd.com/gpu');
   });
 
+  it('should populate hardware from cpu tags when no accelerators', () => {
+    const payload = buildRuntimeImageInstallActionData({
+      runtime: {
+        id: '3',
+        name: 'ovms',
+        displayName: 'OpenVINO Model Server',
+        tags: ['cpu'],
+      },
+      version: {
+        artifactType: 'serving-runtime-version',
+        version: '2024.5',
+        image: 'registry.example.com/mock/ovms:2024.5',
+      },
+      ...routes,
+    });
+
+    expect(payload.hardware).toBe('cpu');
+  });
+
   it('should omit blank templates', () => {
     const payload = buildRuntimeImageInstallActionData({
       runtime: { id: '1', name: 'vllm' },

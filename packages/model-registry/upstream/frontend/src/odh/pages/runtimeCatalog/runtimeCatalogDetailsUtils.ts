@@ -1,6 +1,7 @@
 import yaml from 'js-yaml';
 import type { RuntimeImageInstallActionData } from '~/odh/extension-points/runtime-image-install-action';
 import type { ServingRuntime, ServingRuntimeVersion } from '~/odh/types/servingRuntimeCatalogTypes';
+import { getRuntimeHardwareFilterValues } from '~/odh/pages/runtimeCatalog/utils/runtimeCatalogUtils';
 
 const nonBlankOrUndefined = (value?: string): string | undefined =>
   value?.trim() ? value : undefined;
@@ -38,7 +39,7 @@ export const buildRuntimeImageInstallActionData = ({
     cancelReturnRoute,
     libraryReturnRoute,
     version: version?.version,
-    hardware: runtime.capabilities?.supportedAccelerators?.join(', ') || undefined,
+    hardware: getRuntimeHardwareFilterValues(runtime).join(', ') || undefined,
     deploymentResources: {
       ...(servingRuntimeTemplate && { servingRuntimeTemplate }),
       ...(llmInferenceServiceConfig && { llmInferenceServiceConfig }),
