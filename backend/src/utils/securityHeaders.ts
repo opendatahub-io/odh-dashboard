@@ -32,8 +32,7 @@ const headerValue = (value: string | string[] | undefined): string => {
   return value ?? '';
 };
 
-const isNonSuccessStatus = (statusCode: number): boolean =>
-  statusCode < 200 || statusCode >= 300;
+const isNonSuccessStatus = (statusCode: number): boolean => statusCode < 200 || statusCode >= 300;
 
 /** True when upstream already forbids shared/browser storage. */
 export const isRestrictiveCacheControl = (value: string | string[] | undefined): boolean => {
