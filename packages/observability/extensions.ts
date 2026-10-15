@@ -3,20 +3,11 @@ import type {
   AreaExtension,
   RouteExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-// eslint-disable-next-line no-restricted-syntax -- customCondition is a runtime function, not a CodeRef
-import { isMonitoringStackAvailable } from './src/utils/monitoringStackStatus';
-
-const PLUGIN_OBSERVABILITY = 'plugin-observability';
+// eslint-disable-next-line no-restricted-syntax -- shared runtime area extension used by static and host entries
+import observabilityArea, { PLUGIN_OBSERVABILITY } from './extensions/area';
 
 const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
-  {
-    type: 'app.area',
-    properties: {
-      id: PLUGIN_OBSERVABILITY,
-      featureFlags: ['observabilityDashboard'],
-      customCondition: ({ dsciStatus }) => isMonitoringStackAvailable(dsciStatus),
-    },
-  },
+  observabilityArea,
   {
     type: 'app.navigation/href',
     flags: {

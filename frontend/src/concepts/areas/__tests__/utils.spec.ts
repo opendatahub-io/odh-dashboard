@@ -630,7 +630,7 @@ describe('isAreaAvailable', () => {
     describe('AutoML', () => {
       const stateMap = {
         [PLUGIN_AUTOML]: {
-          featureFlags: ['automl' as const],
+          featureFlags: ['automl' as const, 'disablePipelines' as const],
           requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
         },
       };
@@ -645,11 +645,11 @@ describe('isAreaAvailable', () => {
             },
           }),
           null,
-          { internalStateMap: stateMap, flagState: { automl: true } },
+          { internalStateMap: stateMap, flagState: { automl: true, disablePipelines: false } },
         );
 
         expect(result.status).toBe(true);
-        expect(result.featureFlags).toEqual({ automl: 'on' });
+        expect(result.featureFlags).toEqual({ automl: 'on', disablePipelines: 'on' });
         expect(result.requiredComponents).toEqual({
           [DataScienceStackComponent.DS_PIPELINES]: true,
         });
@@ -665,11 +665,11 @@ describe('isAreaAvailable', () => {
             },
           }),
           null,
-          { internalStateMap: stateMap, flagState: { automl: false } },
+          { internalStateMap: stateMap, flagState: { automl: false, disablePipelines: false } },
         );
 
         expect(result.status).toBe(false);
-        expect(result.featureFlags).toEqual({ automl: 'off' });
+        expect(result.featureFlags).toEqual({ automl: 'off', disablePipelines: 'on' });
       });
 
       it('should disable when automl flag is true but DS_PIPELINES is Removed', () => {
@@ -682,13 +682,33 @@ describe('isAreaAvailable', () => {
             },
           }),
           null,
-          { internalStateMap: stateMap, flagState: { automl: true } },
+          { internalStateMap: stateMap, flagState: { automl: true, disablePipelines: false } },
         );
 
         expect(result.status).toBe(false);
-        expect(result.featureFlags).toEqual({ automl: 'on' });
+        expect(result.featureFlags).toEqual({ automl: 'on', disablePipelines: 'on' });
         expect(result.requiredComponents).toEqual({
           [DataScienceStackComponent.DS_PIPELINES]: false,
+        });
+      });
+
+      it('should disable AutoML and AutoRAG when pipelines are disabled', () => {
+        const config = mockDashboardConfig({
+          automl: true,
+          autorag: true,
+          genAiStudio: true,
+          disablePipelines: true,
+        }).spec;
+        const dscStatus = mockDscStatus({
+          components: {
+            [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
+          },
+        });
+
+        [SupportedArea.PLUGIN_AUTOML, SupportedArea.PLUGIN_AUTORAG].forEach((area) => {
+          const result = isAreaAvailable(area, config, dscStatus, null);
+          expect(result.status).toBe(false);
+          expect(result.featureFlags).toMatchObject({ disablePipelines: 'off' });
         });
       });
     });
@@ -783,6 +803,32 @@ describe('isAreaAvailable', () => {
         expect(result.status).toBe(false);
         expect(result.featureFlags).toEqual({ disableFeatureStore: 'on' });
         expect(result.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
+      });
+    });
+
+    describe('Data Registry', () => {
+      it('should enable when dataRegistry is true', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: true }).spec,
+          null,
+          null,
+        );
+
+        expect(result.status).toBe(true);
+        expect(result.featureFlags).toEqual({ dataRegistry: 'on' });
+      });
+
+      it('should disable when dataRegistry is false', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: false }).spec,
+          null,
+          null,
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.featureFlags).toEqual({ dataRegistry: 'off' });
       });
     });
   });

@@ -288,6 +288,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -514,9 +516,8 @@ paths:
   /eval-hub/api/v1/kueue/workloads:
     summary: Get Kueue Workload statuses for evaluation jobs
     description: >-
-      Returns the Kueue admission status for the Kubernetes Workloads created by
-      the requested EvalHub evaluation jobs. Evaluations with no matching Kueue
-      Workload are omitted from the response.
+      The Kueue integration is disabled, so no Kubernetes Workloads are queried. The
+      request shape is validated and successful responses contain an empty items array.
     get:
       tags:
         - Kueue
@@ -539,7 +540,7 @@ paths:
               minLength: 1
       responses:
         '200':
-          description: Kueue Workload status for each requested evaluation that has a matching Workload
+          description: Kueue Workload statuses for the requested evaluations; the Kueue integration is disabled, so items is always empty
           content:
             application/json:
               schema:
@@ -570,7 +571,7 @@ paths:
         - $ref: '#/components/parameters/namespaceRequired'
       responses:
         '200':
-          description: Queue-backed HardwareProfiles in the configured platform namespace whose LocalQueues are available in the requested evaluation namespace
+          description: HardwareProfiles for the requested evaluation namespace; the Kueue integration is disabled, so items is always empty
           content:
             application/json:
               schema:
@@ -593,8 +594,9 @@ paths:
   /eval-hub/api/v1/hardwareprofiles/validate:
     summary: Validate HardwareProfiles for evaluation providers
     description: >-
-      Confirms that each requested HardwareProfile is available for Kueue scheduling in the
-      evaluation namespace and compares its resources with the selected providers' requirements.
+      Validates the shape of the request only. The Kueue integration is disabled, so no
+      HardwareProfile availability or provider resource compatibility checks are performed
+      and successful responses contain an empty items array.
     post:
       tags:
         - Kueue
@@ -610,7 +612,7 @@ paths:
               $ref: '#/components/schemas/HardwareProfileValidationRequest'
       responses:
         '200':
-          description: Availability and resource compatibility results for the requested HardwareProfiles
+          description: Shape validation result for the requested HardwareProfiles; the Kueue integration is disabled, so items is always empty
           content:
             application/json:
               schema:
@@ -2009,6 +2011,10 @@ components:
           type: string
           minLength: 1
           example: 'Open LLM Leaderboard v2'
+        derived_from:
+          type: string
+          description: ID of the system collection this tenant collection was cloned from.
+          nullable: true
         category:
           type: string
           example: 'General'
@@ -2803,6 +2809,13 @@ components:
 
     Forbidden:
       description: Forbidden - User is not authorized to access this service
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    Conflict:
+      description: Conflict - Collection cannot be edited after it has been run
       content:
         application/json:
           schema:

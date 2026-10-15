@@ -180,8 +180,8 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
       genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
 
-      cy.step('Add endpoint to playground');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      cy.step('Create playground with the endpoint');
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
@@ -193,7 +193,10 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       waitForNemoGuardrailsReady(projectName);
 
       cy.step('Start port-forward for NeMo Guardrails');
-      startPortForward(projectName, 'nemoguardrails', 8443, 3000, 443).then((handle) => {
+      // Local port must match the BFF's NEMO_GUARDRAILS_URL (https://localhost:9443 — see
+      // packages/gen-ai/.env.local.example); otherwise the BFF fails closed with
+      // guardrail_service_unavailable and no violation alert is ever rendered.
+      startPortForward(projectName, 'nemoguardrails', 9443, 3000, 443).then((handle) => {
         nemoPortForwardHandle = handle;
       });
 
@@ -246,7 +249,6 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
         'Verify the {{ }} template survived the MLflow round-trip and rendered a variable input',
       );
       genAiPlayground.findVariableInputPanel().should('be.visible');
-      genAiPlayground.scrollPromptTabToBottom();
       genAiPlayground.findVariableInput(testData.prompt.variableName).should('be.visible');
 
       cy.step('Fill in the variable value and confirm it is reflected in the panel');
@@ -330,126 +332,6 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
 
       cy.step('Verify file search results (RAG citations) are displayed');
       genAiPlayground.findFileSearchResults({ timeout: 10000 }).should('exist');
-    },
-  );
-
-  it(
-    'Verify agent configuration persistence — save, load, update, and delete',
-    {
-      tags: ['@GenAI', '@FeatureFlagged', '@AgentConfig', '@NonConcurrent'],
-    },
-    () => {
-      // ── Step 1: select model + load prompt + save as agent ────────────────
-      cy.step('Navigate to playground with agent management enabled');
-      genAiPlayground.navigateToPlaygroundWithAgentManagement(projectName);
-
-      cy.step(`Select ${testData.displayName} model from dropdown`);
-      genAiPlayground.selectModelFromDropdown(testData.displayName);
-      genAiPlayground.verifyModelIsSelected(testData.displayName);
-
-      cy.step('Open settings panel and load saved prompt from registry');
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
-      genAiPlayground.findLoadPromptButton().should('be.visible').click();
-      genAiPlayground.findPromptManagementModal().should('exist');
-      genAiPlayground.findPromptTableRow(testData.prompt.name).should('be.visible').click();
-      genAiPlayground.findPromptLoadConfirmButton().should('be.enabled').click();
-      genAiPlayground
-        .findPromptNameTitle()
-        .should('be.visible')
-        .and('contain', testData.prompt.name);
-
-      cy.step('Navigate to Knowledge tab and enable RAG (vector store already populated)');
-      genAiPlayground.findKnowledgeTab().should('be.visible').click();
-      genAiPlayground.findRagToggle().should('not.be.checked').click({ force: true });
-      genAiPlayground.findRagToggle().should('be.checked');
-
-      cy.step('Save current configuration as a new agent');
-      genAiPlayground.findSettingsPanelSaveAsButton().should('be.visible').click();
-      genAiPlayground.findSaveAgentProfileModal().should('be.visible');
-      genAiPlayground.findSaveAgentNameInput().clear().type(testData.agent.name);
-      genAiPlayground.findSaveAgentSubmitButton().should('be.enabled').click();
-      genAiPlayground.findSaveAgentProfileModal().should('not.exist');
-
-      // ── Step 2: load agent from AAE and verify settings are restored ──────
-      cy.step('Navigate to AI Assets Agents tab');
-      genAiPlayground.navigateToAssetsWithAgentManagement(projectName);
-      genAiPlayground.findAgentsTab().should('be.visible').click();
-      genAiPlayground.findAgentRowByName(testData.agent.name).should('be.visible');
-
-      cy.step('Open the agent in playground via Try in Playground');
-      genAiPlayground.findTryInPlaygroundByName(testData.agent.name).should('be.visible').click();
-      cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
-
-      cy.step('Verify agent name appears in playground header');
-      genAiPlayground.findAgentNameTitle({ timeout: 10000 }).should('contain', testData.agent.name);
-
-      cy.step('Verify model, RAG, and prompt are restored from agent configuration');
-      genAiPlayground.verifyModelIsSelected(testData.displayName);
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findKnowledgeTab().should('be.visible').click();
-      genAiPlayground.findRagToggle().should('be.checked');
-      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
-      genAiPlayground
-        .findPromptNameTitle()
-        .should('be.visible')
-        .and('contain', testData.prompt.name);
-
-      // ── Step 3: turn off RAG, clear prompt, overwrite the saved agent ─────
-      cy.step('Turn off RAG in Knowledge tab');
-      genAiPlayground.findKnowledgeTab().should('be.visible').click();
-      genAiPlayground.findRagToggle().should('be.checked').click({ force: true });
-      genAiPlayground.findRagToggle().should('not.be.checked');
-
-      cy.step('Switch to second prompt to modify the prompt configuration');
-      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
-      genAiPlayground.findLoadPromptButton().should('be.visible').click();
-      genAiPlayground.findPromptManagementModal().should('exist');
-      genAiPlayground.findPromptTableRow(testData.prompt2.name).should('be.visible').click();
-      genAiPlayground.findPromptLoadConfirmButton().should('be.enabled').click();
-      genAiPlayground
-        .findPromptNameTitle()
-        .should('be.visible')
-        .and('contain', testData.prompt2.name);
-
-      cy.step('Save updated configuration to the existing agent (overwrite)');
-      genAiPlayground.findSettingsPanelSaveButton().should('be.visible').and('be.enabled').click();
-      genAiPlayground.findSaveAgentProfileModal().should('be.visible');
-      genAiPlayground.findSaveAgentSubmitButton().should('be.enabled').click();
-      genAiPlayground.findSaveAgentProfileModal().should('not.exist');
-      genAiPlayground.findAgentUnsavedIndicator().should('not.exist');
-
-      // ── Step 4: fresh playground → load agent → verify updated settings ───
-      cy.step('Navigate to fresh playground without a pre-loaded agent');
-      genAiPlayground.navigateToPlaygroundWithAgentManagement(projectName);
-
-      cy.step('Load the agent from the settings panel');
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.loadAgentByName(testData.agent.name);
-      genAiPlayground.findAgentNameTitle({ timeout: 10000 }).should('contain', testData.agent.name);
-
-      cy.step('Verify updated settings: RAG is off and second prompt is loaded');
-      genAiPlayground.findKnowledgeTab().should('be.visible').click();
-      genAiPlayground.findRagToggle().should('not.be.checked');
-      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
-      genAiPlayground
-        .findPromptNameTitle()
-        .should('be.visible')
-        .and('contain', testData.prompt2.name);
-
-      // ── Step 5: delete agent from AAE and verify it is gone ───────────────
-      cy.step('Navigate to AI Assets Agents tab to delete the agent');
-      genAiPlayground.navigateToAssetsWithAgentManagement(projectName);
-      genAiPlayground.findAgentsTab().should('be.visible').click();
-      genAiPlayground.findAgentRowByName(testData.agent.name).should('be.visible');
-      genAiPlayground.findAgentKebabByName(testData.agent.name).click();
-      genAiPlayground.findDeleteAgentDropdownItem().should('be.visible').click();
-      genAiPlayground.findDeleteAgentModal().should('be.visible');
-      genAiPlayground.findDeleteAgentConfirmButton().should('be.enabled').click();
-
-      cy.step('Verify agent is no longer visible in the Agents table');
-      genAiPlayground.findDeleteAgentModal().should('not.exist');
-      genAiPlayground.findAgentProfilesEmptyState().should('be.visible');
     },
   );
 

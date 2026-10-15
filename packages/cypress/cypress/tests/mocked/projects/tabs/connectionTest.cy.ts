@@ -10,7 +10,7 @@ import { ProjectModel } from '../../../../utils/models';
 import { connectionsPage, addConnectionModal } from '../../../../pages/connections';
 
 const testConnectionType = mockConnectionTypeConfigMap({
-  name: 'test-type',
+  name: 'uri-test-type',
   displayName: 'Test Connection Type',
   fields: [
     {
@@ -39,7 +39,6 @@ const initIntercepts = () => {
     'GET /api/config',
     mockDashboardConfig({
       disableConnectionTypes: false,
-      connectionTest: true,
     }),
   );
   cy.interceptOdh('GET /api/connection-types', [testConnectionType]);
@@ -79,6 +78,32 @@ describe('Test Connection - Modal', () => {
     projectDetails.visitSection('test-project', 'connections');
     connectionsPage.findCreateConnectionButton().click();
     addConnectionModal.findTestConnectionButton().should('be.disabled');
+  });
+
+  it('should disable Test connection button for a connection type that cannot be verified', () => {
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        name: 'postgres',
+        displayName: 'PostgreSQL',
+        fields: [
+          {
+            name: 'Host',
+            type: ConnectionTypeFieldType.ShortText,
+            envVar: 'HOST',
+            required: false,
+            properties: {},
+          },
+        ],
+      }),
+    ]);
+
+    projectDetails.visitSection('test-project', 'connections');
+    connectionsPage.findCreateConnectionButton().click();
+    addConnectionModal.findTestConnectionButton().should('have.attr', 'aria-disabled', 'true');
+    addConnectionModal.findTestConnectionButton().trigger('mouseenter');
+    addConnectionModal
+      .findTestConnectionUnsupportedTooltip()
+      .should('contain.text', 'Verification is not available for this connection type.');
   });
 
   it('should show success alert and Verified label after successful test', () => {
@@ -192,6 +217,31 @@ describe('Test Connection - Table', () => {
     projectDetails.visitSection('test-project', 'connections');
     connectionsPage.getConnectionRow('Connection 1').findKebab().click();
     cy.findByTestId('test-connection-action').should('exist');
+  });
+
+  it('should disable Verify in the kebab menu for a connection type that cannot be verified', () => {
+    initIntercepts();
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockSecretK8sResource({
+          name: 'conn-1',
+          displayName: 'Connection 1',
+          connectionType: 'postgres',
+        }),
+        mockSecretK8sResource({ name: 'conn-2', displayName: 'Connection 2' }),
+      ]),
+    );
+
+    projectDetails.visitSection('test-project', 'connections');
+    connectionsPage
+      .getConnectionRow('Connection 2')
+      .findKebabAction('Verify')
+      .should('not.have.attr', 'aria-disabled');
+    connectionsPage
+      .getConnectionRow('Connection 1')
+      .findKebabAction('Verify')
+      .should('have.attr', 'aria-disabled', 'true');
   });
 
   it('should have connection name as a clickable link', () => {

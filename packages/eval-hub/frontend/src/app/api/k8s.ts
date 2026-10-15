@@ -52,23 +52,23 @@ const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
 
 const validateCollection = (data: unknown): void => {
   if (!data || typeof data !== 'object') {
-    throw new Error('Invalid collection: expected an object');
+    throw new Error('Invalid benchmark suite: expected an object');
   }
   if (!('name' in data) || typeof data.name !== 'string' || data.name.length === 0) {
-    throw new Error('Invalid collection: missing or empty name');
+    throw new Error('Invalid benchmark suite: missing or empty name');
   }
   if (!('resource' in data) || !data.resource || typeof data.resource !== 'object') {
-    throw new Error('Invalid collection: missing resource');
+    throw new Error('Invalid benchmark suite: missing resource');
   }
   if (!('id' in data.resource) || typeof data.resource.id !== 'string') {
-    throw new Error('Invalid collection: missing resource.id');
+    throw new Error('Invalid benchmark suite: missing resource.id');
   }
   if ('benchmarks' in data && data.benchmarks != null) {
     if (!Array.isArray(data.benchmarks)) {
-      throw new Error('Invalid collection: benchmarks is not an array');
+      throw new Error('Invalid benchmark suite: benchmarks is not an array');
     }
     if (data.benchmarks.some((benchmark) => !isValidCollectionBenchmark(benchmark))) {
-      throw new Error('Invalid collection: benchmarks contains an invalid entry');
+      throw new Error('Invalid benchmark suite: benchmarks contains an invalid entry');
     }
   }
 };
@@ -304,7 +304,15 @@ export const getEvaluationJobs =
     }
 
     return handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, opts),
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs`, queryParams, {
+        ...opts,
+        headers: {
+          ...opts.headers,
+          // The list changes immediately after a run is created. Do not let the browser reuse
+          // a pre-create response.
+          'Cache-Control': 'no-cache',
+        },
+      }),
     ).then((response) => {
       if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
         const { data } = response;
@@ -364,7 +372,7 @@ export const getCollection =
   (hostPath: string, namespace: string, collectionId: string) =>
   (opts: APIOptions): Promise<Collection> => {
     if (!collectionId) {
-      return Promise.reject(new Error('collectionId must not be empty'));
+      return Promise.reject(new Error('Benchmark suite ID must not be empty'));
     }
     return handleRestFailures(
       restGET(
@@ -386,7 +394,7 @@ export const deleteCollection =
   (hostPath: string, namespace: string, collectionId: string) =>
   (opts: APIOptions): Promise<void> => {
     if (!collectionId) {
-      return Promise.reject(new Error('collectionId must not be empty'));
+      return Promise.reject(new Error('Benchmark suite ID must not be empty'));
     }
     return handleRestFailures(
       restDELETE(
@@ -396,7 +404,15 @@ export const deleteCollection =
         { namespace },
         { ...opts, parseJSON: false },
       ),
-    ).then(() => undefined);
+    ).then((response) => {
+      // A successful delete returns 204 with an empty body. The shared REST
+      // helper does not reject based on HTTP status, so a non-empty response
+      // indicates that the BFF returned an error payload instead.
+      if (typeof response === 'string' && response.trim() !== '') {
+        throw new Error(response);
+      }
+      return undefined;
+    });
   };
 
 export const patchCollection =
@@ -408,7 +424,7 @@ export const patchCollection =
   ) =>
   (opts: APIOptions): Promise<Collection> => {
     if (!collectionId) {
-      return Promise.reject(new Error('collectionId must not be empty'));
+      return Promise.reject(new Error('Benchmark suite ID must not be empty'));
     }
     return handleRestFailures(
       restPATCH(
@@ -510,7 +526,7 @@ export const cloneCollection =
   (hostPath: string, namespace: string, collectionId: string, request: CloneCollectionRequest) =>
   (opts: APIOptions): Promise<Collection> => {
     if (!collectionId) {
-      return Promise.reject(new Error('collectionId must not be empty'));
+      return Promise.reject(new Error('Benchmark suite ID must not be empty'));
     }
     return handleRestFailures(
       restCREATE(

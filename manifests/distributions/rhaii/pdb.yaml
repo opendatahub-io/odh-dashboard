@@ -1,0 +1,11 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rhaii-dashboard
+spec:
+  # Preserve one available dashboard Pod during voluntary disruptions, while
+  # permitting the other replica to be drained or updated.
+  minAvailable: 1
+  selector:
+    matchLabels:
+      deployment: rhaii-dashboard

@@ -1,29 +1,41 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ConnectionRef } from '~/app/types';
+import { ConnectionModel, ConnectionRef } from '~/app/types';
+import {
+  CONNECTION_UNAVAILABLE_LABEL,
+  getConnectionDisplayName,
+} from '~/app/utilities/connectionUtils';
 
 type ConnectionRefLinkProps = {
   connectionRef?: ConnectionRef | string | null;
-  linkTo?: string;
+  connections?: ConnectionModel[];
+  connectionsLoaded?: boolean;
+  connectionsError?: Error;
+  linkTo?: string | ((connectionRef: ConnectionRef) => string);
 };
 
-const getLabel = (ref: ConnectionRef | string): string => {
-  if (typeof ref === 'string') {
-    return ref;
-  }
-  return ref.type === 'rhai' ? ref.secret_name : ref.id;
-};
-
-const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({ connectionRef, linkTo }) => {
+const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({
+  connectionRef,
+  connections = [],
+  connectionsLoaded = false,
+  connectionsError,
+  linkTo,
+}) => {
   if (!connectionRef) {
     return <>-</>;
   }
 
-  const label = getLabel(connectionRef);
+  const label = getConnectionDisplayName(
+    connectionRef,
+    connections,
+    connectionsLoaded,
+    connectionsError,
+  );
 
-  if (linkTo) {
+  if (linkTo && typeof connectionRef !== 'string' && label !== CONNECTION_UNAVAILABLE_LABEL) {
+    const destination = typeof linkTo === 'string' ? linkTo : linkTo(connectionRef);
     return (
-      <Link to={linkTo} data-testid="connection-ref-link">
+      <Link to={destination} data-testid="connection-ref-link">
         {label}
       </Link>
     );

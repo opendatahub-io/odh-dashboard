@@ -7,7 +7,11 @@ import type { UserAuthConfig } from '../types';
 
 // MaaS Wizard Field helpers for the model deployment wizard
 class MaaSWizardField {
-  findSaveAsMaaSCheckbox() {
+  findProjectMembersRadio() {
+    return cy.findByTestId('project-members-radio');
+  }
+
+  findSubscribedUsersRadio() {
     return cy.findByTestId('maas/save-as-maas-checkbox');
   }
 }
@@ -210,6 +214,10 @@ class APIKeyTableRow extends TableRow {
 
   findSubscriptionDetailLink(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('subscription-detail-link');
+  }
+
+  findSubscriptionGovernanceLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('subscription-governance-link');
   }
 
   findOwner(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -491,6 +499,35 @@ class CopyApiKeyModal extends Modal {
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('close-api-key-button');
+  }
+
+  findModelDocumentation(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-model-documentation');
+  }
+
+  findAvailableModelsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-available-models-toggle');
+  }
+
+  findAvailableModelsOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`api-key-available-models-option-${value}`);
+  }
+
+  selectAvailableModel(value: string): void {
+    this.findAvailableModelsToggle().click();
+    this.findAvailableModelsOption(value).click();
+  }
+
+  findSubscriptionID(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-subscription-id');
+  }
+
+  findModelID(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-model-id');
+  }
+
+  findBaseURL(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-base-url');
   }
 }
 
@@ -1904,6 +1941,10 @@ class ExternalModelsPage {
     return cy.findByTestId('add-external-model-button');
   }
 
+  findDeletedProviderRefsAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('deleted-provider-refs-alert');
+  }
+
   findMaaSPublishedPostDeployAlert() {
     return cy.findByTestId('maas-published-post-deploy-alert');
   }
@@ -1916,6 +1957,14 @@ class ExternalModelsPage {
 class ProviderRefTableRow extends Contextual<HTMLElement> {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Provider"]');
+  }
+
+  findMissingProviderIcon(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-testid^="provider-ref-missing-"]');
+  }
+
+  findMissingProviderPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(/^provider-ref-missing-popover-/);
   }
 
   findTargetModelId(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1975,6 +2024,14 @@ class CreateExternalModelPage {
 
   findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-model-name-desc-name');
+  }
+
+  findEditResourceNameButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-editResourceLink');
+  }
+
+  findResourceNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-resourceName');
   }
 
   findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2215,13 +2272,25 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
     return this.find().findByTestId('provider-ref-provider-select');
   }
 
+  findSelectExistingProviderRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-source-existing');
+  }
+
+  findCreateNewProviderRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-source-create-new');
+  }
+
+  findNoExternalProvidersHelper(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-external-providers-helper');
+  }
+
   selectProvider(displayName: string): void {
     this.findProviderSelect().click();
     cy.findByRole('option', { name: displayName }).click();
   }
 
   selectCreateNewProvider(): void {
-    this.find().findByTestId('provider-source-create-new').click();
+    this.findCreateNewProviderRadio().click();
   }
 
   selectProviderType(value: string): void {
@@ -2370,6 +2439,10 @@ class ExternalModelTableRow extends TableRow {
 
   findMissingMaaSModelRefWarningPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-model-missing-maas-model-ref-popover');
+  }
+
+  findDeletedProviderIcon(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-model-deleted-provider-icon');
   }
 
   findExpandedProviderRow(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -37,7 +37,7 @@ describe('CreateCollectionModal', () => {
     expect(screen.getByText('Create collection')).toBeTruthy();
     expect(screen.getByTestId('collection-name-input')).toBeTruthy();
     expect(screen.getByTestId('collection-description-input')).toBeTruthy();
-    expect(screen.getByText('Owner')).toBeTruthy();
+    expect(screen.queryByText('Owner')).toBeNull();
   });
 
   it('should show validation error when submitting without name', async () => {
@@ -47,6 +47,26 @@ describe('CreateCollectionModal', () => {
     await user.click(screen.getByTestId('create-collection-submit'));
 
     expect(mockCreateCollection).not.toHaveBeenCalled();
+  });
+
+  it('should keep creation disabled when the creator identity is unavailable', async () => {
+    mockUseSettings.mockReturnValue({
+      userSettings: { userId: '' },
+      configSettings: null,
+      loaded: true,
+      loadError: undefined,
+    });
+
+    const user = userEvent.setup();
+    render(<CreateCollectionModal {...defaultProps} />);
+
+    await user.type(screen.getByTestId('collection-name-input'), 'test-collection');
+
+    expect(screen.getByTestId('create-collection-submit')).toBeDisabled();
+    expect(screen.getByText('Unable to determine the current user')).toBeInTheDocument();
+    expect(
+      screen.getByText('Refresh the page and try again before creating a collection.'),
+    ).toBeInTheDocument();
   });
 
   it('should show validation error for invalid name', async () => {
@@ -65,7 +85,7 @@ describe('CreateCollectionModal', () => {
     expect(screen.getByTestId('create-collection-submit')).toBeDisabled();
   });
 
-  it('should submit collection with owner', async () => {
+  it('should submit collection with the creator as owner', async () => {
     const user = userEvent.setup();
     mockCreateCollection.mockResolvedValue({
       namespace: ['test-collection'],
@@ -118,46 +138,6 @@ describe('CreateCollectionModal', () => {
         },
       });
     });
-  });
-
-  it('should show validation error when submitting without owner', async () => {
-    mockUseSettings.mockReturnValue({
-      userSettings: { userId: '' },
-      configSettings: null,
-      loaded: true,
-      loadError: undefined,
-    });
-
-    const user = userEvent.setup();
-    render(<CreateCollectionModal {...defaultProps} />);
-
-    await user.type(screen.getByTestId('collection-name-input'), 'test-collection');
-
-    expect(screen.getByTestId('create-collection-submit')).toBeDisabled();
-  });
-
-  it('should keep the owner options available when the user settings load', async () => {
-    mockUseSettings.mockReturnValue({
-      userSettings: { userId: '' },
-      configSettings: null,
-      loaded: false,
-      loadError: undefined,
-    });
-
-    const user = userEvent.setup();
-    const { rerender } = render(<CreateCollectionModal {...defaultProps} />);
-
-    await user.click(screen.getByLabelText('Typeahead menu toggle'));
-
-    mockUseSettings.mockReturnValue({
-      userSettings: { userId: 'test-user' },
-      configSettings: null,
-      loaded: true,
-      loadError: undefined,
-    });
-    rerender(<CreateCollectionModal {...defaultProps} />);
-
-    expect(screen.getByText('Unassigned')).toBeInTheDocument();
   });
 
   it('should display error message on submission failure', async () => {

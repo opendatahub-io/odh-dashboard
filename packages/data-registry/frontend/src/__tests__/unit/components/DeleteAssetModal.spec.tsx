@@ -17,6 +17,9 @@ describe('DeleteAssetModal', () => {
   it('should render asset name and type', () => {
     render(<DeleteAssetModal {...defaultProps} />);
     expect(screen.getByText('Permanently delete "my-table" structured asset?')).toBeTruthy();
+    expect(screen.getByTestId('delete-asset-modal')).toHaveTextContent(
+      'my-table will be deleted from the registry.',
+    );
     expect(screen.getAllByText('my-table')).toHaveLength(2);
   });
 

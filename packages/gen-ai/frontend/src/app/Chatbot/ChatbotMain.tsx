@@ -99,12 +99,23 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [configurationModalOpen, setConfigurationModalOpen] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  // True from when a playground update is submitted until the restarted
+  // playground is ready again — used to show update wording on the page
+  // while the service restarts
+  const [isPlaygroundUpdateInitiated, setIsPlaygroundUpdateInitiated] = React.useState(false);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = React.useState(false);
   const [isCompareChatModalOpen, setIsCompareChatModalOpen] = React.useState(false);
   const { isPromptManagementModalOpen } = usePlaygroundStore();
   // Track which pane's settings are active in compare mode
   const [activePaneConfigId, setActivePaneConfigId] = React.useState<string>(DEFAULT_CONFIG_ID);
   const [isDrawerExpanded, setIsDrawerExpanded] = React.useState(true);
+
+  // Reset the update flag once the restarted playground is ready again
+  React.useEffect(() => {
+    if (lsdStatus?.phase === 'Ready') {
+      setIsPlaygroundUpdateInitiated(false);
+    }
+  }, [lsdStatus?.phase]);
 
   // Ref to clear all chat messages (will be set by ChatbotPlayground)
   const clearAllMessagesRef = React.useRef<(() => void) | null>(null);
@@ -504,7 +515,12 @@ const ChatbotMain: React.FunctionComponent = () => {
               onSaveAs={handleOpenSaveAs}
               onLoad={handleOpenLoad}
               onNew={handleNewAgentConfiguration}
-              onDeploy={() => setDeployModalOpen(true)}
+              onDeploy={() => {
+                fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_INITIATED, {
+                  source: 'playground',
+                });
+                setDeployModalOpen(true);
+              }}
               deployments={agentDeploymentsEnabled ? sortedDeployments : []}
               onDeploymentSelect={setSelectedDeploymentName}
               onViewCode={() => {
@@ -606,16 +622,25 @@ const ChatbotMain: React.FunctionComponent = () => {
         ) : lsdStatus?.phase === 'Failed' ? (
           <EmptyState
             headingLevel="h4"
-            titleText="Playground creation failed"
+            titleText={
+              isPlaygroundUpdateInitiated
+                ? 'Playground update failed'
+                : 'Playground creation failed'
+            }
             variant={EmptyStateVariant.lg}
             status="danger"
           />
         ) : (
-          <EmptyState headingLevel="h4" titleText="Creating playground" icon={Spinner} />
+          <EmptyState
+            headingLevel="h4"
+            titleText={isPlaygroundUpdateInitiated ? 'Updating playground' : 'Creating playground'}
+            icon={Spinner}
+          />
         )}
       </ApplicationsPage>
       {configurationModalOpen && (
         <ChatbotConfigurationModal
+          onUpdateInitiated={() => setIsPlaygroundUpdateInitiated(true)}
           onClose={() => {
             setConfigurationModalOpen(false);
             refresh();
@@ -632,6 +657,7 @@ const ChatbotMain: React.FunctionComponent = () => {
         <DeletePlaygroundModal
           onCancel={() => {
             setDeleteModalOpen(false);
+            setIsPlaygroundUpdateInitiated(false);
           }}
         />
       )}

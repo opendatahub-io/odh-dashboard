@@ -69,10 +69,14 @@ export function filterDashboards(
  * @param dashboardName - Selected dashboard name
  * @param currentSearch - Optional current URL search string to preserve other params
  */
-export const buildDashboardUrl = (dashboardName: string, currentSearch?: string): string => {
+export const buildDashboardUrl = (
+  dashboardName: string,
+  currentSearch?: string,
+  basePath: string = BASE_PATH,
+): string => {
   const params = new URLSearchParams(currentSearch);
   params.set(DASHBOARD_URL_PARAM, dashboardName);
-  return `${BASE_PATH}?${params.toString()}`;
+  return `${basePath}?${params.toString()}`;
 };
 
 /**

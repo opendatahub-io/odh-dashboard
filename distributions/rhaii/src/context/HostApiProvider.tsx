@@ -110,7 +110,7 @@ const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
       userTrackingEnabled: false,
       pvcSize: 0,
       cullerTimeout: 0,
-      modelServingPlatformEnabled: { kServe: true, LLMd: false },
+      modelServingPlatformEnabled: { kServe: true, LLMd: true },
     }),
   updateClusterSettings: () =>
     Promise.reject(new Error('Cluster settings are not configurable in the RHAII host.')),

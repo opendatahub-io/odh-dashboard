@@ -3,6 +3,15 @@ class AutoragRunResultsPage {
     cy.visit(`/gen-ai-studio/autorag/results/${namespace}/${runId}`);
   }
 
+  // Breadcrumb
+  findResultsBreadcrumbRunName() {
+    return cy.findByTestId('results-breadcrumb-run-name');
+  }
+
+  findRunDetailsButton() {
+    return cy.findByTestId('run-details-button');
+  }
+
   findLeaderboardTable() {
     return cy.findByTestId('leaderboard-table');
   }

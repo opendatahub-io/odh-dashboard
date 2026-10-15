@@ -18,25 +18,24 @@ import {
   createLabel,
   isConflictError,
 } from '~/app/api/dataRegistry';
-import {
-  CreateVolumeRequest,
-  CreateGenericTableRequest,
-  ConnectionModel,
-  ConnectionRef,
-  UnstructuredFormat,
-  StructuredFormat,
-} from '~/app/types';
+import { CreateVolumeRequest, CreateGenericTableRequest, ConnectionRef } from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
+import { confirmConnection } from '~/app/utilities/connectionUtils';
+import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
 import {
   registerDataSchema,
   registerDataDefaults,
   RegisterDataFormData,
 } from '~/app/schemas/registerData.schema';
-import AssetDetailsSection from './register-data/AssetDetailsSection';
 import DataLocationSection from './register-data/DataLocationSection';
 import PropertiesSection from './register-data/PropertiesSection';
-import CustomPropertiesSection from './register-data/CustomPropertiesSection';
 import SchemaSection from './register-data/SchemaSection';
+import {
+  RegistrationAssetFormatSection,
+  RegistrationIdentitySection,
+  RegistrationOrganizationSection,
+} from './register-data/RegistrationAssetSections';
+import './register-data/RegistrationForm.scss';
 
 type RegisterDataModalProps = {
   isOpen: boolean;
@@ -45,50 +44,20 @@ type RegisterDataModalProps = {
   collections: string[];
   onCreated: () => void;
   onManageCollections: () => void;
-};
-
-const getConnectionRef = (
-  connection: string,
-  connections: ConnectionModel[],
-): ConnectionRef | undefined => {
-  if (!connection) {
-    return undefined;
-  }
-  const selectedConnection = connections.find((c) => c.name === connection);
-  const isDch = selectedConnection?.connectionType?.toLowerCase() === 'dch';
-  return isDch ? { type: 'dch', id: connection } : { type: 'rhai', secret_name: connection };
+  onManageLabels?: () => void;
+  hasExistingDchConnectionReferences?: boolean;
+  hasExistingRhaiConnectionReferences?: boolean;
 };
 
 type SharedCreateAssetRequest = Omit<CreateVolumeRequest, 'format'> & { format: string };
 
-const UNSTRUCTURED_FORMAT_VALUES: UnstructuredFormat[] = [
-  'documents',
-  'images',
-  'audio',
-  'video',
-  'binary',
-  'other',
+const getValidLabels = (labels: string[]): string[] => [
+  ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
 ];
-
-const STRUCTURED_FORMAT_VALUES: StructuredFormat[] = [
-  'iceberg',
-  'parquet',
-  'csv',
-  'delta',
-  'postgresql',
-  'milvus',
-  'other',
-];
-
-const isUnstructuredFormat = (format: string): format is UnstructuredFormat =>
-  UNSTRUCTURED_FORMAT_VALUES.some((value) => value === format);
-
-const isStructuredFormat = (format: string): format is StructuredFormat =>
-  STRUCTURED_FORMAT_VALUES.some((value) => value === format);
 
 const buildSharedAssetRequest = (
   data: RegisterDataFormData,
-  connections: ConnectionModel[],
+  connectionRef?: ConnectionRef,
 ): SharedCreateAssetRequest => {
   const request: SharedCreateAssetRequest = {
     name: data.name.trim(),
@@ -100,11 +69,12 @@ const buildSharedAssetRequest = (
   if (data.path && data.path !== '/') {
     request.storage_location = data.path;
   }
-  if (data.connection) {
-    request.connection_ref = getConnectionRef(data.connection, connections);
+  if (connectionRef) {
+    request.connection_ref = connectionRef;
   }
-  if (data.labels.length > 0) {
-    request.labels = data.labels;
+  const labels = getValidLabels(data.labels);
+  if (labels.length > 0) {
+    request.labels = labels;
   }
   const properties: Record<string, string> = {};
   if (data.purpose) {
@@ -135,18 +105,18 @@ const buildSharedAssetRequest = (
 
 const buildVolumeRequest = (
   data: RegisterDataFormData,
-  connections: ConnectionModel[],
+  connectionRef?: ConnectionRef,
 ): CreateVolumeRequest => {
   const format = isUnstructuredFormat(data.format) ? data.format : 'other';
-  return { ...buildSharedAssetRequest(data, connections), format };
+  return { ...buildSharedAssetRequest(data, connectionRef), format };
 };
 
 const buildTableRequest = (
   data: RegisterDataFormData,
-  connections: ConnectionModel[],
+  connectionRef?: ConnectionRef,
 ): CreateGenericTableRequest => {
   const request: CreateGenericTableRequest = {
-    ...buildSharedAssetRequest(data, connections),
+    ...buildSharedAssetRequest(data, connectionRef),
     format: isStructuredFormat(data.format) ? data.format : 'other',
   };
 
@@ -171,8 +141,19 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   collections,
   onCreated,
   onManageCollections,
+  onManageLabels,
+  hasExistingDchConnectionReferences = false,
+  hasExistingRhaiConnectionReferences = false,
 }) => {
-  const [connections, connectionsLoaded, connectionsError] = useConnections(project);
+  const [
+    connections,
+    connectionsLoaded,
+    connectionsError,
+    refreshConnections,
+    connectionWarnings,
+    fetchedConnectionDisplayData,
+  ] = useConnections(project, isOpen);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -182,21 +163,29 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
     mode: 'onBlur',
   });
 
-  const handleClose = React.useCallback(() => {
+  const resetAndClose = React.useCallback(() => {
     form.reset(registerDataDefaults);
     setIsSubmitting(false);
     setError('');
     onClose();
   }, [form, onClose]);
 
+  const handleClose = React.useCallback(() => {
+    resetAndClose();
+  }, [resetAndClose]);
+
   const handleSubmit = React.useCallback(
     async (data: RegisterDataFormData) => {
       setIsSubmitting(true);
       setError('');
       try {
-        if (data.labels.length > 0) {
+        const connectionRef = data.connection
+          ? await confirmConnection(data.connection, refreshConnections)
+          : undefined;
+        const labels = getValidLabels(data.labels);
+        if (labels.length > 0) {
           await Promise.all(
-            data.labels.map((label) =>
+            labels.map((label) =>
               createLabel(project, { name: label }).catch((err) => {
                 if (isConflictError(err)) {
                   return;
@@ -207,9 +196,13 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           );
         }
         if (data.assetType === 'unstructured') {
-          await createVolume(project, data.collection, buildVolumeRequest(data, connections));
+          await createVolume(project, data.collection, buildVolumeRequest(data, connectionRef));
         } else {
-          await createGenericTable(project, data.collection, buildTableRequest(data, connections));
+          await createGenericTable(
+            project,
+            data.collection,
+            buildTableRequest(data, connectionRef),
+          );
         }
         form.reset(registerDataDefaults);
         onCreated();
@@ -220,7 +213,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         setIsSubmitting(false);
       }
     },
-    [project, form, onCreated, onClose, connections],
+    [project, form, onCreated, onClose, refreshConnections],
   );
 
   const assetType = form.watch('assetType');
@@ -228,10 +221,11 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} variant="medium" data-testid="register-data-modal">
       <ModalHeader
-        title="Register data"
+        title="Create data asset"
         description={
           <Content component="p">
-            Create a new data asset and configure its source location, metadata, and schema.
+            A data asset points to the exact location within a connection where the information is
+            located. It can also record information about the structure of the data.
           </Content>
         }
       />
@@ -242,20 +236,26 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           </Alert>
         ) : null}
         <FormProvider {...form}>
-          <Form>
-            <AssetDetailsSection
-              collections={collections}
-              onManageCollections={onManageCollections}
-            />
+          <Form className="odh-data-registry-registration-form">
+            <RegistrationIdentitySection />
             <DataLocationSection
               connections={connections}
+              connectionDisplayData={connectionDisplayData}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
-              showConnection
+              connectionWarnings={connectionWarnings}
+              showDchFallbackWarning={hasExistingDchConnectionReferences}
+              showRhaiLookupWarning={hasExistingRhaiConnectionReferences}
+              isConnectionDisabled={isSubmitting}
+            />
+            <RegistrationAssetFormatSection />
+            {assetType === 'structured' ? <SchemaSection /> : null}
+            <RegistrationOrganizationSection
+              collections={collections}
+              onManageCollections={onManageCollections}
+              onManageLabels={onManageLabels}
             />
             <PropertiesSection />
-            <CustomPropertiesSection />
-            {assetType === 'structured' ? <SchemaSection /> : null}
           </Form>
         </FormProvider>
       </ModalBody>

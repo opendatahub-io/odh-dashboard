@@ -41,8 +41,8 @@ func (r *DashboardReconciler) ReconcileModuleDemand(ctx context.Context, dashboa
 	return r.reconcileModuleDemand(ctx, dashboard)
 }
 
-func (r *DashboardReconciler) CleanupLegacySidecarResources(ctx context.Context) error {
-	return r.cleanupLegacySidecarResources(ctx)
+func (r *DashboardReconciler) CleanupLegacyResources(ctx context.Context) error {
+	return r.cleanupLegacyResources(ctx)
 }
 
 func (r *DashboardReconciler) AutoDetectObservability(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
@@ -55,7 +55,7 @@ func (r *DashboardReconciler) MonitoringNamespace() string {
 
 const ObservabilityRetryInterval = observabilityRetryInterval
 
-const MaaSConsumerPortalRetryInterval = maasConsumerPortalRetryInterval
+const MaaSPortalRetryInterval = maasPortalRetryInterval
 
 var DashboardSAName = dashboardSAName
 

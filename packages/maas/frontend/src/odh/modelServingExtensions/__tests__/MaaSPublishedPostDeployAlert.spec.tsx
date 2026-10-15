@@ -7,7 +7,7 @@ import {
   dismissPostDeployAlert,
   enqueuePostDeployAlert,
   resetPostDeployAlerts,
-} from '@odh-dashboard/model-serving/concepts/postDeployAlertStore';
+} from '~/app/utilities/postDeployAlertStore';
 import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
 import {
   MAAS_PUBLISHED_INTERNAL_ALERT_ID,

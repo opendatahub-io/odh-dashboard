@@ -38,8 +38,23 @@ describe('imageStreamUtils', () => {
         url: 'https://github.com//opendatahub-io/notebooks/tree/main/jupyter/minimal',
         provider: 'Red Hat',
         recommendedAcceleratorIdentifiers: [],
+        tier: 'custom',
         isOOTB: true,
       });
+    });
+
+    it.each([
+      ['secure', 'secure'],
+      ['community', 'community'],
+      ['custom', 'custom'],
+      ['future-tier', 'future-tier'],
+      ['', 'custom'],
+      [undefined, 'custom'],
+    ])('should map the notebook tier annotation %s to %s', (tier, expected) => {
+      const image = mockImageStreamK8sResource({
+        opts: { metadata: { annotations: { [ImageStreamAnnotation.NOTEBOOK_TIER]: tier } } },
+      });
+      expect(mapImageStreamToBYONImage(image).tier).toBe(expected);
     });
 
     it('should set isOOTB to false for BYON images', () => {

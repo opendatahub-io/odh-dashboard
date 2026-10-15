@@ -101,7 +101,9 @@ describe('Choose Collection Page', () => {
     chooseCollectionPage.findNameFilterInput().type('nonexistent');
 
     chooseCollectionPage.findCollectionsEmptyState().should('exist');
-    chooseCollectionPage.findCollectionsEmptyState().should('contain.text', 'No collections match');
+    chooseCollectionPage
+      .findCollectionsEmptyState()
+      .should('contain.text', 'No benchmark suites match the current filters.');
   });
 
   it('should open and close the collection drawer panel', () => {
@@ -261,7 +263,7 @@ describe('Choose Collection Page - Truncation Alert', () => {
     chooseCollectionPage.findTruncationAlert().should('exist');
     chooseCollectionPage
       .findTruncationAlert()
-      .should('contain.text', 'Not all collections are shown');
+      .should('contain.text', 'Not all benchmark suites are shown');
   });
 
   it('should not show truncation alert when all collections are returned', () => {
@@ -305,6 +307,6 @@ describe('Choose Collection Page - Empty', () => {
     chooseCollectionPage.findCollectionsEmptyState().should('exist');
     chooseCollectionPage
       .findCollectionsEmptyState()
-      .should('contain.text', 'No collections available');
+      .should('contain.text', 'No benchmark suites available.');
   });
 });

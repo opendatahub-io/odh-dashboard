@@ -6,7 +6,7 @@ import {
   t_global_icon_color_subtle as iconColorSubtle,
   t_global_color_status_success_default as colorStatusSuccess,
   t_global_color_status_danger_default as colorStatusDanger,
-  t_global_color_status_info_default as colorStatusInfo,
+  t_global_color_brand_default as colorBrand,
   t_global_color_nonstatus_orange_300 as colorNonstatusOrange,
   t_global_color_status_warning_200 as colorStatusWarningGold,
   t_global_icon_color_inverse as iconColorInverse,
@@ -65,7 +65,7 @@ type TreeNodeProps = {
 } & WithSelectionProps;
 
 const DANGER_RED = colorStatusDanger.var;
-const INFO_BLUE = colorStatusInfo.var;
+const RUNNING_BLUE = colorBrand.var;
 /** Rank 2: PF v6 orange-300 is too bright vs design; orange-400 is too dark. */
 const WINNER_RANK_2_ORANGE = '#c4610e';
 
@@ -74,7 +74,7 @@ const TASK_ICON_COLORS: Record<ReturnType<typeof resolveTreeNodeVisualState>, st
   success: iconColorStatusSuccess.var,
   'just-completed': iconColorStatusSuccess.var,
   failed: DANGER_RED,
-  active: INFO_BLUE,
+  active: RUNNING_BLUE,
   pending: iconColorSubtle.var,
   winner: WINNER_RANK_2_ORANGE,
 };
@@ -286,13 +286,13 @@ const StatusOnlyCompletedDot: React.FC<{ size: number }> = React.memo(({ size })
 });
 StatusOnlyCompletedDot.displayName = 'StatusOnlyCompletedDot';
 
-/** Active branch corridor: dark ring, white gap, inner dot that pulses dark ↔ light. */
+/** Active branch corridor: thin blue ring, white gap, and a pulsing blue core. */
 const StatusOnlyActiveDot: React.FC<{
   size: number;
   activeIconVariant?: TreeNodeData['activeIconVariant'];
 }> = React.memo(({ size, activeIconVariant = 'pulse' }) => {
   const center = size / 2;
-  const strokeWidth = Math.max(3.25, size * 0.14);
+  const strokeWidth = 1.5;
   const ringR = Math.max(0, center - strokeWidth / 2);
   const coreR = Math.max(2.5, size * 0.28);
   const syncSize = size * 0.5;
@@ -331,9 +331,9 @@ const StatusOnlyActiveDot: React.FC<{
         cy={center}
         r={ringR}
         fill="none"
-        stroke={INFO_BLUE}
+        stroke={RUNNING_BLUE}
         strokeWidth={strokeWidth}
-        style={{ fill: 'none', stroke: INFO_BLUE }}
+        style={{ fill: 'none', stroke: RUNNING_BLUE }}
       />
     </g>
   );
@@ -400,10 +400,10 @@ const ActiveNodeBadge: React.FC<{ node: Node }> = React.memo(({ node }) => {
       <circle
         className="automl-tree-node__active-badge-disc"
         r={ACTIVE_BADGE_RADIUS}
-        fill={INFO_BLUE}
+        fill={RUNNING_BLUE}
         stroke={backgroundColorPrimary.var}
         strokeWidth={ACTIVE_BADGE_STROKE}
-        style={{ fill: INFO_BLUE, stroke: backgroundColorPrimary.var }}
+        style={{ fill: RUNNING_BLUE, stroke: backgroundColorPrimary.var }}
       />
       <g transform={`translate(${-iconSize / 2}, ${-iconSize / 2})`}>
         <g className="automl-tree-node__status-spinner">

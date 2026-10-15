@@ -86,6 +86,8 @@ export enum SupportedArea {
   /* Plugins */
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
   PLUGIN_GEN_AI = 'plugin-gen-ai',
+  PLUGIN_AUTOML = 'plugin-automl',
+  PLUGIN_AUTORAG = 'plugin-autorag',
   PLUGIN_NOTEBOOKS = 'plugin-notebooks',
   PLUGIN_DATA_REGISTRY = 'plugin-data-registry',
   PLUGIN_DATA_CONNECT_HUB = 'plugin-data-connect-hub',
@@ -123,9 +125,6 @@ export enum SupportedArea {
 
   /* Role Management */
   ROLE_MANAGEMENT = 'role-management',
-
-  /* Connection Test */
-  CONNECTION_TEST = 'connection-test',
 
   /* Model Capabilities */
   MODEL_CAPABILITIES = 'model-capabilities',

@@ -13,6 +13,7 @@ const SecretListItemSchema = z.object({
   name: z.string(),
   type: z.string().optional(),
   data: z.record(z.string(), z.string()).optional(),
+  databaseProviders: z.enum(['milvus', 'pgvector', 'neo4j']).array().optional(),
   displayName: z.string().optional(),
   description: z.string().optional(),
 });

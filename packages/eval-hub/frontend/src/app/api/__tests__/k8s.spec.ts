@@ -17,6 +17,7 @@ import {
   getEvalHubCRStatus,
   validateHardwareProfiles,
   getKueueWorkloadStatuses,
+  getEvaluationJobs,
   getEvaluationJob,
   getProviders,
   createEvaluationJob,
@@ -304,7 +305,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: expected an object',
+      'Invalid benchmark suite: expected an object',
     );
   });
 
@@ -313,7 +314,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: missing or empty name',
+      'Invalid benchmark suite: missing or empty name',
     );
   });
 
@@ -322,7 +323,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: missing resource',
+      'Invalid benchmark suite: missing resource',
     );
   });
 
@@ -331,7 +332,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: missing resource.id',
+      'Invalid benchmark suite: missing resource.id',
     );
   });
 
@@ -342,7 +343,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: benchmarks is not an array',
+      'Invalid benchmark suite: benchmarks is not an array',
     );
   });
 
@@ -369,7 +370,7 @@ describe('getCollection', () => {
 
   it('should reject with an error when collectionId is empty', async () => {
     await expect(getCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'collectionId must not be empty',
+      'Benchmark suite ID must not be empty',
     );
 
     expect(mockRestGET).not.toHaveBeenCalled();
@@ -455,6 +456,14 @@ describe('deleteCollection', () => {
     await expect(deleteCollection('', 'my-ns', 'col-1')({})).resolves.toBeUndefined();
   });
 
+  it('should reject when the BFF returns an error body', async () => {
+    mockRestDELETE.mockResolvedValue('{"message":"Delete failed"}');
+
+    await expect(deleteCollection('', 'my-ns', 'col-1')({})).rejects.toThrow(
+      '{"message":"Delete failed"}',
+    );
+  });
+
   it('should encode the collection ID in the URL', async () => {
     mockRestDELETE.mockResolvedValue({});
 
@@ -471,7 +480,7 @@ describe('deleteCollection', () => {
 
   it('should reject when collectionId is empty', async () => {
     await expect(deleteCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'collectionId must not be empty',
+      'Benchmark suite ID must not be empty',
     );
 
     expect(mockRestDELETE).not.toHaveBeenCalled();
@@ -523,7 +532,7 @@ describe('patchCollection', () => {
   it('should reject when collectionId is empty', async () => {
     await expect(
       patchCollection('', 'test-ns', '', [{ op: 'replace', path: '/name', value: 'Test' }])({}),
-    ).rejects.toThrow('collectionId must not be empty');
+    ).rejects.toThrow('Benchmark suite ID must not be empty');
 
     expect(mockRestPATCH).not.toHaveBeenCalled();
   });
@@ -547,7 +556,25 @@ describe('cloneCollection', () => {
 
     await expect(
       cloneCollection('', 'test-ns', 'col-1', { name: 'Cloned suite' })({}),
-    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+    ).rejects.toThrow('Invalid benchmark suite: benchmarks contains an invalid entry');
+  });
+
+  it('should send an empty override object when cloning a collection as-is', async () => {
+    const collection = {
+      name: 'Cloned suite',
+      resource: { id: 'cloned-col-1' },
+    };
+    mockRestCREATE.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(cloneCollection('', 'test-ns', 'col-1', {})({})).resolves.toEqual(collection);
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col-1/clones',
+      {},
+      { namespace: 'test-ns' },
+      {},
+    );
   });
 });
 
@@ -599,7 +626,7 @@ describe('createCollection', () => {
         name: 'New suite',
         benchmarks: [{ id: 'benchmark-001' }],
       })({}),
-    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+    ).rejects.toThrow('Invalid benchmark suite: benchmarks contains an invalid entry');
   });
 
   it('should reject a created collection with missing resource metadata', async () => {
@@ -613,7 +640,7 @@ describe('createCollection', () => {
         name: 'New suite',
         benchmarks: [{ id: 'benchmark-001' }],
       })({}),
-    ).rejects.toThrow('Invalid collection: missing resource.id');
+    ).rejects.toThrow('Invalid benchmark suite: missing resource.id');
   });
 });
 
@@ -1073,6 +1100,33 @@ describe('getProviders', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].benchmarks).toBeUndefined();
+  });
+});
+
+describe('getEvaluationJobs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should bypass cached responses while preserving request options', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+    const opts = { headers: { 'X-Test': 'value' } };
+
+    await getEvaluationJobs('', { namespace: 'my-ns' })(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/jobs',
+      { namespace: 'my-ns' },
+      {
+        headers: {
+          'X-Test': 'value',
+          'Cache-Control': 'no-cache',
+        },
+      },
+    );
   });
 });
 

@@ -1,23 +1,34 @@
 import {
+  Alert,
+  AlertActionCloseButton,
   BreadcrumbItem,
   Button,
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Flex,
+  FlexItem,
   Skeleton,
   Split,
   SplitItem,
   Truncate,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import {
+  CogIcon,
+  DownloadIcon,
+  OpenDrawerRightIcon,
+  RedoIcon,
+  StopCircleIcon,
+} from '@patternfly/react-icons';
 import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { useFetchS3File, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
 import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInputParametersPanel';
@@ -26,17 +37,36 @@ import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
+import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
-import { isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
+import {
+  downloadBlob,
+  isRunCompleted,
+  isRunRetryable,
+  isRunTerminatable,
+  resolveTrainingTaskPrefix,
+  resolveUniqueUuidPrefix,
+} from '~/app/utilities/utils';
 import {
   AUTOML_EVENTS,
   fireAutomlResultsViewed,
+  fireAutomlRunNotebookDownloaded,
   isAutomlResultsNavigationState,
   TrackingOutcome,
 } from '~/app/utilities/tracking';
+
+const RUN_NOTEBOOK_FILENAME = 'automl_experiment_notebook.ipynb';
+const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successfully';
+const ARTIFACT_CHECKING_TOOLTIP = 'Checking artifact availability...';
+const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
+const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
+
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === 'AbortError';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -47,6 +77,22 @@ function AutomlResultsPage(): React.JSX.Element {
   const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const [stopInitiated, setStopInitiated] = React.useState(false);
+  const [runNotebookDownloadError, setRunNotebookDownloadError] = React.useState<string>();
+  const runNotebookDownloadController = React.useRef<AbortController | null>(null);
+  const runNotebookDownloadGeneration = React.useRef(0);
+
+  React.useLayoutEffect(() => {
+    runNotebookDownloadGeneration.current += 1;
+    runNotebookDownloadController.current?.abort();
+    runNotebookDownloadController.current = null;
+    setRunNotebookDownloadError(undefined);
+
+    return () => {
+      runNotebookDownloadGeneration.current += 1;
+      runNotebookDownloadController.current?.abort();
+      runNotebookDownloadController.current = null;
+    };
+  }, [namespace, runId]);
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
     namespace ?? '',
     runId ?? '',
@@ -64,6 +110,7 @@ function AutomlResultsPage(): React.JSX.Element {
   );
 
   const notification = useNotification();
+  const fetchS3File = useFetchS3File();
 
   const {
     data: pipelineRun,
@@ -73,6 +120,106 @@ function AutomlResultsPage(): React.JSX.Element {
     error: pipelineRunLoadError,
     dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
+
+  const { rootDir, modelGenerationDir } = useAutomlOutputDir(pipelineRun);
+  const runArtifactRoot =
+    isRunCompleted(pipelineRun?.state) && runId ? `${rootDir}/${runId}` : undefined;
+  const {
+    data: runLevelFiles,
+    isLoading: runLevelLoading,
+    isError: runLevelError,
+  } = useS3ListFilesQuery(namespace, runArtifactRoot);
+  const trainingTaskPrefix = React.useMemo(() => {
+    const allowedTaskNames = [modelGenerationDir, `${modelGenerationDir}-2`];
+    return runLevelFiles
+      ? resolveTrainingTaskPrefix(runLevelFiles.common_prefixes, allowedTaskNames)
+      : undefined;
+  }, [modelGenerationDir, runLevelFiles]);
+  const {
+    data: trainingTaskFiles,
+    isLoading: trainingTaskLoading,
+    isError: trainingTaskError,
+  } = useS3ListFilesQuery(namespace, trainingTaskPrefix);
+  const taskExecutionPrefix = React.useMemo(
+    () =>
+      trainingTaskFiles
+        ? resolveUniqueUuidPrefix(trainingTaskFiles.common_prefixes, trainingTaskPrefix ?? '')
+        : undefined,
+    [trainingTaskFiles, trainingTaskPrefix],
+  );
+  const notebookDirectory = taskExecutionPrefix
+    ? `${taskExecutionPrefix}/experiment_notebook`
+    : undefined;
+  const {
+    data: notebookFiles,
+    isLoading: notebookLoading,
+    isError: notebookError,
+  } = useS3ListFilesQuery(namespace, notebookDirectory);
+  const runNotebookKey = notebookDirectory
+    ? `${notebookDirectory}/${RUN_NOTEBOOK_FILENAME}`
+    : undefined;
+  const hasRunNotebook = Boolean(
+    runNotebookKey && notebookFiles?.contents.some((object) => object.key === runNotebookKey),
+  );
+  const runArtifactLoading = runLevelLoading || trainingTaskLoading || notebookLoading;
+  const runArtifactListError = runLevelError || trainingTaskError || notebookError;
+
+  const runNotebookTooltip = React.useMemo(() => {
+    if (!isRunCompleted(pipelineRun?.state)) {
+      return isRunInTerminalState(pipelineRun?.state)
+        ? ARTIFACT_UNSUCCESSFUL_TOOLTIP
+        : ARTIFACT_AVAILABLE_TOOLTIP;
+    }
+    if (runArtifactLoading) {
+      return ARTIFACT_CHECKING_TOOLTIP;
+    }
+    return hasRunNotebook && !runArtifactListError ? undefined : ARTIFACT_UNAVAILABLE_TOOLTIP;
+  }, [hasRunNotebook, pipelineRun?.state, runArtifactListError, runArtifactLoading]);
+  const runNotebookDisabled = Boolean(runNotebookTooltip);
+
+  const handleDownloadRunNotebook = React.useCallback(async () => {
+    if (runNotebookDisabled || !namespace || !runNotebookKey) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const downloadGeneration = ++runNotebookDownloadGeneration.current;
+    runNotebookDownloadController.current = controller;
+    setRunNotebookDownloadError(undefined);
+    try {
+      const notebook = await fetchS3File(namespace, runNotebookKey, {
+        signal: controller.signal,
+      });
+      if (
+        downloadGeneration !== runNotebookDownloadGeneration.current ||
+        runNotebookDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
+        return;
+      }
+      downloadBlob(notebook, RUN_NOTEBOOK_FILENAME);
+      fireAutomlRunNotebookDownloaded();
+    } catch (error) {
+      if (
+        isAbortError(error) ||
+        downloadGeneration !== runNotebookDownloadGeneration.current ||
+        runNotebookDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
+        return;
+      }
+      setRunNotebookDownloadError(
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      );
+    } finally {
+      if (
+        downloadGeneration === runNotebookDownloadGeneration.current &&
+        runNotebookDownloadController.current === controller
+      ) {
+        runNotebookDownloadController.current = null;
+      }
+    }
+  }, [fetchS3File, namespace, runNotebookDisabled, runNotebookKey]);
 
   // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
   // notification with stale data, while initial load errors (no data yet) show a full error page.
@@ -172,6 +319,94 @@ function AutomlResultsPage(): React.JSX.Element {
     [namespace, runId],
   );
 
+  const headerActions = React.useMemo(
+    () => (
+      <Split hasGutter isWrappable>
+        {(runTerminatable && !stopInitiated) || runRetryable ? (
+          <SplitItem>
+            {runTerminatable && !stopInitiated && (
+              <Button
+                variant="secondary"
+                icon={<StopCircleIcon />}
+                onClick={() => setIsStopModalOpen(true)}
+                isDisabled={isTerminating || isStopModalOpen}
+                isLoading={isTerminating || isStopModalOpen}
+                spinnerAriaValueText="Stopping run"
+                data-testid="stop-run-button"
+              >
+                Stop
+              </Button>
+            )}
+            {runRetryable && (
+              <Button
+                variant="secondary"
+                icon={<RedoIcon />}
+                onClick={() => void handleRetry().catch(() => undefined)}
+                isDisabled={isRetrying}
+                isLoading={isRetrying}
+                spinnerAriaValueText="Retrying run"
+                data-testid="retry-run-button"
+              >
+                Retry
+              </Button>
+            )}
+          </SplitItem>
+        ) : null}
+        <SplitItem>
+          <Button
+            variant="secondary"
+            icon={<CogIcon />}
+            component={ReconfigureLink}
+            data-testid="reconfigure-run-button"
+          >
+            Reconfigure
+          </Button>
+        </SplitItem>
+        <SplitItem>
+          <Tooltip
+            content={runNotebookTooltip}
+            trigger={runNotebookDisabled ? 'mouseenter focus' : ''}
+          >
+            <Button
+              variant="secondary"
+              icon={<DownloadIcon />}
+              onClick={() => void handleDownloadRunNotebook()}
+              isAriaDisabled={runNotebookDisabled}
+              data-testid="run-notebook-download-button"
+            >
+              Download run notebook
+            </Button>
+          </Tooltip>
+        </SplitItem>
+        <SplitItem>
+          <Button
+            variant="link"
+            icon={<OpenDrawerRightIcon />}
+            onClick={() => setIsDrawerOpen((prev) => !prev)}
+            aria-expanded={isDrawerOpen}
+            data-testid="run-details-button"
+          >
+            Run details
+          </Button>
+        </SplitItem>
+      </Split>
+    ),
+    [
+      runTerminatable,
+      stopInitiated,
+      runRetryable,
+      isTerminating,
+      isStopModalOpen,
+      isRetrying,
+      ReconfigureLink,
+      runNotebookTooltip,
+      runNotebookDisabled,
+      handleDownloadRunNotebook,
+      isDrawerOpen,
+      handleRetry,
+    ],
+  );
+
   const contextValue = React.useMemo(
     () =>
       getAutomlContext({
@@ -218,93 +453,43 @@ function AutomlResultsPage(): React.JSX.Element {
         >
           <DrawerContentBody>
             <ApplicationsPage
-              title={<AutomlHeader />}
-              subtext={
-                <h2 className="pf-v6-u-mt-sm">
-                  {pipelineRun ? (
-                    <span>
-                      &quot;
-                      <Truncate content={pipelineRun.display_name || ''} />
-                      &quot; results
-                    </span>
-                  ) : (
-                    <Skeleton width="300px" />
-                  )}
-                </h2>
-              }
-              headerAction={
-                <Split hasGutter>
-                  <SplitItem>
-                    {runTerminatable && !stopInitiated && (
-                      <Button
-                        variant="secondary"
-                        icon={<StopCircleIcon />}
-                        onClick={() => setIsStopModalOpen(true)}
-                        isDisabled={isTerminating || isStopModalOpen}
-                        isLoading={isTerminating || isStopModalOpen}
-                        spinnerAriaValueText="Stopping run"
-                        data-testid="stop-run-button"
-                      >
-                        Stop
-                      </Button>
-                    )}
-                    {runRetryable && (
-                      <Button
-                        variant="secondary"
-                        icon={<RedoIcon />}
-                        onClick={() => void handleRetry().catch(() => undefined)}
-                        isDisabled={isRetrying}
-                        isLoading={isRetrying}
-                        spinnerAriaValueText="Retrying run"
-                        data-testid="retry-run-button"
-                      >
-                        Retry
-                      </Button>
-                    )}
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="secondary"
-                      icon={<CogIcon />}
-                      component={ReconfigureLink}
-                      data-testid="reconfigure-run-button"
-                    >
-                      Reconfigure
-                    </Button>
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="link"
-                      icon={<OpenDrawerRightIcon />}
-                      onClick={() => setIsDrawerOpen((prev) => !prev)}
-                      aria-expanded={isDrawerOpen}
-                      data-testid="run-details-button"
-                    >
-                      Run details
-                    </Button>
-                  </SplitItem>
-                </Split>
-              }
+              noHeader
               breadcrumb={
                 namespace ? (
-                  <ContextBreadcrumb
-                    pageName="AutoML"
-                    projectDisplayName={projectDisplayName}
-                    homePath={getRedirectPath(namespace)}
-                    projectHomePath={`/projects/${namespace}`}
-                    homeTestId="experiment-breadcrumb-home"
-                    projectLinkTestId="project-navigator-link-in-breadcrumb"
+                  <Flex
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    flexWrap={{ default: 'wrap' }}
                   >
-                    <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
-                      <Link
-                        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
-                        state={{ from: 'results' }}
+                    <FlexItem>
+                      <ContextBreadcrumb
+                        pageName="AutoML"
+                        projectDisplayName={projectDisplayName}
+                        homePath={getRedirectPath(namespace)}
+                        projectHomePath={`/projects/${namespace}`}
+                        homeTestId="experiment-breadcrumb-home"
+                        projectLinkTestId="project-navigator-link-in-breadcrumb"
                       >
-                        Run configurations
-                      </Link>
-                    </BreadcrumbItem>
-                    <BreadcrumbItem isActive>Run results</BreadcrumbItem>
-                  </ContextBreadcrumb>
+                        <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
+                          <Link
+                            to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+                            state={{ from: 'results' }}
+                          >
+                            Run configurations
+                          </Link>
+                        </BreadcrumbItem>
+                        <BreadcrumbItem isActive data-testid="results-breadcrumb-run-name">
+                          {pipelineRun ? (
+                            <Truncate content={pipelineRun.display_name || ''} />
+                          ) : (
+                            <Skeleton width="300px" />
+                          )}
+                          &nbsp;results
+                        </BreadcrumbItem>
+                      </ContextBreadcrumb>
+                    </FlexItem>
+                    <FlexItem>{headerActions}</FlexItem>
+                  </Flex>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
@@ -320,6 +505,19 @@ function AutomlResultsPage(): React.JSX.Element {
               }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
+              {runNotebookDownloadError && (
+                <Alert
+                  variant="danger"
+                  title="Run notebook download failed"
+                  actionClose={
+                    <AlertActionCloseButton
+                      onClose={() => setRunNotebookDownloadError(undefined)}
+                    />
+                  }
+                >
+                  {runNotebookDownloadError}
+                </Alert>
+              )}
               <AutomlResults />
             </ApplicationsPage>
           </DrawerContentBody>

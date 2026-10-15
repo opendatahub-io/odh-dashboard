@@ -9,10 +9,10 @@
   "overrides": {
     "rimraf": "^6.0.1",
     "nyc": {
-      "rimraf": "^3.0.2"
+      "rimraf@^3.0.0": "^3.0.2"
     },
     "istanbul-lib-processinfo": {
-      "rimraf": "^3.0.2"
+      "rimraf@^3.0.0": "^3.0.2"
     },
     "axios": "^1.15.0"
   },
@@ -30,6 +30,7 @@
     "generate:api": "./scripts/generate-api.sh && npm run prettier",
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
     "start:tilt": "DEV_ENV=tilt npm run start:dev",
+    "start:tilt-dashboard": "DEV_ENV=tilt-dashboard npm run start:dev",
     "test": "run-s prettier:check test:lint test:type-check test:unit test:cypress-ci",
     "test:cypress-ci": "npx concurrently -P -k -s first \"CY_MOCK=1 npm run cypress:server:build && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock -- {@}\" -- ",
     "test:jest": "jest --passWithNoTests",

@@ -7,8 +7,6 @@ import {
 
 export const techPreviewFlags = {
   genAiTracing: false,
-  automl: false,
-  autorag: false,
   guardrails: false,
   modelAsService: true,
   aiAssetCustomEndpoints: false,
@@ -27,7 +25,6 @@ export const techPreviewFlags = {
   llmGatewayField: false,
   globalProjectPrompts: false,
   agentOps: false,
-  connectionTest: false,
   dataRegistry: false,
   dataConnectHub: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -85,6 +82,8 @@ export const modelServingFlags = {
 export const advancedAIMLFlags = {
   genAiStudio: true,
   promptManagement: true,
+  automl: true,
+  autorag: true,
   disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
@@ -291,12 +290,18 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.PLUGIN_GEN_AI]: {
     featureFlags: ['genAiStudio'],
   },
+  [SupportedArea.PLUGIN_AUTOML]: {
+    featureFlags: ['automl', 'disablePipelines'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+  },
+  [SupportedArea.PLUGIN_AUTORAG]: {
+    featureFlags: ['autorag', 'disablePipelines'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+    reliantAreas: [SupportedArea.PLUGIN_GEN_AI],
+  },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
     requiredComponents: [DataScienceStackComponent.KUEUE],
-  },
-  [SupportedArea.CONNECTION_TEST]: {
-    featureFlags: ['connectionTest'],
   },
   [SupportedArea.MODEL_CAPABILITIES]: {
     featureFlags: ['modelCapabilities'],

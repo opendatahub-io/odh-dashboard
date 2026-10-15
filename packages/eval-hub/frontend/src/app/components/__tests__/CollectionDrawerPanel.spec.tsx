@@ -74,6 +74,37 @@ describe('CollectionDrawerPanel', () => {
     jest.clearAllMocks();
   });
 
+  it('should identify system collections and expose the customize action', () => {
+    const collection = makeCollection({ resource: { id: 'system-suite' } });
+    const onRunCollection = jest.fn();
+    const onCustomizeCollection = jest.fn();
+
+    render(
+      <Drawer isExpanded>
+        <DrawerContent
+          panelContent={
+            <CollectionDrawerPanel
+              collection={collection}
+              benchmarkDetailsMap={new Map()}
+              onClose={jest.fn()}
+              onRunCollection={onRunCollection}
+              onCustomizeCollection={onCustomizeCollection}
+              isSystemCollection
+            />
+          }
+        >
+          <div />
+        </DrawerContent>
+      </Drawer>,
+    );
+
+    fireEvent.click(screen.getByTestId('use-benchmark-suite-button'));
+    fireEvent.click(screen.getByTestId('customize-benchmark-suite-button'));
+
+    expect(onRunCollection).toHaveBeenCalledWith(collection, true);
+    expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
+  });
+
   it('should reset search and metric filter when collection changes', () => {
     const detailsMap = new Map<string, BenchmarkWithProvider>([
       ['prov:bench-a', makeBenchmark('bench-a', 'prov', ['accuracy'])],

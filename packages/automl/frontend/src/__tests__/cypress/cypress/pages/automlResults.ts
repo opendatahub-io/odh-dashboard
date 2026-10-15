@@ -9,6 +9,11 @@ class AutomlResultsPage {
     cy.testA11y();
   }
 
+  // Breadcrumb
+  findResultsBreadcrumbRunName() {
+    return cy.findByTestId('results-breadcrumb-run-name');
+  }
+
   // Leaderboard
   findLeaderboardTable() {
     return cy.findByTestId('leaderboard-table');
@@ -35,7 +40,8 @@ class AutomlResultsPage {
   }
 
   findColumnCheck(column: string) {
-    return cy.findByTestId(`column-check-${column}`);
+    const sanitizedColumn = column.replace(/[^a-zA-Z0-9_-]/g, '-');
+    return cy.findByTestId(`column-check-${sanitizedColumn}`);
   }
 
   findManageColumnsSaveButton() {

@@ -11,11 +11,10 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
   Label,
   Skeleton,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
@@ -426,8 +425,8 @@ type AutoragLeaderboardProps = {
   onRunIndexingPipeline?: (patternName: string) => void;
 };
 
-// Keep the OGX callbacks wired for the upcoming Results reintroduction without exposing actions.
-const OGX_ACTIONS_ENABLED = false;
+// Code snippets remain unavailable while the Responses API's chat workflow is rolled out.
+const VIEW_CODE_ACTION_ENABLED = false;
 
 function AutoragLeaderboard({
   onViewDetails,
@@ -527,7 +526,17 @@ function AutoragLeaderboard({
 
   // Column visibility and ordering state — whitelist approach so new columns are hidden by default
   const DEFAULT_VISIBLE_IDS = React.useMemo(
-    () => new Set(['rank', 'pattern', 'modelNames', 'optimized-metric']),
+    () =>
+      new Set([
+        'rank',
+        'pattern',
+        'modelNames',
+        'optimized-metric',
+        'chunkingMethod',
+        'retrievalMethod',
+        'retrievalSearchMode',
+        'retrievalRankerStrategy',
+      ]),
     [],
   );
   const [visibleColumnIds, setVisibleColumnIds] = React.useState<Set<string>>(
@@ -1141,7 +1150,33 @@ function AutoragLeaderboard({
   return (
     <Card>
       <CardBody>
-        <Content component={ContentVariants.h3}>Results</Content>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        >
+          <FlexItem>
+            <Content component={ContentVariants.h3}>Results</Content>
+          </FlexItem>
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+              <FlexItem>
+                <Content component={ContentVariants.small} data-testid="columns-selected-count">
+                  {visibleColumns.length}/{columnDefs.length} columns selected
+                </Content>
+              </FlexItem>
+              <FlexItem>
+                <Button
+                  variant="link"
+                  icon={<ColumnsIcon />}
+                  onClick={() => setIsManageColumnsOpen(true)}
+                  data-testid="manage-columns-button"
+                >
+                  Manage columns
+                </Button>
+              </FlexItem>
+            </Flex>
+          </FlexItem>
+        </Flex>
         {Object.values(patterns).some(
           (pattern) => !isPatternRankable(pattern, optimizationMetric),
         ) && (
@@ -1154,25 +1189,6 @@ function AutoragLeaderboard({
             Patterns without exactly one finite objective metric are shown as unranked.
           </Alert>
         )}
-        <Toolbar hasNoPadding>
-          <ToolbarContent alignItems="center">
-            <ToolbarItem>
-              <Content component={ContentVariants.small} data-testid="columns-selected-count">
-                {visibleColumns.length}/{columnDefs.length} columns selected
-              </Content>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button
-                variant="link"
-                icon={<ColumnsIcon />}
-                onClick={() => setIsManageColumnsOpen(true)}
-                data-testid="manage-columns-button"
-              >
-                Manage columns
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
         <InnerScrollContainer>
           <Table
             aria-label="AutoRAG Pattern Leaderboard"
@@ -1236,9 +1252,7 @@ function AutoragLeaderboard({
                     <ActionsColumn
                       items={[
                         /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-                        ...(OGX_ACTIONS_ENABLED &&
-                        patterns[entry.patternKey].inference?.responses_template &&
-                        onTryPattern
+                        ...(onTryPattern
                           ? [
                               {
                                 title: 'Try this pattern',
@@ -1252,7 +1266,7 @@ function AutoragLeaderboard({
                           onClick: () => handleViewDetails(entry.patternKey),
                         },
                         /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-                        ...(OGX_ACTIONS_ENABLED &&
+                        ...(VIEW_CODE_ACTION_ENABLED &&
                         patterns[entry.patternKey].inference?.responses_template &&
                         onViewCode
                           ? [

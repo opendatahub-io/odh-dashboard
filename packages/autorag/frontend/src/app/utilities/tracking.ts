@@ -37,6 +37,7 @@ export const AUTORAG_EVENTS = {
   RESULTS_VIEWED: 'AutoRAG Results Viewed',
   PLAYGROUND_OPENED: 'AutoRAG Playground Opened',
   NOTEBOOK_DOWNLOADED: 'AutoRAG Notebook Downloaded',
+  STARTER_KIT_DOWNLOADED: 'AutoRAG Starter Kit Downloaded',
   RESULTS_COLUMN_TOGGLED: 'AutoRAG Results Column Toggled',
   PATTERN_DETAILS_VIEWED: 'AutoRAG Pattern Details Viewed',
   PATTERN_DETAILS_DOWNLOAD_INITIATED: 'AutoRAG Pattern Details Download Initiated',
@@ -188,28 +189,14 @@ export type VectorStoreConfiguredProperties = {
   success: boolean;
 };
 
-/** Infers a safe provider category from redacted Secret key metadata only. */
-export const getVectorStoreProviderTypeFromSecretData = (
-  data?: Record<string, string>,
+/** Maps authoritative BFF provider metadata to a safe analytics category. */
+export const getVectorStoreProviderTypeFromDatabaseProviders = (
+  databaseProviders?: readonly string[],
 ): VectorStoreProviderType | undefined => {
-  const keys = new Set(Object.keys(data ?? {}));
-  const hasMilvus = keys.has('MILVUS_URI');
-  const hasPgvector = [
-    'PGVECTOR_HOST',
-    'PGVECTOR_PORT',
-    'PGVECTOR_DB',
-    'PGVECTOR_USER',
-    'PGVECTOR_PASSWORD',
-  ].every((key) => keys.has(key));
-  const hasNeo4j = keys.has('NEO4J_URI');
-
-  const providers = [
-    hasMilvus ? 'milvus' : undefined,
-    hasPgvector ? 'pgvector' : undefined,
-    hasNeo4j ? 'neo4j' : undefined,
-  ].filter((provider): provider is VectorStoreProviderType => provider !== undefined);
-
-  return providers.length === 1 ? providers[0] : undefined;
+  if (databaseProviders?.length !== 1) {
+    return undefined;
+  }
+  return toVectorStoreProviderType(databaseProviders[0]);
 };
 
 /**
@@ -584,6 +571,10 @@ export type NotebookDownloadedType = 'indexing' | 'inference' | 'other';
  */
 export const fireAutoragNotebookDownloaded = (notebookType: NotebookDownloadedType): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, { notebookType });
+};
+
+export const fireAutoragStarterKitDownloaded = (): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, { downloadType: 'starterKit' });
 };
 
 /**

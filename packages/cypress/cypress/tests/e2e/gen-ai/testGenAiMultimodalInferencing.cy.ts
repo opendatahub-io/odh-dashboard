@@ -150,12 +150,12 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         .findAiModelsTable({ timeout: 30000 })
         .should('contain', testData.model.displayName);
 
-      cy.step('Navigate to AI assets and add model to playground');
+      cy.step('Navigate to AI assets and create the playground');
       genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
       genAiPlayground
         .findAiModelsTable({ timeout: 30000 })
         .should('contain', testData.model.displayName);
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.model.modelId);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
@@ -352,9 +352,13 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         .should('be.visible')
         .and('not.have.attr', 'aria-disabled', 'true')
         .click();
-      genAiPlayground.findAsrModelToggle().should('be.visible').click();
-      genAiPlayground.findAsrModelOption(testData.audio.asrModelId).should('be.visible').click();
-      genAiPlayground.findAsrModelToggle().should('contain', testData.audio.asrDisplayName);
+      genAiPlayground
+        .findTranscriptionModelOption(testData.audio.asrModelId)
+        .should('be.visible')
+        .click();
+      genAiPlayground
+        .findTranscriptionModelSelector()
+        .should('contain', testData.audio.asrDisplayName);
 
       let transcriptionStarted = false;
       const recordAudioTrace = (event: string): void => {
@@ -554,9 +558,12 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         .findAllUserMessages()
         .last()
         .should(($message) => {
-          expect($message.text()).to.contain(transcribedText.trim());
           expect($message.text()).to.contain(testData.audio.prompt);
         });
+      genAiPlayground
+        .findSentAudioTile()
+        .should('be.visible')
+        .and('contain', testData.audio.fileName);
       genAiPlayground.findStopButton().should('not.exist');
       genAiPlayground.findChatbotErrorAlerts().should('not.exist');
       genAiPlayground.findAudioFileChip().should('not.exist');

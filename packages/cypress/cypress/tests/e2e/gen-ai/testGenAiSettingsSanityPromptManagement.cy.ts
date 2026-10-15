@@ -150,8 +150,8 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       cy.step('Navigate to AI asset endpoints page');
       genAiPlayground.navigateToAssets(projectName);
 
-      cy.step('Add model to playground');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      cy.step('Create playground with the deployed model');
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.modelDeploymentName);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
@@ -162,7 +162,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       waitForResource('service', testData.playgroundServiceName, projectName);
 
       cy.step('Start port-forward for LSD service');
-      startPortForward(projectName, testData.playgroundServiceName, 8321).then((handle) => {
+      startPortForward(projectName, testData.playgroundServiceName, 8321, 3000).then((handle) => {
         portForwardHandle = handle;
       });
 
@@ -200,11 +200,11 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       chatbotPromptAssistant.findNameTitle().should('contain.text', globalPromptName);
       chatbotPromptAssistant.findScopeLabel().should('contain.text', 'Global');
 
-      cy.step('Verify the loaded global prompt is not editable');
+      cy.step('Verify the loaded global prompt is editable');
       chatbotPromptAssistant
         .findTextarea()
         .should('have.value', promptManagementTestData.globalPrompt.template)
-        .and('have.attr', 'readonly');
+        .and('not.have.attr', 'readonly');
 
       cy.step('Send a message using the global prompt');
       genAiPlayground.sendMessage(testData.testMessage);
