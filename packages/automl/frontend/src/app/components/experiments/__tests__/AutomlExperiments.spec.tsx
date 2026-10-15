@@ -192,7 +192,7 @@ describe('AutomlExperiments', () => {
       scenario: 'the watch fails after an unready DSPA was received',
       status: { loaded: true, isStarting: true, error: new Error('watch interrupted') },
     },
-  ])('should show a readiness error when $scenario', ({ status }) => {
+  ])('should fall back to BFF state when $scenario', ({ status }) => {
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
       runs: [],
@@ -202,17 +202,12 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByTestId('pipeline-server-status-error')).toHaveTextContent(
-      'Unable to verify pipeline server readiness',
-    );
-    expect(screen.getByTestId('pipeline-server-status-error')).toHaveTextContent(
-      status.error.message,
-    );
+    expect(screen.queryByTestId('pipeline-server-status-error')).not.toBeInTheDocument();
     expect(screen.queryByTestId('pipeline-server-starting')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
+    expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
   });
 
-  it('should show a readiness error instead of waiting when the watch fails during a 503', () => {
+  it('should use BFF waiting state when the watch fails during a 503', () => {
     mockGetGenericErrorCode.mockReturnValue(503);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -228,16 +223,18 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByTestId('pipeline-server-status-error')).toHaveTextContent(
-      'Unable to verify pipeline server readiness',
-    );
-    expect(screen.getByTestId('pipeline-server-status-error')).toHaveTextContent(
-      'watch interrupted',
-    );
-    expect(screen.queryByTestId('no-pipeline-server')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pipeline-server-status-error')).not.toBeInTheDocument();
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+    expect(mockPipelineServerSetupMode).toBe('waiting');
   });
 
   it('should show AutomlRunsTable when there are experiments', () => {
+    mockUsePipelineServerStatus.mockReturnValue({
+      loaded: false,
+      isStarting: false,
+      error: undefined,
+    });
+
     renderAutoml(<AutomlExperiments />);
 
     expect(screen.getByTestId('automl-runs-table')).toBeInTheDocument();
@@ -245,12 +242,11 @@ describe('AutomlExperiments', () => {
     expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
   });
 
-  it('should keep BFF-loaded runs visible when the DSPA watch is forbidden', () => {
-    mockGetGenericErrorCode.mockReturnValue(403);
+  it('should keep BFF-loaded runs visible when the DSPA watch fails', () => {
     mockUsePipelineServerStatus.mockReturnValue({
       loaded: false,
       isStarting: false,
-      error: new Error('Forbidden'),
+      error: new Error('Internal Server Error'),
     });
 
     renderAutoml(<AutomlExperiments />);
@@ -260,19 +256,18 @@ describe('AutomlExperiments', () => {
     expect(screen.queryByTestId('pipeline-server-status-error')).not.toBeInTheDocument();
   });
 
-  it('should block the create-run empty state when the DSPA watch is forbidden and no runs exist', () => {
-    mockGetGenericErrorCode.mockReturnValue(403);
+  it('should use the BFF empty state when the DSPA watch fails and no runs exist', () => {
     mockUsePipelineRuns.mockReturnValue({ ...defaultRunsState, runs: [], totalSize: 0 });
     mockUsePipelineServerStatus.mockReturnValue({
       loaded: false,
       isStarting: false,
-      error: new Error('Forbidden'),
+      error: new Error('Watch failed'),
     });
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByTestId('pipeline-server-status-error')).toBeInTheDocument();
-    expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pipeline-server-status-error')).not.toBeInTheDocument();
+    expect(screen.getByTestId('empty-experiments-state')).toBeInTheDocument();
   });
 
   it('re-notifies onExperimentsListStatus when namespace changes even if loaded and hasExperiments stay true', async () => {

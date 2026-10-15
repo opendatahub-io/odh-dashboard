@@ -69,13 +69,6 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   const readinessLoaded = Boolean(effectiveNamespace) && pipelineServerStatus.loaded;
   const readinessError = Boolean(pipelineServerStatus.error);
   const pipelineServerStarting = pipelineServerStatus.isStarting;
-  const hasAccessibleRunsDespiteWatchFailure =
-    Boolean(effectiveNamespace) &&
-    loaded &&
-    !loadError &&
-    hasExperiments &&
-    getPipelineErrorCode(pipelineServerStatus.error) === 403;
-  const hasBlockingReadinessError = readinessError && !hasAccessibleRunsDespiteWatchFailure;
 
   const onListStatusRef = React.useRef(onExperimentsListStatus);
   onListStatusRef.current = onExperimentsListStatus;
@@ -98,13 +91,13 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
 
     let nextLoaded: boolean;
     let nextHasExperiments: boolean;
-    if (hasLoadError || hasBlockingReadinessError) {
+    if (hasLoadError) {
       nextLoaded = true;
       nextHasExperiments = false;
-    } else if (!loaded || (!readinessLoaded && !hasAccessibleRunsDespiteWatchFailure)) {
+    } else if (!loaded || (!readinessLoaded && !readinessError && !hasExperiments)) {
       nextLoaded = false;
       nextHasExperiments = false;
-    } else if (pipelineServerStarting) {
+    } else if (pipelineServerStarting && !readinessError) {
       nextLoaded = true;
       nextHasExperiments = false;
     } else {
@@ -139,8 +132,6 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   }, [
     effectiveNamespace,
     hasLoadError,
-    hasBlockingReadinessError,
-    hasAccessibleRunsDespiteWatchFailure,
     loaded,
     hasExperiments,
     readinessLoaded,
@@ -202,20 +193,6 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     );
   }
 
-  if (effectiveNamespace && pipelineServerStatus.error && !hasAccessibleRunsDespiteWatchFailure) {
-    return (
-      <Alert
-        variant="danger"
-        isInline
-        title="Unable to verify pipeline server readiness"
-        data-testid="pipeline-server-status-error"
-      >
-        <p>{pipelineServerStatus.error.message}</p>
-        <p>Refresh the page to check again before creating a run.</p>
-      </Alert>
-    );
-  }
-
   if (
     pipelineServerStatus.isStarting &&
     !pipelineServerStatus.error &&
@@ -256,7 +233,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   if (
     !effectiveNamespace ||
     !loaded ||
-    (!pipelineServerStatus.loaded && !hasAccessibleRunsDespiteWatchFailure)
+    (!hasExperiments && !pipelineServerStatus.loaded && !readinessError)
   ) {
     return (
       <Flex justifyContent={{ default: 'justifyContentCenter' }} className="pf-v6-u-pt-2xl">
