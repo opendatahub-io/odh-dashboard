@@ -90,6 +90,42 @@ func TestGetCatalogModelQualityArtifactsHandlerAddsEvaluationFilter(t *testing.T
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 }
 
+func TestGetCatalogModelQualityArtifactsHandlerRejectsInvalidCatalogDiscoveryNamespace(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		query string
+	}{
+		{name: "catalog namespace takes precedence", query: "namespace=valid-fallback&catalogNamespace=invalid_namespace"},
+		{name: "namespace fallback", query: "namespace=invalid_namespace"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			mockFactory := bffmocks.NewMockClientFactory(testLogger)
+			client := mockFactory.CreateClient(bffclient.BFFTargetModelCatalog, "test-token").(*bffmocks.MockBFFClient)
+			client.CallHandler = func(_ context.Context, _, _ string, _ interface{}, _ interface{}) error {
+				t.Fatal("upstream client should not be called for an invalid catalog discovery namespace")
+				return nil
+			}
+
+			req := httptest.NewRequest(
+				http.MethodGet,
+				ApiPathPrefix+"/catalog/sources/sample-source/quality_artifacts/granite-8b?"+tt.query,
+				http.NoBody,
+			)
+			ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetModelCatalog)), client)
+			req = req.WithContext(ctx)
+			recorder := httptest.NewRecorder()
+			app := &App{logger: testLogger}
+
+			app.GetCatalogModelQualityArtifactsHandler(recorder, req, httprouter.Params{
+				{Key: CatalogSourceID, Value: "sample-source"},
+				{Key: CatalogModelName, Value: "/granite-8b"},
+			})
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		})
+	}
+}
+
 func TestGetCatalogModelQualityArtifactsHandlerEscapesSourceID(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com", Token: "test-token"}
 	mockFactory := bffmocks.NewMockClientFactory(testLogger)

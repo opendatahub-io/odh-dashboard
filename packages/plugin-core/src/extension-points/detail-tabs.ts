@@ -23,7 +23,8 @@ export type DetailTabProperties = {
    * Optional predicate controlling tab visibility.
    * Receives the same `componentProps` passed to `ExtensibleDetailTabs`.
    * Return `true` to show, `false` to hide. When omitted the tab always shows.
-   * May return a `Promise<boolean>` for async checks (tab is hidden until resolved).
+   * May return a `Promise<boolean>` for async checks. The tab is hidden while the result is pending
+   * unless it is active, in which case it remains rendered until the result resolves.
    */
   shouldShow?: (props: Record<string, unknown>) => boolean | Promise<boolean>;
 };

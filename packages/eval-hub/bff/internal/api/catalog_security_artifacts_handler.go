@@ -27,6 +27,12 @@ import (
 func (app *App) GetCatalogModelSecurityArtifactsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
+	namespace := getCatalogDiscoveryNamespace(r)
+	if err := validateCatalogDiscoveryNamespace(namespace); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	mcClient := bffclient.GetClient(ctx, bffclient.BFFTargetModelCatalog)
 	if mcClient == nil {
 		app.serviceUnavailableResponse(w, r, fmt.Errorf("model-catalog BFF client is not available"))
@@ -38,20 +44,29 @@ func (app *App) GetCatalogModelSecurityArtifactsHandler(w http.ResponseWriter, r
 		app.badRequestResponse(w, r, fmt.Errorf("missing required path parameter: source_id"))
 		return
 	}
+	if sourceID == "." || sourceID == ".." {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid path parameter: source_id"))
+		return
+	}
 
 	modelName := strings.TrimPrefix(ps.ByName("model_name"), "/")
 	if modelName == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("missing required path parameter: model_name"))
 		return
 	}
+	if modelName == "." || modelName == ".." {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid path parameter: model_name"))
+		return
+	}
 
+	encodedSourceID := url.PathEscape(sourceID)
 	encodedModelName := url.PathEscape(modelName)
 
 	// The bffclient baseURL already includes /api/v1 as PathPrefix.
-	catalogPath := fmt.Sprintf("/model_catalog/sources/%s/security_artifacts/%s", sourceID, encodedModelName)
+	catalogPath := fmt.Sprintf("/model_catalog/sources/%s/security_artifacts/%s", encodedSourceID, encodedModelName)
 
 	query := repositories.FilterPageValues(r.URL.Query())
-	if namespace := getCatalogDiscoveryNamespace(r); namespace != "" {
+	if namespace != "" {
 		query.Set("namespace", namespace)
 	}
 	catalogPath = repositories.UrlWithParams(catalogPath, query)

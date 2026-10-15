@@ -26,10 +26,23 @@ func getCatalogDiscoveryNamespace(r *http.Request) string {
 	return r.URL.Query().Get("namespace")
 }
 
+func validateCatalogDiscoveryNamespace(namespace string) error {
+	if namespace != "" && !validNamespaceRE.MatchString(namespace) {
+		return fmt.Errorf("invalid namespace %q: must be a valid RFC 1123 DNS label", namespace)
+	}
+	return nil
+}
+
 // GetCatalogModelQualityArtifactsHandler proxies the generic model-catalog
 // artifacts endpoint with the fixed evaluation-metrics filter.
 func (app *App) GetCatalogModelQualityArtifactsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
+
+	namespace := getCatalogDiscoveryNamespace(r)
+	if err := validateCatalogDiscoveryNamespace(namespace); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
 
 	mcClient := bffclient.GetClient(ctx, bffclient.BFFTargetModelCatalog)
 	if mcClient == nil {
@@ -62,7 +75,7 @@ func (app *App) GetCatalogModelQualityArtifactsHandler(w http.ResponseWriter, r 
 	catalogPath := fmt.Sprintf(qualityArtifactsPath, encodedSourceID, encodedModelName)
 
 	query := repositories.FilterPageValues(r.URL.Query())
-	if namespace := getCatalogDiscoveryNamespace(r); namespace != "" {
+	if namespace != "" {
 		query.Set("namespace", namespace)
 	}
 	query.Set("artifactType", qualityArtifactType)
