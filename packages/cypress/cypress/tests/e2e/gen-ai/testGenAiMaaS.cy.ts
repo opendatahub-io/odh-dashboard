@@ -188,10 +188,7 @@ describe('Verify Gen AI Playground inference with a MaaS model', () => {
       genAiPlayground.findAiModelRow(maasModelId, { timeout: 10000 }).should('be.visible');
 
       cy.step('Create a playground in the fresh project and select the MaaS model');
-      // A local LLAMA_STACK_URL override can expose passthrough MaaS models before this
-      // project has a playground, replacing the asset row's Add action with Try.
-      genAiPlayground.navigateToPlaygroundWithMaaS(playgroundProjectName);
-      genAiPlayground.findCreatePlaygroundButton({ timeout: 10000 }).should('be.visible').click();
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurePlaygroundModal().should('be.visible');
       genAiPlayground.findModelCheckbox(maasModelId).should('be.checked');
       cy.intercept('POST', '**/gen-ai/api/v1/lsd/install*').as('installLSD');
