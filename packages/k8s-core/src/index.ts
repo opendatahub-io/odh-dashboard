@@ -69,6 +69,7 @@ export type {
   DataScienceClusterComponentStatus,
   DataScienceClusterKindStatus,
   AIHubKind,
+  AIHubNamespaceResponse,
   DataScienceClusterInitializationKindStatus,
   ConfigMapKind,
   EventKind,

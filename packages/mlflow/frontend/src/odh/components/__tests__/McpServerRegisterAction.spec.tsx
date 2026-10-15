@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useMLflowStatus } from '@odh-dashboard/internal/concepts/mlflow/hooks/useMLflowStatus';
 import useFetchAIHub from '@odh-dashboard/internal/concepts/areas/useFetchAIHub';
-import type { AIHubKind } from '@odh-dashboard/k8s-core';
+import type { AIHubNamespaceResponse } from '@odh-dashboard/k8s-core';
 import { mockMcpServer } from '~/__mocks__/mockMcpCatalog';
 import type { McpServer } from '~/app/types/mcpCatalogTypes';
 import { useMcpServerConverter } from '~/app/hooks/useMcpServerCatalog';
@@ -40,9 +40,8 @@ const mockUseFetchAIHub = jest.mocked(useFetchAIHub);
 const mockUseMcpServerConverter = jest.mocked(useMcpServerConverter);
 
 const mockAIHub = {
-  metadata: { name: 'default-aihub' },
-  spec: { instancesNamespace: 'rhoai-model-registries' },
-} as AIHubKind;
+  instancesNamespace: 'rhoai-model-registries',
+} satisfies AIHubNamespaceResponse;
 
 const renderAction = (
   server: { data: McpServer | null; loaded: boolean; error?: Error } = {

@@ -3,6 +3,9 @@ import type { AIHubKind } from '@odh-dashboard/k8s-core/aihub';
 import { KubeFastifyInstance } from '../../../../types';
 import { isAIHubResourceNotFoundError } from '../../../../utils/aihub';
 import { getAIHub, getAIHubFetchError } from '../../../../utils/resourceUtils';
+import { getUserInfo } from '../../../../utils/userUtils';
+import { isUserAdmin, isUserAllowed } from '../../../../utils/adminUtils';
+import { createCustomError } from '../../../../utils/requestUtils';
 import aihubRoute from '../index';
 
 jest.mock('../../../../utils/resourceUtils', () => ({
@@ -15,16 +18,28 @@ jest.mock('../../../../utils/aihub', () => ({
   isAIHubResourceNotFoundError: jest.fn(),
 }));
 
+jest.mock('../../../../utils/userUtils', () => ({ getUserInfo: jest.fn() }));
+jest.mock('../../../../utils/adminUtils', () => ({
+  isUserAdmin: jest.fn(),
+  isUserAllowed: jest.fn(),
+}));
+
 const mockGetAIHub = jest.mocked(getAIHub);
 const mockGetAIHubFetchError = jest.mocked(getAIHubFetchError);
 const mockIsAIHubResourceNotFoundError = jest.mocked(isAIHubResourceNotFoundError);
+const mockGetUserInfo = jest.mocked(getUserInfo);
+const mockIsUserAdmin = jest.mocked(isUserAdmin);
+const mockIsUserAllowed = jest.mocked(isUserAllowed);
 
 describe('aihub route', () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     mockIsAIHubResourceNotFoundError.mockReturnValue(false);
+    mockGetUserInfo.mockResolvedValue({ userName: 'test-user', userID: undefined });
+    mockIsUserAdmin.mockResolvedValue(false);
+    mockIsUserAllowed.mockResolvedValue(true);
     app = fastify();
     await aihubRoute(app as KubeFastifyInstance);
     await app.ready();
@@ -61,20 +76,64 @@ describe('aihub route', () => {
     expect(response.body).not.toBe('null');
   });
 
-  it('should return the cached AIHub resource', async () => {
-    const aihub: AIHubKind = {
+  it('should return only the instances namespace from the cached AIHub resource', async () => {
+    const aihub = {
       apiVersion: 'components.platform.opendatahub.io/v1alpha1',
       kind: 'AIHub',
-      metadata: { name: 'default-aihub' },
-      spec: { instancesNamespace: 'odh-model-registries' },
-    };
+      metadata: { name: 'default-aihub', annotations: { private: 'not-for-client' } },
+      spec: { instancesNamespace: 'odh-model-registries', privateField: 'not-for-client' },
+      status: { phase: 'Ready' },
+    } as AIHubKind;
     mockGetAIHubFetchError.mockReturnValue(undefined);
     mockGetAIHub.mockReturnValue(aihub);
 
     const response = await app.inject({ method: 'GET', url: '/' });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual(aihub);
+    expect(response.json()).toEqual({ instancesNamespace: 'odh-model-registries' });
+  });
+
+  it('should reject unauthenticated requests before reading AIHub', async () => {
+    mockGetUserInfo.mockRejectedValueOnce(createCustomError('Unauthorized', 'Unauthorized', 401));
+
+    const response = await app.inject({ method: 'GET', url: '/' });
+
+    expect(response.statusCode).toBe(401);
+    expect(mockGetAIHub).not.toHaveBeenCalled();
+  });
+
+  it('should reject users without dashboard access before reading AIHub', async () => {
+    mockIsUserAllowed.mockResolvedValueOnce(false);
+
+    const response = await app.inject({ method: 'GET', url: '/' });
+
+    expect(response.statusCode).toBe(403);
+    expect(mockGetAIHub).not.toHaveBeenCalled();
+  });
+
+  it('should not return AIHub data when the dashboard access check fails', async () => {
+    mockIsUserAllowed.mockRejectedValueOnce(new Error('Authorization service unavailable'));
+
+    const response = await app.inject({ method: 'GET', url: '/' });
+
+    expect(response.statusCode).toBe(500);
+    expect(mockGetAIHub).not.toHaveBeenCalled();
+  });
+
+  it('should allow dashboard admins without requiring the regular user grant', async () => {
+    mockIsUserAdmin.mockResolvedValueOnce(true);
+    mockGetAIHub.mockReturnValue({
+      apiVersion: 'components.platform.opendatahub.io/v1alpha1',
+      kind: 'AIHub',
+      metadata: { name: 'default-aihub' },
+      spec: { instancesNamespace: 'odh-model-registries' },
+    });
+    mockGetAIHubFetchError.mockReturnValue(undefined);
+
+    const response = await app.inject({ method: 'GET', url: '/' });
+
+    expect(response.statusCode).toBe(200);
+    expect(mockIsUserAllowed).not.toHaveBeenCalled();
   });
 
   it('should preserve a forbidden AIHub fetch error', async () => {

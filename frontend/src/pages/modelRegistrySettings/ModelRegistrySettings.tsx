@@ -20,8 +20,8 @@ import CreateModal from './CreateModal';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 
 const ModelRegistrySettings: React.FC = () => {
-  const { aiHub, aiHubError } = React.useContext(AreaContext);
-  const modelRegistryNamespace = aiHub?.spec.instancesNamespace;
+  const { aiHubInstancesNamespace: modelRegistryNamespace, aiHubError } =
+    React.useContext(AreaContext);
   const [createModalOpen, setCreateModalOpen] = React.useState(false);
 
   const [modelRegistries, mrloaded, loadError, refreshModelRegistries] =

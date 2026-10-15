@@ -41,8 +41,8 @@ export const ModelRegistriesContextProvider: React.FC<ModelRegistriesContextProv
 };
 
 const EnabledModelRegistriesContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const { aiHub, aiHubError } = React.useContext(AreaContext);
-  const modelRegistryNamespace = aiHub?.spec.instancesNamespace;
+  const { aiHubInstancesNamespace: modelRegistryNamespace, aiHubError } =
+    React.useContext(AreaContext);
   const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<ServiceKind | null>(
     null,
   );

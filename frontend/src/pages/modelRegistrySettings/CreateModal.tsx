@@ -90,7 +90,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [isPasswordTouched, setIsPasswordTouched] = React.useState(false);
   const [isDatabaseTouched, setIsDatabaseTouched] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
-  const { aiHub, aiHubError } = React.useContext(AreaContext);
+  const { aiHubInstancesNamespace: modelRegistryNamespace, aiHubError } =
+    React.useContext(AreaContext);
   const secureDbEnabled = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
   const [configSecrets, configSecretsLoaded, configSecretsError] = useModelRegistryCertificateNames(
     !addSecureDB,
@@ -103,7 +104,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     key: '',
     isValid: true,
   });
-  const modelRegistryNamespace = aiHub?.spec.instancesNamespace;
 
   React.useEffect(() => {
     if (configSecretsLoaded && !configSecretsError && !mr) {

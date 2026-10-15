@@ -1,6 +1,5 @@
 import * as React from 'react';
 import type {
-  AIHubKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
 } from '@odh-dashboard/k8s-core';
@@ -14,7 +13,7 @@ export type AreaContextState = {
    */
   dscStatus: DataScienceClusterKindStatus | null;
   dsciStatus: DataScienceClusterInitializationKindStatus | null;
-  aiHub: AIHubKind | null;
+  aiHubInstancesNamespace?: string;
   /**
    * An AIHub read failure is kept separate from the global DSC state so that
    * only consumers that require the model registry namespace are blocked.
@@ -26,7 +25,7 @@ export type AreaContextState = {
 export const AreaContext = React.createContext<AreaContextState>({
   dscStatus: null,
   dsciStatus: null,
-  aiHub: null,
+  aiHubInstancesNamespace: undefined,
   aiHubError: undefined,
   areasStatus: {},
 });

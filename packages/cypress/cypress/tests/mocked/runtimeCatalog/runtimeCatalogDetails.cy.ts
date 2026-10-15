@@ -1,4 +1,4 @@
-import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
@@ -103,7 +103,10 @@ const setupRuntimeCatalog = (enabled = true): void => {
     }),
   );
 
-  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: 'odh-model-registries' }));
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: 'odh-model-registries' }),
+  );
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptOdh(

@@ -40,7 +40,7 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
-  AIHubKind,
+  AIHubNamespaceResponse,
   ConfigMapKind,
   ConnectionTypeConfigMap,
   DashboardConfigKind,
@@ -275,7 +275,7 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/aihub',
-          response: OdhResponse<AIHubKind | null>,
+          response: OdhResponse<AIHubNamespaceResponse | null>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/status',

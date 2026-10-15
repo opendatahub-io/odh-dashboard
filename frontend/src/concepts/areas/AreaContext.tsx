@@ -9,7 +9,6 @@ import {
 } from '@odh-dashboard/plugin-core/areas';
 import { isAreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type {
-  AIHubKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
 } from '@odh-dashboard/k8s-core';
@@ -26,7 +25,7 @@ import useFetchAIHub from '#~/concepts/areas/useFetchAIHub';
 export { AreaContext } from '@odh-dashboard/plugin-core/areas';
 
 type InnerProps = {
-  aiHub: AIHubKind | null;
+  aiHubInstancesNamespace?: string;
   aiHubError?: Error;
   dscStatus: DataScienceClusterKindStatus | null;
   dsciStatus: DataScienceClusterInitializationKindStatus | null;
@@ -35,7 +34,7 @@ type InnerProps = {
 };
 
 const Inner: React.FC<InnerProps> = ({
-  aiHub,
+  aiHubInstancesNamespace,
   aiHubError,
   dscStatus,
   dsciStatus,
@@ -95,8 +94,8 @@ const Inner: React.FC<InnerProps> = ({
   );
 
   const contextValue = React.useMemo(
-    () => ({ aiHub, aiHubError, dscStatus, dsciStatus, areasStatus }),
-    [aiHub, aiHubError, dscStatus, dsciStatus, areasStatus],
+    () => ({ aiHubInstancesNamespace, aiHubError, dscStatus, dsciStatus, areasStatus }),
+    [aiHubInstancesNamespace, aiHubError, dscStatus, dsciStatus, areasStatus],
   );
 
   return <AreaContext.Provider value={contextValue}>{children}</AreaContext.Provider>;
@@ -140,7 +139,7 @@ const AreaContextProvider: React.FC<AreaContextProps> = ({ flags, children }) =>
 
   return (
     <Inner
-      aiHub={aiHub}
+      aiHubInstancesNamespace={aiHub?.instancesNamespace}
       aiHubError={errorAIHub}
       dscStatus={dscStatus}
       dsciStatus={dsciStatus}

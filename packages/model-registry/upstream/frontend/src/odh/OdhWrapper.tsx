@@ -1,6 +1,5 @@
 import React from 'react';
 import { DeploymentMode, ModularArchConfig, ModularArchContextProvider } from 'mod-arch-core';
-import type { AIHubKind } from '@odh-dashboard/k8s-core';
 import { AreaContext } from '@odh-dashboard/plugin-core/areas';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
@@ -8,22 +7,22 @@ type OdhWrapperProps = {
   children: React.ReactNode;
 };
 
-export const createOdhModularArchConfig = (aiHub: AIHubKind | null): ModularArchConfig => ({
+export const createOdhModularArchConfig = (instancesNamespace?: string): ModularArchConfig => ({
   deploymentMode: DeploymentMode.Federated,
   URL_PREFIX,
   BFF_API_VERSION,
-  mandatoryNamespace: aiHub?.spec.instancesNamespace,
+  mandatoryNamespace: instancesNamespace,
 });
 
 const OdhWrapper: React.FC<OdhWrapperProps> = ({ children }) => {
-  const { aiHub, aiHubError } = React.useContext(AreaContext);
+  const { aiHubInstancesNamespace, aiHubError } = React.useContext(AreaContext);
 
   if (aiHubError) {
     return <div>Error: {aiHubError.message}</div>;
   }
 
   return (
-    <ModularArchContextProvider config={createOdhModularArchConfig(aiHub)}>
+    <ModularArchContextProvider config={createOdhModularArchConfig(aiHubInstancesNamespace)}>
       {children}
     </ModularArchContextProvider>
   );

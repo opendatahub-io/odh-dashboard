@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
-import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ModelRegistryMetadataType } from '@odh-dashboard/model-registry/types/types';
@@ -60,7 +60,10 @@ const setupGatedAccessIntercepts = ({ hfUsername }: GatedAccessInterceptOptions 
       },
     }),
   );
-  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: REGISTRIES_NAMESPACE }));
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: REGISTRIES_NAMESPACE }),
+  );
 
   cy.interceptOdh(
     'GET /model-registry/api/:apiVersion/model_catalog/sources',

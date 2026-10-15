@@ -22,3 +22,5 @@ export type AIHubKind = {
     phase?: string;
   };
 };
+
+export type AIHubNamespaceResponse = Pick<AIHubKind['spec'], 'instancesNamespace'>;

@@ -1,5 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
-import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import {
@@ -104,7 +104,10 @@ const initBaseIntercepts = (hfAccessType?: HfAccessType) => {
       },
     }),
   );
-  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: REGISTRIES_NAMESPACE }));
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: REGISTRIES_NAMESPACE }),
+  );
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({

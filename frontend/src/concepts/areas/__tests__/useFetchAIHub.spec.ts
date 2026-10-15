@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
-import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import axios from '@odh-dashboard/ui-core/utilities/axios';
 import useFetchAIHub from '#~/concepts/areas/useFetchAIHub';
 
@@ -9,14 +9,14 @@ jest.mock('@odh-dashboard/ui-core/utilities/axios', () => ({
 }));
 
 const mockAxios = jest.mocked(axios.get);
-const aiHub = mockAIHub({ instancesNamespace: 'rhoai-model-registries' });
+const aiHub = mockAIHubNamespaceResponse({ instancesNamespace: 'rhoai-model-registries' });
 
 describe('useFetchAIHub', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should return the AIHub resource and refresh from the canonical endpoint', async () => {
+  it('should return the AIHub instances namespace and refresh from the canonical endpoint', async () => {
     mockAxios.mockResolvedValue({ data: aiHub });
 
     const renderResult = testHook(useFetchAIHub)();
@@ -45,7 +45,7 @@ describe('useFetchAIHub', () => {
   });
 
   it('should surface an error for a malformed successful AIHub response', async () => {
-    mockAxios.mockResolvedValue({ data: {} });
+    mockAxios.mockResolvedValue({ data: { instancesNamespace: 123 } });
 
     const renderResult = testHook(useFetchAIHub)();
     expect(renderResult).hookToHaveUpdateCount(1);
@@ -55,6 +55,17 @@ describe('useFetchAIHub', () => {
       standardUseFetchState(null, false, new Error('Invalid AIHub response format')),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
+  });
+
+  it('should reject a full AIHub resource returned by mistake', async () => {
+    mockAxios.mockResolvedValue({ data: { kind: 'AIHub', spec: aiHub } });
+
+    const renderResult = testHook(useFetchAIHub)();
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchState(null, false, new Error('Invalid AIHub response format')),
+    );
   });
 
   it('should surface an HTTP 404 error instead of treating it as a missing AIHub', async () => {

@@ -1,5 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
-import { mockAIHub } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockConfigMapsSecrets } from '@odh-dashboard/internal/__mocks__';
@@ -68,7 +68,7 @@ const setupMocksForMRSettingAccess = ({
   cy.interceptOdh(
     'GET /api/aihub',
     aiHubExists
-      ? mockAIHub({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE })
+      ? mockAIHubNamespaceResponse({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE })
       : { statusCode: 200, headers: { 'content-type': 'application/json' }, body: null },
   ).as('getAIHub');
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
@@ -352,7 +352,10 @@ it('Model registry settings should not be available when model registry is disab
       },
     }),
   );
-  cy.interceptOdh('GET /api/aihub', mockAIHub({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE }));
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE }),
+  );
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   modelRegistrySettings.visit(false);
   pageNotfound.findPage().should('exist');

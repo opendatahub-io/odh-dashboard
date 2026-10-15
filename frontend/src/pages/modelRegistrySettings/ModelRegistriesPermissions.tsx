@@ -28,8 +28,8 @@ import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
 import ProjectsSettingsTab from './ProjectsTab/ProjectsSettingsTab';
 
 const ModelRegistriesManagePermissions: React.FC = () => {
-  const { aiHub, aiHubError } = React.useContext(AreaContext);
-  const modelRegistryNamespace = aiHub?.spec.instancesNamespace;
+  const { aiHubInstancesNamespace: modelRegistryNamespace, aiHubError } =
+    React.useContext(AreaContext);
   const [activeTabKey, setActiveTabKey] = React.useState('users');
   const [ownerReference, setOwnerReference] = React.useState<ModelRegistryKind>();
   const [groups] = useGroups();

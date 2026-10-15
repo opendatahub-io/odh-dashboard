@@ -31,7 +31,7 @@ type OpenRegisterModal = {
 const McpServerRegisterAction: React.FC<McpServerRegisterActionProps> = ({ server }) => {
   const mlflowStatus = useMLflowStatus(true);
   const [aiHub, aiHubLoaded, aiHubError] = useFetchAIHub();
-  const registriesNamespace = aiHub?.spec.instancesNamespace || '';
+  const registriesNamespace = aiHub?.instancesNamespace || '';
   const [crData, crLoaded, crError] = useMcpServerConverter(
     server.data?.id || '',
     registriesNamespace,

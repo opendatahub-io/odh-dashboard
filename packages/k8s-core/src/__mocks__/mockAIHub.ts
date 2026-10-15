@@ -1,4 +1,4 @@
-import type { AIHubKind } from '../k8sTypes';
+import type { AIHubKind, AIHubNamespaceResponse } from '../k8sTypes';
 
 type MockAIHubType = {
   instancesNamespace?: string;
@@ -13,4 +13,10 @@ export const mockAIHub = ({
   kind: 'AIHub',
   metadata: { name },
   spec: { instancesNamespace },
+});
+
+export const mockAIHubNamespaceResponse = ({
+  instancesNamespace = 'odh-model-registries',
+}: Pick<MockAIHubType, 'instancesNamespace'> = {}): AIHubNamespaceResponse => ({
+  instancesNamespace,
 });

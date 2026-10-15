@@ -1,25 +1,20 @@
-import type { AIHubKind } from '@odh-dashboard/k8s-core';
+import type { AIHubNamespaceResponse } from '@odh-dashboard/k8s-core';
 import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import axios from '@odh-dashboard/ui-core/utilities/axios';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isAIHubKind = (value: unknown): value is AIHubKind =>
+const isAIHubNamespaceResponse = (value: unknown): value is AIHubNamespaceResponse =>
   isRecord(value) &&
-  value.apiVersion === 'components.platform.opendatahub.io/v1alpha1' &&
-  value.kind === 'AIHub' &&
-  isRecord(value.metadata) &&
-  typeof value.metadata.name === 'string' &&
-  isRecord(value.spec) &&
-  (value.spec.instancesNamespace === undefined ||
-    typeof value.spec.instancesNamespace === 'string');
+  Object.keys(value).every((key) => key === 'instancesNamespace') &&
+  (value.instancesNamespace === undefined || typeof value.instancesNamespace === 'string');
 
-const fetchAIHub = (): Promise<AIHubKind | null> =>
+const fetchAIHub = (): Promise<AIHubNamespaceResponse | null> =>
   axios
     .get('/api/aihub')
     .then((response) => {
-      if (response.data === null || isAIHubKind(response.data)) {
+      if (response.data === null || isAIHubNamespaceResponse(response.data)) {
         return response.data;
       }
 
@@ -29,6 +24,7 @@ const fetchAIHub = (): Promise<AIHubKind | null> =>
       throw new Error(error.response?.data?.message || error.message);
     });
 
-const useFetchAIHub = (): FetchState<AIHubKind | null> => useFetchState(fetchAIHub, null);
+const useFetchAIHub = (): FetchState<AIHubNamespaceResponse | null> =>
+  useFetchState(fetchAIHub, null);
 
 export default useFetchAIHub;
