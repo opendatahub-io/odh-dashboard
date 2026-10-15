@@ -260,6 +260,15 @@ describe('useChatbotConfigStore', () => {
       expect(JSON.parse(sessionStorage.getItem('mcp-tool-selections') ?? '{}')).toEqual({});
     });
 
+    it('should reset a scoped store without reading session storage', () => {
+      const scopedStore = createChatbotConfigStore({ skipSessionStorage: true });
+      scopedStore.getState().resetConfiguration();
+
+      expect(scopedStore.getState().configurations[DEFAULT_CONFIG_ID]?.mcpToolSelections).toEqual(
+        {},
+      );
+    });
+
     it('should reset with multiple initial values', () => {
       act(() => {
         useChatbotConfigStore.getState().resetConfiguration({

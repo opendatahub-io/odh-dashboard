@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChatbotSettingsPanel } from '~/app/Chatbot/components/ChatbotSettingsPanel';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -12,6 +12,7 @@ const DEFAULT_WIDTH = '550px';
 
 const mockResizeEvent = new Event('click');
 let mockAgentConfigManagementEnabled = false;
+let mockProfileDirty = false;
 
 // Track DrawerPanelContent defaultSize (must be prefixed with 'mock' for Jest)
 let mockDrawerPanelDefaultSize: string | undefined;
@@ -127,6 +128,11 @@ jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled', () => ({
   default: jest.fn(() => false),
 }));
 
+jest.mock('~/app/agentProfile/useIsProfileDirty', () => ({
+  __esModule: true,
+  default: () => mockProfileDirty,
+}));
+
 jest.mock('~/app/components/SafeNavigationBlocker', () => ({
   __esModule: true,
   default: () => null,
@@ -200,11 +206,14 @@ describe('ChatbotSettingsPanel', () => {
     jest.clearAllMocks();
     sessionStorage.clear();
     mockAgentConfigManagementEnabled = false;
+    mockProfileDirty = false;
     useChatbotConfigStore.getState().resetConfiguration();
     mockDrawerPanelDefaultSize = undefined;
     mockDrawerHeadStyle = undefined;
     mockDrawerBodyStyle = undefined;
   });
+
+  afterEach(() => jest.useRealTimers());
 
   it('should confirm before reverting changed default settings', async () => {
     mockAgentConfigManagementEnabled = true;
@@ -248,6 +257,47 @@ describe('ChatbotSettingsPanel', () => {
         name: /Close Info alert/,
       }),
     );
+    expect(screen.queryByTestId('settings-reverted-alert')).not.toBeInTheDocument();
+  });
+
+  it('should keep the saved-agent revert flow available', async () => {
+    mockAgentConfigManagementEnabled = true;
+    useChatbotConfigStore.getState().applyAgentProfile({}, 'agent-id', 'Agent', '');
+    const onResetToLastSaved = jest.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ChatbotSettingsPanel {...defaultProps} onResetToLastSaved={onResetToLastSaved} />,
+    );
+
+    expect(screen.getByTestId('settings-panel-reset-button')).toBeDisabled();
+    mockProfileDirty = true;
+    rerender(<ChatbotSettingsPanel {...defaultProps} onResetToLastSaved={onResetToLastSaved} />);
+
+    await user.click(screen.getByTestId('settings-panel-reset-button'));
+    expect(screen.getByText('Revert to last saved agent?')).toBeInTheDocument();
+    expect(
+      screen.getByText('Your settings will return to the last saved version of this agent.'),
+    ).toBeInTheDocument();
+    await user.click(screen.getByTestId('reset-agent-confirm-button'));
+    expect(onResetToLastSaved).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('settings-reverted-alert')).not.toBeInTheDocument();
+  });
+
+  it('should hide the default-settings toast after its timeout', () => {
+    jest.useFakeTimers();
+    mockAgentConfigManagementEnabled = true;
+    render(
+      <ChatbotSettingsPanel
+        {...defaultProps}
+        isDefaultConfigDirty
+        onRevertToDefaults={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('settings-panel-reset-button'));
+    fireEvent.click(screen.getByTestId('reset-agent-confirm-button'));
+    expect(screen.getByTestId('settings-reverted-alert')).toBeInTheDocument();
+    act(() => jest.runOnlyPendingTimers());
     expect(screen.queryByTestId('settings-reverted-alert')).not.toBeInTheDocument();
   });
 

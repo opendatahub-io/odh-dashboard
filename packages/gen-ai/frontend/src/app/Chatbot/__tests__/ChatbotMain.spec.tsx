@@ -230,6 +230,9 @@ describe('ChatbotMain - Empty State Logic', () => {
 
   it('should omit unreachable MCP servers when saving an agent profile', () => {
     let temperature = 0.1;
+    let selectedModel = '';
+    let knowledgeMode: 'inline' | 'external' = 'inline';
+    let selectedVectorStoreId = 'inline-store';
     mockUseChatbotConfigStore.getState =
       jest.requireActual<typeof import('~/app/Chatbot/store')>(
         '~/app/Chatbot/store',
@@ -242,8 +245,9 @@ describe('ChatbotMain - Empty State Logic', () => {
             configurations: {
               default: {
                 ...DEFAULT_CONFIGURATION,
-                selectedModel: 'test-model',
-                selectedVectorStoreId: 'inline-store',
+                selectedModel,
+                knowledgeMode,
+                selectedVectorStoreId,
                 temperature,
               },
             },
@@ -307,13 +311,27 @@ describe('ChatbotMain - Empty State Logic', () => {
     const { rerender } = render(renderMain());
 
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedModel).toBe('');
+    selectedModel = 'test-model';
+    rerender(renderMain());
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    knowledgeMode = 'external';
+    selectedVectorStoreId = 'external-store';
+    rerender(renderMain());
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    knowledgeMode = 'inline';
+    selectedVectorStoreId = 'inline-store';
     temperature = 0.5;
     rerender(renderMain());
 
     const playgroundProps = mockChatbotPlayground.mock.calls.at(-1)?.[0];
     expect(playgroundProps).toEqual(expect.objectContaining({ mcpServers: [connectedMcpServer] }));
     expect(playgroundProps?.isDefaultConfigDirty).toBe(true);
+    act(() => playgroundProps?.setActivePaneConfigId?.('other-config'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].activePaneConfigId).toBe('other-config');
     act(() => playgroundProps?.onRevertToDefaults?.());
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].activePaneConfigId).toBe('default');
     expect(useChatbotConfigStore.getState().configurations.default).toEqual({
       ...DEFAULT_CONFIGURATION,
       selectedModel: 'test-model',
@@ -321,6 +339,8 @@ describe('ChatbotMain - Empty State Logic', () => {
     act(() => {
       playgroundProps?.onOpenSave?.();
     });
+    act(() => playgroundProps?.onClearAgent?.());
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedModel).toBe('');
 
     expect(mockSaveAgentProfileModal).toHaveBeenLastCalledWith(
       expect.objectContaining({

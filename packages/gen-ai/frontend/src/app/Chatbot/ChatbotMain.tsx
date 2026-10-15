@@ -431,12 +431,13 @@ const ChatbotMain: React.FunctionComponent = () => {
               isProfileDirty={isProfileDirty}
               onResetToLastSaved={handleResetToLastSaved}
               isDefaultConfigDirty={isDefaultConfigDirty}
-              onRevertToDefaults={() =>
+              onRevertToDefaults={() => {
                 useChatbotConfigStore.getState().resetConfiguration({
                   ...DEFAULT_CONFIGURATION,
                   selectedModel: defaultModelRef.current ?? '',
-                })
-              }
+                });
+                setActivePaneConfigId(DEFAULT_CONFIG_ID);
+              }}
               mcpServers={availableMcpServers}
               mcpRegistryAvailable={mcpRegistryAvailable}
               mcpServersLoaded={mcpServersLoaded}

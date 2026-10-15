@@ -576,6 +576,19 @@ describe('ChatbotPlayground — document upload and messaging', () => {
     });
   });
 
+  it('should pass default-settings revert controls to the settings panel', () => {
+    const onRevertToDefaults = jest.fn();
+    renderPlayground({ isDefaultConfigDirty: true, onRevertToDefaults });
+
+    const settingsProps = mockChatbotSettingsPanelProps.mock.calls.at(-1)?.[0] as {
+      isDefaultConfigDirty: boolean;
+      onRevertToDefaults: () => void;
+    };
+    expect(settingsProps.isDefaultConfigDirty).toBe(true);
+    settingsProps.onRevertToDefaults();
+    expect(onRevertToDefaults).toHaveBeenCalledTimes(1);
+  });
+
   it('should omit unreachable Registry and ConfigMap servers from Playground consumers', () => {
     const unreachableRegistryServer = createMCPServer({
       name: 'unreachable-registry-server',
