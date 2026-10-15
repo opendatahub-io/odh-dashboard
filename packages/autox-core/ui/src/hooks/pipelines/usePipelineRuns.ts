@@ -19,7 +19,8 @@ export type PipelineRunsResult<TParams = Record<string, unknown>> = {
 };
 
 /**
- * Fetches paginated pipeline runs using the injected API client.
+ * Fetches paginated pipeline runs using the injected BFF client. A successful response confirms
+ * the BFF found a Ready DSPA and the required managed pipeline definitions for this product.
  */
 export function usePipelineRuns<TParams = Record<string, unknown>>(
   namespace: string,
