@@ -1,6 +1,6 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
@@ -293,6 +293,53 @@ describe('McpRegistryServerDeployAction', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument(),
     );
+  });
+
+  it('should keep the popover open while the pointer moves from Deploy onto it', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    // Advance in small steps so React renders between PatternFly's chained show/hide timers.
+    const advance = async (ms: number) => {
+      for (let elapsed = 0; elapsed < ms; elapsed += 50) {
+        // eslint-disable-next-line no-await-in-loop
+        await act(() => {
+          jest.advanceTimersByTime(50);
+        });
+      }
+    };
+    try {
+      setReadiness(
+        {
+          gatewayRequired: true,
+          deployable: false,
+          reason: McpDeployReadinessReason.NO_GATEWAY_AVAILABLE,
+        },
+        true,
+      );
+      renderAction({ deployData: openShiftDeployData });
+
+      const button = screen.getByTestId('mcp-registry-deploy-action-button');
+      await user.hover(button);
+      await advance(100);
+      const popover = screen.getByTestId('mcp-deploy-gateway-popover');
+
+      // A slow pointer is still crossing the gap after the popover's 300ms fade-out would end.
+      await user.unhover(button);
+      await advance(400);
+      expect(popover).toBeInTheDocument();
+      expect(popover).toHaveStyle({ opacity: '1' });
+      await user.hover(popover);
+      await advance(1000);
+      expect(popover).toBeInTheDocument();
+      expect(popover).toHaveStyle({ opacity: '1' });
+
+      // It closes once the pointer leaves the popover as well.
+      await user.unhover(popover);
+      await advance(1000);
+      expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('should enable Deploy when a required gateway is available', async () => {
