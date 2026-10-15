@@ -14,6 +14,7 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 interface ArchiveModalProps {
   confirmMessage: string;
@@ -73,7 +74,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       fireFormTrackingEvent(eventName, {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: e instanceof Error ? e.message : 'unknown error',
+        error: errorCategory(e),
       });
 
       setIsSubmitting(false);

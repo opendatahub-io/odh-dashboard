@@ -8,6 +8,7 @@ import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { projectDetails } from '../../../../pages/projects';
 import { ProjectModel } from '../../../../utils/models';
 import { connectionsPage, addConnectionModal } from '../../../../pages/connections';
+import { captureTracking, expectSafeTracking } from '../../../../utils/analytics';
 
 const testConnectionType = mockConnectionTypeConfigMap({
   name: 'uri-test-type',
@@ -125,9 +126,10 @@ describe('Test Connection - Modal', () => {
   });
 
   it('should show failure alert and Failed label after failed test', () => {
+    const message = 'Unable to connect to private-host-95482';
     cy.intercept('POST', '/core-bff/api/v1/connections/test', {
       body: {
-        data: { success: false, error: 'CONNECTION_FAILED', message: 'Unable to connect to host' },
+        data: { success: false, error: 'CONNECTION_FAILED', message },
       },
     }).as('testConnection');
 
@@ -137,11 +139,17 @@ describe('Test Connection - Modal', () => {
     addConnectionModal.find().findByTestId('field HOST').fill('badhost');
     addConnectionModal.find().findByTestId('field API_KEY').fill('secret-key');
 
+    captureTracking();
     addConnectionModal.findTestConnectionButton().click();
     cy.wait('@testConnection');
 
-    addConnectionModal.findTestFailureAlert().should('exist');
+    addConnectionModal.findTestFailureAlert().should('contain.text', message);
     addConnectionModal.findTestStatusFailed().should('exist');
+    expectSafeTracking(
+      'Connection Test Completed',
+      { success: false, errorType: 'unknown' },
+      message,
+    );
   });
 
   it('should reset status to Not tested when a credential field changes', () => {
