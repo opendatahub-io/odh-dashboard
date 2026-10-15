@@ -589,6 +589,22 @@ describe('ChatbotPlayground — document upload and messaging', () => {
     expect(onRevertToDefaults).toHaveBeenCalledTimes(1);
   });
 
+  it('reports the model selected on load without reporting a later model edit', () => {
+    act(() => useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, ''));
+    const onInitialModelSelected = jest.fn();
+    renderPlayground({ onInitialModelSelected });
+
+    expect(onInitialModelSelected).toHaveBeenCalledWith('test-model');
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedModel).toBe(
+      'test-model',
+    );
+
+    act(() =>
+      useChatbotConfigStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'another-model'),
+    );
+    expect(onInitialModelSelected).toHaveBeenCalledTimes(1);
+  });
+
   it('should omit unreachable Registry and ConfigMap servers from Playground consumers', () => {
     const unreachableRegistryServer = createMCPServer({
       name: 'unreachable-registry-server',
@@ -1235,7 +1251,10 @@ describe('ChatbotPlayground — "Try in playground" from a vector store', () => 
     });
   });
 
-  const renderPlaygroundWithRouteState = (state: Record<string, unknown>) =>
+  const renderPlaygroundWithRouteState = (
+    state: Record<string, unknown>,
+    props: Partial<React.ComponentProps<typeof ChatbotPlayground>> = {},
+  ) =>
     render(
       <MemoryRouter initialEntries={[{ pathname: '/gen-ai-studio/playground/test-ns', state }]}>
         <ChatbotPlayground
@@ -1243,9 +1262,20 @@ describe('ChatbotPlayground — "Try in playground" from a vector store', () => 
           setIsViewCodeModalOpen={jest.fn()}
           isNewChatModalOpen={false}
           setIsNewChatModalOpen={jest.fn()}
+          {...props}
         />
       </MemoryRouter>,
     );
+
+  it('reports a model preselected through the route as the starting model', () => {
+    const onInitialModelSelected = jest.fn();
+    renderPlaygroundWithRouteState({ model: 'route-model' }, { onInitialModelSelected });
+
+    expect(onInitialModelSelected).toHaveBeenCalledWith('route-model');
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedModel).toBe(
+      'route-model',
+    );
+  });
 
   it('enables RAG against the selected vector store', () => {
     renderPlaygroundWithRouteState({
