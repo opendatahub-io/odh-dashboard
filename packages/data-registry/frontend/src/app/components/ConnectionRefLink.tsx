@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ConnectionModel, ConnectionRef } from '~/app/types';
 import {
   CONNECTION_UNAVAILABLE_LABEL,
   getConnectionDisplayName,
 } from '~/app/utilities/connectionUtils';
+import './ConnectionRefLink.scss';
 
 type ConnectionRefLinkProps = {
   connectionRef?: ConnectionRef | string | null;
@@ -38,6 +40,22 @@ const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({
       <Link to={destination} data-testid="connection-ref-link">
         {label}
       </Link>
+    );
+  }
+
+  if (label === CONNECTION_UNAVAILABLE_LABEL) {
+    return (
+      <span
+        data-testid="connection-ref-label"
+        className="odh-data-registry-connection-ref__unavailable"
+      >
+        <ExclamationTriangleIcon
+          aria-hidden="true"
+          color="var(--pf-t--global--icon--color--status--warning--default)"
+          data-testid="connection-unavailable-icon"
+        />
+        {label}
+      </span>
     );
   }
 

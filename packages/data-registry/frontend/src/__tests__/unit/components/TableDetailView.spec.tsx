@@ -6,13 +6,14 @@ import TableDetailView from '~/app/pages/TableDetailView';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 import { mockRhaiConnection } from '~/__mocks__/mockConnection';
-import type { AssetResponse, ConnectionModel } from '~/app/types';
+import type { AssetResponse, ConnectionModel, ConnectionWarning } from '~/app/types';
 
 const renderView = (
   asset: AssetResponse,
   project = 'test-project',
   connections: ConnectionModel[] = [],
   connectionsLoaded = true,
+  connectionWarnings: ConnectionWarning[] = [],
 ) =>
   render(
     <MemoryRouter>
@@ -21,6 +22,7 @@ const renderView = (
         project={project}
         connections={connections}
         connectionsLoaded={connectionsLoaded}
+        connectionWarnings={connectionWarnings}
       />
     </MemoryRouter>,
   );
@@ -72,6 +74,32 @@ describe('TableDetailView', () => {
 
     expect(screen.getByTestId('connection-ref-label')).toHaveTextContent('Connection unavailable');
     expect(screen.queryByTestId('connection-ref-link')).not.toBeInTheDocument();
+  });
+
+  it('should render the DCH fallback warning as a plain inline alert', () => {
+    renderView(mockAssetResponse(), 'test-project', [], true, [
+      {
+        code: 'DCH_FALLBACK',
+        message: "Couldn't load connections from Data Connect Hub.",
+      },
+    ]);
+
+    const alert = screen.getByTestId('connection-warning-DCH_FALLBACK');
+    expect(alert).toHaveClass('pf-m-plain');
+    expect(alert).toHaveTextContent("Couldn't load connections from Data Connect Hub.");
+  });
+
+  it('should render other connection warnings with a bordered inline alert', () => {
+    renderView(mockAssetResponse(), 'test-project', [], true, [
+      {
+        code: 'RHAI_LOOKUP_FAILED',
+        message: 'Unable to load connection details.',
+      },
+    ]);
+
+    expect(screen.getByTestId('connection-warning-RHAI_LOOKUP_FAILED')).not.toHaveClass(
+      'pf-m-plain',
+    );
   });
 
   it('should render the connection type below the connection name', () => {

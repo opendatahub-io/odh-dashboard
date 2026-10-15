@@ -231,8 +231,10 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({
                         <Alert
                           key={warning.code}
                           isInline
+                          isPlain={warning.code === 'DCH_FALLBACK'}
                           variant="warning"
                           title={warning.message}
+                          data-testid={`connection-warning-${warning.code}`}
                         />
                       ))}
                     </DescriptionListDescription>
