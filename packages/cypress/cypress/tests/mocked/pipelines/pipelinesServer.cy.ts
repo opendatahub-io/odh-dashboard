@@ -2,6 +2,7 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockDataSciencePipelineApplicationK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { DSPipelineAPIServerStore } from '@odh-dashboard/internal/k8sTypes.ts';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
@@ -15,6 +16,7 @@ import {
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { DataSciencePipelineApplicationModel } from '../../../utils/models';
 import { toastNotifications } from '../../../pages/components/ToastNotifications';
+import { captureTracking, expectSafeTracking } from '../../../utils/analytics';
 
 describe('Pipeline Server', () => {
   it('Empty state', () => {
@@ -443,6 +445,23 @@ describe('Pipeline Server', () => {
     cy.wait('@deletePipelineConfig');
     cy.wait('@deleteDSPASecret');
     cy.wait('@deleteDSPA');
+  });
+
+  it('keeps a pipeline server deletion failure out of analytics', () => {
+    const message = 'Private pipeline server diagnostic';
+    initIntercepts({});
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.findInput().fill('Test Project pipeline server');
+    cy.intercept('GET', '**/api/k8s/**', {
+      statusCode: 500,
+      body: mock500Error({ message }),
+    }).as('getPipelineServerFailure');
+    captureTracking();
+    deleteModal.findSubmitButton().click();
+    cy.wait('@getPipelineServerFailure');
+    expectSafeTracking('Pipeline Server Deleted', { success: false, error: 'k8s_500' }, message);
   });
 
   it('View pipeline server', () => {
