@@ -21,6 +21,8 @@ type McpGatewayRequiredPopoverProps = {
  * so the docs link can be clicked or reached with Tab. It is rendered right after the trigger
  * in the DOM so Tab moves from the trigger into the popover. When the pointer leaves, it closes
  * after a short delay, so the pointer can cross the gap between the trigger and the popover.
+ * Pointer and focus each keep it open: it does not close while focus is on the docs link, or
+ * while the pointer is still over it.
  */
 const McpGatewayRequiredPopover: React.FC<McpGatewayRequiredPopoverProps> = ({
   explanation,
@@ -30,6 +32,13 @@ const McpGatewayRequiredPopover: React.FC<McpGatewayRequiredPopoverProps> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLSpanElement>(null);
   const closeTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const isHoveredRef = React.useRef(false);
+
+  const isInside = (target: EventTarget | null) =>
+    target instanceof Node && !!containerRef.current?.contains(target);
+  /** Focus inside the popover itself, not on the trigger (a clicked trigger keeps focus). */
+  const hasFocusInPopover = () =>
+    isInside(document.activeElement) && document.activeElement !== triggerRef.current;
 
   const cancelClose = () => clearTimeout(closeTimerRef.current);
   const open = () => {
@@ -42,22 +51,29 @@ const McpGatewayRequiredPopover: React.FC<McpGatewayRequiredPopoverProps> = ({
   };
   const closeAfterDelay = () => {
     cancelClose();
-    closeTimerRef.current = setTimeout(() => setIsOpen(false), HOVER_CLOSE_DELAY_MS);
+    closeTimerRef.current = setTimeout(() => {
+      if (!hasFocusInPopover()) {
+        setIsOpen(false);
+      }
+    }, HOVER_CLOSE_DELAY_MS);
   };
 
   React.useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
-  const isInside = (target: EventTarget | null) =>
-    target instanceof Node && !!containerRef.current?.contains(target);
-
   return (
     <span
       ref={containerRef}
-      onMouseEnter={open}
-      onMouseLeave={closeAfterDelay}
+      onMouseEnter={() => {
+        isHoveredRef.current = true;
+        open();
+      }}
+      onMouseLeave={() => {
+        isHoveredRef.current = false;
+        closeAfterDelay();
+      }}
       onFocus={open}
       onBlur={(event) => {
-        if (!isInside(event.relatedTarget)) {
+        if (!isInside(event.relatedTarget) && !isHoveredRef.current) {
           close();
         }
       }}
