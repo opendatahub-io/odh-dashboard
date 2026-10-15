@@ -39,6 +39,7 @@ var ValidTaskTypes = map[string]bool{
 var ValidTabularPresets = map[string]bool{
 	"speed":    true,
 	"balanced": true,
+	"quality":  true,
 }
 
 // ValidTimeseriesPresets lists the valid preset strings for timeseries pipelines.

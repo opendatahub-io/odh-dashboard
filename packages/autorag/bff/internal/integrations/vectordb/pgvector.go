@@ -81,15 +81,24 @@ func newPgvectorFromSecret(ctx context.Context, data map[string][]byte) (VectorD
 }
 
 func newPgvectorFromSecretWithLoopback(ctx context.Context, data map[string][]byte, allowLoopback bool) (VectorDB, error) {
+	return newPgvectorFromSecretWithConnector(ctx, data, allowLoopback, pgx.ConnectConfig)
+}
+
+func newPgvectorFromSecretWithConnector(
+	ctx context.Context,
+	data map[string][]byte,
+	allowLoopback bool,
+	connect func(context.Context, *pgx.ConnConfig) (*pgx.Conn, error),
+) (VectorDB, error) {
 	host := strings.TrimSpace(string(data["PGVECTOR_HOST"]))
 	portStr := strings.TrimSpace(string(data["PGVECTOR_PORT"]))
 	db := strings.TrimSpace(string(data["PGVECTOR_DB"]))
 	user := strings.TrimSpace(string(data["PGVECTOR_USER"]))
-	password := strings.TrimSpace(string(data["PGVECTOR_PASSWORD"]))
+	password := string(data["PGVECTOR_PASSWORD"])
 	certPEM := data["PGVECTOR_CA_CERT"]
 
-	if host == "" || db == "" || user == "" {
-		return nil, fmt.Errorf("pgvector secret missing required fields (PGVECTOR_HOST, PGVECTOR_DB, PGVECTOR_USER)")
+	if host == "" || db == "" || user == "" || strings.TrimSpace(password) == "" {
+		return nil, fmt.Errorf("pgvector secret missing required fields (PGVECTOR_HOST, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD)")
 	}
 
 	port := 5432
@@ -157,7 +166,7 @@ func newPgvectorFromSecretWithLoopback(ctx context.Context, data map[string][]by
 		}
 	}
 
-	conn, err := pgx.ConnectConfig(ctx, connConfig)
+	conn, err := connect(ctx, connConfig)
 	if err != nil {
 		if !endpoint.inCluster && !endpoint.loopback && len(certPEM) == 0 {
 			slog.Warn("Secret is missing the CA certificate for an external vector database and connection with the system trust store failed; add the CA to the connection Secret or mount it in the AutoRAG BFF pod trust store", "db_type", "pgvector")

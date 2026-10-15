@@ -19,7 +19,6 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { AIModel } from '~/app/types';
-import { maasTokensPath } from '~/app/utilities/routes';
 import { copyToClipboardWithTracking } from '~/app/utilities/utils';
 
 type EndpointDetailModalProps = {
@@ -392,10 +391,13 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                 </FlexItem>
                 <FlexItem>
                   {isMaaS ? (
-                    <Content component={ContentVariants.small}>
+                    <Content
+                      component={ContentVariants.small}
+                      data-testid="endpoint-modal-authentication-copy"
+                    >
                       To authenticate requests to this model, use an existing API key or create a
-                      new one from the <Link to={maasTokensPath}>API keys</Link> page. The API key
-                      must be scoped to a subscription that includes this model.
+                      new one from a subscription&apos;s details page. The API key must be scoped to
+                      a subscription that includes this model.
                     </Content>
                   ) : isCustomEndpoint ? (
                     <Content component={ContentVariants.small}>
@@ -414,6 +416,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                       toggleText="View subscriptions"
                       isExpanded={isSubscriptionsExpanded}
                       onToggle={(_event, expanded) => setIsSubscriptionsExpanded(expanded)}
+                      data-testid="endpoint-modal-subscriptions-toggle"
                     >
                       <Table
                         aria-label="Available subscriptions"
@@ -431,7 +434,8 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                             <Tr key={subscription.name}>
                               <Td dataLabel="Subscription">
                                 <Link
-                                  to={`/maas/maas-governance/subscriptions/view/${encodeURIComponent(subscription.name)}`}
+                                  data-testid={`endpoint-modal-subscription-link-${subscription.name}`}
+                                  to={`/maas/keys-and-subs/subscriptions/${encodeURIComponent(subscription.name)}`}
                                 >
                                   {subscription.displayName ?? subscription.name}
                                 </Link>

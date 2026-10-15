@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -216,4 +217,34 @@ func TestServingRuntimeCatalogPreservesClientErrors(t *testing.T) {
 			require.ErrorIs(t, err, failure)
 		})
 	}
+}
+
+func TestServingRuntimeCatalogDecodesLLMInferenceServiceConfig(t *testing.T) {
+	llmConfig := `{"apiVersion":"serving.kserve.io/v1alpha2","kind":"LLMInferenceServiceConfig"}`
+	payload := fmt.Sprintf(`{
+		"items": [{
+			"artifactType": "serving-runtime-version",
+			"version": "0.6.0",
+			"image": "registry.example.com/vllm:0.6.0",
+			"llmInferenceServiceConfig": %q
+		}],
+		"nextPageToken": "",
+		"pageSize": 1,
+		"size": 1
+	}`, llmConfig)
+	client := &runtimeCatalogHTTPClient{get: func(path string) ([]byte, error) {
+		require.Equal(t, "/serving_runtimes/1/versions", path)
+		return []byte(payload), nil
+	}}
+
+	versions, err := (&ServingRuntimeCatalogRepository{}).GetServingRuntimeVersions(client, "1", nil)
+	require.NoError(t, err)
+	require.Len(t, versions.Items, 1)
+	require.NotNil(t, versions.Items[0].LLMInferenceServiceConfig)
+	require.Equal(t, llmConfig, *versions.Items[0].LLMInferenceServiceConfig)
+
+	encoded, err := json.Marshal(versions.Items[0])
+	require.NoError(t, err)
+	require.Contains(t, string(encoded), `"llmInferenceServiceConfig"`)
+	require.NotContains(t, string(encoded), `"llmInferenceServiceTemplate"`)
 }

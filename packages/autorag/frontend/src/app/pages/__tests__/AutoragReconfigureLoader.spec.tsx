@@ -169,7 +169,14 @@ describe('AutoragReconfigureLoader', () => {
           ? [{ name: 'storage', type: 's3', data: { AWS_S3_BUCKET: 'bucket' } }]
           : type === 'maas'
             ? [{ name: 'maas', type: 'maas', data: {} }]
-            : [{ name: 'vector-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }],
+            : [
+                {
+                  name: 'vector-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+              ],
       ),
     );
     mockUsePipelineRunQuery.mockReturnValue({
@@ -212,8 +219,18 @@ describe('AutoragReconfigureLoader', () => {
           : type === 'maas'
             ? []
             : [
-                { name: 'canonical-db', type: 'database', data: { MILVUS_URI: '[REDACTED]' } },
-                { name: 'legacy-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } },
+                {
+                  name: 'canonical-db',
+                  type: 'database',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+                {
+                  name: 'legacy-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
               ],
       ),
     );
@@ -242,7 +259,14 @@ describe('AutoragReconfigureLoader', () => {
     mockGetSecrets.mockImplementation((type: string) =>
       Promise.resolve(
         type === 'vector-db'
-          ? [{ name: 'legacy-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }]
+          ? [
+              {
+                name: 'legacy-db',
+                type: 'vector-db',
+                data: { MILVUS_URI: '[REDACTED]' },
+                databaseProviders: ['milvus'],
+              },
+            ]
           : [],
       ),
     );
@@ -279,7 +303,9 @@ describe('AutoragReconfigureLoader', () => {
                 data: {
                   MILVUS_URI: '[REDACTED]',
                   NEO4J_URI: '[REDACTED]',
+                  NEO4J_PASSWORD: '[REDACTED]',
                 },
+                databaseProviders: ['milvus', 'neo4j'],
               },
             ]
           : [],
@@ -301,9 +327,9 @@ describe('AutoragReconfigureLoader', () => {
     renderPage();
 
     expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
-    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'legacy-mixed-db' });
+    expect(capturedProps.initialDatabaseSecret).toBeUndefined();
     expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
-    expect(mockWarning).not.toHaveBeenCalledWith(
+    expect(mockWarning).toHaveBeenCalledWith(
       'Connection secret not found',
       'The previously used database connection "legacy-mixed-db" could not be found. Please select a new connection.',
     );
@@ -480,7 +506,14 @@ describe('AutoragReconfigureLoader', () => {
           ? [{ name: 'storage', type: 's3', data: { AWS_S3_BUCKET: 'bucket' } }]
           : type === 'maas'
             ? [{ name: 'maas', type: 'maas', data: {} }]
-            : [{ name: 'vector-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }],
+            : [
+                {
+                  name: 'vector-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+              ],
       ),
     );
     mockUsePipelineRunQuery.mockReturnValue({
@@ -522,7 +555,14 @@ describe('AutoragReconfigureLoader', () => {
           ? [{ name: 'storage', type: 's3', data: { AWS_S3_BUCKET: 'bucket' } }]
           : type === 'maas'
             ? [{ name: 'maas', type: 'maas', data: {} }]
-            : [{ name: 'vector-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }],
+            : [
+                {
+                  name: 'vector-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+              ],
       ),
     );
     mockUsePipelineRunQuery.mockReturnValue({
@@ -790,7 +830,15 @@ describe('AutoragReconfigureLoader', () => {
     expect(mockWarning).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveDatabase?.([{ uuid: 'database-uuid', name: 'database', type: 'database', data: {} }]);
+      resolveDatabase?.([
+        {
+          uuid: 'database-uuid',
+          name: 'database',
+          type: 'database',
+          data: {},
+          databaseProviders: ['milvus'],
+        },
+      ]);
     });
     await waitFor(() =>
       expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'database' }),
@@ -828,7 +876,15 @@ describe('AutoragReconfigureLoader', () => {
     expect(mockWarning).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveDatabase?.([{ uuid: 'database-uuid', name: 'database', type: 'database', data: {} }]);
+      resolveDatabase?.([
+        {
+          uuid: 'database-uuid',
+          name: 'database',
+          type: 'database',
+          data: {},
+          databaseProviders: ['milvus'],
+        },
+      ]);
     });
     await screen.findByTestId('configure-page');
     expect(mockWarning).not.toHaveBeenCalled();

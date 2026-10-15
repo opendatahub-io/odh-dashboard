@@ -71,11 +71,14 @@ export const MAX_PREDICTION_LENGTH = 100;
 
 export const PRESET_FASTER = 'speed';
 export const PRESET_BETTER_QUALITY = 'balanced';
-export const PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY] as const;
+export const PRESET_QUALITY = 'quality';
+export const PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY, PRESET_QUALITY] as const;
+export const TIMESERIES_PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY] as const;
 
 export const PRESET_LABELS: Record<string, string> = {
   [PRESET_FASTER]: 'Faster',
   [PRESET_BETTER_QUALITY]: 'Better quality',
+  [PRESET_QUALITY]: 'Best quality',
 };
 
 // Timeseries metric alias mapping. The backend accepts eval_metric in either format

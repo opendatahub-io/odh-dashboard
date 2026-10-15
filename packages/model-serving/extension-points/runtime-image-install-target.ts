@@ -1,14 +1,9 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
-import type { PlaceholderRuntimeImageActionData } from '../src/components/runtimeImageInstall/placeholder-types';
-
-export type {
-  PlaceholderLlmInferenceServiceConfigData,
-  PlaceholderServingRuntimeTemplateData,
-} from '../src/components/runtimeImageInstall/placeholder-types';
+import type { RuntimeImageInstallActionData } from '@mf/modelRegistry/extension-points';
 
 export type RuntimeImageInstallTargetId =
-  keyof PlaceholderRuntimeImageActionData['deploymentResources'];
+  keyof RuntimeImageInstallActionData['deploymentResources'];
 
 // RuntimeImageInstallPage mounts install-target extensions. Each provides two things to that page's wizard:
 // - Step 1: a radio button option for how to install the runtime
@@ -17,8 +12,7 @@ export type RuntimeImageInstallTargetId =
 
 export type RuntimeImageInstallTargetProps = {
   targetData: NonNullable<
-    // TODO the type is a placeholder, see packages/model-serving/src/components/runtimeImageInstall/placeholder-types.ts
-    PlaceholderRuntimeImageActionData['deploymentResources'][RuntimeImageInstallTargetId]
+    RuntimeImageInstallActionData['deploymentResources'][RuntimeImageInstallTargetId]
   >;
   onBack: () => void;
   cancelReturnRoute: string;

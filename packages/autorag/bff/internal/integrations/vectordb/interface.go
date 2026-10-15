@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 )
 
 var ErrUnsupportedVectorDB = errors.New("unsupported vector DB: secret must contain MILVUS_URI or PGVECTOR_HOST")
@@ -39,11 +41,11 @@ type SearchOptions struct {
 
 // ValidateSearchOptions rejects combinations that the selected backend cannot support.
 func ValidateSearchOptions(data map[string][]byte, options SearchOptions) error {
-	_, milvus := data["MILVUS_URI"]
-	_, pgvector := data["PGVECTOR_HOST"]
-	if !milvus && !pgvector {
-		return fmt.Errorf("%w", ErrUnsupportedVectorDB)
+	providers := database.Classify(data)
+	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector) {
+		return fmt.Errorf("%w: unsupported or ambiguous provider classification", ErrUnsupportedVectorDB)
 	}
+	milvus := providers[0] == database.Milvus
 	if !milvus && options.Ranker == "weighted" {
 		return fmt.Errorf("%w: pgvector weighted hybrid search is not supported", ErrUnsupportedSearch)
 	}

@@ -5,6 +5,8 @@ import {
   CardExpandableContent,
   CardHeader,
   CardTitle,
+  Alert,
+  AlertActionCloseButton,
   Button,
   Title,
 } from '@patternfly/react-core';
@@ -29,26 +31,47 @@ import {
   type InfrastructureWorkloadsFilterType,
   type InfrastructureWorkloadsFilterValues,
 } from '../types/infrastructureWorkloads';
-import { getInfrastructureWorkloadsTableColumns } from '../const';
+import {
+  getInfrastructureWorkloadsTableColumns,
+  INFRASTRUCTURE_WORKLOADS_PARTIAL_FAILURE_TITLE,
+} from '../const';
 import {
   filterInfrastructureWorkloads,
   formatInfrastructureWorkloadKueueValue,
   getInfrastructureWorkloadFilterValues,
-  getInfrastructureWorkbenchStatus,
 } from '../utils/infrastructureWorkloads';
+import { getHardwareProfileRefFromAnnotations } from '../utils/hardwareModels';
 
 type FilterValues = InfrastructureWorkloadsFilterValues;
+type LocalFilterValues = Omit<FilterValues, 'status'>;
+
+const getNextFilterValues = (
+  current: LocalFilterValues,
+  type: Exclude<InfrastructureWorkloadsFilterType, 'status'>,
+  value: string,
+): LocalFilterValues => {
+  const nextValue = current[type].includes(value)
+    ? current[type].filter((selectedValue) => selectedValue !== value)
+    : [...current[type], value];
+
+  return { ...current, [type]: nextValue };
+};
 
 type InfrastructureWorkloadsTableProps = {
   workloads: InfrastructureWorkloadRow[];
   kueueEnabled: boolean;
+  hardwareProfilesLoading: boolean;
   notebookStates: NotebookState[];
+  failedSources: string[];
+  overviewStatusFilters: string[];
+  onOverviewStatusFiltersChange: React.Dispatch<React.SetStateAction<string[]>>;
 };
 
 type InfrastructureWorkloadTableRowProps = {
   workload: InfrastructureWorkloadRow;
   notebookStates: NotebookState[];
   kueueEnabled: boolean;
+  hardwareProfilesLoading: boolean;
   onStatusClick: () => void;
 };
 
@@ -56,6 +79,7 @@ const InfrastructureWorkloadTableRow: React.FC<InfrastructureWorkloadTableRowPro
   workload,
   notebookStates,
   kueueEnabled,
+  hardwareProfilesLoading,
   onStatusClick,
 }) => {
   const notebookState =
@@ -83,7 +107,13 @@ const InfrastructureWorkloadTableRow: React.FC<InfrastructureWorkloadTableRowPro
         </Td>
       )}
       <Td dataLabel="Hardware profile">
-        <HardwareProfileCell {...workload} />
+        <HardwareProfileCell
+          {...workload}
+          loading={
+            hardwareProfilesLoading &&
+            Boolean(getHardwareProfileRefFromAnnotations(workload.resource.metadata.annotations))
+          }
+        />
       </Td>
     </Tr>
   );
@@ -147,32 +177,27 @@ const WorkbenchStatusModalAdapter: React.FC<{
 const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> = ({
   workloads,
   kueueEnabled,
+  hardwareProfilesLoading,
   notebookStates,
+  failedSources,
+  overviewStatusFilters,
+  onOverviewStatusFiltersChange,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [searchValue, setSearchValue] = React.useState('');
   const [filterType, setFilterType] = React.useState<InfrastructureWorkloadsFilterType>('status');
-  const [filterValues, setFilterValues] = React.useState<FilterValues>({
-    status: [],
+  const [filterValues, setFilterValues] = React.useState<LocalFilterValues>({
     type: [],
     hardwareProfile: [],
   });
   const [selectedWorkload, setSelectedWorkload] = React.useState<InfrastructureWorkloadRow>();
-  const workloadsWithWorkbenchStatus = React.useMemo(
-    () =>
-      workloads.map((workload) => {
-        if (workload.resource.kind !== InfrastructureWorkloadKind.Notebook) {
-          return workload;
-        }
-        const notebookState = notebookStates.find(
-          (state) => state.notebook.metadata.name === workload.resource.metadata.name,
-        );
-        return notebookState
-          ? { ...workload, status: getInfrastructureWorkbenchStatus(notebookState) }
-          : workload;
-      }),
-    [notebookStates, workloads],
-  );
+  const [isPartialFailureDismissed, setIsPartialFailureDismissed] = React.useState(false);
+  const workloadsWithWorkbenchStatus = workloads;
+
+  const failedSourcesKey = failedSources.join(',');
+  React.useEffect(() => {
+    setIsPartialFailureDismissed(false);
+  }, [failedSourcesKey]);
 
   const closeStatusModal = React.useCallback(() => setSelectedWorkload(undefined), []);
 
@@ -231,13 +256,18 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   };
 
   const filteredWorkloads = React.useMemo(() => {
+    const selectedFilterValues: FilterValues = {
+      status: overviewStatusFilters,
+      ...filterValues,
+    };
+
     return filterInfrastructureWorkloads(
       workloadsWithWorkbenchStatus,
       searchValue,
       filterType,
-      filterValues[filterType],
+      selectedFilterValues[filterType],
     );
-  }, [filterType, filterValues, searchValue, workloadsWithWorkbenchStatus]);
+  }, [filterType, filterValues, overviewStatusFilters, searchValue, workloadsWithWorkbenchStatus]);
 
   const availableFilterValues = React.useMemo<FilterValues>(
     () => ({
@@ -253,20 +283,30 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
 
   const toggleFilterValue = React.useCallback(
     (type: InfrastructureWorkloadsFilterType, value: string) => {
-      setFilterValues((current) => ({
-        ...current,
-        [type]: current[type].includes(value)
-          ? current[type].filter((selectedValue) => selectedValue !== value)
-          : [...current[type], value],
-      }));
+      if (type === 'status') {
+        onOverviewStatusFiltersChange((current) =>
+          current.includes(value)
+            ? current.filter((selectedValue) => selectedValue !== value)
+            : [...current, value],
+        );
+        return;
+      }
+
+      setFilterValues((current) => getNextFilterValues(current, type, value));
     },
-    [],
+    [onOverviewStatusFiltersChange],
   );
 
   const clearFilters = React.useCallback(() => {
     setSearchValue('');
-    setFilterValues({ status: [], type: [], hardwareProfile: [] });
-  }, []);
+    setFilterValues({ type: [], hardwareProfile: [] });
+    onOverviewStatusFiltersChange([]);
+  }, [onOverviewStatusFiltersChange]);
+
+  const selectedFilterValues: FilterValues = React.useMemo(
+    () => ({ status: overviewStatusFilters, ...filterValues }),
+    [filterValues, overviewStatusFilters],
+  );
 
   const columns = React.useMemo(
     () => getInfrastructureWorkloadsTableColumns(kueueEnabled),
@@ -292,11 +332,28 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
         <CardBody>
           {isExpanded && (
             <>
+              {failedSources.length > 0 && !isPartialFailureDismissed && (
+                <Alert
+                  isInline
+                  variant="warning"
+                  className="pf-v6-u-mb-md"
+                  title={INFRASTRUCTURE_WORKLOADS_PARTIAL_FAILURE_TITLE}
+                  data-testid="infrastructure-workloads-partial-error"
+                  actionClose={
+                    <AlertActionCloseButton
+                      data-testid="infrastructure-workloads-partial-error-close"
+                      onClose={() => setIsPartialFailureDismissed(true)}
+                    />
+                  }
+                >
+                  {failedSources.join(', ')} could not be loaded. Refresh to try again.
+                </Alert>
+              )}
               <InfrastructureWorkloadsToolbar
                 searchValue={searchValue}
                 filterType={filterType}
                 availableFilterValues={availableFilterValues}
-                selectedFilterValues={filterValues}
+                selectedFilterValues={selectedFilterValues}
                 onSearchChange={setSearchValue}
                 onFilterTypeChange={setFilterType}
                 onFilterValueChange={toggleFilterValue}
@@ -321,6 +378,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
                       workload={workload}
                       notebookStates={notebookStates}
                       kueueEnabled={kueueEnabled}
+                      hardwareProfilesLoading={hardwareProfilesLoading}
                       onStatusClick={() => setSelectedWorkload(workload)}
                     />
                   )}

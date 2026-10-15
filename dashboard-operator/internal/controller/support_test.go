@@ -100,7 +100,7 @@ func TestMaaSPortalURL(t *testing.T) {
 		{
 			name:    "derives path URL from gateway domain",
 			domain:  "rh-ai.apps.example.com",
-			wantURL: "https://rh-ai.apps.example.com/maas-consumer-portal/",
+			wantURL: "https://rh-ai.apps.example.com/maas-portal/",
 			wantOK:  true,
 		},
 		{

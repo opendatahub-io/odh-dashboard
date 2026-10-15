@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
@@ -50,6 +51,7 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	reconcile(t, r)
 	reconcile(t, r)
 	require.Len(t, listDeployments(t, "model-registry"), 1, "module Deployment should exist before removal")
+	coreRoute := createManagedHTTPRoute(t, dashboard)
 	// dashboard-core-config is a managed (non-operator-owned) ConfigMap the operator deploys; it
 	// carries the same part-of=dashboard label as operator-owned resources. Confirm it exists now
 	// so the post-teardown assertion below proves teardown actually deletes managed ConfigMaps
@@ -69,6 +71,7 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 
 	// The managed core ConfigMap is deleted — teardown discriminates by name, not just by label.
 	assertGone(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "dashboard-core-config", Namespace: integrationNamespace})
+	assertGone(t, &gatewayv1.HTTPRoute{}, client.ObjectKeyFromObject(coreRoute))
 
 	// Operator-owned resources are preserved (skipped by name during teardown). The webhook
 	// serving-cert Secret is intentionally not asserted: cert-manager issues it without the
@@ -118,6 +121,7 @@ func TestIntegration_ManagementStateRemoved_IdempotentRereconcile(t *testing.T) 
 
 	reconcile(t, r)
 	reconcile(t, r)
+	coreRoute := createManagedHTTPRoute(t, dashboard)
 
 	dashboard = getDashboard(t)
 	dashboard.Spec.ManagementState = "Removed"
@@ -130,6 +134,7 @@ func TestIntegration_ManagementStateRemoved_IdempotentRereconcile(t *testing.T) 
 
 	assert.Empty(t, listDeployments(t, "model-registry"), "module Deployment should stay removed")
 	assert.Empty(t, listServices(t, "model-registry"), "module Service should stay removed")
+	assertGone(t, &gatewayv1.HTTPRoute{}, client.ObjectKeyFromObject(coreRoute))
 
 	dashboard = getDashboard(t)
 	assert.Equal(t, common.PhaseNotReady, dashboard.Status.Phase)
@@ -143,6 +148,24 @@ func TestIntegration_ManagementStateRemoved_IdempotentRereconcile(t *testing.T) 
 	assertExists(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "odh-dashboard-config", Namespace: integrationNamespace})
 	assertExists(t, &rbacv1.ClusterRole{}, types.NamespacedName{Name: "dashboard-operator-role"})
 	assertExists(t, &rbacv1.ClusterRoleBinding{}, types.NamespacedName{Name: "dashboard-operator-rolebinding"})
+}
+
+func createManagedHTTPRoute(t *testing.T, dashboard *v1alpha1.Dashboard) *gatewayv1.HTTPRoute {
+	t.Helper()
+
+	route := &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{
+		Name:      "rhods-dashboard",
+		Namespace: integrationNamespace,
+		Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(
+			dashboard,
+			v1alpha1.GroupVersion.WithKind(v1alpha1.DashboardKind),
+		)},
+	}}
+	require.NoError(t, k8sClient.Create(context.Background(), route))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, route) })
+
+	return route
 }
 
 // seedOperatorOwnedResources creates the operator's own resources — Deployment,

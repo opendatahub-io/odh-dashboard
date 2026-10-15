@@ -4,7 +4,11 @@ import { render, screen, within, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AutomlLeaderboard from '~/app/components/run-results/AutomlLeaderboard';
-import { AutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import {
+  AutomlResultsContext,
+  type AutomlModel,
+  type AutomlResultsContextProps,
+} from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { PRESET_FASTER } from '~/app/utilities/const';
@@ -20,8 +24,21 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
 
 // Mock DragDropSort to avoid createPortal issues in jsdom
 jest.mock('@patternfly/react-drag-drop', () => ({
-  DragDropSort: ({ items }: { items: { id: string; content: React.ReactNode }[] }) => (
+  DragDropSort: ({
+    items,
+    onDrop,
+  }: {
+    items: { id: string; content: React.ReactNode }[];
+    onDrop?: (event: unknown, newOrder: { id: string; content: React.ReactNode }[]) => void;
+  }) => (
     <>
+      <button
+        type="button"
+        data-testid="test-reverse-column-order"
+        onClick={() => onDrop?.({}, items.toReversed())}
+      >
+        Reverse column order
+      </button>
       {items.map((item) => (
         <div key={item.id}>{item.content}</div>
       ))}
@@ -76,15 +93,19 @@ const mockBinaryModels: Record<string, AutomlModel> = {
 const mockMulticlassModels: Record<string, AutomlModel> = {
   'model-1': createMockModel('Neural Network', {
     accuracy: 0.88,
-    f1: 0.86,
-    precision: 0.87,
-    recall: 0.85,
+    balanced_accuracy: 0.86,
+    mcc: 0.82,
+    f1_macro: 0.85,
+    precision_macro: 0.87,
+    recall_macro: 0.84,
   }),
   'model-2': createMockModel('SVM', {
     accuracy: 0.91,
-    f1: 0.89,
-    precision: 0.9,
-    recall: 0.88,
+    balanced_accuracy: 0.89,
+    mcc: 0.85,
+    f1_macro: 0.88,
+    precision_macro: 0.9,
+    recall_macro: 0.86,
   }),
 };
 
@@ -95,18 +116,21 @@ const mockRegressionModels: Record<string, AutomlModel> = {
     mean_absolute_error: 2.5,
     mean_squared_error: 10.2,
     root_mean_squared_error: 3.19,
+    median_absolute_error: 2.2,
   }),
   'model-2': createMockModel('Gradient Boosting', {
     r2: 0.92,
     mean_absolute_error: 1.8,
     mean_squared_error: 5.4,
     root_mean_squared_error: 2.32,
+    median_absolute_error: 1.5,
   }),
   'model-3': createMockModel('Ridge Regression', {
     r2: 0.88,
     mean_absolute_error: 2.1,
     mean_squared_error: 7.8,
     root_mean_squared_error: 2.79,
+    median_absolute_error: 1.9,
   }),
 };
 
@@ -119,6 +143,7 @@ const mockTimeseriesModels: Record<string, AutomlModel> = {
     mean_absolute_error: -5.2,
     mean_squared_error: -45.3,
     root_mean_squared_error: -6.73,
+    weighted_quantile_loss: -3.7,
   }),
   'model-2': createMockModel('Prophet', {
     mean_absolute_scaled_error: -0.12,
@@ -126,6 +151,7 @@ const mockTimeseriesModels: Record<string, AutomlModel> = {
     mean_absolute_error: -4.1,
     mean_squared_error: -32.1,
     root_mean_squared_error: -5.67,
+    weighted_quantile_loss: -2.9,
   }),
   'model-3': createMockModel('LSTM', {
     mean_absolute_scaled_error: -0.09,
@@ -133,6 +159,7 @@ const mockTimeseriesModels: Record<string, AutomlModel> = {
     mean_absolute_error: -3.5,
     mean_squared_error: -25.6,
     root_mean_squared_error: -5.06,
+    weighted_quantile_loss: -2.1,
   }),
 };
 
@@ -202,7 +229,37 @@ interface RenderWithContextOptions {
   onClickSaveNotebook?: (modelName: string) => void;
 }
 
-const renderWithContext = ({
+type LeaderboardTestWrapperProps = {
+  contextValue: AutomlResultsContextProps;
+  namespace?: string;
+  onViewDetails?: (modelName: string, rank: number) => void;
+  onClickSaveNotebook?: (modelName: string) => void;
+};
+
+const LeaderboardTestWrapper: React.FC<LeaderboardTestWrapperProps> = ({
+  contextValue,
+  namespace = 'test-namespace',
+  onViewDetails,
+  onClickSaveNotebook,
+}) => (
+  <MemoryRouter initialEntries={[`/automl/${namespace}/results/test-run-123`]}>
+    <Routes>
+      <Route
+        path="/automl/:namespace/results/:runId"
+        element={
+          <AutomlResultsContext.Provider value={contextValue}>
+            <AutomlLeaderboard
+              onViewDetails={onViewDetails}
+              onClickSaveNotebook={onClickSaveNotebook}
+            />
+          </AutomlResultsContext.Provider>
+        }
+      />
+    </Routes>
+  </MemoryRouter>
+);
+
+const createMockContextValue = ({
   models = {},
   pipelineRun,
   pipelineRunLoading = false,
@@ -211,14 +268,11 @@ const renderWithContext = ({
   modelsLoadError,
   onRetryModels,
   taskType,
-  namespace = 'test-namespace',
-  onViewDetails,
-  onClickSaveNotebook,
-}: RenderWithContextOptions = {}) => {
+}: RenderWithContextOptions = {}): AutomlResultsContextProps => {
   const finalTaskType =
     taskType || pipelineRun?.runtime_config?.parameters?.task_type || 'timeseries';
 
-  const contextValue = {
+  return {
     pipelineRun,
     pipelineRunLoading,
     models,
@@ -228,25 +282,22 @@ const renderWithContext = ({
     onRetryModels,
     parameters: createMockParameters(finalTaskType),
   };
-
-  return render(
-    <MemoryRouter initialEntries={[`/automl/${namespace}/results/test-run-123`]}>
-      <Routes>
-        <Route
-          path="/automl/:namespace/results/:runId"
-          element={
-            <AutomlResultsContext.Provider value={contextValue}>
-              <AutomlLeaderboard
-                onViewDetails={onViewDetails}
-                onClickSaveNotebook={onClickSaveNotebook}
-              />
-            </AutomlResultsContext.Provider>
-          }
-        />
-      </Routes>
-    </MemoryRouter>,
-  );
 };
+
+const renderWithContext = ({
+  namespace = 'test-namespace',
+  onViewDetails,
+  onClickSaveNotebook,
+  ...contextOptions
+}: RenderWithContextOptions = {}) =>
+  render(
+    <LeaderboardTestWrapper
+      contextValue={createMockContextValue(contextOptions)}
+      namespace={namespace}
+      onViewDetails={onViewDetails}
+      onClickSaveNotebook={onClickSaveNotebook}
+    />,
+  );
 
 const showAllColumns = () => {
   fireEvent.click(screen.getByTestId('manage-columns-button'));
@@ -1210,7 +1261,7 @@ describe('AutomlLeaderboard component', () => {
       expect(within(rows[0]).getByTestId('rank-1')).toBeInTheDocument();
     });
 
-    it('should default to only rank, model, and optimized metric visible', () => {
+    it('should default to the requested classification metrics visible', () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
@@ -1219,8 +1270,150 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
       expect(screen.getByTestId('model-name-header')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
-      expect(screen.queryByTestId('metric-header-f1')).not.toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-precision')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-recall')).toBeInTheDocument();
       expect(screen.queryByTestId('metric-header-roc_auc')).not.toBeInTheDocument();
+    });
+
+    it('should default to emitted and macro-averaged multiclass metrics visible', () => {
+      renderWithContext({
+        models: mockMulticlassModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'multiclass'),
+      });
+
+      expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-balanced_accuracy')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-mcc')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-f1_macro')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-precision_macro')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-recall_macro')).toBeInTheDocument();
+      expect(screen.getByTestId('columns-selected-count')).toHaveTextContent(
+        '8/8 columns selected',
+      );
+    });
+
+    it('should default to and reset to the requested regression metrics', () => {
+      renderWithContext({
+        models: mockRegressionModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'regression'),
+      });
+
+      const expectedHeaders = [
+        'rank-header',
+        'model-name-header',
+        'metric-header-r2',
+        'metric-header-mean_absolute_error',
+        'metric-header-median_absolute_error',
+        'metric-header-root_mean_squared_error',
+      ];
+      const getHeaderIds = () =>
+        screen
+          .getAllByTestId(/^(rank-header|model-name-header|metric-header-)/)
+          .map((header) => header.getAttribute('data-testid'));
+
+      expect(getHeaderIds()).toEqual(expectedHeaders);
+      expect(screen.queryByTestId('metric-header-mean_squared_error')).not.toBeInTheDocument();
+
+      showAllColumns();
+      expect(screen.getByTestId('metric-header-mean_squared_error')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('manage-columns-reset'));
+      fireEvent.click(screen.getByText('Save'));
+
+      expect(getHeaderIds()).toEqual(expectedHeaders);
+    });
+
+    it('should default to and reset to the requested time-series metrics', () => {
+      renderWithContext({
+        models: mockTimeseriesModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'timeseries'),
+      });
+
+      const expectedHeaders = [
+        'rank-header',
+        'model-name-header',
+        'metric-header-mean_absolute_scaled_error',
+        'metric-header-mean_absolute_error',
+        'metric-header-root_mean_squared_error',
+        'metric-header-weighted_quantile_loss',
+      ];
+      const getHeaderIds = () =>
+        screen
+          .getAllByTestId(/^(rank-header|model-name-header|metric-header-)/)
+          .map((header) => header.getAttribute('data-testid'));
+
+      expect(getHeaderIds()).toEqual(expectedHeaders);
+      expect(
+        screen.queryByTestId('metric-header-mean_absolute_percentage_error'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-mean_squared_error')).not.toBeInTheDocument();
+
+      showAllColumns();
+      expect(screen.getByTestId('metric-header-weighted_quantile_loss')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('manage-columns-reset'));
+      fireEvent.click(screen.getByText('Save'));
+
+      expect(getHeaderIds()).toEqual(expectedHeaders);
+    });
+
+    it('should preserve column customization for the same task and reset it when the task changes', () => {
+      const binaryContext = createMockContextValue({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+      const renderResult = render(<LeaderboardTestWrapper contextValue={binaryContext} />);
+      showAllColumns();
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('column-check-metric-roc_auc'));
+      fireEvent.click(screen.getByTestId('test-reverse-column-order'));
+      fireEvent.click(screen.getByText('Save'));
+
+      const modelNameSortButton = screen.getByTestId('model-name-header').querySelector('button');
+      fireEvent.click(modelNameSortButton!);
+
+      const getHeaderIds = () =>
+        screen
+          .getAllByTestId(/^(rank-header|model-name-header|metric-header-)/)
+          .map((header) => header.getAttribute('data-testid'));
+      const customizedHeaderIds = getHeaderIds();
+      expect(customizedHeaderIds[0]).toBe('metric-header-recall');
+      expect(screen.queryByTestId('metric-header-roc_auc')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId(/^model-link-/)[0]).toHaveTextContent('Logistic Regression');
+
+      renderResult.rerender(
+        <LeaderboardTestWrapper
+          contextValue={createMockContextValue({
+            models: { ...mockBinaryModels },
+            pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+          })}
+        />,
+      );
+
+      expect(getHeaderIds()).toEqual(customizedHeaderIds);
+      expect(screen.queryByTestId('metric-header-roc_auc')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId(/^model-link-/)[0]).toHaveTextContent('Logistic Regression');
+
+      renderResult.rerender(
+        <LeaderboardTestWrapper
+          contextValue={createMockContextValue({
+            models: mockTimeseriesModels,
+            pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'timeseries'),
+          })}
+        />,
+      );
+
+      expect(getHeaderIds()).toEqual([
+        'rank-header',
+        'model-name-header',
+        'metric-header-mean_absolute_scaled_error',
+        'metric-header-mean_absolute_error',
+        'metric-header-root_mean_squared_error',
+        'metric-header-weighted_quantile_loss',
+      ]);
+      expect(screen.getAllByTestId(/^model-link-/)[0]).toHaveTextContent('LSTM');
     });
 
     it('should display column count in toolbar', () => {
@@ -1230,7 +1423,7 @@ describe('AutomlLeaderboard component', () => {
       });
 
       expect(screen.getByTestId('columns-selected-count')).toHaveTextContent(
-        /3\/\d+ columns selected/,
+        /6\/\d+ columns selected/,
       );
     });
 
@@ -1249,7 +1442,10 @@ describe('AutomlLeaderboard component', () => {
 
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
-      expect(screen.queryByTestId('metric-header-f1')).not.toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-precision')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-recall')).toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-roc_auc')).not.toBeInTheDocument();
     });
 
     it('should persist column order after save', () => {
@@ -1285,7 +1481,7 @@ describe('AutomlLeaderboard component', () => {
       );
       const originalOrder = originalHeaders.map((h) => h.getAttribute('data-testid'));
 
-      // Reset to default — should restore default visibility (only 3 columns) and default order
+      // Reset to default — should restore the six classification columns and default order
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('manage-columns-reset'));
       fireEvent.click(screen.getByText('Save'));
@@ -1300,6 +1496,9 @@ describe('AutomlLeaderboard component', () => {
         'rank-header',
         'model-name-header',
         'metric-header-accuracy',
+        'metric-header-f1',
+        'metric-header-precision',
+        'metric-header-recall',
       ]);
 
       // Re-show all and verify original order is restored

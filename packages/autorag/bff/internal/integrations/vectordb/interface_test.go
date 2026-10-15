@@ -9,7 +9,13 @@ import (
 
 func TestValidateSearchOptionsByProvider(t *testing.T) {
 	milvus := map[string][]byte{"MILVUS_URI": []byte("https://milvus.example.com")}
-	pgvector := map[string][]byte{"PGVECTOR_HOST": []byte("postgres.example.com")}
+	pgvector := map[string][]byte{
+		"PGVECTOR_HOST":     []byte("postgres.example.com"),
+		"PGVECTOR_PORT":     []byte("5432"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
+	}
 	for _, tc := range []struct {
 		name    string
 		secret  map[string][]byte

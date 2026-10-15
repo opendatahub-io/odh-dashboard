@@ -341,6 +341,37 @@ describe('EvaluationsTable', () => {
       expect(screen.queryByText('Gamma Evaluation')).not.toBeInTheDocument();
     });
 
+    it('should classify a queue-assigned pending job as Pending when the Kueue integration is disabled', () => {
+      // Default availability mock (availability undefined) models the disabled integration.
+      const queuedJob = mockEvaluationJob({
+        id: 'job-4',
+        name: 'Delta Evaluation',
+        state: 'pending',
+      });
+      // eslint-disable-next-line camelcase -- API field name.
+      queuedJob.hardware_config = { queue: { name: 'default' } };
+
+      renderTable({ evaluations: [...mockJobs, queuedJob], loaded: true });
+
+      const deltaRow = screen.getByText('Delta Evaluation').closest('tr');
+      expect(deltaRow).not.toBeNull();
+      expect(within(deltaRow!).getByTestId('evaluation-status-button')).toHaveTextContent(
+        'Pending',
+      );
+
+      // The Queued filter is hidden, and the run stays reachable through the Pending filter.
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+      expect(screen.queryByTestId('filter-status-option-queued')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('option', { name: 'Pending' }));
+
+      expect(screen.getByText('Delta Evaluation')).toBeInTheDocument();
+      expect(screen.queryByText('Alpha Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Beta Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Gamma Evaluation')).not.toBeInTheDocument();
+    });
+
     it('should filter by evaluation name', () => {
       renderTable({ evaluations: mockJobs, loaded: true });
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;

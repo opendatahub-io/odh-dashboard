@@ -187,7 +187,7 @@ jest.mock('mod-arch-shared', () => ({
     loadError,
     emptyStatePage,
     breadcrumb,
-    headerAction,
+    noHeader,
   }: {
     children: React.ReactNode;
     empty: boolean;
@@ -195,12 +195,11 @@ jest.mock('mod-arch-shared', () => ({
     loadError?: Error;
     emptyStatePage: React.ReactNode;
     breadcrumb?: React.ReactNode;
-    headerAction?: React.ReactNode;
+    noHeader?: boolean;
     [key: string]: unknown;
   }) => (
-    <div data-testid="applications-page">
+    <div data-testid="applications-page" data-no-header={noHeader ? 'true' : 'false'}>
       {breadcrumb}
-      {headerAction}
       {loadError ? <div data-testid="load-error">{loadError.message}</div> : null}
       {empty ? emptyStatePage : null}
       {loaded && !empty ? children : null}
@@ -457,7 +456,11 @@ const expectHeaderActions = (conditionalAction?: 'stop' | 'retry') => {
   ].filter((id): id is string => id !== undefined);
 
   const actions = actionIds.map((id) => screen.getByTestId(id));
-  actions.forEach((action) => expect(action).toHaveClass('pf-m-link'));
+  actions.forEach((action) =>
+    expect(action).toHaveClass(
+      action.dataset.testid === 'run-details-button' ? 'pf-m-link' : 'pf-m-secondary',
+    ),
+  );
   actions.slice(0, -1).forEach((action, index) => {
     expect(action.compareDocumentPosition(actions[index + 1])).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
@@ -1047,7 +1050,7 @@ describe('AutoragResultsPage', () => {
   });
 
   describe('breadcrumbs', () => {
-    it('should render experiment context breadcrumb with Run results', () => {
+    it('should render experiment context breadcrumb with the run name as the final item', () => {
       const mockPipelineRun = createMockPipelineRun({
         display_name: 'My Test Run',
       });
@@ -1074,10 +1077,27 @@ describe('AutoragResultsPage', () => {
         '/gen-ai-studio/autorag/reconfigure/test-ns/run-123',
       );
       expect(experimentConfigLink.querySelector('a')).toHaveAttribute('data-from', 'results');
-      expect(screen.getByText('Run results')).toBeInTheDocument();
+      expect(screen.getByTestId('results-breadcrumb-run-name')).toHaveTextContent(
+        'My Test Run results',
+      );
+      expect(screen.queryByText('Run results')).not.toBeInTheDocument();
       expect(
         screen.getByTestId('project-navigator-link-in-breadcrumb').querySelector('a'),
       ).toHaveAttribute('href', '/projects/test-ns');
+    });
+
+    it('should render the page without a header section', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('applications-page')).toHaveAttribute('data-no-header', 'true');
     });
   });
 

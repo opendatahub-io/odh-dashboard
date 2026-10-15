@@ -5,16 +5,23 @@ import { MemoryRouter } from 'react-router-dom';
 import TableDetailView from '~/app/pages/TableDetailView';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
+import { mockRhaiConnection } from '~/__mocks__/mockConnection';
 import type { AssetResponse, ConnectionModel } from '~/app/types';
 
 const renderView = (
   asset: AssetResponse,
   project = 'test-project',
   connections: ConnectionModel[] = [],
+  connectionsLoaded = true,
 ) =>
   render(
     <MemoryRouter>
-      <TableDetailView asset={asset} project={project} connections={connections} />
+      <TableDetailView
+        asset={asset}
+        project={project}
+        connections={connections}
+        connectionsLoaded={connectionsLoaded}
+      />
     </MemoryRouter>,
   );
 
@@ -50,23 +57,28 @@ describe('TableDetailView', () => {
   it('should render connection name as a link to project connections', () => {
     const asset = mockAssetResponse();
     renderView(asset, 'test-project', [
-      { name: 'my-s3-connection', displayName: 'My S3 Connection' },
+      mockRhaiConnection({ secret_name: 'my-s3-connection', name: 'My S3 Connection' }),
     ]);
     const el = screen.getByTestId('connection-ref-link');
     expect(el).toHaveTextContent('My S3 Connection');
     expect(el).toHaveAttribute('href', '/projects/test-project?section=connections');
   });
 
-  it('should fall back to the connection name when display name is unavailable', () => {
+  it('should show unavailable when the connection has no display name', () => {
     const asset = mockAssetResponse();
-    renderView(asset, 'test-project', [{ name: 'my-s3-connection' }]);
+    renderView(asset, 'test-project', [
+      mockRhaiConnection({ secret_name: 'my-s3-connection', name: undefined }),
+    ]);
 
-    expect(screen.getByTestId('connection-ref-link')).toHaveTextContent('my-s3-connection');
+    expect(screen.getByTestId('connection-ref-label')).toHaveTextContent('Connection unavailable');
+    expect(screen.queryByTestId('connection-ref-link')).not.toBeInTheDocument();
   });
 
   it('should render the connection type below the connection name', () => {
     const asset = mockAssetResponse();
-    renderView(asset, 'test-project', [{ name: 'my-s3-connection', connectionType: 's3' }]);
+    renderView(asset, 'test-project', [
+      mockRhaiConnection({ secret_name: 'my-s3-connection', connectionType: 's3' }),
+    ]);
 
     expect(screen.getByTestId('connection-type')).toHaveTextContent('s3');
   });

@@ -133,12 +133,12 @@ describe(
         genAiPlayground.findCreateEndpointSubmitButton().should('be.enabled').click();
         genAiPlayground.findCreateExternalModelModal().should('not.exist');
 
-        cy.step('Add the endpoint to Playground and wait for services');
+        cy.step('Create the playground and wait for services');
         genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
         genAiPlayground
           .findAiModelsTable({ timeout: 30000 })
           .should('contain', testData.model.displayName);
-        genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+        genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
         genAiPlayground.findConfigurationTable().should('be.visible');
         genAiPlayground.ensureModelCheckboxIsChecked(testData.model.modelId);
         genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();

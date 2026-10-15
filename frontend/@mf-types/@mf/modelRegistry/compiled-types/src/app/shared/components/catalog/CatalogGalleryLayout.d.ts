@@ -4,7 +4,7 @@ type CatalogGalleryLayoutProps<T> = {
     items: T[];
     loaded: boolean;
     loadError: Error | undefined;
-    renderCard: (item: T) => React.ReactNode;
+    renderCard: (item: T, index: number) => React.ReactNode;
     getItemKey: (item: T) => string;
     gridSpans?: CatalogGridSpans;
     hasMore?: boolean;

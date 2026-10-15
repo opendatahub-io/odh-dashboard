@@ -1,41 +1,37 @@
 import * as React from 'react';
+import { CatalogContextValue, CatalogProviderState, CatalogCommonData } from '~/app/context/catalogContext/createCatalogContext';
 import { ModelCatalogAPIState } from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
-import { CatalogFilterOptionsList, CatalogLabelList, CatalogSource, CatalogSourceList, ModelCatalogFilterStates } from '~/app/modelCatalogTypes';
+import { CatalogFilterOptionsList, CatalogSource, ModelCatalogFilterStates } from '~/app/modelCatalogTypes';
 import { ModelCatalogSortOption } from '~/concepts/modelCatalog/const';
-export type ModelCatalogContextType = {
-    catalogSourcesLoaded: boolean;
-    catalogSourcesLoadError?: Error;
-    catalogSources: CatalogSourceList | null;
-    catalogLabels: CatalogLabelList | null;
-    catalogLabelsLoaded: boolean;
-    catalogLabelsLoadError?: Error;
+type ModelCatalogExtension = {
     selectedSource: CatalogSource | undefined;
     updateSelectedSource: (source: CatalogSource | undefined) => void;
-    selectedSourceLabel: string | undefined;
-    updateSelectedSourceLabel: (sourceLabel: string | undefined) => void;
     apiState: ModelCatalogAPIState;
     refreshAPIState: () => void;
-    filterData: ModelCatalogFilterStates;
-    setFilterData: <K extends keyof ModelCatalogFilterStates>(key: K, value: ModelCatalogFilterStates[K]) => void;
-    filterOptions: CatalogFilterOptionsList | null;
-    filterOptionsLoaded: boolean;
-    filterOptionsLoadError?: Error;
+    filters: ModelCatalogFilterStates;
+    setFilters: (updater: ModelCatalogFilterStates | ((prev: ModelCatalogFilterStates) => ModelCatalogFilterStates)) => void;
     performanceViewEnabled: boolean;
     setPerformanceViewEnabled: (enabled: boolean) => void;
     performanceFiltersChangedOnDetailsPage: boolean;
     setPerformanceFiltersChangedOnDetailsPage: (changed: boolean) => void;
     lastViewedModelName: string | null;
     setLastViewedModelName: (modelName: string | null) => void;
-    clearAllFilters: () => void;
     resetPerformanceFiltersToDefaults: () => void;
     resetSinglePerformanceFilterToDefault: (filterKey: keyof ModelCatalogFilterStates) => void;
     getPerformanceFilterDefaultValue: (filterKey: keyof ModelCatalogFilterStates) => string | number | string[] | undefined;
     sortBy: ModelCatalogSortOption | null;
     setSortBy: (sortBy: ModelCatalogSortOption | null) => void;
+    emptyCategoryLabels: Set<string>;
+    categoriesResolved: boolean;
+    reportCategoryEmpty: (label: string, isEmpty: boolean) => void;
+    setCategoryCount: (count: number) => void;
 };
-type ModelCatalogContextProviderProps = {
+export type ModelCatalogContextType = CatalogContextValue<CatalogFilterOptionsList> & ModelCatalogExtension;
+declare const ModelCatalogContext: React.Context<CatalogCommonData<CatalogFilterOptionsList> & CatalogProviderState & {
+    clearAllFilters: () => void;
+} & ModelCatalogExtension>, ModelCatalogContextProvider: React.FC<{
     children: React.ReactNode;
-};
-export declare const ModelCatalogContext: React.Context<ModelCatalogContextType>;
-export declare const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderProps>;
-export {};
+}>, useModelCatalogContext: () => CatalogCommonData<CatalogFilterOptionsList> & CatalogProviderState & {
+    clearAllFilters: () => void;
+} & ModelCatalogExtension;
+export { ModelCatalogContext, ModelCatalogContextProvider, useModelCatalogContext };

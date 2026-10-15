@@ -2,10 +2,12 @@ package vectordb
 
 import (
 	"context"
+	"errors"
 	"math"
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -56,12 +58,42 @@ func TestNewPgvectorFromSecret_MissingRequiredFields(t *testing.T) {
 	assert.Contains(t, err.Error(), "missing required fields")
 }
 
+func TestNewPgvectorFromSecret_RejectsWhitespaceOnlyPassword(t *testing.T) {
+	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
+		"PGVECTOR_HOST":     []byte("postgres.team-a.svc.cluster.local"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte(" \t "),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "PGVECTOR_PASSWORD")
+	assert.NotContains(t, err.Error(), "\\t")
+}
+
+func TestNewPgvectorFromSecret_PreservesPasswordWhitespace(t *testing.T) {
+	wantErr := errors.New("stop before connecting")
+	var gotPassword string
+	_, err := newPgvectorFromSecretWithConnector(context.Background(), map[string][]byte{
+		"PGVECTOR_HOST":     []byte("postgres.example.com."),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte(" password "),
+	}, false, func(_ context.Context, config *pgx.ConnConfig) (*pgx.Conn, error) {
+		gotPassword = config.Password
+		return nil, wantErr
+	})
+
+	require.ErrorIs(t, err, wantErr)
+	assert.Equal(t, " password ", gotPassword)
+}
+
 func TestNewPgvectorFromSecret_InvalidPort(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST": []byte("localhost"),
-		"PGVECTOR_DB":   []byte("db"),
-		"PGVECTOR_USER": []byte("user"),
-		"PGVECTOR_PORT": []byte("not-a-port"),
+		"PGVECTOR_HOST":     []byte("localhost"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
+		"PGVECTOR_PORT":     []byte("not-a-port"),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
@@ -69,10 +101,11 @@ func TestNewPgvectorFromSecret_InvalidPort(t *testing.T) {
 
 func TestNewPgvectorFromSecret_PortOutOfRange(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST": []byte("localhost"),
-		"PGVECTOR_DB":   []byte("db"),
-		"PGVECTOR_USER": []byte("user"),
-		"PGVECTOR_PORT": []byte("70000"),
+		"PGVECTOR_HOST":     []byte("localhost"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
+		"PGVECTOR_PORT":     []byte("70000"),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
@@ -81,10 +114,11 @@ func TestNewPgvectorFromSecret_PortOutOfRange(t *testing.T) {
 
 func TestNewPgvectorFromSecret_InvalidSSLMode(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST":    []byte("postgres.team-a.cluster.local"),
-		"PGVECTOR_DB":      []byte("db"),
-		"PGVECTOR_USER":    []byte("user"),
-		"PGVECTOR_SSLMODE": []byte("not-a-real-mode"),
+		"PGVECTOR_HOST":     []byte("postgres.team-a.cluster.local"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
+		"PGVECTOR_SSLMODE":  []byte("not-a-real-mode"),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid PGVECTOR_SSLMODE")
@@ -92,10 +126,11 @@ func TestNewPgvectorFromSecret_InvalidSSLMode(t *testing.T) {
 
 func TestNewPgvectorFromSecret_DisableRejectedForRemoteHost(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST":    []byte("db.apps.example.com"),
-		"PGVECTOR_DB":      []byte("db"),
-		"PGVECTOR_USER":    []byte("user"),
-		"PGVECTOR_SSLMODE": []byte("disable"),
+		"PGVECTOR_HOST":     []byte("db.apps.example.com"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
+		"PGVECTOR_SSLMODE":  []byte("disable"),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "external endpoints must use TLS")
@@ -110,10 +145,11 @@ func TestDefaultPgvectorSSLMode(t *testing.T) {
 
 func TestNewPgvectorFromSecret_MalformedServerCert(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST":    []byte("postgres.team-a.svc.cluster.local"),
-		"PGVECTOR_DB":      []byte("db"),
-		"PGVECTOR_USER":    []byte("user"),
-		"PGVECTOR_CA_CERT": []byte("not a certificate"),
+		"PGVECTOR_HOST":     []byte("postgres.team-a.svc.cluster.local"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
+		"PGVECTOR_CA_CERT":  []byte("not a certificate"),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse PGVECTOR_CA_CERT")
@@ -122,9 +158,10 @@ func TestNewPgvectorFromSecret_MalformedServerCert(t *testing.T) {
 // Literal IP hosts are rejected before any connection attempt.
 func TestNewPgvectorFromSecret_RejectsLiteralIP(t *testing.T) {
 	_, err := newPgvectorFromSecret(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST": []byte("127.0.0.1"),
-		"PGVECTOR_DB":   []byte("db"),
-		"PGVECTOR_USER": []byte("user"),
+		"PGVECTOR_HOST":     []byte("127.0.0.1"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "literal IP")
