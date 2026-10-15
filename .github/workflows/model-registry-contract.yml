@@ -1,9 +1,10 @@
-name: Contract / Model Registry Upstream Main
+name: Contract / Model Registry
 
 on:
   pull_request:
     paths:
-      - ".github/workflows/model-registry-main-contract.yml"
+      - ".github/workflows/model-registry-contract.yml"
+      - "packages/model-registry/.rhoai/contracts.yaml"
       - "packages/model-registry/contract-tests/**"
       - "packages/model-registry/upstream/api/openapi/mod-arch.yaml"
       - "packages/model-registry/upstream/bff/**"
@@ -12,8 +13,19 @@ permissions:
   contents: read
 
 jobs:
-  model-registry-main:
-    name: Model Registry main BFF contract
+  openapi:
+    name: OpenAPI compatibility vs PR base
+    uses: red-hat-data-services/contract-tests/.github/workflows/provider-openapi-check.yml@bf7aa8c4767cfb1cfe883110f8f4d2d6a6a76bdf
+    with:
+      contract-set: packages/model-registry/.rhoai/contracts.yaml
+      contract-id: model-registry-bff-model-catalog-v1
+      baseline-refs: ${{ github.event.pull_request.base.sha }}
+      oasdiff-version: "1.33.0"
+      yq-version: "4.45.1"
+      mode: enforce
+
+  upstream-main:
+    name: BFF contract vs upstream main
     runs-on: ubuntu-latest
     steps:
       - name: Check out dashboard
@@ -28,6 +40,7 @@ jobs:
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version: "1.26.3"
+          cache: false
 
       - name: Resolve Model Registry main
         id: upstream
