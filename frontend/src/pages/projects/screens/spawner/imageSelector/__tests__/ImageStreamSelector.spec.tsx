@@ -80,6 +80,94 @@ describe('ImageStreamSelector', () => {
   });
 
   it.each([false, true])(
+    'should only label images annotated as deprecated in project-scoped mode %s',
+    (projectScoped) => {
+      mockUseIsAreaAvailable.mockReturnValue({
+        ...mockUseIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED),
+        status: projectScoped,
+      });
+      const images = createImages('dashboard', ['secure', 'secure', 'secure']);
+      images[0].metadata.annotations = {
+        ...images[0].metadata.annotations,
+        [ImageStreamAnnotation.DEPRECATED]: 'true',
+      };
+      images[2].metadata.annotations = {
+        ...images[2].metadata.annotations,
+        [ImageStreamAnnotation.DEPRECATED]: 'false',
+      };
+      render(
+        <ImageStreamSelector
+          imageStreams={images}
+          currentProjectStreams={projectScoped ? images : undefined}
+          currentProject="dashboard"
+          buildStatuses={[]}
+          onImageStreamSelect={jest.fn()}
+        />,
+      );
+      fireEvent.click(
+        projectScoped
+          ? screen.getByTestId('image-stream-selector-toggle')
+          : screen.getByRole('combobox'),
+      );
+
+      const options = screen.getAllByRole(projectScoped ? 'menuitem' : 'option');
+      expect(options).toHaveLength(projectScoped ? 6 : 3);
+      options.forEach((option) => expect(option).toHaveTextContent('Secure'));
+      expect(screen.getAllByText('Deprecated')).toHaveLength(projectScoped ? 2 : 1);
+      expect(options.filter((option) => option.textContent.includes('Deprecated'))).toHaveLength(
+        projectScoped ? 2 : 1,
+      );
+      const imagesWithoutDeprecatedBadge = options.filter(
+        (option) =>
+          option.textContent.includes('Image 1') || option.textContent.includes('Image 2'),
+      );
+      expect(imagesWithoutDeprecatedBadge).toHaveLength(projectScoped ? 4 : 2);
+      imagesWithoutDeprecatedBadge.forEach((option) =>
+        expect(option).not.toHaveTextContent('Deprecated'),
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'should only display deprecation helper text for the selected deprecated image in project-scoped mode %s',
+    (projectScoped) => {
+      mockUseIsAreaAvailable.mockReturnValue({
+        ...mockUseIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED),
+        status: projectScoped,
+      });
+      const images = createImages('dashboard', ['secure', 'secure', 'secure']);
+      images[0].metadata.annotations = {
+        ...images[0].metadata.annotations,
+        [ImageStreamAnnotation.DEPRECATED]: 'true',
+      };
+      images[2].metadata.annotations = {
+        ...images[2].metadata.annotations,
+        [ImageStreamAnnotation.DEPRECATED]: 'false',
+      };
+      const props = {
+        imageStreams: images,
+        currentProjectStreams: projectScoped ? images : undefined,
+        currentProject: 'dashboard',
+        buildStatuses: [],
+        onImageStreamSelect: jest.fn(),
+      };
+      const { rerender } = render(
+        <ImageStreamSelector {...props} selectedImageStream={images[0]} />,
+      );
+
+      expect(screen.getByTestId('deprecated-image-helper-text')).toHaveTextContent(
+        'This image is deprecated and will not receive new version updates.',
+      );
+
+      rerender(<ImageStreamSelector {...props} selectedImageStream={images[1]} />);
+      expect(screen.queryByTestId('deprecated-image-helper-text')).not.toBeInTheDocument();
+
+      rerender(<ImageStreamSelector {...props} selectedImageStream={images[2]} />);
+      expect(screen.queryByTestId('deprecated-image-helper-text')).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([false, true])(
     'should pin mixed-case tiers as Secure, Community, Custom in project-scoped mode %s',
     (projectScoped) => {
       mockUseIsAreaAvailable.mockReturnValue({
