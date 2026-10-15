@@ -277,7 +277,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
           <>
             <MaasModelsSection
               modelRefSummaries={selectedModels}
-              hideColumns={['tokenLimits']}
+              hideColumns={['tokenLimits', 'status', 'flowControlStatus']}
               editable
               onAddModels={() => setIsAddModelsModalOpen(true)}
               onRemoveModel={(index) => {
