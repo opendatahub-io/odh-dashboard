@@ -7,13 +7,14 @@ jest.mock('rspack-merge', () => ({ merge: (...configs) => Object.assign({}, ...c
 jest.mock('ts-checker-rspack-plugin', () => ({ TsCheckerRspackPlugin: class {} }));
 
 const originalEnv = process.env;
-const loadProxy = () => {
-  let proxy;
+const loadConfig = () => {
+  let config;
   jest.isolateModules(() => {
-    proxy = require('../rspack.dev').devServer.proxy;
+    config = require('../rspack.dev');
   });
-  return proxy;
+  return config;
 };
+const loadProxy = () => loadConfig().devServer.proxy;
 
 const rewrite = (proxy, request) =>
   Object.entries(proxy.pathRewrite || {}).reduce(
@@ -47,16 +48,53 @@ describe('portal development proxy', () => {
   it('should preserve the portal route when the core dashboard is removed', () => {
     const [proxy] = loadProxy();
     for (const path of [
+      '/maas/api/v1/models',
+      '/gen-ai/api/v1/models',
       '/perses/api/api/v1/dashboards',
       '/api/k8s/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
       '/api/operator-subscription-status',
       '/wss/k8s/api/v1/pods',
     ]) {
-      const request = `/maas-consumer-portal${path}`;
+      const request = `/maas-portal${path}`;
+      expect(proxy.context).toContain(`/maas-portal/${path.split('/').slice(1, 3).join('/')}`);
       expect(rewrite(proxy, request)).toBe(request);
     }
     expect(proxy.ws).toBe(true);
     expect(proxy.headers).toEqual({ Authorization: 'Bearer test-token' });
+  });
+
+  it('should serve SPA navigation and static files only under the new mount', () => {
+    const { devServer } = loadConfig();
+    expect(devServer.static.publicPath).toBe('/maas-portal/');
+    expect(devServer.historyApiFallback.index).toBe('/maas-portal/');
+    const fallback = (pathname) => {
+      const rule = devServer.historyApiFallback.rewrites.find(({ from }) => from.test(pathname));
+      return typeof rule.to === 'function' ? rule.to({ parsedUrl: { pathname } }) : rule.to;
+    };
+    expect(fallback('/maas-portal/gen-ai-studio/assets')).toBe('/maas-portal/');
+    for (const path of ['/maas-consumer-portal', '/maas-consumer-portal/gen-ai-studio/assets']) {
+      expect(fallback(path)).toBe(path);
+      expect(
+        loadProxy().some(({ context }) => context.some((prefix) => path.startsWith(prefix))),
+      ).toBe(false);
+    }
+  });
+
+  it.each([
+    ['/maas/api/v1/models', '/api/v1/models'],
+    ['/gen-ai/api/v1/models', '/api/v1/models'],
+    ['/perses/api/api/v1/dashboards', '/api/v1/dashboards'],
+    ['/api/k8s/api/v1/pods', '/api/k8s/api/v1/pods'],
+    ['/api/operator-subscription-status', '/api/operator-subscription-status'],
+  ])('should rewrite local %s requests to %s', (path, backendPath) => {
+    process.env.EXT_CLUSTER = '';
+    process.env.OC_PROJECT = '';
+    const request = `/maas-portal${path}`;
+    const proxy = loadProxy().find(({ context }) =>
+      context.some((prefix) => request.startsWith(prefix)),
+    );
+    expect(proxy).toBeDefined();
+    expect(rewrite(proxy, request)).toBe(backendPath);
   });
 
   it('should discover the portal HTTPRoute without the core operand', () => {
@@ -87,8 +125,9 @@ describe('portal development proxy', () => {
     });
     const [proxy] = loadProxy();
     expect(proxy.target).toBe('https://portal.example.test');
-    expect(rewrite(proxy, '/maas-consumer-portal/api/k8s/api/v1/pods')).toBe(
-      '/maas-consumer-portal/api/k8s/api/v1/pods',
+    expect(proxy.context).toContain('/maas-portal/api/k8s');
+    expect(rewrite(proxy, '/maas-portal/api/k8s/api/v1/pods')).toBe(
+      '/maas-portal/api/k8s/api/v1/pods',
     );
     expect(execSync).toHaveBeenCalledWith(
       'oc get deployment -n redhat-ods-applications maas-portal -o json',
@@ -99,7 +138,7 @@ describe('portal development proxy', () => {
   it('should retain the root dashboard proxy as an explicit legacy option', () => {
     process.env.DEV_LEGACY = 'true';
     const [proxy] = loadProxy();
-    expect(rewrite(proxy, '/maas-consumer-portal/perses/api/api/v1/dashboards')).toBe(
+    expect(rewrite(proxy, '/maas-portal/perses/api/api/v1/dashboards')).toBe(
       '/perses/api/api/v1/dashboards',
     );
     expect(proxy.headers['x-forwarded-access-token']).toBe('test-token');
@@ -109,12 +148,10 @@ describe('portal development proxy', () => {
     process.env.EXT_CLUSTER = '';
     process.env.OC_PROJECT = '';
     process.env.CORE_BFF_TARGET = 'http://localhost:8082';
-    const proxy = loadProxy().find((entry) =>
-      entry.context.includes('/maas-consumer-portal/wss/k8s'),
-    );
+    const proxy = loadProxy().find((entry) => entry.context.includes('/maas-portal/wss/k8s'));
     expect(proxy.ws).toBe(true);
     expect(proxy.target).toBe('http://localhost:8082');
-    expect(rewrite(proxy, '/maas-consumer-portal/wss/k8s/api/v1/pods?watch=true')).toBe(
+    expect(rewrite(proxy, '/maas-portal/wss/k8s/api/v1/pods?watch=true')).toBe(
       '/wss/k8s/api/v1/pods?watch=true',
     );
     const setHeader = jest.fn();

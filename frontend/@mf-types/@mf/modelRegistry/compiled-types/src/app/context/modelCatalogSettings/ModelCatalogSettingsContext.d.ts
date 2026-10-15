@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ModelCatalogSettingsAPIState } from '~/app/hooks/modelCatalogSettings/useModelCatalogSettingsAPIState';
-import { CatalogSourceConfigList, CatalogSourceList } from '~/app/modelCatalogTypes';
+import type { CatalogSourceList } from '~/app/shared/types/catalogTypes';
+import type { CatalogSourceConfigList } from '~/app/modelCatalogTypes';
 export type ModelCatalogSettingsContextType = {
     apiState: ModelCatalogSettingsAPIState;
     refreshAPIState: () => void;
@@ -12,6 +13,8 @@ export type ModelCatalogSettingsContextType = {
     catalogSourcesLoaded: boolean;
     catalogSourcesLoadError?: Error;
     refreshCatalogSources: () => void;
+    pendingSourceIds: Map<string, string>;
+    markSourcePending: (id: string, previousStatus: string) => void;
 };
 type ModelCatalogSettingsContextProviderProps = {
     children: React.ReactNode;

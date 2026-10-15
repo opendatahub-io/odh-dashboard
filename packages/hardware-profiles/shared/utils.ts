@@ -249,6 +249,28 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   const result = structuredClone(cr);
   const { selectedProfile, resources, useExistingSettings } = config;
 
+  if (selectedProfile && isDRAHardwareProfile(selectedProfile)) {
+    if (!result.metadata) {
+      result.metadata = {};
+    }
+    result.metadata.annotations = {
+      ...result.metadata.annotations,
+      'opendatahub.io/hardware-profile-name': selectedProfile.metadata.name,
+      'opendatahub.io/hardware-profile-namespace': selectedProfile.metadata.namespace,
+    };
+    // Empty resources mean the workload had none. Writing them could create a container that
+    // does not exist, for example on an LLMInferenceService whose container comes from baseRef.
+    const hasResources =
+      !!resources &&
+      (Object.keys(resources.requests ?? {}).length > 0 ||
+        Object.keys(resources.limits ?? {}).length > 0 ||
+        !!resources.claims?.length);
+    if (resources && hasResources && paths?.containerResourcesPath) {
+      set(result, paths.containerResourcesPath, resources);
+    }
+    return result;
+  }
+
   if (!result.metadata) {
     result.metadata = {};
   }
@@ -282,3 +304,6 @@ export const getHardwareProfileDisplayName = (hardwareProfile: HardwareProfileKi
   hardwareProfile.metadata.name;
 
 export const getLocalQueueLabel = (): string => 'Local queue';
+
+export const isDRAHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
+  !!hardwareProfile.spec.dra;

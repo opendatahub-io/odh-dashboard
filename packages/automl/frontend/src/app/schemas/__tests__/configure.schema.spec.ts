@@ -873,6 +873,39 @@ describe('createConfigureSchema', () => {
       if (balancedResult.success) {
         expect(balancedResult.data.preset).toBe('balanced');
       }
+
+      const qualityResult = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'col1',
+        preset: 'quality',
+      });
+      expect(qualityResult.success).toBe(true);
+      if (qualityResult.success) {
+        expect(qualityResult.data.preset).toBe('quality');
+      }
+    });
+
+    it('should reject quality preset for timeseries training', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'target',
+        preset: 'quality',
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.map((issue) => issue.path.join('.'))).toContain('preset');
+      }
     });
   });
 });

@@ -247,6 +247,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                         onViewTrace(traceId);
                       }}
                       data-testid="view-trace-link"
+                      data-trace-id={traceId}
                     >
                       <small>View trace</small>
                     </Button>

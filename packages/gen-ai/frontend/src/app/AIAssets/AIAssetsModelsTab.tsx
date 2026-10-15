@@ -1,13 +1,25 @@
 import * as React from 'react';
-import { Bullseye, Button, Content, ContentVariants, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Button,
+  ButtonVariant,
+  Content,
+  ContentVariants,
+  Flex,
+  FlexItem,
+  Spinner,
+} from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
+import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
+import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import useMergedModels from '~/app/hooks/useMergedModels';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
+import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ExternalModelRequest, VerifyExternalModelRequest } from '~/app/types';
 import useAiAssetCustomEndpointsEnabled from '~/app/hooks/useAiAssetCustomEndpointsEnabled';
@@ -21,13 +33,17 @@ const AIAssetsModelsTab: React.FC = () => {
   );
 
   const { models, loaded, error, refresh } = useMergedModels();
-  const { data: lsdStatus } = useFetchLSDStatus();
+  const { data: lsdStatus, refresh: refreshLsdStatus } = useFetchLSDStatus();
+  const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
+  const [existingCollections] = useFetchVectorStores();
   const { api, apiAvailable } = useGenAiAPI();
   const isExternalModelsEnabled = useAiAssetCustomEndpointsEnabled();
   const canManageEndpoints = isExternalModelsEnabled && !!namespace;
+  const isPlaygroundCreated = !!lsdStatus;
 
   // Modal state
   const [isCreateEndpointModalOpen, setIsCreateEndpointModalOpen] = React.useState(false);
+  const [isCreatePlaygroundModalOpen, setIsCreatePlaygroundModalOpen] = React.useState(false);
   // Submit handler for creating external endpoint
   const handleCreateExternalEndpoint = React.useCallback(
     async (request: ExternalModelRequest) => {
@@ -172,19 +188,41 @@ const AIAssetsModelsTab: React.FC = () => {
           playgroundModels={playgroundModels}
           lsdStatus={lsdStatus}
           toolbarActions={
-            canManageEndpoints ? (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
-                    source: 'toolbar',
-                  });
-                  setIsCreateEndpointModalOpen(true);
-                }}
-                data-testid="create-endpoint-button"
-              >
-                Create endpoint
-              </Button>
+            !!namespace && (!isPlaygroundCreated || canManageEndpoints) ? (
+              <Flex gap={{ default: 'gapSm' }}>
+                {!isPlaygroundCreated && (
+                  <FlexItem>
+                    <Button
+                      variant="primary"
+                      data-testid="create-playground-button"
+                      onClick={() => {
+                        fireMiscTrackingEvent('Playground Setup Initiated', {
+                          source: 'Available Endpoints',
+                        });
+                        setIsCreatePlaygroundModalOpen(true);
+                      }}
+                    >
+                      Create playground
+                    </Button>
+                  </FlexItem>
+                )}
+                {canManageEndpoints && (
+                  <FlexItem>
+                    <Button
+                      variant={isPlaygroundCreated ? ButtonVariant.primary : ButtonVariant.tertiary}
+                      onClick={() => {
+                        fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
+                          source: 'toolbar',
+                        });
+                        setIsCreateEndpointModalOpen(true);
+                      }}
+                      data-testid="create-endpoint-button"
+                    >
+                      Create endpoint
+                    </Button>
+                  </FlexItem>
+                )}
+              </Flex>
             ) : undefined
           }
           onDelete={canManageEndpoints ? handleDeleteExternalModel : undefined}
@@ -200,6 +238,22 @@ const AIAssetsModelsTab: React.FC = () => {
           onSubmit={handleCreateExternalEndpoint}
           onVerify={handleVerifyExternalEndpoint}
           existingModels={models}
+        />
+      )}
+      {isCreatePlaygroundModalOpen && (
+        <ChatbotConfigurationModal
+          onClose={() => {
+            setIsCreatePlaygroundModalOpen(false);
+            refreshLsdStatus();
+            refreshPlaygroundModels();
+          }}
+          lsdStatus={lsdStatus}
+          aiModels={models}
+          existingModels={playgroundModels}
+          redirectToPlayground
+          allCollections={allCollections}
+          collectionsLoaded={collectionsLoaded}
+          existingCollections={existingCollections}
         />
       )}
     </>

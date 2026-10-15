@@ -14,6 +14,7 @@ export type ValidatedModelMetrics = {
     replicas: number | undefined;
     totalRequestsPerSecond: number | undefined;
     latencyMetrics: LatencyMetricsMap;
+    coldStartTimeToLoadSeconds: number | undefined;
 };
 export type PerformanceMetrics = {
     hardwareConfiguration: string;
@@ -24,6 +25,7 @@ export type PerformanceMetrics = {
     replicas: number | undefined;
     totalRequestsPerSecond: number | undefined;
     latencyMetrics: LatencyMetricsMap;
+    coldStartTimeToLoadSeconds: number | undefined;
 };
 export declare const extractPerformanceMetrics: (performanceMetrics: CatalogPerformanceMetricsArtifact) => PerformanceMetrics;
 /**

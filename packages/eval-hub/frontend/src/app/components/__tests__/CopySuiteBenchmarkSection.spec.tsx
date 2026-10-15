@@ -77,9 +77,10 @@ describe('CopySuiteBenchmarkSection', () => {
 
     expect(screen.getByLabelText('Secondary metric')).toHaveValue('accuracy_amb');
     expect(screen.getByLabelText('Secondary threshold')).toHaveAttribute('type', 'number');
-    expect(screen.getByLabelText('Enabled')).toBeChecked();
+    expect(screen.getByRole('button', { name: 'True' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'False' })).toHaveAttribute('aria-pressed', 'false');
 
-    fireEvent.click(screen.getByLabelText('Enabled'));
+    fireEvent.click(screen.getByRole('button', { name: 'False' }));
 
     expect(onUpdate).toHaveBeenCalledWith(
       0,

@@ -53,6 +53,9 @@ const allConfigureFieldsTouched = (): ProviderReferenceFieldTouched => ({
   path: true,
 });
 
+const getDefaultProviderSource = (providers: ExternalProvider[]): ProviderSourceType =>
+  providers.length === 0 ? ProviderSource.CREATE_NEW : ProviderSource.EXISTING;
+
 const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   isOpen,
   namespace,
@@ -64,8 +67,8 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   const { refreshExternalProviders, refreshSecrets } = useExternalModelsContext();
   const createProviderForm = useCreateExternalProviderForm(namespace);
 
-  const [providerSource, setProviderSource] = React.useState<ProviderSourceType>(
-    ProviderSource.EXISTING,
+  const [providerSource, setProviderSource] = React.useState<ProviderSourceType>(() =>
+    getDefaultProviderSource(externalProviders),
   );
   const [providerName, setProviderName] = React.useState('');
   const [createdProviderOverride, setCreatedProviderOverride] = React.useState<
@@ -77,7 +80,7 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
 
   React.useEffect(() => {
     if (isOpen) {
-      setProviderSource(ProviderSource.EXISTING);
+      setProviderSource(getDefaultProviderSource(externalProviders));
       setProviderName('');
       setCreatedProviderOverride(undefined);
       setConfigureForm(emptyConfigureForm());
@@ -308,7 +311,6 @@ const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
       >
         <WizardStep name="Provider" id="select-provider-step">
           <SelectProviderStep
-            namespace={namespace}
             providerSource={providerSource}
             onProviderSourceChange={handleProviderSourceChange}
             providerName={providerName}
