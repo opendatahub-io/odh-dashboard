@@ -134,6 +134,9 @@ func validateCreateConnectionRequest(request CreateConnectionRequest) error {
 	if request.Format != "tabular" && request.Format != "binary" {
 		return fmt.Errorf("format must be either tabular or binary")
 	}
+	if !isCanonicalUUID(request.DataConnectionTypeID) {
+		return fmt.Errorf("data_connection_type_id must be a valid UUID")
+	}
 	if errors := validation.IsDNS1123Label(request.Credentials.Secret); len(errors) > 0 {
 		return fmt.Errorf("credentials.secret must be a valid DNS-1123 name: %s", errors[0])
 	}

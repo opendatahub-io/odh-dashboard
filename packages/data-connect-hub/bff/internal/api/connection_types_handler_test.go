@@ -89,6 +89,12 @@ func TestGetConnectionTypeHandlerValidatesRequest(t *testing.T) {
 			path:        "/api/v1/connection-types/?namespace=test-project",
 			addIdentity: true,
 		},
+		{
+			name:        "invalid connection type id",
+			path:        "/api/v1/connection-types/invalid-id?namespace=test-project",
+			params:      httprouter.Params{{Key: "connection_type_id", Value: "invalid-id"}},
+			addIdentity: true,
+		},
 	}
 
 	for _, tt := range tests {

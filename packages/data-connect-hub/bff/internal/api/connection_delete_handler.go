@@ -24,6 +24,10 @@ func (app *App) DeleteConnectionHandler(w http.ResponseWriter, r *http.Request, 
 	if !app.authorizeNamespace(w, r, namespace, identity, "delete", "data-connections") {
 		return
 	}
+	if err := validateID("path parameter", "id", params.ByName("id")); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
 
 	apiURL := app.config.DataConnectHubAPIURL
 	if app.dataConnectHubAPIURL != nil {

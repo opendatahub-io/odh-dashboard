@@ -7,11 +7,11 @@ export const useConnection = (
   namespace: string,
   connectionId: string,
   fetchEnabled = true,
-): [Connection | undefined, boolean, Error | undefined, () => void] => {
-  const callback = React.useCallback<FetchStateCallbackPromise<Connection | undefined>>(
+): [Connection | null, boolean, Error | undefined, () => void] => {
+  const callback = React.useCallback<FetchStateCallbackPromise<Connection | null>>(
     async (opts: APIOptions) => {
       if (!namespace || !fetchEnabled) {
-        return undefined;
+        return null;
       }
 
       return getConnection('')(opts, namespace, connectionId);
@@ -19,12 +19,8 @@ export const useConnection = (
     [connectionId, fetchEnabled, namespace],
   );
 
-  const [connection, loaded, error, refresh] = useFetchState<Connection | undefined>(
-    callback,
-    undefined,
-    {
-      initialPromisePurity: true,
-    },
-  );
+  const [connection, loaded, error, refresh] = useFetchState<Connection | null>(callback, null, {
+    initialPromisePurity: true,
+  });
   return [connection, loaded, error, refresh];
 };

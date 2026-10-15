@@ -32,7 +32,7 @@ const getResponseErrorMessage = (body: string, status: number): string => {
   } catch {
     // Fall back to the raw response for non-JSON errors.
   }
-  return body || `Credential verification failed with status ${status}`;
+  return body || `Request failed with status ${status}`;
 };
 
 const isConnection = (value: unknown): value is Connection => {
@@ -53,6 +53,8 @@ const isConnection = (value: unknown): value is Connection => {
     typeof value.resource.name === 'string' &&
     typeof value.resource.data_connection_type_id === 'string' &&
     (value.resource.format === 'tabular' || value.resource.format === 'binary') &&
+    isRecord(value.resource.credentials_ref) &&
+    typeof value.resource.credentials_ref.secret === 'string' &&
     (value.resource.properties === undefined ||
       (isRecord(value.resource.properties) &&
         Object.entries(value.resource.properties).every(
@@ -113,20 +115,38 @@ export const getConnections =
 
 export const getConnection =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string, connectionId: string): Promise<Connection> =>
-    handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(connectionId)}`,
-        { namespace },
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<unknown>(response) && isConnection(response.data)) {
-        return response.data;
-      }
+  async (opts: APIOptions, namespace: string, connectionId: string): Promise<Connection | null> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+        connectionId,
+      )}?${searchParams.toString()}`,
+      {
+        method: 'GET',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    const body = await response.text();
+
+    if (response.status === 404) {
+      return null;
+    }
+    if (!response.ok) {
+      throw new Error(getResponseErrorMessage(body, response.status));
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
       throw new Error('Invalid response format');
-    });
+    }
+    if (isModArchResponse<unknown>(parsed) && isConnection(parsed.data)) {
+      return parsed.data;
+    }
+    throw new Error('Invalid response format');
+  };
 
 export const getConnectionTypes =
   (hostPath: string) =>

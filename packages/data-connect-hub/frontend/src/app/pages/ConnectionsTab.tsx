@@ -486,6 +486,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       )}
       {deleteTarget && (
         <ConnectionDeleteModal
+          key={`${namespace}:${deleteTarget.metadata.id}`}
           connection={deleteTarget}
           namespace={namespace}
           onClose={() => setDeleteTarget(undefined)}

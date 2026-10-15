@@ -1,7 +1,9 @@
 import React from 'react';
+import { jest } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import * as ReactRouterDom from 'react-router-dom';
 import { deleteConnection, verifyConnection } from '~/app/api/dch';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import ConnectionDetails from '~/app/pages/ConnectionDetails';
@@ -18,7 +20,7 @@ jest.mock('~/app/api/dch', () => ({
   verifyConnection: jest.fn(),
 }));
 jest.mock('@odh-dashboard/ui-core', () => ({
-  ...jest.requireActual('@odh-dashboard/ui-core'),
+  ...jest.requireActual<typeof import('@odh-dashboard/ui-core')>('@odh-dashboard/ui-core'),
   DeleteModal: ({
     deleteName,
     error,
@@ -334,8 +336,29 @@ describe('ConnectionDetails', () => {
     });
   });
 
+  it('does not refresh a connection after the details page unmounts', async () => {
+    const user = userEvent.setup();
+    let resolveVerification: () => void = () => undefined;
+    const pendingVerification = new Promise<void>((resolve) => {
+      resolveVerification = resolve;
+    });
+    mockVerifyConnection.mockImplementation(
+      () => (_options, _namespace, _connectionId) => pendingVerification,
+    );
+    mockUseConnection.mockReturnValue([connection, true, undefined, refresh]);
+
+    const { unmount } = renderDetails();
+    await user.click(screen.getByTestId('connection-verify-button'));
+    unmount();
+
+    resolveVerification();
+    await Promise.resolve();
+
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it('renders the not-found state for an unknown connection', () => {
-    mockUseConnection.mockReturnValue([undefined, true, undefined, refresh]);
+    mockUseConnection.mockReturnValue([null, true, undefined, refresh]);
 
     renderDetails(
       '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440009?project=test-project',
@@ -344,8 +367,62 @@ describe('ConnectionDetails', () => {
     expect(screen.getByText('Connection not found')).toBeTruthy();
   });
 
+  it('renders the not-found state when loading a connection returns HTTP 404', async () => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue({
+        status: 404,
+        ok: false,
+        text: () =>
+          Promise.resolve(
+            '{"error":{"code":"404","message":"the requested resource could not be found"}}',
+          ),
+      } as Response);
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    jest.isolateModules(() => {
+      jest.doMock('react', () => React);
+      jest.doMock('react-router-dom', () => ReactRouterDom);
+      jest.doMock('~/app/hooks/useConnection', () =>
+        jest.requireActual('~/app/hooks/useConnection'),
+      );
+      jest.doMock('~/app/api/dch', () => ({
+        ...jest.requireActual<typeof import('~/app/api/dch')>('~/app/api/dch'),
+        deleteConnection: jest.fn(),
+        verifyConnection: jest.fn(),
+      }));
+      jest.doMock('~/app/hooks/useNamespaces', () => ({
+        useNamespaces: () => [[{ name: 'test-project', displayName: 'Test Project' }]],
+      }));
+
+      const ActualConnectionDetails = jest.requireActual<{
+        default: React.ComponentType;
+      }>('~/app/pages/ConnectionDetails').default;
+      render(
+        <MemoryRouter
+          initialEntries={[
+            '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440009?project=test-project',
+          ]}
+        >
+          <Routes>
+            <Route
+              path="/ai-hub/connections/connections/:connectionId"
+              element={<ActualConnectionDetails />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Connection not found')).toBeTruthy();
+    });
+    expect(screen.queryByText('Unable to load connection')).toBeNull();
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+
   it('renders the load error state', () => {
-    mockUseConnection.mockReturnValue([undefined, false, new Error('request failed'), refresh]);
+    mockUseConnection.mockReturnValue([null, false, new Error('request failed'), refresh]);
 
     renderDetails();
 

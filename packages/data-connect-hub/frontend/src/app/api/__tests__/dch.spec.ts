@@ -74,6 +74,9 @@ describe('getConnectionType', () => {
   });
 });
 
+const response = (status: number, body = '') =>
+  ({ status, ok: status >= 200 && status < 300, text: () => Promise.resolve(body) }) as Response;
+
 describe('getConnection', () => {
   const connection = {
     metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
@@ -81,6 +84,7 @@ describe('getConnection', () => {
       name: 'warehouse',
       data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
       format: 'tabular' as const,
+      credentials_ref: { secret: 'warehouse' },
     },
     status: { state: 'ready' as const },
   };
@@ -92,16 +96,23 @@ describe('getConnection', () => {
   });
 
   it('should return a connection from a valid response', async () => {
-    mockRestGET.mockResolvedValue({ data: connection });
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(200, JSON.stringify({ data: connection })));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
 
     await expect(
       getConnection('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
     ).resolves.toEqual(connection);
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
 
-  it('should pass the connection id and request options to restGET', async () => {
+  it('should pass the connection id and request options to fetch', async () => {
     const opts = { signal: new AbortController().signal };
-    mockRestGET.mockResolvedValue({ data: connection });
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(200, JSON.stringify({ data: connection })));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
 
     await getConnection('/data-connect-hub')(
       opts,
@@ -109,30 +120,90 @@ describe('getConnection', () => {
       '550e8400-e29b-41d4-a716-446655440002',
     );
 
-    expect(mockRestGET).toHaveBeenCalledWith(
-      '/data-connect-hub',
-      '/data-connect-hub/api/v1/connections/550e8400-e29b-41d4-a716-446655440002',
-      { namespace: 'test-project' },
-      opts,
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/data-connect-hub/data-connect-hub/api/v1/connections/550e8400-e29b-41d4-a716-446655440002?namespace=test-project',
+      {
+        method: 'GET',
+        headers: undefined,
+        signal: opts.signal,
+      },
     );
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+
+  it('should return null when the connection is not found', async () => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        response(
+          404,
+          '{"error":{"code":"404","message":"the requested resource could not be found"}}',
+        ),
+      );
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(
+      getConnection('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
+    ).resolves.toBeNull();
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
 
   it.each([
     ['a non-mod-arch response', false, { data: connection }],
     ['missing response data', true, { data: undefined }],
     ['an invalid connection', true, { data: { metadata: {}, resource: {} } }],
-  ])('should reject %s', async (_description, isResponse, response) => {
+    [
+      'a connection missing credentials_ref',
+      true,
+      {
+        data: {
+          ...connection,
+          resource: { ...connection.resource, credentials_ref: undefined },
+        },
+      },
+    ],
+    [
+      'a connection with invalid credentials_ref',
+      true,
+      { data: { ...connection, resource: { ...connection.resource, credentials_ref: {} } } },
+    ],
+    [
+      'a connection with a non-string credentials_ref secret',
+      true,
+      {
+        data: {
+          ...connection,
+          resource: { ...connection.resource, credentials_ref: { secret: 123 } },
+        },
+      },
+    ],
+  ])('should reject %s', async (_description, isResponse, responseBody) => {
     mockIsModArchResponse.mockReturnValue(isResponse);
-    mockRestGET.mockResolvedValue(response);
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(200, JSON.stringify(responseBody)));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
 
     await expect(
       getConnection('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
     ).rejects.toThrow('Invalid response format');
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+
+  it('should reject non-not-found HTTP errors', async () => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        response(500, '{"error":{"code":"500","message":"the server encountered a problem"}}'),
+      );
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(
+      getConnection('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
+    ).rejects.toThrow('the server encountered a problem');
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
 });
-
-const response = (status: number, body = '') =>
-  ({ status, text: () => Promise.resolve(body) }) as Response;
 
 describe('testCredentials', () => {
   it('rejects when the DCH endpoint does not return 204', async () => {

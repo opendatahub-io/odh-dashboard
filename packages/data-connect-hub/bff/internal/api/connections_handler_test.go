@@ -164,6 +164,51 @@ func TestGetConnectionHandlerValidatesRequest(t *testing.T) {
 	}
 }
 
+func TestConnectionMutationHandlersRejectInvalidPathIDs(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	tests := []struct {
+		name   string
+		method string
+		path   string
+		invoke func(*App, *httptest.ResponseRecorder, *http.Request, httprouter.Params)
+	}{
+		{
+			name:   "get connection",
+			method: http.MethodGet,
+			path:   "/api/v1/connections/invalid-id?namespace=test-project",
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.GetConnectionHandler(w, r, p)
+			},
+		},
+		{
+			name:   "delete connection",
+			method: http.MethodDelete,
+			path:   "/api/v1/connections/invalid-id?namespace=test-project",
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.DeleteConnectionHandler(w, r, p)
+			},
+		},
+		{
+			name:   "verify connection readiness",
+			method: http.MethodPost,
+			path:   "/api/v1/connections/invalid-id/readiness?namespace=test-project",
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.CheckConnectionReadinessHandler(w, r, p)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			response, request := requestWithIdentity(t, tt.method, tt.path)
+
+			tt.invoke(app, response, request, httprouter.Params{{Key: "id", Value: "invalid-id"}})
+
+			require.Equal(t, http.StatusBadRequest, response.Code)
+		})
+	}
+}
+
 func TestGetConnectionHandlerForwardsUpstreamRequest(t *testing.T) {
 	var requestedPath string
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -344,6 +389,36 @@ func TestTestCredentialsHandlerDeniesReadOnlyAccessBeforeUpstreamCall(t *testing
 	require.Zero(t, upstreamCalls)
 }
 
+func TestTestCredentialsHandlerRejectsInvalidConnectionTypeID(t *testing.T) {
+	upstreamCalls := 0
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		upstreamCalls++
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config: config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger: slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{
+			client: &authorizationTestClient{allowed: true},
+		},
+	}
+	response, request := requestWithIdentity(
+		t,
+		http.MethodPost,
+		"/api/v1/test/credentials?namespace=test-project",
+	)
+	request.Body = io.NopCloser(bytes.NewBufferString(
+		`{"data_connection_type_id":"postgresql","credentials":{"URI":"postgres://example"}}`,
+	))
+
+	app.TestCredentialsHandler(response, request, httprouter.Params{})
+
+	require.Equal(t, http.StatusBadRequest, response.Code)
+	require.Zero(t, upstreamCalls)
+}
+
 func TestCreateConnectionRequestValidation(t *testing.T) {
 	valid := CreateConnectionRequest{
 		Name:                 "connection",
@@ -408,6 +483,12 @@ func TestCreateConnectionHandlerNegativePaths(t *testing.T) {
 		{
 			name:           "unsupported format",
 			body:           strings.Replace(validBody, `"tabular"`, `"json"`, 1),
+			allowed:        true,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "invalid connection type ID",
+			body:           strings.Replace(validBody, `550e8400-e29b-41d4-a716-446655440003`, `postgresql`, 1),
 			allowed:        true,
 			expectedStatus: http.StatusBadRequest,
 		},

@@ -150,8 +150,8 @@ func (app *App) GetConnectionTypeHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	connectionTypeID := params.ByName("connection_type_id")
-	if connectionTypeID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("path parameter 'connection_type_id' is required and cannot be empty"))
+	if err := validateID("path parameter", "connection_type_id", connectionTypeID); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 

@@ -128,8 +128,8 @@ func (app *App) GetConnectionHandler(w http.ResponseWriter, r *http.Request, par
 	}
 
 	connectionID := params.ByName("id")
-	if connectionID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("path parameter 'id' is required and cannot be empty"))
+	if err := validateID("path parameter", "id", connectionID); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 

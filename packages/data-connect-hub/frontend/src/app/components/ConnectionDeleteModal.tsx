@@ -22,14 +22,12 @@ const ConnectionDeleteModal: React.FC<ConnectionDeleteModalProps> = ({
   const [error, setError] = React.useState<Error>();
   const operationRef = React.useRef(0);
 
-  React.useEffect(() => {
-    operationRef.current += 1;
-    setDeleting(false);
-    setError(undefined);
-    return () => {
+  React.useEffect(
+    () => () => {
       operationRef.current += 1;
-    };
-  }, [connection.metadata.id, namespace]);
+    },
+    [],
+  );
 
   const handleClose = () => {
     operationRef.current += 1;

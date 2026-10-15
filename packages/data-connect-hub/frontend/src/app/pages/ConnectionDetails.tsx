@@ -60,6 +60,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
   const [verificationError, setVerificationError] = React.useState<Error>();
   const [actionsOpen, setActionsOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const verificationOperationRef = React.useRef(0);
   const navigate = useNavigate();
   const connectionsPath = { pathname: '..', search };
   const projectDisplayName = React.useMemo(
@@ -79,6 +80,13 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
   );
   const connectionTypeName = connectionType?.resource.name ?? connectionTypeId;
 
+  React.useEffect(
+    () => () => {
+      verificationOperationRef.current += 1;
+    },
+    [],
+  );
+
   const handleVerify = async () => {
     if (!connection || verifying) {
       return;
@@ -86,15 +94,24 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
 
     setVerifying(true);
     setVerificationError(undefined);
+    const operation = ++verificationOperationRef.current;
     try {
       await verifyConnection('')({}, namespace, connection.metadata.id);
+      if (verificationOperationRef.current !== operation) {
+        return;
+      }
       refresh();
     } catch (failure) {
+      if (verificationOperationRef.current !== operation) {
+        return;
+      }
       setVerificationError(
         failure instanceof Error ? failure : new Error('Unable to verify connection'),
       );
     } finally {
-      setVerifying(false);
+      if (verificationOperationRef.current === operation) {
+        setVerifying(false);
+      }
     }
   };
 
@@ -283,6 +300,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
       </PageSection>
       {deleteOpen && connection && (
         <ConnectionDeleteModal
+          key={`${namespace}:${connection.metadata.id}`}
           connection={connection}
           namespace={namespace}
           onClose={() => setDeleteOpen(false)}
