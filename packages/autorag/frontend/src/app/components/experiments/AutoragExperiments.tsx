@@ -1,4 +1,5 @@
 import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
+import { usePipelineServerStatus } from '@odh-dashboard/autox-core/ui/hooks';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { Alert, Flex, FlexItem, Spinner } from '@patternfly/react-core';
@@ -62,6 +63,12 @@ function AutoragExperiments({
   const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
+  // Keep observing DSPA readiness even when the BFF returns cached runs. Its DSPA discovery
+  // cache can briefly report a previously-ready server while the resource is starting.
+  const pipelineServerStatus = usePipelineServerStatus(effectiveNamespace || undefined);
+  const readinessLoaded = Boolean(effectiveNamespace) && pipelineServerStatus.loaded;
+  const readinessError = Boolean(pipelineServerStatus.error);
+  const pipelineServerStarting = pipelineServerStatus.isStarting;
 
   const onListStatusRef = React.useRef(onExperimentsListStatus);
   onListStatusRef.current = onExperimentsListStatus;
@@ -71,6 +78,9 @@ function AutoragExperiments({
     hasLoadError: boolean;
     loaded: boolean;
     hasExperiments: boolean;
+    readinessLoaded: boolean;
+    readinessError: boolean;
+    pipelineServerStarting: boolean;
   } | null>(null);
 
   React.useEffect(() => {
@@ -81,11 +91,14 @@ function AutoragExperiments({
 
     let nextLoaded: boolean;
     let nextHasExperiments: boolean;
-    if (hasLoadError) {
+    if (hasLoadError || readinessError) {
       nextLoaded = true;
       nextHasExperiments = false;
-    } else if (!loaded) {
+    } else if (!loaded || !readinessLoaded) {
       nextLoaded = false;
+      nextHasExperiments = false;
+    } else if (pipelineServerStarting) {
+      nextLoaded = true;
       nextHasExperiments = false;
     } else {
       nextLoaded = true;
@@ -98,7 +111,10 @@ function AutoragExperiments({
       prev.effectiveNamespace === effectiveNamespace &&
       prev.hasLoadError === hasLoadError &&
       prev.loaded === loaded &&
-      prev.hasExperiments === hasExperiments
+      prev.hasExperiments === hasExperiments &&
+      prev.readinessLoaded === readinessLoaded &&
+      prev.readinessError === readinessError &&
+      prev.pipelineServerStarting === pipelineServerStarting
     ) {
       return;
     }
@@ -109,8 +125,19 @@ function AutoragExperiments({
       hasLoadError,
       loaded,
       hasExperiments,
+      readinessLoaded,
+      readinessError,
+      pipelineServerStarting,
     };
-  }, [effectiveNamespace, hasLoadError, loaded, hasExperiments]);
+  }, [
+    effectiveNamespace,
+    hasLoadError,
+    loaded,
+    hasExperiments,
+    readinessLoaded,
+    readinessError,
+    pipelineServerStarting,
+  ]);
 
   const errorCode = loadError ? getPipelineErrorCode(loadError) : undefined;
 
@@ -161,6 +188,36 @@ function AutoragExperiments({
     );
   }
 
+  if (effectiveNamespace && pipelineServerStatus.error) {
+    return (
+      <Alert
+        variant="danger"
+        isInline
+        title="Unable to verify pipeline server readiness"
+        data-testid="pipeline-server-status-error"
+      >
+        <p>{pipelineServerStatus.error.message}</p>
+        <p>Refresh the page to check again before creating a run.</p>
+      </Alert>
+    );
+  }
+
+  if (
+    pipelineServerStatus.isStarting &&
+    !pipelineServerStatus.error &&
+    (!loadError || pipelineServerMode === 'waiting')
+  ) {
+    return (
+      <PipelineServerSetup
+        namespace={effectiveNamespace || undefined}
+        mode="waiting"
+        onStarted={() => setServerBusy('waiting')}
+        onFailed={() => setServerBusy(false)}
+        onReady={handleServerReady}
+      />
+    );
+  }
+
   if (pipelineServerMode) {
     return (
       <PipelineServerSetup
@@ -181,7 +238,7 @@ function AutoragExperiments({
     );
   }
 
-  if (!loaded) {
+  if (!effectiveNamespace || !loaded || !pipelineServerStatus.loaded) {
     return (
       <Flex justifyContent={{ default: 'justifyContentCenter' }} className="pf-v6-u-pt-2xl">
         <FlexItem>

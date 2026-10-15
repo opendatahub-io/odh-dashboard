@@ -192,7 +192,9 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
     }
   }, [enableMutation, namespace, onFailed, onStarted, startPolling]);
 
-  if (state === 'polling') {
+  // Render the waiting state immediately so the first paint doesn't fall through to the generic
+  // error view before the effect starts readiness polling.
+  if (state === 'polling' || (mode === 'waiting' && state === 'idle')) {
     return <PipelineServerStarting namespace={namespace} data-testid="pipeline-server-polling" />;
   }
 
