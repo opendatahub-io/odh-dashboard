@@ -36,7 +36,7 @@ describe('CreateApiKeyModal', () => {
     const subscription: UserSubscription = {
       subscription_id_header: 'test-subscription',
       subscription_description: 'Test',
-      priority: 1,
+      inference_priority: 1,
       model_refs: [],
     };
     render(
