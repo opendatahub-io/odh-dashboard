@@ -46,7 +46,9 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
   const mountedRef = React.useRef(true);
   const operationIdRef = React.useRef(0);
   const callbacksRef = React.useRef({ onStarted, onFailed, onReady });
-  callbacksRef.current = { onStarted, onFailed, onReady };
+  React.useLayoutEffect(() => {
+    callbacksRef.current = { onStarted, onFailed, onReady };
+  });
   const pollingContextRef = React.useRef({ mode, namespace });
   if (
     pollingContextRef.current.mode !== mode ||

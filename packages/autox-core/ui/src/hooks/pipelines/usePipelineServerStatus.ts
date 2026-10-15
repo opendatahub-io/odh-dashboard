@@ -24,7 +24,7 @@ export type PipelineServerStatus = {
   error: Error | undefined;
 };
 
-/** Watches the DSPA Ready condition so an empty run list isn't mistaken for a ready server. */
+/** Watches DSPA readiness so empty-run actions stay gated while an observed server is starting. */
 export const usePipelineServerStatus = (
   namespace?: string,
   enabled = true,
@@ -89,9 +89,9 @@ export const usePipelineServerStatus = (
   }, [namespace, loaded, hasReadinessError, isReady]);
 
   const isReadyConfirmed = isReady && confirmedReadyNamespace === namespace;
-  // An empty list is not evidence of a ready server. The BFF may still return cached runs while
-  // the DSPA is being created, so keep the experiments page gated until a Ready DSPA is observed.
-  const isStarting = !readinessError && loaded && !isReady;
+  // Only report startup after observing a DSPA. An empty watch result is inconclusive, so let the
+  // experiments page fall back to the BFF state instead of showing the blocking waiting state.
+  const isStarting = !readinessError && loaded && dspas.length > 0 && !isReady;
 
   return {
     // Give the watch a brief chance to deliver an immediate Ready -> Starting transition before

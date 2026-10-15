@@ -194,6 +194,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   }
 
   if (
+    !hasExperiments &&
     pipelineServerStatus.isStarting &&
     !pipelineServerStatus.error &&
     (!loadError || pipelineServerMode === 'waiting')

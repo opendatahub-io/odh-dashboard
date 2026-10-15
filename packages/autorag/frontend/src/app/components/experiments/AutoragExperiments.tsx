@@ -194,6 +194,7 @@ function AutoragExperiments({
   }
 
   if (
+    !hasExperiments &&
     pipelineServerStatus.isStarting &&
     !pipelineServerStatus.error &&
     (!loadError || pipelineServerMode === 'waiting')
