@@ -95,6 +95,33 @@ describe('usePipelineServerStatus', () => {
     }
   });
 
+  it('should accept Ready when observedGeneration is omitted', () => {
+    jest.useFakeTimers();
+    const readyWithoutObservedGeneration = {
+      ...readyDspa,
+      metadata: { ...readyDspa.metadata, generation: 2 },
+    };
+    mockUseK8sWatchResourceList.mockReturnValue([
+      [readyWithoutObservedGeneration],
+      true,
+      undefined,
+    ]);
+
+    const { result, unmount } = renderHook(() => usePipelineServerStatus('test-project'));
+
+    try {
+      expect(result.current.isStarting).toBe(false);
+      expect(result.current.loaded).toBe(false);
+
+      act(() => jest.advanceTimersByTime(2000));
+
+      expect(result.current.loaded).toBe(true);
+    } finally {
+      unmount();
+      jest.useRealTimers();
+    }
+  });
+
   it('should report a DSPA as starting when Ready is for an older generation', () => {
     const staleReadyDspa = {
       ...readyDspa,

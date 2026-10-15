@@ -69,6 +69,13 @@ function AutoragExperiments({
   const readinessLoaded = Boolean(effectiveNamespace) && pipelineServerStatus.loaded;
   const readinessError = Boolean(pipelineServerStatus.error);
   const pipelineServerStarting = pipelineServerStatus.isStarting;
+  const hasAccessibleRunsDespiteWatchFailure =
+    Boolean(effectiveNamespace) &&
+    loaded &&
+    !loadError &&
+    hasExperiments &&
+    getPipelineErrorCode(pipelineServerStatus.error) === 403;
+  const hasBlockingReadinessError = readinessError && !hasAccessibleRunsDespiteWatchFailure;
 
   const onListStatusRef = React.useRef(onExperimentsListStatus);
   onListStatusRef.current = onExperimentsListStatus;
@@ -91,10 +98,10 @@ function AutoragExperiments({
 
     let nextLoaded: boolean;
     let nextHasExperiments: boolean;
-    if (hasLoadError || readinessError) {
+    if (hasLoadError || hasBlockingReadinessError) {
       nextLoaded = true;
       nextHasExperiments = false;
-    } else if (!loaded || !readinessLoaded) {
+    } else if (!loaded || (!readinessLoaded && !hasAccessibleRunsDespiteWatchFailure)) {
       nextLoaded = false;
       nextHasExperiments = false;
     } else if (pipelineServerStarting) {
@@ -132,6 +139,8 @@ function AutoragExperiments({
   }, [
     effectiveNamespace,
     hasLoadError,
+    hasBlockingReadinessError,
+    hasAccessibleRunsDespiteWatchFailure,
     loaded,
     hasExperiments,
     readinessLoaded,
@@ -144,6 +153,8 @@ function AutoragExperiments({
   const handleServerReady = React.useCallback(() => {
     refreshRuns();
   }, [refreshRuns]);
+  const handleWaitingStarted = React.useCallback(() => setServerBusy('waiting'), []);
+  const handleServerFailed = React.useCallback(() => setServerBusy(false), []);
 
   React.useEffect(() => {
     if (serverBusy && (loaded || loadError)) {
@@ -171,6 +182,9 @@ function AutoragExperiments({
     return false;
   };
   const pipelineServerMode = getPipelineServerMode();
+  const handleServerStarted = React.useCallback(() => {
+    setServerBusy(pipelineServerMode || 'waiting');
+  }, [pipelineServerMode]);
 
   if (loadError && errorCode === 403) {
     return <UnauthorizedError accessDomain="AutoRAG experiments" />;
@@ -181,14 +195,14 @@ function AutoragExperiments({
       <PipelineServerSetup
         namespace={effectiveNamespace || undefined}
         mode={pipelineServerMode}
-        onStarted={() => setServerBusy(pipelineServerMode)}
-        onFailed={() => setServerBusy(false)}
+        onStarted={handleServerStarted}
+        onFailed={handleServerFailed}
         onReady={handleServerReady}
       />
     );
   }
 
-  if (effectiveNamespace && pipelineServerStatus.error) {
+  if (effectiveNamespace && pipelineServerStatus.error && !hasAccessibleRunsDespiteWatchFailure) {
     return (
       <Alert
         variant="danger"
@@ -211,8 +225,9 @@ function AutoragExperiments({
       <PipelineServerSetup
         namespace={effectiveNamespace || undefined}
         mode="waiting"
-        onStarted={() => setServerBusy('waiting')}
-        onFailed={() => setServerBusy(false)}
+        isReady={false}
+        onStarted={handleWaitingStarted}
+        onFailed={handleServerFailed}
         onReady={handleServerReady}
       />
     );
@@ -223,8 +238,8 @@ function AutoragExperiments({
       <PipelineServerSetup
         namespace={effectiveNamespace || undefined}
         mode={pipelineServerMode}
-        onStarted={() => setServerBusy(pipelineServerMode)}
-        onFailed={() => setServerBusy(false)}
+        onStarted={handleServerStarted}
+        onFailed={handleServerFailed}
         onReady={handleServerReady}
       />
     );
@@ -238,7 +253,11 @@ function AutoragExperiments({
     );
   }
 
-  if (!effectiveNamespace || !loaded || !pipelineServerStatus.loaded) {
+  if (
+    !effectiveNamespace ||
+    !loaded ||
+    (!pipelineServerStatus.loaded && !hasAccessibleRunsDespiteWatchFailure)
+  ) {
     return (
       <Flex justifyContent={{ default: 'justifyContentCenter' }} className="pf-v6-u-pt-2xl">
         <FlexItem>

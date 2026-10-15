@@ -34,20 +34,24 @@ jest.mock('@odh-dashboard/ui-core/components/UnauthorizedError', () => ({
 
 let mockPipelineServerSetupOnStarted: (() => void) | undefined;
 let mockPipelineServerSetupMode: string | undefined;
+let mockPipelineServerSetupIsReady: boolean | undefined;
 jest.mock('~/app/components/empty-states/PipelineServerSetup', () => ({
   __esModule: true,
   default: ({
     mode,
     onStarted,
+    isReady,
   }: {
     namespace?: string;
     mode?: 'configure' | 'enable' | 'waiting';
+    isReady?: boolean;
     onStarted?: () => void;
     onFailed?: () => void;
     onReady?: () => void;
   }) => {
     mockPipelineServerSetupOnStarted = onStarted;
     mockPipelineServerSetupMode = mode;
+    mockPipelineServerSetupIsReady = isReady;
     return <div data-testid="no-pipeline-server">Configure a pipeline server</div>;
   },
 }));
@@ -177,6 +181,7 @@ describe('AutoragExperiments', () => {
 
     expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
     expect(mockPipelineServerSetupMode).toBe('waiting');
+    expect(mockPipelineServerSetupIsReady).toBe(false);
     expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
   });
 
@@ -252,6 +257,36 @@ describe('AutoragExperiments', () => {
 
     expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
     expect(screen.getByTestId('run-r1')).toHaveTextContent('Run 1');
+    expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
+  });
+
+  it('should keep BFF-loaded runs visible when the DSPA watch is forbidden', () => {
+    mockGetGenericErrorCode.mockReturnValue(403);
+    mockUsePipelineServerStatus.mockReturnValue({
+      loaded: false,
+      isStarting: false,
+      error: new Error('Forbidden'),
+    });
+
+    renderAutorag(<AutoragExperiments />);
+
+    expect(screen.getByTestId('autorag-runs-table')).toBeInTheDocument();
+    expect(screen.getByTestId('run-r1')).toHaveTextContent('Run 1');
+    expect(screen.queryByTestId('pipeline-server-status-error')).not.toBeInTheDocument();
+  });
+
+  it('should block the create-run empty state when the DSPA watch is forbidden and no runs exist', () => {
+    mockGetGenericErrorCode.mockReturnValue(403);
+    mockUsePipelineRuns.mockReturnValue({ ...defaultRunsState, runs: [], totalSize: 0 });
+    mockUsePipelineServerStatus.mockReturnValue({
+      loaded: false,
+      isStarting: false,
+      error: new Error('Forbidden'),
+    });
+
+    renderAutorag(<AutoragExperiments />);
+
+    expect(screen.getByTestId('pipeline-server-status-error')).toBeInTheDocument();
     expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
   });
 

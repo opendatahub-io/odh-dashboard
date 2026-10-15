@@ -66,9 +66,10 @@ export const usePipelineServerStatus = (
         (condition) =>
           condition.type === 'Ready' &&
           condition.status === 'True' &&
-          // Ignore a Ready condition left over from a previous spec generation while the
-          // operator is still reconciling the current DSPA.
-          (generation === undefined || condition.observedGeneration === generation),
+          // Ignore a Ready condition from an older generation when the operator reports one.
+          (generation === undefined ||
+            condition.observedGeneration === undefined ||
+            condition.observedGeneration === generation),
       );
     });
 
