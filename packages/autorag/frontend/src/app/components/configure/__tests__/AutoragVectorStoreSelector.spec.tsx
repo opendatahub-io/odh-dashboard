@@ -54,6 +54,7 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
     onRefreshReady,
     provider,
     allowedProviders,
+    toggleProps,
   }: {
     onChange: (value: SecretSelection | undefined) => void;
     dataTestId: string;
@@ -63,6 +64,7 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
     onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
     provider?: string;
     allowedProviders?: readonly string[];
+    toggleProps?: { 'aria-describedby'?: string };
   }) => {
     mockVectorOnChange = onChange;
     onRefreshReady?.(mockVectorRefresh);
@@ -75,6 +77,7 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
           data-allowed-providers={allowedProviders?.join(',')}
           data-selected-value={value}
           data-value-name={valueName}
+          aria-describedby={toggleProps?.['aria-describedby']}
           onClick={() =>
             onChange(
               mockVectorSelection ?? {
@@ -275,6 +278,10 @@ describe('AutoragVectorStoreSelector', () => {
     const selector = screen.getByTestId('database-secret-selector');
     expect(selector).toHaveAttribute('data-value-name', 'missing-db');
     expect(selector).not.toHaveAttribute('data-selected-value', 'missing-db');
+    expect(selector).toHaveAttribute('aria-describedby', 'database-secret-unavailable-helper');
+    expect(
+      screen.getByText('The previous database connection is unavailable. Select a new connection.'),
+    ).toBeInTheDocument();
   });
 
   it('should remain invalid until an available replacement is selected', () => {
@@ -312,6 +319,12 @@ describe('AutoragVectorStoreSelector', () => {
     fireEvent.click(screen.getByTestId('database-secret-selector'));
     expect(schema.full.safeParse(values).success).toBe(true);
     expect(values?.db_secret_name).toBe('vector-db-secret');
+    expect(
+      screen.queryByText(
+        'The previous database connection is unavailable. Select a new connection.',
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('database-secret-selector')).not.toHaveAttribute('aria-describedby');
   });
 
   it('should select and preserve a legacy-only Milvus Secret', () => {

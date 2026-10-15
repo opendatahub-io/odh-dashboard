@@ -15,6 +15,18 @@ describe('TypeaheadSelect', () => {
     fireEvent.click(screen.getByRole('combobox'));
   };
 
+  it('associates toggle descriptions with the combobox input', () => {
+    render(
+      <TypeaheadSelect
+        selectOptions={[]}
+        toggleProps={{ 'aria-describedby': 'description' }}
+        isRequired={false}
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-describedby', 'description');
+  });
+
   it.each(['__proto__', 'constructor', 'toString'])(
     'should handle arbitrary group labels such as %s',
     (group) => {

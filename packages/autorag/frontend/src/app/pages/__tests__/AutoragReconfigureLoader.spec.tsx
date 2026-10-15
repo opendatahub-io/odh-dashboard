@@ -9,6 +9,7 @@ import type { PipelineRun } from '~/app/types';
 
 const mockUseParams = jest.fn();
 const mockGetSecrets = jest.fn();
+const mockUseSecretsQuery = jest.fn();
 const mockWarning = jest.fn();
 let capturedProps: Record<string, unknown> = {};
 
@@ -36,13 +37,15 @@ jest.mock('~/app/hooks/usePipelineRunQuery', () => ({
 
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
-  useSecretsQuery: (namespace?: string, type?: string) =>
-    jest.requireActual('@tanstack/react-query').useQuery({
+  useSecretsQuery: (namespace?: string, type?: string) => {
+    mockUseSecretsQuery(namespace, type);
+    return jest.requireActual('@tanstack/react-query').useQuery({
       queryKey: ['secrets', namespace, type],
       queryFn: () => mockGetSecrets(type),
       enabled: Boolean(namespace),
       retry: false,
-    }),
+    });
+  },
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -114,6 +117,7 @@ describe('AutoragReconfigureLoader', () => {
       error: null,
     });
     mockGetSecrets.mockResolvedValue([]);
+    mockUseSecretsQuery.mockClear();
   });
 
   it('should warn and keep the form flow for legacy runtime fields', async () => {
@@ -142,6 +146,99 @@ describe('AutoragReconfigureLoader', () => {
       generation_models: [],
       embedding_models: [],
     });
+    expect(mockUseSecretsQuery).not.toHaveBeenCalledWith('test-ns', 'database');
+  });
+
+  it('should restore a legacy database name without requiring the legacy field', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? [
+            {
+              name: 'legacy-db',
+              type: 'database',
+              data: { MILVUS_URI: '[REDACTED]' },
+              databaseProviders: ['milvus'],
+            },
+          ]
+        : [],
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_key: 'legacy.pdf',
+        ogx_secret_name: 'ogx',
+        vector_io_provider_id: 'milvus',
+        db_secret_name: 'legacy-db',
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: 'legacy-db' });
+    expect(mockGetSecrets).toHaveBeenCalledWith('database');
+    expect(mockGetSecrets).not.toHaveBeenCalledWith('vector-db');
+  });
+
+  it('should restore an available legacy database connection into the canonical form field', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? [
+            {
+              name: 'legacy-db',
+              type: 'database',
+              data: { MILVUS_URI: '[REDACTED]' },
+              databaseProviders: ['milvus'],
+            },
+          ]
+        : [],
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_key: 'legacy.pdf',
+        ogx_secret_name: 'ogx',
+        vector_io_provider_id: 'milvus',
+        vector_db_secret_name: 'legacy-db',
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: 'legacy-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'legacy-db' });
+    expect(mockGetSecrets).not.toHaveBeenCalledWith('vector-db');
+  });
+
+  it('should preserve an unavailable legacy database connection as disabled display-only context', async () => {
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_key: 'legacy.pdf',
+        ogx_secret_name: 'ogx',
+        vector_io_provider_id: 'milvus',
+        vector_db_secret_name: 'missing-legacy-db',
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: '' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({
+      name: 'missing-legacy-db',
+      uuid: 'unavailable-missing-legacy-db',
+      invalid: true,
+    });
+    expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
+    expect(mockGetSecrets).not.toHaveBeenCalledWith('vector-db');
   });
 
   it('should reset an empty legacy input_data_key while retaining the warning behavior', async () => {
@@ -172,7 +269,7 @@ describe('AutoragReconfigureLoader', () => {
             : [
                 {
                   name: 'vector-db',
-                  type: 'vector-db',
+                  type: 'database',
                   data: { MILVUS_URI: '[REDACTED]' },
                   databaseProviders: ['milvus'],
                 },
@@ -227,7 +324,7 @@ describe('AutoragReconfigureLoader', () => {
                 },
                 {
                   name: 'legacy-db',
-                  type: 'vector-db',
+                  type: 'database',
                   data: { MILVUS_URI: '[REDACTED]' },
                   databaseProviders: ['milvus'],
                 },
@@ -258,11 +355,11 @@ describe('AutoragReconfigureLoader', () => {
   it('should restore and select the legacy secret when the canonical value is empty', async () => {
     mockGetSecrets.mockImplementation((type: string) =>
       Promise.resolve(
-        type === 'vector-db'
+        type === 'database'
           ? [
               {
                 name: 'legacy-db',
-                type: 'vector-db',
+                type: 'database',
                 data: { MILVUS_URI: '[REDACTED]' },
                 databaseProviders: ['milvus'],
               },
@@ -292,7 +389,7 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
   });
 
-  it('should prefer the current database query when current and legacy results duplicate a secret', async () => {
+  it('should use the canonical database result when the legacy field is also present', async () => {
     mockGetSecrets.mockImplementation((type: string) =>
       Promise.resolve(
         type === 'database'
@@ -305,17 +402,7 @@ describe('AutoragReconfigureLoader', () => {
                 databaseProviders: ['milvus'],
               },
             ]
-          : type === 'vector-db'
-            ? [
-                {
-                  uuid: 'legacy-db-uuid',
-                  name: 'shared-db',
-                  type: 'vector-db',
-                  data: { MILVUS_URI: '[REDACTED]' },
-                  databaseProviders: ['milvus'],
-                },
-              ]
-            : [],
+          : [],
       ),
     );
     mockUsePipelineRunQuery.mockReturnValue({
@@ -341,7 +428,7 @@ describe('AutoragReconfigureLoader', () => {
     });
   });
 
-  it('should reject an invalid current duplicate instead of using a valid legacy duplicate', async () => {
+  it('should preserve an invalid database result as unavailable', async () => {
     mockGetSecrets.mockImplementation((type: string) =>
       Promise.resolve(
         type === 'database'
@@ -353,17 +440,7 @@ describe('AutoragReconfigureLoader', () => {
                 data: { MILVUS_URI: '[REDACTED]' },
               },
             ]
-          : type === 'vector-db'
-            ? [
-                {
-                  uuid: 'legacy-db-uuid',
-                  name: 'shared-db',
-                  type: 'vector-db',
-                  data: { MILVUS_URI: '[REDACTED]' },
-                  databaseProviders: ['milvus'],
-                },
-              ]
-            : [],
+          : [],
       ),
     );
     mockUsePipelineRunQuery.mockReturnValue({
@@ -391,23 +468,9 @@ describe('AutoragReconfigureLoader', () => {
     });
   });
 
-  it('should not fall back to a legacy connection when an unavailable canonical value exists', async () => {
+  it('should preserve an unavailable canonical value without falling back to another connection', async () => {
     mockGetSecrets.mockImplementation((type: string) =>
-      Promise.resolve(
-        type === 'database'
-          ? []
-          : type === 'vector-db'
-            ? [
-                {
-                  uuid: 'legacy-db-uuid',
-                  name: 'legacy-db',
-                  type: 'vector-db',
-                  data: { MILVUS_URI: '[REDACTED]' },
-                  databaseProviders: ['milvus'],
-                },
-              ]
-            : [],
-      ),
+      Promise.resolve(type === 'database' ? [] : []),
     );
     mockUsePipelineRunQuery.mockReturnValue({
       data: createRun({
@@ -465,14 +528,14 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
   });
 
-  it('should use the legacy vector-db lookup for a historical mixed database secret', async () => {
+  it('should keep an unavailable mixed-provider legacy connection disabled', async () => {
     mockGetSecrets.mockImplementation((type: string) =>
       Promise.resolve(
-        type === 'vector-db'
+        type === 'database'
           ? [
               {
                 name: 'legacy-mixed-db',
-                type: 'vector-db',
+                type: 'database',
                 data: {
                   MILVUS_URI: '[REDACTED]',
                   NEO4J_URI: '[REDACTED]',
@@ -506,10 +569,7 @@ describe('AutoragReconfigureLoader', () => {
       invalid: true,
     });
     expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
-    expect(mockWarning).toHaveBeenCalledWith(
-      'Connection secret not found',
-      'The previously used database connection "legacy-mixed-db" could not be found. Please select a new connection.',
-    );
+    expect(mockGetSecrets).not.toHaveBeenCalledWith('vector-db');
   });
 
   it('should normalize legacy optimization metrics using the restored preset', async () => {
@@ -686,7 +746,7 @@ describe('AutoragReconfigureLoader', () => {
             : [
                 {
                   name: 'vector-db',
-                  type: 'vector-db',
+                  type: 'database',
                   data: { MILVUS_URI: '[REDACTED]' },
                   databaseProviders: ['milvus'],
                 },
@@ -735,7 +795,7 @@ describe('AutoragReconfigureLoader', () => {
             : [
                 {
                   name: 'vector-db',
-                  type: 'vector-db',
+                  type: 'database',
                   data: { MILVUS_URI: '[REDACTED]' },
                   databaseProviders: ['milvus'],
                 },
@@ -859,21 +919,14 @@ describe('AutoragReconfigureLoader', () => {
     );
   });
 
-  it('should wait for current and legacy database queries before warning about a missing connection', async () => {
+  it('should wait for the current database query before warning about a missing connection', async () => {
     let resolveDatabase: ((secrets: never[]) => void) | undefined;
-    let resolveLegacyDatabase: ((secrets: never[]) => void) | undefined;
     const databaseQuery = new Promise<never[]>((resolve) => {
       resolveDatabase = resolve;
-    });
-    const legacyDatabaseQuery = new Promise<never[]>((resolve) => {
-      resolveLegacyDatabase = resolve;
     });
     mockGetSecrets.mockImplementation((type: string) => {
       if (type === 'database') {
         return databaseQuery;
-      }
-      if (type === 'vector-db') {
-        return legacyDatabaseQuery;
       }
       return Promise.resolve([]);
     });
@@ -892,6 +945,7 @@ describe('AutoragReconfigureLoader', () => {
 
     renderPage();
     await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     expect(mockWarning).not.toHaveBeenCalledWith(
       'Connection secret not found',
       'The previously used database connection "missing-database" could not be found. Please select a new connection.',
@@ -899,14 +953,6 @@ describe('AutoragReconfigureLoader', () => {
 
     await act(async () => {
       resolveDatabase?.([]);
-    });
-    expect(mockWarning).not.toHaveBeenCalledWith(
-      'Connection secret not found',
-      'The previously used database connection "missing-database" could not be found. Please select a new connection.',
-    );
-
-    await act(async () => {
-      resolveLegacyDatabase?.([]);
     });
     await screen.findByTestId('configure-page');
     expect(mockWarning).toHaveBeenCalledWith(
@@ -950,6 +996,7 @@ describe('AutoragReconfigureLoader', () => {
 
     renderPage();
     await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     expect(mockWarning).not.toHaveBeenCalledWith(
       'Connection secret not found',
       'The previously used database connection "missing-database" could not be found. Please select a new connection.',
@@ -973,6 +1020,61 @@ describe('AutoragReconfigureLoader', () => {
             'The previously used database connection "missing-database" could not be found. Please select a new connection.',
       ),
     ).toHaveLength(1);
+  });
+
+  it('should warn when the enabled database query fails', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? Promise.reject(new Error('database request failed'))
+        : Promise.resolve([]),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'database',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(mockWarning).toHaveBeenCalledWith(
+      'Unable to load connection secrets',
+      'The previously used connection secrets could not be loaded. You will need to manually select connection secrets.',
+    );
+  });
+
+  it('should warn when the legacy database query fails', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      type === 'database'
+        ? Promise.reject(new Error('database request failed'))
+        : Promise.resolve([]),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_key: 'legacy.pdf',
+        ogx_secret_name: 'ogx',
+        vector_io_provider_id: 'milvus',
+        vector_db_secret_name: 'legacy-db',
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(mockWarning).toHaveBeenCalledWith(
+      'Unable to load connection secrets',
+      'The previously used connection secrets could not be loaded. You will need to manually select connection secrets.',
+    );
   });
 
   it('should not warn when a cached database miss is refetched and resolves the secret', async () => {
@@ -1004,6 +1106,7 @@ describe('AutoragReconfigureLoader', () => {
 
     renderPage(queryClient);
     await waitFor(() => expect(mockGetSecrets).toHaveBeenCalledWith('database'));
+    expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     expect(mockWarning).not.toHaveBeenCalled();
 
     await act(async () => {

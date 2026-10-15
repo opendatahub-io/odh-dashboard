@@ -563,6 +563,11 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
               placeholder={placeholder}
               icon={inputIcon}
               {...(activeItemId && { 'aria-activedescendant': activeItemId })}
+              inputProps={{
+                ...(toggleProps?.['aria-describedby'] && {
+                  'aria-describedby': toggleProps['aria-describedby'],
+                }),
+              }}
               role="combobox"
               isExpanded={isOpen}
               className="pf-v6-u-w-100"

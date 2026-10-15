@@ -4,6 +4,9 @@ import {
   DropdownList,
   Flex,
   FlexItem,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   MenuToggle,
   MenuToggleAction,
 } from '@patternfly/react-core';
@@ -31,6 +34,8 @@ type Props = {
   selectedSecret?: SecretSelection;
   onSelectedSecretChange?: (secret: SecretSelection | undefined) => void;
 };
+
+const unavailableDatabaseMessageId = 'database-secret-unavailable-helper';
 
 const AutoragVectorStoreSelector: React.FC<Props> = ({
   initialSecret,
@@ -102,7 +107,22 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                   secretsRefreshRef.current = refresh;
                 }}
                 isDisabled={form.formState.isSubmitting}
+                toggleProps={{
+                  'aria-describedby':
+                    initialSecret?.invalid && !field.value
+                      ? unavailableDatabaseMessageId
+                      : undefined,
+                }}
               />
+              {initialSecret?.invalid && !field.value && (
+                <FormHelperText id={unavailableDatabaseMessageId}>
+                  <HelperText>
+                    <HelperTextItem variant="warning">
+                      The previous database connection is unavailable. Select a new connection.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              )}
             </FlexItem>
             <FlexItem>
               <Dropdown

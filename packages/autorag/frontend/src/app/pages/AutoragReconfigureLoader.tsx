@@ -38,10 +38,10 @@ const getDatabaseSecretName = (params?: Record<string, unknown>): string | undef
     return undefined;
   }
   if (hasNonEmptyString(params.db_secret_name)) {
-    return params.db_secret_name;
+    return params.db_secret_name.trim();
   }
   if (hasNonEmptyString(params.vector_db_secret_name)) {
-    return params.vector_db_secret_name;
+    return params.vector_db_secret_name.trim();
   }
   return undefined;
 };
@@ -182,10 +182,8 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   const notification = useNotification();
   const params = pipelineRun?.runtime_config?.parameters;
   const isLegacyRun = hasLegacyRuntimeParameters(params);
-  const needsLegacyVectorDbLookup =
-    !!params &&
-    !hasNonEmptyString(params.db_secret_name) &&
-    hasNonEmptyString(params.vector_db_secret_name);
+  const databaseSecretName = getDatabaseSecretName(params);
+  const needsDatabaseLookup = !isLegacyRun || databaseSecretName !== undefined;
 
   const {
     data: storageSecrets,
@@ -200,30 +198,16 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     isFetching: maasSecretsFetching,
   } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'maas');
   const {
-    data: legacyVectorDbSecrets,
-    isPending: legacyVectorDbSecretsPending,
-    isFetching: legacyVectorDbSecretsFetching,
-    isError: legacyVectorDbSecretsError,
-  } = useSecretsQuery(
-    !isLegacyRun && needsLegacyVectorDbLookup ? namespace : undefined,
-    'vector-db',
+    data: databaseSecretsQuery,
+    isPending: databaseSecretsPending,
+    isFetching: databaseSecretsFetching,
+    isFetchedAfterMount: databaseSecretsFetchedAfterMount,
+    isError: databaseSecretsError,
+  } = useSecretsQuery(needsDatabaseLookup ? namespace : undefined, 'database');
+  const databaseSecrets = React.useMemo(
+    () => (databaseSecretsQuery ?? []).filter((secret) => secret.databaseProviders?.length === 1),
+    [databaseSecretsQuery],
   );
-
-  const {
-    data: vectorDbSecrets,
-    isPending: vectorDbSecretsPending,
-    isFetching: vectorDbSecretsFetching,
-    isError: vectorDbSecretsError,
-  } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'database');
-  const databaseSecrets = React.useMemo(() => {
-    const uniqueSecrets = new Map<string, SecretSelection>();
-    for (const secret of [...(vectorDbSecrets ?? []), ...(legacyVectorDbSecrets ?? [])]) {
-      if (!uniqueSecrets.has(secret.name)) {
-        uniqueSecrets.set(secret.name, secret);
-      }
-    }
-    return [...uniqueSecrets.values()].filter((secret) => secret.databaseProviders?.length === 1);
-  }, [legacyVectorDbSecrets, vectorDbSecrets]);
 
   const parsedParams = React.useMemo(
     () => (params == null ? undefined : parseReconfigureParameters(params)),
@@ -239,18 +223,16 @@ function AutoragReconfigureLoader(): React.JSX.Element {
 
   React.useEffect(() => {
     if (
-      !isLegacyRun &&
-      (storageSecretsFetching ||
-        maasSecretsFetching ||
-        vectorDbSecretsFetching ||
-        (needsLegacyVectorDbLookup && legacyVectorDbSecretsFetching))
+      storageSecretsFetching ||
+      maasSecretsFetching ||
+      (needsDatabaseLookup && databaseSecretsFetching)
     ) {
       return;
     }
     if (
       (storageSecretsError ||
-        (!isLegacyRun &&
-          (maasSecretsError || vectorDbSecretsError || legacyVectorDbSecretsError))) &&
+        (!isLegacyRun && (maasSecretsError || databaseSecretsError)) ||
+        (isLegacyRun && needsDatabaseLookup && databaseSecretsError)) &&
       !shownWarnings.current.secretsLoadError
     ) {
       shownWarnings.current.secretsLoadError = true;
@@ -261,16 +243,14 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     }
   }, [
     isLegacyRun,
-    legacyVectorDbSecretsError,
-    legacyVectorDbSecretsFetching,
     maasSecretsFetching,
     maasSecretsError,
-    needsLegacyVectorDbLookup,
     notification,
     storageSecretsFetching,
     storageSecretsError,
-    vectorDbSecretsFetching,
-    vectorDbSecretsError,
+    databaseSecretsFetching,
+    databaseSecretsError,
+    needsDatabaseLookup,
   ]);
 
   React.useEffect(() => {
@@ -305,11 +285,9 @@ function AutoragReconfigureLoader(): React.JSX.Element {
 
   React.useEffect(() => {
     if (
-      !isLegacyRun &&
-      (storageSecretsFetching ||
-        maasSecretsFetching ||
-        vectorDbSecretsFetching ||
-        (needsLegacyVectorDbLookup && legacyVectorDbSecretsFetching))
+      storageSecretsFetching ||
+      maasSecretsFetching ||
+      (needsDatabaseLookup && databaseSecretsFetching)
     ) {
       return;
     }
@@ -331,14 +309,13 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }, [
     databaseSecrets,
     isLegacyRun,
-    legacyVectorDbSecretsFetching,
     maasSecretsFetching,
     maasSecrets,
-    needsLegacyVectorDbLookup,
     params,
     storageSecretsFetching,
     storageSecrets,
-    vectorDbSecretsFetching,
+    databaseSecretsFetching,
+    needsDatabaseLookup,
     warnMissingSecret,
   ]);
 
@@ -380,10 +357,9 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     !namespacesLoaded ||
     pipelineRunPending ||
     storageSecretsPending ||
-    (!isLegacyRun &&
-      (maasSecretsPending ||
-        vectorDbSecretsPending ||
-        (needsLegacyVectorDbLookup && legacyVectorDbSecretsPending)))
+    (!isLegacyRun && maasSecretsPending) ||
+    (needsDatabaseLookup &&
+      (databaseSecretsPending || (databaseSecretsFetching && !databaseSecretsFetchedAfterMount)))
   ) {
     return (
       <Bullseye>
@@ -394,7 +370,6 @@ function AutoragReconfigureLoader(): React.JSX.Element {
 
   const inputSecretName = params?.input_data_secret_name;
   const maasSecretName = params?.maas_secret_name;
-  const databaseSecretName = getDatabaseSecretName(params);
   const initialInputDataSecret =
     typeof inputSecretName === 'string'
       ? storageSecrets?.find((secret) => secret.name === inputSecretName)
@@ -452,7 +427,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     initialValues.generation_models = [];
     initialValues.embedding_models = [];
     initialValues.maas_secret_name = '';
-    initialValues.db_secret_name = '';
+    initialValues.db_secret_name = initialDatabaseSecret?.name ?? '';
   }
   /* eslint-enable camelcase */
 
