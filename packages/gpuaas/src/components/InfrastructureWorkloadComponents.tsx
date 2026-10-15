@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Content, ContentVariants } from '@patternfly/react-core';
+import { Content, ContentVariants, Skeleton } from '@patternfly/react-core';
 import TrainingJobStatus from '@odh-dashboard/model-training/components/TrainingJobStatus';
 import RayJobStatus from '@odh-dashboard/model-training/components/RayJobStatus';
 import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components';
@@ -15,8 +15,21 @@ import type { InfrastructureWorkloadRow } from '../types/infrastructureWorkloads
 import { InfrastructureWorkloadKind } from '../types/infrastructureWorkloads';
 
 export const HardwareProfileCell: React.FC<
-  Pick<InfrastructureWorkloadRow, 'hardwareProfile' | 'hardwareProfileResourceType'>
-> = ({ hardwareProfile, hardwareProfileResourceType }) => {
+  Pick<InfrastructureWorkloadRow, 'hardwareProfile' | 'hardwareProfileResourceType'> & {
+    loading?: boolean;
+  }
+> = ({ hardwareProfile, hardwareProfileResourceType, loading = false }) => {
+  if (loading) {
+    return (
+      <Skeleton
+        data-testid="hardware-profile-loading"
+        width="100%"
+        height="1em"
+        screenreaderText="Loading hardware profile"
+      />
+    );
+  }
+
   if (!hardwareProfile) {
     return <>--</>;
   }

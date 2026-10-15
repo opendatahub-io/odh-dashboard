@@ -1362,7 +1362,7 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.form.formState.errors).toEqual({});
   });
 
-  it('should reject a copy that keeps the source collection name', async () => {
+  it('should reject a copy that keeps the source benchmark suite name', async () => {
     const result = renderForm();
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
@@ -1370,7 +1370,7 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() =>
       expect(result.result.current.form.formState.errors.suiteName?.message).toBe(
-        'Suite name must be different from the source collection name.',
+        'Suite name must be different from the source benchmark suite name.',
       ),
     );
     expect(result.result.current.isSettingsValid).toBe(false);

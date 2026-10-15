@@ -2,14 +2,19 @@ package vectordb
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
+	"math/big"
 	"testing"
 	"time"
 
 	milvusclient "github.com/milvus-io/milvus-sdk-go/v2/client"
 	"github.com/milvus-io/milvus-sdk-go/v2/entity"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/certificates"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -147,6 +152,103 @@ func TestNewMilvusFromSecret_MalformedServerCert(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to parse MILVUS_CA_CERT")
 }
 
+func TestResolveMilvusCertificate(t *testing.T) {
+	tests := []struct {
+		name      string
+		data      map[string][]byte
+		wantValue string
+		wantKey   string
+	}{
+		{name: "canonical", data: map[string][]byte{"MILVUS_CA_CERT": []byte("canonical")}, wantValue: "canonical", wantKey: "MILVUS_CA_CERT"},
+		{name: "legacy", data: map[string][]byte{"MILVUS_SERVER_CERT": []byte("legacy")}, wantValue: "legacy", wantKey: "MILVUS_SERVER_CERT"},
+		{name: "blank canonical falls back", data: map[string][]byte{"MILVUS_CA_CERT": []byte(" \t"), "MILVUS_SERVER_CERT": []byte("legacy")}, wantValue: "legacy", wantKey: "MILVUS_SERVER_CERT"},
+		{name: "canonical wins", data: map[string][]byte{"MILVUS_CA_CERT": []byte("canonical"), "MILVUS_SERVER_CERT": []byte("legacy")}, wantValue: "canonical", wantKey: "MILVUS_CA_CERT"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, key := resolveMilvusCertificate(tt.data)
+			assert.Equal(t, tt.wantValue, string(value))
+			assert.Equal(t, tt.wantKey, key)
+		})
+	}
+}
+
+func TestNewMilvusFromSecret_MalformedCanonicalIsNotMaskedByLegacy(t *testing.T) {
+	legacyPEM := validTestCertificatePEM(t)
+	_, err := newMilvusFromSecret(context.Background(), map[string][]byte{
+		"MILVUS_URI":         []byte("https://milvus.apps.example.com:19530"),
+		"MILVUS_CA_CERT":     []byte("not a certificate"),
+		"MILVUS_SERVER_CERT": legacyPEM,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse MILVUS_CA_CERT")
+}
+
+func TestNewMilvusFromSecret_MalformedLegacyCert(t *testing.T) {
+	_, err := newMilvusFromSecret(context.Background(), map[string][]byte{
+		"MILVUS_URI":         []byte("https://milvus.apps.example.com:19530"),
+		"MILVUS_SERVER_CERT": []byte("not a certificate"),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse MILVUS_SERVER_CERT")
+}
+
+func validTestCertificatePEM(t *testing.T) []byte {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	require.NoError(t, err)
+	certificateTemplate := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		NotBefore:             time.Now().Add(-time.Minute),
+		NotAfter:              time.Now().Add(time.Hour),
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+	}
+	certificateDER, err := x509.CreateCertificate(rand.Reader, certificateTemplate, certificateTemplate, &key.PublicKey, key)
+	require.NoError(t, err)
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certificateDER})
+}
+
+func TestNewMilvusFromSecret_UsesValidLegacyCertForTLSRoots(t *testing.T) {
+	legacyPEM := validTestCertificatePEM(t)
+	certificateBlock, _ := pem.Decode(legacyPEM)
+	require.NotNil(t, certificateBlock)
+
+	resolvedPEM, resolvedKey := resolveMilvusCertificate(map[string][]byte{
+		"MILVUS_SERVER_CERT": legacyPEM,
+	})
+	assert.Equal(t, "MILVUS_SERVER_CERT", resolvedKey)
+	certificatePool, err := certificates.SystemCertPoolWithPEM(resolvedPEM, resolvedKey)
+	require.NoError(t, err)
+	certificate, err := x509.ParseCertificate(certificateBlock.Bytes)
+	require.NoError(t, err)
+	_, err = certificate.Verify(x509.VerifyOptions{Roots: certificatePool})
+	require.NoError(t, err)
+
+	var gotPool *x509.CertPool
+	originalTLSConfig := milvusTLSConfigForClient
+	milvusTLSConfigForClient = func(pool *x509.CertPool) *tls.Config {
+		gotPool = pool
+		return originalTLSConfig(pool)
+	}
+	t.Cleanup(func() { milvusTLSConfigForClient = originalTLSConfig })
+
+	var gotConfig milvusclient.Config
+	_, err = newMilvusFromSecretWithTimeoutPolicy(context.Background(), map[string][]byte{
+		"MILVUS_URI":         []byte("http://localhost:4321"),
+		"MILVUS_SERVER_CERT": legacyPEM,
+	}, true, time.Millisecond, func(_ context.Context, config milvusclient.Config) (milvusClient, error) {
+		gotConfig = config
+		return nil, context.DeadlineExceeded
+	})
+	require.Error(t, err)
+	require.NotNil(t, gotPool)
+	_, err = certificate.Verify(x509.VerifyOptions{Roots: gotPool})
+	require.NoError(t, err)
+	assert.False(t, gotConfig.EnableTLSAuth)
+	assert.NotEmpty(t, gotConfig.DialOptions)
+}
+
 // Literal addresses are rejected before any connection attempt.
 func TestNewMilvusFromSecret_RejectsLiteralIP(t *testing.T) {
 	_, err := newMilvusFromSecret(context.Background(), map[string][]byte{
@@ -179,6 +281,7 @@ func TestNewMilvusFromSecret_ParsesTokenForms(t *testing.T) {
 	}{
 		{name: "colon credentials", token: "user:password", username: "user", password: "password"},
 		{name: "API key", token: "api-key", apiKey: "api-key"},
+		{name: "API key preserves whitespace", token: " api-key ", apiKey: " api-key "},
 		{name: "empty token"},
 	}
 	for _, tt := range tests {
@@ -198,6 +301,16 @@ func TestNewMilvusFromSecret_ParsesTokenForms(t *testing.T) {
 			assert.Equal(t, tt.apiKey, got.APIKey)
 		})
 	}
+}
+
+func TestNewMilvusFromSecret_RejectsWhitespaceOnlyToken(t *testing.T) {
+	_, err := newMilvusFromSecret(context.Background(), map[string][]byte{
+		"MILVUS_URI":   []byte("http://localhost:4321"),
+		"MILVUS_TOKEN": []byte(" \t "),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "MILVUS_TOKEN cannot be blank")
+	assert.NotContains(t, err.Error(), "\\t")
 }
 
 func TestMilvusTLSConfigUsesCustomCAPoolAndTLS12Minimum(t *testing.T) {

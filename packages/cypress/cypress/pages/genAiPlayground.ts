@@ -17,6 +17,7 @@ const GEN_AI_AGENT_DEPLOYMENTS_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,agentConfigManagement=true,genAiAgentDeployment=true,modelAsService=false';
 const GEN_AI_MCP_REGISTRY_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,genAiMcpRegistryServers=true,modelAsService=false';
+const GEN_AI_MAAS_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=true,maasApiKeys=true';
 const GEN_AI_TRACING_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,genAiTracing=true,modelAsService=false';
 
@@ -44,6 +45,16 @@ class GenAiPlayground {
   navigateToAssetsWithExternalVectorStores(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_EXTERNAL_VECTOR_STORES_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToAssetsWithMaaS(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_MAAS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToPlaygroundWithMaaS(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_MAAS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
   navigateToAssetsWithTracing(projectName: string) {
@@ -107,8 +118,33 @@ class GenAiPlayground {
     return cy.findByTestId('empty-state');
   }
 
-  findAddToPlaygroundButton() {
-    return cy.findByTestId('ai-models-table').contains('button', 'Add to playground');
+  findAiModelsNameFilter() {
+    return cy.findByTestId('models-table-toolbar').find('input');
+  }
+
+  findAiModelRow(modelId: string, options?: { timeout?: number }) {
+    return this.findAiModelsTable(options)
+      .contains('[data-testid="model-id-text"]', modelId, options)
+      .closest('tr');
+  }
+
+  findModelCheckbox(modelName: string) {
+    const sanitizedModelName = modelName.replace(/[^a-zA-Z0-9-]/g, '');
+    return this.findConfigurationTable()
+      .findByTestId(`${sanitizedModelName}-checkbox`)
+      .find('input[type="checkbox"]');
+  }
+
+  findSubscriptionToggle(options?: { timeout?: number }) {
+    return cy.findByTestId('subscription-selector-toggle', options);
+  }
+
+  findStopButton(options?: { timeout?: number }) {
+    return cy.get('[data-testid="chatbot-stop-button"]', options);
+  }
+
+  findCreatePlaygroundButton(options?: { timeout?: number }) {
+    return cy.findByTestId('create-playground-button', options);
   }
 
   findGoToPlaygroundLink(options?: { timeout?: number }) {
@@ -199,12 +235,12 @@ class GenAiPlayground {
     return cy.get('[data-testid="audio-file-chip"]');
   }
 
-  findAudioTranscriptionError() {
-    return cy.get('[data-testid="audio-transcription-error"]');
+  findSentAudioTile() {
+    return cy.get('[data-testid="sent-audio-tile"]');
   }
 
-  findStopButton() {
-    return cy.get('[data-testid="chatbot-stop-button"]');
+  findAudioTranscriptionError() {
+    return cy.get('[data-testid="audio-transcription-error"]');
   }
 
   findSendButton() {
@@ -489,10 +525,6 @@ class GenAiPlayground {
 
   findVariableInputPanel() {
     return cy.findByTestId('prompt-variable-input-panel');
-  }
-
-  scrollPromptTabToBottom() {
-    return cy.findByTestId('chatbot-settings-page-tab-content-prompt').scrollTo('bottom');
   }
 
   findVariableInput(variableName: string) {

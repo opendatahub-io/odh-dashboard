@@ -107,7 +107,7 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
               showEvaluatesFilter={false}
               showPagination
               showContextualActions={false}
-              primaryActionLabel="Run"
+              primaryActionLabel="Run benchmark suite"
               primaryActionVariant="secondary"
               dropdownActionLabel="Customize"
               dropdownActionRoute={(collection) =>

@@ -46,7 +46,7 @@ describe('AutoRAG knowledge document image upload', () => {
 
     autoragConfigurePage.findInputDataUploadFile().selectFile(
       {
-        contents: 'mock TIFF image content',
+        contents: Cypress.Buffer.from('mock TIFF image content'),
         fileName: IMAGE_NAME,
         mimeType: 'image/tiff',
       },

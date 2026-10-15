@@ -374,6 +374,16 @@ rules:
     verbs:
       - watch
       - list
+  # Escalation for model-registry BFF MCP deploy readiness
+  # (manifests/modules/model-registry/cluster-role.yaml)
+  - apiGroups:
+      - components.platform.opendatahub.io
+    resources:
+      - mcplifecycleoperators
+    resourceNames:
+      - default
+    verbs:
+      - get
   # OpenShift platform detection for operand
   - apiGroups:
       - config.openshift.io

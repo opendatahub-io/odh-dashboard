@@ -20,6 +20,8 @@ type DescriptionVariantProps = {
   variant: 'description';
   enableManagedPipelines: boolean;
   setEnableManagedPipelines: (value: boolean) => void;
+  isDisabled?: boolean;
+  disabledReason?: string;
 };
 
 type ManagedPipelinesSettingsSectionProps = (FormVariantProps | DescriptionVariantProps) & {
@@ -47,6 +49,9 @@ const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionP
 
   const showRequiredError = !isChecked && !!props.showWarning;
   const alertRef = React.useRef<HTMLDivElement>(null);
+  const checkboxDescription =
+    'The AutoML and AutoRAG pipelines contain the steps and instructions for automated model training and RAG pattern experimentation.';
+  const disabledReason = props.variant === 'description' ? props.disabledReason : undefined;
 
   // Scroll the warning into view when it appears — it renders below the fold in the modal
   React.useEffect(() => {
@@ -67,8 +72,11 @@ const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionP
         name="managed-pipelines-checkbox"
         label="Enable AutoML and AutoRAG pipelines"
         isChecked={isChecked}
+        isDisabled={props.variant === 'description' && props.isDisabled}
         onChange={onChange}
-        description="The AutoML and AutoRAG pipelines contain the steps and instructions for automated model training and RAG pattern experimentation."
+        description={
+          disabledReason ? `${checkboxDescription} ${disabledReason}` : checkboxDescription
+        }
       />
       {showRequiredError ? (
         <div ref={alertRef}>

@@ -684,11 +684,14 @@ class CreateSpawnerPage {
   }
 
   findNotebookImageSelector() {
-    return cy.findByTestId('workbench-image-stream-selection');
+    return cy.findByTestId('workbench-image-stream-selection').findByRole('combobox');
   }
 
   findNotebookImage(name: string) {
-    return this.findNotebookImageSelector().findDropdownItemByTestId(name).scrollIntoView();
+    return this.findNotebookImageSelector()
+      .findDropdownItemByTestId(name)
+      .findByRole('option')
+      .scrollIntoView();
   }
 
   findNotebookImageSearchSelector() {
@@ -963,7 +966,7 @@ class EditSpawnerPage extends CreateSpawnerPage {
   }
 
   shouldHaveNotebookImageSelectInput(name: string) {
-    cy.findByTestId('workbench-image-stream-selection').contains(name).should('exist');
+    this.findNotebookImageSelector().should('have.value', name);
     return this;
   }
 

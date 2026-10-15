@@ -33,7 +33,10 @@ type SupportedFormat =
   | 'jpeg'
   | 'png'
   | 'tif'
-  | 'tiff';
+  | 'tiff'
+  | 'mp3'
+  | 'wav'
+  | 'm4a';
 interface Format {
   id: SupportedFormat;
   extension: string;
@@ -182,6 +185,24 @@ export const SUPPORTED_FORMAT: Record<string, Format> = {
     extension: 'tiff',
     mimeType: 'image/tiff',
     name: 'TIFF',
+  },
+  mp3: {
+    id: 'mp3',
+    extension: 'mp3',
+    mimeType: 'audio/mpeg',
+    name: 'MP3',
+  },
+  wav: {
+    id: 'wav',
+    extension: 'wav',
+    mimeType: 'audio/wav',
+    name: 'WAV',
+  },
+  m4a: {
+    id: 'm4a',
+    extension: 'm4a',
+    mimeType: 'audio/mp4',
+    name: 'M4A',
   },
 };
 const SUPPORTED_FORMAT_LIST = Object.values(SUPPORTED_FORMAT);
