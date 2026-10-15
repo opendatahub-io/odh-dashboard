@@ -308,7 +308,7 @@ describe('ChatbotMain - Empty State Logic', () => {
         </GenAiContext.Provider>
       </ChatbotContext.Provider>
     );
-    const { rerender } = render(renderMain());
+    const { rerender, unmount } = render(renderMain());
 
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
@@ -359,5 +359,21 @@ describe('ChatbotMain - Empty State Logic', () => {
       }),
       expect.anything(),
     );
+
+    unmount();
+    const actualStore =
+      jest.requireActual<typeof import('~/app/Chatbot/store')>(
+        '~/app/Chatbot/store',
+      ).useChatbotConfigStore;
+    mockUseChatbotConfigStore.mockImplementation(actualStore);
+    act(() => actualStore.getState().resetConfiguration());
+    render(renderMain());
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    act(() => actualStore.getState().updateTemperature('default', 0.5));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
   });
 });
