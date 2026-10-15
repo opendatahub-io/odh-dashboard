@@ -91,9 +91,13 @@ class RuntimeCatalogPage {
     return cy.findByTestId('runtime-catalog-filter-hardware').find('input[type="checkbox"]');
   }
 
-  // Reads the hardware value a filter checkbox selects from its data-testid.
+  // Reads the hardware value a filter checkbox selects from its data-testid. closest() checks the
+  // input itself first, then its wrappers, so this holds wherever PatternFly places the test ID.
   getHardwareFilterValue($checkbox: JQuery<HTMLElement>): string {
-    return ($checkbox.attr('data-testid') ?? '').replace(HARDWARE_FILTER_TEST_ID_PREFIX, '');
+    return (
+      $checkbox.closest(`[data-testid^="${HARDWARE_FILTER_TEST_ID_PREFIX}"]`).attr('data-testid') ??
+      ''
+    ).replace(HARDWARE_FILTER_TEST_ID_PREFIX, '');
   }
 
   findHardwareFilterChip(hardware: string) {
