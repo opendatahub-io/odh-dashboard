@@ -335,7 +335,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: expected an object',
+      'Invalid benchmark suite: expected an object',
     );
   });
 
@@ -344,7 +344,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: missing or empty name',
+      'Invalid benchmark suite: missing or empty name',
     );
   });
 
@@ -353,7 +353,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: missing resource',
+      'Invalid benchmark suite: missing resource',
     );
   });
 
@@ -362,7 +362,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: missing resource.id',
+      'Invalid benchmark suite: missing resource.id',
     );
   });
 
@@ -373,7 +373,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid collection: benchmarks is not an array',
+      'Invalid benchmark suite: benchmarks is not an array',
     );
   });
 
@@ -400,7 +400,7 @@ describe('getCollection', () => {
 
   it('should reject with an error when collectionId is empty', async () => {
     await expect(getCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'collectionId must not be empty',
+      'Benchmark suite ID must not be empty',
     );
 
     expect(mockRestGET).not.toHaveBeenCalled();
@@ -510,7 +510,7 @@ describe('deleteCollection', () => {
 
   it('should reject when collectionId is empty', async () => {
     await expect(deleteCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'collectionId must not be empty',
+      'Benchmark suite ID must not be empty',
     );
 
     expect(mockRestDELETE).not.toHaveBeenCalled();
@@ -562,7 +562,7 @@ describe('patchCollection', () => {
   it('should reject when collectionId is empty', async () => {
     await expect(
       patchCollection('', 'test-ns', '', [{ op: 'replace', path: '/name', value: 'Test' }])({}),
-    ).rejects.toThrow('collectionId must not be empty');
+    ).rejects.toThrow('Benchmark suite ID must not be empty');
 
     expect(mockRestPATCH).not.toHaveBeenCalled();
   });
@@ -586,7 +586,7 @@ describe('cloneCollection', () => {
 
     await expect(
       cloneCollection('', 'test-ns', 'col-1', { name: 'Cloned suite' })({}),
-    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+    ).rejects.toThrow('Invalid benchmark suite: benchmarks contains an invalid entry');
   });
 
   it('should send an empty override object when cloning a collection as-is', async () => {
@@ -656,7 +656,7 @@ describe('createCollection', () => {
         name: 'New suite',
         benchmarks: [{ id: 'benchmark-001' }],
       })({}),
-    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
+    ).rejects.toThrow('Invalid benchmark suite: benchmarks contains an invalid entry');
   });
 
   it('should reject a created collection with missing resource metadata', async () => {
@@ -670,7 +670,7 @@ describe('createCollection', () => {
         name: 'New suite',
         benchmarks: [{ id: 'benchmark-001' }],
       })({}),
-    ).rejects.toThrow('Invalid collection: missing resource.id');
+    ).rejects.toThrow('Invalid benchmark suite: missing resource.id');
   });
 });
 

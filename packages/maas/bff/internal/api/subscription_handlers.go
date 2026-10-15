@@ -213,7 +213,10 @@ func UpdateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 		} else if k8sErrors.IsConflict(err) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusConflict,
-				Error:      ErrorPayload{Code: "409", Message: err.Error()},
+				Error: ErrorPayload{
+					Code:    "409",
+					Message: "This subscription was modified by someone else. Refresh the page and try again.",
+				},
 			})
 		} else {
 			app.serverErrorResponse(w, r, err)

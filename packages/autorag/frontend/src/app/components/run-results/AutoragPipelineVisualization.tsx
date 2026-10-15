@@ -10,6 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import React from 'react';
+import AutoragIcon from '~/app/images/icons/AutoragIcon';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import {
@@ -145,7 +146,15 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
       >
         <FlexItem>
-          <Flex>
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <div
+                className="autorag-pipeline-visualization__header-icon"
+                data-testid="run-title-icon"
+              >
+                <AutoragIcon />
+              </div>
+            </FlexItem>
             <FlexItem>
               <Title headingLevel="h3" size="lg">
                 {runTitle}
@@ -185,7 +194,6 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
           <DrawerContent
             panelContent={
               <DrawerPanelContent
-                isResizable
                 minSize="320px"
                 defaultSize="320px"
                 className="autorag-pipeline-visualization__drawer-panel"

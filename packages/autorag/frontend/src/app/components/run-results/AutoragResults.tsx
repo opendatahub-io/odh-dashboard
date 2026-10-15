@@ -366,7 +366,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
 
   return (
     <>
-      <Stack hasGutter>
+      <Stack hasGutter className="autorag-results">
         {downloadError && (
           <StackItem>
             <Alert

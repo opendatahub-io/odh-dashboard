@@ -6,6 +6,8 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Flex,
+  FlexItem,
   Skeleton,
   Split,
   SplitItem,
@@ -27,7 +29,6 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
 import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInputParametersPanel';
@@ -318,6 +319,94 @@ function AutomlResultsPage(): React.JSX.Element {
     [namespace, runId],
   );
 
+  const headerActions = React.useMemo(
+    () => (
+      <Split hasGutter isWrappable>
+        {(runTerminatable && !stopInitiated) || runRetryable ? (
+          <SplitItem>
+            {runTerminatable && !stopInitiated && (
+              <Button
+                variant="secondary"
+                icon={<StopCircleIcon />}
+                onClick={() => setIsStopModalOpen(true)}
+                isDisabled={isTerminating || isStopModalOpen}
+                isLoading={isTerminating || isStopModalOpen}
+                spinnerAriaValueText="Stopping run"
+                data-testid="stop-run-button"
+              >
+                Stop
+              </Button>
+            )}
+            {runRetryable && (
+              <Button
+                variant="secondary"
+                icon={<RedoIcon />}
+                onClick={() => void handleRetry().catch(() => undefined)}
+                isDisabled={isRetrying}
+                isLoading={isRetrying}
+                spinnerAriaValueText="Retrying run"
+                data-testid="retry-run-button"
+              >
+                Retry
+              </Button>
+            )}
+          </SplitItem>
+        ) : null}
+        <SplitItem>
+          <Button
+            variant="secondary"
+            icon={<CogIcon />}
+            component={ReconfigureLink}
+            data-testid="reconfigure-run-button"
+          >
+            Reconfigure
+          </Button>
+        </SplitItem>
+        <SplitItem>
+          <Tooltip
+            content={runNotebookTooltip}
+            trigger={runNotebookDisabled ? 'mouseenter focus' : ''}
+          >
+            <Button
+              variant="secondary"
+              icon={<DownloadIcon />}
+              onClick={() => void handleDownloadRunNotebook()}
+              isAriaDisabled={runNotebookDisabled}
+              data-testid="run-notebook-download-button"
+            >
+              Download run notebook
+            </Button>
+          </Tooltip>
+        </SplitItem>
+        <SplitItem>
+          <Button
+            variant="link"
+            icon={<OpenDrawerRightIcon />}
+            onClick={() => setIsDrawerOpen((prev) => !prev)}
+            aria-expanded={isDrawerOpen}
+            data-testid="run-details-button"
+          >
+            Run details
+          </Button>
+        </SplitItem>
+      </Split>
+    ),
+    [
+      runTerminatable,
+      stopInitiated,
+      runRetryable,
+      isTerminating,
+      isStopModalOpen,
+      isRetrying,
+      ReconfigureLink,
+      runNotebookTooltip,
+      runNotebookDisabled,
+      handleDownloadRunNotebook,
+      isDrawerOpen,
+      handleRetry,
+    ],
+  );
+
   const contextValue = React.useMemo(
     () =>
       getAutomlContext({
@@ -364,109 +453,43 @@ function AutomlResultsPage(): React.JSX.Element {
         >
           <DrawerContentBody>
             <ApplicationsPage
-              title={<AutomlHeader />}
-              subtext={
-                <h2 className="pf-v6-u-mt-sm">
-                  {pipelineRun ? (
-                    <span>
-                      &quot;
-                      <Truncate content={pipelineRun.display_name || ''} />
-                      &quot; results
-                    </span>
-                  ) : (
-                    <Skeleton width="300px" />
-                  )}
-                </h2>
-              }
-              headerAction={
-                <Split hasGutter>
-                  <SplitItem>
-                    {runTerminatable && !stopInitiated && (
-                      <Button
-                        variant="link"
-                        icon={<StopCircleIcon />}
-                        onClick={() => setIsStopModalOpen(true)}
-                        isDisabled={isTerminating || isStopModalOpen}
-                        isLoading={isTerminating || isStopModalOpen}
-                        spinnerAriaValueText="Stopping run"
-                        data-testid="stop-run-button"
-                      >
-                        Stop
-                      </Button>
-                    )}
-                    {runRetryable && (
-                      <Button
-                        variant="link"
-                        icon={<RedoIcon />}
-                        onClick={() => void handleRetry().catch(() => undefined)}
-                        isDisabled={isRetrying}
-                        isLoading={isRetrying}
-                        spinnerAriaValueText="Retrying run"
-                        data-testid="retry-run-button"
-                      >
-                        Retry
-                      </Button>
-                    )}
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="link"
-                      icon={<CogIcon />}
-                      component={ReconfigureLink}
-                      data-testid="reconfigure-run-button"
-                    >
-                      Reconfigure
-                    </Button>
-                  </SplitItem>
-                  <SplitItem>
-                    <Tooltip
-                      content={runNotebookTooltip}
-                      trigger={runNotebookDisabled ? 'mouseenter focus' : ''}
-                    >
-                      <Button
-                        variant="link"
-                        icon={<DownloadIcon />}
-                        onClick={() => void handleDownloadRunNotebook()}
-                        isAriaDisabled={runNotebookDisabled}
-                        data-testid="run-notebook-download-button"
-                      >
-                        Download run notebook
-                      </Button>
-                    </Tooltip>
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="link"
-                      icon={<OpenDrawerRightIcon />}
-                      onClick={() => setIsDrawerOpen((prev) => !prev)}
-                      aria-expanded={isDrawerOpen}
-                      data-testid="run-details-button"
-                    >
-                      Run details
-                    </Button>
-                  </SplitItem>
-                </Split>
-              }
+              noHeader
               breadcrumb={
                 namespace ? (
-                  <ContextBreadcrumb
-                    pageName="AutoML"
-                    projectDisplayName={projectDisplayName}
-                    homePath={getRedirectPath(namespace)}
-                    projectHomePath={`/projects/${namespace}`}
-                    homeTestId="experiment-breadcrumb-home"
-                    projectLinkTestId="project-navigator-link-in-breadcrumb"
+                  <Flex
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    flexWrap={{ default: 'wrap' }}
                   >
-                    <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
-                      <Link
-                        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
-                        state={{ from: 'results' }}
+                    <FlexItem>
+                      <ContextBreadcrumb
+                        pageName="AutoML"
+                        projectDisplayName={projectDisplayName}
+                        homePath={getRedirectPath(namespace)}
+                        projectHomePath={`/projects/${namespace}`}
+                        homeTestId="experiment-breadcrumb-home"
+                        projectLinkTestId="project-navigator-link-in-breadcrumb"
                       >
-                        Run configurations
-                      </Link>
-                    </BreadcrumbItem>
-                    <BreadcrumbItem isActive>Run results</BreadcrumbItem>
-                  </ContextBreadcrumb>
+                        <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
+                          <Link
+                            to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+                            state={{ from: 'results' }}
+                          >
+                            Run configurations
+                          </Link>
+                        </BreadcrumbItem>
+                        <BreadcrumbItem isActive data-testid="results-breadcrumb-run-name">
+                          {pipelineRun ? (
+                            <Truncate content={pipelineRun.display_name || ''} />
+                          ) : (
+                            <Skeleton width="300px" />
+                          )}
+                          &nbsp;results
+                        </BreadcrumbItem>
+                      </ContextBreadcrumb>
+                    </FlexItem>
+                    <FlexItem>{headerActions}</FlexItem>
+                  </Flex>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}

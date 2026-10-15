@@ -23,6 +23,8 @@ const (
 	milvusDenseVectorField = "vector"
 	milvusSparseField      = "sparse"
 	MilvusOperationTimeout = 15 * time.Second
+	milvusCACertKey        = "MILVUS_CA_CERT"
+	milvusLegacyCertKey    = "MILVUS_SERVER_CERT"
 )
 
 type milvusDB struct {
@@ -33,6 +35,16 @@ type milvusDB struct {
 type milvusClient interface {
 	Close() error
 	Search(context.Context, string, []string, string, []string, []entity.Vector, string, entity.MetricType, int, entity.SearchParam, ...milvusclient.SearchQueryOptionFunc) ([]milvusclient.SearchResult, error)
+}
+
+func resolveMilvusCertificate(data map[string][]byte) ([]byte, string) {
+	if value := data[milvusCACertKey]; strings.TrimSpace(string(value)) != "" {
+		return value, milvusCACertKey
+	}
+	if value := data[milvusLegacyCertKey]; strings.TrimSpace(string(value)) != "" {
+		return value, milvusLegacyCertKey
+	}
+	return nil, ""
 }
 
 func classifyMilvusError(parentCtx, operationCtx context.Context, err error) error {
@@ -69,11 +81,14 @@ func newMilvusFromSecretWithTimeoutPolicy(
 	newClient func(context.Context, milvusclient.Config) (milvusClient, error),
 ) (VectorDB, error) {
 	uri := strings.TrimSpace(string(data["MILVUS_URI"]))
-	token := strings.TrimSpace(string(data["MILVUS_TOKEN"]))
-	certPEM := data["MILVUS_CA_CERT"]
+	token := string(data["MILVUS_TOKEN"])
+	certPEM, certKey := resolveMilvusCertificate(data)
 
 	if uri == "" {
 		return nil, fmt.Errorf("milvus secret missing MILVUS_URI")
+	}
+	if token != "" && strings.TrimSpace(token) == "" {
+		return nil, fmt.Errorf("milvus secret MILVUS_TOKEN cannot be blank")
 	}
 
 	var username, password string
@@ -116,11 +131,11 @@ func newMilvusFromSecretWithTimeoutPolicy(
 	}))
 	cfg.DialOptions = append(cfg.DialOptions, milvusclient.DefaultGrpcOpts...)
 	if len(certPEM) > 0 {
-		pool, err := certificates.SystemCertPoolWithPEM(certPEM, "MILVUS_CA_CERT")
+		pool, err := certificates.SystemCertPoolWithPEM(certPEM, certKey)
 		if err != nil {
 			return nil, fmt.Errorf("milvus: %w", err)
 		}
-		creds := credentials.NewTLS(milvusTLSConfig(pool))
+		creds := credentials.NewTLS(milvusTLSConfigForClient(pool))
 		cfg.DialOptions = append(cfg.DialOptions, grpc.WithTransportCredentials(creds))
 		cfg.EnableTLSAuth = false
 	}
@@ -140,6 +155,8 @@ func newMilvusFromSecretWithTimeoutPolicy(
 func milvusTLSConfig(pool *x509.CertPool) *tls.Config {
 	return &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
 }
+
+var milvusTLSConfigForClient = milvusTLSConfig
 
 func (m *milvusDB) Search(ctx context.Context, collection string, queryVec []float32, query string, topK int, alpha float32, hybrid bool) ([]SearchResult, error) {
 	if hybrid {

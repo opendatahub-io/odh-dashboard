@@ -21,14 +21,40 @@ func TestNewFromSecretData_DispatchesToMilvus(t *testing.T) {
 	assert.Contains(t, err.Error(), "external endpoints must use https")
 }
 
+func TestNewFromSecretData_DispatchesLegacyMilvus(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"MILVUS_URI":         []byte("http://milvus.apps.example.com:19530"),
+		"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "external endpoints must use https")
+}
+
 func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
 	_, err := NewFromSecretData(context.Background(), map[string][]byte{
-		"PGVECTOR_HOST": []byte("127.0.0.1"),
-		"PGVECTOR_DB":   []byte("db"),
-		"PGVECTOR_USER": []byte("user"),
+		"PGVECTOR_HOST":     []byte("127.0.0.1"),
+		"PGVECTOR_PORT":     []byte("5432"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "literal IP")
+}
+
+func TestNewFromSecretData_PgvectorWithMilvusLegacyKeysDispatchesToPgvector(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"PGVECTOR_HOST":      []byte("127.0.0.1"),
+		"PGVECTOR_PORT":      []byte("5432"),
+		"PGVECTOR_DB":        []byte("db"),
+		"PGVECTOR_USER":      []byte("user"),
+		"PGVECTOR_PASSWORD":  []byte("password"),
+		"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pgvector")
+	assert.NotContains(t, err.Error(), "milvus connect")
 }
 
 func TestValidateMilvusEndpoint_RejectsDirectLocalhost(t *testing.T) {

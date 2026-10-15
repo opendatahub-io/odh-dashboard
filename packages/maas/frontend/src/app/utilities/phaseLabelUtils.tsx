@@ -32,6 +32,7 @@ export enum PhaseResourceType {
   EXTERNAL_MODEL = 'External Model',
   AUTHPOLICY = 'Policy',
   EXTERNAL_PROVIDER = 'External Provider',
+  FLOW_CONTROL_STATUS = 'Flow Control Status',
 }
 
 export enum PhaseStatus {
@@ -277,6 +278,20 @@ const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverC
       headerContent: 'Invalid policy spec',
     },
   },
+  [PhaseResourceType.FLOW_CONTROL_STATUS]: {
+    [PhaseStatus.PENDING]: {
+      headerIcon: <PendingIcon />,
+      headerContent: 'Flow control status pending',
+    },
+    [PhaseStatus.FAILED]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Flow control status failed',
+    },
+  },
 };
 
 const DEFAULT_POPOVER_CONTENT: PopoverContent = {
@@ -410,6 +425,8 @@ export const getModalSubtitle = (resourceType: PhaseResourceType): string | unde
       return 'External model status';
     case PhaseResourceType.EXTERNAL_PROVIDER:
       return 'External provider status';
+    case PhaseResourceType.FLOW_CONTROL_STATUS:
+      return 'Flow control status';
     default:
       return undefined;
   }
@@ -436,7 +453,8 @@ export const getModalAlertProps = (
       phase === PhaseStatus.DEGRADED ||
       (phase === PhaseStatus.PENDING &&
         (resourceType === PhaseResourceType.MODEL ||
-          resourceType === PhaseResourceType.EXTERNAL_MODEL))) &&
+          resourceType === PhaseResourceType.EXTERNAL_MODEL ||
+          resourceType === PhaseResourceType.FLOW_CONTROL_STATUS))) &&
     (!!reason || !!statusMessage);
 
   return {
@@ -493,6 +511,8 @@ const getModalTitleAndChildren = (
       return getAlertContentForExternalModel(phase);
     case PhaseResourceType.EXTERNAL_PROVIDER:
       return getAlertContentForExternalProvider(phase);
+    case PhaseResourceType.FLOW_CONTROL_STATUS:
+      return getAlertContentForFlowControlStatus(phase);
     default:
       return undefined;
   }
@@ -639,6 +659,21 @@ const getAlertContentForExternalProvider = (
   }
 };
 
+const getAlertContentForFlowControlStatus = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return { title: 'Pending', children: 'Flow control status setup is in progress.' };
+    case PhaseStatus.FAILED:
+      return {
+        title: 'Flow control status failed',
+        children: 'The flow control status could not be configured.',
+      };
+    default:
+      return undefined;
+  }
+};
 const getAlertVariant = (phase: string): AlertProps['variant'] => {
   switch (phase) {
     case PhaseStatus.ACTIVE:
