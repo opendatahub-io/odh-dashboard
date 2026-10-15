@@ -215,7 +215,6 @@ class ConnectionTypeInstance implements ConnectionType {
     return searchableText.includes(searchTerm.trim().toLowerCase());
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Depends on labels being added by API: Return true for now
   matchesLabels(labels: string | string[]) {
     if (this.resource.tags?.length) {
       return this.resource.tags.some((tag) => {
