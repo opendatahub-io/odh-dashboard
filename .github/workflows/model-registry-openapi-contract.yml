@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   model-registry-bff-openapi:
-    uses: red-hat-data-services/contract-tests/.github/workflows/provider-openapi-check.yml@d10b25c36b5fe0299893b71a45de67ca2d4759f8
+    uses: red-hat-data-services/contract-tests/.github/workflows/provider-openapi-check.yml@bf7aa8c4767cfb1cfe883110f8f4d2d6a6a76bdf
     with:
       contract-set: packages/model-registry/.rhoai/contracts.yaml
       contract-id: model-registry-bff-model-catalog-v1
