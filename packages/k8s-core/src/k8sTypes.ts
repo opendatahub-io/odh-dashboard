@@ -331,7 +331,6 @@ export type DashboardCommonConfig = {
   roleManagement?: boolean;
   gpuaas?: boolean;
   modelCapabilities?: boolean;
-  runtimeCatalog?: boolean;
   grid?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;

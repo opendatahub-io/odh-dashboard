@@ -25,6 +25,9 @@ const isDashboardConfigResponse = (value: unknown): value is DashboardConfigResp
 const getRuntimeFeatureFlags = async (
   overrides: Record<string, boolean>,
 ): Promise<Record<string, boolean>> => {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 10_000);
+
   try {
     const headers: HeadersInit = { 'Cache-Control': 'no-cache' };
     if (Object.keys(overrides).length > 0) {
@@ -32,13 +35,14 @@ const getRuntimeFeatureFlags = async (
     }
     const response = await fetch(`${PORTAL_BASE_PATH}/api/config`, {
       headers,
+      signal: controller.signal,
     });
     if (!response.ok) {
-      return {};
+      return overrides;
     }
     const config: unknown = await response.json();
     if (!isDashboardConfigResponse(config)) {
-      return {};
+      return overrides;
     }
     const dashboardConfig = config.spec?.dashboardConfig;
     const gridValue = dashboardConfig?.[GRID];
@@ -46,9 +50,11 @@ const getRuntimeFeatureFlags = async (
       return { [GRID]: gridValue };
     }
 
-    return {};
+    return overrides;
   } catch {
-    return {};
+    return overrides;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 };
 

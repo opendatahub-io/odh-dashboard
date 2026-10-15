@@ -34,4 +34,22 @@ describe('portal feature flags', () => {
 
     expect(getPortalFeatureFlagOverrides()).toEqual({ [GRID]: false });
   });
+
+  it('continues when session storage is unavailable', () => {
+    const { sessionStorage } = window;
+    Object.defineProperty(window, 'sessionStorage', {
+      configurable: true,
+      get: () => {
+        throw new Error('session storage unavailable');
+      },
+    });
+
+    expect(getPortalFeatureFlagOverrides()).toEqual({});
+    expect(() => persistPortalFeatureFlagOverrides({ [GRID]: true })).not.toThrow();
+
+    Object.defineProperty(window, 'sessionStorage', {
+      configurable: true,
+      value: sessionStorage,
+    });
+  });
 });

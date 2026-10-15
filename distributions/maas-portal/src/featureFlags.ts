@@ -6,7 +6,12 @@ const FEATURE_FLAGS_SESSION_KEY = 'odh-feature-flags';
 export const getPortalFeatureFlagOverrides = (): Record<string, boolean> => {
   const searchParams = new URLSearchParams(window.location.search);
   const queryValue = searchParams.get(DEV_FEATURE_FLAGS_PARAM);
-  const sessionValue = window.sessionStorage.getItem(FEATURE_FLAGS_SESSION_KEY);
+  let sessionValue: string | null = null;
+  try {
+    sessionValue = window.sessionStorage.getItem(FEATURE_FLAGS_SESSION_KEY);
+  } catch {
+    // Session storage is optional for local development overrides.
+  }
   const value = queryValue ?? sessionValue;
 
   if (!value) {
@@ -43,9 +48,13 @@ export const getPortalFeatureFlagOverrides = (): Record<string, boolean> => {
 };
 
 export const persistPortalFeatureFlagOverrides = (overrides: Record<string, boolean>): void => {
-  if (Object.keys(overrides).length === 0) {
-    window.sessionStorage.removeItem(FEATURE_FLAGS_SESSION_KEY);
-  } else {
-    window.sessionStorage.setItem(FEATURE_FLAGS_SESSION_KEY, JSON.stringify(overrides));
+  try {
+    if (Object.keys(overrides).length === 0) {
+      window.sessionStorage.removeItem(FEATURE_FLAGS_SESSION_KEY);
+    } else {
+      window.sessionStorage.setItem(FEATURE_FLAGS_SESSION_KEY, JSON.stringify(overrides));
+    }
+  } catch {
+    // Session storage is optional for local development overrides.
   }
 };
