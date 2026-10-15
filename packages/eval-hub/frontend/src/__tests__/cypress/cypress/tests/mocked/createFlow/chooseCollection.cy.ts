@@ -70,6 +70,15 @@ const trustworthinessSuite = mockCollection({
   benchmarkIds: ['truthfulqa_mc1'],
 });
 
+const tenantTrustworthinessSuite = mockCollection({
+  id: 'trustworthiness-v1',
+  name: 'Tenant Trustworthiness Suite',
+  category: 'Trustworthiness',
+  description: 'Tenant-owned trustworthiness collection.',
+  benchmarkIds: ['truthfulqa_mc1'],
+  tenant: NAMESPACE,
+});
+
 describe('Choose Collection Page', () => {
   beforeEach(() => {
     initIntercepts({ collections: [safetySuite, reasoningSuite, accuracySuite] });
@@ -170,6 +179,24 @@ describe('Choose Collection Page - curated prerequisites', () => {
       .findCollectionDrawerPanel()
       .findByTestId('customize-benchmark-suite-button')
       .should('exist');
+  });
+
+  it('should keep a tenant collection with a curated ID on the select flow', () => {
+    initIntercepts({ collections: [tenantTrustworthinessSuite] });
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage
+      .findCollectionCard('trustworthiness-v1')
+      .findByTestId('customize-benchmark-suite-button')
+      .should('not.exist');
+
+    chooseCollectionPage
+      .findCollectionCard('trustworthiness-v1')
+      .findByTestId('use-benchmark-suite-button')
+      .should('exist')
+      .click();
+
+    cy.url().should('include', `${NAMESPACE}/create/start`);
   });
 });
 

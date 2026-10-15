@@ -8,6 +8,7 @@ export {
 
 type MockCollectionOptions = Partial<{
   id: string;
+  tenant: string;
   name: string;
   category: string;
   // Collection-level classifications rendered as domain chips on suite cards.
@@ -23,6 +24,7 @@ type MockCollectionOptions = Partial<{
 export const mockCollection = (options: MockCollectionOptions = {}): Collection => ({
   resource: {
     id: options.id ?? 'collection-001',
+    tenant: options.tenant,
     created_at: '2026-02-01T12:00:00Z',
     updated_at: '2026-02-01T12:00:00Z',
   },

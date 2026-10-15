@@ -7,9 +7,10 @@ import { useFetchState } from 'mod-arch-core';
 import { getCollection } from '~/app/api/k8s';
 import { useProviders } from '~/app/hooks/useProviders';
 import { useCopySuiteForm, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
-import CopySuitePage, { CreateSuitePage } from '~/app/pages/CopySuitePage';
+import CopySuitePage, { CreateSuitePage, EditSuitePage } from '~/app/pages/CopySuitePage';
 import {
   evaluationBenchmarkSuitesNavigationState,
+  evaluationCollectionSelectionNavigationState,
   evaluationEvaluateNavigationState,
   evaluationGalleryNavigationState,
 } from '~/app/routes';
@@ -326,6 +327,26 @@ const renderBenchmarkSuitesOriginPage = () =>
     </MemoryRouter>,
   );
 
+const renderCollectionSelectionOriginPage = () =>
+  render(
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: '/evaluation/test-namespace/create/collections/source-collection/copy',
+          state: evaluationCollectionSelectionNavigationState,
+        },
+      ]}
+    >
+      <LocationDisplay />
+      <Routes>
+        <Route
+          path="/evaluation/:namespace/create/collections/:collectionId/copy"
+          element={<CopySuitePage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
 const renderEvaluateOriginPage = () =>
   render(
     <MemoryRouter
@@ -359,6 +380,21 @@ const renderCreatePage = (state?: unknown) =>
       <LocationDisplay />
       <Routes>
         <Route path="/evaluation/:namespace/create/collections/new" element={<CreateSuitePage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+const renderEditPage = (collectionId = 'source-collection') =>
+  render(
+    <MemoryRouter
+      initialEntries={[`/evaluation/test-namespace/create/collections/${collectionId}/edit`]}
+    >
+      <LocationDisplay />
+      <Routes>
+        <Route
+          path="/evaluation/:namespace/create/collections/:collectionId/edit"
+          element={<EditSuitePage />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -613,6 +649,23 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-next')).not.toBeDisabled();
   });
 
+  it('should not show curated prerequisites while editing a tenant collection', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        resource: { id: 'trustworthiness-v1', tenant: 'test-tenant' },
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderEditPage('trustworthiness-v1');
+
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Edit collection');
+    expect(screen.queryByTestId('copy-suite-prerequisite-alert')).not.toBeInTheDocument();
+  });
+
   it('should link to the originating curated suite page when evaluation target metadata is available', () => {
     mockUseFetchState.mockReturnValue([
       {
@@ -682,6 +735,32 @@ describe('CopySuitePage', () => {
     expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
       expect.objectContaining({ cancelRoute: '/evaluation/test-namespace/collections' }),
+    );
+  });
+
+  it('should show the select collection breadcrumb and return route when opened from there', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        // eslint-disable-next-line camelcase
+        evaluation_targets: ['model'],
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderCollectionSelectionOriginPage();
+
+    expect(screen.getByRole('link', { name: 'Select collection' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace/create/collections',
+    );
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
+    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cancelRoute: '/evaluation/test-namespace/create/collections',
+      }),
     );
   });
 

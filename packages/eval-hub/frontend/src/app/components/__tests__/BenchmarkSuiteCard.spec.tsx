@@ -76,13 +76,9 @@ describe('BenchmarkSuiteCard', () => {
 
     const description = screen.getByText(collection.description!);
     const prerequisite = screen.getByTestId('benchmark-suite-card-prerequisite-prerequisite-suite');
-    const bodyChildren = Array.from(
-      screen
-        .getByTestId('benchmark-suite-card-prerequisite-suite')
-        .querySelector('.evalhub-benchmark-suite-card__body')!.children,
-    );
-
-    expect(bodyChildren.indexOf(prerequisite)).toBeGreaterThan(bodyChildren.indexOf(description));
+    expect(
+      description.compareDocumentPosition(prerequisite) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(prerequisite).toHaveTextContent('Requires a compatible model.');
     expect(prerequisite.querySelector('strong')).not.toBeInTheDocument();
     expect(

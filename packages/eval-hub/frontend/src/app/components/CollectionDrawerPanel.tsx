@@ -33,8 +33,6 @@ import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import SearchableMultiSelectFilter from './SearchableMultiSelectFilter';
 import { formatCollectionMetadataValue, getMetricDisplayName } from './benchmarkUtils';
 
-import './CollectionDrawerPanel.scss';
-
 export type BenchmarkWithProvider = ProviderBenchmark & {
   providerName: string;
   providerAgent?: ProviderAgentMetadata;
@@ -65,7 +63,9 @@ type CollectionBenchmarksSectionProps = {
 };
 
 const getCollectionDrawerSectionTitle = (title: string) => (
-  <span className="evalhub-collection-drawer__section-title">{title}</span>
+  <span className="pf-v6-u-text-color-regular pf-v6-u-font-size-md pf-v6-u-font-weight-bold">
+    {title}
+  </span>
 );
 
 const compareAlphabetically = (a: string, b: string): number =>
@@ -297,7 +297,9 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     return <DrawerPanelContent isResizable minSize="380px" />;
   }
 
-  const prerequisite = prerequisites?.[collection.resource.id];
+  const prerequisite = collection.resource.tenant
+    ? undefined
+    : prerequisites?.[collection.resource.id];
   const showCustomize = Boolean(onCustomizeCollection && (isSystemCollection || prerequisite));
 
   return (

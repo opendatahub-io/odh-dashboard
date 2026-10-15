@@ -18,6 +18,8 @@ import {
   ListItem,
   MenuToggle,
   MenuToggleAction,
+  Stack,
+  StackItem,
   Tooltip,
 } from '@patternfly/react-core';
 import {
@@ -432,36 +434,42 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             </button>
           </Tooltip>
         </div>
-        <Content
-          component="p"
-          className="evalhub-benchmark-suite-card__description"
-          title={collection.description || 'No description provided'}
-        >
-          {collection.description || <em>No description provided</em>}
-        </Content>
-        {prerequisite ? (
-          <Flex
-            className="evalhub-benchmark-suite-card__prerequisite"
-            alignItems={{ default: 'alignItemsFlexStart' }}
-            gap={{ default: 'gapXs' }}
-            data-testid={`benchmark-suite-card-prerequisite-${collection.resource.id}`}
-          >
-            <Flex
-              flex={{ default: 'flexNone' }}
-              alignItems={{ default: 'alignItemsCenter' }}
-              className="evalhub-benchmark-suite-card__prerequisite-icon-container"
-              aria-hidden="true"
+        <Stack>
+          <StackItem>
+            <Content
+              component="p"
+              className="evalhub-benchmark-suite-card__description"
+              title={collection.description || 'No description provided'}
             >
-              <InfoCircleIcon className="evalhub-benchmark-suite-card__prerequisite-icon" />
-            </Flex>
-            <FlexItem
-              flex={{ default: 'flex_1' }}
-              className="evalhub-benchmark-suite-card__prerequisite-text pf-v6-u-min-width-0"
-            >
-              {prerequisite}
-            </FlexItem>
-          </Flex>
-        ) : null}
+              {collection.description || <em>No description provided</em>}
+            </Content>
+          </StackItem>
+          {prerequisite ? (
+            <StackItem className="pf-v6-u-mt-sm">
+              <Flex
+                className="evalhub-benchmark-suite-card__prerequisite"
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                gap={{ default: 'gapXs' }}
+                data-testid={`benchmark-suite-card-prerequisite-${collection.resource.id}`}
+              >
+                <Flex
+                  flex={{ default: 'flexNone' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  className="evalhub-benchmark-suite-card__prerequisite-icon-container"
+                  aria-hidden="true"
+                >
+                  <InfoCircleIcon className="evalhub-benchmark-suite-card__prerequisite-icon" />
+                </Flex>
+                <FlexItem
+                  flex={{ default: 'flex_1' }}
+                  className="evalhub-benchmark-suite-card__prerequisite-text pf-v6-u-min-width-0"
+                >
+                  {prerequisite}
+                </FlexItem>
+              </Flex>
+            </StackItem>
+          ) : null}
+        </Stack>
       </CardBody>
       <CardFooter className="evalhub-benchmark-suite-card__footer">
         {metricNames.length > 0 && (

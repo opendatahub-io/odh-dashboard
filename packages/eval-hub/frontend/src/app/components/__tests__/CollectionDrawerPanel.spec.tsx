@@ -183,7 +183,9 @@ describe('CollectionDrawerPanel', () => {
     expect(screen.getByTestId('benchmark-metric-filter').querySelector('svg')).toBeInTheDocument();
     const metricsSection = screen.getByTestId('collection-drawer-metrics-section');
     expect(within(metricsSection).getByText('Metrics evaluated')).toHaveClass(
-      'evalhub-collection-drawer__section-title',
+      'pf-v6-u-text-color-regular',
+      'pf-v6-u-font-size-md',
+      'pf-v6-u-font-weight-bold',
     );
 
     fireEvent.click(within(metricsSection).getByRole('button', { name: 'Metrics evaluated' }));
@@ -200,6 +202,43 @@ describe('CollectionDrawerPanel', () => {
     fireEvent.click(screen.getByTestId('customize-benchmark-suite-button'));
     expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
     expect(onRunCollection).not.toHaveBeenCalled();
+  });
+
+  it('should keep tenant collections on the run flow when their ID matches a prerequisite', () => {
+    const collection = makeCollection({
+      resource: { id: 'tool-use-v1', tenant: 'test-tenant' },
+    });
+    const onRunCollection = jest.fn();
+    const onCustomizeCollection = jest.fn();
+
+    render(
+      <Drawer isExpanded>
+        <DrawerContent
+          panelContent={
+            <CollectionDrawerPanel
+              collection={collection}
+              benchmarkDetailsMap={new Map()}
+              onClose={jest.fn()}
+              onRunCollection={onRunCollection}
+              onCustomizeCollection={onCustomizeCollection}
+              prerequisites={{
+                'tool-use-v1': 'Requires a model that supports multiple tool/function calls.',
+              }}
+            />
+          }
+        >
+          <div />
+        </DrawerContent>
+      </Drawer>,
+    );
+
+    expect(screen.queryByTestId('collection-drawer-prerequisite')).not.toBeInTheDocument();
+    expect(screen.getByTestId('use-benchmark-suite-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('customize-benchmark-suite-button')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('use-benchmark-suite-button'));
+    expect(onRunCollection).toHaveBeenCalledWith(collection, false);
+    expect(onCustomizeCollection).not.toHaveBeenCalled();
   });
 
   it('should retain the run action for unmapped collections', () => {

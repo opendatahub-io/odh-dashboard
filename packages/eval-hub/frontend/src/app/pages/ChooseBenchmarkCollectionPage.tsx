@@ -48,6 +48,7 @@ import CollectionDrawerPanel, {
 } from '~/app/components/CollectionDrawerPanel';
 import {
   evaluationCopySuiteRoute,
+  evaluationCollectionSelectionNavigationState,
   evaluationCreateRoute,
   evaluationStartRoute,
   evaluationsBaseRoute,
@@ -131,7 +132,9 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
 
   const handleCustomizeCollection = React.useCallback(
     (collection: Collection) => {
-      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id));
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
+        state: evaluationCollectionSelectionNavigationState,
+      });
     },
     [navigate, namespace],
   );
@@ -146,7 +149,11 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             onClose={() => setSelectedCollection(undefined)}
             onRunCollection={handleRunCollection}
             onCustomizeCollection={handleCustomizeCollection}
-            prerequisites={CURATED_COLLECTION_PREREQUISITES}
+            prerequisites={
+              selectedCollection && !selectedCollection.resource.tenant
+                ? CURATED_COLLECTION_PREREQUISITES
+                : undefined
+            }
           />
         }
       >
@@ -326,7 +333,9 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                     const benchmarkCount = collection.benchmarks?.length ?? 0;
                     const isSelected = selectedCollection?.resource.id === collection.resource.id;
                     const collectionCategory = getCollectionCategoryValues(collection)[0];
-                    const prerequisite = CURATED_COLLECTION_PREREQUISITES[collection.resource.id];
+                    const prerequisite = collection.resource.tenant
+                      ? undefined
+                      : CURATED_COLLECTION_PREREQUISITES[collection.resource.id];
                     return (
                       <Card
                         key={collection.resource.id}
