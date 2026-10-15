@@ -1,7 +1,9 @@
 import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import type { DataConnectionUriReplacements } from '../../../types';
 import dataRegistryPage from '../../../pages/dataRegistry/dataRegistryPage';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
+import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import {
   addUserToProject,
   deleteOpenShiftProject,
@@ -32,6 +34,7 @@ const crudAssetName = `e2e-asset-${crudUuid}`;
 const crudAssetDescription = 'Data Registry CRUD asset';
 const updatedCrudAssetDescription = 'Updated Data Registry CRUD asset';
 const testProjectName = `data-registry-e2e-${generateTestUUID()}`;
+const testConnectionName = `data-registry-connection-${generateTestUUID()}`;
 let dataRegistryNavigationSequence = 0;
 
 const navigateToDataRegistry = (
@@ -124,6 +127,15 @@ describe('Data Registry browse flow', () => {
         return addUserToProject(testProjectName, LDAP_ADMIN_USER.USERNAME, 'admin').then(() =>
           waitForUserProjectAccess(testProjectName, LDAP_ADMIN_USER.USERNAME),
         );
+      })
+      .then(() => {
+        cy.step(`Create RHOAI connection/${testConnectionName} in ${testProjectName}`);
+        const connectionReplacements: DataConnectionUriReplacements = {
+          NAMESPACE: testProjectName,
+          MODEL_URI: Buffer.from(`https://example.com/${testConnectionName}`).toString('base64'),
+          CONNECTION_NAME: testConnectionName,
+        };
+        return createDataConnectionUri(connectionReplacements);
       })
       .then(() => {
         return waitForDataRegistryNamespace().then((namespace) => {
@@ -220,10 +232,23 @@ describe('Data Registry browse flow', () => {
       dataRegistryPage.findRegisterDataModal().should('be.visible');
       cy.wait('@dataRegistryProjectConnections').then(({ response }) => {
         expect(response?.statusCode, 'Data Registry connections request status').to.equal(200);
-        const connections = (response?.body as { data?: unknown } | undefined)?.data;
-        expect(connections, 'Data Registry connections response').to.be.an('array');
+        const connectionsResponse = response?.body as
+          | {
+              data?: Array<{ type?: string; secret_name?: string }>;
+            }
+          | undefined;
+        expect(
+          connectionsResponse?.data,
+          'RHOAI Secret connection available to the test user',
+        ).to.deep.include({
+          type: 'secret',
+          secret_name: testConnectionName,
+        });
       });
       dataRegistryPage.findConnectionsError().should('not.exist');
+      dataRegistryPage.findConnectionToggle().should('not.be.disabled').click();
+      dataRegistryPage.findConnectionOption(testConnectionName).click();
+      dataRegistryPage.findConnectionToggle().should('contain.text', testConnectionName);
 
       cy.step(`Seed Data Registry asset/${testData.asset} as the test user`);
       seedDataRegistryBrowseAsset(testData.project, testData.collection, testData.asset).then(
@@ -281,14 +306,35 @@ describe('Data Registry browse flow', () => {
       cy.step(`Register the ${crudAssetName} asset in ${crudCollectionName}`);
       dataRegistryPage.findRegisterDataButton().click();
       dataRegistryPage.findRegisterDataModal().should('be.visible');
+      cy.intercept({
+        method: 'POST',
+        pathname:
+          `/data-registry/api/v1/${testData.project}/namespaces/${crudCollectionName}` +
+          '/generic-tables',
+      }).as('createCrudAsset');
       cy.step('Select Structured to register a generic table');
       dataRegistryPage.findAssetTypeToggle().scrollIntoView().click();
       dataRegistryPage.findStructuredAssetTypeOption().click();
       dataRegistryPage.findConnectionsError().should('not.exist');
+      dataRegistryPage.findConnectionToggle().should('not.be.disabled').click();
+      dataRegistryPage.findConnectionOption(testConnectionName).click();
+      dataRegistryPage.findConnectionToggle().should('contain.text', testConnectionName);
       dataRegistryPage.findDataNameInput().type(crudAssetName);
       dataRegistryPage.findDataDescriptionInput().type(crudAssetDescription);
       dataRegistryPage.selectDataCollection(crudCollectionName);
       dataRegistryPage.findRegisterDataSubmit().click();
+      cy.wait('@createCrudAsset').then(({ request }) => {
+        const requestBody = request.body as {
+          connection_ref?: { type?: string; secret_name?: string };
+        };
+        expect(
+          requestBody.connection_ref,
+          'Registered asset RHOAI connection reference',
+        ).to.deep.equal({
+          type: 'secret',
+          secret_name: testConnectionName,
+        });
+      });
       dataRegistryPage
         .findRegisterDataModal()
         .should('not.exist')

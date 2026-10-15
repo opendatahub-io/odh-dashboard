@@ -141,6 +141,14 @@ class DataRegistryPage {
     return this.findRegisterDataModal().findByTestId('connections-error');
   }
 
+  findConnectionToggle() {
+    return this.findRegisterDataModal().findByTestId('data-connection-toggle');
+  }
+
+  findConnectionOption(connectionName: string) {
+    return cy.findByTestId(`connection-option-secret:${connectionName}`);
+  }
+
   findDataNameInput() {
     return this.findRegisterDataModal().findByTestId('data-name-input');
   }
