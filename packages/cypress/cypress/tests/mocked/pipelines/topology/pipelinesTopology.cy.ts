@@ -512,17 +512,9 @@ describe('Pipeline topology', () => {
       }
 
       pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').focus();
-      pipelineRunDetails
-        .findTaskButton('iris_dataset (Type: Dataset)')
-        .closest('[data-kind="node"]')
-        .find('.pf-topology-pipelines__pill-background')
-        .should('exist');
-      pipelineRunDetails
-        .findTaskButton('iris_dataset (Type: Dataset)')
-        .closest('[data-kind="node"]')
-        .find('g.pf-topology__pipelines__task-node')
-        .first()
-        .trigger('mouseenter');
+      pipelineRunDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('exist');
+      pipelineRunDetails.findArtifactVisual('iris_dataset (Type: Dataset)').trigger('mouseenter');
+      pipelineRunDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('not.exist');
       pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').should('be.focused');
     });
 

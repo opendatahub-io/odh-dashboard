@@ -57,6 +57,7 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
 
   return (
     <g
+      data-testid={`pipeline-artifact-icon-${element.getLabel()}`}
       className={css(
         'pf-topology-pipelines__pill',
         runStatusModifier,
@@ -134,7 +135,11 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
     const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
 
     return (
-      <g className={css('pf-topology__pipelines__task-node')} ref={combinedRef}>
+      <g
+        className={css('pf-topology__pipelines__task-node')}
+        data-testid={`pipeline-artifact-visual-${element.getLabel()}`}
+        ref={combinedRef}
+      >
         {isHover || detailsLevel !== ScaleDetailsLevel.high ? (
           <g>
             <TaskNode

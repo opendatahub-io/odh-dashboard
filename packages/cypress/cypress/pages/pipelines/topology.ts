@@ -146,6 +146,14 @@ class PipelinesTopology {
       `[data-id="GROUP.root.ARTIFACT.${name}"][data-kind="node"][data-type="ICON_TASK_NODE"]`,
     );
   }
+
+  findArtifactIcon(name: string) {
+    return cy.findByTestId(`pipeline-artifact-icon-${name}`);
+  }
+
+  findArtifactVisual(name: string) {
+    return cy.findByTestId(`pipeline-artifact-visual-${name}`);
+  }
 }
 
 class PipelineRunRightDrawer extends Contextual<HTMLDivElement> {
