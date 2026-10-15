@@ -77,8 +77,10 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
           cy.step('Verify the details page shows the selected runtime image');
           runtimeCatalogDetailsPage.findTitle().should('have.text', runtimeName);
 
-          cy.step('Verify the Install action is available for the selected runtime image');
-          runtimeImageInstallPage.findInstallButton().should('be.visible').and('be.enabled');
+          // Install is a link when a target can install this image and aria-disabled otherwise,
+          // depending on the runtime's resources, so only its presence is asserted here.
+          cy.step('Verify the Install action is shown for the selected runtime image');
+          runtimeCatalogDetailsPage.findInstallAction().should('be.visible');
         });
     },
   );

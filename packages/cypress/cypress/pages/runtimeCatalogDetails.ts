@@ -25,6 +25,14 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByRole('heading', { level: 1 });
   }
 
+  findInstallAction() {
+    return this.findPage().findByTestId('runtime-image-install');
+  }
+
+  findInstallUnavailableTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
   findLatestBadge() {
     return this.findPage().findByTestId('runtime-catalog-details-latest');
   }

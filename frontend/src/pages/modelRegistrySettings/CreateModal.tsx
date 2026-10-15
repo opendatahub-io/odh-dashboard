@@ -25,6 +25,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import { ModelRegistryModel } from '#~/api';
 import {
@@ -90,7 +91,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [isPasswordTouched, setIsPasswordTouched] = React.useState(false);
   const [isDatabaseTouched, setIsDatabaseTouched] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
-  const { dscStatus } = React.useContext(AreaContext);
+  const { aiHubInstancesNamespace: modelRegistryNamespace, aiHubError } =
+    React.useContext(AreaContext);
   const secureDbEnabled = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY_SECURE_DB).status;
   const [configSecrets, configSecretsLoaded, configSecretsError] = useModelRegistryCertificateNames(
     !addSecureDB,
@@ -103,7 +105,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     key: '',
     isValid: true,
   });
-  const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
 
   React.useEffect(() => {
     if (configSecretsLoaded && !configSecretsError && !mr) {
@@ -177,7 +178,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       <ApplicationsPage loaded empty={false}>
         <RedirectErrorState
           title="Could not load component state"
-          errorMessage="No registries namespace could be found"
+          errorMessage={aiHubError?.message || 'No registries namespace could be found'}
         />
       </ApplicationsPage>
     );
@@ -303,7 +304,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           fireFormTrackingEvent(updateEventName, {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: e.message,
+            error: errorCategory(e),
           });
         }
         setIsSubmitting(false);
@@ -381,7 +382,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           fireFormTrackingEvent(createEventName, {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: e.message,
+            error: errorCategory(e),
           });
         }
         setIsSubmitting(false);
