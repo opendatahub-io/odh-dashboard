@@ -2,6 +2,10 @@ import React from 'react';
 import * as z from 'zod';
 import type { S3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 import {
+  componentIdToTaskId,
+  findComponentTaskInRunDetails,
+  isKfpDriverTaskName,
+  matchesComponentTaskName,
   useS3FileFetchers,
   useS3FileOperations,
   useS3ListFilesQuery,
@@ -100,45 +104,15 @@ export type ComponentStatusFile = z.infer<typeof ComponentStatusFileSchema>;
 export type ComponentStatusStage = z.infer<typeof ComponentStatusStageSchema>;
 /* eslint-enable camelcase */
 
-export function componentIdToTaskId(componentId: string): string {
-  return componentId.replace(/_/g, '-');
-}
-
-/** Match a component's base task id or a KFP branch suffix variant (e.g. `-2`). */
-export function matchesComponentTaskName(taskName: string, componentId: string): boolean {
-  const baseTaskId = componentIdToTaskId(componentId);
-  if (taskName === baseTaskId) {
-    return true;
-  }
-
-  const suffixPrefix = `${baseTaskId}-`;
-  if (!taskName.startsWith(suffixPrefix)) {
-    return false;
-  }
-
-  const suffix = taskName.slice(suffixPrefix.length);
-  return /^\d+$/.test(suffix);
-}
-
-/** KFP emits a lightweight `-driver` task per component; exclude it from status lookup. */
-export const isKfpDriverTaskName = (taskName: string): boolean => taskName.endsWith('-driver');
-
-/**
- * Resolve the executor task for a component from run details.
- * Task names may include a KFP branch numeric suffix (e.g. `-2`); that suffix
- * disambiguates conditional branches and is unrelated to retries or recency.
- * At most one matching executor task is expected per component.
- */
-export function findComponentTaskInRunDetails(
-  taskDetails: ComponentTaskDetail[],
-  componentId: string,
-): ComponentTaskDetail | undefined {
-  return taskDetails.find((taskDetail) =>
-    [taskDetail.task_id, taskDetail.display_name]
-      .filter((name): name is string => name != null)
-      .some((name) => !isKfpDriverTaskName(name) && matchesComponentTaskName(name, componentId)),
-  );
-}
+// Task-matching helpers moved to autox-core (shared with the executor-error
+// lookup); re-exported for existing consumers (stageMapStatus, stepMetadata,
+// stageMapStepMetadata, tests).
+export {
+  componentIdToTaskId,
+  matchesComponentTaskName,
+  isKfpDriverTaskName,
+  findComponentTaskInRunDetails,
+};
 
 /** Build run-level S3 prefixes from KFP executor task names while a run is still active. */
 export function buildRunLevelPrefixesFromTaskDetails(

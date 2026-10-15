@@ -34,6 +34,20 @@ export { useRetryPipelineRunMutation } from './pipelines/useRetryPipelineRunMuta
 export { useDeletePipelineRunMutation } from './pipelines/useDeletePipelineRunMutation';
 export { usePipelineServerReadinessQuery } from './pipelines/usePipelineServerReadinessQuery';
 export { useEnableManagedPipelinesMutation } from './pipelines/useEnableManagedPipelinesMutation';
+export {
+  componentIdToTaskId,
+  matchesComponentTaskName,
+  isKfpDriverTaskName,
+  findComponentTaskInRunDetails,
+  findComponentTasksInRunDetails,
+  findFirstFailedTaskKey,
+  findTaskDirPrefix,
+} from './pipelines/taskMatching';
+export {
+  useTaskExecutorError,
+  type UseTaskExecutorErrorOptions,
+  type TaskExecutorError,
+} from './pipelines/useTaskExecutorError';
 
 export {
   useS3FileFetchers,

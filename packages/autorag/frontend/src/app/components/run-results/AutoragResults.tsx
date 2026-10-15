@@ -389,6 +389,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
+            namespace={namespace}
             showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
               hasStageMapTask,
               hasComponentStageMap: Boolean(componentStageMap),
