@@ -28,10 +28,9 @@ export const getInstallTargets = (
     },
   );
 
+// Filter already-resolved targets by the resource data available for this image.
 export const getAvailableInstallTargets = (
   data: RuntimeImageInstallActionData,
-  extensions: RuntimeImageInstallTargetExtension[],
+  installTargets: RuntimeImageInstallTargetExtension[],
 ): RuntimeImageInstallTargetExtension[] =>
-  getInstallTargets(extensions).filter(
-    (target) => data.deploymentResources[target.properties.id] !== undefined,
-  );
+  installTargets.filter((target) => data.deploymentResources[target.properties.id] !== undefined);

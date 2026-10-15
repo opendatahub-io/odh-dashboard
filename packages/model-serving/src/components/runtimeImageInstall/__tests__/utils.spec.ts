@@ -98,7 +98,7 @@ describe('install target discovery', () => {
     expect(getInstallTargets([invalidTarget])).toEqual([]);
   });
 
-  it('should include the first active extension for each target with corresponding data', () => {
+  it('should filter resolved targets by corresponding resource data', () => {
     expect(
       getAvailableInstallTargets(actionData, [servingRuntimeTarget, acceleratorTarget]),
     ).toEqual([servingRuntimeTarget]);
@@ -109,7 +109,10 @@ describe('install target discovery', () => {
       ]),
     ).toEqual([servingRuntimeTarget, acceleratorTarget]);
     expect(
-      getAvailableInstallTargets(actionData, [servingRuntimeTarget, servingRuntimeTarget]),
+      getAvailableInstallTargets(
+        actionData,
+        getInstallTargets([servingRuntimeTarget, servingRuntimeTarget]),
+      ),
     ).toEqual([servingRuntimeTarget]);
     expect(getAvailableInstallTargets(actionData, [acceleratorTarget])).toEqual([]);
   });

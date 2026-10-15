@@ -66,11 +66,7 @@ const RuntimeImageInstallWizardTargetStep: React.FC<RuntimeImageInstallWizardTar
               }
               isChecked={selected === id}
               isDisabled={!availableTargetIds.includes(id)}
-              onChange={() => {
-                if (availableTargetIds.includes(id)) {
-                  onSelect(id);
-                }
-              }}
+              onChange={() => onSelect(id)}
               data-testid={`install-target-${id}`}
             />
           </StackItem>
