@@ -6,24 +6,14 @@
  */
 
 export enum RuntimeCatalogTrackingEvent {
-  VIEWED = 'Runtime Image Library Viewed',
   SEARCH_COMMITTED = 'Runtime Image Library Search Committed',
-  HARDWARE_FILTER_APPLIED = 'Runtime Image Library Hardware Filter Applied',
   ITEM_OPENED = 'Runtime Image Library Item Opened',
 }
-
-export type ViewedProperties = {
-  tabName: 'runtime-image-library';
-};
 
 export type SearchCommittedProperties = {
   hasSearchTerm: boolean;
   /** Comma-joined selected hardware filter values, or 'none'. */
   hardwareFilters: string;
-};
-
-export type HardwareFilterAppliedProperties = {
-  hardware: string;
 };
 
 export type ItemOpenedProperties = {

@@ -42,12 +42,6 @@ const RuntimeCatalogView: React.FC = () => {
   const [filterOptions, filterOptionsLoaded, filterOptionsLoadError] =
     useServingRuntimeFilterOptionList();
 
-  React.useEffect(() => {
-    trackSimpleEvent(RuntimeCatalogTrackingEvent.VIEWED, {
-      tabName: 'runtime-image-library',
-    });
-  }, [trackSimpleEvent]);
-
   const queryParams = useQueryParamNamespaces();
   const runtimeListParams = React.useMemo(() => ({ assetType: 'serving_runtimes' as const }), []);
   const [apiStateModelCatalog] = useModelCatalogAPIState(MODEL_CATALOG_PATH, queryParams);
@@ -62,17 +56,9 @@ const RuntimeCatalogView: React.FC = () => {
     return items && items.length > 0 ? items[0].name : RUNTIME_CATALOG_TAB_TITLE;
   }, [catalogSources]);
 
-  const handleFilterChange = React.useCallback(
-    (key: string, values: string[]) => {
-      setFilters((prev) => ({ ...prev, [key]: values }));
-      if (key === 'hardware') {
-        trackSimpleEvent(RuntimeCatalogTrackingEvent.HARDWARE_FILTER_APPLIED, {
-          hardware: buildHardwareFiltersValue(values),
-        });
-      }
-    },
-    [trackSimpleEvent],
-  );
+  const handleFilterChange = React.useCallback((key: string, values: string[]) => {
+    setFilters((prev) => ({ ...prev, [key]: values }));
+  }, []);
 
   const handleSearch = React.useCallback(
     (term: string) => {

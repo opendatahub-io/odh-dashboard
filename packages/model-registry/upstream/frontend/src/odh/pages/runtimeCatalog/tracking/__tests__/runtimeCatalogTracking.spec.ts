@@ -5,12 +5,8 @@ import {
 
 describe('RuntimeCatalogTrackingEvent', () => {
   it('should have correct event names', () => {
-    expect(RuntimeCatalogTrackingEvent.VIEWED).toBe('Runtime Image Library Viewed');
     expect(RuntimeCatalogTrackingEvent.SEARCH_COMMITTED).toBe(
       'Runtime Image Library Search Committed',
-    );
-    expect(RuntimeCatalogTrackingEvent.HARDWARE_FILTER_APPLIED).toBe(
-      'Runtime Image Library Hardware Filter Applied',
     );
     expect(RuntimeCatalogTrackingEvent.ITEM_OPENED).toBe('Runtime Image Library Item Opened');
   });
