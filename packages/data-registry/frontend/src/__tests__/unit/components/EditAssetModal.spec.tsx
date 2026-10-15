@@ -165,6 +165,36 @@ describe('EditAssetModal', () => {
     );
   });
 
+  it('should keep an uncommitted label edit out of the update', async () => {
+    const user = userEvent.setup();
+    mockUpdateGenericTable.mockResolvedValue(undefined);
+    render(
+      <EditAssetModal
+        isOpen
+        asset={asset}
+        assetKind="table"
+        project="test-project"
+        collection="analytics"
+        name="claims-data"
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.clear(labelInput);
+    await user.type(labelInput, 'uncommitted-label');
+    await user.click(screen.getByTestId('data-description-input'));
+
+    expect(labelInput).toHaveValue('production');
+
+    await user.click(screen.getByTestId('edit-asset-save'));
+
+    await waitFor(() => expect(mockUpdateGenericTable).toHaveBeenCalled());
+    expect(mockUpdateGenericTable.mock.calls[0][3]).not.toHaveProperty('add_labels');
+    expect(mockUpdateGenericTable.mock.calls[0][3]).not.toHaveProperty('remove_labels');
+  });
+
   describe.each(['table', 'volume'] as const)('%s connection updates', (kind) => {
     const update = kind === 'table' ? mockUpdateGenericTable : mockUpdateVolume;
     const renderWithConnection = (connectionRef: ConnectionRef) => {

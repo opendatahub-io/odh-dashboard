@@ -88,6 +88,7 @@ describe('ManageCollectionsModal', () => {
 
     expect(screen.getByTestId('manage-collections-modal')).toBeInTheDocument();
     expect(screen.queryByTestId('create-collection-row')).not.toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
   });
 
   it('cancels inline creation with Escape without closing the management dialog', async () => {
@@ -103,6 +104,7 @@ describe('ManageCollectionsModal', () => {
 
     expect(screen.getByTestId('manage-collections-modal')).toBeInTheDocument();
     expect(screen.queryByTestId('create-collection-row')).not.toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
 
     await user.click(screen.getByTestId('create-collection-button'));
     await user.click(screen.getByTestId('new-collection-description-input'));

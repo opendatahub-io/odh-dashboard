@@ -406,15 +406,6 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
                 placeholder="e.g. gold, team a"
                 createOptionMessage={(newValue) => `Create "${newValue}"`}
                 maxMenuHeight="20rem"
-                onInputChange={(value) => {
-                  const currentLabels = getValues('labels');
-                  setValue(
-                    'labels',
-                    currentLabels.map((currentLabel, currentIndex) =>
-                      currentIndex === index ? value : currentLabel,
-                    ),
-                  );
-                }}
                 onSelect={(_event, value) => {
                   const selectedLabel = String(value);
                   if (!labelOptions.some((option) => option.value === selectedLabel)) {

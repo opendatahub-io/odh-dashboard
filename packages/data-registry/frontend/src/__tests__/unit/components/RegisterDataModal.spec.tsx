@@ -298,6 +298,27 @@ describe('RegisterDataModal', () => {
     expect(labelInput).toHaveValue('team b');
   });
 
+  it('should not submit an uncommitted label typed into the typeahead', async () => {
+    const user = userEvent.setup();
+    mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'test-volume' }));
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.type(labelInput, 'uncommitted-label');
+    await user.click(screen.getByTestId('data-name-input'));
+
+    expect(labelInput).toHaveValue('');
+
+    await user.type(screen.getByTestId('data-name-input'), 'test-volume');
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() => expect(mockCreateVolume).toHaveBeenCalled());
+    expect(mockCreateVolume.mock.calls[0][2]).not.toHaveProperty('labels');
+  });
+
   it('should use a minus control for custom property rows', async () => {
     const user = userEvent.setup();
     render(<RegisterDataModal {...defaultProps} />);
