@@ -30,11 +30,11 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/streaming/pkg/httpstream"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
@@ -75,7 +75,8 @@ const (
 // LastActivity is only set (non-nil) when the probe succeeds and determines a new
 // activity timestamp. A nil LastActivity on a successful probe means the activity
 // timestamp should be left unchanged (e.g. a podExec probe reporting `has_activity: false`
-// without a `last_activity` field).
+// without a `last_activity` field; if lastActivity was never set, the controller initializes
+// it to lastRunningTime to treat it as inactive since startup).
 type ProbeResult struct {
 	// StartTime is the time the probe was started.
 	StartTime time.Time

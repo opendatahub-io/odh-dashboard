@@ -1,5 +1,11 @@
-import { PaginationParams } from './modelCatalogTypes';
-import { ModelRegistryCustomPropertyInt, ModelRegistryCustomPropertyDouble, ModelRegistryCustomPropertyString, ModelRegistryCustomPropertyBool, ModelRegistryMetadataType } from './types';
+import { APIOptions } from 'mod-arch-core';
+import { CatalogListParams } from './shared/types/catalogTypes';
+import { ModelRegistryCustomPropertyInt, ModelRegistryCustomPropertyDouble, ModelRegistryCustomPropertyString, ModelRegistryCustomPropertyBool } from './types';
+import { PaginationParams, PreviewCatalogSourceQueryParams } from './modelCatalogTypes';
+/**
+ * Re-export ModelRegistryMetadataType as MetadataType for MCP consumers.
+ * MCP only uses INT, DOUBLE, STRING, BOOL (no STRUCT/PROTO).
+ */
 export { ModelRegistryMetadataType as MetadataType } from './types';
 export type MetadataProperty = ModelRegistryCustomPropertyInt | ModelRegistryCustomPropertyDouble | ModelRegistryCustomPropertyString | ModelRegistryCustomPropertyBool;
 export type McpCustomProperties = Record<string, MetadataProperty>;
@@ -101,6 +107,20 @@ export type McpRuntimeMetadata = {
     capabilities?: McpRuntimeMetadataCapabilities;
     mcpPath?: string;
     prerequisites?: McpPrerequisites;
+    storage?: McpStorageMount[];
+};
+export type McpStoragePermissions = 'ReadOnly' | 'ReadWrite';
+export type McpStorageSourceType = 'EmptyDir' | 'ConfigMap' | 'Secret';
+export type McpStorageMount = {
+    path: string;
+    permissions?: McpStoragePermissions;
+    source: McpStorageSource;
+};
+export type McpStorageSource = {
+    type: McpStorageSourceType;
+    emptyDir?: Record<string, unknown>;
+    configMap?: Record<string, unknown>;
+    secret?: Record<string, unknown>;
 };
 export type McpToolParameter = {
     name: string;
@@ -119,6 +139,7 @@ export type McpTool = {
 export type McpServer = {
     id: string;
     name: string;
+    displayName?: string;
     source_id?: string;
     description?: string;
     logo?: string;
@@ -141,6 +162,7 @@ export type McpServer = {
     deploymentMode?: McpDeploymentMode;
     endpoints?: McpEndpoints;
     runtimeMetadata?: McpRuntimeMetadata;
+    serverJson?: Record<string, unknown>;
     customProperties?: McpCustomProperties;
 };
 export type McpServerList = PaginationParams & {
@@ -153,16 +175,66 @@ export type McpToolWithServer = {
 export type McpToolList = PaginationParams & {
     items?: McpToolWithServer[];
 };
-export type McpServerListParams = {
+export type McpServerListParams = CatalogListParams & {
     sourceLabel?: string;
-    pageSize?: number | string;
-    nextPageToken?: string;
-    filterQuery?: string;
     namedQuery?: string;
     includeTools?: boolean;
     toolLimit?: number;
-    orderBy?: string;
-    sortOrder?: string;
     name?: string;
     q?: string;
+};
+export declare enum McpCatalogSourceType {
+    YAML = "yaml"
+}
+export type McpCatalogSourceConfig = {
+    id: string;
+    name: string;
+    type: McpCatalogSourceType;
+    enabled?: boolean;
+    labels?: string[];
+    isDefault?: boolean;
+    yaml?: string;
+    yamlCatalogPath?: string;
+    includedServers?: string[];
+    excludedServers?: string[];
+};
+export type McpCatalogSourceConfigPayload = McpCatalogSourceConfig | Pick<McpCatalogSourceConfig, 'enabled' | 'includedServers' | 'excludedServers'>;
+export type McpCatalogSourceConfigList = {
+    catalogs: McpCatalogSourceConfig[];
+};
+export type GetMcpCatalogSourceConfigs = (opts: APIOptions) => Promise<McpCatalogSourceConfigList>;
+export type CreateMcpCatalogSourceConfig = (opts: APIOptions, data: McpCatalogSourceConfigPayload) => Promise<McpCatalogSourceConfig>;
+export type GetMcpCatalogSourceConfig = (opts: APIOptions, sourceId: string) => Promise<McpCatalogSourceConfig>;
+export type UpdateMcpCatalogSourceConfig = (opts: APIOptions, sourceId: string, data: Partial<McpCatalogSourceConfigPayload>) => Promise<McpCatalogSourceConfig>;
+export type DeleteMcpCatalogSourceConfig = (opts: APIOptions, sourceId: string) => Promise<void>;
+export type McpCatalogSourcePreviewRequest = {
+    type: McpCatalogSourceType;
+    includedServers?: string[];
+    excludedServers?: string[];
+    properties?: Record<string, unknown>;
+};
+export type McpCatalogSourcePreviewAsset = {
+    name: string;
+    included: boolean;
+};
+export type McpCatalogSourcePreviewSummary = {
+    totalAssets: number;
+    includedAssets: number;
+    excludedAssets: number;
+};
+export type McpCatalogSourcePreviewResult = {
+    items: McpCatalogSourcePreviewAsset[];
+    summary: McpCatalogSourcePreviewSummary;
+    nextPageToken: string;
+    pageSize: number;
+    size: number;
+};
+export type PreviewMcpCatalogSource = (opts: APIOptions, data: McpCatalogSourcePreviewRequest, queryParams?: PreviewCatalogSourceQueryParams) => Promise<McpCatalogSourcePreviewResult>;
+export type McpCatalogSettingsAPIs = {
+    getMcpCatalogSourceConfigs: GetMcpCatalogSourceConfigs;
+    createMcpCatalogSourceConfig: CreateMcpCatalogSourceConfig;
+    getMcpCatalogSourceConfig: GetMcpCatalogSourceConfig;
+    updateMcpCatalogSourceConfig: UpdateMcpCatalogSourceConfig;
+    deleteMcpCatalogSourceConfig: DeleteMcpCatalogSourceConfig;
+    previewMcpCatalogSource: PreviewMcpCatalogSource;
 };

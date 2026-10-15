@@ -1,7 +1,15 @@
 import { APIOptions } from 'mod-arch-core';
 import { ModelCatalogTask, ModelCatalogProvider, AllLanguageCode, ModelCatalogStringFilterKey, ModelCatalogNumberFilterKey, LatencyMetricFieldName, LatencyPropertyKey, UseCaseOptionValue, ModelCatalogFilterKey, ModelCatalogTensorType } from '../concepts/modelCatalog/const';
-import { ModelRegistryCustomProperties, ModelRegistryCustomPropertyString, ModelRegistryCustomPropertyInt, ModelRegistryCustomPropertyDouble } from './types';
+import type { CatalogFilterStringOption, CatalogFilterNumberOption } from './shared/components/catalog/types/catalogFilterTypes';
+import { ModelRegistryCustomProperties, ModelRegistryCustomPropertyString, ModelRegistryCustomPropertyInt, ModelRegistryCustomPropertyDouble, ModelRegistryCustomPropertyBool } from './types';
 import { McpServer, McpServerList, McpServerListParams, McpToolList } from './mcpServerCatalogTypes';
+import type { AgentCatalogSpecificAPIs } from './agentsCatalogTypes';
+export type HardwareConfiguration = {
+    gpu_type: string;
+    gpu_count: number;
+    cold_start_time_to_load_seconds: number;
+    runtime_command: string;
+};
 export type CatalogSource = {
     id: string;
     name: string;
@@ -9,9 +17,22 @@ export type CatalogSource = {
     enabled?: boolean;
     status?: 'available' | 'partially-available' | 'error' | 'disabled';
     error?: string;
+    assetType?: CatalogAssetType;
+    hasApiKey?: boolean;
+    authenticated?: boolean;
+    hfUsername?: string;
 };
 export type CatalogSourceList = PaginationParams & {
     items?: CatalogSource[];
+};
+export type ToolCallingConfig = {
+    toolCallParser?: string;
+    chatTemplate?: string;
+    enableAutoToolChoice?: boolean;
+    requiredArgs?: string[];
+};
+export type ServingConfig = {
+    toolCalling?: ToolCallingConfig;
 };
 export type CatalogModel = {
     source_id?: string;
@@ -22,6 +43,7 @@ export type CatalogModel = {
     language?: string[];
     logo?: string;
     tasks?: string[];
+    validatedTasks?: string[];
     libraryName?: string;
     license?: string;
     licenseLink?: string;
@@ -29,13 +51,14 @@ export type CatalogModel = {
     createTimeSinceEpoch?: string;
     lastUpdateTimeSinceEpoch?: string;
     customProperties?: ModelRegistryCustomProperties;
+    servingConfig?: ServingConfig;
 };
 export type PaginationParams = {
     size: number;
     pageSize: number;
     nextPageToken: string;
 };
-export type CatalogAssetType = 'models' | 'mcp_servers';
+export type CatalogAssetType = 'models' | 'mcp_servers' | 'agents' | 'serving_runtimes';
 export type CatalogSourceListParams = {
     assetType?: CatalogAssetType;
 };
@@ -48,7 +71,9 @@ export declare enum CatalogArtifactType {
 }
 export declare enum MetricsType {
     accuracyMetrics = "accuracy-metrics",
-    performanceMetrics = "performance-metrics"
+    performanceMetrics = "performance-metrics",
+    coldStartMetrics = "cold-start-metrics",
+    securityMetrics = "security-metrics"
 }
 export declare enum CategoryName {
     allModels = "All models",
@@ -100,10 +125,29 @@ export type PerformanceMetricsCustomProperties = {
     scenario_id?: ModelRegistryCustomPropertyString;
     replicas?: ModelRegistryCustomPropertyInt;
     total_requests_per_second?: ModelRegistryCustomPropertyDouble;
+    performance_sub_type?: ModelRegistryCustomPropertyString;
+    gpu_type?: ModelRegistryCustomPropertyString;
+    gpu_count?: ModelRegistryCustomPropertyInt;
+    cold_start_time_to_load_seconds?: ModelRegistryCustomPropertyDouble;
+    runtime_command?: ModelRegistryCustomPropertyString;
 } & Partial<Record<LatencyPropertyKey, ModelRegistryCustomPropertyDouble>>;
 export type AccuracyMetricsCustomProperties = {
     arc_v1?: ModelRegistryCustomPropertyDouble;
 } & Record<string, ModelRegistryCustomPropertyDouble>;
+export type SecurityMetricsCustomProperties = {
+    id?: ModelRegistryCustomPropertyString;
+    benchmark?: ModelRegistryCustomPropertyString;
+    category?: ModelRegistryCustomPropertyString;
+    description?: ModelRegistryCustomPropertyString;
+    evaluation?: ModelRegistryCustomPropertyString;
+    model_id?: ModelRegistryCustomPropertyString;
+    provider_id?: ModelRegistryCustomPropertyString;
+    result_metric?: ModelRegistryCustomPropertyString;
+    pass?: ModelRegistryCustomPropertyBool;
+    lower_is_better?: ModelRegistryCustomPropertyBool;
+    result?: ModelRegistryCustomPropertyDouble;
+    threshold?: ModelRegistryCustomPropertyDouble;
+};
 export type CatalogPerformanceMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
     artifactType: CatalogArtifactType.metricsArtifact;
     metricsType: MetricsType.performanceMetrics;
@@ -114,7 +158,23 @@ export type CatalogAccuracyMetricsArtifact = Omit<CatalogArtifactBase, 'customPr
     metricsType: MetricsType.accuracyMetrics;
     customProperties?: AccuracyMetricsCustomProperties;
 };
-export type CatalogMetricsArtifact = CatalogPerformanceMetricsArtifact | CatalogAccuracyMetricsArtifact;
+export type ColdStartMetricsCustomProperties = {
+    gpu_type?: ModelRegistryCustomPropertyString;
+    gpu_count?: ModelRegistryCustomPropertyInt;
+    cold_start_time_to_load_seconds?: ModelRegistryCustomPropertyDouble;
+    runtime_command?: ModelRegistryCustomPropertyString;
+};
+export type CatalogColdStartMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
+    artifactType: CatalogArtifactType.metricsArtifact;
+    metricsType: MetricsType.coldStartMetrics;
+    customProperties?: ColdStartMetricsCustomProperties;
+};
+export type CatalogSecurityMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
+    artifactType: CatalogArtifactType.metricsArtifact;
+    metricsType: MetricsType.securityMetrics;
+    customProperties?: SecurityMetricsCustomProperties;
+};
+export type CatalogMetricsArtifact = CatalogPerformanceMetricsArtifact | CatalogAccuracyMetricsArtifact | CatalogColdStartMetricsArtifact | CatalogSecurityMetricsArtifact;
 export type CatalogArtifacts = CatalogModelArtifact | CatalogMetricsArtifact;
 export type CatalogArtifactList = PaginationParams & {
     items: CatalogArtifacts[];
@@ -122,17 +182,7 @@ export type CatalogArtifactList = PaginationParams & {
 export type CatalogPerformanceArtifactList = PaginationParams & {
     items: CatalogPerformanceMetricsArtifact[];
 };
-export type CatalogFilterNumberOption = {
-    type: 'number';
-    range?: {
-        max?: number;
-        min?: number;
-    };
-};
-export type CatalogFilterStringOption<T extends string> = {
-    type: 'string';
-    values?: T[];
-};
+export type { CatalogFilterStringOption, CatalogFilterNumberOption };
 export type GetCatalogModelsBySource = (opts: APIOptions, sourceId?: string, sourceLabel?: string, paginationParams?: {
     pageSize?: string;
     nextPageToken?: string;
@@ -141,7 +191,7 @@ export type GetCatalogModelsBySource = (opts: APIOptions, sourceId?: string, sou
 }, searchKeyword?: string, filterData?: ModelCatalogFilterStates, filterOptions?: CatalogFilterOptionsList | null, filterQuery?: string, performanceParams?: {
     targetRPS?: number;
     latencyProperty?: string;
-    recommendations?: boolean;
+    orderBy?: string;
 }) => Promise<CatalogModelList>;
 export type GetListSources = (opts: APIOptions, listParams?: CatalogSourceListParams) => Promise<CatalogSourceList>;
 export type GetCatalogModel = (opts: APIOptions, sourceId: string, modelName: string) => Promise<CatalogModel>;
@@ -169,7 +219,7 @@ export type ModelCatalogAPIs = {
     getMcpServerFilterOptionList: GetMcpServerFilterOptionList;
     getMcpServer: GetMcpServer;
     getMcpServerToolList: GetMcpServerToolList;
-};
+} & AgentCatalogSpecificAPIs;
 export type CatalogModelDetailsParams = {
     sourceId?: string;
     modelName?: string;
@@ -181,6 +231,7 @@ export type ModelCatalogStringFilterValueType = {
     [ModelCatalogStringFilterKey.LICENSE]: string;
     [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode;
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType;
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string;
     [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string;
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string;
     [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue;
@@ -215,7 +266,6 @@ export type CatalogFilterOptionsList = {
 };
 export type PerformanceArtifactsParams = {
     targetRPS?: number;
-    recommendations?: boolean;
     rpsProperty?: string;
     latencyProperty?: string;
     hardwareCountProperty?: string;
@@ -236,6 +286,7 @@ export type ModelCatalogFilterStates = {
     [ModelCatalogStringFilterKey.LICENSE]: string[];
     [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode[];
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType[];
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string[];
     [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string[];
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string[];
     [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue[];
@@ -262,11 +313,13 @@ export type YamlCatalogSourceConfig = CatalogSourceConfigCommon & {
 export type HuggingFaceCatalogSourceConfig = CatalogSourceConfigCommon & {
     type: CatalogSourceType.HUGGING_FACE;
     allowedOrganization?: string;
-    /** apiKey will be populated on GET (by ID) requests, not on LIST requests */
+    /** Indicates a configured credential reference, not authentication success. */
+    hasConfiguredApiKey?: boolean;
+    /** Only sent in create/update requests; never returned by configuration reads. */
     apiKey?: string;
 };
 export type CatalogSourceConfig = YamlCatalogSourceConfig | HuggingFaceCatalogSourceConfig;
-export type CatalogSourceConfigPayload = CatalogSourceConfig | Pick<CatalogSourceConfig, 'enabled' | 'includedModels' | 'excludedModels'>;
+export type CatalogSourceConfigPayload = YamlCatalogSourceConfig | Omit<HuggingFaceCatalogSourceConfig, 'hasConfiguredApiKey'> | Pick<CatalogSourceConfig, 'enabled' | 'includedModels' | 'excludedModels'>;
 export type CatalogSourceConfigList = {
     catalogs: CatalogSourceConfig[];
 };
@@ -276,6 +329,7 @@ export type GetCatalogSourceConfig = (opts: APIOptions, sourceId: string) => Pro
 export type UpdateCatalogSourceConfig = (opts: APIOptions, sourceId: string, data: Partial<CatalogSourceConfigPayload>) => Promise<CatalogSourceConfig>;
 export type DeleteCatalogSourceConfig = (opts: APIOptions, sourceId: string) => Promise<void>;
 export type CatalogSourcePreviewRequest = {
+    id?: string;
     type: string;
     includedModels?: string[];
     excludedModels?: string[];
@@ -284,11 +338,14 @@ export type CatalogSourcePreviewRequest = {
 export type CatalogSourcePreviewModel = {
     name: string;
     included: boolean;
+    hfAccessType?: string;
+    hfGatedAccessGranted?: boolean;
 };
 export type CatalogSourcePreviewSummary = {
     totalModels: number;
     includedModels: number;
     excludedModels: number;
+    hasGatedAccessDeniedModels: boolean;
 };
 export type CatalogSourcePreviewResult = {
     items: CatalogSourcePreviewModel[];
@@ -303,11 +360,13 @@ export type PreviewCatalogSourceQueryParams = {
     nextPageToken?: string;
 };
 export type PreviewCatalogSource = (opts: APIOptions, data: CatalogSourcePreviewRequest, queryParams?: PreviewCatalogSourceQueryParams) => Promise<CatalogSourcePreviewResult>;
+export type DeleteCatalogSourceCredentials = (opts: APIOptions, sourceId: string) => Promise<void>;
 export type ModelCatalogSettingsAPIs = {
     getCatalogSourceConfigs: GetCatalogSourceConfigs;
     createCatalogSourceConfig: CreateCatalogSourceConfig;
     getCatalogSourceConfig: GetCatalogSourceConfig;
     updateCatalogSourceConfig: UpdateCatalogSourceConfig;
     deleteCatalogSourceConfig: DeleteCatalogSourceConfig;
+    deleteCatalogSourceCredentials: DeleteCatalogSourceCredentials;
     previewCatalogSource: PreviewCatalogSource;
 };

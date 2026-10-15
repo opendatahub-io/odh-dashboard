@@ -59,7 +59,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
           maxVisibleCollections={MAX_VISIBLE_BENCHMARK_SUITES}
           showSummary
           useMockFallback={false}
-          primaryActionLabel="Run"
+          primaryActionLabel="Run benchmark suite"
           createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
           createSuiteRouteState={evaluationEvaluateNavigationState}
           onPrimaryAction={onRunCollection}

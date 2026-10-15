@@ -24,7 +24,10 @@ const acceleratorConfigModel = {
   plural: 'llminferenceserviceconfigs',
 };
 
-const initialize = (runtimeCatalogFlagEnabled: boolean, acceleratorEnabled = true) => {
+const initialize = ({
+  modelServingEnabled = true,
+  acceleratorEnabled = true,
+}: { modelServingEnabled?: boolean; acceleratorEnabled?: boolean } = {}) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -34,11 +37,10 @@ const initialize = (runtimeCatalogFlagEnabled: boolean, acceleratorEnabled = tru
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
-      disableModelServing: false,
+      disableModelServing: !modelServingEnabled,
       disableKServe: false,
       disableLLMd: false,
       vLLMDeploymentOnMaaS: acceleratorEnabled,
-      runtimeCatalog: runtimeCatalogFlagEnabled,
     }),
   );
   cy.interceptOdh('GET /api/cluster-settings', {
@@ -49,42 +51,93 @@ const initialize = (runtimeCatalogFlagEnabled: boolean, acceleratorEnabled = tru
   });
 };
 
+const visitInstallWithActionData = () => {
+  const actionData = mockRuntimeImageActionData();
+  runtimeImageInstallPage.visitInstallDirectly(actionData.runtimeImageId);
+  runtimeImageInstallPage.loadActionDataRouterState(actionData);
+};
+
+const runtimeDetailsRoute =
+  '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/preview-vllm-0-6-0';
+
+type RuntimeImageInstallActionDataForTest = {
+  runtimeImageId: string;
+  runtimeImageName: string;
+  cancelReturnRoute: string;
+  libraryReturnRoute: string;
+  deploymentResources: {
+    servingRuntimeTemplate?: string;
+    llmInferenceServiceConfig?: string;
+  };
+};
+
+const mockRuntimeImageActionData = (): RuntimeImageInstallActionDataForTest => {
+  const llmInferenceServiceConfig = mockLLMInferenceServiceConfigK8sResource({
+    name: 'vllm-0-6-0',
+    displayName: 'vLLM 0.6.0',
+    runtimeVersion: '0.6.0',
+  });
+  const firstContainer = llmInferenceServiceConfig.spec?.template?.containers?.[0];
+  if (!firstContainer) {
+    throw new Error('Expected the mock LLM inference service config to contain a container.');
+  }
+  firstContainer.image = 'quay.io/example/vllm:0.6.0';
+
+  return {
+    runtimeImageId: 'preview-vllm-0-6-0',
+    runtimeImageName: 'vLLM 0.6.0',
+    cancelReturnRoute: runtimeDetailsRoute,
+    libraryReturnRoute:
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog',
+    deploymentResources: {
+      servingRuntimeTemplate: JSON.stringify(
+        mockServingRuntimeTemplateK8sResource({
+          name: 'vllm-0-6-0',
+          displayName: 'vLLM 0.6.0',
+          apiProtocol: ServingRuntimeAPIProtocol.REST,
+          modelTypes: [ServingRuntimeModelType.GENERATIVE],
+        }),
+      ),
+      llmInferenceServiceConfig: JSON.stringify(llmInferenceServiceConfig),
+    },
+  };
+};
+
 describe('Runtime image Install extension navigation', () => {
-  it('should not expose the install button when the area is disabled', () => {
+  it('should not mount the install page when model serving is disabled', () => {
     asProductAdminUser();
-    initialize(false);
-    // TODO this is a placeholder, RHOAIENG-96642 will replace the install extension point on General Settings with one on the runtime library details page and we'll make the test go there
-    cy.visitWithLogin(
-      '/settings/model-resources-operations/model-deployment-settings/general-settings',
-    );
-    runtimeImageInstallPage.findInstallButton().should('not.exist');
+    initialize({ modelServingEnabled: false });
+    runtimeImageInstallPage.visitInstallDirectly('preview-vllm-0-6-0');
+    pageNotfound.findPage().should('exist');
+    runtimeImageInstallPage.findPageTitle('vLLM 0.6.0').should('not.exist');
+    runtimeImageInstallPage.findInvalidDataAlert().should('not.exist');
   });
 
   it('should not allow a non-admin user to open the route', () => {
     asProjectEditUser();
-    initialize(true);
-    runtimeImageInstallPage.visitInstallDirectly();
+    initialize();
+    runtimeImageInstallPage.visitInstallDirectly('preview-vllm-0-6-0');
     pageNotfound.findPage().should('exist');
     runtimeImageInstallPage.findInvalidDataAlert().should('not.exist');
   });
 
   it('should handle a runtime image with no supported resources', () => {
     asProductAdminUser();
-    initialize(true);
-    runtimeImageInstallPage.visitInstallDirectly();
-    // TODO this return route is a placeholder, RHOAIENG-96642 will replace the install extension point on General Settings with one on the runtime library details page and we'll make the test go there
-    runtimeImageInstallPage.loadNoResourceRouterState(
-      '/settings/model-resources-operations/model-deployment-settings/general-settings',
-    );
+    initialize();
+    runtimeImageInstallPage.visitInstallDirectly('empty-preview');
+    runtimeImageInstallPage.loadNoResourceRouterState(runtimeDetailsRoute);
     runtimeImageInstallPage.findNoResourcesMessage().should('exist');
-    runtimeImageInstallPage.findReturn().click();
-    cy.url().should('include', '/general-settings');
+    runtimeImageInstallPage.findServingRuntimeRadio().should('be.disabled').and('not.be.checked');
+    runtimeImageInstallPage.findAcceleratorRadio().should('be.disabled').and('not.be.checked');
+    runtimeImageInstallPage.findNext().should('be.disabled');
+    runtimeImageInstallPage.findCancel().click();
+    cy.url().should('include', '/serving-runtime-catalog/preview-vllm-0-6-0');
   });
 
   it('should show an actionable unavailable state on direct navigation without router data', () => {
     asProductAdminUser();
-    initialize(true);
-    runtimeImageInstallPage.visitInstallDirectly();
+    initialize();
+    runtimeImageInstallPage.visitInstallDirectly('preview-vllm-0-6-0');
     runtimeImageInstallPage.findInvalidDataAlert().should('exist');
     runtimeImageInstallPage.findReturn().click();
     cy.url().should('include', '/general-settings');
@@ -92,18 +145,15 @@ describe('Runtime image Install extension navigation', () => {
 
   it('should hide the LLM install target when its feature gate is inactive', () => {
     asProductAdminUser();
-    initialize(true, false);
-    cy.visitWithLogin(
-      '/settings/model-resources-operations/model-deployment-settings/general-settings',
-    );
-    runtimeImageInstallPage.findInstallButton().click();
+    initialize({ acceleratorEnabled: false });
+    visitInstallWithActionData();
     runtimeImageInstallPage.findAcceleratorRadio().should('not.exist');
     runtimeImageInstallPage.findServingRuntimeRadio().should('exist');
   });
 
   it('should create a prefilled LLM accelerator config and redirect to its list', () => {
     asProductAdminUser();
-    initialize(true);
+    initialize();
     const createdConfig = mockLLMInferenceServiceConfigK8sResource({
       name: 'vllm-0-6-0',
       displayName: 'vLLM 0.6.0',
@@ -116,39 +166,49 @@ describe('Runtime image Install extension navigation', () => {
       { model: acceleratorConfigModel, ns: 'opendatahub' },
       mockK8sResourceList([createdConfig]),
     );
-    cy.visitWithLogin(
-      '/settings/model-resources-operations/model-deployment-settings/general-settings',
-    );
-    runtimeImageInstallPage.findInstallButton().click();
-    runtimeImageInstallPage.findAcceleratorRadio().check();
+    const actionData = mockRuntimeImageActionData();
+    runtimeImageInstallPage.visitInstallDirectly(actionData.runtimeImageId);
+    runtimeImageInstallPage.loadActionDataRouterState({
+      ...actionData,
+      deploymentResources: {
+        llmInferenceServiceConfig: actionData.deploymentResources.llmInferenceServiceConfig,
+      },
+    });
+    runtimeImageInstallPage.findAcceleratorRadio().should('be.checked');
+    runtimeImageInstallPage.findServingRuntimeRadio().should('be.disabled').and('not.be.checked');
+    runtimeImageInstallPage
+      .findSingleTargetAlert()
+      .should(
+        'contain.text',
+        'This runtime image only supports the LLM accelerator configuration install target.',
+      );
     runtimeImageInstallPage.findNext().click();
     llmAcceleratorConfigurations.findNameInput().should('have.value', 'vLLM 0.6.0');
     llmAcceleratorConfigurations.findVersionInput().should('have.value', '0.6.0');
-    llmAcceleratorConfigurations.findYAMLCodeEditor().waitForReady();
-    llmAcceleratorConfigurations.findYAMLCodeEditor().containsText('LLMInferenceServiceConfig');
     cy.testA11y();
     llmAcceleratorConfigurations.findSubmitButton().should('be.enabled').click();
     cy.wait('@createAcceleratorConfig').then(({ request }) => {
-      expect(request.body).to.containSubset({
-        apiVersion: 'serving.kserve.io/v1alpha2',
-        kind: 'LLMInferenceServiceConfig',
-        metadata: {
-          name: 'vllm-0-6-0',
-          namespace: 'opendatahub',
-          annotations: {
-            'openshift.io/display-name': 'vLLM 0.6.0',
-            'opendatahub.io/runtime-version': '0.6.0',
-          },
-          labels: {
-            'opendatahub.io/dashboard': 'true',
-            'opendatahub.io/config-type': 'accelerator',
-          },
-        },
-        spec: {
-          template: {
-            containers: [{ name: 'main', image: 'quay.io/example/vllm:0.6.0' }],
-          },
-        },
+      expect(request.body.apiVersion).to.equal('serving.kserve.io/v1alpha2');
+      expect(request.body.kind).to.equal('LLMInferenceServiceConfig');
+      expect(request.body.metadata).to.include({
+        name: 'vllm-0-6-0',
+        namespace: 'opendatahub',
+      });
+      expect(request.body.metadata.annotations).to.include({
+        'openshift.io/display-name': 'vLLM 0.6.0',
+        'opendatahub.io/runtime-version': '0.6.0',
+      });
+      expect(request.body.metadata.labels).to.include({
+        'opendatahub.io/dashboard': 'true',
+        'opendatahub.io/config-type': 'accelerator',
+      });
+      expect(request.body.spec.model).to.deep.equal({
+        uri: 'hf://test/model',
+        name: 'test-model',
+      });
+      expect(request.body.spec.template.containers[0]).to.include({
+        name: 'main',
+        image: 'quay.io/example/vllm:0.6.0',
       });
     });
     cy.url().should('include', '/llm-accelerator-configurations');
@@ -157,7 +217,7 @@ describe('Runtime image Install extension navigation', () => {
 
   it('should install a prefilled Serving runtime template and redirect to its list', () => {
     asProductAdminUser();
-    initialize(true);
+    initialize();
     const template = mockServingRuntimeTemplateK8sResource({
       name: 'vllm-0-6-0',
       modelTypes: [ServingRuntimeModelType.GENERATIVE],
@@ -177,10 +237,7 @@ describe('Runtime image Install extension navigation', () => {
     ).as('dryRunServingRuntime');
     cy.interceptOdh('POST /api/templates/', template).as('createTemplate');
 
-    cy.visitWithLogin(
-      '/settings/model-resources-operations/model-deployment-settings/general-settings',
-    );
-    runtimeImageInstallPage.findInstallButton().click();
+    visitInstallWithActionData();
     runtimeImageInstallPage.findServingRuntimeRadio().check();
     runtimeImageInstallPage.findNext().click();
     runtimeImageInstallPage.findServingRuntimeEditor().waitForReady();

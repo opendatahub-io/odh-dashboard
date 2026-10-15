@@ -74,7 +74,6 @@ export type MockDashboardConfigType = {
   roleManagement?: boolean;
   gpuaas?: boolean;
   modelCapabilities?: boolean;
-  runtimeCatalog?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -95,8 +94,8 @@ export const mockDashboardConfig = ({
   disableISVBadges = false,
   genAiStudio = true,
   genAiTracing = false,
-  automl = false,
-  autorag = false,
+  automl = true,
+  autorag = true,
   modelAsService = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
@@ -150,7 +149,6 @@ export const mockDashboardConfig = ({
   roleManagement = true,
   gpuaas = true,
   modelCapabilities = false,
-  runtimeCatalog = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -349,7 +347,6 @@ export const mockDashboardConfig = ({
       roleManagement,
       gpuaas,
       modelCapabilities,
-      runtimeCatalog,
     },
     notebookController: {
       enabled: !disableNotebookController,

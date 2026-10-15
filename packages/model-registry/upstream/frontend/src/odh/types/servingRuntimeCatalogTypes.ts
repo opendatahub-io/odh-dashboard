@@ -41,7 +41,7 @@ export interface ServingRuntimeVersion extends ServingRuntimeBase {
   defaultArgs?: string[];
   env?: ServingRuntimeEnvVar[];
   servingRuntimeTemplate?: string;
-  llmInferenceServiceTemplate?: string;
+  llmInferenceServiceConfig?: string;
   deprecated?: boolean;
   publishedDate?: string;
 }

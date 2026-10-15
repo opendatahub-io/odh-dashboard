@@ -9,6 +9,7 @@ import type {
 } from '@odh-dashboard/plugin-core/host-api';
 import { useAppContext } from '#~/app/AppContext';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { addNotification } from '#~/redux/actions/actions';
 import { useAppDispatch } from '#~/redux/hooks';
@@ -179,7 +180,7 @@ const ClusterSettings: React.FC = () => {
           outcome: TrackingOutcome.submit,
           success: false,
           globalProjectName,
-          error: error instanceof Error ? error.message : 'unknown error',
+          error: errorCategory(error),
         });
       }
 

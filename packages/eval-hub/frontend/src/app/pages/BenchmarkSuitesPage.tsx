@@ -81,7 +81,7 @@ const BenchmarkSuitesPage: React.FC = () => {
               benchmarkDetailsMap={benchmarkDetailsMap}
               onClose={closeDrawer}
               onRunCollection={handleRunCollection}
-              primaryActionLabel="Run"
+              primaryActionLabel="Run benchmark suite"
             />
           }
         >

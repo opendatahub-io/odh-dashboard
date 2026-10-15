@@ -5,6 +5,7 @@ import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 interface TabContentWrapperProps {
   title: string;
   headerActions?: React.ReactNode;
+  titleActions?: React.ReactNode;
   /** Position of header actions: 'right' (default) pushes to far right, 'inline' keeps beside title */
   headerActionsPosition?: 'right' | 'inline';
   children: React.ReactNode;
@@ -14,6 +15,7 @@ interface TabContentWrapperProps {
 const TabContentWrapper: React.FunctionComponent<TabContentWrapperProps> = ({
   title,
   headerActions,
+  titleActions,
   headerActionsPosition = 'right',
   children,
   titleTestId,
@@ -44,9 +46,12 @@ const TabContentWrapper: React.FunctionComponent<TabContentWrapperProps> = ({
         style={{ minHeight: 'var(--pf-t--global--spacer--xl)' }}
       >
         <FlexItem>
-          <Title headingLevel="h2" size="md" data-testid={titleTestId}>
-            {title}
-          </Title>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+            <Title headingLevel="h2" size="md" data-testid={titleTestId}>
+              {title}
+            </Title>
+            {titleActions}
+          </Flex>
         </FlexItem>
         {headerActions && <FlexItem>{headerActions}</FlexItem>}
       </Flex>

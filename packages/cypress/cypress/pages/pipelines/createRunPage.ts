@@ -61,6 +61,10 @@ export class CreateRunPage {
     return this.runGroupSelect.findToggleButton();
   }
 
+  findCreateRunGroupButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Create new run group' });
+  }
+
   findProjectNavigatorLink(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('project-navigator-link-in-breadcrumb');
   }

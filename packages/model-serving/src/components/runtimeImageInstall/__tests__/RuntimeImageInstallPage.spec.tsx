@@ -7,8 +7,13 @@ import type {
   RuntimeImageInstallTargetProps,
 } from '../../../../extension-points/runtime-image-install-target';
 import RuntimeImageInstallPage from '../RuntimeImageInstallPage';
-import { mockRuntimeImageActionData } from '../mockRuntimeImageActionData';
-import { PLACEHOLDER_INSTALL_PATH } from '../const';
+import { mockRuntimeImageActionData } from '../../../__mocks__/mockRuntimeImageActionData';
+import {
+  GENERAL_SETTINGS_PATH,
+  RUNTIME_IMAGE_INSTALL_ROUTE,
+  RUNTIME_IMAGE_LIBRARY_PATH,
+} from '../const';
+import { getRuntimeImageInstallRoute } from '../utils';
 
 let mockExtensions: RuntimeImageInstallTargetExtension[] = [];
 jest.mock('@odh-dashboard/plugin-core', () => ({
@@ -37,11 +42,13 @@ const servingTarget: RuntimeImageInstallTargetExtension = {
   properties: {
     id: 'servingRuntimeTemplate',
     label: 'Serving runtime template',
-    description: 'Install as a ServingRuntime for legacy deployments and predictive models.',
+    description:
+      'Install as a ServingRuntime template for inference service deployments. Not compatible with Models as a Service.',
     selectedState: {
       listName: 'Serving runtime templates',
-      description: 'and the legacy deployment wizard.',
+      description: 'and the inference service deployment wizard.',
     },
+    installTargetName: 'serving runtime template',
     configureStepLabel: 'Configure template',
     component: () => Promise.resolve({ default: MockTarget }),
   },
@@ -51,11 +58,13 @@ const acceleratorTarget: RuntimeImageInstallTargetExtension = {
   properties: {
     id: 'llmInferenceServiceConfig',
     label: 'LLM accelerator configuration',
-    description: 'Install as an LLMInferenceServiceConfig for LLM inference service deployments.',
+    description:
+      'Install as an LLMInferenceServiceConfig for LLM inference service deployments. Compatible with Models as a Service.',
     selectedState: {
       listName: 'LLM accelerator configurations',
       description: 'and the LLM inference service deployment wizard.',
     },
+    installTargetName: 'LLM accelerator configuration',
     configureStepLabel: 'Configure accelerator',
     component: () => Promise.resolve({ default: MockTarget }),
   },
@@ -67,16 +76,21 @@ const renderPage = (data?: TestData, state?: unknown) =>
     <MemoryRouter
       initialEntries={[
         {
-          pathname: PLACEHOLDER_INSTALL_PATH,
+          pathname: getRuntimeImageInstallRoute(data?.runtimeImageId ?? 'preview-vllm-0-6-0'),
           state: state ?? (data ? { actionData: data } : undefined),
         },
       ]}
     >
       <Routes>
-        <Route path={PLACEHOLDER_INSTALL_PATH} element={<RuntimeImageInstallPage />} />
+        <Route path={RUNTIME_IMAGE_INSTALL_ROUTE} element={<RuntimeImageInstallPage />} />
+        <Route path={GENERAL_SETTINGS_PATH} element={<span>Returned to General settings</span>} />
         <Route
-          path="/settings/model-resources-operations/model-deployment-settings/general-settings"
-          element={<span>Returned to General settings</span>}
+          path={RUNTIME_IMAGE_LIBRARY_PATH}
+          element={<span>Returned to Runtime library</span>}
+        />
+        <Route
+          path={`${RUNTIME_IMAGE_LIBRARY_PATH}/:runtimeId`}
+          element={<span>Returned to Runtime image details</span>}
         />
       </Routes>
     </MemoryRouter>,
@@ -106,6 +120,118 @@ describe('RuntimeImageInstallPage', () => {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
+  it('should show the serving target when it is the only resource present', () => {
+    mockExtensions = [servingTarget, acceleratorTarget];
+    const data = mockRuntimeImageActionData();
+    renderPage({
+      ...data,
+      deploymentResources: {
+        servingRuntimeTemplate: data.deploymentResources.servingRuntimeTemplate,
+      },
+    });
+
+    expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeEnabled();
+    expect(screen.getByRole('radio', { name: /LLM accelerator configuration/ })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeChecked();
+    expect(screen.getByTestId('runtime-image-single-target-alert')).toHaveTextContent(
+      'This runtime image only supports the serving runtime template install target.',
+    );
+    expect(screen.getByText(servingTarget.properties.description)).toBeVisible();
+    expect(screen.getByText(acceleratorTarget.properties.description)).toBeVisible();
+    expect(screen.getByTestId('runtime-image-install-next')).toBeEnabled();
+    fireEvent.click(screen.getByRole('radio', { name: /LLM accelerator configuration/ }));
+    expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeChecked();
+  });
+
+  it.each([
+    ['servingRuntimeTemplate', servingTarget],
+    ['llmInferenceServiceConfig', acceleratorTarget],
+  ] as const)(
+    'should configure the sole enabled target %s and retain it on Back',
+    async (id, target) => {
+      mockExtensions = [servingTarget, acceleratorTarget];
+      const data = mockRuntimeImageActionData();
+      renderPage({ ...data, deploymentResources: { [id]: data.deploymentResources[id] } });
+      const alert = screen.getByTestId('runtime-image-single-target-alert');
+      expect(alert.closest('.pf-v6-c-radio__body')).toBeNull();
+      expect(alert).toHaveTextContent(
+        `This runtime image only supports the ${target.properties.installTargetName} install target.`,
+      );
+      expect(
+        alert.compareDocumentPosition(
+          screen.getByRole('radio', { name: target.properties.label }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(screen.getByText(/Appears under/)).toBeVisible();
+      fireEvent.click(screen.getByTestId('runtime-image-install-next'));
+      const payload = await screen.findByTestId('target-payload');
+      expect(payload.textContent).toEqual(data.deploymentResources[id]);
+      fireEvent.click(screen.getByRole('button', { name: 'Back to selection' }));
+      expect(screen.getByRole('radio', { name: target.properties.label })).toBeChecked();
+      expect(screen.getByTestId('runtime-image-single-target-alert')).toBeVisible();
+    },
+  );
+
+  it('should use the extension-provided target phrase in the alert', () => {
+    mockExtensions = [
+      {
+        ...servingTarget,
+        properties: { ...servingTarget.properties, installTargetName: 'custom template' },
+      },
+    ];
+    renderPage(mockRuntimeImageActionData());
+    expect(screen.getByTestId('runtime-image-single-target-alert')).toHaveTextContent(
+      'This runtime image only supports the custom template install target.',
+    );
+  });
+
+  it('should select a sole target when contributions become available after render', () => {
+    const data = mockRuntimeImageActionData();
+    const view = renderPage({
+      ...data,
+      deploymentResources: {
+        servingRuntimeTemplate: data.deploymentResources.servingRuntimeTemplate,
+      },
+    });
+    mockExtensions = [servingTarget, acceleratorTarget];
+    view.rerender(
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: getRuntimeImageInstallRoute(data.runtimeImageId),
+            state: {
+              actionData: {
+                ...data,
+                deploymentResources: {
+                  servingRuntimeTemplate: data.deploymentResources.servingRuntimeTemplate,
+                },
+              },
+            },
+          },
+        ]}
+      >
+        <RuntimeImageInstallPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeChecked();
+    expect(screen.getByTestId('runtime-image-install-next')).toBeEnabled();
+  });
+
+  it('should show an unavailable state when neither resource is present', () => {
+    mockExtensions = [servingTarget, acceleratorTarget];
+    renderPage({ ...mockRuntimeImageActionData(), deploymentResources: {} });
+
+    expect(
+      screen.getByText('This runtime image does not support any available install target'),
+    ).toBeInTheDocument();
+    screen.getAllByRole('radio').forEach((radio) => {
+      expect(radio).toBeDisabled();
+      expect(radio).not.toBeChecked();
+    });
+    expect(screen.getByTestId('runtime-image-install-next')).toBeDisabled();
+    expect(screen.queryByTestId('runtime-image-single-target-alert')).not.toBeInTheDocument();
+  });
+
   it('should show only active targets with corresponding resource data', () => {
     mockExtensions = [servingTarget, acceleratorTarget];
     renderPage({
@@ -115,22 +241,26 @@ describe('RuntimeImageInstallPage', () => {
           mockRuntimeImageActionData().deploymentResources.llmInferenceServiceConfig,
       },
     });
-    expect(
-      screen.queryByRole('radio', { name: /Serving runtime template/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeDisabled();
     expect(screen.getByRole('radio', { name: /LLM accelerator configuration/ })).toBeEnabled();
+    expect(screen.getByRole('radio', { name: /LLM accelerator configuration/ })).toBeChecked();
+    expect(screen.getByTestId('runtime-image-single-target-alert')).toBeVisible();
+    expect(screen.getByTestId('runtime-image-install-next')).toBeEnabled();
   });
 
   it('should show contributed metadata and host only the selected target', async () => {
     mockExtensions = [servingTarget, acceleratorTarget];
     renderPage(mockRuntimeImageActionData());
     expect(screen.getByText('Choose install target')).toBeInTheDocument();
+    expect(screen.queryByTestId('runtime-image-single-target-alert')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Model deployment settings' })).toBeInTheDocument();
-    expect(screen.getByText('Runtime image library')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Runtime image library' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Runtime library' })).toHaveAttribute(
+      'href',
+      RUNTIME_IMAGE_LIBRARY_PATH,
+    );
     expect(screen.getByRole('link', { name: 'vLLM 0.6.0' })).toHaveAttribute(
       'href',
-      '/settings/model-resources-operations/model-deployment-settings/general-settings',
+      mockRuntimeImageActionData().cancelReturnRoute,
     );
     expect(
       screen.getByText('Install', { selector: '.pf-v6-c-breadcrumb__item' }),
@@ -157,7 +287,7 @@ describe('RuntimeImageInstallPage', () => {
     fireEvent.click(screen.getByTestId('runtime-image-install-next'));
     await screen.findByTestId('target-payload');
     fireEvent.click(screen.getByRole('link', { name: 'Cancel configuration' }));
-    expect(screen.getByText('Returned to General settings')).toBeInTheDocument();
+    expect(screen.getByText('Returned to Runtime image details')).toBeInTheDocument();
   });
 
   it('should hand off the full LLM resource JSON string using the renamed target key', async () => {

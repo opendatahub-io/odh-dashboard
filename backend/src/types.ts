@@ -80,7 +80,6 @@ export type DashboardConfig = K8sResourceCommon & {
       globalProjectPrompts: boolean;
       gpuaas: boolean;
       modelCapabilities: boolean;
-      runtimeCatalog: boolean;
       observabilityDashboard: boolean;
       nimWizard: boolean;
     };
@@ -920,6 +919,7 @@ export type ContainerResources = {
     cpu?: string | number;
     memory?: string;
   } & Record<string, unknown>;
+  claims?: { name: string; request?: string }[];
 };
 
 export type PodAffinity = {
@@ -996,6 +996,9 @@ export type HardwareProfileKind = K8sResourceCommon & {
       resourceType?: string;
     }[];
     nodeSelector?: NodeSelector;
+    dra?: {
+      resourceClaimTemplateName: string;
+    };
   };
 };
 

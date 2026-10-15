@@ -1107,6 +1107,18 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: "MaaSSubscription 'unknown-sub' not found"
+        '409':
+          description: >
+            Conflict. The subscription was modified since the client loaded it
+            (stale resourceVersion), or another concurrent update won.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+              example:
+                error:
+                  code: '409'
+                  message: This subscription was modified by someone else. Refresh the page and try again.
         '500':
           description: Internal Server Error
           content:
@@ -2003,6 +2015,29 @@ components:
       required:
         - error
 
+    HTTPErrorResponse:
+      type: object
+      description: >
+        Structured error payload returned by handlers that use HTTPError / ErrorPayload
+        (status code in HTTP status; code and message in the body).
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Application or HTTP status code as a string
+              example: '409'
+            message:
+              type: string
+              description: Human-readable error message
+              example: This subscription was modified by someone else. Refresh the page and try again.
+          required:
+            - code
+            - message
+      required:
+        - error
+
     HealthResponse:
       type: object
       properties:
@@ -2601,6 +2636,12 @@ components:
           description: >
             InferenceObjectivesReady condition from status.conditions when present
             (only written by the controller when inferencePriority is set).
+        resourceVersion:
+          type: string
+          description: >
+            Kubernetes metadata.resourceVersion at read time.
+            Clients should send this value back on update for optimistic concurrency.
+          example: '12345'
         owner:
           $ref: '#/components/schemas/OwnerSpec'
         modelRefs:
@@ -2875,6 +2916,12 @@ components:
             Optional updated subscription inference priority (signed int32).
             Omitted when unset; the scheduler applies default 0.
           example: 20
+        resourceVersion:
+          type: string
+          description: >
+            resourceVersion from when the client loaded the subscription.
+            When provided, update returns 409 if the resource changed since that read.
+          example: '12345'
       required:
         - owner
         - modelRefs

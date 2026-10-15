@@ -1,8 +1,12 @@
-import type { PlaceholderRuntimeImageActionData } from './placeholder-types';
+import type { RuntimeImageInstallActionData } from '@mf/modelRegistry/extension-points';
+import { RUNTIME_IMAGE_LIBRARY_PATH } from './const';
 import type {
   RuntimeImageInstallTargetExtension,
   RuntimeImageInstallTargetId,
 } from '../../../extension-points/runtime-image-install-target';
+
+export const getRuntimeImageInstallRoute = (runtimeId: string): string =>
+  `${RUNTIME_IMAGE_LIBRARY_PATH}/${encodeURIComponent(runtimeId)}/install`;
 
 export const getMatchingInstallTarget = (
   extensions: RuntimeImageInstallTargetExtension[],
@@ -13,15 +17,20 @@ export const getMatchingInstallTarget = (
       extension.properties.id === targetId && typeof extension.properties.component === 'function',
   );
 
-// Given the action data passed from the runtime library and the resolved extensions,
-// return the install target extensions we have data for (first match per target).
-export const getAvailableInstallTargets = (
-  data: PlaceholderRuntimeImageActionData,
+// Resolve the first valid contribution per target, independently of resource availability.
+export const getInstallTargets = (
   extensions: RuntimeImageInstallTargetExtension[],
 ): RuntimeImageInstallTargetExtension[] =>
   Array.from(new Set(extensions.map((extension) => extension.properties.id))).flatMap(
     (targetId) => {
       const target = getMatchingInstallTarget(extensions, targetId);
-      return target && data.deploymentResources[targetId] !== undefined ? [target] : [];
+      return target ? [target] : [];
     },
   );
+
+// Filter already-resolved targets by the resource data available for this image.
+export const getAvailableInstallTargets = (
+  data: RuntimeImageInstallActionData,
+  installTargets: RuntimeImageInstallTargetExtension[],
+): RuntimeImageInstallTargetExtension[] =>
+  installTargets.filter((target) => data.deploymentResources[target.properties.id] !== undefined);

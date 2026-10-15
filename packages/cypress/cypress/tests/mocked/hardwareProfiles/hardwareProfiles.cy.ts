@@ -161,6 +161,49 @@ describe('Hardware Profile', () => {
       // Custom profile should have delete option
       hardwareProfile.getRow('Custom Profile').findKebabAction('Delete').should('exist');
     });
+
+    it('should disable edit, duplicate and the enable toggle for hardware profiles that use DRA', () => {
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({
+            name: 'custom-profile',
+            displayName: 'Custom Profile',
+          }),
+          mockHardwareProfile({
+            name: 'dra-profile',
+            displayName: 'DRA Profile',
+            dra: { resourceClaimTemplateName: 'single-gpu' },
+          }),
+        ]),
+      );
+      hardwareProfile.visit();
+
+      hardwareProfile
+        .getRow('DRA Profile')
+        .findKebabAction('Edit')
+        .should('have.attr', 'aria-disabled', 'true');
+      hardwareProfile
+        .getRow('DRA Profile')
+        .findKebabAction('Duplicate')
+        .should('have.attr', 'aria-disabled', 'true');
+      hardwareProfile.getRow('DRA Profile').findEnabled().should('be.disabled');
+      hardwareProfile
+        .getRow('DRA Profile')
+        .findDRAHelpButton()
+        .should('have.attr', 'aria-label', 'More info about DRA Profile');
+
+      hardwareProfile
+        .getRow('Custom Profile')
+        .findKebabAction('Edit')
+        .should('not.have.attr', 'aria-disabled', 'true');
+      hardwareProfile
+        .getRow('Custom Profile')
+        .findKebabAction('Duplicate')
+        .should('not.have.attr', 'aria-disabled', 'true');
+      hardwareProfile.getRow('Custom Profile').findEnabled().should('be.enabled');
+      hardwareProfile.getRow('Custom Profile').findDRAHelpButton().should('not.exist');
+    });
   });
 
   describe('hardware profile errors', () => {

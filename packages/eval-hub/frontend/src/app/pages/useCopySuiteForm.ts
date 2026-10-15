@@ -38,7 +38,7 @@ import type {
 
 const DEFAULT_SUITE_THRESHOLD = 70;
 const MIN_WEIGHT_PERCENT = 5;
-export const MAX_BENCHMARKS = 10;
+export const MAX_BENCHMARKS = 20;
 const EDIT_AFTER_RUN_ERROR = 'Benchmark suites cannot be edited after they have been run.';
 
 export type CopySuiteBenchmark = CopySuiteFormValues['benchmarks'][number];

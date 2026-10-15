@@ -234,6 +234,9 @@ export type HardwareProfileKind = K8sResourceCommon & {
   spec: {
     identifiers?: Identifier[];
     scheduling?: HardwareProfileScheduling;
+    dra?: {
+      resourceClaimTemplateName: string;
+    };
   };
 };
 
@@ -328,7 +331,6 @@ export type DashboardCommonConfig = {
   roleManagement?: boolean;
   gpuaas?: boolean;
   modelCapabilities?: boolean;
-  runtimeCatalog?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;

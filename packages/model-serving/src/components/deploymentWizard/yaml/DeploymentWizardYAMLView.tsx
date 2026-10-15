@@ -22,7 +22,7 @@ type DeploymentWizardYAMLViewProps = {
   code?: string;
   setCode: (code: string) => void;
   viewMode: ModelDeploymentWizardViewMode;
-  setViewMode: (viewMode: ModelDeploymentWizardViewMode) => void;
+  switchToYamlEdit: () => void;
   canEnterYAMLEditMode: boolean;
   isAutoFallback?: boolean;
 };
@@ -31,7 +31,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
   code,
   setCode,
   viewMode,
-  setViewMode,
+  switchToYamlEdit,
   canEnterYAMLEditMode = true,
   isAutoFallback,
 }) => {
@@ -91,9 +91,9 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
                   data-testid="yaml-editor-empty-state"
                 >
                   <EmptyStateBody>
-                    YAML generation is currently supported only for the LLM-d serving runtime.
-                    Select the LLM-d runtime to generate a preview, or manually enter your YAML
-                    configuration.
+                    YAML generation is currently supported only for LLM inference service deployment
+                    methods. Select an LLM inference service to generate a preview, or manually
+                    enter your YAML configuration.
                   </EmptyStateBody>
                 </EmptyState>
               </Bullseye>
@@ -119,7 +119,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
           onClose={() => setIsEnterYAMLEditModalOpen(false)}
           onConfirm={() => {
             setIsEnterYAMLEditModalOpen(false);
-            setViewMode('yaml-edit');
+            switchToYamlEdit();
           }}
         />
       )}

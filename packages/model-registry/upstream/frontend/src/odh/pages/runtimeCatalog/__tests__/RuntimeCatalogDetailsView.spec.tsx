@@ -52,7 +52,7 @@ const renderDetails = (props: Partial<RuntimeCatalogDetailsViewProps> = {}, runt
           path="/catalog/:runtimeId"
           element={
             <RuntimeCatalogDetailsView
-              breadcrumbs={[{ title: 'Runtime image library', href: '/catalog' }]}
+              breadcrumbs={[{ title: 'Runtime library', href: '/catalog' }]}
               {...props}
             />
           }
@@ -78,7 +78,7 @@ const runtimeVersions = [
     version: '0.6.0',
     image: 'registry.example.com/mock/vllm:0.6.0',
     servingRuntimeTemplate: '{"kind":"ServingRuntime"}',
-    llmInferenceServiceTemplate: '{"kind":"LLMInferenceServiceConfig"}',
+    llmInferenceServiceConfig: '{"kind":"LLMInferenceServiceConfig"}',
   },
 ];
 
@@ -146,13 +146,58 @@ describe('RuntimeCatalogDetailsView', () => {
     renderDetails({
       runtimeDetails,
       runtimeVersions: [
-        { ...runtimeVersions[0], servingRuntimeTemplate: '', llmInferenceServiceTemplate: '' },
+        { ...runtimeVersions[0], servingRuntimeTemplate: '', llmInferenceServiceConfig: '' },
       ],
     });
 
-    expect(
-      screen.queryByRole('heading', { name: 'Available configurations' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Runtimes' })).not.toBeInTheDocument();
+  });
+
+  it('should label the runtime types and describe each one', () => {
+    renderDetails({ runtimeDetails, runtimeVersions });
+
+    expect(screen.getByRole('heading', { name: 'Runtimes' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Serving runtime' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'LLM runtime' })).toBeInTheDocument();
+    expect(screen.getByTestId('runtime-serving-runtime-panel')).toHaveTextContent(
+      'Use this runtime for serving most model types.',
+    );
+
+    fireEvent.click(screen.getByTestId('runtime-llm-inference-service-tab'));
+
+    expect(screen.getByTestId('runtime-llm-inference-service-panel')).toHaveTextContent(
+      'Use this runtime for deploying LLM inference services.',
+    );
+  });
+
+  it('should list the detail fields with the published date last', () => {
+    renderDetails({ runtimeDetails, runtimeVersions });
+
+    expect(screen.getAllByRole('term').map((term) => term.textContent)).toEqual([
+      'Version',
+      'Hardware',
+      'Model formats',
+      'Container image',
+      'Published',
+    ]);
+  });
+
+  it('should explain the Latest label in a popover without a heading', async () => {
+    renderDetails({ runtimeDetails: { ...runtimeDetails, versionCount: 1 }, runtimeVersions });
+
+    fireEvent.click(screen.getByTestId('runtime-catalog-details-latest'));
+
+    const popover = await screen.findByTestId('runtime-catalog-details-latest-popover');
+    expect(popover).toHaveTextContent(
+      'This is the newest version of this runtime image available in the library.',
+    );
+    expect(within(popover).queryByRole('heading')).not.toBeInTheDocument();
+  });
+
+  it('should not show the Latest label when the runtime has no versions', () => {
+    renderDetails({ runtimeDetails: { ...runtimeDetails, versionCount: 0 }, runtimeVersions });
+
+    expect(screen.queryByTestId('runtime-catalog-details-latest')).not.toBeInTheDocument();
   });
 
   it('should activate the LLM tab when it is the only configuration', () => {
