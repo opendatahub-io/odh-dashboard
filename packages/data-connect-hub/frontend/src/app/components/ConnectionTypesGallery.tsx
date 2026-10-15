@@ -277,7 +277,9 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
   );
 
   const shouldRenderEmptySearchState =
-    (Boolean(normalizedSearchTerm) || hasFilters) && galleryCards.length === 0;
+    !shouldRenderEmptyState &&
+    (Boolean(normalizedSearchTerm) || hasFilters) &&
+    galleryCards.length === 0;
 
   const emptySearchState = (
     <EmptyState
