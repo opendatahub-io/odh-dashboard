@@ -81,6 +81,9 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
   const showCreationEmptyState = !hasLabels && !isCreating;
 
   const handleStartCreate = () => {
+    if (!hasLabels) {
+      setFilterText('');
+    }
     setIsCreating(true);
     setActionError(null);
   };

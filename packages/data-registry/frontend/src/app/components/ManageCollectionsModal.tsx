@@ -91,6 +91,22 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
     setActionError(null);
   };
 
+  const handleClose = () => {
+    setFilterText('');
+    resetCreateForm();
+    onClose();
+  };
+
+  const handleEscapePress = () => {
+    if (isCreating) {
+      if (!isSubmitting) {
+        resetCreateForm();
+      }
+      return;
+    }
+    handleClose();
+  };
+
   const handleCreateCollection = async () => {
     const trimmedName = newCollectionName.trim();
     if (!trimmedName || !userId.trim() || nameValidationError) {
@@ -153,11 +169,8 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
     <>
       <Modal
         isOpen={isOpen && deleteTarget === null}
-        onClose={() => {
-          setFilterText('');
-          resetCreateForm();
-          onClose();
-        }}
+        onClose={handleClose}
+        onEscapePress={handleEscapePress}
         variant="large"
         data-testid="manage-collections-modal"
       >
@@ -258,8 +271,6 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           handleCreateCollection();
-                        } else if (e.key === 'Escape') {
-                          resetCreateForm();
                         }
                       }}
                       data-testid="new-collection-name-input"
@@ -283,8 +294,6 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           handleCreateCollection();
-                        } else if (e.key === 'Escape') {
-                          resetCreateForm();
                         }
                       }}
                       data-testid="new-collection-description-input"
@@ -375,11 +384,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
         <ModalFooter>
           <Button
             variant="secondary"
-            onClick={() => {
-              setFilterText('');
-              resetCreateForm();
-              onClose();
-            }}
+            onClick={handleClose}
             data-testid="manage-collections-close-button"
           >
             Close

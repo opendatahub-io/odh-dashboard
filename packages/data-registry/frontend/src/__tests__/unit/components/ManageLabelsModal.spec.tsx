@@ -142,6 +142,18 @@ describe('ManageLabelsModal', () => {
     expect(screen.getByTestId('create-label-row')).toBeInTheDocument();
   });
 
+  it('should clear a stale filter before creating the first label', () => {
+    const { rerender } = renderModal({ labels: ['old'], assets: [] });
+    const filter = screen.getByTestId('label-filter');
+    fireEvent.change(filter.querySelector('input')!, { target: { value: 'old' } });
+
+    rerender(<ManageLabelsModal {...defaultProps} labels={[]} assets={[]} />);
+    fireEvent.click(screen.getByTestId('create-label-button'));
+    rerender(<ManageLabelsModal {...defaultProps} labels={['new-label']} assets={[]} />);
+
+    expect(screen.getByTestId('label-row-new-label')).toBeInTheDocument();
+  });
+
   it('should show a table no-results empty state when filtering finds no labels', () => {
     renderModal();
     const filter = screen.getByTestId('label-filter');

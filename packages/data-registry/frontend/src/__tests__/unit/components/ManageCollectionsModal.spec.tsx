@@ -90,6 +90,28 @@ describe('ManageCollectionsModal', () => {
     expect(screen.queryByTestId('create-collection-row')).not.toBeInTheDocument();
   });
 
+  it('cancels inline creation with Escape without closing the management dialog', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ManageCollectionsModal {...defaultProps} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByTestId('create-collection-button'));
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByTestId('manage-collections-modal')).toBeInTheDocument();
+    expect(screen.queryByTestId('create-collection-row')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('create-collection-button'));
+    await user.click(screen.getByTestId('new-collection-description-input'));
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByTestId('manage-collections-modal')).toBeInTheDocument();
+    expect(screen.queryByTestId('create-collection-row')).not.toBeInTheDocument();
+  });
+
   it('creates a collection from the inline row', async () => {
     const user = userEvent.setup();
     mockCreateCollection.mockResolvedValue({
