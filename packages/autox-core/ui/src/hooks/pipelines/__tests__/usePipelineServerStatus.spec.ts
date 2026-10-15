@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { usePipelineServerStatus } from '../usePipelineServerStatus';
 
@@ -69,5 +69,45 @@ describe('usePipelineServerStatus', () => {
     rerender();
 
     expect(result.current.isStarting).toBe(false);
+  });
+
+  it('should wait for the Ready confirmation delay before marking the server loaded', () => {
+    jest.useFakeTimers();
+    mockUseK8sWatchResourceList.mockReturnValue([[readyDspa], true, undefined]);
+
+    const { result, unmount } = renderHook(() => usePipelineServerStatus('test-project'));
+
+    try {
+      expect(result.current.loaded).toBe(false);
+
+      act(() => {
+        jest.advanceTimersByTime(1999);
+      });
+      expect(result.current.loaded).toBe(false);
+
+      act(() => {
+        jest.advanceTimersByTime(1);
+      });
+      expect(result.current.loaded).toBe(true);
+    } finally {
+      unmount();
+      jest.useRealTimers();
+    }
+  });
+
+  it('should report a DSPA as starting when Ready is for an older generation', () => {
+    const staleReadyDspa = {
+      ...readyDspa,
+      metadata: { ...readyDspa.metadata, generation: 2 },
+      status: {
+        conditions: [{ type: 'Ready', status: 'True', observedGeneration: 1 }],
+      },
+    };
+    mockUseK8sWatchResourceList.mockReturnValue([[staleReadyDspa], true, undefined]);
+
+    const { result } = renderHook(() => usePipelineServerStatus('test-project'));
+
+    expect(result.current.loaded).toBe(true);
+    expect(result.current.isStarting).toBe(true);
   });
 });
