@@ -142,7 +142,7 @@ describe('getAllTenantCollections', () => {
     );
 
     await expect(getAllTenantCollections('test-namespace')).rejects.toThrow(
-      'collection page repeated before all collections were fetched',
+      'benchmark suite page repeated before all benchmark suites were fetched',
     );
 
     expect(mockGetCollections).toHaveBeenCalledTimes(2);
@@ -161,7 +161,7 @@ describe('getAllTenantCollections', () => {
     );
 
     await expect(getAllTenantCollections('test-namespace')).rejects.toThrow(
-      'collection page ended before all collections were fetched',
+      'benchmark suite page ended before all benchmark suites were fetched',
     );
 
     expect(mockGetCollections).toHaveBeenCalledTimes(1);

@@ -30,6 +30,9 @@ const renderJob = (
   rowIndex = 0,
   polledJobData?: EvaluationJob,
   isKueueWorkloadStatusLoading = false,
+  // Enabled by default so the queued-display tests exercise the enabled path; the
+  // integration is disabled in production (RHOAIENG-99645).
+  isKueueEnabled = true,
 ) =>
   render(
     <MemoryRouter>
@@ -46,6 +49,7 @@ const renderJob = (
             isSelected={false}
             onSelectionChange={mockOnSelectionChange}
             isKueueWorkloadStatusLoading={isKueueWorkloadStatusLoading}
+            isKueueEnabled={isKueueEnabled}
           />
         </Tbody>
       </Table>
@@ -105,6 +109,16 @@ describe('EvaluationsTableRow', () => {
     renderJob(job, 0, polledJob);
 
     expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
+  });
+
+  it('should show Pending for a queue-assigned job when the Kueue integration is disabled', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'default' } };
+
+    renderJob(job, 0, undefined, false, false);
+
+    expect(screen.getByTestId('evaluation-status')).toHaveTextContent('Pending');
   });
 
   it('should open status using the latest polled job data', () => {
@@ -177,6 +191,7 @@ describe('EvaluationsTableRow', () => {
               onShowStatus={mockOnShowStatus}
               isSelected={false}
               onSelectionChange={mockOnSelectionChange}
+              isKueueEnabled
             />
           </Tbody>
         </Table>

@@ -1,7 +1,25 @@
 import type { RuntimeImageInstallTargetExtension } from '../../../../extension-points/runtime-image-install-target';
 import { isRuntimeImageInstallTargetExtension } from '../../../../extension-points/runtime-image-install-target';
-import { getAvailableInstallTargets, getMatchingInstallTarget } from '../utils';
-import { mockRuntimeImageActionData } from '../mockRuntimeImageActionData';
+import {
+  getAvailableInstallTargets,
+  getMatchingInstallTarget,
+  getRuntimeImageInstallRoute,
+} from '../utils';
+import { mockRuntimeImageActionData } from '../../../__mocks__/mockRuntimeImageActionData';
+
+describe('runtime image install route', () => {
+  it('builds the install URL under the runtime details route', () => {
+    expect(getRuntimeImageInstallRoute('runtime-1')).toBe(
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/runtime-1/install',
+    );
+  });
+
+  it('encodes the runtime identifier in the install URL', () => {
+    expect(getRuntimeImageInstallRoute('runtime / one')).toBe(
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/runtime%20%2F%20one/install',
+    );
+  });
+});
 
 const servingRuntimeTarget: RuntimeImageInstallTargetExtension = {
   type: 'model-serving.runtime-image/install-target',

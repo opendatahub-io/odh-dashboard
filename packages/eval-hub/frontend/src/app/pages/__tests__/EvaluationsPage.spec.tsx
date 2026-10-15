@@ -221,10 +221,13 @@ describe('EvaluationsPage', () => {
       screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-category-filter')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-industry-filter')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-tags-filter')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-task-filter')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-modality-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-more-filters-toggle')).toHaveTextContent(
+      'Show more filters',
+    );
+    expect(screen.queryByTestId('benchmark-suites-industry-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-tags-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-task-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-modality-filter')).not.toBeInTheDocument();
     // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
     /*
     expect(screen.getByTestId('benchmark-suites-evaluates-filter')).toBeInTheDocument();
@@ -236,10 +239,6 @@ describe('EvaluationsPage', () => {
       'benchmark-suites-metrics-filter',
       // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
       // 'benchmark-suites-evaluates-filter',
-      'benchmark-suites-modality-filter',
-      'benchmark-suites-task-filter',
-      'benchmark-suites-industry-filter',
-      'benchmark-suites-tags-filter',
     ];
     filterOrder.slice(0, -1).forEach((filterId, index) => {
       expect(
@@ -248,8 +247,8 @@ describe('EvaluationsPage', () => {
           .compareDocumentPosition(screen.getByTestId(filterOrder[index + 1])),
       ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     });
-    expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Search collections')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-pagination-top')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search benchmark suites')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
       'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
     );
@@ -262,7 +261,7 @@ describe('EvaluationsPage', () => {
 
     expect(screen.getByTestId('collection-drawer-panel')).toBeInTheDocument();
     expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent('ClawBench');
-    expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent('Run');
+    expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent('Run benchmark suite');
   });
 
   it('should offer Gallery suite customization from the details drawer', () => {
@@ -318,6 +317,8 @@ describe('EvaluationsPage', () => {
 
   it('should filter Gallery suites by benchmark, category, tags, task, metric, modality, and industry', () => {
     renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
 
     fireEvent.click(screen.getByTestId('benchmark-suites-benchmarks-filter'));
     expect(
@@ -424,6 +425,25 @@ describe('EvaluationsPage', () => {
     expect(screen.queryByTestId('evalhub-load-error-admin-empty-state')).not.toBeInTheDocument();
   });
 
+  it('should keep the create-suite card visible while tenant suites are loading', () => {
+    mockUseCollectionsQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      error: null,
+    });
+
+    renderPage('test-project', '?tab=evaluate');
+
+    expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
+    const loadingCards = screen.getAllByTestId('benchmark-suite-card-loading');
+    expect(loadingCards).toHaveLength(2);
+    expect(screen.getByTestId('benchmark-suites-gallery').children).toHaveLength(3);
+    expect(
+      loadingCards[0].querySelectorAll('.evalhub-benchmark-suite-card__loading-title'),
+    ).toHaveLength(1);
+  });
+
   it('should show the suite contextual actions and delete confirmation modal', () => {
     renderPage('test-project', '?tab=evaluate');
 
@@ -515,7 +535,7 @@ describe('EvaluationsPage', () => {
   it('should link to the tenant benchmark suites page', () => {
     renderPage('test-project', '?tab=evaluate');
 
-    expect(screen.getByRole('link', { name: 'Go to All my benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Go to all my benchmark suites' })).toHaveAttribute(
       'href',
       '/evaluation/test-project/collections',
     );
@@ -537,7 +557,7 @@ describe('EvaluationsPage', () => {
 
     fireEvent.click(
       within(screen.getByTestId('benchmark-suite-card-model-suite-2')).getByRole('button', {
-        name: 'Run',
+        name: 'Run benchmark suite',
       }),
     );
 
@@ -557,7 +577,7 @@ describe('EvaluationsPage', () => {
     mockUseEvaluationJobs.mockReturnValue([[], true, undefined, refresh]);
     renderPage('test-project', '?tab=evaluate');
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Run' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Run benchmark suite' })[0]);
     fireEvent.click(screen.getByTestId('evaluation-run-success'));
 
     expect(refresh).toHaveBeenCalledTimes(1);

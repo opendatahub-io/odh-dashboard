@@ -2,15 +2,14 @@ import * as React from 'react';
 import {
   Button,
   Flex,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Label,
   Panel,
-  Popover,
   TextArea,
   Stack,
-  Title,
-  Tooltip,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
@@ -43,19 +42,17 @@ const CONFIRMATION_CONFIG = {
     'Your current edits haven’t been saved. Reverting will restore the last saved version of this prompt. To keep your changes, cancel and save first.',
   confirmLabel: 'Revert',
 };
+const UNSAVED_PROMPT_REVERT_CONFIRMATION_CONFIG = {
+  title: 'Revert changes?',
+  message: 'Your unsaved changes will be discarded and the default instructions restored.',
+  confirmLabel: 'Revert',
+};
 const VERSION_SWITCH_CONFIRMATION_CONFIG = {
   title: 'Switch to a different version?',
   message:
     'Your current prompt has unsaved changes that will be lost. To keep your changes, cancel and save first.',
   confirmLabel: 'Switch',
 };
-const RESET_CONFIRMATION_CONFIG = {
-  title: 'Reset to default?',
-  message:
-    "Your current edits haven't been saved. Resetting will restore the default prompt instructions. To keep your changes, cancel and save first.",
-  confirmLabel: 'Reset',
-};
-
 export default function PromptAssistantFormGroup({
   configId = DEFAULT_CONFIG_ID,
   systemInstruction,
@@ -68,10 +65,10 @@ export default function PromptAssistantFormGroup({
   const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
   const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
-  const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
   const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
-  const [editMode, setEditMode] = React.useState(true);
+  // Keep auto-resize enabled after first focus; blurring should not shrink an edited prompt.
+  const [hasTextAreaBeenFocused, setHasTextAreaBeenFocused] = React.useState(false);
   const activeTemplate =
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
@@ -80,10 +77,6 @@ export default function PromptAssistantFormGroup({
 
   useSafeBrowserUnloadBlocker(isEdited);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
-
-  React.useEffect(() => {
-    setEditMode(!activePrompt);
-  }, [activePrompt]);
 
   function handleTextChange(value: string) {
     onSystemInstructionChange(value);
@@ -95,14 +88,6 @@ export default function PromptAssistantFormGroup({
   function handleRevert() {
     resetDirtyPrompt(configId);
     onSystemInstructionChange(activeTemplate || DEFAULT_SYSTEM_INSTRUCTIONS);
-    setEditMode(false);
-  }
-
-  function handleNewPrompt() {
-    const promptStub = { ...buildPromptStub(), template: DEFAULT_SYSTEM_INSTRUCTIONS };
-    clearPromptState(configId, promptStub);
-    onSystemInstructionChange(promptStub.template);
-    setEditMode(true);
   }
 
   function handleVersionSwitch(version: MLflowPromptVersion) {
@@ -111,7 +96,6 @@ export default function PromptAssistantFormGroup({
       const instruction =
         version.template ?? version.messages?.find((m) => m.role === 'system')?.content ?? '';
       onSystemInstructionChange(instruction);
-      setEditMode(false);
       fireMiscTrackingEvent('Playground Prompt Version Switched', {
         fromVersion: activePrompt?.version,
         toVersion: version.version,
@@ -134,7 +118,6 @@ export default function PromptAssistantFormGroup({
   const isGlobalPrompt = activePrompt?.scope?.type === 'global';
 
   function handleSaveClicked() {
-    setEditMode(false);
     const newPrompt: MLflowPromptVersion = dirtyPrompt
       ? { ...dirtyPrompt, template: systemInstruction }
       : { ...buildPromptStub(), template: systemInstruction };
@@ -146,7 +129,6 @@ export default function PromptAssistantFormGroup({
   }
 
   function handleSaveAsClicked() {
-    setEditMode(false);
     const newPrompt: MLflowPromptVersion = dirtyPrompt
       ? { ...dirtyPrompt, template: systemInstruction }
       : { ...buildPromptStub(), template: systemInstruction };
@@ -176,164 +158,51 @@ export default function PromptAssistantFormGroup({
     <>
       <SafeNavigationBlocker hasUnsavedChanges={isEdited} />
       {confirmationModal}
-      <Panel
-        style={{
-          borderStyle: 'dashed',
-          borderWidth: 1,
-          borderRadius: 6,
-          borderColor: 'var(--pf-t--global--border--color--default)',
-        }}
-      >
-        <Stack
-          hasGutter
-          style={{
-            padding: 'var(--pf-t--global--spacer--md)',
-            paddingTop: 'var(--pf-t--global--spacer--lg)',
-          }}
-        >
-          <Flex>
-            <Title headingLevel="h6" data-testid="prompt-name-title">
-              {dirtyPrompt?.name || 'New Prompt'}
-            </Title>
-            {activePrompt?.scope && (
-              <Label
-                data-testid="prompt-scope-label"
-                isCompact
-                color={activePrompt.scope.type === 'project' ? 'blue' : 'orange'}
-              >
-                {activePrompt.scope.type === 'project' ? 'Project' : 'Global'}
-              </Label>
-            )}
-            {!!activePrompt?.version && (
-              <PromptVersionSelector
-                promptName={activePrompt.name}
-                promptScope={activePrompt.scope}
-                currentVersion={activePrompt.version}
-                onVersionSelect={handleVersionSwitch}
-                namespace={namespace?.name}
-              />
-            )}
-            {isEdited && (
-              <div
-                data-testid="prompt-unsaved-indicator"
-                className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}
-              >
-                Unsaved
-              </div>
-            )}
-          </Flex>
-          <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <span>Instructions</span>
-            <Popover
-              headerContent="System instructions"
-              bodyContent={
-                <>
-                  <p>
-                    The instructions field is used as a system instruction when chatting with the
-                    model in the playground. It guides the model&apos;s behavior and response style.
-                  </p>
-                  <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                    Wrap variables with double curly braces, e.g. {'{{ name }}'}. Variable slots
-                    appear below the instructions when placeholders are detected.
-                  </p>
-                </>
-              }
-            >
-              <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
-            </Popover>
-          </Flex>
-          <TextArea
-            className={!editMode ? 'pf-m-readonly' : undefined}
-            id="system-instructions-input"
-            type="text"
-            value={systemInstruction}
-            readOnly={!editMode}
-            resizeOrientation="vertical"
-            onChange={(_event, value) => handleTextChange(value)}
-            aria-label="Prompt instructions input"
-            rows={18}
-            data-testid="system-instructions-input"
-          />
-          {!editMode && (
-            <Flex>
-              <Button
-                data-testid="prompt-edit-button"
-                variant="primary"
-                onClick={() => {
-                  setEditMode(true);
-                  fireMiscTrackingEvent('Playground Prompt Edit Selected', {
-                    source: 'button',
-                  });
-                }}
-              >
-                Edit
-              </Button>
-              <Button
-                data-testid="prompt-reset-button"
-                variant="link"
-                isDisabled={!isEdited && !activePrompt}
-                onClick={() =>
-                  confirm(handleNewPrompt, {
-                    ...RESET_CONFIRMATION_CONFIG,
-                    onConfirmTracking: () =>
-                      fireMiscTrackingEvent('Playground Prompt Cleared', {
-                        outcome: 'submit',
-                        hadLoadedPrompt: !!activePrompt,
-                      }),
-                    onCancelTracking: () =>
-                      fireMiscTrackingEvent('Playground Prompt Cleared', {
-                        outcome: 'cancel',
-                        hadLoadedPrompt: !!activePrompt,
-                      }),
-                  })
-                }
-              >
-                Reset
-              </Button>
-            </Flex>
-          )}
-          {editMode && (
-            <Flex>
-              {isGlobalPrompt ? (
-                <Flex style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
-                  <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
-                    <span>
-                      <Button
-                        data-testid="prompt-save-to-registry-button"
-                        variant="primary"
-                        isDisabled
-                      >
-                        Save
-                      </Button>
-                    </span>
-                  </Tooltip>
-                  <Button
-                    data-testid="prompt-save-as-button"
-                    variant="primary"
-                    isDisabled={!isEdited}
-                    onClick={handleSaveAsClicked}
-                  >
-                    Save As
-                  </Button>
-                </Flex>
-              ) : (
-                <Button
-                  data-testid="prompt-save-to-registry-button"
-                  variant="primary"
-                  isDisabled={!isEdited}
-                  onClick={handleSaveClicked}
+      <Panel>
+        <Stack hasGutter>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <Flex gap={{ default: 'gapSm' }}>
+              {activePrompt?.scope && (
+                <Label
+                  data-testid="prompt-scope-label"
+                  isCompact
+                  color={activePrompt.scope.type === 'project' ? 'blue' : 'orange'}
                 >
-                  Save
-                </Button>
+                  {activePrompt.scope.type === 'project' ? 'Project' : 'Global'}
+                </Label>
               )}
-              {activePrompt ? (
+              {!!activePrompt?.version && (
+                <PromptVersionSelector
+                  promptName={activePrompt.name}
+                  promptScope={activePrompt.scope}
+                  currentVersion={activePrompt.version}
+                  onVersionSelect={handleVersionSwitch}
+                  namespace={namespace?.name}
+                />
+              )}
+              {isEdited && (
+                <div
+                  data-testid="prompt-unsaved-indicator"
+                  className={`${text.textColorPlaceholder} pf-v6-u-font-size-sm`}
+                >
+                  <i>Unsaved</i>
+                </div>
+              )}
+              {(activePrompt || isEdited) && (
                 <Button
                   data-testid="prompt-revert-button"
-                  variant="link"
+                  variant="plain"
+                  isDanger
+                  className={isEdited ? 'pf-v6-u-text-color-status-danger' : undefined}
                   isDisabled={!isEdited}
                   onClick={() =>
                     confirm(handleRevert, {
-                      ...CONFIRMATION_CONFIG,
+                      ...(activePrompt
+                        ? CONFIRMATION_CONFIG
+                        : UNSAVED_PROMPT_REVERT_CONFIRMATION_CONFIG),
                       onConfirmTracking: () =>
                         fireMiscTrackingEvent('Playground Prompt Reverted', {
                           outcome: 'submit',
@@ -347,33 +216,37 @@ export default function PromptAssistantFormGroup({
                 >
                   Revert
                 </Button>
-              ) : (
-                <Button
-                  data-testid="prompt-reset-button"
-                  variant="link"
-                  isDisabled={!isEdited}
-                  onClick={() =>
-                    confirm(handleNewPrompt, {
-                      ...RESET_CONFIRMATION_CONFIG,
-                      forceConfirm: true,
-                      onConfirmTracking: () =>
-                        fireMiscTrackingEvent('Playground Prompt Cleared', {
-                          outcome: 'submit',
-                          hadLoadedPrompt: false,
-                        }),
-                      onCancelTracking: () =>
-                        fireMiscTrackingEvent('Playground Prompt Cleared', {
-                          outcome: 'cancel',
-                          hadLoadedPrompt: false,
-                        }),
-                    })
-                  }
-                >
-                  Reset
-                </Button>
               )}
             </Flex>
-          )}
+            <Button
+              data-testid="prompt-save-to-registry-button"
+              variant={isEdited ? 'link' : 'plain'}
+              isDisabled={!isEdited}
+              onClick={isGlobalPrompt ? handleSaveAsClicked : handleSaveClicked}
+            >
+              Add to prompt registry
+            </Button>
+          </Flex>
+          <TextArea
+            id="system-instructions-input"
+            type="text"
+            value={systemInstruction}
+            autoResize={hasTextAreaBeenFocused || !!activePrompt}
+            resizeOrientation="vertical"
+            onFocus={() => setHasTextAreaBeenFocused(true)}
+            onChange={(_event, value) => handleTextChange(value)}
+            aria-label="Prompt instructions input"
+            rows={2}
+            data-testid="system-instructions-input"
+          />
+          <FormHelperText className="pf-v6-u-mt-xs">
+            <HelperText>
+              <HelperTextItem>
+                Wrap variables with double curly braces, e.g. {'{{ name }}'}. Variable slots appear
+                below the instructions when placeholders are detected.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
           <PromptVariableInputPanel
             systemInstruction={systemInstruction}
             variableValues={variableValues}
