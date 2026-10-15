@@ -91,6 +91,16 @@ Before you begin, ensure you have the following installed:
 
 ## Running Tests
 
+### Data Registry E2E cluster prerequisites
+
+The Data Registry browser test runs against a live cluster. The cluster must have
+the Data Registry services and Feast operator installed, with the
+`featurestores.feast.dev` CRD available. It must also provide a namespace labeled
+`opendatahub.io/data-registry=true`; the test creates
+`FeatureStore/data-registry` there if it does not already exist. The test
+fixture uses the `default` collection in its generated project, so that
+collection must be available to new test projects.
+
 ### Run Tests in Interactive Mode
 
 Use the Cypress Test Runner for an interactive GUI:

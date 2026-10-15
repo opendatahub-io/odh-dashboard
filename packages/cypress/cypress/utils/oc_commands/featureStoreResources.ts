@@ -23,20 +23,22 @@ const resolveFeastDeployment = (
   namespace: string,
   feastInstanceName: string,
 ): Cypress.Chainable<string> => {
-  const labelCmd = `oc get deploy -n ${namespace} -l app.kubernetes.io/managed-by=feast,app.kubernetes.io/instance=${feastInstanceName} -o jsonpath='{.items[0].metadata.name}'`;
+  const safeNamespace = assertSafeK8sName(namespace, 'namespace');
+  const safeFeastInstanceName = assertSafeK8sName(feastInstanceName, 'FeatureStore name');
+  const labelCmd = `oc get deploy -n ${safeNamespace} -l app.kubernetes.io/managed-by=feast,app.kubernetes.io/instance=${safeFeastInstanceName} -o jsonpath='{.items[0].metadata.name}'`;
   return cy.exec(labelCmd, { failOnNonZeroExit: false, timeout: 30000 }).then((labelResult) => {
     const labelName = trimOcJsonpath(labelResult.stdout);
     if (labelName) {
       return cy.wrap(labelName);
     }
 
-    const grepCmd = `oc get deploy -n ${namespace} -o custom-columns="NAME:.metadata.name" --no-headers | grep -i "${feastInstanceName}"`;
+    const grepCmd = `oc get deploy -n ${safeNamespace} -o custom-columns="NAME:.metadata.name" --no-headers | grep -i "${safeFeastInstanceName}"`;
     return cy.exec(grepCmd, { failOnNonZeroExit: false, timeout: 30000 }).then((grepResult) => {
       const deploys = grepResult.stdout.trim().split('\n').filter(Boolean);
       const registryDeploy = deploys.find((d) => d.includes('registry')) ?? deploys[0];
       if (!registryDeploy) {
         throw new Error(
-          `No Feast deployment found for instance=${feastInstanceName} in ${namespace}. ` +
+          `No Feast deployment found for instance=${safeFeastInstanceName} in ${safeNamespace}. ` +
             `Label query returned: ${labelResult.stderr}`,
         );
       }
@@ -464,12 +466,14 @@ export const createFeatureStoreCR = (
   feastInstanceName: string,
   options: CreateFeatureStoreCROptions = {},
 ): Cypress.Chainable => {
+  const safeNamespace = assertSafeK8sName(namespace, 'namespace');
+  const safeFeastInstanceName = assertSafeK8sName(feastInstanceName, 'FeatureStore name');
   const fixture = options.dataRegistryEnabled
     ? 'resources/yaml/dataRegistryFeatureStore.yaml'
     : 'resources/yaml/feast.yaml';
 
   return cy.fixture(fixture).then((yamlTemplate) => {
-    const variables: Record<string, string> = { namespace };
+    const variables: Record<string, string> = { namespace: safeNamespace };
 
     if (!options.dataRegistryEnabled) {
       const buckets =
@@ -504,17 +508,17 @@ export const createFeatureStoreCR = (
         // Apply the modified YAML
         applyOpenShiftYaml(yamlContent);
         // Wait for the FeatureStore pod to be created
-        waitForPodReady(feastInstanceName, '300s', namespace);
+        waitForPodReady(safeFeastInstanceName, '300s', safeNamespace);
 
         // Wait for Feast operator reconciliation so the dashboard can discover the Feature Store
         pollUntilSuccess(
-          `oc get featurestores.feast.dev ${feastInstanceName} -n ${namespace} -o json | jq -e '.status.conditions[]? | select(.type=="Registry") | .status == "True"'`,
-          `FeatureStore/${feastInstanceName} Registry condition to be True`,
+          `oc get featurestores.feast.dev ${safeFeastInstanceName} -n ${safeNamespace} -o json | jq -e '.status.conditions[]? | select(.type=="Registry") | .status == "True"'`,
+          `FeatureStore/${safeFeastInstanceName} Registry condition to be True`,
           { maxAttempts: 30, pollIntervalMs: 5000 },
         );
         pollUntilSuccess(
-          `oc get namespace ${namespace} -o json | jq -e '.metadata.labels["opendatahub.io/feast"] == "true"'`,
-          `namespace ${namespace} to have opendatahub.io/feast=true label`,
+          `oc get namespace ${safeNamespace} -o json | jq -e '.metadata.labels["opendatahub.io/feast"] == "true"'`,
+          `namespace ${safeNamespace} to have opendatahub.io/feast=true label`,
           { maxAttempts: 30, pollIntervalMs: 5000 },
         );
       });
@@ -523,8 +527,8 @@ export const createFeatureStoreCR = (
     return waitForFeastOperatorReady()
       .then(() =>
         pollUntilSuccess(
-          `oc get namespace ${namespace} -o json | jq -e '.metadata.labels["opendatahub.io/data-registry"] == "true"'`,
-          `namespace ${namespace} to have opendatahub.io/data-registry=true label`,
+          `oc get namespace ${safeNamespace} -o json | jq -e '.metadata.labels["opendatahub.io/data-registry"] == "true"'`,
+          `namespace ${safeNamespace} to have opendatahub.io/data-registry=true label`,
           { maxAttempts: 30, pollIntervalMs: 5000 },
         ),
       )
@@ -540,7 +544,7 @@ export const createFeatureStoreCR = (
           }
 
           throw new Error(
-            `Failed to create FeatureStore/${feastInstanceName} in ${namespace}: ${output}`,
+            `Failed to create FeatureStore/${safeFeastInstanceName} in ${safeNamespace}: ${output}`,
           );
         });
       });
@@ -555,10 +559,12 @@ export const waitForFeatureStoreReady = (
   storeName: string,
   options?: { maxAttempts?: number; pollIntervalMs?: number },
 ): Cypress.Chainable => {
+  const safeNamespace = assertSafeK8sName(namespace, 'namespace');
+  const safeStoreName = assertSafeK8sName(storeName, 'FeatureStore name');
   const { maxAttempts = 60, pollIntervalMs = 5000 } = options ?? {};
   return pollUntilSuccess(
-    `oc get featurestores.feast.dev ${storeName} -n ${namespace} -o jsonpath='{.status.phase}' | grep -q '^Ready$'`,
-    `FeatureStore/${storeName} to be Ready`,
+    `oc get featurestores.feast.dev ${safeStoreName} -n ${safeNamespace} -o jsonpath='{.status.phase}' | grep -q '^Ready$'`,
+    `FeatureStore/${safeStoreName} to be Ready`,
     { maxAttempts, pollIntervalMs },
   );
 };
@@ -571,10 +577,12 @@ export const waitForFeatureStoreDeleted = (
   storeName: string,
   options?: { maxAttempts?: number; pollIntervalMs?: number },
 ): Cypress.Chainable => {
+  const safeNamespace = assertSafeK8sName(namespace, 'namespace');
+  const safeStoreName = assertSafeK8sName(storeName, 'FeatureStore name');
   const { maxAttempts = 30, pollIntervalMs = 3000 } = options ?? {};
   return pollUntilSuccess(
-    `oc get featurestores.feast.dev ${storeName} -n ${namespace} 2>&1 | grep -q 'NotFound'`,
-    `FeatureStore/${storeName} to be deleted`,
+    `oc get featurestores.feast.dev ${safeStoreName} -n ${safeNamespace} 2>&1 | grep -q 'NotFound'`,
+    `FeatureStore/${safeStoreName} to be deleted`,
     { maxAttempts, pollIntervalMs },
   );
 };
@@ -582,22 +590,26 @@ export const waitForFeatureStoreDeleted = (
 /**
  * Deletes a FeatureStore CR and waits for Kubernetes to finish removing it.
  */
-export const deleteFeatureStoreCR = (namespace: string, storeName: string): Cypress.Chainable =>
-  cy
+export const deleteFeatureStoreCR = (namespace: string, storeName: string): Cypress.Chainable => {
+  const safeNamespace = assertSafeK8sName(namespace, 'namespace');
+  const safeStoreName = assertSafeK8sName(storeName, 'FeatureStore name');
+
+  return cy
     .exec(
-      `oc delete featurestores.feast.dev ${storeName} -n ${namespace} --ignore-not-found=true`,
+      `oc delete featurestores.feast.dev ${safeStoreName} -n ${safeNamespace} --ignore-not-found=true`,
       { failOnNonZeroExit: false, timeout: 30000 },
     )
     .then((result) => {
       if (result.exitCode !== 0) {
         throw new Error(
-          `Failed to delete FeatureStore/${storeName} in ${namespace}: ${
+          `Failed to delete FeatureStore/${safeStoreName} in ${safeNamespace}: ${
             result.stderr || result.stdout
           }`,
         );
       }
-      return waitForFeatureStoreDeleted(namespace, storeName);
+      return waitForFeatureStoreDeleted(safeNamespace, safeStoreName);
     });
+};
 
 /**
  * Creates a route for the Feature Store service and returns the URL.

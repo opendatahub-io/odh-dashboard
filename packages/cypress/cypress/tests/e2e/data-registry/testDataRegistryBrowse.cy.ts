@@ -135,7 +135,7 @@ describe('Data Registry browse flow', () => {
         return createFeatureStoreCR(dataRegistryNamespace, 'data-registry', {
           dataRegistryEnabled: true,
         }).then((created) => {
-          featureStoreCreated = created === true;
+          featureStoreCreated ||= created === true;
           if (!featureStoreCreated) {
             cy.log(
               `Preserving existing FeatureStore/data-registry in ${dataRegistryNamespace}; ` +

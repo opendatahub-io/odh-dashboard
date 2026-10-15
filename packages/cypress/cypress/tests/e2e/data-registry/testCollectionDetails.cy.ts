@@ -9,16 +9,20 @@ import {
 import { createCleanProject } from '../../../utils/projectChecker';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
+  deleteDataRegistryCollection,
   deleteDataRegistryBrowseAsset,
   seedDataRegistryBrowseAsset,
+  verifyDataRegistryCollectionExists,
 } from '../../../utils/api/dataRegistry';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 
 const testProjectName = `data-registry-collection-e2e-${generateTestUUID()}`;
+const secondCollectionName = `e2e-secondary-${generateTestUUID()}`;
 
 describe('Data Registry - Collection Details', () => {
   let testData: Record<string, string>;
   let projectCreated = false;
+  let secondCollectionCreated = false;
   let browseAssetCreated = false;
   let browseAssetSeeded = false;
 
@@ -40,14 +44,39 @@ describe('Data Registry - Collection Details', () => {
         return addUserToProject(testProjectName, LDAP_ADMIN_USER.USERNAME, 'admin').then(() =>
           waitForUserProjectAccess(testProjectName, LDAP_ADMIN_USER.USERNAME),
         );
+      })
+      .then(() => {
+        cy.step(`Create Data Registry collection/${secondCollectionName}`);
+        dataRegistryPage.navigate(testData.project, LDAP_ADMIN_USER);
+        dataRegistryPage.selectProject(testData.project);
+        dataRegistryPage.openManageCollections();
+        dataRegistryPage.findCreateCollectionButton().click();
+        dataRegistryPage.findCreateCollectionModal().should('be.visible');
+        dataRegistryPage.findCollectionNameInput().type(secondCollectionName);
+        dataRegistryPage
+          .findCollectionDescriptionInput()
+          .type('Additional collection for collection details E2E');
+        dataRegistryPage.findCreateCollectionSubmit().should('not.be.disabled').click();
+        return dataRegistryPage
+          .findCollectionLink(secondCollectionName)
+          .should('be.visible')
+          .then(() => {
+            secondCollectionCreated = true;
+            return verifyDataRegistryCollectionExists(testData.project, secondCollectionName);
+          });
       });
   });
 
   after(() => {
-    if (!browseAssetCreated && !projectCreated) {
+    if (!browseAssetCreated && !secondCollectionCreated && !projectCreated) {
       return;
     }
     return ensureAdminOcSession()
+      .then(() =>
+        secondCollectionCreated
+          ? deleteDataRegistryCollection(testData.project, secondCollectionName)
+          : undefined,
+      )
       .then(() =>
         browseAssetCreated
           ? deleteDataRegistryBrowseAsset(testData.project, testData.collection, testData.asset)
@@ -69,14 +98,19 @@ describe('Data Registry - Collection Details', () => {
     dataRegistryPage.navigate(testData.project, LDAP_ADMIN_USER);
     dataRegistryPage.selectProject(testData.project);
     if (browseAssetSeeded) {
-      return;
+      return dataRegistryPage.findAssetLink(testData.asset).should('be.visible');
     }
-    return seedDataRegistryBrowseAsset(testData.project, testData.collection, testData.asset).then(
-      (created) => {
+    return seedDataRegistryBrowseAsset(testData.project, testData.collection, testData.asset)
+      .then((created) => {
         browseAssetCreated = created;
         browseAssetSeeded = true;
-      },
-    );
+      })
+      .then(() => {
+        cy.step(`Reload ${testData.project} and wait for ${testData.asset} to appear`);
+        dataRegistryPage.navigate(testData.project, LDAP_ADMIN_USER);
+        dataRegistryPage.selectProject(testData.project);
+        return dataRegistryPage.findAssetLink(testData.asset).should('be.visible');
+      });
   });
 
   it('should display collection detail page', () => {
@@ -172,6 +206,8 @@ describe('Data Registry - Collection Details', () => {
 
     // Verify all collections are listed, not just current one
     dataRegistryPage.findCollectionRows().should('have.length.greaterThan', 1);
+    dataRegistryPage.findCollectionLink(testData.collection).should('be.visible');
+    dataRegistryPage.findCollectionLink(secondCollectionName).should('be.visible');
   });
 
   it('should navigate to collection detail from manage collections modal', () => {
