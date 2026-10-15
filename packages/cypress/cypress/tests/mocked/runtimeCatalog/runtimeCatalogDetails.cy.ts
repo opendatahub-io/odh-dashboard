@@ -93,7 +93,7 @@ spec:
 const setupRuntimeCatalog = (modelServingEnabled = true): void => {
   cy.interceptOdh(
     'GET /api/config',
-    mockDashboardConfig({ disableModelServing: !modelServingEnabled }),
+    mockDashboardConfig({ disableModelServing: !modelServingEnabled, vLLMDeploymentOnMaaS: true }),
   );
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -182,6 +182,18 @@ describe('Runtime library details', () => {
       mockServingRuntimeTemplateK8sResource({ name: 'installed-vllm-template' }),
     ).as('createServingRuntimeTemplate');
 
+    cy.intercept(
+      { method: 'GET', pathname: `${catalogApiPath}/${runtimeId}/versions` },
+      {
+        data: {
+          ...runtimeVersions,
+          items: runtimeVersions.items.map((version) => ({
+            ...version,
+            llmInferenceServiceConfig: undefined,
+          })),
+        },
+      },
+    );
     runtimeCatalogDetailsPage.visit(runtimeId);
     runtimeCatalogDetailsPage.findLink('Install').click();
 
@@ -197,7 +209,15 @@ describe('Runtime library details', () => {
       .findRuntimeDetailsBreadcrumb('vLLM')
       .should('have.attr', 'href', `${settingsUrl}/serving-runtime-catalog/${runtimeId}`);
 
-    runtimeImageInstallPage.findServingRuntimeRadio().should('be.visible').click();
+    runtimeImageInstallPage.findServingRuntimeRadio().should('be.visible').and('be.checked');
+    runtimeImageInstallPage.findAcceleratorRadio().should('be.disabled').and('not.be.checked');
+    runtimeImageInstallPage
+      .findSingleTargetAlert()
+      .should(
+        'contain.text',
+        'This runtime image only supports the serving runtime template install target.',
+      );
+    cy.testA11y();
     runtimeImageInstallPage.findNext().click();
     runtimeImageInstallPage.findServingRuntimeEditor().waitForReady();
     runtimeImageInstallPage
