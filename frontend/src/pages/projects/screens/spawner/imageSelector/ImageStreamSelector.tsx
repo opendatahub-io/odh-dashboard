@@ -28,6 +28,7 @@ import {
   isCompatibleWithIdentifier,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '#~/k8sTypes';
+import { ImageStreamAnnotation } from '#~/types';
 import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const.ts';
 import { compareImageStreamTier, getImageStreamTier } from './imageTierUtils';
@@ -41,6 +42,9 @@ type ImageStreamSelectorProps = {
   onImageStreamSelect: (selection: ImageStreamKind) => void;
   compatibleIdentifiers?: string[];
 };
+
+const isImageStreamDeprecated = (imageStream: ImageStreamKind): boolean =>
+  imageStream.metadata.annotations?.[ImageStreamAnnotation.DEPRECATED] === 'true';
 
 const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   currentProjectStreams,
@@ -91,6 +95,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           <ImageStreamDropdownLabel
             displayName={getImageStreamDisplayName(imageStream)}
             tier={tier}
+            isDeprecated={isImageStreamDeprecated(imageStream)}
             compatible={
               !!compatibleIdentifiers?.some((identifier) =>
                 isCompatibleWithIdentifier(identifier, imageStream),
@@ -113,6 +118,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
     dropdownLabel: (
       <ImageStreamDropdownLabel
         tier={getImageStreamTier(imageStream)}
+        isDeprecated={isImageStreamDeprecated(imageStream)}
         compatible={
           !!compatibleIdentifiers?.some((identifier) =>
             isCompatibleWithIdentifier(identifier, imageStream),
@@ -219,6 +225,15 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           ) : null}
         </>
       )}
+      {selectedImageStream && isImageStreamDeprecated(selectedImageStream) ? (
+        <FormHelperText data-testid="deprecated-image-helper-text">
+          <HelperText isLiveRegion>
+            <HelperTextItem variant="error">
+              This image is deprecated and will not receive new version updates.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      ) : null}
     </FormGroup>
   );
 };
