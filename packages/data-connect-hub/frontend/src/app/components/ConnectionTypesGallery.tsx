@@ -272,7 +272,7 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
       icon={() => <img src={emptyStateImage} alt="" width={320} height={320} />}
       titleText="No matching data connection types"
     >
-      <EmptyStateBody>No data connection types match your search or filter</EmptyStateBody>
+      <EmptyStateBody>No data connection types available</EmptyStateBody>
     </EmptyState>
   );
 
