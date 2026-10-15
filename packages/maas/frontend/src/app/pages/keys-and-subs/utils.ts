@@ -221,9 +221,17 @@ export const buildApiKeyUsageExample = (
           : 'chat/completions';
     requestURL.pathname = `${apiVersionPath}/${endpointSuffix}`;
 
-    const shellSafeURL = requestURL.toString().replaceAll("'", "'\"'\"'");
-    const shellSafeKey = apiKey.replaceAll("'", "'\"'\"'");
-    const shellSafeSubscription = subscriptionId.replaceAll("'", "'\"'\"'");
+    const escapeDoubleQuotedShell = (value: string): string =>
+      value
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"')
+        .replaceAll('$', '\\$')
+        .replaceAll('`', '\\`');
+
+    const shellSafeKey = escapeDoubleQuotedShell(apiKey);
+    const shellSafeSubscription = escapeDoubleQuotedShell(subscriptionId);
+    const shellSafeModelId = escapeDoubleQuotedShell(modelID);
+    const requestURLString = requestURL.toString();
     const authAndSubscriptionHeaders = [
       '  -H "Authorization: Bearer $API_KEY" \\',
       `  -H "X-MAAS-SUBSCRIPTION: ${shellSafeSubscription}" \\`,
@@ -231,12 +239,12 @@ export const buildApiKeyUsageExample = (
 
     if (kind === 'transcription') {
       return [
-        `export API_KEY='${shellSafeKey}'`,
+        `export API_KEY="${shellSafeKey}"`,
         '',
-        `curl -X POST '${shellSafeURL}' \\`,
+        `curl -X POST ${requestURLString} \\`,
         ...authAndSubscriptionHeaders,
         '  -F "file=@<path-to-audio-file>" \\',
-        `  -F "model=${modelID}"`,
+        `  -F "model=${shellSafeModelId}"`,
       ].join('\n');
     }
 
@@ -247,8 +255,8 @@ export const buildApiKeyUsageExample = (
     const shellSafeBody = JSON.stringify(requestBody).replaceAll("'", "'\"'\"'");
 
     return [
-      `export API_KEY='${shellSafeKey}'`,
-      `curl -X POST '${shellSafeURL}' \\`,
+      `export API_KEY="${shellSafeKey}"`,
+      `curl -X POST ${requestURLString} \\`,
       '  -H "Content-Type: application/json" \\',
       ...authAndSubscriptionHeaders,
       `  -d '${shellSafeBody}'`,

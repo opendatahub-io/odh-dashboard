@@ -47,7 +47,6 @@ import { z } from 'zod';
 import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   fireFormTrackingEvent,
@@ -596,6 +595,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       id="api-key-base-url"
                       label="Base URL"
                       value={gatewayUrl}
+                      helperText="Universal MaaS gateway base URL (shared across models)."
                     />
                   )}
                   <CopyableDisabledField
@@ -603,17 +603,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                     label="Subscription ID"
                     value={selectedSubscription?.subscription_id_header ?? ''}
                   />
-                  <FormGroup
-                    label="Model"
-                    fieldId="api-key-available-models"
-                    labelHelp={
-                      <FieldGroupHelpLabelIcon
-                        buttonTestId="api-key-available-models-help-icon"
-                        popoverBodyTestId="api-key-available-models-help-popover"
-                        content="Select a model to view its ID and documentation."
-                      />
-                    }
-                  >
+                  <FormGroup label="Available models" fieldId="api-key-available-models">
                     <Select
                       id="api-key-available-models"
                       isOpen={isModelSelectOpen}
@@ -650,6 +640,14 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                         ))}
                       </SelectList>
                     </Select>
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem>
+                          These models are available with your subscription. Select a model to
+                          update the model ID and usage.
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
                   </FormGroup>
                   {availableModelOptions.length > 0 && (
                     <CopyableDisabledField

@@ -506,7 +506,7 @@ class CopyApiKeyModal extends Modal {
   }
 
   acknowledgeKeyCopiedCheckbox(): void {
-    this.findCopiedAcknowledgement().find('input').check({ force: true });
+    this.findCopiedAcknowledgement().check({ force: true });
   }
 
   findAccessDetails(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -522,6 +522,7 @@ class CopyApiKeyModal extends Modal {
           cy.wrap($btn).click();
         }
       });
+    this.findAccessDetails().find('button').first().should('have.attr', 'aria-expanded', 'true');
   }
 
   findUsageExample(): Cypress.Chainable<JQuery<HTMLElement>> {

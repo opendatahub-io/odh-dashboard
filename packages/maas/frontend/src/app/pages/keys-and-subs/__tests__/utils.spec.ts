@@ -228,10 +228,8 @@ describe('buildApiKeyUsageExample', () => {
       'standard-tier',
       'sk-test-key',
     );
-    expect(example).toContain("export API_KEY='sk-test-key'");
-    expect(example).toContain(
-      "curl -X POST 'https://api.example.com/maas-api/v1/chat/completions'",
-    );
+    expect(example).toContain('export API_KEY="sk-test-key"');
+    expect(example).toContain('curl -X POST https://api.example.com/maas-api/v1/chat/completions');
     expect(example).toContain('-H "Authorization: Bearer $API_KEY"');
     expect(example).toContain('-H "X-MAAS-SUBSCRIPTION: standard-tier"');
     expect(example).toContain('"model":"granite-3b-instruct"');
@@ -274,7 +272,7 @@ describe('buildApiKeyUsageExample', () => {
       'standard-tier',
       'sk-test-key',
     );
-    expect(example).toContain("curl -X POST 'https://api.example.com/v1/chat/completions'");
+    expect(example).toContain('curl -X POST https://api.example.com/v1/chat/completions');
     expect(example).not.toContain('/v1/v1/');
   });
 
