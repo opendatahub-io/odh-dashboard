@@ -5,11 +5,13 @@ type EvaluationStatusMessage = {
 };
 
 const SAFE_MESSAGE_CODES = new Set([
+  'evaluation_job_created',
+  'evaluation_job_retrieved',
+  'evaluation_job_cancelled',
+  'evaluation_job_failed',
   'evaluation_job_updated',
-  'quota_exceeded',
-  'oom_killed',
-  'timeout',
-  'admission_denied',
+  'gpu_unavailable',
+  'evaluation_error',
 ]);
 
 export const evaluationErrorCategory = (
