@@ -44,6 +44,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
   let gpuQuota: number;
   let rayImage: string;
   let rayVersion: string;
+  let architecture: string;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -79,6 +80,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
 
           cy.log(`Test configuration loaded for project: ${projectName}`);
           return getClusterArchitecture().then((arch) => {
+            architecture = arch;
             rayImage = arch === 'arm64' ? testData.rayImageArm64 : testData.rayImage;
           });
         })
@@ -100,6 +102,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
             workerGroupName,
             rayImage,
             rayVersion,
+            architecture,
           });
         });
     });
