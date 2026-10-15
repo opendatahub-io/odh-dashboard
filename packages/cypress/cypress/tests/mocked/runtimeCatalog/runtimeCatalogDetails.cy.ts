@@ -1,3 +1,4 @@
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
@@ -100,13 +101,16 @@ const setupRuntimeCatalog = (modelServingEnabled = true): void => {
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.MODEL_REGISTRY]: {
-          managementState: 'Managed',
-          registriesNamespace: 'odh-model-registries',
-        },
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
       },
     }),
   );
+
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: 'odh-model-registries' }),
+  );
+
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptOdh(
     'GET /model-registry/api/:apiVersion/user',
