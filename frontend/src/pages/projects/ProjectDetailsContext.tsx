@@ -90,7 +90,10 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
-  useSyncPreferredProject(project);
+  const unifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
+  useSyncPreferredProject(project, true);
   const notebooks = useProjectNotebookStates(namespace, { refreshRate: POLL_INTERVAL });
   const { kueueStatusByNotebookName: rawKueueStatus, isLoading: isKueueLoading } =
     useKueueStatusForNotebooks(notebooks.data, project ?? undefined);
@@ -232,7 +235,10 @@ const ProjectDetailsContextProvider: React.FC = () => {
         <ProjectHardwareProfilesContext.Provider value={projectHardwareProfilesValue}>
           <ProjectDetailsContext.Provider value={contextValue}>
             {pipelinesEnabled ? (
-              <PipelineContextProvider namespace={project.metadata.name}>
+              <PipelineContextProvider
+                namespace={project.metadata.name}
+                syncPreferredProject={!unifiedProjectSelectorEnabled}
+              >
                 <Outlet />
               </PipelineContextProvider>
             ) : (

@@ -18,14 +18,33 @@ const createProjectResource: AccessReviewResourceAttributes = {
 
 const MastheadProjectSelector: React.FC = () => {
   const { projects } = React.useContext(ProjectsContext);
-  const { selectProject } = useWorkingProject();
+  const { projects: workingProjects, selectProject } = useWorkingProject();
   const notification = useNotification();
   const [allowCreate, permissionsLoaded] = useAccessReview(createProjectResource);
   const [creation, setCreation] = React.useState<'empty' | 'create' | null>(null);
+  const [pendingProjectName, setPendingProjectName] = React.useState<string | null>(null);
   const projectByName = React.useMemo(
     () => new Map(projects.map((project) => [project.metadata.name, project])),
     [projects],
   );
+
+  React.useEffect(() => {
+    if (!pendingProjectName) {
+      return;
+    }
+    const createdProject = workingProjects.find(({ name }) => name === pendingProjectName);
+    if (createdProject) {
+      selectProject(createdProject);
+      notification.info(
+        'Working project updated',
+        <>
+          You&apos;re now working in{' '}
+          <strong>{createdProject.displayName || createdProject.name}</strong>.
+        </>,
+      );
+      setPendingProjectName(null);
+    }
+  }, [pendingProjectName, workingProjects, selectProject, notification]);
 
   return (
     <>
@@ -65,7 +84,7 @@ const MastheadProjectSelector: React.FC = () => {
           }
           onClose={(name) => {
             if (name) {
-              selectProject({ name });
+              setPendingProjectName(name);
             }
             setCreation(null);
           }}

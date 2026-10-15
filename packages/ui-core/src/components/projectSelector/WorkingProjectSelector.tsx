@@ -73,7 +73,7 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
         isLoading={status === 'loading'}
         icon={
           status === 'empty-list' ? (
-            <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--warning--default)" />
+            <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" />
           ) : (
             <OutlinedFolderIcon />
           )
