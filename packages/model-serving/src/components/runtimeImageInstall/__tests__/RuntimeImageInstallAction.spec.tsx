@@ -21,6 +21,7 @@ const createTarget = (id: RuntimeImageInstallTargetId): RuntimeImageInstallTarge
   properties: {
     id,
     label: id,
+    installTargetName: id,
     description: id,
     selectedState: { listName: id, description: id },
     configureStepLabel: id,
