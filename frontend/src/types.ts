@@ -357,6 +357,7 @@ export type ImageTagInfo = {
 export type ImageInfo = {
   name: string;
   tags: ImageTagInfo[];
+  deprecated: boolean;
   description?: string;
   url?: string;
   display_name: string;

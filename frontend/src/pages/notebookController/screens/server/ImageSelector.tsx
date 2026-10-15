@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { Flex, FlexItem, Radio } from '@patternfly/react-core';
+import { Flex, FlexItem, Radio, Stack, StackItem } from '@patternfly/react-core';
 import ImageTagPopover from '#~/pages/notebookController/screens/server/ImageTagPopover';
 import ImageVersions from '#~/pages/notebookController/screens/server/ImageVersions';
+import DeprecatedImageHelperText from '#~/concepts/notebooks/DeprecatedImageHelperText';
 import { ImageInfo, ImageTagInfo } from '#~/types';
 import {
   getDescriptionForTag,
@@ -57,7 +58,18 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
             <FlexItem>{getImagePopover(image)}</FlexItem>
           </Flex>
         }
-        description={getDescriptionForTag(currentTag)}
+        description={
+          image.deprecated ? (
+            <Stack>
+              <StackItem>{getDescriptionForTag(currentTag)}</StackItem>
+              <StackItem>
+                <DeprecatedImageHelperText testId={`deprecated-image-helper-text-${image.name}`} />
+              </StackItem>
+            </Stack>
+          ) : (
+            getDescriptionForTag(currentTag)
+          )
+        }
         isChecked={image.name === selectedImage?.name}
         onChange={(e, checked: boolean) => {
           if (currentTag) {

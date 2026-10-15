@@ -30,6 +30,7 @@ import {
 import { ImageStreamKind } from '#~/k8sTypes';
 import { ImageStreamAnnotation } from '#~/types';
 import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';
+import DeprecatedImageHelperText from '#~/concepts/notebooks/DeprecatedImageHelperText';
 import { ScopedType } from '#~/pages/modelServing/screens/const.ts';
 import { compareImageStreamTier, getImageStreamTier } from './imageTierUtils';
 
@@ -227,11 +228,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       )}
       {selectedImageStream && isImageStreamDeprecated(selectedImageStream) ? (
         <FormHelperText data-testid="deprecated-image-helper-text">
-          <HelperText isLiveRegion>
-            <HelperTextItem variant="error">
-              This image is deprecated and will not receive new version updates.
-            </HelperTextItem>
-          </HelperText>
+          <DeprecatedImageHelperText isLiveRegion />
         </FormHelperText>
       ) : null}
     </FormGroup>

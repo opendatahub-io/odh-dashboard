@@ -154,6 +154,7 @@ export const mapImageStreamToImageInfo = (image: ImageStreamKind): ImageInfo => 
 
   return {
     name: metadata.name,
+    deprecated: annotations[ImageStreamAnnotation.DEPRECATED] === 'true',
     description: annotations[ImageStreamAnnotation.DESC] || '',
     url: annotations[ImageStreamAnnotation.URL] || '',
     // eslint-disable-next-line camelcase

@@ -306,6 +306,7 @@ describe('imageStreamUtils', () => {
 
       expect(info).toEqual({
         name: 'test-imagestream',
+        deprecated: false,
         // eslint-disable-next-line camelcase
         display_name: 'Test Image',
         description:
@@ -330,6 +331,26 @@ describe('imageStreamUtils', () => {
           },
         ],
       });
+    });
+
+    it('maps the deprecated annotation only when its value is true', () => {
+      const deprecatedImage = mockImageStreamK8sResource({
+        opts: {
+          metadata: {
+            annotations: { [ImageStreamAnnotation.DEPRECATED]: 'true' },
+          },
+        },
+      });
+      const activeImage = mockImageStreamK8sResource({
+        opts: {
+          metadata: {
+            annotations: { [ImageStreamAnnotation.DEPRECATED]: 'false' },
+          },
+        },
+      });
+
+      expect(mapImageStreamToImageInfo(deprecatedImage).deprecated).toBe(true);
+      expect(mapImageStreamToImageInfo(activeImage).deprecated).toBe(false);
     });
 
     it('order falls back to 100 if order annotation is missing', () => {
