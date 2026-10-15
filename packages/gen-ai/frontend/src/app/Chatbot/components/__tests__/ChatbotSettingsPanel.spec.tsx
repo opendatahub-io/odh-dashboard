@@ -262,7 +262,7 @@ describe('ChatbotSettingsPanel', () => {
     expect(screen.queryByTestId('settings-reverted-alert')).not.toBeInTheDocument();
   });
 
-  it('should keep the saved-agent revert flow available', async () => {
+  it('should show saved-agent Revert only while settings have changed', async () => {
     mockAgentConfigManagementEnabled = true;
     useChatbotConfigStore.getState().applyAgentProfile({}, 'agent-id', 'Agent', '');
     const onResetToLastSaved = jest.fn();
@@ -271,7 +271,7 @@ describe('ChatbotSettingsPanel', () => {
       <ChatbotSettingsPanel {...defaultProps} onResetToLastSaved={onResetToLastSaved} />,
     );
 
-    expect(screen.getByTestId('settings-panel-reset-button')).toBeDisabled();
+    expect(screen.queryByTestId('settings-panel-reset-button')).not.toBeInTheDocument();
     mockProfileDirty = true;
     rerender(<ChatbotSettingsPanel {...defaultProps} onResetToLastSaved={onResetToLastSaved} />);
 
@@ -282,6 +282,9 @@ describe('ChatbotSettingsPanel', () => {
     ).toBeInTheDocument();
     await user.click(screen.getByTestId('reset-agent-confirm-button'));
     expect(onResetToLastSaved).toHaveBeenCalledTimes(1);
+    mockProfileDirty = false;
+    rerender(<ChatbotSettingsPanel {...defaultProps} onResetToLastSaved={onResetToLastSaved} />);
+    expect(screen.queryByTestId('settings-panel-reset-button')).not.toBeInTheDocument();
     expect(screen.queryByTestId('settings-reverted-alert')).not.toBeInTheDocument();
   });
 

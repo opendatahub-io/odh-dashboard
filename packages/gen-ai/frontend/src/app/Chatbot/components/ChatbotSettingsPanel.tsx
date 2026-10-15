@@ -530,12 +530,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           >
             Save as new agent
           </Button>
-          {((profileApplied && onResetToLastSaved) ||
+          {((profileApplied && isProfileDirty && onResetToLastSaved) ||
             (!profileApplied && isDefaultConfigDirty && onRevertToDefaults)) && (
             <Button
               variant="link"
               isDanger
-              isDisabled={profileApplied && !isProfileDirty}
               onClick={() => setShowResetModal(true)}
               data-testid="settings-panel-reset-button"
             >
