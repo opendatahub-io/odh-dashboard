@@ -30,6 +30,7 @@ import {
 } from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
 import {
+  CURATED_COLLECTION_PREREQUISITES,
   CURATED_SUITE_PAGE_CONFIG,
   isCuratedEvaluationTarget,
   type CuratedEvaluationTarget,
@@ -84,6 +85,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     { initialPromisePurity: true },
   );
   const sourceCollection = isCreateMode ? undefined : fetchedCollection;
+  const prerequisite = collectionId ? CURATED_COLLECTION_PREREQUISITES[collectionId] : undefined;
 
   const navigationState = location.state;
   const isEvaluateOrigin =
@@ -415,6 +417,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
               <CopySuiteSettingsStep
                 onNext={() => setCurrentStep('selectBenchmarks')}
                 onCancel={form.handleCancel}
+                prerequisite={prerequisite}
                 sourceCollectionName={mode === 'copy' ? sourceCollection?.name : undefined}
               />
             ) : currentStep === 'selectBenchmarks' ? (

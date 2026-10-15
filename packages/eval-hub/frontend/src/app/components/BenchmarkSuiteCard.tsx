@@ -33,6 +33,7 @@ import {
   RhUiPlugIcon,
   RhUiSecuredIcon,
   RhUiSecurityIcon,
+  InfoCircleIcon,
 } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
@@ -89,6 +90,7 @@ type BenchmarkSuiteCardButton = {
 type BenchmarkSuiteCardProps = {
   collection: Collection;
   benchmarkNameMap?: BenchmarkNameMap;
+  prerequisite?: string;
   primaryAction: BenchmarkSuiteCardButton;
   showRunCount?: boolean;
   dropdownAction?: BenchmarkSuiteCardButton;
@@ -100,6 +102,7 @@ type BenchmarkSuiteCardProps = {
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   collection,
   benchmarkNameMap,
+  prerequisite,
   primaryAction,
   showRunCount = false,
   dropdownAction,
@@ -436,6 +439,20 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         >
           {collection.description || <em>No description provided</em>}
         </Content>
+        {prerequisite ? (
+          <div
+            className="evalhub-benchmark-suite-card__prerequisite"
+            data-testid={`benchmark-suite-card-prerequisite-${collection.resource.id}`}
+          >
+            <div
+              className="evalhub-benchmark-suite-card__prerequisite-icon-container"
+              aria-hidden="true"
+            >
+              <InfoCircleIcon className="evalhub-benchmark-suite-card__prerequisite-icon" />
+            </div>
+            <div className="evalhub-benchmark-suite-card__prerequisite-text">{prerequisite}</div>
+          </div>
+        ) : null}
       </CardBody>
       <CardFooter className="evalhub-benchmark-suite-card__footer">
         {metricNames.length > 0 && (

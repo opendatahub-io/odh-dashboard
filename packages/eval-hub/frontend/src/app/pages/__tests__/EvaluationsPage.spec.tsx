@@ -254,6 +254,56 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should show prerequisites and customize-only actions for mapped Gallery suites', () => {
+    const ids = ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1', 'unmapped-suite'];
+    const collections = mockCuratedBenchmarkSuiteCollections()
+      .slice(0, ids.length)
+      .map((collection, index) => ({
+        ...collection,
+        resource: { ...collection.resource, id: ids[index] },
+      }));
+    mockUseCollectionsQuery.mockImplementation((_namespace: string, scope?: string) => ({
+      data: {
+        items: scope === 'system' ? collections : mockBenchmarkSuiteCollections(),
+      },
+      isLoading: false,
+      error: null,
+    }));
+
+    renderPage('test-project');
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-prerequisite-trustworthiness-v1'),
+    ).toHaveTextContent('Requires a judge model.');
+    expect(screen.getByTestId('benchmark-suite-card-prerequisite-tool-use-v1')).toHaveTextContent(
+      'Requires a model that supports multiple tool/function calls.',
+    );
+    expect(screen.getByTestId('benchmark-suite-card-prerequisite-multimodal-v1')).toHaveTextContent(
+      'Requires a vision-language model that supports image inputs.',
+    );
+
+    ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
+      const action = screen.getByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
+      expect(action).toHaveTextContent('Customize');
+      expect(action).toHaveClass('pf-m-secondary');
+      expect(
+        screen.queryByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-primary-action-unmapped-suite'),
+    ).toHaveTextContent('Run benchmark suite');
+    expect(
+      screen.getByTestId('benchmark-suite-card-dropdown-toggle-unmapped-suite'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-trustworthiness-v1'));
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/trustworthiness-v1/copy',
+    );
+  });
+
   it('should open the suite details drawer when selecting a Gallery suite name', () => {
     renderPage('test-project');
 

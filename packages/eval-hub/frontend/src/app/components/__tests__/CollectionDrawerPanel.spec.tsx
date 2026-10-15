@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { Drawer, DrawerContent } from '@patternfly/react-core';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
@@ -10,6 +10,7 @@ import { Collection } from '~/app/types';
 jest.mock('~/app/components/benchmarkUtils', () => ({
   getCategoryColor: () => 'blue',
   capitalizeFirst: (s: string) => s.charAt(0).toUpperCase() + s.slice(1),
+  formatCollectionMetadataValue: (s: string) => s,
   getMetricDisplayName: (m: string) => m,
   toSafeExternalUrl: (url?: string) => url,
   VISIBLE_METRICS_COUNT: 3,
@@ -103,6 +104,130 @@ describe('CollectionDrawerPanel', () => {
 
     expect(onRunCollection).toHaveBeenCalledWith(collection, true);
     expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
+  });
+
+  it('should show prerequisites, metadata sections, and customize only for mapped collections', () => {
+    const collection = makeCollection({
+      resource: { id: 'tool-use-v1' },
+      modalities: ['vision', 'text'],
+      tasks: ['z-task', 'a-task'],
+      tags: ['zeta', 'alpha'],
+      benchmarks: [
+        { id: 'bench-z', provider_id: 'prov' },
+        { id: 'bench-a', provider_id: 'prov' },
+      ],
+    });
+    const detailsMap = new Map<string, BenchmarkWithProvider>([
+      [
+        'prov:bench-z',
+        { ...makeBenchmark('bench-z', 'prov', ['z_metric']), name: 'Zulu benchmark' },
+      ],
+      [
+        'prov:bench-a',
+        { ...makeBenchmark('bench-a', 'prov', ['accuracy']), name: 'Alpha benchmark' },
+      ],
+    ]);
+    const onRunCollection = jest.fn();
+    const onCustomizeCollection = jest.fn();
+
+    render(
+      <Drawer isExpanded>
+        <DrawerContent
+          panelContent={
+            <CollectionDrawerPanel
+              collection={collection}
+              benchmarkDetailsMap={detailsMap}
+              onClose={jest.fn()}
+              onRunCollection={onRunCollection}
+              onCustomizeCollection={onCustomizeCollection}
+              isSystemCollection
+              prerequisites={{
+                'tool-use-v1': 'Requires a model that supports multiple tool/function calls.',
+              }}
+            />
+          }
+        >
+          <div />
+        </DrawerContent>
+      </Drawer>,
+    );
+
+    expect(screen.getByTestId('collection-drawer-prerequisite')).toHaveTextContent(
+      'Requires a model that supports multiple tool/function calls.',
+    );
+    expect(screen.getByTestId('collection-drawer-prerequisite')).toHaveClass('pf-m-info');
+    expect(screen.getByTestId('collection-drawer-prerequisite')).not.toHaveClass('pf-m-warning');
+    expect(screen.queryByTestId('use-benchmark-suite-button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('customize-benchmark-suite-button')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-drawer-metrics-section')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-drawer-modalities-section')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-drawer-tasks-section')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-drawer-tags-section')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-drawer-benchmarks-section')).toBeInTheDocument();
+    const getLabelTexts = (testId: string) =>
+      within(screen.getByTestId(testId))
+        .getAllByRole('listitem')
+        .map((item) => item.textContent);
+
+    expect(getLabelTexts('collection-drawer-metrics-labels')).toEqual(['accuracy', 'z_metric']);
+    expect(getLabelTexts('collection-drawer-modalities-labels')).toEqual(['text', 'vision']);
+    expect(getLabelTexts('collection-drawer-tasks-labels')).toEqual(['a-task', 'z-task']);
+    expect(getLabelTexts('collection-drawer-tags-labels')).toEqual(['alpha', 'zeta']);
+    const benchmarksSection = screen.getByTestId('collection-drawer-benchmarks-section');
+    expect(
+      within(benchmarksSection)
+        .getByText('Alpha benchmark')
+        .compareDocumentPosition(within(benchmarksSection).getByText('Zulu benchmark')),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByTestId('benchmark-metric-filter')).toHaveAttribute('aria-label', 'Metrics');
+    expect(screen.getByTestId('benchmark-metric-filter').querySelector('svg')).toBeInTheDocument();
+    const metricsSection = screen.getByTestId('collection-drawer-metrics-section');
+    expect(within(metricsSection).getByText('Metrics evaluated')).toHaveStyle({
+      color: 'var(--pf-t--global--text--color--regular)',
+      fontSize: 'var(--pf-t--global--font--size--heading--h4)',
+      fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+    });
+
+    fireEvent.click(within(metricsSection).getByRole('button', { name: 'Metrics evaluated' }));
+    expect(
+      within(metricsSection).getByRole('button', { name: 'Metrics evaluated' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Benchmarks' }));
+    expect(screen.getByRole('button', { name: 'Benchmarks' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+
+    fireEvent.click(screen.getByTestId('customize-benchmark-suite-button'));
+    expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
+    expect(onRunCollection).not.toHaveBeenCalled();
+  });
+
+  it('should retain the run action for unmapped collections', () => {
+    const collection = makeCollection({ resource: { id: 'unmapped-suite' } });
+    const onRunCollection = jest.fn();
+
+    render(
+      <Drawer isExpanded>
+        <DrawerContent
+          panelContent={
+            <CollectionDrawerPanel
+              collection={collection}
+              benchmarkDetailsMap={new Map()}
+              onClose={jest.fn()}
+              onRunCollection={onRunCollection}
+            />
+          }
+        >
+          <div />
+        </DrawerContent>
+      </Drawer>,
+    );
+
+    fireEvent.click(screen.getByTestId('use-benchmark-suite-button'));
+    expect(onRunCollection).toHaveBeenCalledWith(collection, false);
+    expect(screen.queryByTestId('customize-benchmark-suite-button')).not.toBeInTheDocument();
   });
 
   it('should reset search and metric filter when collection changes', () => {

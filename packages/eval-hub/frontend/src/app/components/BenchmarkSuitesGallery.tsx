@@ -222,6 +222,7 @@ type BenchmarkSuitesGalleryProps = {
   queryFilters?: CollectionFilterParams;
   // System collections without a curation order are not part of the curated gallery.
   requireCuratedIndex?: boolean;
+  prerequisites?: Record<string, string>;
   primaryActionLabel?: string;
   primaryActionRoute?: (collection: Collection) => string;
   primaryActionState?: unknown;
@@ -255,6 +256,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   scope = 'tenant',
   queryFilters,
   requireCuratedIndex = false,
+  prerequisites,
   primaryActionLabel = 'Run benchmark suite',
   primaryActionRoute,
   primaryActionState,
@@ -761,7 +763,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
         <Toolbar clearAllFilters={clearFilters} data-testid="benchmark-suites-filter-toolbar">
           <ToolbarContent data-testid="benchmark-suites-filter-content">
             <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
-              <ToolbarGroup variant="filter-group" data-testid="benchmark-suites-filter-group">
+              <ToolbarGroup
+                variant="filter-group"
+                rowWrap={{ default: 'wrap' }}
+                data-testid="benchmark-suites-filter-group"
+              >
                 <ToolbarFilter
                   labels={[]}
                   deleteLabel={() => setNameFilter('')}
@@ -1141,37 +1147,46 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 />
               </GalleryItem>
             )}
-            {visibleCollections.map((collection) => (
-              <GalleryItem key={collection.resource.id}>
-                <BenchmarkSuiteCard
-                  collection={collection}
-                  benchmarkNameMap={benchmarkNameMap}
-                  showRunCount={scope === 'tenant'}
-                  primaryAction={{
-                    label: primaryActionLabel,
-                    href: primaryActionRoute?.(collection),
-                    state: primaryActionState,
-                    variant: primaryActionVariant,
-                    onClick: () => onPrimaryAction(collection),
-                  }}
-                  dropdownAction={
-                    dropdownActionLabel
-                      ? {
-                          label: dropdownActionLabel,
-                          href: dropdownActionRoute?.(collection),
-                          state: dropdownActionState,
-                          onClick: () => onDropdownAction?.(collection),
-                        }
-                      : undefined
-                  }
-                  contextualActions={
-                    showContextualActions ? getContextualActions(collection) : undefined
-                  }
-                  onSelect={onSelectCollection}
-                  reservePopularHeader={hasPopularCollections}
-                />
-              </GalleryItem>
-            ))}
+            {visibleCollections.map((collection) => {
+              const prerequisite = prerequisites?.[collection.resource.id];
+              const hasPrerequisite = Boolean(prerequisite);
+
+              return (
+                <GalleryItem key={collection.resource.id}>
+                  <BenchmarkSuiteCard
+                    collection={collection}
+                    benchmarkNameMap={benchmarkNameMap}
+                    prerequisite={prerequisite}
+                    showRunCount={scope === 'tenant'}
+                    primaryAction={{
+                      label: hasPrerequisite ? 'Customize' : primaryActionLabel,
+                      href: hasPrerequisite ? undefined : primaryActionRoute?.(collection),
+                      state: hasPrerequisite ? undefined : primaryActionState,
+                      variant: hasPrerequisite ? 'secondary' : primaryActionVariant,
+                      onClick: () =>
+                        hasPrerequisite
+                          ? onDropdownAction?.(collection)
+                          : onPrimaryAction(collection),
+                    }}
+                    dropdownAction={
+                      !hasPrerequisite && dropdownActionLabel
+                        ? {
+                            label: dropdownActionLabel,
+                            href: dropdownActionRoute?.(collection),
+                            state: dropdownActionState,
+                            onClick: () => onDropdownAction?.(collection),
+                          }
+                        : undefined
+                    }
+                    contextualActions={
+                      showContextualActions ? getContextualActions(collection) : undefined
+                    }
+                    onSelect={onSelectCollection}
+                    reservePopularHeader={hasPopularCollections}
+                  />
+                </GalleryItem>
+              );
+            })}
           </Gallery>
           {isRefreshing && (
             <Bullseye

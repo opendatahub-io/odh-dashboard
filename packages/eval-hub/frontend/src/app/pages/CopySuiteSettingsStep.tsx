@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Form,
   FormHelperText,
@@ -34,6 +35,7 @@ import {
 type CopySuiteSettingsStepProps = {
   onNext: () => void;
   onCancel: () => void;
+  prerequisite?: string;
   sourceCollectionName?: string;
 };
 
@@ -287,6 +289,7 @@ const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = (props) 
 const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
   onNext,
   onCancel,
+  prerequisite,
   sourceCollectionName,
 }) => {
   const { control, watch } = useFormContext<CopySuiteFormValues>();
@@ -303,6 +306,16 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
       data-testid="copy-suite-step-settings"
     >
       <Form id="copy-suite-form" style={{ maxWidth: 840 }} data-testid="copy-suite-form">
+        {prerequisite ? (
+          <Alert
+            variant="warning"
+            isInline
+            title="Prerequisite"
+            data-testid="copy-suite-prerequisite-alert"
+          >
+            {prerequisite}
+          </Alert>
+        ) : null}
         <FormGroup label="Suite name" isRequired fieldId="suite-name">
           <Controller
             name="suiteName"

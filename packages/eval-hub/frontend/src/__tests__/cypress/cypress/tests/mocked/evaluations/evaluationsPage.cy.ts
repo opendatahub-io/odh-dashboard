@@ -102,6 +102,67 @@ describe('Evaluations Page - Tabs', () => {
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/clawbench/copy`);
   });
 
+  it('should show prerequisites and customize-only actions for mapped Gallery suites', () => {
+    const ids = ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1', 'unmapped-suite'];
+    const collections = mockCuratedBenchmarkSuiteCollections()
+      .slice(0, ids.length)
+      .map((collection, index) => ({
+        ...collection,
+        resource: { ...collection.resource, id: ids[index] },
+      }));
+    initIntercepts({ collections, collectionsTotalCount: collections.length });
+
+    evaluationsPage.visitGallery(NAMESPACE);
+
+    evaluationsPage
+      .findBenchmarkSuitePrerequisite('trustworthiness-v1')
+      .should('contain.text', 'Requires a judge model.');
+    evaluationsPage
+      .findBenchmarkSuitePrerequisite('tool-use-v1')
+      .should('contain.text', 'Requires a model that supports multiple tool/function calls.');
+    evaluationsPage
+      .findBenchmarkSuitePrerequisite('multimodal-v1')
+      .should('contain.text', 'Requires a vision-language model that supports image inputs.');
+
+    ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
+      evaluationsPage
+        .findBenchmarkSuitePrimaryAction(collectionId)
+        .should('contain.text', 'Customize')
+        .and('have.class', 'pf-m-secondary');
+      evaluationsPage.findBenchmarkSuiteDropdownToggleInCard(collectionId).should('not.exist');
+    });
+
+    evaluationsPage
+      .findBenchmarkSuitePrimaryAction('unmapped-suite')
+      .should('contain.text', 'Run benchmark suite');
+    evaluationsPage.findBenchmarkSuiteDropdownToggleInCard('unmapped-suite').should('exist');
+
+    evaluationsPage.findBenchmarkSuiteName('trustworthiness-v1').click();
+    evaluationsPage
+      .findCollectionDrawerPrerequisite()
+      .should('contain.text', 'Requires a judge model.');
+    evaluationsPage
+      .findCollectionDrawerPanel()
+      .find('[data-testid="use-benchmark-suite-button"]')
+      .should('not.exist');
+    evaluationsPage.findCollectionDrawerCustomizeButton().should('be.visible');
+    evaluationsPage.findCollectionDrawerSection('modalities').should('be.visible');
+    evaluationsPage.findCollectionDrawerSection('tasks').should('be.visible');
+    evaluationsPage.findCollectionDrawerSection('tags').should('be.visible');
+    evaluationsPage.findCollectionDrawerSection('benchmarks').should('be.visible');
+    evaluationsPage.findCollectionDrawerSectionToggle('benchmarks').click();
+    evaluationsPage
+      .findCollectionDrawerSectionToggle('benchmarks')
+      .should('have.attr', 'aria-expanded', 'false');
+    evaluationsPage.findCollectionDrawerCloseFooter().click();
+
+    evaluationsPage.findBenchmarkSuitePrimaryAction('trustworthiness-v1').click();
+    cy.url().should(
+      'include',
+      `/evaluation/${NAMESPACE}/create/collections/trustworthiness-v1/copy`,
+    );
+  });
+
   it('should hide the Gallery evaluation target filter', () => {
     evaluationsPage.visit(NAMESPACE);
     evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('not.exist');

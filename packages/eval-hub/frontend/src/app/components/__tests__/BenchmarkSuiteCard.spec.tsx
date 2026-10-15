@@ -63,6 +63,36 @@ describe('BenchmarkSuiteCard', () => {
     expect(fallbackDescription.tagName).toBe('EM');
   });
 
+  it('should render a prerequisite below the description with an info icon', () => {
+    const collection = mockCollection({ id: 'prerequisite-suite' });
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        prerequisite="Requires a compatible model."
+        primaryAction={{ label: 'Customize', onClick: jest.fn(), variant: 'secondary' }}
+      />,
+    );
+
+    const description = screen.getByText(collection.description!);
+    const prerequisite = screen.getByTestId('benchmark-suite-card-prerequisite-prerequisite-suite');
+    const bodyChildren = Array.from(
+      screen
+        .getByTestId('benchmark-suite-card-prerequisite-suite')
+        .querySelector('.evalhub-benchmark-suite-card__body')!.children,
+    );
+
+    expect(bodyChildren.indexOf(prerequisite)).toBeGreaterThan(bodyChildren.indexOf(description));
+    expect(prerequisite).toHaveTextContent('Requires a compatible model.');
+    expect(prerequisite.querySelector('strong')).not.toBeInTheDocument();
+    expect(
+      prerequisite.querySelector('.evalhub-benchmark-suite-card__prerequisite-icon-container'),
+    ).toBeInTheDocument();
+    expect(
+      prerequisite.querySelector('.evalhub-benchmark-suite-card__prerequisite-text'),
+    ).toHaveTextContent('Requires a compatible model.');
+  });
+
   it('should collapse metric labels with a more label', () => {
     render(
       <BenchmarkSuiteCard

@@ -271,10 +271,10 @@ const LocationDisplay = () => {
   return <div data-testid="location-display">{pathname + search}</div>;
 };
 
-const renderPage = () =>
+const renderPage = (collectionId = 'source-collection') =>
   render(
     <MemoryRouter
-      initialEntries={['/evaluation/test-namespace/create/collections/source-collection/copy']}
+      initialEntries={[`/evaluation/test-namespace/create/collections/${collectionId}/copy`]}
     >
       <LocationDisplay />
       <Routes>
@@ -590,10 +590,29 @@ describe('CopySuitePage', () => {
     expect(screen.getByText('Customize benchmark suite')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-next')).toBeInTheDocument();
+    expect(screen.queryByTestId('copy-suite-prerequisite-alert')).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-settings-actions')).toHaveClass(
       'evalhub-copy-suite-page__footer',
     );
     expect(screen.queryByTestId('copy-suite-save-and-run')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['trustworthiness-v1', 'Requires a judge model.'],
+    ['tool-use-v1', 'Requires a model that supports multiple tool/function calls.'],
+    ['multimodal-v1', 'Requires a vision-language model that supports image inputs.'],
+  ])('should show the prerequisite warning for %s', (collectionId, prerequisite) => {
+    mockUseFetchState.mockReturnValue([
+      { ...sourceCollection, resource: { ...sourceCollection.resource, id: collectionId } },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderPage(collectionId);
+
+    expect(screen.getByTestId('copy-suite-prerequisite-alert')).toHaveTextContent(prerequisite);
+    expect(screen.getByTestId('copy-suite-next')).not.toBeDisabled();
   });
 
   it('should link to the originating curated suite page when evaluation target metadata is available', () => {
