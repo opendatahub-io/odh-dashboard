@@ -280,6 +280,49 @@ describe('SecretSelector', () => {
     expect(onChange).toHaveBeenCalledWith({ ...refreshedSecret, invalid: false });
   });
 
+  it('should clear a selected value after refresh while preserving it as a disabled option', async () => {
+    const onChange = jest.fn();
+    const preservedSelection: SecretListItem = { ...secrets[0], databaseProviders: ['milvus'] };
+    mockUseSecretsQuery.mockReturnValue({
+      data: [preservedSelection],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+    const { rerender } = render(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus']}
+        preserveSelectedValue
+        preservedSelection={preservedSelection}
+        valueName="valid-secret"
+        onChange={onChange}
+      />,
+    );
+
+    mockUseSecretsQuery.mockReturnValue({
+      data: [],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+    rerender(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus']}
+        preserveSelectedValue
+        preservedSelection={preservedSelection}
+        valueName="valid-secret"
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-option-valid')).toHaveAttribute('aria-disabled', 'true');
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(undefined));
+  });
+
   it('should filter database secrets to allowed single providers', () => {
     const databaseSecrets: SecretListItem[] = [
       {

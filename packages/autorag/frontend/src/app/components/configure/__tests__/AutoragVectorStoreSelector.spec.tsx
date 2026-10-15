@@ -17,6 +17,7 @@ let mockVectorModalOnSubmit:
   ((name: string, provider: VectorStoreProviderType) => Promise<void>) | undefined;
 let mockVectorRefresh: () => Promise<SecretListItem[] | undefined> = async () => [];
 let mockVectorSelection: SecretSelection | undefined;
+let mockVectorOnChange: ((value: SecretSelection | undefined) => void) | undefined;
 
 jest.mock('~/app/utilities/tracking', () => ({
   ...jest.requireActual('~/app/utilities/tracking'),
@@ -51,35 +52,48 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
     value,
     valueName,
     onRefreshReady,
+    provider,
+    allowedProviders,
   }: {
-    onChange: (value: unknown) => void;
+    onChange: (value: SecretSelection | undefined) => void;
     dataTestId: string;
     type: string;
     value?: string;
     valueName?: string;
     onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
+    provider?: string;
+    allowedProviders?: readonly string[];
   }) => {
+    mockVectorOnChange = onChange;
     onRefreshReady?.(mockVectorRefresh);
     return (
-      <button
-        data-testid={dataTestId}
-        data-secret-type={type}
-        data-secret-provider={undefined}
-        data-selected-value={value}
-        data-value-name={valueName}
-        onClick={() =>
-          onChange(
-            mockVectorSelection ?? {
-              uuid: 'vector-db-1',
-              name: 'vector-db-secret',
-              data: {},
-              invalid: false,
-            },
-          )
-        }
-      >
-        Select vector database secret
-      </button>
+      <>
+        <button
+          data-testid={dataTestId}
+          data-secret-type={type}
+          data-secret-provider={provider}
+          data-allowed-providers={allowedProviders?.join(',')}
+          data-selected-value={value}
+          data-value-name={valueName}
+          onClick={() =>
+            onChange(
+              mockVectorSelection ?? {
+                uuid: 'vector-db-1',
+                name: 'vector-db-secret',
+                data: {},
+                invalid: false,
+              },
+            )
+          }
+        >
+          Select vector database secret
+        </button>
+        <button
+          type="button"
+          data-testid={`${dataTestId}-clear-selection`}
+          onClick={() => mockVectorOnChange?.(undefined)}
+        />
+      </>
     );
   },
 }));
@@ -110,6 +124,7 @@ describe('AutoragVectorStoreSelector', () => {
     mockVectorRefresh = async () => [];
     mockVectorModalOnSubmit = undefined;
     mockVectorSelection = undefined;
+    mockVectorOnChange = undefined;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
@@ -126,6 +141,10 @@ describe('AutoragVectorStoreSelector', () => {
     );
     expect(screen.getByTestId('database-secret-selector')).not.toHaveAttribute(
       'data-secret-provider',
+    );
+    expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
+      'data-allowed-providers',
+      'milvus,pgvector,neo4j',
     );
   });
 
@@ -220,6 +239,22 @@ describe('AutoragVectorStoreSelector', () => {
 
     fireEvent.click(screen.getByTestId('database-secret-selector'));
     expect(values?.db_secret_name).toBe('vector-db-secret');
+  });
+
+  it('should clear the form value when the selected connection disappears', () => {
+    let values: typeof schema.defaults | undefined;
+
+    render(
+      <FormWrapper onChange={(nextValues) => (values = nextValues)}>
+        <AutoragVectorStoreSelector />
+      </FormWrapper>,
+    );
+
+    fireEvent.click(screen.getByTestId('database-secret-selector'));
+    expect(values?.db_secret_name).toBe('vector-db-secret');
+
+    fireEvent.click(screen.getByTestId('database-secret-selector-clear-selection'));
+    expect(values?.db_secret_name).toBe('');
   });
 
   it('should display the unavailable initial connection without restoring its form value', () => {
