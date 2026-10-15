@@ -25,6 +25,8 @@ export type RuntimeImageInstallTargetExtension = Extension<
     // If needed in the future, we could replace label/description/selectedState with another ComponentCodeRef
     // for the full radio button and its body, but that involves unnecessary duplication at this time
     label: string;
+    // Target phrase used in the single-supported-target explanation.
+    installTargetName: string;
     description: string;
     selectedState: {
       listName: string;

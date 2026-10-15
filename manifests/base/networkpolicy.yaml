@@ -89,6 +89,27 @@ spec:
           protocol: TCP
         - port: 9243
           protocol: TCP
+    # Cross-namespace to user-project workloads: the Data Science Pipelines application
+    # server (ds-pipeline-dspa, 8443). The dashboard backend proxies /api/service/pipelines/*
+    # to ds-pipeline-dspa.<ns>.svc:8443, where <ns> is the user-selected project namespace,
+    # so it is port-scoped rather than allow-all; documented R5 limitation.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 8443
+          protocol: TCP
+    # Cluster monitoring: the dashboard backend proxies storage/PVC metrics queries to
+    # Thanos querier (thanos-querier.openshift-monitoring.svc) on the tenancy (9092) and
+    # web (9091) ports. Scoped to the openshift-monitoring namespace.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-monitoring
+      ports:
+        - port: 9091
+          protocol: TCP
+        - port: 9092
+          protocol: TCP
     # External / off-cluster HTTP(S). The dashboard reaches user-configurable and
     # hostname-based endpoints that cannot be expressed as NetworkPolicy peers
     # (no DNS-name selection). Documented reduced-posture limitation per contract R5.
