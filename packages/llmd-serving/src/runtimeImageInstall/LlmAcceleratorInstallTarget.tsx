@@ -16,6 +16,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
 import type { RuntimeImageInstallTargetProps } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
+import { fireCreateCompleted } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { parseLlmInferenceServiceConfig } from './parseLlmInferenceServiceConfig';
 import LlmAcceleratorConfigFormBody from '../settings/llmAcceleratorConfigs/LlmAcceleratorConfigFormBody';
 import { fireLlmAcceleratorConfigCreated } from '../tracking/llmdTrackingConstants';
@@ -61,6 +62,10 @@ const LlmAcceleratorInstallTargetBody: React.FC<RuntimeImageInstallTargetProps> 
                   fireLlmAcceleratorConfigCreated({
                     outcome: TrackingOutcome.cancel,
                     mode: 'install',
+                  });
+                  fireCreateCompleted({
+                    outcome: TrackingOutcome.cancel,
+                    configurationType: 'llm-accelerator-configuration',
                   });
                   navigate(cancelReturnRoute);
                 }}

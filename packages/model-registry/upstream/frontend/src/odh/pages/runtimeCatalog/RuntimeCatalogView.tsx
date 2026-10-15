@@ -21,6 +21,11 @@ import {
 } from '~/odh/pages/runtimeCatalog/const';
 import { hasRuntimeCatalogFiltersApplied } from '~/odh/pages/runtimeCatalog/utils/runtimeCatalogUtils';
 import { RUNTIME_CATALOG_TAB_TITLE } from '~/odh/routes/runtimeCatalog/runtimeCatalog';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  RuntimeCatalogTrackingEvent,
+  buildHardwareFiltersValue,
+} from '~/odh/pages/runtimeCatalog/tracking/runtimeCatalogTracking';
 
 const MODEL_CATALOG_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
 // Always the reviewed copy: a catalog label description describes that label, not this page.
@@ -33,8 +38,15 @@ const RuntimeCatalogView: React.FC = () => {
   const [selectedSourceLabel, setSelectedSourceLabel] = React.useState<string | undefined>(
     undefined,
   );
+  const { trackSimpleEvent } = useUserInteraction();
   const [filterOptions, filterOptionsLoaded, filterOptionsLoadError] =
     useServingRuntimeFilterOptionList();
+
+  React.useEffect(() => {
+    trackSimpleEvent(RuntimeCatalogTrackingEvent.VIEWED, {
+      tabName: 'runtime-image-library',
+    });
+  }, [trackSimpleEvent]);
 
   const queryParams = useQueryParamNamespaces();
   const runtimeListParams = React.useMemo(() => ({ assetType: 'serving_runtimes' as const }), []);
@@ -50,9 +62,28 @@ const RuntimeCatalogView: React.FC = () => {
     return items && items.length > 0 ? items[0].name : RUNTIME_CATALOG_TAB_TITLE;
   }, [catalogSources]);
 
-  const handleFilterChange = React.useCallback((key: string, values: string[]) => {
-    setFilters((prev) => ({ ...prev, [key]: values }));
-  }, []);
+  const handleFilterChange = React.useCallback(
+    (key: string, values: string[]) => {
+      setFilters((prev) => ({ ...prev, [key]: values }));
+      if (key === 'hardware') {
+        trackSimpleEvent(RuntimeCatalogTrackingEvent.HARDWARE_FILTER_APPLIED, {
+          hardware: buildHardwareFiltersValue(values),
+        });
+      }
+    },
+    [trackSimpleEvent],
+  );
+
+  const handleSearch = React.useCallback(
+    (term: string) => {
+      setSearchQuery(term);
+      trackSimpleEvent(RuntimeCatalogTrackingEvent.SEARCH_COMMITTED, {
+        hasSearchTerm: term.trim().length > 0,
+        hardwareFilters: buildHardwareFiltersValue(filters.hardware),
+      });
+    },
+    [trackSimpleEvent, filters.hardware],
+  );
 
   const handleResetFilters = React.useCallback(() => {
     setFilters({});
@@ -98,7 +129,7 @@ const RuntimeCatalogView: React.FC = () => {
           renderToolbar={() => (
             <CatalogSourceLabelSelector
               searchTerm={searchQuery}
-              onSearch={setSearchQuery}
+              onSearch={handleSearch}
               onClearSearch={() => setSearchQuery('')}
               onResetAllFilters={handleResetFilters}
               hasFiltersApplied={hasFiltersApplied}

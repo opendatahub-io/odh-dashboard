@@ -37,6 +37,8 @@ export const buildRuntimeImageInstallActionData = ({
     runtimeImageName: runtime.displayName?.trim() || runtime.name?.trim() || runtime.id || '',
     cancelReturnRoute,
     libraryReturnRoute,
+    version: version?.version,
+    hardware: runtime.capabilities?.supportedAccelerators?.join(', ') || undefined,
     deploymentResources: {
       ...(servingRuntimeTemplate && { servingRuntimeTemplate }),
       ...(llmInferenceServiceConfig && { llmInferenceServiceConfig }),

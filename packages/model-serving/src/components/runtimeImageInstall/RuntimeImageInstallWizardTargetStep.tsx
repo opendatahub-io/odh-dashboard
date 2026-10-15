@@ -1,5 +1,9 @@
 import React from 'react';
 import { Alert, Radio, Stack, StackItem, Title } from '@patternfly/react-core';
+import {
+  fireConfigurationSelected,
+  toConfigurationType,
+} from './tracking/runtimeImageInstallTracking';
 import type {
   RuntimeImageInstallTargetExtension,
   RuntimeImageInstallTargetId,
@@ -66,7 +70,12 @@ const RuntimeImageInstallWizardTargetStep: React.FC<RuntimeImageInstallWizardTar
               }
               isChecked={selected === id}
               isDisabled={!availableTargetIds.includes(id)}
-              onChange={() => onSelect(id)}
+              onChange={() => {
+                onSelect(id);
+                fireConfigurationSelected({
+                  configurationType: toConfigurationType(id),
+                });
+              }}
               data-testid={`install-target-${id}`}
             />
           </StackItem>

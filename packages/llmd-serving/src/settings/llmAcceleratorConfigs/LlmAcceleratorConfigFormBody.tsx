@@ -16,6 +16,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import { fireCreateCompleted } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from './paths';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
@@ -134,6 +135,13 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           success: false,
           mode,
         });
+        if (isInstall) {
+          fireCreateCompleted({
+            outcome: TrackingOutcome.submit,
+            success: false,
+            configurationType: 'llm-accelerator-configuration',
+          });
+        }
       }
       return;
     }
@@ -147,6 +155,13 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           success: false,
           mode,
         });
+        if (isInstall) {
+          fireCreateCompleted({
+            outcome: TrackingOutcome.submit,
+            success: false,
+            configurationType: 'llm-accelerator-configuration',
+          });
+        }
       }
       return;
     }
@@ -171,6 +186,13 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
             success: true,
             mode,
           });
+          if (isInstall) {
+            fireCreateCompleted({
+              outcome: TrackingOutcome.submit,
+              success: true,
+              configurationType: 'llm-accelerator-configuration',
+            });
+          }
         }
         navigate(listPath);
       })
@@ -187,6 +209,13 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
             success: false,
             mode,
           });
+          if (isInstall) {
+            fireCreateCompleted({
+              outcome: TrackingOutcome.submit,
+              success: false,
+              configurationType: 'llm-accelerator-configuration',
+            });
+          }
         }
       })
       .finally(() => {
@@ -195,6 +224,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
   }, [
     yamlCode,
     isEdit,
+    isInstall,
     mode,
     sourceConfig?.metadata.name,
     nameDescData,
@@ -265,6 +295,12 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
                 outcome: TrackingOutcome.cancel,
                 mode,
               });
+              if (isInstall) {
+                fireCreateCompleted({
+                  outcome: TrackingOutcome.cancel,
+                  configurationType: 'llm-accelerator-configuration',
+                });
+              }
             }
             navigate(props.mode === 'install' ? props.cancelReturnRoute : listPath);
           }}

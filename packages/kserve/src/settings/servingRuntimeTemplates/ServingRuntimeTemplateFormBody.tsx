@@ -30,6 +30,7 @@ import {
   createServingRuntimeTemplateBackend,
   updateServingRuntimeTemplateBackend,
 } from '@odh-dashboard/internal/services/templateService';
+import { fireCreateCompleted } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 import CustomServingRuntimeAPIProtocolSelector from './CustomServingRuntimeAPIProtocolSelector';
 import CustomServingRuntimeModelTypeSelector from './CustomServingRuntimeModelTypeSelector';
@@ -218,6 +219,13 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                       apiProtocol: selectedAPIProtocol,
                       modelTypes: selectedModelTypes.join(','),
                     });
+                    if (isInstall) {
+                      fireCreateCompleted({
+                        outcome: TrackingOutcome.submit,
+                        success: false,
+                        configurationType: 'serving-runtime-template',
+                      });
+                    }
                   }
                   return;
                 }
@@ -256,6 +264,13 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                         apiProtocol: selectedAPIProtocol,
                         modelTypes: selectedModelTypesStr,
                       });
+                      if (isInstall) {
+                        fireCreateCompleted({
+                          outcome: TrackingOutcome.submit,
+                          success: true,
+                          configurationType: 'serving-runtime-template',
+                        });
+                      }
                     }
                     if (!isInstall) {
                       refreshData();
@@ -278,6 +293,13 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                         apiProtocol: selectedAPIProtocol,
                         modelTypes: selectedModelTypesStr,
                       });
+                      if (isInstall) {
+                        fireCreateCompleted({
+                          outcome: TrackingOutcome.submit,
+                          success: false,
+                          configurationType: 'serving-runtime-template',
+                        });
+                      }
                     }
                     setError(err);
                   })
@@ -300,6 +322,12 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                     outcome: TrackingOutcome.cancel,
                     mode,
                   });
+                  if (isInstall) {
+                    fireCreateCompleted({
+                      outcome: TrackingOutcome.cancel,
+                      configurationType: 'serving-runtime-template',
+                    });
+                  }
                 }
                 navigate(props.mode === 'install' ? props.cancelReturnRoute : listPath);
               }}

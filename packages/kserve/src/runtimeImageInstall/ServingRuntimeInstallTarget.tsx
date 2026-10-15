@@ -16,6 +16,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { RuntimeImageInstallTargetProps } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
+import { fireCreateCompleted } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { parseServingRuntimeTemplate } from './parseServingRuntimeTemplate';
 import { fireServingRuntimeTemplateCreated } from '../settings/servingRuntimeTemplates/tracking/servingRuntimeTemplateTracking';
 import ServingRuntimeTemplateFormBody from '../settings/servingRuntimeTemplates/ServingRuntimeTemplateFormBody';
@@ -58,6 +59,10 @@ const ServingRuntimeInstallTarget: React.FC<RuntimeImageInstallTargetProps> = ({
                   fireServingRuntimeTemplateCreated({
                     outcome: TrackingOutcome.cancel,
                     mode: 'install',
+                  });
+                  fireCreateCompleted({
+                    outcome: TrackingOutcome.cancel,
+                    configurationType: 'serving-runtime-template',
                   });
                   navigate(cancelReturnRoute);
                 }}
