@@ -17,4 +17,14 @@ describe('Home page', () => {
     homePage.visit(false);
     enabledPage.shouldHaveEnabledPageSection();
   });
+  it('task group card titles should have no inline padding', () => {
+    homePage.visit();
+    // Guards against the Lightning CSS minimizer lowering logical properties into
+    // :lang() fallbacks whose raised specificity beats PatternFly's contextual
+    // `padding: 0` rule for card titles inside card headers.
+    homePage
+      .findTaskGroupCardTitle('ai-hub')
+      .should('have.css', 'padding-left', '0px')
+      .and('have.css', 'padding-right', '0px');
+  });
 });
