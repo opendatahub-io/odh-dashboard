@@ -37,7 +37,7 @@ import {
   fireAutoragFlowExited,
   fireAutoragRunReconfigured,
   fireAutoragRunTriggered,
-  getVectorStoreProviderTypeFromSecretData,
+  getVectorStoreProviderTypeFromDatabaseProviders,
   mapOptimizationMetric,
   mapOptimizationMetricEvaluator,
   TrackingOutcome,
@@ -151,7 +151,8 @@ function AutoragConfigurePage({
   const [step, setStep] = useState<'create' | 'configure'>('create');
   const [maasModelsReady, setMaaSModelsReady] = useState(false);
   const [ragMode, setRagMode] = useState<RagMode>(() =>
-    getVectorStoreProviderTypeFromSecretData(initialDatabaseSecret?.data) === 'neo4j'
+    getVectorStoreProviderTypeFromDatabaseProviders(initialDatabaseSecret?.databaseProviders) ===
+    'neo4j'
       ? 'graph'
       : 'simple',
   );

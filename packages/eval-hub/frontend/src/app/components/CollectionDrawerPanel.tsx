@@ -166,6 +166,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                           }
                           onClearAll={() => setMetricFilter([])}
                           testIdPrefix="benchmark-metric"
+                          popperProps={{ position: 'right', preventOverflow: true }}
                         />
                       </ToolbarGroup>
                     </ToolbarContent>

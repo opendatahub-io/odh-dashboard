@@ -17,12 +17,24 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByTestId('runtime-catalog-details-latest');
   }
 
+  openLatestPopover() {
+    this.findLatestBadge().findByRole('button', { name: 'Latest' }).click();
+  }
+
+  findLatestPopover() {
+    return cy.findByTestId('runtime-catalog-details-latest-popover');
+  }
+
   findText(text: string | RegExp) {
     return this.findPage().findByText(text);
   }
 
   findButton(name: string) {
     return this.findPage().findByRole('button', { name });
+  }
+
+  findLink(name: string) {
+    return this.findPage().findByRole('link', { name });
   }
 
   findContainerImageInput() {
@@ -41,8 +53,12 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByTestId('runtime-llm-inference-service-panel');
   }
 
+  findLlmInferenceServiceTab() {
+    return this.findPage().findByTestId('runtime-llm-inference-service-tab');
+  }
+
   selectLlmInferenceServiceTab() {
-    this.findPage().findByTestId('runtime-llm-inference-service-tab').click();
+    this.findLlmInferenceServiceTab().click();
   }
 
   copyContainerImage() {

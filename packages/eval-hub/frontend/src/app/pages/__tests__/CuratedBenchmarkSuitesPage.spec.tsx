@@ -92,7 +92,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-clawbench')).toBeInTheDocument();
-    expect(screen.getAllByText('Run')).toHaveLength(5);
+    expect(screen.getAllByText('Run benchmark suite')).toHaveLength(5);
     expect(screen.queryByText('Customize')).not.toBeInTheDocument();
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
       'test-project',
@@ -242,6 +242,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     clickFilterOption('benchmark-suites-category-filter-option-code');
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
     clickFilterOption('benchmark-suites-industry-filter-option-government');
 

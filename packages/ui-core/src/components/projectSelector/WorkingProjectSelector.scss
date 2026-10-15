@@ -1,0 +1,27 @@
+.odh-working-project-selector {
+  --pf-v6-c-button--BackgroundColor: var(--pf-t--global--background--color--primary--default);
+
+  &__name {
+    min-width: 0;
+    max-width: var(--pf-t--global--breakpoint--sm);
+  }
+
+  &__project-list.pf-v6-c-data-list.pf-m-grid-none {
+    --pf-v6-c-data-list__cell--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+    --pf-v6-c-data-list__item-content--md--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
+
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  &__no-results {
+    min-height: 40vh;
+  }
+
+  &__count.pf-v6-c-badge {
+    --pf-v6-c-badge--m-read--BackgroundColor: var(--pf-t--global--color--nonstatus--blue--default);
+    --pf-v6-c-badge--m-read--Color: var(--pf-t--global--text--color--nonstatus--on-blue--default);
+    --pf-v6-c-badge--m-read--BorderColor: transparent;
+    --pf-v6-c-badge--FontWeight: var(--pf-t--global--font--weight--body--default);
+  }
+}

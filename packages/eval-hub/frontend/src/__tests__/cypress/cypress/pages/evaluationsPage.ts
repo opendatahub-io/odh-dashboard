@@ -195,6 +195,10 @@ class EvaluationsPage {
     return cy.findByTestId('benchmark-suites-modality-filter');
   }
 
+  findBenchmarkSuitesMoreFiltersToggle() {
+    return cy.findByTestId('benchmark-suites-more-filters-toggle');
+  }
+
   findBenchmarkSuitesPagination() {
     return cy.findByTestId('benchmark-suites-pagination-top');
   }

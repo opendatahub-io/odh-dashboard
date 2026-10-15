@@ -23,7 +23,7 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { SecretListItem } from '~/app/types';
 import {
   fireAutoragVectorStoreConfigured,
-  getVectorStoreProviderTypeFromSecretData,
+  getVectorStoreProviderTypeFromDatabaseProviders,
   TrackingOutcome,
   type VectorStoreProviderType,
 } from '~/app/utilities/tracking';
@@ -48,7 +48,9 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
   onSelectedSecretChange,
 }) => {
   const { namespace = '' } = useParams();
-  const initialProvider = getVectorStoreProviderTypeFromSecretData(initialSecret?.data);
+  const initialProvider = getVectorStoreProviderTypeFromDatabaseProviders(
+    initialSecret?.databaseProviders,
+  );
   const [internalMode, setInternalMode] = React.useState<RagMode>(
     initialProvider === 'neo4j' ? 'graph' : 'simple',
   );
@@ -134,7 +136,9 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                   setSelected(secret);
                   field.onChange(!secret || secret.invalid ? '' : secret.name);
                   if (secret && !secret.invalid) {
-                    const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
+                    const providerType = getVectorStoreProviderTypeFromDatabaseProviders(
+                      secret.databaseProviders,
+                    );
                     if (providerType) {
                       fireAutoragVectorStoreConfigured({
                         providerType,
@@ -227,7 +231,7 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
               initialProvider={modalProvider}
               allowedProviders={mode === 'graph' ? ['neo4j'] : ['milvus', 'pgvector']}
               onClose={() => setIsConnectionModalOpen(false)}
-              onSubmit={async (secretName) => {
+              onSubmit={async (secretName, provider) => {
                 const refresh = secretsRefreshRef.current;
                 if (!refresh) {
                   throw new Error('The database connection list could not be refreshed.');
@@ -239,18 +243,23 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                     'The new database connection was not found after refreshing the connection list.',
                   );
                 }
+                const providerType = getVectorStoreProviderTypeFromDatabaseProviders(
+                  secret.databaseProviders,
+                );
+                if (providerType !== provider) {
+                  throw new Error(
+                    'The new database connection has invalid or mismatched provider metadata.',
+                  );
+                }
                 const selectedSecretFromList = { ...secret, invalid: false };
                 setSelected(selectedSecretFromList);
                 field.onChange(secret.name);
-                const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
-                if (providerType) {
-                  fireAutoragVectorStoreConfigured({
-                    providerType,
-                    outcome: TrackingOutcome.submit,
-                    success: true,
-                  });
-                  onVectorStoreConfigured(providerType);
-                }
+                fireAutoragVectorStoreConfigured({
+                  providerType,
+                  outcome: TrackingOutcome.submit,
+                  success: true,
+                });
+                onVectorStoreConfigured(providerType);
               }}
             />
           )}

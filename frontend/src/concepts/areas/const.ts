@@ -15,7 +15,6 @@ export const techPreviewFlags = {
   genAiMcpRegistryServers: false,
   toolCalling: false,
   modelCapabilities: false,
-  runtimeCatalog: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
@@ -320,11 +319,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.UNIFIED_PROJECT_SELECTOR]: {
     // Dev-only gate — not in OdhDashboardConfig CRD. Off by default.
     devFlags: ['unifiedProjectSelector'],
-  },
-  [SupportedArea.RUNTIME_CATALOG]: {
-    // Tech preview — not in OdhDashboardConfig CRD yet. Off by default.
-    featureFlags: ['runtimeCatalog'],
-    reliantAreas: [SupportedArea.MODEL_SERVING, SupportedArea.K_SERVE],
   },
   [SupportedArea.PLUGIN_DATA_CONNECT_HUB]: {
     featureFlags: ['dataConnectHub'],

@@ -116,6 +116,10 @@ func main() {
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", getEnvAsInt("MAX_CONCURRENT_RECONCILES", 10),
 		"The maximum number of Workspaces reconciled (and probed) concurrently. "+
 			"Higher values prevent a slow activity probe from blocking other Workspaces' reconciliation.")
+	flag.Float64Var(&cfg.ClientQPS, "client-qps", getEnvAsFloat64("CLIENT_QPS", 50),
+		"QPS configuration passed to the Kubernetes API client (rest.Config).")
+	flag.IntVar(&cfg.ClientBurst, "client-burst", getEnvAsInt("CLIENT_BURST", 100),
+		"Maximum Burst configuration passed to the Kubernetes API client (rest.Config).")
 
 	// Get controller namespace (from service account file or POD_NAMESPACE env var)
 	cfg.ControllerNamespace = getControllerNamespace("kubeflow-workspaces")
@@ -150,6 +154,9 @@ func main() {
 		"KubeRbacProxyImage", sanitizeImageReference(cfg.KubeRbacProxyImage))
 
 	restCfg := ctrl.GetConfigOrDie()
+	// controller-runtime no longer supplies a default client-side rate limiter.
+	restCfg.QPS = float32(cfg.ClientQPS)
+	restCfg.Burst = cfg.ClientBurst
 	tlsResult, err := pkgtls.Resolve(context.Background(), restCfg)
 	if err != nil {
 		setupLog.Error(err, "unable to resolve TLS configuration")
@@ -387,6 +394,15 @@ func getEnvAsInt(name string, defaultVal int) int {
 	if value, exists := os.LookupEnv(name); exists {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultVal
+}
+
+func getEnvAsFloat64(name string, defaultVal float64) float64 {
+	if value, exists := os.LookupEnv(name); exists {
+		if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatValue
 		}
 	}
 	return defaultVal

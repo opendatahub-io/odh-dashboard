@@ -31,7 +31,7 @@ jest.mock('~/app/hooks/useProviders', () => ({
 }));
 
 jest.mock('~/app/pages/useCopySuiteForm', () => ({
-  MAX_BENCHMARKS: 10,
+  MAX_BENCHMARKS: 20,
   getBenchmarkKey: (benchmark: { providerId: string; id: string }) =>
     `${benchmark.providerId}:${benchmark.id}`,
   useCopySuiteForm: jest.fn(),
@@ -938,7 +938,7 @@ describe('CopySuitePage', () => {
     renderPage();
 
     expect(
-      screen.getByText('Suite name must be different from the source collection name.'),
+      screen.getByText('Suite name must be different from the source benchmark suite name.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-next')).toBeDisabled();
   });
