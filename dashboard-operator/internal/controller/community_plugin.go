@@ -217,17 +217,17 @@ func communityFederationEntries(
 	for name, rawEntry := range source.Data {
 		sourceEntry, err := decodeCommunityFederationSource(rawEntry)
 		if err != nil {
-			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", communityPluginsConfigMapName, "namespace", communityPluginsNamespace, "entry", name)
+			log.FromContext(ctx).Info("Ignoring invalid community plugin federation entry", "error", err, "configMap", communityPluginsConfigMapName, "namespace", communityPluginsNamespace, "entry", name)
 			continue
 		}
 
 		entry, err := communityFederationEntryFromSource(name, sourceEntry)
 		if err != nil {
-			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", communityPluginsConfigMapName, "namespace", communityPluginsNamespace, "entry", name)
+			log.FromContext(ctx).Info("Ignoring invalid community plugin federation entry", "error", err, "configMap", communityPluginsConfigMapName, "namespace", communityPluginsNamespace, "entry", name)
 			continue
 		}
 		if err := validateCommunityFederationEntry(entry, existingNames); err != nil {
-			log.FromContext(ctx).Error(err, "Ignoring invalid community plugin federation entry", "configMap", communityPluginsConfigMapName, "namespace", communityPluginsNamespace, "entry", name)
+			log.FromContext(ctx).Info("Ignoring invalid community plugin federation entry", "error", err, "configMap", communityPluginsConfigMapName, "namespace", communityPluginsNamespace, "entry", name)
 			continue
 		}
 
