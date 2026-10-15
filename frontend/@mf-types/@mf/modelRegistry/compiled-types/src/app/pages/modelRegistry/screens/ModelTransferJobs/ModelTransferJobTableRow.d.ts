@@ -8,7 +8,8 @@ type ModelTransferJobTableRowProps = {
 };
 export declare const getStatusLabel: (status: ModelTransferJobStatus) => {
     label: string;
-    color: React.ComponentProps<typeof Label>["color"];
+    color?: React.ComponentProps<typeof Label>["color"];
+    status?: React.ComponentProps<typeof Label>["status"];
     icon: React.ReactNode;
 };
 declare const ModelTransferJobTableRow: React.FC<ModelTransferJobTableRowProps>;

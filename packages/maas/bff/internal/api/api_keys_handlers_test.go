@@ -133,6 +133,10 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 				"Granite 3 8B Instruct",
 				"Flan T5 Small",
 				"GPT-4o External",
+				"Failed Reconcile Model",
+				"Not Applicable Model",
+				"Unsupported Model",
+				"No Objective Required Model",
 			))
 			Expect(actual.Data.SubscriptionDetails).To(HaveKey("basic-team-sub"))
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].DisplayName).To(Equal("Basic Team Subscription"))

@@ -275,10 +275,10 @@ func TestResolve_Unauthorized_SetsAPIAvailable(t *testing.T) {
 }
 
 func TestResolve_FatalError_Returns(t *testing.T) {
-	fc := &errorClient{err: apierrors.NewGone("resource removed")}
+	fc := &errorClient{err: apierrors.NewResourceExpired("resource removed")}
 	_, err := resolve(context.Background(), fc)
 	if err == nil {
-		t.Fatal("expected error on Gone, got nil")
+		t.Fatal("expected error on resource expired, got nil")
 	}
 }
 

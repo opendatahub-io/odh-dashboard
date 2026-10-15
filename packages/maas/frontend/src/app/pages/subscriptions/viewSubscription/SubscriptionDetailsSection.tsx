@@ -79,6 +79,12 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
           <DescriptionListDescription>{subscription.name}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
+          <DescriptionListTerm>Inference priority</DescriptionListTerm>
+          <DescriptionListDescription>
+            {subscription.inferencePriority ?? '0'}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
           <DescriptionListTerm>Created</DescriptionListTerm>
           <DescriptionListDescription>
             {subscription.creationTimestamp ? (

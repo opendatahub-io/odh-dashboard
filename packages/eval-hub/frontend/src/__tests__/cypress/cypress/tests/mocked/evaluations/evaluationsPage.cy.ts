@@ -71,16 +71,19 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findGalleryContent().should('exist');
     evaluationsPage.findCreateSuiteCard().should('not.exist');
     evaluationsPage.findBenchmarkSuitesCategoryFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesIndustryFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesTagsFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesTaskFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesModalityFilter().should('exist');
+    evaluationsPage
+      .findBenchmarkSuitesMoreFiltersToggle()
+      .should('contain.text', 'Show more filters');
+    evaluationsPage.findBenchmarkSuitesIndustryFilter().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesTagsFilter().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesTaskFilter().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesModalityFilter().should('not.exist');
     evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('not.exist');
-    evaluationsPage.findBenchmarkSuitesPagination().should('exist');
+    evaluationsPage.findBenchmarkSuitesPagination().should('not.exist');
     evaluationsPage
       .findBenchmarkSuitesNameFilter()
       .find('input')
-      .should('have.attr', 'placeholder', 'Search collections');
+      .should('have.attr', 'placeholder', 'Search benchmark suites');
     evaluationsPage.findBenchmarkSuiteCard('clawbench').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('curated-open-llm-leaderboard-v2').should('exist');
     evaluationsPage
@@ -106,6 +109,7 @@ describe('Evaluations Page - Tabs', () => {
 
   it('should filter Gallery suites by category, tags, task, modality, and industry', () => {
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
 
     evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
@@ -143,6 +147,7 @@ describe('Evaluations Page - Tabs', () => {
 
   it('should allow multiple selections within a Gallery filter', () => {
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
     evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'safety').click();
@@ -200,7 +205,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
     evaluationsPage
       .findBenchmarkSuitesSummary()
-      .should('contain.text', 'Go to All my benchmark suites');
+      .should('contain.text', 'Go to all my benchmark suites');
   });
 
   it('should filter benchmark suites by industry client-side and clear the filter', () => {
@@ -208,6 +213,7 @@ describe('Evaluations Page - Tabs', () => {
     initIntercepts({ collections, collectionsTotalCount: collections.length });
 
     evaluationsPage.visitBenchmarkSuites(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
     evaluationsPage.findBenchmarkSuitesIndustryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('industry', 'health').click();
 
@@ -227,7 +233,7 @@ describe('Evaluations Page - Tabs', () => {
 
     evaluationsPage.findCollectionDrawerPanel().should('be.visible');
     evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Model suite 2');
-    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run');
+    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run benchmark suite');
   });
 
   it('should render curated suite category cards and link to filtered collections', () => {

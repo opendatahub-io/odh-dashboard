@@ -225,7 +225,7 @@ const EvaluationsPage: React.FC = () => {
               onRunCollection={handleDrawerRunCollection}
               onCustomizeCollection={handleDuplicateCollection}
               isSystemCollection={selectedCollectionIsSystem}
-              primaryActionLabel="Run"
+              primaryActionLabel="Run benchmark suite"
             />
           }
         >

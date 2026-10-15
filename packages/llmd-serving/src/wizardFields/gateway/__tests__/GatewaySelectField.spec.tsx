@@ -410,13 +410,34 @@ describe('GatewaySelectFieldComponent', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('should not show the missing warning when isDisabled', () => {
-      const missingGateway = makeGateway('gw-removed', 'ns-old');
+    it('should show the missing warning when isDisabled (e.g. MaaS locked gateway)', () => {
+      const missingGateway = makeGateway('maas-default-gateway', 'openshift-ingress');
 
       renderComponent({
         value: { selections: [missingGateway] },
         initialValue: { selections: [missingGateway] },
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+        isDisabled: true,
+      });
+
+      expect(
+        screen.getByText(
+          'A selected gateway was not found. The deployment may not work as expected.',
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('should not show the missing warning when isDisabled and load failed', () => {
+      const missingGateway = makeGateway('maas-default-gateway', 'openshift-ingress');
+
+      renderComponent({
+        value: { selections: [missingGateway] },
+        initialValue: { selections: [missingGateway] },
+        externalData: {
+          data: undefined,
+          loaded: true,
+          loadError: new Error('Failed to load gateways'),
+        },
         isDisabled: true,
       });
 

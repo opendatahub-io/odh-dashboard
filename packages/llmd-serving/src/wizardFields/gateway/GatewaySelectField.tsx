@@ -251,7 +251,8 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
               </HelperText>
             </FormHelperText>
           )}
-          {!isDisabled && !externalData?.loadError && missingSelectedKeys.length > 0 && (
+          {/* Show even when disabled (MaaS) so operators can validate locked gateway config */}
+          {!externalData?.loadError && missingSelectedKeys.length > 0 && (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="warning">

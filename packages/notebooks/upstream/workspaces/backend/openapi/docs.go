@@ -2069,6 +2069,81 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/workspaces/{namespace}/{name}/podtemplate/resources": {
+            "get": {
+                "description": "Returns point-in-time CPU and memory usage for each container of the workspace pod when available, alongside the requests and limits configured in the pod spec.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace pod template resources",
+                "operationId": "getWorkspacePodTemplateResources",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns per-container configured resources and live usage metrics when available.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceResourceUsageEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Workspace pod is not running.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Workspace not found.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2423,6 +2498,17 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/workspaces.WorkspaceListItem"
                     }
+                }
+            }
+        },
+        "api.WorkspaceResourceUsageEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/resources.WorkspaceResourceUsage"
                 }
             }
         },
@@ -3294,6 +3380,77 @@ const docTemplate = `{
                         "BinarySI",
                         "DecimalSI"
                     ]
+                }
+            }
+        },
+        "resources.ContainerResourceUsage": {
+            "type": "object",
+            "required": [
+                "resources"
+            ],
+            "properties": {
+                "metricsFromMetricsServer": {
+                    "description": "MetricsFromMetricsServer holds live usage metrics. It is nil when metrics\nare pending (e.g., pod just started).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/resources.MetricsFromMetricsServer"
+                        }
+                    ]
+                },
+                "resources": {
+                    "description": "Resources holds the configured resource requirements from the pod spec.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.ResourceRequirements"
+                        }
+                    ]
+                }
+            }
+        },
+        "resources.MetricsFromMetricsServer": {
+            "type": "object",
+            "required": [
+                "timestamp",
+                "usage"
+            ],
+            "properties": {
+                "timestamp": {
+                    "description": "Timestamp is the RFC3339 timestamp of when the sample was collected.",
+                    "type": "string"
+                },
+                "usage": {
+                    "description": "Usage is the current resource consumption.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/resources.ResourceValues"
+                        }
+                    ]
+                }
+            }
+        },
+        "resources.ResourceValues": {
+            "type": "object",
+            "properties": {
+                "cpu": {
+                    "type": "string"
+                },
+                "memory": {
+                    "type": "string"
+                }
+            }
+        },
+        "resources.WorkspaceResourceUsage": {
+            "type": "object",
+            "required": [
+                "containers"
+            ],
+            "properties": {
+                "containers": {
+                    "description": "Containers holds the per-container resource data, keyed by container name.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/resources.ContainerResourceUsage"
+                    }
                 }
             }
         },
@@ -6476,7 +6633,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "script": {
-                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - The Pod's main container MUST provide a POSIX shell at \"/bin/sh\" and the \"cat\", \"chmod\",\n   and \"rm\" utilities, which the controller uses to stage and execute the script. Minimal\n   or distroless images without these will cause the probe to fail (and never pause).\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable.\n - When has_activity is not provided and last_activity is provided, last_activity is the authoritative source of truth:\n   a successful probe unconditionally overwrites ` + "`" + `status.activity.lastActivity` + "`" + ` with the reported\n   timestamp (the controller does not validate monotonicity or clamp to wall-clock time).\n - The JSON fields ` + "`" + `has_activity` + "`" + ` (boolean) and ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) are mutually exclusive;\n   users should specify one or the other, not both. If both fields are present, ` + "`" + `has_activity` + "`" + ` takes\n   precedence and ` + "`" + `last_activity` + "`" + ` is totally ignored (the probe does not fail).\n   The fields are evaluated to update the Workspace status field ` + "`" + `status.activity.lastActivity` + "`" + ` as follows:\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `true` + "`" + ` (or if the JSON file is empty/omitted): The Workspace is treated as active, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the probe completion time (ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `false` + "`" + `: The Workspace is treated as inactive, and the existing ` + "`" + `status.activity.lastActivity` + "`" + ` timestamp is preserved (unchanged, ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) is provided (and ` + "`" + `has_activity` + "`" + ` is omitted): The Workspace is treated as inactive, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the ` + "`" + `last_activity` + "`" + ` timestamp.\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=2048",
+                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - The Pod's main container MUST provide a POSIX shell at \"/bin/sh\" and the \"cat\", \"chmod\",\n   and \"rm\" utilities, which the controller uses to stage and execute the script. Minimal\n   or distroless images without these will cause the probe to fail (and never pause).\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable.\n - When has_activity is not provided and last_activity is provided, last_activity is the authoritative source of truth:\n   a successful probe unconditionally overwrites ` + "`" + `status.activity.lastActivity` + "`" + ` with the reported\n   timestamp (the controller does not validate monotonicity or clamp to wall-clock time).\n - The JSON fields ` + "`" + `has_activity` + "`" + ` (boolean) and ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) are mutually exclusive;\n   users should specify one or the other, not both. If both fields are present, ` + "`" + `has_activity` + "`" + ` takes\n   precedence and ` + "`" + `last_activity` + "`" + ` is totally ignored (the probe does not fail).\n   The fields are evaluated to update the Workspace status field ` + "`" + `status.activity.lastActivity` + "`" + ` as follows:\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `true` + "`" + ` (or if the JSON file is empty/omitted): The Workspace is treated as active, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the probe completion time (ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `false` + "`" + `: The Workspace is treated as inactive, and the existing ` + "`" + `status.activity.lastActivity` + "`" + ` timestamp is preserved (unchanged, ignoring ` + "`" + `last_activity` + "`" + `). If ` + "`" + `status.activity.lastActivity` + "`" + ` was not previously set (0), it is initialized to ` + "`" + `status.lastRunningTime` + "`" + ` to treat the Workspace as inactive since startup.\n     - If ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) is provided (and ` + "`" + `has_activity` + "`" + ` is omitted): The Workspace is treated as inactive, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the ` + "`" + `last_activity` + "`" + ` timestamp.\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=2048",
                     "type": "string"
                 },
                 "timeoutSeconds": {
@@ -6614,7 +6771,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "image": {
-                    "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1\"",
+                    "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1\"",
                     "type": "string"
                 },
                 "imagePullPolicy": {
@@ -6886,6 +7043,10 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "schedulerName": {
+                    "description": "the name of the scheduler to use for the pod\n - this takes precedence over the ` + "`" + `schedulerName` + "`" + ` of the pod template\n - set this to \"default-scheduler\" to have this pod config use the\n   default Kubernetes scheduler, even if the pod template sets another one\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"volcano\"",
+                    "type": "string"
+                },
                 "tolerations": {
                     "description": "toleration configs for the pod\n+kubebuilder:validation:Optional",
                     "type": "array",
@@ -7156,6 +7317,10 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "schedulerName": {
+                    "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the ` + "`" + `schedulerName` + "`" + ` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the \"default-scheduler\"\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
+                    "type": "string"
+                },
                 "securityContext": {
                     "description": "security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
                     "allOf": [
@@ -7169,6 +7334,14 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccount"
+                        }
+                    ]
+                },
+                "statefulSetMetadata": {
+                    "description": "metadata for the Workspace StatefulSet (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindStatefulSetMetadata"
                         }
                     ]
                 },
@@ -7301,6 +7474,25 @@ const docTemplate = `{
                             "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
                         }
                     ]
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindStatefulSetMetadata": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "description": "annotations to be applied to the Workspace StatefulSet resource\n+kubebuilder:validation:Optional",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "description": "labels to be applied to the Workspace StatefulSet resource\n+kubebuilder:validation:Optional",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -7495,6 +7687,7 @@ const docTemplate = `{
             "required": [
                 "options",
                 "podMetadata",
+                "statefulSetMetadata",
                 "volumeMounts"
             ],
             "properties": {
@@ -7512,6 +7705,9 @@ const docTemplate = `{
                 "podMetadata": {
                     "$ref": "#/definitions/workspacekinds.PodMetadata"
                 },
+                "statefulSetMetadata": {
+                    "$ref": "#/definitions/workspacekinds.StatefulSetMetadata"
+                },
                 "volumeMounts": {
                     "$ref": "#/definitions/workspacekinds.PodVolumeMounts"
                 }
@@ -7525,6 +7721,27 @@ const docTemplate = `{
             "properties": {
                 "home": {
                     "type": "string"
+                }
+            }
+        },
+        "workspacekinds.StatefulSetMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },

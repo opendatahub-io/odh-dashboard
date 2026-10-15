@@ -215,32 +215,43 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
   });
 
   it('should enforce and release the benchmark selection limit', () => {
-    const providerMany = createProvidersWithBenchmarks(11);
+    const providerMany = createProvidersWithBenchmarks(21);
     const initiallySelectedKeys = [
       ...Array.from(
-        { length: 9 },
+        { length: 19 },
         (_, index) => `provider-many:benchmark-${String(index).padStart(2, '0')}`,
       ),
-      'provider-many:benchmark-10',
+      'provider-many:benchmark-20',
     ];
     renderSelectionStep({ providers: providerMany, selectedBenchmarkKeys: initiallySelectedKeys });
 
     expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
-      '0 out of 10 remaining',
+      '0 out of 20 remaining',
     );
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
-    expect(screen.getByTestId('benchmark-catalog-checkbox-benchmark-09')).toBeDisabled();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
+    expect(screen.getByTestId('benchmark-catalog-checkbox-benchmark-19')).toBeDisabled();
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to previous page' })[0]);
-    fireEvent.click(screen.getByTestId('benchmark-catalog-checkbox-benchmark-00'));
+    fireEvent.click(screen.getByTestId('benchmark-catalog-checkbox-benchmark-10'));
 
-    expect(screen.getByTestId('benchmark-catalog-checkbox-benchmark-00')).not.toBeDisabled();
+    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
+      '1 out of 20 remaining',
+    );
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
+    const releasedBenchmark = screen.getByTestId('benchmark-catalog-checkbox-benchmark-19');
+    expect(releasedBenchmark).not.toBeDisabled();
+    fireEvent.click(releasedBenchmark);
+    expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
+      '0 out of 20 remaining',
+    );
   });
 
   it('should reject an over-limit selection until it is reduced', () => {
-    const providerMany = createProvidersWithBenchmarks(11);
+    const providerMany = createProvidersWithBenchmarks(21);
     const initiallySelectedKeys = Array.from(
-      { length: 11 },
+      { length: 21 },
       (_, index) => `provider-many:benchmark-${String(index).padStart(2, '0')}`,
     );
     const { onNext } = renderSelectionStep({
@@ -249,10 +260,10 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     });
 
     expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
-      'Invalid selection: 11 benchmarks selected. Select no more than 10.',
+      'Invalid selection: 21 benchmarks selected. Select no more than 20.',
     );
     expect(screen.getByTestId('benchmark-catalog-limit-message')).not.toHaveTextContent(
-      '-1 out of 10 remaining',
+      '-1 out of 20 remaining',
     );
     expect(screen.getByTestId('copy-suite-next-select-benchmarks')).toBeDisabled();
     expect(onNext).not.toHaveBeenCalled();
@@ -276,20 +287,21 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
   });
 
   it('should keep the details overlay open when selecting at the benchmark limit', () => {
-    const providerMany = createProvidersWithBenchmarks(11);
+    const providerMany = createProvidersWithBenchmarks(21);
     const initiallySelectedKeys = Array.from(
-      { length: 10 },
+      { length: 20 },
       (_, index) => `provider-many:benchmark-${String(index).padStart(2, '0')}`,
     );
     renderSelectionStep({ providers: providerMany, selectedBenchmarkKeys: initiallySelectedKeys });
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
-    fireEvent.click(screen.getByTestId('benchmark-catalog-name-benchmark-10'));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
+    fireEvent.click(screen.getByTestId('benchmark-catalog-name-benchmark-20'));
     fireEvent.click(screen.getByRole('button', { name: 'Apply selection' }));
 
     expect(screen.getByTestId('copy-suite-benchmark-details-overlay')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-catalog-limit-message')).toHaveTextContent(
-      '0 out of 10 remaining',
+      '0 out of 20 remaining',
     );
   });
 });

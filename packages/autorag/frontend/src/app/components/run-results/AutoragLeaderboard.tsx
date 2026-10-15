@@ -526,7 +526,17 @@ function AutoragLeaderboard({
 
   // Column visibility and ordering state — whitelist approach so new columns are hidden by default
   const DEFAULT_VISIBLE_IDS = React.useMemo(
-    () => new Set(['rank', 'pattern', 'modelNames', 'optimized-metric']),
+    () =>
+      new Set([
+        'rank',
+        'pattern',
+        'modelNames',
+        'optimized-metric',
+        'chunkingMethod',
+        'retrievalMethod',
+        'retrievalSearchMode',
+        'retrievalRankerStrategy',
+      ]),
     [],
   );
   const [visibleColumnIds, setVisibleColumnIds] = React.useState<Set<string>>(
