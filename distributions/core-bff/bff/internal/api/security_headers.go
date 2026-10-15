@@ -32,6 +32,12 @@ func (w *securityHeadersWriter) WriteHeader(statusCode int) {
 		return
 	}
 	applySecurityHeaders(w.Header(), w.req.URL.Path)
+	// Informational 1xx responses are not final; HTTP allows a later final status.
+	// Do not mark the writer committed so the real status (e.g. 404 after 103) can still be written.
+	if statusCode >= 100 && statusCode < 200 {
+		w.ResponseWriter.WriteHeader(statusCode)
+		return
+	}
 	w.wroteHeader = true
 	w.ResponseWriter.WriteHeader(statusCode)
 }

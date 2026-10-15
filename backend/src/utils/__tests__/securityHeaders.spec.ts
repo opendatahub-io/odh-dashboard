@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { CACHE_HEADER_IMMUTABLE, CACHE_HEADER_NO_CACHE } from '../cacheHeaders';
 import {
   CACHE_CONTROL_NO_STORE,
   CROSS_ORIGIN_OPENER_POLICY,
@@ -8,7 +9,10 @@ import {
   X_FRAME_OPTIONS,
   applySecurityHeaders,
   isApiPath,
+  isRestrictiveCacheControl,
+  resolveStaticProxyCacheControl,
   rewriteNoStoreCacheHeaders,
+  rewriteStaticProxyCacheHeaders,
   setNoStoreCacheHeaders,
 } from '../securityHeaders';
 
@@ -96,6 +100,72 @@ describe('rewriteNoStoreCacheHeaders', () => {
     const headers = rewriteNoStoreCacheHeaders({
       'cache-control': 'public, max-age=31536000, immutable',
     });
+    expect(headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
+  });
+});
+
+describe('resolveStaticProxyCacheControl', () => {
+  it.each([
+    '/_mf/genAi/api/v1/user?asset=.deadbeef.js',
+    '/_mf/genAi/api/v1/user',
+    '/_mf/genAi/healthcheck',
+  ])('forces no-store for non-cacheable path %s', (url) => {
+    expect(resolveStaticProxyCacheControl(url)).toBe(CACHE_CONTROL_NO_STORE);
+  });
+
+  it.each([
+    ['/_mf/genAi/app.abcdef123456.js', 'no-cache, no-store, must-revalidate'],
+    ['/_mf/genAi/remoteEntry.js', 'private, max-age=0'],
+  ])('preserves upstream restrictive Cache-Control for %s', (url, upstream) => {
+    expect(resolveStaticProxyCacheControl(url, upstream)).toBe(upstream);
+  });
+
+  it.each([
+    ['/_mf/genAi/app.abcdef123456.js?v=1', CACHE_HEADER_IMMUTABLE],
+    ['/_mf/genAi/remoteEntry.js', CACHE_HEADER_NO_CACHE],
+  ])('applies filename-based policy for %s (pathname only)', (url, expected) => {
+    expect(resolveStaticProxyCacheControl(url, undefined, 200)).toBe(expected);
+  });
+
+  it.each([404, 503])(
+    'forces no-store for non-2xx status %s even for hashed assets',
+    (statusCode) => {
+      expect(
+        resolveStaticProxyCacheControl('/_mf/genAi/app.abcdef123456.js', undefined, statusCode),
+      ).toBe(CACHE_CONTROL_NO_STORE);
+    },
+  );
+});
+
+describe('isRestrictiveCacheControl', () => {
+  it.each(['no-store', 'no-cache, no-store', 'private', 'private, max-age=0'])(
+    'treats %s as restrictive',
+    (value) => {
+      expect(isRestrictiveCacheControl(value)).toBe(true);
+    },
+  );
+
+  it.each(['public, max-age=60', 'no-cache', 'max-age=0'])(
+    'does not treat %s as restrictive',
+    (value) => {
+      expect(isRestrictiveCacheControl(value)).toBe(false);
+    },
+  );
+});
+
+describe('rewriteStaticProxyCacheHeaders', () => {
+  it('classifies pathname and does not mutate input headers', () => {
+    const input: Record<string, string> = {};
+    const headers = rewriteStaticProxyCacheHeaders(input, mockRequest('/_mf/genAi/remoteEntry.js'));
+    expect(headers['cache-control']).toBe(CACHE_HEADER_NO_CACHE);
+    expect(input['cache-control']).toBeUndefined();
+  });
+
+  it('does not promote API URLs via query-string hash bait', () => {
+    const headers = rewriteStaticProxyCacheHeaders(
+      {},
+      mockRequest('/_mf/genAi/api/v1/user?asset=.deadbeef.js'),
+    );
     expect(headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
   });
 });

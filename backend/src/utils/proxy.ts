@@ -205,6 +205,7 @@ export const registerProxy = async (
     authorize,
     tls,
     onError,
+    onResponse,
     rewriteHeaders,
     headers,
   }: {
@@ -222,6 +223,7 @@ export const registerProxy = async (
       port?: number | string;
     };
     onError?: FastifyHttpProxyOptions['replyOptions']['onError'];
+    onResponse?: FastifyHttpProxyOptions['replyOptions']['onResponse'];
     rewriteHeaders?: FastifyHttpProxyOptions['replyOptions']['rewriteHeaders'];
     headers?: Record<string, string>;
   },
@@ -238,6 +240,7 @@ export const registerProxy = async (
     replyOptions: {
       getUpstream: () => upstream,
       onError,
+      onResponse,
       rewriteHeaders,
     },
     preHandler: async (request, reply) => {

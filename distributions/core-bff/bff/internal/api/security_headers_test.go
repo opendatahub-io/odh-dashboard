@@ -2,6 +2,7 @@ package api
 
 import (
 	"bufio"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -71,6 +72,71 @@ func TestSetSecurityHeaders_DuplicateWriteHeaderIgnored(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assertConsoleSecurityHeaders(t, rr.Header())
+}
+
+// statusCaptureWriter records every WriteHeader call so informational + final statuses can be asserted.
+type statusCaptureWriter struct {
+	header http.Header
+	codes  []int
+	body   []byte
+}
+
+func (w *statusCaptureWriter) Header() http.Header {
+	if w.header == nil {
+		w.header = make(http.Header)
+	}
+	return w.header
+}
+
+func (w *statusCaptureWriter) WriteHeader(statusCode int) {
+	w.codes = append(w.codes, statusCode)
+}
+
+func (w *statusCaptureWriter) Write(b []byte) (int, error) {
+	if len(w.codes) == 0 {
+		w.WriteHeader(http.StatusOK)
+	}
+	w.body = append(w.body, b...)
+	return len(b), nil
+}
+
+func TestSecurityHeadersWriter_InformationalThenFinalStatus(t *testing.T) {
+	rec := &statusCaptureWriter{}
+	req := httptest.NewRequest(http.MethodGet, "/vendor.js", nil)
+	w := &securityHeadersWriter{ResponseWriter: rec, req: req}
+
+	w.WriteHeader(http.StatusEarlyHints)
+	w.WriteHeader(http.StatusNotFound)
+	_, err := w.Write([]byte("missing"))
+	require.NoError(t, err)
+
+	require.Equal(t, []int{http.StatusEarlyHints, http.StatusNotFound}, rec.codes)
+	assert.Equal(t, "missing", string(rec.body))
+	assertConsoleSecurityHeaders(t, rec.header)
+}
+
+func TestSetSecurityHeaders_InformationalThenFinalViaHTTPServer(t *testing.T) {
+	app := newTestApp()
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Link", "</app.js>; rel=preload; as=script")
+		w.WriteHeader(http.StatusEarlyHints)
+		w.Header().Set(constants.HeaderContentType, "text/plain")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = io.WriteString(w, "upstream unavailable")
+	})
+
+	server := httptest.NewServer(app.SetSecurityHeaders(inner))
+	t.Cleanup(server.Close)
+
+	resp, err := http.Get(server.URL + "/_mf/genAi/app.abcdef123456.js")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = resp.Body.Close() })
+
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "upstream unavailable", string(body))
+	assertConsoleSecurityHeaders(t, resp.Header)
 }
 
 type hijackRecorder struct {

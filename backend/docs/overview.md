@@ -33,6 +33,25 @@
 | Pass-through call | Backend → API server using the end-user bearer token; cluster enforces RBAC |
 | `createSelfSubjectAccessReview` | Permission checks: posts SSAR with the user token (see `authUtils`) |
 
+## Response security headers and cache policy
+
+Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federation proxies) gets Console-equivalent browser security headers via an `onSend` hook:
+
+| Header | Value |
+| --- | --- |
+| `X-Content-Type-Options` | `nosniff` |
+| `Cross-Origin-Opener-Policy` | `same-origin` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `X-Frame-Options` | `DENY` |
+| `X-DNS-Prefetch-Control` | `off` |
+
+`Cache-Control` is selective (not blanket `no-store`):
+
+- **Host APIs** (`/api/…`, `/wss/…`), **SPA document** responses, and **federated module API proxies** use `no-cache, no-store, must-revalidate`.
+- **Static / `/_mf` asset files** use filename-based policies (`immutable` for content-hashed bundles, `no-cache` for unhashed scripts, short TTL for media). `/_mf` classification uses the URL pathname only, preserves upstream `no-store`/`private`, and forces `no-store` for API-like paths and non-2xx responses.
+
+Do not confuse response `Cache-Control: no-store` with the **request** header `Cache-Control: no-cache` used to force-refresh watcher-backed reads such as `GET /api/config`.
+
 ## Known Issues / Gotchas
 
 - **HTTP prohibited in production**: `utils/httpUtils.ts` rejects `http:` proxy targets unless `APP_ENV=development` (`ProxyError` / `SETUP_FAILURE`)

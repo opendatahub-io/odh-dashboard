@@ -3,7 +3,8 @@ import { getModuleFederationConfigs, type ModuleFederationConfig } from '@odh-da
 import { registerProxy } from '../utils/proxy';
 import {
   rewriteNoStoreCacheHeaders,
-  rewriteStaticFilesNoStoreCacheHeaders,
+  rewriteStaticProxyCacheHeaders,
+  staticProxyCacheOnResponse,
 } from '../utils/securityHeaders';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from '../utils/constants';
@@ -33,7 +34,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           },
           local: backend.localService,
           headers: backend.headers,
-          rewriteHeaders: rewriteStaticFilesNoStoreCacheHeaders,
+          rewriteHeaders: rewriteStaticProxyCacheHeaders,
+          onResponse: staticProxyCacheOnResponse,
           onError: (reply, error) => {
             if (
               'code' in error.error &&
