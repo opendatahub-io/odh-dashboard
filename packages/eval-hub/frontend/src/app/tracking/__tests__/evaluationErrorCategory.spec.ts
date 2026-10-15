@@ -26,6 +26,18 @@ describe('evaluationErrorCategory', () => {
     ).toBe('unknown_error');
   });
 
+  it.each([null, 123, ['evaluation_job_updated'], { code: 'evaluation_job_updated' }])(
+    'returns unknown_error for a malformed message code without forwarding it',
+    (messageCode) => {
+      expect(
+        evaluationErrorCategory({
+          message: 'UI diagnostic',
+          message_code: messageCode as unknown as string,
+        }),
+      ).toBe('unknown_error');
+    },
+  );
+
   it('returns unknown_error when a diagnostic has no message code', () => {
     expect(evaluationErrorCategory({ message: 'UI diagnostic' })).toBe('unknown_error');
   });
