@@ -742,6 +742,11 @@ describe('API Keys Page', () => {
     copyApiKeyModal
       .findApiKeyTokenInput()
       .should('have.value', formatApiKeyHiddenPreview(createdApiKey));
+    copyApiKeyModal.findCloseButton().should('be.disabled');
+    copyApiKeyModal.findCopiedAcknowledgement().should('exist');
+    copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
+    copyApiKeyModal.findCloseButton().should('be.enabled').click();
+    copyApiKeyModal.shouldBeOpen(false);
   });
 
   it('should create an API key with an on-date expiration', () => {
@@ -861,20 +866,24 @@ describe('API Keys Page', () => {
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
 
+    copyApiKeyModal.findAccessDetails().should('exist');
+    copyApiKeyModal.expandAccessDetails();
     copyApiKeyModal.findSubscriptionID().should('have.value', 'premium-team-sub');
     copyApiKeyModal.findModelID().should('have.value', 'granite-3-8b-instruct');
     copyApiKeyModal.findAvailableModelsToggle().should('exist');
     copyApiKeyModal.findBaseURL().should('have.value', 'https://api.example.com/maas-api');
     copyApiKeyModal
-      .findModelDocumentation()
-      .should('have.value', 'https://api.example.com/v1/models/granite-3-8b-instruct/docs');
+      .findUsageExample()
+      .should('contain.text', '/v1/chat/completions')
+      .and('contain.text', 'X-MAAS-SUBSCRIPTION: premium-team-sub')
+      .and('contain.text', '"model":"granite-3-8b-instruct"');
+    copyApiKeyModal.findEndpointCompatibilityAlert().should('be.visible');
 
-    //ensure documentation link is not displayed for external models
     copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Granite 3 8B Instruct');
     copyApiKeyModal.selectAvailableModel('flan-t5-small');
     copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Flan T5 Small');
     copyApiKeyModal.findModelID().should('have.value', 'flan-t5-small');
-    copyApiKeyModal.findModelDocumentation().should('not.exist'); // external
+    copyApiKeyModal.findUsageExample().should('contain.text', '"model":"flan-t5-small"');
   });
 
   it('should show a validation error for an out-of-range after-days value', () => {

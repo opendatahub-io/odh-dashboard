@@ -501,8 +501,35 @@ class CopyApiKeyModal extends Modal {
     return cy.findByTestId('close-api-key-button');
   }
 
-  findModelDocumentation(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('#api-key-model-documentation');
+  findCopiedAcknowledgement(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-copied-acknowledgement');
+  }
+
+  acknowledgeKeyCopiedCheckbox(): void {
+    this.findCopiedAcknowledgement().find('input').check({ force: true });
+  }
+
+  findAccessDetails(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-access-details');
+  }
+
+  expandAccessDetails(): void {
+    this.findAccessDetails()
+      .find('button')
+      .first()
+      .then(($btn) => {
+        if ($btn.attr('aria-expanded') === 'false') {
+          cy.wrap($btn).click();
+        }
+      });
+  }
+
+  findUsageExample(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-usage-example');
+  }
+
+  findEndpointCompatibilityAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-endpoint-compatibility-alert');
   }
 
   findAvailableModelsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -514,6 +541,7 @@ class CopyApiKeyModal extends Modal {
   }
 
   selectAvailableModel(value: string): void {
+    this.expandAccessDetails();
     this.findAvailableModelsToggle().click();
     this.findAvailableModelsOption(value).click();
   }
