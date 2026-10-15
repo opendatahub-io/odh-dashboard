@@ -47,6 +47,16 @@ func responsesRequestWithNamespace(method, url, body, namespace string) *http.Re
 	return req
 }
 
+type trackingReader struct {
+	io.Reader
+	read bool
+}
+
+func (r *trackingReader) Read(p []byte) (int, error) {
+	r.read = true
+	return r.Reader.Read(p)
+}
+
 type failingSSEWriter struct {
 	*httptest.ResponseRecorder
 	failAt   int
@@ -353,6 +363,48 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			if tt.name == "vector database timeout returns 503 with safe message" {
 				assert.NotContains(t, rr.Body.String(), "raw endpoint and credentials")
 			}
+			repo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestHandleResponsesEndpoint_ContentType(t *testing.T) {
+	url := "/api/v1/responses?dbSecretName=milvus&maasSecretName=maas-secret"
+	tests := []struct {
+		name        string
+		contentType string
+		wantStatus  int
+		wantRead    bool
+	}{
+		{name: "application/json", contentType: "application/json", wantStatus: http.StatusOK, wantRead: true},
+		{name: "application/json with charset", contentType: "application/json; charset=utf-8", wantStatus: http.StatusOK, wantRead: true},
+		{name: "missing", wantStatus: http.StatusBadRequest},
+		{name: "text/plain", contentType: "text/plain", wantStatus: http.StatusBadRequest},
+		{name: "malformed", contentType: "application/json; charset", wantStatus: http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, repo := newTestResponsesHandler()
+			if tt.wantRead {
+				repo.On("HandleResponses", mock.Anything, validParams, mock.Anything).
+					Return(&models.RAGResponse{Answer: "the answer"}, nil)
+			}
+
+			req := responsesRequestWithNamespace(http.MethodPost, url, validResponsesBody, "test-ns")
+			if tt.contentType == "" {
+				req.Header.Del("Content-Type")
+			} else {
+				req.Header.Set("Content-Type", tt.contentType)
+			}
+			body := &trackingReader{Reader: req.Body}
+			req.Body = io.NopCloser(body)
+			rr := httptest.NewRecorder()
+
+			h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+			assert.Equal(t, tt.wantStatus, rr.Code)
+			assert.Equal(t, tt.wantRead, body.read)
 			repo.AssertExpectations(t)
 		})
 	}

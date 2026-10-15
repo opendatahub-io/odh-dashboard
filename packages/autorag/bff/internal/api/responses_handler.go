@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"math"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -75,6 +76,12 @@ const (
 func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	params, ok := h.extractParams(w, r)
 	if !ok {
+		return
+	}
+
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		badRequestResponse(h.logger, w, r, "invalid request content type: expected application/json")
 		return
 	}
 
