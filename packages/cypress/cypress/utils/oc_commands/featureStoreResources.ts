@@ -309,7 +309,7 @@ print("CREATED_SAVED_DATASET:" + ds.name)
 };
 
 const FEAST_OPERATOR_DEPLOY = 'feast-operator-controller-manager';
-const DATA_REGISTRY_NAMESPACE_LABEL = 'opendatahub.io/data-registry=true';
+const DATA_REGISTRY_NAMESPACE = 'rhoai-data-registry';
 const K8S_NAME_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
 const assertSafeK8sName = (value: string, label: string): string => {
@@ -397,24 +397,14 @@ const waitForFeastOperatorReady = (): Cypress.Chainable => {
   );
 };
 
-/**
- * Waits for the namespace designated by the platform/module operator for Data Registry.
- * The namespace name is installation-specific, so the Data Registry label is the contract.
- */
+/** Waits for the Data Registry namespace provisioned by the Feast module operator. */
 export const waitForDataRegistryNamespace = (): Cypress.Chainable<string> => {
-  cy.step('Wait for the Data Registry namespace');
+  cy.step(`Wait for the Data Registry namespace ${DATA_REGISTRY_NAMESPACE}`);
   return pollUntilSuccess(
-    `oc get namespace -l ${DATA_REGISTRY_NAMESPACE_LABEL} -o json | ` +
-      `jq -er '.items[0].metadata.name // empty'`,
-    `namespace with ${DATA_REGISTRY_NAMESPACE_LABEL}`,
+    `oc get namespace ${DATA_REGISTRY_NAMESPACE} -o name`,
+    `namespace ${DATA_REGISTRY_NAMESPACE}`,
     { maxAttempts: 60, pollIntervalMs: 5000 },
-  ).then((result) => {
-    const namespace = trimOcJsonpath(result.stdout);
-    if (!namespace) {
-      throw new Error(`No namespace found with ${DATA_REGISTRY_NAMESPACE_LABEL}`);
-    }
-    return cy.wrap(namespace);
-  });
+  ).then(() => cy.wrap(DATA_REGISTRY_NAMESPACE));
 };
 
 /**
