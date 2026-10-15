@@ -646,11 +646,12 @@ describe('useModelEvaluationArtifactsQuery', () => {
   };
 
   const mockFeatureImportanceWithUnavailableStatistics = {
-    importance: { feature_a: 0.8, feature_b: 0.2 },
-    stddev: { feature_a: null, feature_b: null },
-    p_value: { feature_a: null, feature_b: null },
-    p99_high: { feature_a: null, feature_b: null },
-    p99_low: { feature_a: null, feature_b: null },
+    importance: { feature_a: 0.8, feature_b: null },
+    stddev: { feature_a: null, feature_b: 0.1 },
+    p_value: { feature_a: 0.2, feature_b: null },
+    n: { feature_a: null, feature_b: 10 },
+    p99_high: { feature_a: null, feature_b: 0.9 },
+    p99_low: { feature_a: 0.1, feature_b: null },
   };
 
   const mockConfusionMatrix = {
@@ -974,25 +975,29 @@ describe('useModelEvaluationArtifactsQuery', () => {
     },
   );
 
-  it.each([
-    { name: 'importance', artifact: { importance: { feature_a: null } } },
-    { name: 'n', artifact: { importance: { feature_a: 0.8 }, n: { feature_a: null } } },
-  ])('should reject null values in $name', async ({ artifact: invalidFeatureImportance }) => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce(
-      mockBlobJsonResponse(invalidFeatureImportance),
-    );
+  it.each(['importance', 'stddev', 'p_value', 'n', 'p99_high', 'p99_low'])(
+    'should reject non-numeric values in %s',
+    async (name) => {
+      const invalidFeatureImportance = {
+        importance: { feature_a: 0.8 },
+        [name]: { feature_a: 'invalid' },
+      };
+      (global.fetch as jest.Mock).mockResolvedValueOnce(
+        mockBlobJsonResponse(invalidFeatureImportance),
+      );
 
-    const { result } = renderHook(
-      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
-      { wrapper: createWrapper().Wrapper },
-    );
+      const { result } = renderHook(
+        () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
+        { wrapper: createWrapper().Wrapper },
+      );
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
 
-    expect(result.current.featureImportance).toBeUndefined();
-  });
+      expect(result.current.featureImportance).toBeUndefined();
+    },
+  );
 
   it('should load back_testing.json for timeseries runs (isTimeseries=true)', async () => {
     const mockBackTesting = {

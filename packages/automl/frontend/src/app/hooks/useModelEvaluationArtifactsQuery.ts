@@ -14,10 +14,10 @@ import type {
 
 /* eslint-disable camelcase */
 const FeatureImportanceDataSchema: z.ZodType<FeatureImportanceData> = z.object({
-  importance: z.record(z.string(), z.number()),
+  importance: z.record(z.string(), z.number().nullable()),
   stddev: z.record(z.string(), z.number().nullable()).optional(),
   p_value: z.record(z.string(), z.number().nullable()).optional(),
-  n: z.record(z.string(), z.number()).optional(),
+  n: z.record(z.string(), z.number().nullable()).optional(),
   p99_high: z.record(z.string(), z.number().nullable()).optional(),
   p99_low: z.record(z.string(), z.number().nullable()).optional(),
 });
