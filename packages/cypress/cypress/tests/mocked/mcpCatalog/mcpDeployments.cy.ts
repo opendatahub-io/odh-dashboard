@@ -666,9 +666,10 @@ describe('MCP Deploy from Catalog', () => {
       // The docs link is in the popover, not next to the button.
       mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
       // Screen readers get the explanation with the button, before the popover opens.
+      // The button is also aria-disabled while readiness loads, so retry until it is described.
       mcpServerDetailsPage
         .findDeployButton()
-        .invoke('attr', 'aria-describedby')
+        .should('have.attr', 'aria-describedby')
         .then((id) => {
           cy.get(`[id="${String(id)}"]`).should('have.text', NO_GATEWAY_TOOLTIP);
         });
