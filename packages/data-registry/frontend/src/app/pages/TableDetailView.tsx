@@ -42,7 +42,7 @@ type TableDetailViewProps = {
 };
 
 const WELL_KNOWN_PROPERTY_LABELS: Record<string, string> = {
-  pii: 'Pii',
+  pii: 'Personally identifiable information (PII)',
   purpose: 'Purpose',
   maturity: 'Maturity',
   license: 'License',

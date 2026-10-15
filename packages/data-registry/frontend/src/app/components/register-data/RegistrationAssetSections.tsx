@@ -288,7 +288,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         Optionally organize and annotate this data asset so it is easier to find later.
       </Content>
 
-      <FormGroup label="Collection" fieldId="data-collection">
+      <FormGroup label="Collection" fieldId="data-collection" isStack>
         <Content component="p">
           Organize this data asset into a collection. To manage collections for the entire project,
           go to{' '}
@@ -364,7 +364,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         ) : null}
       </FormGroup>
 
-      <FormGroup label="Labels" fieldId="data-labels">
+      <FormGroup label="Labels" fieldId="data-labels" isStack>
         <Content component="p">
           Optionally add labels to this data asset to make it easier to find later. To manage labels
           for the entire project, go to{' '}
@@ -414,6 +414,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
           variant="link"
           icon={<PlusCircleIcon />}
           onClick={handleAddLabel}
+          className="odh-data-registry-registration-form__add-label"
           data-testid="data-add-label-button"
         >
           Add label

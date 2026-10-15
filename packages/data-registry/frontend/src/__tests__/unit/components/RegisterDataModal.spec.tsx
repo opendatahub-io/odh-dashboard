@@ -60,7 +60,13 @@ describe('RegisterDataModal', () => {
     expect(screen.getByTestId('data-collection-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-path-input')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Asset type info' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'PII information' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Personally identifiable information details' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Key-value pairs')).toBeInTheDocument();
+    expect(
+      screen.getByText('Optionally define custom properties using key-value pairs.'),
+    ).toBeInTheDocument();
   });
 
   it('should default to Unstructured asset type', () => {
