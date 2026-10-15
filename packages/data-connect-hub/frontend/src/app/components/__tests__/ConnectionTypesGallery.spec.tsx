@@ -40,6 +40,32 @@ describe('ConnectionTypesGallery', () => {
     }),
   ];
 
+  it('should render the empty state when no connection types are passed in', () => {
+    render(<ConnectionTypesGallery connectionTypes={[]} onConnectionTypeClick={jest.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'No matching data connection types' })).toBeTruthy();
+    expect(screen.getByText('No data connection types available')).toBeTruthy();
+    expect(screen.queryByText('No data connection types match your search or filter')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+  });
+
+  it('should keep the empty state when searching with no connection types available', async () => {
+    const user = userEvent.setup();
+    render(<ConnectionTypesGallery connectionTypes={[]} onConnectionTypeClick={jest.fn()} />);
+
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search data connection types by name' }),
+      'does-not-exist',
+    );
+
+    expect(
+      screen.getAllByRole('heading', { name: 'No matching data connection types' }),
+    ).toHaveLength(1);
+    expect(screen.getByText('No data connection types available')).toBeTruthy();
+    expect(screen.queryByText('No data connection types match your search or filter')).toBeNull();
+  });
+
   it('should call the custom action with the selected connection type', async () => {
     const user = userEvent.setup();
     const onConnectionTypeClick = jest.fn();
@@ -163,6 +189,8 @@ describe('ConnectionTypesGallery', () => {
     );
 
     expect(screen.getByText('No matching data connection types')).toBeTruthy();
+    expect(screen.getByText('No data connection types match your search or filter')).toBeTruthy();
+    expect(screen.queryByText('No data connection types available')).toBeNull();
     expect(screen.queryByText('PostgreSQL')).toBeNull();
     expect(screen.queryByText('S3')).toBeNull();
   });
@@ -401,7 +429,20 @@ describe('ConnectionTypesGallery', () => {
     );
 
     expect(screen.getByText('No matching data connection types')).toBeTruthy();
+    expect(screen.getByText('No data connection types match your search or filter')).toBeTruthy();
+    expect(screen.queryByText('No data connection types available')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+    expect(screen.queryByTestId('postgresql--ConnectionTypeCard')).toBeNull();
+    expect(screen.queryByTestId('s3--ConnectionTypeCard')).toBeNull();
+    expect(screen.queryByTestId('oci-v1--ConnectionTypeCard')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
+
+    expect(screen.queryByText('No matching data connection types')).toBeNull();
+    expect(screen.queryByText('No data connection types match your search or filter')).toBeNull();
+    expect(screen.getByTestId('postgresql--ConnectionTypeCard')).toBeTruthy();
+    expect(screen.getByTestId('s3--ConnectionTypeCard')).toBeTruthy();
+    expect(screen.getByTestId('oci-v1--ConnectionTypeCard')).toBeTruthy();
   });
 });
