@@ -216,7 +216,10 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     isError: vectorDbSecretsError,
   } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'database');
   const databaseSecrets = React.useMemo(
-    () => [...(vectorDbSecrets ?? []), ...(legacyVectorDbSecrets ?? [])],
+    () =>
+      [...(vectorDbSecrets ?? []), ...(legacyVectorDbSecrets ?? [])].filter(
+        (secret) => secret.databaseProviders?.length === 1,
+      ),
     [legacyVectorDbSecrets, vectorDbSecrets],
   );
 

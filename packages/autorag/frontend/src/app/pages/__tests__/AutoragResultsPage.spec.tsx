@@ -1,16 +1,26 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import AutoragResultsPage, {
+  buildResponsesTemplate,
+  normalizeResponsesTemplate,
+} from '~/app/pages/AutoragResultsPage';
+import type { AutoRAGResponsesTemplate, AutoragPattern } from '~/app/types/autoragPattern';
+
+const invalidAutoRagToolChoice: AutoRAGResponsesTemplate['tool_choice'] =
+  // @ts-expect-error AutoRAG responses are statically file-search-only.
+  { type: 'auto' };
+
+void invalidAutoRagToolChoice;
 import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 import { downloadBlob } from '~/app/utilities/utils';
+import { canUseResponsesForPattern } from '~/app/utilities/responses';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -106,15 +116,30 @@ jest.mock('~/app/hooks/useComponentStatuses', () => ({
 
 // Mock AutoragResults to capture context
 let capturedContext: unknown = null;
+let capturedViewCodeTemplate: unknown = null;
 jest.mock('~/app/components/run-results/AutoragResults', () => ({
   __esModule: true,
-  default: () => {
+  default: ({ onViewCode }: { onViewCode?: (patternName: string) => void }) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { useAutoragResultsContext } = jest.requireActual('~/app/context/AutoragResultsContext');
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const context = useAutoragResultsContext();
     capturedContext = context;
-    return <div data-testid="autorag-results">AutoRAG Results Component</div>;
+    return (
+      <div data-testid="autorag-results">
+        <button data-testid="view-code-trigger" onClick={() => onViewCode?.('pattern-1')}>
+          View code
+        </button>
+      </div>
+    );
+  },
+}));
+
+jest.mock('~/app/components/run-results/ViewCodeModal', () => ({
+  __esModule: true,
+  default: ({ responsesTemplate }: { responsesTemplate: unknown }) => {
+    capturedViewCodeTemplate = responsesTemplate;
+    return <div data-testid="view-code-modal" />;
   },
 }));
 
@@ -162,7 +187,7 @@ jest.mock('mod-arch-shared', () => ({
     loadError,
     emptyStatePage,
     breadcrumb,
-    headerAction,
+    noHeader,
   }: {
     children: React.ReactNode;
     empty: boolean;
@@ -170,12 +195,11 @@ jest.mock('mod-arch-shared', () => ({
     loadError?: Error;
     emptyStatePage: React.ReactNode;
     breadcrumb?: React.ReactNode;
-    headerAction?: React.ReactNode;
+    noHeader?: boolean;
     [key: string]: unknown;
   }) => (
-    <div data-testid="applications-page">
+    <div data-testid="applications-page" data-no-header={noHeader ? 'true' : 'false'}>
       {breadcrumb}
-      {headerAction}
       {loadError ? <div data-testid="load-error">{loadError.message}</div> : null}
       {empty ? emptyStatePage : null}
       {loaded && !empty ? children : null}
@@ -258,6 +282,100 @@ const mockPatterns: Record<string, AutoragPattern> = {
   }),
 };
 
+describe('buildResponsesTemplate', () => {
+  it('should omit ranking options for dense retrieval', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+
+    expect(template.tools[0].ranking_options).toBeUndefined();
+  });
+
+  it('should include the configured embedding model in request metadata', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+
+    expect(template.metadata.embedding_model).toBe('text-embedding-3');
+  });
+
+  it('should keep Responses actions unavailable when the embedding model is missing', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        embedding: { ...mockPatterns['pattern-1'].settings.embedding, model_id: '  ' },
+      },
+    };
+
+    expect(
+      canUseResponsesForPattern(
+        { db_secret_name: 'db-secret', maas_secret_name: 'maas-secret' },
+        pattern,
+      ),
+    ).toBe(false);
+  });
+
+  it('should emit the supported RRF ranking shape for hybrid retrieval', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: { ...mockPatterns['pattern-1'].settings.retrieval, search_mode: 'hybrid' },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 0.5,
+    });
+  });
+
+  it('should preserve an explicitly configured zero alpha', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_alpha: 0,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 0,
+    });
+  });
+});
+
+describe('normalizeResponsesTemplate', () => {
+  it('should remove legacy ranking fields from a persisted response template', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const legacyTemplate = {
+      ...template,
+      tools: [
+        {
+          ...template.tools[0],
+          ranking_options: {
+            ranker: 'legacy-ranker',
+            alpha: 0.25,
+            impact_factor: 0.75,
+          },
+        },
+      ],
+    } as unknown as typeof template;
+
+    expect(normalizeResponsesTemplate(legacyTemplate)).toEqual({
+      ...template,
+      tools: [
+        {
+          ...template.tools[0],
+          ranking_options: { ranker: 'rrf', alpha: 0.25 },
+        },
+      ],
+    });
+  });
+});
+
 const createMockPipelineRun = (
   overrides?: Partial<PipelineRun>,
   parameters?: AutoragRuntimeParameters,
@@ -304,7 +422,11 @@ const expectHeaderActions = (conditionalAction?: 'stop' | 'retry') => {
   ].filter((id): id is string => id !== undefined);
 
   const actions = actionIds.map((id) => screen.getByTestId(id));
-  actions.forEach((action) => expect(action).toHaveClass('pf-m-link'));
+  actions.forEach((action) =>
+    expect(action).toHaveClass(
+      action.dataset.testid === 'run-details-button' ? 'pf-m-link' : 'pf-m-secondary',
+    ),
+  );
   actions.slice(0, -1).forEach((action, index) => {
     expect(action.compareDocumentPosition(actions[index + 1])).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
@@ -320,6 +442,7 @@ describe('AutoragResultsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     capturedContext = null;
+    capturedViewCodeTemplate = null;
     mockUseParams.mockReturnValue({ namespace: 'test-ns', runId: 'run-123' });
     mockUseLocation.mockReturnValue({ state: null });
 
@@ -407,6 +530,136 @@ describe('AutoragResultsPage', () => {
   });
 
   describe('context integration', () => {
+    it.each([
+      {},
+      { metadata: null },
+      { tools: [] },
+      { input: [] },
+      { tools: [{ type: 'file_search', vector_store_ids: [123] }] },
+    ])('should fall back safely for malformed persisted Responses templates: %j', (template) => {
+      const pattern = {
+        ...mockPatterns['pattern-1'],
+        inference: { responses_template: template },
+      } as unknown as AutoragPattern;
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        maas_secret_name: 'maas-secret',
+        db_secret_name: 'database-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+      mockUseAutoragResults.mockReturnValue({
+        patterns: { 'pattern-1': pattern },
+        failedPatterns: [],
+        isLoading: false,
+        isError: false,
+        ragPatternsBasePath: undefined,
+      });
+
+      renderPage();
+      fireEvent.click(screen.getByTestId('view-code-trigger'));
+
+      expect(capturedViewCodeTemplate).toEqual(
+        buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123'),
+      );
+    });
+
+    it('should normalize legacy ranking fields before opening View Code', () => {
+      const legacyTemplate = {
+        ...buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123'),
+        tools: [
+          {
+            ...buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123').tools[0],
+            ranking_options: {
+              ranker_strategy: 'weighted',
+              impact_factor: 0.75,
+            },
+          },
+        ],
+      };
+      const pattern = {
+        ...mockPatterns['pattern-1'],
+        inference: { responses_template: legacyTemplate },
+      };
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        maas_secret_name: 'maas-secret',
+        db_secret_name: 'database-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+      mockUseAutoragResults.mockReturnValue({
+        patterns: { 'pattern-1': pattern },
+        failedPatterns: [],
+        isLoading: false,
+        isError: false,
+        ragPatternsBasePath: undefined,
+      });
+
+      renderPage();
+      fireEvent.click(screen.getByTestId('view-code-trigger'));
+
+      expect(capturedViewCodeTemplate).toEqual({
+        ...legacyTemplate,
+        tools: [
+          {
+            ...legacyTemplate.tools[0],
+            ranking_options: { ranker: 'rrf', alpha: 0.5 },
+          },
+        ],
+      });
+    });
+
+    it('should not open View Code when neither the persisted template nor the fallback is usable', () => {
+      // canUseResponsesForPattern checks secrets, provider, collection, and
+      // embedding model — but not the generation model — so this pattern
+      // passes the eligibility gate while every buildable template carries an
+      // empty model.
+      const pattern = {
+        ...mockPatterns['pattern-1'],
+        settings: {
+          ...mockPatterns['pattern-1'].settings,
+          generation: { ...mockPatterns['pattern-1'].settings.generation, model_id: '' },
+        },
+        inference: { responses_template: {} },
+      } as unknown as AutoragPattern;
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        maas_secret_name: 'maas-secret',
+        db_secret_name: 'database-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+      mockUseAutoragResults.mockReturnValue({
+        patterns: { 'pattern-1': pattern },
+        failedPatterns: [],
+        isLoading: false,
+        isError: false,
+        ragPatternsBasePath: undefined,
+      });
+
+      renderPage();
+      fireEvent.click(screen.getByTestId('view-code-trigger'));
+
+      expect(screen.queryByTestId('view-code-modal')).not.toBeInTheDocument();
+      expect(capturedViewCodeTemplate).toBeNull();
+    });
+
     it('should provide context with pipelineRun and patterns', () => {
       const mockPipelineRun = createMockPipelineRun(undefined, {
         display_name: 'My RAG Run',
@@ -763,7 +1016,7 @@ describe('AutoragResultsPage', () => {
   });
 
   describe('breadcrumbs', () => {
-    it('should render experiment context breadcrumb with Run results', () => {
+    it('should render experiment context breadcrumb with the run name as the final item', () => {
       const mockPipelineRun = createMockPipelineRun({
         display_name: 'My Test Run',
       });
@@ -790,10 +1043,27 @@ describe('AutoragResultsPage', () => {
         '/gen-ai-studio/autorag/reconfigure/test-ns/run-123',
       );
       expect(experimentConfigLink.querySelector('a')).toHaveAttribute('data-from', 'results');
-      expect(screen.getByText('Run results')).toBeInTheDocument();
+      expect(screen.getByTestId('results-breadcrumb-run-name')).toHaveTextContent(
+        'My Test Run results',
+      );
+      expect(screen.queryByText('Run results')).not.toBeInTheDocument();
       expect(
         screen.getByTestId('project-navigator-link-in-breadcrumb').querySelector('a'),
       ).toHaveAttribute('href', '/projects/test-ns');
+    });
+
+    it('should render the page without a header section', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('applications-page')).toHaveAttribute('data-no-header', 'true');
     });
   });
 

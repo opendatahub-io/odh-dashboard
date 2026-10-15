@@ -216,7 +216,6 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         cy.step('Verify modal closed and template loaded into assistant');
         promptManagementModal.find().should('not.exist');
         promptAssistant.findNameTitle().should('contain.text', 'summarization-prompt');
-        promptAssistant.findEditButton().should('be.visible').click();
         promptAssistant
           .findTextarea()
           .should('have.value', 'You are a helpful summarization assistant.');
@@ -249,6 +248,94 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         cy.step('Cancel and close');
         promptManagementModal.findCancelButton().click();
         promptManagementModal.find().should('not.exist');
+      },
+    );
+  });
+
+  describe('Prompt Table - Model Filter and Sort', () => {
+    beforeEach(() => {
+      const namespace = config.defaultNamespace;
+
+      setupBaseMCPServerMocks(config, {
+        lsdStatus: 'Ready',
+        includeLsdModel: true,
+        includeAAModel: true,
+      });
+      cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.intercept('GET', '**/api/v1/mcp/status**', {
+        statusCode: 200,
+        body: { status: 'ready' },
+      });
+      setupPromptMocks(namespace);
+
+      appChrome.visit(['genAiStudio', 'promptManagement']);
+      chatbotPage.visit(namespace);
+      chatbotPage.verifyOnChatbotPage(namespace);
+      cy.wait('@bffConfig');
+      cy.wait('@aaModels');
+    });
+
+    it(
+      'should filter project prompts by model and clear the filter',
+      { tags: ['@GenAI', '@PromptManagement'] },
+      () => {
+        cy.step('Open the prompt table');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTable().should('be.visible');
+
+        cy.step('Switch the filter type to Model');
+        promptManagementModal.selectFilterType('model');
+        promptManagementModal.findSearchInput().should('not.exist');
+        promptManagementModal.findModelFilterSelect().should('contain.text', 'Filter by model');
+
+        cy.step('Select a model');
+        promptManagementModal.findModelFilterSelect().click();
+        promptManagementModal.findModelFilterOption('granite-3-8b-instruct').should('exist');
+        promptManagementModal.findModelFilterOption('llama-3-8b-instruct').click();
+
+        cy.step('Verify only prompts using that model are shown');
+        promptManagementModal.findModelFilterSelect().should('contain.text', 'llama-3-8b-instruct');
+        promptManagementModal.findTableRow('summarization-prompt').should('exist');
+        promptManagementModal.findTableRow('code-review-prompt').should('not.exist');
+        promptManagementModal.findTableRow('translation-prompt').should('not.exist');
+
+        cy.step('Clear all filters');
+        promptManagementModal.findClearAllFiltersButton().click();
+        promptManagementModal.findTableRow('code-review-prompt').should('exist');
+        promptManagementModal.findTableRow('translation-prompt').should('exist');
+      },
+    );
+
+    it(
+      'should sort project prompts by the Model column',
+      { tags: ['@GenAI', '@PromptManagement'] },
+      () => {
+        cy.step('Open the prompt table');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTable().should('be.visible');
+
+        cy.step('Sort ascending; prompts without a model are last');
+        promptManagementModal.findModelColumnSortButton().click();
+        promptManagementModal.shouldHaveRowNames([
+          'code-review-prompt',
+          'summarization-prompt',
+          'translation-prompt',
+          'data-extraction-prompt',
+        ]);
+
+        cy.step('Sort descending; prompts without a model stay last');
+        promptManagementModal.findModelColumnSortButton().click();
+        promptManagementModal.shouldHaveRowNames([
+          'summarization-prompt',
+          'code-review-prompt',
+          'translation-prompt',
+          'data-extraction-prompt',
+        ]);
       },
     );
   });
@@ -318,7 +405,6 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         promptManagementModal.findLoadButton().should('be.enabled').click();
 
         cy.step('Edit the loaded prompt');
-        promptAssistant.findEditButton().should('be.visible').click();
         promptAssistant.findTextarea().clear().type('You are an improved summarization assistant.');
 
         cy.step('Click Save to open the edit modal');
@@ -603,7 +689,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
     );
   });
 
-  describe('Revert and Reset', () => {
+  describe('Revert and Clear', () => {
     beforeEach(() => {
       const namespace = config.defaultNamespace;
 
@@ -632,7 +718,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
     });
 
     it(
-      'should revert edits on a loaded prompt and reset to default',
+      'should revert edits on a loaded prompt and clear to default',
       { tags: ['@GenAI', '@PromptManagement'] },
       () => {
         cy.step('Load an existing prompt');
@@ -642,7 +728,9 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         promptManagementModal.findLoadButton().should('be.enabled').click();
 
         cy.step('Verify prompt loaded into assistant');
-        promptAssistant.findEditButton().should('be.visible').click();
+        promptAssistant
+          .findTextarea()
+          .should('have.value', 'You are a helpful summarization assistant.');
 
         cy.step('Edit the prompt');
         promptAssistant.findTextarea().clear().type('Some temporary edits');
@@ -655,24 +743,30 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         promptAssistant.findConfirmationModalConfirm().click();
 
         cy.step('Verify reverted to original template');
-        promptAssistant.findEditButton().should('be.visible');
+        promptAssistant
+          .findTextarea()
+          .should('have.value', 'You are a helpful summarization assistant.');
 
-        cy.step('Reset to default');
-        promptAssistant.findResetButton().should('be.visible').click();
+        cy.step('Clear the loaded prompt');
+        promptAssistant.findClearLoadedPromptButton().should('be.visible').click();
 
-        cy.step('Verify reset to new prompt state');
+        cy.step('Verify new prompt state');
         promptAssistant.findNameTitle().should('contain.text', 'New Prompt');
+        promptAssistant.findClearLoadedPromptButton().should('not.exist');
 
         cy.step('Edit new prompt to trigger unsaved state');
         promptAssistant.findTextarea().clear().type('Unsaved draft instructions');
+        promptAssistant.findClearLoadedPromptButton().should('not.exist');
 
-        cy.step('Click Reset and confirm the dialog');
-        promptAssistant.findResetButton().should('be.enabled').click();
+        cy.step('Revert the draft and confirm the dialog');
+        promptAssistant.findRevertButton().should('be.enabled').click();
         promptAssistant.findConfirmationModal().should('be.visible');
         promptAssistant.findConfirmationModalConfirm().click();
 
-        cy.step('Verify reset back to new prompt state');
+        cy.step('Verify reverted new prompt state');
         promptAssistant.findNameTitle().should('contain.text', 'New Prompt');
+        promptAssistant.findClearLoadedPromptButton().should('not.exist');
+        promptAssistant.findRevertButton().should('not.exist');
       },
     );
   });
@@ -704,7 +798,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
     });
 
     it(
-      'should show Save As button when global prompt is loaded and edited',
+      'should show Add to prompt registry when global prompt is loaded and edited',
       { tags: ['@GenAI', '@PromptManagement', '@SaveAs'] },
       () => {
         cy.step('Load global prompt (starter-template-prompt)');
@@ -718,13 +812,12 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         cy.step('Verify global prompt loaded with scope label');
         promptAssistant.findNameTitle().should('contain.text', 'starter-template-prompt');
 
-        cy.step('Enter edit mode and make changes');
-        promptAssistant.findEditButton().should('be.visible').click();
+        cy.step('Edit the global prompt directly');
         promptAssistant.findTextarea().clear().type('Modified global template.');
 
-        cy.step('Verify Save is disabled and Save As is enabled');
-        promptAssistant.findSaveButton().should('be.disabled');
-        promptAssistant.findSaveAsButton().should('be.enabled');
+        cy.step('Verify Add to prompt registry is enabled and Save As is removed');
+        promptAssistant.findSaveButton().should('be.enabled');
+        cy.findByTestId('prompt-save-as-button').should('not.exist');
       },
     );
 
@@ -739,11 +832,10 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         cy.findByTestId('global-prompts-tab').click();
         promptManagementModal.findTableRow('starter-template-prompt').click();
         promptManagementModal.findLoadButton().should('be.enabled').click();
-        promptAssistant.findEditButton().should('be.visible').click();
         promptAssistant.findTextarea().clear().type('My custom translation instructions.');
 
-        cy.step('Click Save As');
-        promptAssistant.findSaveAsButton().click();
+        cy.step('Click Add to prompt registry');
+        promptAssistant.findSaveButton().click();
 
         cy.step('Verify Save As modal opens with editable name prefilled');
         createPromptModal.find().should('be.visible');
@@ -779,7 +871,6 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         cy.wait('@listPrompts');
         promptManagementModal.findTableRow('summarization-prompt').click();
         promptManagementModal.findLoadButton().should('be.enabled').click();
-        promptAssistant.findEditButton().should('be.visible').click();
         promptAssistant.findTextarea().clear().type('Modified prompt content.');
 
         cy.step('Click Save (user had permission when they loaded the prompt)');

@@ -13,7 +13,25 @@ import {
   McpDeployment,
   McpDeploymentCreateRequest,
   McpDeploymentUpdateRequest,
+  McpServerDeployReadiness,
 } from '~/odh/types/mcpDeploymentTypes';
+
+export const getMcpServerDeployReadiness =
+  (hostPath: string, queryParams: Record<string, unknown> = {}) =>
+  (opts: APIOptions, serverId: string): Promise<McpServerDeployReadiness> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/mcp_catalog/mcp_servers/${serverId}/deploy_readiness`,
+        queryParams,
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<McpServerDeployReadiness>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
 
 export const getMcpServerConverter =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>

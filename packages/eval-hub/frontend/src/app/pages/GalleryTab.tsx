@@ -67,9 +67,11 @@ const GalleryTab: React.FC<GalleryTabProps> = ({
         // showEvaluatesFilter
         showEvaluatesFilter={false}
         showPagination
+        // TEMP: Show the full first-release gallery. Re-enable the controls once the gallery grows.
+        showPaginationControls={false}
         showCreateSuiteCard={false}
         showContextualActions={false}
-        primaryActionLabel="Run"
+        primaryActionLabel="Run benchmark suite"
         primaryActionVariant="secondary"
         dropdownActionLabel="Customize"
         createSuiteRouteState={evaluationGalleryNavigationState}

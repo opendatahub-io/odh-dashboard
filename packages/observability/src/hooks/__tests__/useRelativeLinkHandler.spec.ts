@@ -71,12 +71,9 @@ describe('useRelativeLinkHandler', () => {
     });
 
     it('should remove the router basename from already-prefixed links', () => {
-      const renderResult = testHook(useRelativeLinkHandler)('/maas-consumer-portal');
+      const renderResult = testHook(useRelativeLinkHandler)('/custom-base');
       const anchor = document.createElement('a');
-      anchor.setAttribute(
-        'href',
-        '/maas-consumer-portal/observe-and-monitor/dashboard?dashboard=models',
-      );
+      anchor.setAttribute('href', '/custom-base/observe-and-monitor/dashboard?dashboard=models');
       container.appendChild(anchor);
 
       act(() => {

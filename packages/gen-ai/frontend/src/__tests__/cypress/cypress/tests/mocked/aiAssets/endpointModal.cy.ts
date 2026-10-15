@@ -55,29 +55,23 @@ describe('Endpoint Detail Modal - MaaS connection details', () => {
         'exist',
       );
       cy.contains('Authentication').should('exist');
-      cy.contains('To authenticate requests to this model, use an existing API key').should(
-        'exist',
-      );
-      cy.findByRole('link', { name: 'API keys' }).should('have.attr', 'href', '/maas/tokens');
-      cy.findByRole('button', { name: 'View subscriptions' }).should(
-        'have.attr',
-        'aria-expanded',
-        'false',
-      );
-      cy.findByRole('button', { name: 'View subscriptions' }).click();
-      cy.findByTestId('endpoint-modal-subscriptions-table').should('exist');
-      cy.findByRole('link', { name: 'Limited' }).should(
-        'have.attr',
-        'href',
-        '/maas/maas-governance/subscriptions/view/limited',
-      );
+      endpointModalPage
+        .findAuthenticationCopy()
+        .should(
+          'have.text',
+          "To authenticate requests to this model, use an existing API key or create a new one from a subscription's details page. The API key must be scoped to a subscription that includes this model.",
+        );
+      endpointModalPage.findSubscriptionsToggle().should('have.attr', 'aria-expanded', 'false');
+      endpointModalPage.findSubscriptionsToggle().click();
+      endpointModalPage.findSubscriptionsTable().should('exist');
+      endpointModalPage
+        .findSubscriptionLink('limited')
+        .should('have.attr', 'href', '/maas/keys-and-subs/subscriptions/limited');
       cy.contains('Lightweight access limited to smaller models.').should('exist');
-      cy.findByRole('link', { name: 'Standard' }).should(
-        'have.attr',
-        'href',
-        '/maas/maas-governance/subscriptions/view/standard',
-      );
-      cy.findByTestId('endpoint-modal-subscriptions-table').within(() => {
+      endpointModalPage
+        .findSubscriptionLink('standard')
+        .should('have.attr', 'href', '/maas/keys-and-subs/subscriptions/standard');
+      endpointModalPage.findSubscriptionsTable().within(() => {
         cy.contains('tr', 'Standard').find('td[data-label="Description"]').should('have.text', '-');
       });
       cy.contains('Usage example').should('exist');

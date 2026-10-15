@@ -178,14 +178,14 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
         <EmptyState
           headingLevel="h2"
           icon={ExclamationCircleIcon}
-          titleText="Unable to load collection"
+          titleText="Unable to load benchmark suite"
           status="danger"
           data-testid="copy-suite-load-error"
         >
           <EmptyStateBody>
             {loadError?.message ??
               providersLoadError?.message ??
-              'The requested collection could not be found.'}
+              'The requested benchmark suite could not be found.'}
           </EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>

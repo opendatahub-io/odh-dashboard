@@ -1,11 +1,14 @@
-// TODO this path is a placeholder while we await the real runtime library details page.
-// Changing this route and potentially changing how it mounts/integrates with that page will happen in https://redhat.atlassian.net/browse/RHOAIENG-96641
-const placeholderInstallPath =
-  '/settings/model-resources-operations/model-deployment-settings/placeholder-runtime-library-details-page/install';
+import { DashboardCodeEditor } from '../components/DashboardCodeEditor';
+
+const runtimeImageLibraryPath =
+  '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
+
+const getInstallPath = (runtimeId: string): string =>
+  `${runtimeImageLibraryPath}/${encodeURIComponent(runtimeId)}/install`;
 
 class RuntimeImageInstallPage {
-  visitInstallDirectly() {
-    cy.visitWithLogin(placeholderInstallPath);
+  visitInstallDirectly(runtimeId: string) {
+    cy.visitWithLogin(getInstallPath(runtimeId));
   }
 
   // To be used after navigating to a details page where the install button is present
@@ -17,16 +20,44 @@ class RuntimeImageInstallPage {
     return cy.findByRole('heading', { name: `Install ${runtimeImageName}` });
   }
 
+  findLibraryBreadcrumb() {
+    return cy.findByRole('link', { name: 'Runtime library' });
+  }
+
+  findRuntimeDetailsBreadcrumb(runtimeImageName: string) {
+    return cy.findByRole('link', { name: runtimeImageName });
+  }
+
   findNext() {
     return cy.findByTestId('runtime-image-install-next');
   }
 
   findServingRuntimeRadio() {
-    return cy.findByRole('radio', { name: /Serving runtime template/ });
+    return cy.findByTestId('install-target-servingRuntimeTemplate');
+  }
+
+  findServingRuntimeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('dashboard-code-editor'));
+  }
+
+  findServingRuntimeProtocol() {
+    return cy.findByTestId('custom-serving-api-protocol-selection');
+  }
+
+  findServingRuntimeModelTypes() {
+    return cy.findByTestId('custom-serving-model-type-selection');
+  }
+
+  findCreate() {
+    return cy.findByTestId('create-button');
+  }
+
+  findBack() {
+    return cy.findByRole('button', { name: 'Back' });
   }
 
   findAcceleratorRadio() {
-    return cy.findByRole('radio', { name: /LLM accelerator configuration/ });
+    return cy.findByTestId('install-target-llmInferenceServiceConfig');
   }
 
   findUnavailableMessage() {
@@ -41,23 +72,24 @@ class RuntimeImageInstallPage {
     return cy.findByText('No runtime image install target extensions are available.');
   }
 
-  loadNoResourceRouterState(cancelReturnRoute: string) {
+  loadActionDataRouterState<T extends { runtimeImageId: string }>(actionData: T) {
     cy.window().then((win) => {
       win.history.replaceState(
-        {
-          usr: {
-            actionData: {
-              runtimeImageId: 'empty-preview',
-              runtimeImageName: 'No resources',
-              cancelReturnRoute,
-              deploymentResources: {},
-            },
-          },
-        },
+        { usr: { actionData } },
         '',
-        placeholderInstallPath,
+        getInstallPath(actionData.runtimeImageId),
       );
       win.location.reload();
+    });
+  }
+
+  loadNoResourceRouterState(cancelReturnRoute: string) {
+    this.loadActionDataRouterState({
+      runtimeImageId: 'empty-preview',
+      runtimeImageName: 'No resources',
+      cancelReturnRoute,
+      libraryReturnRoute: runtimeImageLibraryPath,
+      deploymentResources: {},
     });
   }
 

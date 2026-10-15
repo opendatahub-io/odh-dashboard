@@ -1,6 +1,13 @@
-import { CatalogSourceConfig, CatalogSourceConfigPayload } from '~/app/modelCatalogTypes';
+import { CatalogSourceConfig, CatalogSourceConfigPayload, CatalogSourcePreviewModel } from '~/app/modelCatalogTypes';
 import { ManageSourceFormData } from '~/app/pages/modelCatalogSettings/useManageSourceData';
+export declare const isPreviewModelGatedAccessDenied: (model: CatalogSourcePreviewModel) => boolean;
 export declare const catalogSourceConfigToFormData: (sourceConfig: CatalogSourceConfig) => Partial<ManageSourceFormData>;
-export declare const generateSourceIdFromName: (name: string) => string;
 export declare const transformFormDataToConfig: (formData: ManageSourceFormData, existingSourceConfig?: CatalogSourceConfig) => CatalogSourceConfig;
-export declare const getPayloadForConfig: (sourceConfig: CatalogSourceConfig, isEditMode?: boolean) => CatalogSourceConfigPayload;
+export declare const resolveHuggingFaceApiKeyField: (apiKey: string | undefined, options: {
+    tokenModified: boolean;
+    hasExistingApiKey: boolean;
+    forPreview: boolean;
+}) => {
+    apiKey?: string;
+};
+export declare const getPayloadForConfig: (sourceConfig: CatalogSourceConfig, isEditMode?: boolean, tokenModified?: boolean) => CatalogSourceConfigPayload;

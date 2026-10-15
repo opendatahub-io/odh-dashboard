@@ -108,11 +108,11 @@ const extensions: (
       group: '1_catalog',
     },
   },
-  // Runtime image library tab on the Model deployment settings page
+  // Runtime library tab on the Model deployment settings page
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
+      required: [SupportedArea.MODEL_SERVING, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',
@@ -127,10 +127,10 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.RUNTIME_CATALOG, ADMIN_USER],
+      required: [SupportedArea.MODEL_SERVING, ADMIN_USER],
     },
     properties: {
-      path: `${RUNTIME_CATALOG_TAB_PATH}/:runtimeName`,
+      path: `${RUNTIME_CATALOG_TAB_PATH}/:runtimeId`,
       component: () =>
         import('./RuntimeCatalogWrapper').then((module) => ({
           default: module.RuntimeCatalogDetailsWrapper,

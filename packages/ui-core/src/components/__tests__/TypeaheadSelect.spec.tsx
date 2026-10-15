@@ -15,6 +15,16 @@ describe('TypeaheadSelect', () => {
     fireEvent.click(screen.getByRole('combobox'));
   };
 
+  it.each(['__proto__', 'constructor', 'toString'])(
+    'should handle arbitrary group labels such as %s',
+    (group) => {
+      render(<TypeaheadSelect selectOptions={makeGroupedOptions(2, group)} isRequired={false} />);
+      openMenu();
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+      expect(screen.getByRole('heading', { name: group })).toBeInTheDocument();
+    },
+  );
+
   describe('collapsible groups', () => {
     it('should render plain group headers when grouped option count is below threshold', () => {
       const options = makeGroupedOptions(5, 'NIM storage');

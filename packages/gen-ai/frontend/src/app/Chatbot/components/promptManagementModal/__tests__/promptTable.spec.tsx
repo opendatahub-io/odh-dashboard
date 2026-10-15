@@ -3,6 +3,7 @@ import * as React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import PromptTable from '~/app/Chatbot/components/promptManagementModal/promptTable';
+import { mockMLflowPrompt } from '~/__mocks__/mockMLflowPrompts';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -272,7 +273,7 @@ describe('PromptTable', () => {
     expect(modelCells[0]).toHaveTextContent('gpt-4');
   });
 
-  it('should display "Not specified" for prompts without model config', () => {
+  it('should display "-" for prompts without model config', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: mockPrompts,
       totalCount: mockPrompts.length,
@@ -283,7 +284,7 @@ describe('PromptTable', () => {
     render(<PromptTable {...defaultProps} />);
 
     const modelCells = screen.getAllByTestId('prompt-model-name');
-    expect(modelCells[1]).toHaveTextContent('Not specified');
+    expect(within(modelCells[1]).getByText('-')).toBeInTheDocument();
   });
 
   it('should render long model names with PatternFly Truncate component', () => {
@@ -342,7 +343,7 @@ describe('PromptTable', () => {
     expect(modelCell.querySelector('[class*="truncate"]')).toBeInTheDocument();
   });
 
-  it('should display "Not specified" when model_config is present but model_name is missing', () => {
+  it('should display "-" when model_config is present but model_name is missing', () => {
     const promptsWithNoModelName: MLflowPrompt[] = [
       {
         name: 'no-model-name-prompt',
@@ -365,7 +366,7 @@ describe('PromptTable', () => {
     render(<PromptTable {...defaultProps} />);
 
     const modelCell = screen.getByTestId('prompt-model-name');
-    expect(modelCell).toHaveTextContent('Not specified');
+    expect(within(modelCell).getByText('-')).toBeInTheDocument();
   });
 });
 
@@ -677,6 +678,247 @@ describe('PromptTable - Tab Navigation', () => {
       expect(screen.getByText('template-1')).toBeInTheDocument();
       expect(screen.getByText('template-2')).toBeInTheDocument();
       expect(screen.getByText('template-3')).toBeInTheDocument();
+    });
+  });
+
+  describe('Model filter and sort', () => {
+    const modelPrompts: MLflowPrompt[] = [
+      mockMLflowPrompt({
+        name: 'prompt-llama',
+        model_config: { model_name: 'llama-3' },
+        scope: { type: 'project', namespace: 'my-project' },
+      }),
+      mockMLflowPrompt({
+        name: 'prompt-none',
+        scope: { type: 'project', namespace: 'my-project' },
+      }),
+      mockMLflowPrompt({
+        name: 'prompt-granite',
+        model_config: { model_name: 'granite-8b' },
+        scope: { type: 'project', namespace: 'my-project' },
+      }),
+      mockMLflowPrompt({
+        name: 'prompt-global-mistral',
+        model_config: { model_name: 'mistral-7b' },
+        scope: { type: 'global', namespace: 'rhoai-templates' },
+      }),
+    ];
+
+    const getRowNames = () =>
+      within(screen.getByTestId('prompt-table'))
+        .getAllByTestId('prompt-table-row-name')
+        .map((cell) => cell.textContent);
+
+    beforeEach(() => {
+      mockUsePromptsList.mockReturnValue({
+        prompts: modelPrompts,
+        isLoading: false,
+        isFetchingNextPage: false,
+        fetchNextPage: jest.fn(),
+        error: null,
+      });
+    });
+
+    it('should switch the filter type to Model and show the model select', () => {
+      render(<PromptTable {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-search-input')).toBeInTheDocument();
+      expect(screen.queryByTestId('prompt-model-filter-select')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
+
+      expect(screen.getByTestId('prompt-model-filter-select')).toBeInTheDocument();
+      expect(screen.queryByTestId('prompt-search-input')).not.toBeInTheDocument();
+    });
+
+    it('should list unique models from the current tab and filter rows by the selected model', () => {
+      render(<PromptTable {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
+      fireEvent.click(screen.getByTestId('prompt-model-filter-select'));
+
+      // Alphabetical, and the global tab's model is not offered on the project tab
+      expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'granite-8b',
+        'llama-3',
+      ]);
+
+      fireEvent.click(screen.getByRole('option', { name: 'llama-3' }));
+
+      expect(getRowNames()).toEqual(['prompt-llama']);
+    });
+
+    it('should show the selected model in the toggle with the full name as its title', () => {
+      render(<PromptTable {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
+
+      const toggle = screen.getByTestId('prompt-model-filter-select');
+      expect(toggle).toHaveTextContent('Filter by model');
+
+      fireEvent.click(toggle);
+      fireEvent.click(screen.getByRole('option', { name: 'granite-8b' }));
+
+      expect(toggle).toHaveTextContent('granite-8b');
+      expect(within(toggle).getByTitle('granite-8b')).toBeInTheDocument();
+    });
+
+    it('should sort by model ascending and descending with unspecified models last', () => {
+      render(<PromptTable {...defaultProps} />);
+
+      const sortButton = within(screen.getByTestId('prompt-model-column-header')).getByRole(
+        'button',
+      );
+
+      fireEvent.click(sortButton);
+      expect(getRowNames()).toEqual(['prompt-granite', 'prompt-llama', 'prompt-none']);
+
+      fireEvent.click(sortButton);
+      expect(getRowNames()).toEqual(['prompt-llama', 'prompt-granite', 'prompt-none']);
+    });
+
+    it('should list a model shared by several prompts once and show all of its prompts', () => {
+      mockUsePromptsList.mockReturnValue({
+        prompts: [
+          mockMLflowPrompt({
+            name: 'prompt-llama-a',
+            model_config: { model_name: 'llama-3' },
+            scope: { type: 'project', namespace: 'my-project' },
+          }),
+          mockMLflowPrompt({
+            name: 'prompt-granite',
+            model_config: { model_name: 'granite-8b' },
+            scope: { type: 'project', namespace: 'my-project' },
+          }),
+          mockMLflowPrompt({
+            name: 'prompt-llama-b',
+            model_config: { model_name: 'llama-3' },
+            scope: { type: 'project', namespace: 'my-project' },
+          }),
+        ],
+        isLoading: false,
+        isFetchingNextPage: false,
+        fetchNextPage: jest.fn(),
+        error: null,
+      });
+
+      render(<PromptTable {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
+      fireEvent.click(screen.getByTestId('prompt-model-filter-select'));
+
+      expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'granite-8b',
+        'llama-3',
+      ]);
+
+      fireEvent.click(screen.getByRole('option', { name: 'llama-3' }));
+
+      expect(getRowNames()).toEqual(['prompt-llama-a', 'prompt-llama-b']);
+    });
+
+    it('should show and filter by model names with spaces and special characters as-is', () => {
+      const modelName = 'meta-llama/Llama 3.1 8B (Instruct)';
+      mockUsePromptsList.mockReturnValue({
+        prompts: [
+          mockMLflowPrompt({
+            name: 'prompt-special',
+            model_config: { model_name: modelName },
+            scope: { type: 'project', namespace: 'my-project' },
+          }),
+          mockMLflowPrompt({
+            name: 'prompt-granite',
+            model_config: { model_name: 'granite-8b' },
+            scope: { type: 'project', namespace: 'my-project' },
+          }),
+        ],
+        isLoading: false,
+        isFetchingNextPage: false,
+        fetchNextPage: jest.fn(),
+        error: null,
+      });
+
+      render(<PromptTable {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
+      fireEvent.click(screen.getByTestId('prompt-model-filter-select'));
+
+      expect(screen.getByTestId(`prompt-model-filter-option-${modelName}`)).toHaveTextContent(
+        modelName,
+      );
+
+      fireEvent.click(screen.getByRole('option', { name: modelName }));
+
+      expect(getRowNames()).toEqual(['prompt-special']);
+      expect(screen.getByTestId('prompt-model-filter-select')).toHaveTextContent(modelName);
+    });
+
+    describe('with more prompts than fit on one page', () => {
+      // 10 llama prompts fill page 1, so the granite prompt starts on page 2
+      const buildPrompts = (): MLflowPrompt[] => [
+        ...Array.from({ length: 10 }, (_, i) =>
+          mockMLflowPrompt({
+            name: `prompt-llama-${i + 1}`,
+            model_config: { model_name: 'llama-3' },
+            scope: { type: 'project', namespace: 'my-project' },
+          }),
+        ),
+        mockMLflowPrompt({
+          name: 'prompt-granite',
+          model_config: { model_name: 'granite-8b' },
+          scope: { type: 'project', namespace: 'my-project' },
+        }),
+      ];
+
+      beforeEach(() => {
+        mockUsePromptsList.mockReturnValue({
+          prompts: buildPrompts(),
+          isLoading: false,
+          isFetchingNextPage: false,
+          fetchNextPage: jest.fn(),
+          hasNextPage: false,
+          error: null,
+        });
+      });
+
+      it('should list models and filter prompts from beyond the first page', () => {
+        render(<PromptTable {...defaultProps} />);
+
+        expect(getRowNames()).toHaveLength(10);
+        expect(getRowNames()).not.toContain('prompt-granite');
+
+        fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Model' }));
+        fireEvent.click(screen.getByTestId('prompt-model-filter-select'));
+
+        expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+          'granite-8b',
+          'llama-3',
+        ]);
+
+        fireEvent.click(screen.getByRole('option', { name: 'granite-8b' }));
+
+        expect(getRowNames()).toEqual(['prompt-granite']);
+      });
+
+      it('should sort prompts from every page, not just the first', () => {
+        render(<PromptTable {...defaultProps} />);
+
+        expect(getRowNames()).not.toContain('prompt-granite');
+
+        fireEvent.click(
+          within(screen.getByTestId('prompt-model-column-header')).getByRole('button'),
+        );
+
+        const rowNames = getRowNames();
+        expect(rowNames).toHaveLength(10);
+        expect(rowNames[0]).toBe('prompt-granite');
+      });
     });
   });
 });

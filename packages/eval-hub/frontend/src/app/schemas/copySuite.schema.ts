@@ -110,7 +110,7 @@ export const copySuiteSchema = z
   });
 
 export const SOURCE_COLLECTION_NAME_ERROR =
-  'Suite name must be different from the source collection name.';
+  'Suite name must be different from the source benchmark suite name.';
 
 export const isSameAsSourceCollectionName = (
   suiteName: string,

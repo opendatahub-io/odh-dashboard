@@ -1,8 +1,12 @@
-import type { PlaceholderRuntimeImageActionData } from './placeholder-types';
+import type { RuntimeImageInstallActionData } from '@mf/modelRegistry/extension-points';
+import { RUNTIME_IMAGE_LIBRARY_PATH } from './const';
 import type {
   RuntimeImageInstallTargetExtension,
   RuntimeImageInstallTargetId,
 } from '../../../extension-points/runtime-image-install-target';
+
+export const getRuntimeImageInstallRoute = (runtimeId: string): string =>
+  `${RUNTIME_IMAGE_LIBRARY_PATH}/${encodeURIComponent(runtimeId)}/install`;
 
 export const getMatchingInstallTarget = (
   extensions: RuntimeImageInstallTargetExtension[],
@@ -16,7 +20,7 @@ export const getMatchingInstallTarget = (
 // Given the action data passed from the runtime library and the resolved extensions,
 // return the install target extensions we have data for (first match per target).
 export const getAvailableInstallTargets = (
-  data: PlaceholderRuntimeImageActionData,
+  data: RuntimeImageInstallActionData,
   extensions: RuntimeImageInstallTargetExtension[],
 ): RuntimeImageInstallTargetExtension[] =>
   Array.from(new Set(extensions.map((extension) => extension.properties.id))).flatMap(

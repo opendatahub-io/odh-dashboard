@@ -11,10 +11,10 @@ import {
   Label,
   Truncate,
 } from '@patternfly/react-core';
+import { RhStandardContainerImageIcon } from '@patternfly/react-icons';
 import { TruncatedText } from 'mod-arch-shared';
 import { Link, type LinkProps } from 'react-router-dom';
 import type { ServingRuntime } from '~/odh/types/servingRuntimeCatalogTypes';
-import RuntimeCatalogIcon from '~/odh/pages/runtimeCatalog/RuntimeCatalogIcon';
 import HardwareIcon from '~/odh/pages/runtimeCatalog/HardwareIcon';
 import {
   getRuntimeCatalogCardKey,
@@ -28,7 +28,7 @@ type RuntimeCatalogCardProps = {
 
 const RuntimeCatalogCard: React.FC<RuntimeCatalogCardProps> = React.memo(({ runtime }) => {
   const cardKey = getRuntimeCatalogCardKey(runtime);
-  const runtimeName = runtime.name ?? cardKey;
+  const runtimeId = runtime.id;
   const title = runtime.displayName || runtime.name || cardKey;
   const hardwareLabel = getRuntimePrimaryHardwareLabel(runtime);
   const showLatestBadge = (runtime.versionCount ?? 0) > 0;
@@ -48,7 +48,7 @@ const RuntimeCatalogCard: React.FC<RuntimeCatalogCardProps> = React.memo(({ runt
               aria-hidden
               data-testid={`runtime-catalog-card-icon-${cardKey}`}
             >
-              <RuntimeCatalogIcon />
+              <RhStandardContainerImageIcon noDefaultStyle />
             </span>
           </FlexItem>
           {showLatestBadge && (
@@ -64,9 +64,14 @@ const RuntimeCatalogCard: React.FC<RuntimeCatalogCardProps> = React.memo(({ runt
             data-testid={`runtime-catalog-card-detail-link-${cardKey}`}
             variant="link"
             isInline
-            component={(props: LinkProps) => (
-              <Link {...props} to={getRuntimeCatalogDetailsRoute(runtimeName)} />
-            )}
+            isDisabled={!runtimeId}
+            component={
+              runtimeId
+                ? (props: LinkProps) => (
+                    <Link {...props} to={getRuntimeCatalogDetailsRoute(runtimeId)} />
+                  )
+                : undefined
+            }
             style={{
               fontSize: 'var(--pf-t--global--font--size--body--default)',
               fontWeight: 'var(--pf-t--global--font--weight--body--bold)',

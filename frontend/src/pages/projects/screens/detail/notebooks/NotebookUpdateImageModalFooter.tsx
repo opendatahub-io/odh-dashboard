@@ -7,6 +7,7 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { NotebookKind, ImageStreamSpecTagType, ImageStreamKind } from '#~/k8sTypes';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { NotebookState } from '#~/pages/projects/notebook/types';
+import { formatContainerResourcesForTracking } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { NotebookImage } from './types';
 import { NotebookImageStatus } from './const';
 
@@ -44,11 +45,9 @@ const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterPro
   ) => {
     if (latestImageVersion) {
       const tep: FormTrackingEventProperties = {
-        containers: Object.entries(notebook.spec.template.spec.containers[0]?.resources || {})
-          .map(([key, value]) =>
-            Object.entries(value).map(([k, v]) => `${key}.${k}: ${v?.toString() || ''}`),
-          )
-          .join(', '),
+        containers: formatContainerResourcesForTracking(
+          notebook.spec.template.spec.containers[0]?.resources,
+        ),
         lastSelectedImage: latestImageVersion.from
           ? latestImageVersion.from.name
           : `${imageStream.metadata.name || 'unknown image'} - ${

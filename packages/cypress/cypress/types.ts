@@ -256,6 +256,7 @@ export type WBStorageClassesTestData = {
   mountPathA: string;
   mountPathB: string;
   mountPathC: string;
+  isS390x?: boolean;
 };
 
 export type ClusterStorageAccessModesTestData = {
@@ -292,6 +293,8 @@ export type CommandLineResult = {
   stderr: string;
 };
 
+export type FileMapping = Record<string, string>;
+
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
   OCP_API_URL?: string;
@@ -316,6 +319,7 @@ export type TestConfig = {
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
+  FILEMAPPING?: FileMapping;
 };
 
 export type DataScienceProjectData = {
@@ -554,9 +558,15 @@ export type ModelTolerationsTestData = {
   tolerationValue: string;
   hardwareProfileDeploymentSize: string;
   modelName: string;
+  dataConnectionName: string;
   modelFilePath: string;
   modelFormat: string;
   servingRuntime: string;
+  clusterRole?: string;
+  isS390x?: boolean;
+  servingRuntimeName?: string;
+  servingRuntimeYamlPath?: string;
+  inferenceServicePatch?: string;
 };
 
 export type NotebookTolerationsTestData = {
@@ -795,6 +805,33 @@ export type GenAiTestData = {
   configMapName: string;
   playgroundServiceName: string;
   servingRuntimesPath: string;
+};
+
+export type GenAiMaaSTestData = {
+  llmInferenceServiceFixturePath: string;
+  subscriptionFixturePath: string;
+  authPolicyFixturePath: string;
+  phase: string;
+  playgroundServiceName: string;
+  playgroundPodPrefix: string;
+  playgroundPodReadyTimeout: string;
+  testMessage: string;
+};
+
+export type GenAiTracingTestData = {
+  modelId: string;
+  modelType: string;
+  displayName: string;
+  endpointUrl: string;
+  lsdServiceName: string;
+  lsdPodPrefix: string;
+  lsdPodReadyTimeout: string;
+  tracing: {
+    testPrompt: string;
+    mlflowTraceDetailExpectedSpans: string[];
+    openTelemetryCondition: string;
+    tempoCondition: string;
+  };
 };
 
 export type CustomEndpointTestData = {
@@ -1119,6 +1156,15 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
+};
+
+export type AgentRuntimesTestData = {
+  pageTitle: string;
+  projectResourceName: string;
+  filterSearchTerm: string;
+  filterOptionStatus: string;
+  statusPending: string;
+  statusReady: string;
 };
 
 export type MlflowIrisRunData = {

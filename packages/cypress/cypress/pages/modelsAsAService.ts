@@ -7,7 +7,11 @@ import type { UserAuthConfig } from '../types';
 
 // MaaS Wizard Field helpers for the model deployment wizard
 class MaaSWizardField {
-  findSaveAsMaaSCheckbox() {
+  findProjectMembersRadio() {
+    return cy.findByTestId('project-members-radio');
+  }
+
+  findSubscribedUsersRadio() {
     return cy.findByTestId('maas/save-as-maas-checkbox');
   }
 }
@@ -496,6 +500,35 @@ class CopyApiKeyModal extends Modal {
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('close-api-key-button');
   }
+
+  findModelDocumentation(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-model-documentation');
+  }
+
+  findAvailableModelsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-available-models-toggle');
+  }
+
+  findAvailableModelsOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`api-key-available-models-option-${value}`);
+  }
+
+  selectAvailableModel(value: string): void {
+    this.findAvailableModelsToggle().click();
+    this.findAvailableModelsOption(value).click();
+  }
+
+  findSubscriptionID(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-subscription-id');
+  }
+
+  findModelID(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-model-id');
+  }
+
+  findBaseURL(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('#api-key-base-url');
+  }
 }
 
 class AdminBulkRevokeAPIKeyModal extends Modal {
@@ -652,7 +685,7 @@ class SubscriptionTableRow extends TableRow {
   }
 
   findPriority(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Priority"]');
+    return this.find().find('[data-label="Inference Priority"]');
   }
 
   findExpandGroupButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -786,20 +819,24 @@ class CreateSubscriptionPage {
   }
 
   findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-priority').find('input[type="number"]');
+    return cy.findByTestId('subscription-inference-priority').find('input[type="number"]');
   }
 
   findPriorityPlusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-priority').findByRole('button', { name: 'Plus' });
+    return cy
+      .findByTestId('subscription-inference-priority')
+      .findByRole('button', { name: 'Plus' });
   }
 
   findPriorityMinusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-priority').findByRole('button', { name: 'Minus' });
+    return cy
+      .findByTestId('subscription-inference-priority')
+      .findByRole('button', { name: 'Minus' });
   }
 
   findPriorityValidationError(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy
-      .findByTestId('subscription-priority')
+      .findByTestId('subscription-inference-priority')
       .parents('.pf-v6-c-form__group')
       .find('.pf-v6-c-helper-text__item');
   }
@@ -888,7 +925,7 @@ class EditSubscriptionPage {
   }
 
   findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-priority').find('input[type="number"]');
+    return cy.findByTestId('subscription-inference-priority').find('input[type="number"]');
   }
 
   findGroupsSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1099,6 +1136,14 @@ class ViewSubscriptionPage {
 
   findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('menuitem', { name: 'Edit' });
+  }
+
+  findModelStatus(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`model-status-${modelName}`);
+  }
+
+  findFlowControlStatus(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`model-flow-control-status-${modelName}`);
   }
 }
 
@@ -1908,6 +1953,10 @@ class ExternalModelsPage {
     return cy.findByTestId('add-external-model-button');
   }
 
+  findDeletedProviderRefsAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('deleted-provider-refs-alert');
+  }
+
   findMaaSPublishedPostDeployAlert() {
     return cy.findByTestId('maas-published-post-deploy-alert');
   }
@@ -1920,6 +1969,14 @@ class ExternalModelsPage {
 class ProviderRefTableRow extends Contextual<HTMLElement> {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Provider"]');
+  }
+
+  findMissingProviderIcon(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-testid^="provider-ref-missing-"]');
+  }
+
+  findMissingProviderPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(/^provider-ref-missing-popover-/);
   }
 
   findTargetModelId(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2227,13 +2284,25 @@ class AddProviderReferenceWizard extends ProviderReferenceModalBase {
     return this.find().findByTestId('provider-ref-provider-select');
   }
 
+  findSelectExistingProviderRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-source-existing');
+  }
+
+  findCreateNewProviderRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-source-create-new');
+  }
+
+  findNoExternalProvidersHelper(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-external-providers-helper');
+  }
+
   selectProvider(displayName: string): void {
     this.findProviderSelect().click();
     cy.findByRole('option', { name: displayName }).click();
   }
 
   selectCreateNewProvider(): void {
-    this.find().findByTestId('provider-source-create-new').click();
+    this.findCreateNewProviderRadio().click();
   }
 
   selectProviderType(value: string): void {
@@ -2382,6 +2451,10 @@ class ExternalModelTableRow extends TableRow {
 
   findMissingMaaSModelRefWarningPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-model-missing-maas-model-ref-popover');
+  }
+
+  findDeletedProviderIcon(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-model-deleted-provider-icon');
   }
 
   findExpandedProviderRow(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {

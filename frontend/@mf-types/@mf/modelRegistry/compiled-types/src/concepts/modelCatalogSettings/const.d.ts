@@ -1,14 +1,10 @@
 import { CatalogSourceConfig, HuggingFaceCatalogSourceConfig, CatalogSourceType } from '~/app/modelCatalogTypes';
+import { CatalogSourceStatus } from '~/app/shared/types/catalogTypes';
+export { CatalogSourceStatus };
 export declare const CATALOG_SOURCE_TYPE_LABELS: Record<CatalogSourceType, string>;
 export declare enum ModelVisibilityBadgeColor {
     FILTERED = "purple",
     UNFILTERED = "grey"
-}
-export declare enum CatalogSourceStatus {
-    AVAILABLE = "available",
-    PARTIALLY_AVAILABLE = "partially-available",
-    ERROR = "error",
-    DISABLED = "disabled"
 }
 /**
  * Checks whether a catalog source status indicates that models are available.

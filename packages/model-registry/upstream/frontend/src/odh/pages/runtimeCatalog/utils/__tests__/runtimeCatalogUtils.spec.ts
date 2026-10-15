@@ -67,7 +67,7 @@ describe('getRuntimeHardwareDisplayLabel', () => {
 });
 
 describe('getRuntimeCatalogDetailsRoute', () => {
-  it('should build details route from runtime name', () => {
-    expect(getRuntimeCatalogDetailsRoute('vllm')).toContain('/serving-runtime-catalog/vllm');
+  it('should build details route from the runtime ID', () => {
+    expect(getRuntimeCatalogDetailsRoute('1')).toContain('/serving-runtime-catalog/1');
   });
 });

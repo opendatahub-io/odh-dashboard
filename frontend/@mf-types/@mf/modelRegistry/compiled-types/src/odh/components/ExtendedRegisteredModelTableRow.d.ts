@@ -5,6 +5,7 @@ type ExtendedRegisteredModelTableRowProps = {
     latestModelVersion: ModelVersion | undefined;
     isArchiveRow?: boolean;
     hasDeploys?: boolean;
+    loaded?: boolean;
     refresh: () => void;
 };
 declare const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowProps>;

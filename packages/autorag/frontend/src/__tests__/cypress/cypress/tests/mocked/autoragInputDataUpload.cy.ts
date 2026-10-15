@@ -50,7 +50,7 @@ describe('AutoRAG knowledge document image upload', () => {
 
     fileExplorer.findUploadInput().selectFile(
       {
-        contents: 'mock TIFF image content',
+        contents: Cypress.Buffer.from('mock TIFF image content'),
         fileName: IMAGE_NAME,
         mimeType: 'image/tiff',
       },

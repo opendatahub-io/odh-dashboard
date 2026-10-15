@@ -7,7 +7,7 @@ import { CatalogFilterOptionsList, CatalogPerformanceArtifactList, CatalogPerfor
  *
  * @param sourceId - The catalog source ID
  * @param modelName - The model name
- * @param params - Performance-specific parameters (targetRPS, latencyProperty, recommendations, pagination)
+ * @param params - Performance-specific parameters (targetRPS, latencyProperty, orderBy, pagination)
  * @param filterData - Current filter state for building filterQuery
  * @param filterOptions - Filter options from the API for validation
  * @param enabled - Whether to enable fetching (default: true)

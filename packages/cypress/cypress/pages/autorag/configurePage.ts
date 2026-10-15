@@ -32,6 +32,14 @@ class AutoragConfigurePage {
     cy.testA11y();
   }
 
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findPageBody() {
+    return cy.get('body');
+  }
+
   // Step 1 - Create
   findNameInput(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
     return cy.findByTestId('autorag-name-input', options);

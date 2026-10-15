@@ -61,7 +61,12 @@ const isMaaSSubscriptionRef = (v: unknown): v is ModelSubscriptionRef =>
   typeof v.namespace === 'string' &&
   (v.tokenRateLimits == null ||
     (Array.isArray(v.tokenRateLimits) && v.tokenRateLimits.every(isTokenRateLimit))) &&
-  (v.billingRate === undefined || typeof v.billingRate === 'object');
+  (v.billingRate === undefined || typeof v.billingRate === 'object') &&
+  (v.objectiveName === undefined || typeof v.objectiveName === 'string') &&
+  (v.targetPool === undefined || typeof v.targetPool === 'string') &&
+  (v.ready === undefined || typeof v.ready === 'boolean') &&
+  (v.reason === undefined || typeof v.reason === 'string') &&
+  (v.message === undefined || typeof v.message === 'string');
 
 const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   isRecord(v) &&
@@ -69,7 +74,8 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   (v.displayName === undefined || typeof v.displayName === 'string') &&
   (v.description === undefined || typeof v.description === 'string') &&
   typeof v.namespace === 'string' &&
-  (v.priority === undefined || typeof v.priority === 'number') &&
+  (v.inferencePriority === undefined || typeof v.inferencePriority === 'number') &&
+  (v.resourceVersion === undefined || typeof v.resourceVersion === 'string') &&
   isOwnerSpec(v.owner) &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isMaaSSubscriptionRef) &&
@@ -138,7 +144,7 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
   isRecord(v) &&
   typeof v.subscription_id_header === 'string' &&
   typeof v.subscription_description === 'string' &&
-  typeof v.priority === 'number' &&
+  (v.inference_priority === undefined || typeof v.inference_priority === 'number') &&
   Array.isArray(v.model_refs) &&
   v.model_refs.every(isModelRefInfo);
 
