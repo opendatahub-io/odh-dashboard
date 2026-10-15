@@ -34,8 +34,11 @@ export const getBaseModelDeployedTrackingProperties = (
   const capabilitiesRaw: unknown = formState[MODEL_CAPABILITIES_FIELD_ID];
   const capabilities: string[] = Array.isArray(capabilitiesRaw) ? capabilitiesRaw : [];
   const template = formState.modelServer?.data?.selection?.template;
-  const servingRuntimeSource: ServingRuntimeSource | undefined =
-    template?.metadata?.labels?.['platform.opendatahub.io/part-of'] ? 'preinstalled' : undefined;
+  const servingRuntimeSource: ServingRuntimeSource | undefined = template?.metadata?.labels?.[
+    'platform.opendatahub.io/part-of'
+  ]
+    ? 'preinstalled'
+    : undefined;
   return {
     modelType: formState.modelType.data?.type,
     runtime: serverTemplateName,
