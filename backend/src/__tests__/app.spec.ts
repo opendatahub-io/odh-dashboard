@@ -60,6 +60,10 @@ describe('app static and view wiring', () => {
         await instance.register(require('../routes/root').default);
         instance.get('/api/health', async () => ({ status: 'ok' }));
         instance.get('/api/status', async () => ({ userName: 'test' }));
+        // Minimal WebSocket route for 101 header testing (no auth required).
+        instance.get('/ws-header-test', { websocket: true }, (socket) => {
+          socket.close();
+        });
       }),
     }));
 
@@ -113,6 +117,33 @@ describe('app static and view wiring', () => {
         expect(response.headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
       }
       expect(health.json()).toEqual({ status: 'ok' });
+    });
+  });
+
+  describe('WebSocket 101 security headers', () => {
+    it('should include nosniff on WebSocket upgrade responses', async () => {
+      const address = await app.listen({ port: 0 });
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const WebSocket = require('ws') as typeof import('ws');
+
+      await new Promise<void>((resolve, reject) => {
+        const ws = new WebSocket(`${address.replace('http', 'ws')}/ws-header-test`);
+
+        ws.on('upgrade', (response: { headers: Record<string, string> }) => {
+          try {
+            expect(response.headers['x-content-type-options']).toBe(X_CONTENT_TYPE_OPTIONS);
+            resolve();
+          } catch (err) {
+            reject(err);
+          } finally {
+            ws.close();
+          }
+        });
+
+        ws.on('error', (err: Error) => {
+          reject(new Error(`WebSocket connection error: ${err.message}`));
+        });
+      });
     });
   });
 

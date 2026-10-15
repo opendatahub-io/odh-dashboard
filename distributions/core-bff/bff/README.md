@@ -79,7 +79,7 @@ When `ODH_PLATFORM_TYPE` is set explicitly, the configured value is always trust
 
 ## Response security headers and cache policy
 
-Every normal HTTP reply gets Console-equivalent browser security headers via response-writer middleware:
+Every normal HTTP reply gets browser security headers via response-writer middleware:
 
 | Header | Value |
 | --- | --- |
@@ -96,6 +96,10 @@ Every normal HTTP reply gets Console-equivalent browser security headers via res
 - **Host static assets** use filename-based policies (immutable for content-hashed bundles, `no-cache` for unhashed scripts, short TTL for media).
 
 Informational `1xx` writes are forwarded without committing the response so a later final status (for example `404` after `103`) is preserved.
+
+### WebSocket 101 upgrade responses
+
+`SetSecurityHeaders` does **not** cover WebSocket upgrades — `gorilla/websocket`'s `Upgrade` writes the `101 Switching Protocols` response directly. `X-Content-Type-Options: nosniff` is passed via the upgrader's `responseHeader` (see `clientUpgradeResponseHeader` in `ws_proxy.go`), along with the negotiated `Sec-WebSocket-Protocol` when present. Unrelated queued headers are not copied onto the 101.
 
 ## Endpoints
 

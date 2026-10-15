@@ -35,7 +35,7 @@
 
 ## Response security headers and cache policy
 
-Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federation proxies) gets Console-equivalent browser security headers via an `onSend` hook:
+Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federation proxies) gets browser security headers via an `onSend` hook:
 
 | Header | Value |
 | --- | --- |
@@ -51,6 +51,10 @@ Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federa
 - **Static / `/_mf` asset files** use filename-based policies (`immutable` for content-hashed bundles, `no-cache` for unhashed scripts, short TTL for media). `/_mf` classification uses the URL pathname only, preserves upstream `no-store`/`private`, and forces `no-store` for API-like paths and non-2xx responses.
 
 Do not confuse response `Cache-Control: no-store` with the **request** header `Cache-Control: no-cache` used to force-refresh watcher-backed reads such as `GET /api/config`.
+
+### WebSocket 101 upgrade responses
+
+The `onSend` hook does **not** run for WebSocket routes — `@fastify/websocket` hijacks the connection before Fastify sends a response. `X-Content-Type-Options: nosniff` is added on the browser-facing `101 Switching Protocols` response via a `headers` listener on the `ws` server (see `app.ts`). Only `nosniff` is set; unrelated queued headers are not copied onto the 101.
 
 ## Known Issues / Gotchas
 

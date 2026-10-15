@@ -127,4 +127,3 @@ func TestEnableTelemetry_InjectsTraceID(t *testing.T) {
 	assert.NotNil(t, traceID)
 	assert.NotEmpty(t, traceID.(string))
 }
-
