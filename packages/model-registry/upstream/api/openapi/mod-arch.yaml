@@ -1157,14 +1157,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-          description: The caller cannot create MCP servers in the namespace.
+          description: >-
+            The image requires an MCP gateway and the caller cannot create MCP servers in the
+            namespace.
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: getMcpDeployReadiness
       description: >-
         Reports whether deploying the image requires an MCP gateway and whether it can be
-        deployed now. Only the image decides; MCP registry names are not used. The caller must
-        be allowed to create `mcpservers` in the namespace.
+        deployed now. Only the image decides; MCP registry names are not used. For an image
+        that requires a gateway, the caller must be allowed to create `mcpservers` in the
+        namespace; other images are reported as deployable without a permission check.
         Gateway checks fail closed: when availability cannot be determined, the response is
         `deployable: false` with a reason.
 

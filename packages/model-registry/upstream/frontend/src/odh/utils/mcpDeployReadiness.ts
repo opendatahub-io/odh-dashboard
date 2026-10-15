@@ -23,6 +23,14 @@ export const getMcpDeployReadinessTooltip = (reason?: string): string =>
     ? READINESS_TOOLTIPS[reason]
     : READINESS_TOOLTIPS[McpDeployReadinessReason.GATEWAY_STATUS_UNAVAILABLE];
 
+/** What the Deploy button shows: whether it is enabled and, if not, why. */
+export type DeployButtonState = {
+  enabled: boolean;
+  loading: boolean;
+  tooltip?: string;
+  showGatewayDocs?: boolean;
+};
+
 export type McpDeployReadinessBlock = {
   loading: boolean;
   tooltip: string;

@@ -5,13 +5,16 @@ import McpGatewayDocsLink from '~/odh/components/McpGatewayDocsLink';
 const POPOVER_ID = 'mcp-deploy-gateway-popover';
 /** Time to move the pointer from the trigger across the gap onto the popover. */
 const HOVER_CLOSE_DELAY_MS = 500;
-/** The id PatternFly gives the popover body, so the trigger can reference it. */
-export const MCP_GATEWAY_POPOVER_BODY_ID = `popover-${POPOVER_ID}-body`;
 
 type McpGatewayRequiredPopoverProps = {
   explanation: string;
   /** The (aria-disabled) Deploy button; focus returns to it when Escape closes the popover. */
   triggerRef: React.RefObject<HTMLButtonElement>;
+  /**
+   * ID for a visually hidden copy of the explanation, for the trigger's `aria-describedby`.
+   * The popover body only exists while it is open, which is after the trigger gets focus.
+   */
+  descriptionId: string;
   children: React.ReactElement;
 };
 
@@ -27,6 +30,7 @@ type McpGatewayRequiredPopoverProps = {
 const McpGatewayRequiredPopover: React.FC<McpGatewayRequiredPopoverProps> = ({
   explanation,
   triggerRef,
+  descriptionId,
   children,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -81,6 +85,9 @@ const McpGatewayRequiredPopover: React.FC<McpGatewayRequiredPopoverProps> = ({
       <Popover
         id={POPOVER_ID}
         triggerAction="hover"
+        // Below the button and aligned to its end, so it neither covers the other actions in the
+        // page header nor runs off the right edge (which would flip it over those actions).
+        position="bottom-end"
         appendTo="inline"
         isVisible={isOpen}
         // Pointer and focus are tracked on the wrapper above. Only handle what the wrapper
@@ -104,6 +111,9 @@ const McpGatewayRequiredPopover: React.FC<McpGatewayRequiredPopoverProps> = ({
       >
         {children}
       </Popover>
+      <span id={descriptionId} className="pf-v6-screen-reader">
+        {explanation}
+      </span>
     </span>
   );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router';
-import { Button, ButtonVariant, Flex, FlexItem, Tooltip } from '@patternfly/react-core';
+import { FlexItem } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
@@ -9,18 +9,12 @@ import useMcpServerDeployReadiness from '~/odh/hooks/useMcpServerDeployReadiness
 import { mcpServerCRToYaml } from '~/odh/utils/mcpServerYaml';
 import { McpDeployModalData } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
-import McpGatewayDocsLink from '~/odh/components/McpGatewayDocsLink';
+import McpDeployButton from '~/odh/components/McpDeployButton';
 import {
+  DeployButtonState,
   getMcpDeployReadinessBlock,
   MCP_DEPLOY_READINESS_LOADING_TOOLTIP,
 } from '~/odh/utils/mcpDeployReadiness';
-
-type DeployButtonState = {
-  enabled: boolean;
-  loading: boolean;
-  tooltip?: string;
-  showGatewayDocs?: boolean;
-};
 
 const McpServerDeployAction: React.FC<{
   server: {
@@ -30,7 +24,10 @@ const McpServerDeployAction: React.FC<{
   const { serverId = '' } = useParams<{ serverId: string }>();
   const { available, loaded } = useMcpServerDeployAvailable();
   const [crData, crLoaded, crError] = useMcpServerConverter(serverId);
-  const [readiness, readinessLoaded, readinessError] = useMcpServerDeployReadiness(serverId);
+  // Without MCP Lifecycle nothing can be deployed, so there is nothing to check (or poll).
+  const [readiness, readinessLoaded, readinessError] = useMcpServerDeployReadiness(
+    loaded && available ? serverId : '',
+  );
   const [openModal, setOpenModal] = React.useState(false);
   const hasDeployableArtifact = !!server.data?.artifacts?.some((a) => a.uri);
 
@@ -68,36 +65,17 @@ const McpServerDeployAction: React.FC<{
     return null;
   }
 
-  const deployButton = (
-    <Button
-      id="mcp-deploy-button"
-      aria-label="Deploy MCP server"
-      variant={ButtonVariant.primary}
-      onClick={() => setOpenModal(true)}
-      isAriaDisabled={!buttonState.enabled}
-      isLoading={buttonState.loading}
-      data-testid="mcp-deploy-button"
-    >
-      Deploy MCP server
-    </Button>
-  );
-
   return (
     <FlexItem>
-      <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
-        <FlexItem>
-          {buttonState.tooltip ? (
-            <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>
-          ) : (
-            deployButton
-          )}
-        </FlexItem>
-        {buttonState.showGatewayDocs ? (
-          <FlexItem>
-            <McpGatewayDocsLink />
-          </FlexItem>
-        ) : null}
-      </Flex>
+      <McpDeployButton
+        state={buttonState}
+        onDeploy={() => setOpenModal(true)}
+        id="mcp-deploy-button"
+        ariaLabel="Deploy MCP server"
+        testId="mcp-deploy-button"
+      >
+        Deploy MCP server
+      </McpDeployButton>
       {openModal && (
         <McpDeployModal
           data={prefillData}
