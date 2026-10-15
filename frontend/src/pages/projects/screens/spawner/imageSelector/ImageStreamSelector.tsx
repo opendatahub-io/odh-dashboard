@@ -28,10 +28,10 @@ import {
   isCompatibleWithIdentifier,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '#~/k8sTypes';
-import { ImageStreamAnnotation } from '#~/types';
 import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';
 import DeprecatedImageHelperText from '#~/concepts/notebooks/DeprecatedImageHelperText';
 import { ScopedType } from '#~/pages/modelServing/screens/const.ts';
+import { isImageStreamDeprecated } from '#~/utilities/imageStreamUtils';
 import { compareImageStreamTier, getImageStreamTier } from './imageTierUtils';
 
 type ImageStreamSelectorProps = {
@@ -43,9 +43,6 @@ type ImageStreamSelectorProps = {
   onImageStreamSelect: (selection: ImageStreamKind) => void;
   compatibleIdentifiers?: string[];
 };
-
-const isImageStreamDeprecated = (imageStream: ImageStreamKind): boolean =>
-  imageStream.metadata.annotations?.[ImageStreamAnnotation.DEPRECATED] === 'true';
 
 const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   currentProjectStreams,

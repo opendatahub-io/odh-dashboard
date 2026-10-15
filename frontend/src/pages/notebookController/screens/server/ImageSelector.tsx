@@ -63,7 +63,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
             <Stack>
               <StackItem>{getDescriptionForTag(currentTag)}</StackItem>
               <StackItem>
-                <DeprecatedImageHelperText testId={`deprecated-image-helper-text-${image.name}`} />
+                <DeprecatedImageHelperText />
               </StackItem>
             </Stack>
           ) : (

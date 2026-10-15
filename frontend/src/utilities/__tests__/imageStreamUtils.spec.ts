@@ -1,4 +1,5 @@
 import {
+  isImageStreamDeprecated,
   mapImageStreamToBYONImage,
   mapImageStreamToImageInfo,
   parseImageURL,
@@ -14,6 +15,26 @@ import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResou
 import { ImageStreamKind } from '#~/k8sTypes';
 
 describe('imageStreamUtils', () => {
+  describe('isImageStreamDeprecated', () => {
+    it.each([
+      ['true', true],
+      ['false', false],
+      ['TRUE', false],
+      ['unexpected', false],
+      [undefined, false],
+    ])('should map the annotation value %s to %s', (annotation, expected) => {
+      const image = mockImageStreamK8sResource({});
+      if (annotation !== undefined) {
+        image.metadata.annotations = {
+          ...image.metadata.annotations,
+          [ImageStreamAnnotation.DEPRECATED]: annotation,
+        };
+      }
+
+      expect(isImageStreamDeprecated(image)).toBe(expected);
+    });
+  });
+
   describe('mapImageStreamToBYONImage', () => {
     it('maps ImageStreamKind to BYONImage with all expected fields', () => {
       const image: ImageStreamKind = mockImageStreamK8sResource({});
@@ -333,7 +354,7 @@ describe('imageStreamUtils', () => {
       });
     });
 
-    it('maps the deprecated annotation only when its value is true', () => {
+    it('maps the deprecated annotation into ImageInfo', () => {
       const deprecatedImage = mockImageStreamK8sResource({
         opts: {
           metadata: {
@@ -341,16 +362,8 @@ describe('imageStreamUtils', () => {
           },
         },
       });
-      const activeImage = mockImageStreamK8sResource({
-        opts: {
-          metadata: {
-            annotations: { [ImageStreamAnnotation.DEPRECATED]: 'false' },
-          },
-        },
-      });
 
       expect(mapImageStreamToImageInfo(deprecatedImage).deprecated).toBe(true);
-      expect(mapImageStreamToImageInfo(activeImage).deprecated).toBe(false);
     });
 
     it('order falls back to 100 if order annotation is missing', () => {

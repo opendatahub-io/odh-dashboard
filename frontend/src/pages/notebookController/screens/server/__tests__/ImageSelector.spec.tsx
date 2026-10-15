@@ -15,6 +15,7 @@ const useAppContextMock = jest.mocked(useAppContext);
 
 describe('ImageSelector', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     useAppContextMock.mockReturnValue({
       buildStatuses: [],
       dashboardConfig: mockDashboardConfig({}),
@@ -23,20 +24,21 @@ describe('ImageSelector', () => {
     });
   });
 
-  it('shows deprecated helper text only for a deprecated ImageStream', () => {
+  it('should show helper text for a deprecated ImageStream', () => {
     const image = mockNotebookImageInfo()[0];
-    const { rerender } = render(
-      <ImageSelector image={{ ...image, deprecated: true }} handleSelection={jest.fn()} />,
-    );
-
-    expect(screen.getByTestId(`deprecated-image-helper-text-${image.name}`)).toHaveTextContent(
-      'This image is deprecated and will not receive new version updates.',
-    );
-
-    rerender(<ImageSelector image={image} handleSelection={jest.fn()} />);
+    render(<ImageSelector image={{ ...image, deprecated: true }} handleSelection={jest.fn()} />);
 
     expect(
-      screen.queryByTestId(`deprecated-image-helper-text-${image.name}`),
+      screen.getByText('This image is deprecated and will not receive new version updates.'),
+    ).toBeInTheDocument();
+  });
+
+  it('should not show helper text for an active ImageStream', () => {
+    const image = mockNotebookImageInfo()[0];
+    render(<ImageSelector image={image} handleSelection={jest.fn()} />);
+
+    expect(
+      screen.queryByText('This image is deprecated and will not receive new version updates.'),
     ).not.toBeInTheDocument();
   });
 });
