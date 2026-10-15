@@ -14,7 +14,7 @@ spec:
   template:
     containers:
       - name: main
-        image: docker.io/vllm/vllm-openai-cpu:latest
+        image: docker.io/vllm/vllm-openai-cpu:v0.31.0
         args:
           - --model
           - facebook/opt-125m
