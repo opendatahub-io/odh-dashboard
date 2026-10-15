@@ -39,7 +39,7 @@ const TaskGroupCard: React.FC<TaskGroupCardProps> = ({ group, tasks }) => {
             <SectionIcon icon={group.icon.default} sectionType={sectionType} />
           </FlexItem>
           <FlexItem flex={{ default: 'flex_1' }}>
-            <CardTitle data-testid="task-group-card-title">{group.title}</CardTitle>
+            <CardTitle data-testid="task-group-title">{group.title}</CardTitle>
             <Content component="p">{group.description}</Content>
           </FlexItem>
         </Flex>

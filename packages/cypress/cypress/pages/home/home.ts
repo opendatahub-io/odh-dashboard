@@ -25,7 +25,7 @@ class HomePage {
   }
 
   findTaskGroupCardTitle(groupId: string) {
-    return cy.findByTestId(`task-group-card-${groupId}`).findByTestId('task-group-card-title');
+    return cy.findByTestId(`task-group-card-${groupId}`).findByTestId('task-group-title');
   }
 
   initHomeIntercepts(config: Parameters<typeof mockDashboardConfig>[0] = {}) {
