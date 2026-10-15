@@ -81,6 +81,35 @@ describe('ExtensibleDetailTabs', () => {
     expect(screen.getByTestId('versions-tab')).toBeInTheDocument();
   });
 
+  it('should mount only the active tab content when mountOnEnter is enabled', () => {
+    render(
+      <ExtensibleDetailTabs
+        activeKey="overview"
+        onSelect={defaultOnSelect}
+        staticTabs={[
+          {
+            id: 'overview',
+            title: 'Overview',
+            content: <div data-testid="overview-inner">Overview content</div>,
+          },
+          {
+            id: 'versions',
+            title: 'Versions',
+            content: <div data-testid="versions-inner">Versions content</div>,
+          },
+        ]}
+        extensionTabs={[]}
+        mountOnEnter
+      />,
+    );
+
+    expect(screen.getByTestId('overview-inner')).toBeInTheDocument();
+    expect(screen.queryByTestId('versions-inner')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('versions-tab'));
+    expect(screen.getByTestId('versions-inner')).toBeInTheDocument();
+  });
+
   it('should render extension tabs alongside static tabs', () => {
     const extensionTabs = [createMockTabExtension('deployments', 'Deployments')];
 

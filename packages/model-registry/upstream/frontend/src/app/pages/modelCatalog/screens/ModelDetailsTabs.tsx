@@ -105,6 +105,7 @@ const ModelDetailsTabs = ({
       extensionTabs={tabExtensions}
       group={MODEL_CATALOG_DETAILS_GROUP}
       componentProps={componentProps}
+      mountOnEnter
       ariaLabel="Model details page tabs"
       testId="model-details-page-tabs"
     />

@@ -308,41 +308,6 @@ const [resolvedExtensions, resolved, errors] = useResolvedExtensions(isRouteExte
 
 ## Creating Extension Points
 
-### Detail Tab Visibility
-
-The `core.detail/tab` extension point supports an optional `shouldShow` predicate for tabs whose
-visibility depends on the current detail page. The predicate receives the same `componentProps`
-object passed to `ExtensibleDetailTabs` and may return either a boolean or a `Promise<boolean>`:
-
-```typescript
-const extension: DetailTabExtension = {
-  type: 'core.detail/tab',
-  properties: {
-    id: 'quality-insights',
-    title: 'Quality insights',
-    component: () => import('./QualityInsightsTab'),
-    group: 'model-catalog.details',
-    shouldShow: async ({ sourceId, modelName }) => {
-      const response = await fetch(`/api/insights/${sourceId}/${modelName}`);
-      return response.ok;
-    },
-  },
-};
-```
-
-Visibility behavior is intentionally conservative while an asynchronous predicate is pending:
-
-- A non-active tab is hidden until its predicate resolves.
-- An active deep-linked tab remains visible while its predicate is pending, so the user is not
-  redirected before the check completes.
-- A resolved `false`, a rejected promise, or a thrown error hides the tab and redirects an active
-  tab to the first visible tab.
-- A tab without `shouldShow` is always visible.
-
-Consumers should memoize `componentProps` so stable props can reuse predicate results. Predicates
-must treat the props object as the input for that evaluation; results from an earlier props object
-are never applied to the current detail page.
-
 To create a new extension point:
 
 1. **Define the Extension Type**:
@@ -397,6 +362,46 @@ export const isDashboardWidget =
 const categoryFilter = React.useCallback(isDashboardWidget('charts'), []);
 const chartWidgets = useExtensions(categoryFilter);
 ```
+
+### Detail Tab Visibility
+
+The `core.detail/tab` extension point supports an optional `shouldShow` predicate for tabs whose
+visibility depends on the current detail page. The predicate receives the same `componentProps`
+object passed to `ExtensibleDetailTabs` and may return either a boolean or a `Promise<boolean>`:
+
+```typescript
+const extension: DetailTabExtension = {
+  type: 'core.detail/tab',
+  properties: {
+    id: 'quality-insights',
+    title: 'Quality insights',
+    component: () => import('./QualityInsightsTab'),
+    group: 'model-catalog.details',
+    shouldShow: async ({ sourceId, modelName }) => {
+      if (typeof sourceId !== 'string' || typeof modelName !== 'string') {
+        return false;
+      }
+      const response = await fetch(
+        `/api/insights/${encodeURIComponent(sourceId)}/${encodeURIComponent(modelName)}`,
+      );
+      return response.ok;
+    },
+  },
+};
+```
+
+Visibility behavior is intentionally conservative while an asynchronous predicate is pending:
+
+- A non-active tab is hidden until its predicate resolves.
+- An active deep-linked tab remains visible while its predicate is pending, so the user is not
+  redirected before the check completes.
+- A resolved `false`, a rejected promise, or a thrown error hides the tab and redirects an active
+  tab to the first visible tab.
+- A tab without `shouldShow` is always visible.
+
+Consumers should memoize `componentProps` so stable props can reuse predicate results. Predicates
+must treat the props object as the input for that evaluation; results from an earlier props object
+are never applied to the current detail page.
 
 ## Best Practices
 

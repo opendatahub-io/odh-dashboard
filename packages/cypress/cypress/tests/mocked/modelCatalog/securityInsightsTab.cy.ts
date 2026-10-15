@@ -188,6 +188,7 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
 
     modelDetailsPage.findSecurityInsightsTab().should('exist');
     modelDetailsPage.findSecurityInsightsEmptyState().should('exist');
+    cy.findByTestId('security-insights-empty-state-link').should('exist');
     cy.wait('@getSecurityArtifacts');
   });
 
@@ -202,20 +203,23 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
 
   it('should show the security insights tab when LM eval is disabled', () => {
     setupCommonIntercepts({ disableLMEval: true });
-    interceptShouldShowSecurityArtifacts(true);
     interceptSecurityArtifacts([]);
+    interceptShouldShowSecurityArtifacts(true);
 
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
+    cy.wait('@shouldShowSecurityArtifacts');
     modelDetailsPage.findSecurityInsightsTab().should('exist');
     modelDetailsPage.findSecurityInsightsEmptyState().should('exist');
+    cy.findByTestId('security-insights-empty-state-link').should('not.exist');
     cy.wait('@getSecurityArtifacts');
   });
 
   it('should render security insights table content from the eval-hub API', () => {
-    interceptShouldShowSecurityArtifacts(true);
     interceptSecurityArtifacts();
+    interceptShouldShowSecurityArtifacts(true);
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
 
+    cy.wait('@shouldShowSecurityArtifacts');
     modelDetailsPage.findSecurityInsightsTab().should('exist');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', 'Toxicity');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', 'PII Leakage');
@@ -255,6 +259,7 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
     modelDetailsPage.findQualityInsightsTab().should('exist');
     modelDetailsPage.findQualityInsightsEmptyState().should('exist');
+    cy.findByTestId('quality-insights-empty-state-link').should('not.exist');
     cy.wait('@shouldShowQualityArtifacts');
     cy.wait('@getQualityArtifacts');
   });

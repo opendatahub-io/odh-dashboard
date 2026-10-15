@@ -9,6 +9,7 @@ describe('mapArtifactToQualityInsight', () => {
   it('maps the evaluation-metrics schema to a table insight', () => {
     const artifact: CatalogQualityArtifact = {
       artifactType: 'metrics-artifact',
+      id: 'quality-artifact-1',
       metricsType: 'evaluation-metrics',
       customProperties: {
         evaluation: {
@@ -22,10 +23,16 @@ describe('mapArtifactToQualityInsight', () => {
           string_value: 'Writes correct Python functions.',
         },
         result: { metadataType: 'MetadataDoubleValue', double_value: 0.628 },
+        result_metric: {
+          metadataType: 'MetadataStringValue',
+          string_value: 'accuracy',
+        },
       },
     };
 
     expect(mapArtifactToQualityInsight(artifact)).toEqual({
+      id: 'quality-artifact-1',
+      resultMetric: 'accuracy',
       evaluation: 'Python function generation',
       category: 'code',
       benchmarkName: 'HumanEval',
@@ -55,6 +62,25 @@ describe('mapArtifactToQualityInsight', () => {
         },
       }).result,
     ).toBe('62.8%');
+  });
+
+  it('formats non-percentage metrics with their metric unit', () => {
+    expect(
+      mapArtifactToQualityInsight({
+        artifactType: 'metrics-artifact',
+        customProperties: {
+          result: { metadataType: 'MetadataDoubleValue', double_value: 41.377 },
+          result_metric: {
+            metadataType: 'MetadataStringValue',
+            string_value: 'output_tokens_per_second',
+          },
+        },
+      }),
+    ).toMatchObject({
+      resultMetric: 'output_tokens_per_second',
+      score: 41.377,
+      result: '41.38 output tokens/s',
+    });
   });
 
   it('maps the record fields without parsing execution context', () => {

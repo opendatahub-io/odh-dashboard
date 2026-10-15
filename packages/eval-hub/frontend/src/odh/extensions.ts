@@ -6,6 +6,8 @@ import type {
   TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
+const VISIBILITY_REQUEST_TIMEOUT_MS = 10_000;
+
 const hasCatalogArtifacts = async (
   props: Record<string, unknown>,
   path: string,
@@ -17,6 +19,9 @@ const hasCatalogArtifacts = async (
     return false;
   }
 
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), VISIBILITY_REQUEST_TIMEOUT_MS);
+
   try {
     const params = new URLSearchParams({ pageSize: '1', ...additionalParams });
     if (typeof namespace === 'string') {
@@ -25,7 +30,7 @@ const hasCatalogArtifacts = async (
     const url = `${apiPath}/${encodeURIComponent(sourceId)}/${path}/${encodeURIComponent(
       modelName,
     )}?${params.toString()}`;
-    const resp = await fetch(url);
+    const resp = await fetch(url, { signal: controller.signal });
     if (!resp.ok) {
       return false;
     }
@@ -33,6 +38,8 @@ const hasCatalogArtifacts = async (
     return Array.isArray(json.data?.items) && json.data.items.length > 0;
   } catch {
     return false;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 };
 

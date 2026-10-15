@@ -2,6 +2,7 @@ package bffclient
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 )
 
@@ -25,10 +26,16 @@ type BFFServiceConfig struct {
 	AuthTokenHeader string
 	AuthTokenPrefix string
 
-	// AllowedPaths restricts which endpoint paths this client can call.
-	// If non-empty, Call() rejects any path not containing at least one of these substrings.
-	// If empty/nil, all paths are allowed.
-	AllowedPaths []string
+	// AllowedPathRules restricts which endpoint paths and methods this client can call.
+	// If non-empty, Call() rejects any request that does not match one of these rules.
+	// If empty/nil, all paths and methods are allowed.
+	AllowedPathRules []AllowedPathRule
+}
+
+// AllowedPathRule describes one method and path pattern permitted for an inter-BFF request.
+type AllowedPathRule struct {
+	Method      string
+	PathPattern string
 }
 
 // BFFClientConfig holds configuration for the BFF client system
@@ -54,9 +61,9 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",
-				AllowedPaths: []string{
-					"/security_artifacts/",
-					"/artifacts/",
+				AllowedPathRules: []AllowedPathRule{
+					{Method: http.MethodGet, PathPattern: "/model_catalog/sources/*/security_artifacts/*"},
+					{Method: http.MethodGet, PathPattern: "/model_catalog/sources/*/artifacts/*"},
 				},
 			},
 		},

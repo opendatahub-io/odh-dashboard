@@ -46,7 +46,7 @@ func (f *RealClientFactory) CreateClient(target BFFTarget, authToken string) BFF
 		nil,
 		serviceConfig.AuthTokenHeader,
 		serviceConfig.AuthTokenPrefix,
-		serviceConfig.AllowedPaths,
+		serviceConfig.AllowedPathRules,
 		f.insecureSkipVerify,
 		f.rootCAs,
 	)

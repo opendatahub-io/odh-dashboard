@@ -11,7 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
+	"path"
 	"time"
 )
 
@@ -25,14 +25,14 @@ type BFFClientInterface interface {
 
 // HTTPBFFClient implements BFFClientInterface using HTTP.
 type HTTPBFFClient struct {
-	baseURL         string
-	target          BFFTarget
-	httpClient      *http.Client
-	authToken       string
-	customHeaders   map[string]string
-	authTokenHeader string
-	authTokenPrefix string
-	allowedPaths    []string
+	baseURL          string
+	target           BFFTarget
+	httpClient       *http.Client
+	authToken        string
+	customHeaders    map[string]string
+	authTokenHeader  string
+	authTokenPrefix  string
+	allowedPathRules []AllowedPathRule
 }
 
 // NewHTTPBFFClient creates a new HTTP-based BFF client with allowlist enforcement.
@@ -43,7 +43,7 @@ func NewHTTPBFFClient(
 	customHeaders map[string]string,
 	authTokenHeader string,
 	authTokenPrefix string,
-	allowedPaths []string,
+	allowedPathRules []AllowedPathRule,
 	insecureSkipVerify bool,
 	rootCAs *x509.CertPool,
 ) *HTTPBFFClient {
@@ -56,13 +56,13 @@ func NewHTTPBFFClient(
 	}
 
 	return &HTTPBFFClient{
-		baseURL:         baseURL,
-		target:          target,
-		authToken:       authToken,
-		customHeaders:   customHeaders,
-		authTokenHeader: authTokenHeader,
-		authTokenPrefix: authTokenPrefix,
-		allowedPaths:    allowedPaths,
+		baseURL:          baseURL,
+		target:           target,
+		authToken:        authToken,
+		customHeaders:    customHeaders,
+		authTokenHeader:  authTokenHeader,
+		authTokenPrefix:  authTokenPrefix,
+		allowedPathRules: allowedPathRules,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
@@ -72,10 +72,10 @@ func NewHTTPBFFClient(
 	}
 }
 
-// Call makes a request to the target BFF. If AllowedPaths is configured, the
-// path must contain at least one allowed substring or the call is rejected locally.
+// Call makes a request to the target BFF. If allowed path rules are configured,
+// the method and path must match at least one rule or the call is rejected locally.
 func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body interface{}, response interface{}) error {
-	if len(c.allowedPaths) > 0 && !c.isPathAllowed(path) {
+	if len(c.allowedPathRules) > 0 && !c.isPathAllowed(method, path) {
 		return NewPathNotAllowedError(c.target, path)
 	}
 
@@ -146,14 +146,17 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 	return nil
 }
 
-func (c *HTTPBFFClient) isPathAllowed(path string) bool {
-	parsedURL, err := url.Parse(path)
+func (c *HTTPBFFClient) isPathAllowed(method, requestPath string) bool {
+	parsedURL, err := url.Parse(requestPath)
 	if err != nil {
 		return false
 	}
 
-	for _, pattern := range c.allowedPaths {
-		if strings.Contains(parsedURL.Path, pattern) {
+	for _, rule := range c.allowedPathRules {
+		if rule.Method != method {
+			continue
+		}
+		if matched, matchErr := path.Match(rule.PathPattern, parsedURL.EscapedPath()); matchErr == nil && matched {
 			return true
 		}
 	}

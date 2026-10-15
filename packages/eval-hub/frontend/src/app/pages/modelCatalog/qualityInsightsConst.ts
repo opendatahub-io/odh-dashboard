@@ -1,3 +1,4 @@
+import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
 import { type QualityInsight } from './qualityInsightsTypes';
 
 export type QualityFilterOption = 'evaluation' | 'category' | 'benchmark';
@@ -56,9 +57,11 @@ export const getQualitySortableValue = (
     case 3:
       return insight.score === undefined
         ? undefined
-        : insight.score > 1
-          ? insight.score
-          : insight.score * 100;
+        : isPercentageMetric(insight.resultMetric)
+          ? insight.score > 1
+            ? insight.score
+            : insight.score * 100
+          : insight.score;
     default:
       return '';
   }

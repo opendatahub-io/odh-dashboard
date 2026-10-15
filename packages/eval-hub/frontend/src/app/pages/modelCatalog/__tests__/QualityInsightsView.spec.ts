@@ -186,4 +186,34 @@ describe('QualityInsightsView', () => {
       'Percentage lower score',
     );
   });
+
+  it('sorts non-percentage scores without percentage normalization', async () => {
+    mockInsightsData = [
+      {
+        evaluation: 'Percentage score',
+        category: 'reasoning',
+        benchmarkName: 'Benchmark A',
+        benchmarkDescription: 'Benchmark description',
+        score: 0.5,
+        resultMetric: 'accuracy',
+        result: '50.0%',
+      },
+      {
+        evaluation: 'Raw score',
+        category: 'performance',
+        benchmarkName: 'Benchmark B',
+        benchmarkDescription: 'Benchmark description',
+        score: 0.8,
+        resultMetric: 'output_tokens_per_second',
+        result: '0.8 output tokens/s',
+      },
+    ];
+
+    await renderView();
+    fireEvent.click(
+      screen.getByRole('columnheader', { name: 'Evaluation score' }).querySelector('button')!,
+    );
+
+    expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Raw score');
+  });
 });

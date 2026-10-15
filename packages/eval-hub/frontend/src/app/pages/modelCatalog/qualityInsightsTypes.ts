@@ -1,3 +1,6 @@
+import { isPercentageMetric, formatMetricValue } from '~/app/utilities/evaluationUtils';
+import { formatRate } from './securityInsightsTypes';
+
 type MetadataStringValue = {
   metadataType: 'MetadataStringValue';
   string_value: string;
@@ -56,6 +59,8 @@ export type QualityInsightsViewProps = {
 };
 
 export type QualityInsight = {
+  id?: string;
+  resultMetric?: string;
   evaluation: string;
   category: string;
   benchmarkName: string;
@@ -66,16 +71,26 @@ export type QualityInsight = {
 
 export const mapArtifactToQualityInsight = (artifact: CatalogQualityArtifact): QualityInsight => {
   const props = artifact.customProperties;
+  const id = artifact.id ?? artifact.externalId ?? props?.id?.string_value;
+  const resultMetric = props?.result_metric?.string_value;
   const result = props?.result?.double_value;
   const validResult = typeof result === 'number' && Number.isFinite(result) ? result : undefined;
 
+  const formattedResult =
+    validResult === undefined
+      ? ''
+      : isPercentageMetric(resultMetric)
+        ? formatRate(validResult)
+        : formatMetricValue(validResult, resultMetric);
+
   return {
+    ...(id ? { id } : {}),
+    ...(resultMetric ? { resultMetric } : {}),
     evaluation: props?.evaluation?.string_value ?? '',
     category: props?.category?.string_value ?? '',
     benchmarkName: props?.benchmark?.string_value ?? '',
     benchmarkDescription: props?.description?.string_value ?? '',
     score: validResult,
-    result: formatRate(validResult),
+    result: formattedResult,
   };
 };
-import { formatRate } from './securityInsightsTypes';

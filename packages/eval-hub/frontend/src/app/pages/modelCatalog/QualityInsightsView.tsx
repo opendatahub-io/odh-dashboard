@@ -285,9 +285,12 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
               totalItems: filtered.length,
             });
           }}
-          rowRenderer={(insight, index) => (
+          rowRenderer={(insight) => (
             <Tr
-              key={`${insight.benchmarkName}-${insight.evaluation}-${index}`}
+              key={
+                insight.id ??
+                `${insight.benchmarkName}-${insight.evaluation}-${insight.category}-${insight.score ?? insight.result}`
+              }
               data-testid="quality-insight-row"
             >
               <Td dataLabel="Evaluation">{insight.evaluation}</Td>
