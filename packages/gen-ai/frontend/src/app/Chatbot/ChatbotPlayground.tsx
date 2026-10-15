@@ -140,6 +140,8 @@ type ChatbotPlaygroundProps = {
   onClearAgent?: () => void;
   isProfileDirty?: boolean;
   onResetToLastSaved?: () => void;
+  isDefaultConfigDirty?: boolean;
+  onRevertToDefaults?: () => void;
   mcpServers?: MCPServerFromAPI[];
   mcpRegistryAvailable?: boolean;
   mcpServersLoaded?: boolean;
@@ -169,6 +171,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   onClearAgent,
   isProfileDirty = false,
   onResetToLastSaved,
+  isDefaultConfigDirty,
+  onRevertToDefaults,
   mcpServers = [],
   mcpRegistryAvailable = false,
   mcpServersLoaded = false,
@@ -1121,6 +1125,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 onSave={onOpenSave}
                 onSaveAs={onOpenSaveAs}
                 onResetToLastSaved={onResetToLastSaved}
+                isDefaultConfigDirty={isDefaultConfigDirty}
+                onRevertToDefaults={onRevertToDefaults}
               />
             ) : undefined
           }

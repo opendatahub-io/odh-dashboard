@@ -36,6 +36,7 @@ import {
   selectConfigIds,
   selectSelectedModel,
   DEFAULT_CONFIG_ID,
+  DEFAULT_CONFIGURATION,
 } from './store';
 import { usePlaygroundStore } from './store/usePlaygroundStore';
 import PromptManagementModal from './components/promptManagementModal';
@@ -117,7 +118,18 @@ const ChatbotMain: React.FunctionComponent = () => {
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
 
   const isProfileDirty = useIsProfileDirty(primaryConfigId, availableMcpServers, mcpConfigMapName);
-  useSafeBrowserUnloadBlocker(isProfileDirty);
+  const defaultModelRef = React.useRef<string | null>(null);
+  const defaultConfig = useChatbotConfigStore((s) => s.configurations[primaryConfigId]);
+  if (!profileApplied && !defaultModelRef.current && defaultConfig?.selectedModel) {
+    defaultModelRef.current = defaultConfig.selectedModel;
+  }
+  const isDefaultConfigDirty =
+    !profileApplied &&
+    !!defaultConfig &&
+    (JSON.stringify({ ...defaultConfig, selectedModel: '', hasVisionImage: false }) !==
+      JSON.stringify(DEFAULT_CONFIGURATION) ||
+      defaultConfig.selectedModel !== (defaultModelRef.current ?? ''));
+  useSafeBrowserUnloadBlocker(isProfileDirty || isDefaultConfigDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
   // Check if there are any models available (either AI assets or MaaS models)
@@ -195,6 +207,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, [models, mcpServers, namespace?.name]);
 
   const handleNewAgentConfiguration = React.useCallback(() => {
+    defaultModelRef.current = null;
     useChatbotConfigStore.getState().resetConfiguration();
     setSearchParams(
       (prev) => {
@@ -412,6 +425,13 @@ const ChatbotMain: React.FunctionComponent = () => {
               onClearAgent={handleNewAgentConfiguration}
               isProfileDirty={isProfileDirty}
               onResetToLastSaved={handleResetToLastSaved}
+              isDefaultConfigDirty={isDefaultConfigDirty}
+              onRevertToDefaults={() =>
+                useChatbotConfigStore.getState().resetConfiguration({
+                  ...DEFAULT_CONFIGURATION,
+                  selectedModel: defaultModelRef.current ?? '',
+                })
+              }
               mcpServers={availableMcpServers}
               mcpRegistryAvailable={mcpRegistryAvailable}
               mcpServersLoaded={mcpServersLoaded}
@@ -475,7 +495,9 @@ const ChatbotMain: React.FunctionComponent = () => {
           onSelect={handleProfileSelected}
         />
       )}
-      {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}
+      {(isProfileDirty || isDefaultConfigDirty) && (
+        <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty || isDefaultConfigDirty} />
+      )}
     </>
   );
 };

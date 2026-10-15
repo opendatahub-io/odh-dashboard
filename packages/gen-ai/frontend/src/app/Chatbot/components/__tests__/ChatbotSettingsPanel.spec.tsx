@@ -11,6 +11,7 @@ const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
 
 const mockResizeEvent = new Event('click');
+let mockAgentConfigManagementEnabled = false;
 
 // Track DrawerPanelContent defaultSize (must be prefixed with 'mock' for Jest)
 let mockDrawerPanelDefaultSize: string | undefined;
@@ -126,10 +127,15 @@ jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled', () => ({
   default: jest.fn(() => false),
 }));
 
+jest.mock('~/app/components/SafeNavigationBlocker', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 const mockUseGuardrailsEnabled = jest.mocked(useGuardrailsEnabled);
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
-  useFeatureFlag: jest.fn(() => [false]),
+  useFeatureFlag: jest.fn(() => [mockAgentConfigManagementEnabled]),
 }));
 
 jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
@@ -193,10 +199,42 @@ describe('ChatbotSettingsPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     sessionStorage.clear();
+    mockAgentConfigManagementEnabled = false;
     useChatbotConfigStore.getState().resetConfiguration();
     mockDrawerPanelDefaultSize = undefined;
     mockDrawerHeadStyle = undefined;
     mockDrawerBodyStyle = undefined;
+  });
+
+  it('should confirm before reverting changed default settings', async () => {
+    mockAgentConfigManagementEnabled = true;
+    const user = userEvent.setup();
+    const onRevertToDefaults = jest.fn();
+    const { rerender } = render(
+      <ChatbotSettingsPanel {...defaultProps} onRevertToDefaults={onRevertToDefaults} />,
+    );
+
+    expect(screen.queryByTestId('settings-panel-reset-button')).not.toBeInTheDocument();
+    rerender(
+      <ChatbotSettingsPanel
+        {...defaultProps}
+        isDefaultConfigDirty
+        onRevertToDefaults={onRevertToDefaults}
+      />,
+    );
+
+    await user.click(screen.getByTestId('settings-panel-reset-button'));
+    expect(screen.getByText('Revert to default settings?')).toBeInTheDocument();
+    expect(
+      screen.getByText('Your settings will return to their default values.'),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onRevertToDefaults).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId('settings-panel-reset-button'));
+    await user.click(screen.getByTestId('reset-agent-confirm-button'));
+    expect(onRevertToDefaults).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('settings-reverted-alert')).toBeInTheDocument();
   });
 
   it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {

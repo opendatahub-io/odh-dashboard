@@ -243,6 +243,23 @@ describe('useChatbotConfigStore', () => {
       );
     });
 
+    it('should clear persisted MCP tool selections when resetting to explicit defaults', () => {
+      sessionStorage.clear();
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .saveToolSelections(DEFAULT_CONFIG_ID, 'test-namespace', 'https://example.com/mcp', [
+            'test-tool',
+          ]);
+        useChatbotConfigStore.getState().resetConfiguration({ mcpToolSelections: {} });
+      });
+
+      expect(
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.mcpToolSelections,
+      ).toEqual({});
+      expect(JSON.parse(sessionStorage.getItem('mcp-tool-selections') ?? '{}')).toEqual({});
+    });
+
     it('should reset with multiple initial values', () => {
       act(() => {
         useChatbotConfigStore.getState().resetConfiguration({

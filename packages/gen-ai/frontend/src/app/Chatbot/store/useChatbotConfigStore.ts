@@ -660,6 +660,9 @@ const createStoreActions = (
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => {
+    if (!skipSessionStorage && initialValues?.mcpToolSelections) {
+      saveMcpToolSelectionsForConfig('default', initialValues.mcpToolSelections);
+    }
     set(
       () => ({
         ...storeInitialState,
@@ -667,7 +670,9 @@ const createStoreActions = (
           default: {
             ...DEFAULT_CONFIGURATION,
             ...initialValues,
-            mcpToolSelections: skipSessionStorage ? {} : loadMcpToolSelectionsForConfig('default'),
+            mcpToolSelections:
+              initialValues?.mcpToolSelections ??
+              (skipSessionStorage ? {} : loadMcpToolSelectionsForConfig('default')),
           },
         },
       }),

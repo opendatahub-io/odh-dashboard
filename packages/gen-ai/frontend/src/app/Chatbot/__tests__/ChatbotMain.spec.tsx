@@ -4,7 +4,7 @@ import type { FetchStateObject, Namespace } from 'mod-arch-core';
 import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
-import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import { useChatbotConfigStore, DEFAULT_CONFIGURATION } from '~/app/Chatbot/store';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
@@ -39,6 +39,11 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
   __esModule: true,
   default: () => true,
+}));
+
+jest.mock('~/app/components/SafeNavigationBlocker', () => ({
+  __esModule: true,
+  default: () => null,
 }));
 
 // Mock child components
@@ -172,18 +177,7 @@ describe('ChatbotMain - Empty State Logic', () => {
         return selector({
           configIds: ['default'],
           configurations: {
-            default: {
-              selectedModel: '',
-              systemInstruction: '',
-              temperature: 0.1,
-              isStreamingEnabled: true,
-              selectedMcpServerIds: [],
-              mcpToolSelections: {},
-              guardrail: '',
-              guardrailUserInputEnabled: false,
-              guardrailModelOutputEnabled: false,
-              isRagEnabled: false,
-            },
+            default: { ...DEFAULT_CONFIGURATION },
           },
         });
       }
@@ -235,6 +229,21 @@ describe('ChatbotMain - Empty State Logic', () => {
   });
 
   it('should omit unreachable MCP servers when saving an agent profile', () => {
+    mockUseChatbotConfigStore.getState =
+      jest.requireActual<typeof import('~/app/Chatbot/store')>(
+        '~/app/Chatbot/store',
+      ).useChatbotConfigStore.getState;
+    mockUseChatbotConfigStore.mockImplementation((selector: unknown) =>
+      typeof selector === 'function'
+        ? selector({
+            configIds: ['default'],
+            profileApplied: false,
+            configurations: {
+              default: { ...DEFAULT_CONFIGURATION, selectedModel: 'test-model', temperature: 0.5 },
+            },
+          })
+        : undefined,
+    );
     mockUseFetchMCPServers.mockReturnValue({
       data: [connectedMcpServer, unreachableMcpServer],
       configMapName: 'mcp-servers',
@@ -292,6 +301,12 @@ describe('ChatbotMain - Empty State Logic', () => {
 
     const playgroundProps = mockChatbotPlayground.mock.calls.at(-1)?.[0];
     expect(playgroundProps).toEqual(expect.objectContaining({ mcpServers: [connectedMcpServer] }));
+    expect(playgroundProps?.isDefaultConfigDirty).toBe(true);
+    act(() => playgroundProps?.onRevertToDefaults?.());
+    expect(useChatbotConfigStore.getState().configurations.default).toEqual({
+      ...DEFAULT_CONFIGURATION,
+      selectedModel: 'test-model',
+    });
     act(() => {
       playgroundProps?.onOpenSave?.();
     });

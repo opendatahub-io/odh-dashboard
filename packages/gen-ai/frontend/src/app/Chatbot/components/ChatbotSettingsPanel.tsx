@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  Alert,
+  AlertGroup,
   Button,
   DrawerActions,
   DrawerCloseButton,
@@ -39,6 +41,7 @@ import {
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+import { ALERT_TIMEOUT_MS } from '~/app/Chatbot/const';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
@@ -76,6 +79,8 @@ interface ChatbotSettingsPanelProps {
   onSave?: () => void;
   onSaveAs?: () => void;
   onResetToLastSaved?: () => void;
+  isDefaultConfigDirty?: boolean;
+  onRevertToDefaults?: () => void;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
   defaultActiveTabKey?: string | number;
@@ -111,10 +116,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onSave,
   onSaveAs,
   onResetToLastSaved,
+  isDefaultConfigDirty = false,
+  onRevertToDefaults,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [, setActiveToolsCount] = React.useState(0);
   const [showResetModal, setShowResetModal] = React.useState(false);
+  const [showRevertedAlert, setShowRevertedAlert] = React.useState(false);
   const isProfileDirty = useIsProfileDirty(configId, mcpServers);
 
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
@@ -521,11 +529,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           >
             Save as new agent
           </Button>
-          {profileApplied && onResetToLastSaved && (
+          {((profileApplied && onResetToLastSaved) ||
+            (!profileApplied && isDefaultConfigDirty && onRevertToDefaults)) && (
             <Button
               variant="link"
               isDanger
-              isDisabled={!isProfileDirty}
+              isDisabled={profileApplied && !isProfileDirty}
               onClick={() => setShowResetModal(true)}
               data-testid="settings-panel-reset-button"
             >
@@ -544,16 +553,25 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           data-testid="reset-agent-modal"
         >
           <ModalHeader
-            title="Revert to last saved agent?"
+            title={profileApplied ? 'Revert to last saved agent?' : 'Revert to default settings?'}
             labelId="reset-agent-modal-title"
             titleIconVariant="warning"
           />
-          <ModalBody>Your settings will return to the last saved version of this agent.</ModalBody>
+          <ModalBody>
+            {profileApplied
+              ? 'Your settings will return to the last saved version of this agent.'
+              : 'Your settings will return to their default values.'}
+          </ModalBody>
           <ModalFooter>
             <Button
               variant="primary"
               onClick={() => {
-                onResetToLastSaved?.();
+                if (profileApplied) {
+                  onResetToLastSaved?.();
+                } else {
+                  onRevertToDefaults?.();
+                  setShowRevertedAlert(true);
+                }
                 setShowResetModal(false);
               }}
               data-testid="reset-agent-confirm-button"
@@ -565,6 +583,17 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             </Button>
           </ModalFooter>
         </Modal>
+      )}
+      {showRevertedAlert && (
+        <AlertGroup hasAnimations isToast isLiveRegion>
+          <Alert
+            variant="info"
+            title="Settings reverted to defaults"
+            timeout={ALERT_TIMEOUT_MS}
+            onTimeout={() => setShowRevertedAlert(false)}
+            data-testid="settings-reverted-alert"
+          />
+        </AlertGroup>
       )}
     </DrawerPanelContent>
   );
