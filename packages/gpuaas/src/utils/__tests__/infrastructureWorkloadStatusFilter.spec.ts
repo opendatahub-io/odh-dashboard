@@ -118,10 +118,23 @@ describe('findKueueRowForResource', () => {
 });
 
 describe('filterInfrastructureWorkloads', () => {
-  it('should match Kueue status separately from workload status', () => {
+  it('should match the effective Kueue status for queued workloads', () => {
     const rows = [workload('Ready', KueueWorkloadStatus.Queued)];
 
     expect(filterInfrastructureWorkloads(rows, '', 'status', ['Queued'])).toEqual(rows);
+  });
+
+  it('should not match the underlying Ready status for queued workloads', () => {
+    const rows = [workload('Ready', KueueWorkloadStatus.Queued)];
+
+    expect(filterInfrastructureWorkloads(rows, '', 'status', ['Ready'])).toEqual([]);
+  });
+
+  it('should match the workload status after Kueue admission', () => {
+    const rows = [workload('Ready', KueueWorkloadStatus.Admitted)];
+
+    expect(filterInfrastructureWorkloads(rows, '', 'status', ['Ready'])).toEqual(rows);
+    expect(filterInfrastructureWorkloads(rows, '', 'status', ['Admitted'])).toEqual([]);
   });
 
   it('should match workload names case-insensitively', () => {

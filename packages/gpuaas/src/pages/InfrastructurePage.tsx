@@ -393,7 +393,12 @@ const InfrastructurePage: React.FC = () => {
 
   const renderTabPanel = (tabId: InfrastructureTabId): React.ReactNode => {
     if (tabId === 'workloads') {
-      return <InfrastructureWorkloadsSection />;
+      return (
+        <InfrastructureWorkloadsSection
+          kueueAvailable={isKueueAvailable}
+          canAccessAdminMetrics={canAccessAdminTabs}
+        />
+      );
     }
     const tabInfo = INFRASTRUCTURE_TABS.find((entry) => entry.id === tabId);
     if (tabInfo?.layout === 'viewport') {

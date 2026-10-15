@@ -1375,7 +1375,7 @@ export const fetchWorkloadsForClusterQueues = async (
   return mapWorkloadsForClusterQueues(clusterQueueNames, cache, projectDisplayNames);
 };
 
-export const fetchNamespaceWorkloads = async (
+export const fetchNamespaceWorkloadsBase = async (
   namespace: string,
   projectDisplayName: string,
   dashboardNamespace = '',
@@ -1395,6 +1395,15 @@ export const fetchNamespaceWorkloads = async (
     hardwareProfileByKey,
     hardwareProfilesForMatching,
   );
+  return rows;
+};
+
+export const fetchNamespaceWorkloads = async (
+  namespace: string,
+  projectDisplayName: string,
+  dashboardNamespace = '',
+): Promise<ClusterQueueWorkloadRow[]> => {
+  const rows = await fetchNamespaceWorkloadsBase(namespace, projectDisplayName, dashboardNamespace);
   const positions = await fetchQueuePositions(rows);
   return applyDisplayStatuses(applyQueuePositions(rows, positions));
 };

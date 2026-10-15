@@ -266,7 +266,7 @@ export const filterInfrastructureWorkloads = (
     const matchesName = !normalizedSearch || workload.name.toLowerCase().includes(normalizedSearch);
     const filterValue =
       filterType === 'status'
-        ? [workload.status.label, workload.kueueStatus]
+        ? getWorkloadOverviewRow(workload)?.statusFilters ?? [workload.status.label]
         : filterType === 'type'
         ? workload.type
         : workload.hardwareProfile;
@@ -298,14 +298,19 @@ export const getInfrastructureWorkloadsWithWorkbenchStatus = (
 export const getWorkloadOverviewRow = (
   workload: InfrastructureWorkloadRow,
 ): WorkloadOverviewRow | undefined => {
-  const statuses = [workload.kueueStatus, workload.status.label].filter(
-    (status): status is string => Boolean(status),
-  );
-  const overview = statuses.map(mapWorkloadStatusToOverview).find(Boolean);
+  const { status: workloadResourceStatus, kueueStatus } = workload;
+  const { label: workloadStatus } = workloadResourceStatus;
+  const kueueOverview = kueueStatus ? mapWorkloadStatusToOverview(kueueStatus) : undefined;
+  const workloadOverview = mapWorkloadStatusToOverview(workloadStatus);
+  const kueueOverridesWorkload =
+    kueueOverview?.bucket === 'waiting' || kueueOverview?.bucket === 'blockers';
+  const overview = kueueOverridesWorkload ? kueueOverview : workloadOverview ?? kueueOverview;
+  const primaryStatus = kueueOverridesWorkload ? kueueStatus : workloadStatus;
+
   return overview
     ? {
         ...overview,
-        statusFilters: statuses,
+        statusFilters: primaryStatus ? [primaryStatus] : [],
       }
     : undefined;
 };

@@ -115,6 +115,9 @@ type InfrastructureWorkloadsContentProps = {
   loaded: boolean;
   error?: Error;
   workloads: React.ComponentProps<typeof InfrastructureWorkloadsTable>['workloads'];
+  kueueAvailable: boolean;
+  canAccessAdminMetrics: boolean;
+  namespace?: string;
   kueueEnabled: boolean;
   hardwareProfilesLoading: boolean;
   notebookStates: React.ComponentProps<typeof InfrastructureWorkloadsTable>['notebookStates'];
@@ -125,6 +128,9 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
   loaded,
   error,
   workloads,
+  kueueAvailable,
+  canAccessAdminMetrics,
+  namespace,
   kueueEnabled,
   hardwareProfilesLoading,
   notebookStates,
@@ -183,6 +189,9 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
           <WorkloadOverview
             workloads={workloadStatusFilters.overviewRows}
             loaded
+            kueueAvailable={kueueAvailable}
+            canAccessAdminMetrics={canAccessAdminMetrics}
+            namespace={namespace}
             partial
             onViewInTable={workloadStatusFilters.viewBucketInTable}
           />
@@ -216,6 +225,9 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
         <WorkloadOverview
           workloads={workloadStatusFilters.overviewRows}
           loaded
+          kueueAvailable={kueueAvailable}
+          canAccessAdminMetrics={canAccessAdminMetrics}
+          namespace={namespace}
           onViewInTable={workloadStatusFilters.viewBucketInTable}
         />
       </StackItem>
@@ -236,7 +248,15 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
   );
 };
 
-const InfrastructureWorkloadsSection: React.FC = () => {
+type InfrastructureWorkloadsSectionProps = {
+  kueueAvailable: boolean;
+  canAccessAdminMetrics: boolean;
+};
+
+const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionProps> = ({
+  kueueAvailable,
+  canAccessAdminMetrics,
+}) => {
   const workloadsContentRef = React.useRef<HTMLDivElement>(null);
   const {
     projects,
@@ -316,23 +336,28 @@ const InfrastructureWorkloadsSection: React.FC = () => {
         onProjectSelection={handleProjectSelection}
         onRefresh={handleRefresh}
       />
-      <Stack
+      <div
         ref={workloadsContentRef}
         className="gpuaas-infrastructure-workloads__content-section"
         data-testid="infrastructure-workloads"
       >
-        <StackItem>
-          <InfrastructureWorkloadsContent
-            loaded={loaded}
-            error={error}
-            workloads={workloads}
-            kueueEnabled={kueueEnabled}
-            hardwareProfilesLoading={hardwareProfilesLoading}
-            notebookStates={notebooks.data}
-            failedSources={failedSources}
-          />
-        </StackItem>
-      </Stack>
+        <Stack>
+          <StackItem>
+            <InfrastructureWorkloadsContent
+              loaded={loaded}
+              error={error}
+              workloads={workloads}
+              kueueAvailable={kueueAvailable}
+              canAccessAdminMetrics={canAccessAdminMetrics}
+              namespace={preferredProject?.metadata.name}
+              kueueEnabled={kueueEnabled}
+              hardwareProfilesLoading={hardwareProfilesLoading}
+              notebookStates={notebooks.data}
+              failedSources={failedSources}
+            />
+          </StackItem>
+        </Stack>
+      </div>
     </Stack>
   );
 };

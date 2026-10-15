@@ -28,6 +28,8 @@ import {
   t_chart_color_yellow_300 as chartYellow,
   t_chart_global_danger_color_100 as chartRed,
 } from '@patternfly/react-tokens';
+import WorkloadAdmissionsTab from './WorkloadAdmissionsTab';
+import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
 import {
   overviewBuckets,
   summarizeOverview,
@@ -39,6 +41,9 @@ import './InfrastructureWorkloadsSection.scss';
 type WorkloadOverviewProps = {
   workloads: WorkloadOverviewRow[];
   loaded: boolean;
+  kueueAvailable?: boolean;
+  canAccessAdminMetrics?: boolean;
+  namespace?: string;
   dataUnavailable?: boolean;
   partial?: boolean;
   error?: Error;
@@ -308,12 +313,23 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
 const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   workloads,
   loaded,
+  kueueAvailable = false,
+  canAccessAdminMetrics = false,
+  namespace,
   dataUnavailable = false,
   partial = false,
   error,
   onViewInTable,
 }) => {
   const [expanded, setExpanded] = React.useState(true);
+  const [activeTab, setActiveTab] = React.useState<string | number>('status');
+  const [timeWindow, setTimeWindow] = React.useState('24h');
+  const admissionMetrics = useWorkloadAdmissionMetrics(
+    namespace,
+    timeWindow,
+    kueueAvailable && activeTab === 'admissions',
+    canAccessAdminMetrics,
+  );
   const [visiblePopover, setVisiblePopover] = React.useState<
     { bucket: OverviewBucket; source: 'count' | 'chart' } | undefined
   >();
@@ -355,7 +371,11 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                       Counts include only workload types and resources that loaded successfully.
                     </Alert>
                   )}
-                  <Tabs activeKey="status" aria-label="Workload overview tabs">
+                  <Tabs
+                    activeKey={activeTab}
+                    onSelect={(_event, eventKey) => setActiveTab(eventKey)}
+                    aria-label="Workload overview tabs"
+                  >
                     <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
                       {total === 0 ? (
                         <WorkloadOverviewEmptyState />
@@ -371,6 +391,16 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                         />
                       )}
                     </Tab>
+                    {kueueAvailable && (
+                      <Tab eventKey="admissions" title={<TabTitleText>Admissions</TabTitleText>}>
+                        <WorkloadAdmissionsTab
+                          metrics={admissionMetrics}
+                          timeWindow={timeWindow}
+                          onTimeWindowChange={setTimeWindow}
+                          canAccessAdminMetrics={canAccessAdminMetrics}
+                        />
+                      </Tab>
+                    )}
                   </Tabs>
                 </>
               )}
