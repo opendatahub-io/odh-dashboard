@@ -19,6 +19,8 @@ import type { GenAiTestData } from '../../types';
  *
  * @param projectName - Namespace to deploy into.
  * @param testData - Fixture data with model URI, names, and hardware profile paths.
+ * @param servingRuntimeYamlPath - Path to the ServingRuntime YAML template.
+ * @param servingRuntimeName - Name of the ServingRuntime resource.
  */
 export const deployGenAiModel = (
   projectName: string,

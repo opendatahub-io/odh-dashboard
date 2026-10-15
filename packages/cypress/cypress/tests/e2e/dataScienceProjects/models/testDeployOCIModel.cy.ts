@@ -31,21 +31,16 @@ let servingRuntime: string;
 const uuid = generateTestUUID();
 let secretDetailsFile: string;
 
-const updateSecretDetailsFile = (secretValue: string, fixtureRelativePath: string) => {
-  return cy.fixture(fixtureRelativePath).then((templateContent) => {
-    const updatedContent = {
-      ...templateContent,
-      auths: {
-        'quay.io': {
-          auth: secretValue,
-        },
+const updateSecretDetailsFile = (secretValue: string) => {
+  const updatedContent = {
+    auths: {
+      'quay.io': {
+        auth: secretValue,
       },
-    };
-    return cy
-      .task<string>('createOCISecretFile', updatedContent, { log: false })
-      .then((filePath) => {
-        secretDetailsFile = filePath;
-      });
+    },
+  };
+  return cy.task<string>('createOCISecretFile', updatedContent, { log: false }).then((filePath) => {
+    secretDetailsFile = filePath;
   });
 };
 
@@ -64,10 +59,9 @@ describe(
           testData = fixtureData;
           projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
-          // Load fixture file and update with actual secret value
+          // Build pull-secret from env value and write to temp file (removed in after hook)
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
-          const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
-          updateSecretDetailsFile(secretValue, secretDetailsFixture);
+          updateSecretDetailsFile(secretValue);
           ociRegistryHost = testData.ociRegistryHost;
           modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
           modelDeploymentName = testData.modelDeploymentName;

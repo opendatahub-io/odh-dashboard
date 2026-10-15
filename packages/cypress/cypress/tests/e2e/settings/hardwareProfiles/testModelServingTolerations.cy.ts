@@ -35,7 +35,7 @@ import { createCustomResource } from '../../../../utils/oc_commands/customResour
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { skipOnArm } from '../../../../utils/skipUtils';
 
-let testData: ModelTolerationsTestData;
+let testData: ModelTolerationsTestData | undefined;
 let projectName: string;
 let resourceName: string;
 let contributor: string;
@@ -102,6 +102,9 @@ describe('ModelServing - tolerations tests', () => {
 
   //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
+    if (!testData) {
+      return;
+    }
     ensureAdminOcSession();
     // Use the actual hardware profile name from the YAML, not the variable with UUID
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);

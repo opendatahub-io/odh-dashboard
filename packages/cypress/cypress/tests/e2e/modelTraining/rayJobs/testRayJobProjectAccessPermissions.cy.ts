@@ -26,6 +26,7 @@ describe('Verify project access for user types in Ray Jobs', () => {
   let projectName: string;
   let rayJobName: string;
   let rayImage: string;
+  let architecture: string;
   let flavorName: string;
   let clusterQueueName: string;
   let localQueueName: string;
@@ -74,6 +75,7 @@ describe('Verify project access for user types in Ray Jobs', () => {
 
           cy.log(`Test configuration loaded for project: ${projectName}`);
           return getClusterArchitecture().then((arch) => {
+            architecture = arch;
             rayImage = arch === 'arm64' ? testData.rayImageArm64 : testData.rayImage;
           });
         })
@@ -95,7 +97,7 @@ describe('Verify project access for user types in Ray Jobs', () => {
         })
         .then(() => {
           cy.step('Create RayJob');
-          createBasicRayJob(projectName, rayJobName, rayImage, localQueueName);
+          createBasicRayJob(projectName, rayJobName, rayImage, localQueueName, architecture);
         });
     });
   });
