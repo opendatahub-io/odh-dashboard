@@ -229,6 +229,7 @@ describe('ChatbotMain - Empty State Logic', () => {
   });
 
   it('should omit unreachable MCP servers when saving an agent profile', () => {
+    let temperature = 0.1;
     mockUseChatbotConfigStore.getState =
       jest.requireActual<typeof import('~/app/Chatbot/store')>(
         '~/app/Chatbot/store',
@@ -239,7 +240,12 @@ describe('ChatbotMain - Empty State Logic', () => {
             configIds: ['default'],
             profileApplied: false,
             configurations: {
-              default: { ...DEFAULT_CONFIGURATION, selectedModel: 'test-model', temperature: 0.5 },
+              default: {
+                ...DEFAULT_CONFIGURATION,
+                selectedModel: 'test-model',
+                selectedVectorStoreId: 'inline-store',
+                temperature,
+              },
             },
           })
         : undefined,
@@ -261,7 +267,7 @@ describe('ChatbotMain - Empty State Logic', () => {
       checkServerStatus: jest.fn(),
     });
 
-    render(
+    const renderMain = () => (
       <ChatbotContext.Provider
         value={{
           lsdStatus: { phase: 'Ready', tracingEnabled: false } as LlamaStackDistributionModel,
@@ -296,8 +302,13 @@ describe('ChatbotMain - Empty State Logic', () => {
         >
           <ChatbotMain />
         </GenAiContext.Provider>
-      </ChatbotContext.Provider>,
+      </ChatbotContext.Provider>
     );
+    const { rerender } = render(renderMain());
+
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    temperature = 0.5;
+    rerender(renderMain());
 
     const playgroundProps = mockChatbotPlayground.mock.calls.at(-1)?.[0];
     expect(playgroundProps).toEqual(expect.objectContaining({ mcpServers: [connectedMcpServer] }));

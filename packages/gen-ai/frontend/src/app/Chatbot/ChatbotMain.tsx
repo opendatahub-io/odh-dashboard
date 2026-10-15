@@ -126,8 +126,13 @@ const ChatbotMain: React.FunctionComponent = () => {
   const isDefaultConfigDirty =
     !profileApplied &&
     !!defaultConfig &&
-    (JSON.stringify({ ...defaultConfig, selectedModel: '', hasVisionImage: false }) !==
-      JSON.stringify(DEFAULT_CONFIGURATION) ||
+    (JSON.stringify({
+      ...defaultConfig,
+      selectedModel: '',
+      selectedVectorStoreId:
+        defaultConfig.knowledgeMode === 'inline' ? null : defaultConfig.selectedVectorStoreId,
+      hasVisionImage: false,
+    }) !== JSON.stringify(DEFAULT_CONFIGURATION) ||
       defaultConfig.selectedModel !== (defaultModelRef.current ?? ''));
   useSafeBrowserUnloadBlocker(isProfileDirty || isDefaultConfigDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));

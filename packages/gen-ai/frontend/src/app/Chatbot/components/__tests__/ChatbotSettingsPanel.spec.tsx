@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChatbotSettingsPanel } from '~/app/Chatbot/components/ChatbotSettingsPanel';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -209,7 +209,11 @@ describe('ChatbotSettingsPanel', () => {
   it('should confirm before reverting changed default settings', async () => {
     mockAgentConfigManagementEnabled = true;
     const user = userEvent.setup();
-    const onRevertToDefaults = jest.fn();
+    const onRevertToDefaults = jest.fn(() => useChatbotConfigStore.getState().resetConfiguration());
+    act(() => {
+      useChatbotConfigStore.getState().updateTemperature(DEFAULT_CONFIG_ID, 0.8);
+      useChatbotConfigStore.getState().updateStreamingEnabled(DEFAULT_CONFIG_ID, false);
+    });
     const { rerender } = render(
       <ChatbotSettingsPanel {...defaultProps} onRevertToDefaults={onRevertToDefaults} />,
     );
@@ -222,6 +226,8 @@ describe('ChatbotSettingsPanel', () => {
         onRevertToDefaults={onRevertToDefaults}
       />,
     );
+    expect(screen.getByTestId('temperature-input')).toHaveValue(0.8);
+    expect(screen.getByTestId('streaming-toggle')).not.toBeChecked();
 
     await user.click(screen.getByTestId('settings-panel-reset-button'));
     expect(screen.getByText('Revert to default settings?')).toBeInTheDocument();
@@ -234,7 +240,15 @@ describe('ChatbotSettingsPanel', () => {
     await user.click(screen.getByTestId('settings-panel-reset-button'));
     await user.click(screen.getByTestId('reset-agent-confirm-button'));
     expect(onRevertToDefaults).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('temperature-input')).toHaveValue(0.1);
+    expect(screen.getByTestId('streaming-toggle')).toBeChecked();
     expect(screen.getByTestId('settings-reverted-alert')).toBeInTheDocument();
+    await user.click(
+      within(screen.getByTestId('settings-reverted-alert')).getByRole('button', {
+        name: /Close Info alert/,
+      }),
+    );
+    expect(screen.queryByTestId('settings-reverted-alert')).not.toBeInTheDocument();
   });
 
   it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {

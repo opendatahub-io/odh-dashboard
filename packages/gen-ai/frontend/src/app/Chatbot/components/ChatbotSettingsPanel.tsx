@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Alert,
+  AlertActionCloseButton,
   AlertGroup,
   Button,
   DrawerActions,
@@ -585,11 +586,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </Modal>
       )}
       {showRevertedAlert && (
-        <AlertGroup hasAnimations isToast isLiveRegion>
+        <AlertGroup isToast isLiveRegion>
           <Alert
             variant="info"
             title="Settings reverted to defaults"
             timeout={ALERT_TIMEOUT_MS}
+            actionClose={<AlertActionCloseButton onClose={() => setShowRevertedAlert(false)} />}
             onTimeout={() => setShowRevertedAlert(false)}
             data-testid="settings-reverted-alert"
           />
