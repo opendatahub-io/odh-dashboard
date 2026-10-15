@@ -5,13 +5,15 @@ import {
   type ProjectIdentity,
   WorkingProjectProvider,
 } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
-import { readStoredWorkingProjectName } from '@odh-dashboard/ui-core/context/workingProjectStorage';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { getWorkingProjectStorage, toWorkingProjectIdentity } from './workingProjectAdapterUtils';
+import {
+  getStoredWorkingProjectName,
+  toWorkingProjectIdentity,
+} from './workingProjectAdapterUtils';
 
 type Props = { children: React.ReactNode };
 
-/** Mount inside the opted-in RHOAI ProjectsContextProvider; 1.4 owns app-root placement. */
+/** Mount inside the opted-in RHOAI ProjectsContextProvider, above the Page and its masthead. */
 const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
   const { projects, preferredProject, updatePreferredProject, loaded, loadError } =
     React.useContext(ProjectsContext);
@@ -25,8 +27,7 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
   );
   const preferredName = preferredProject?.metadata.name;
   const knownPreferred = available ? projectByName.get(preferredName ?? '') : undefined;
-  const storage = available && !knownPreferred ? getWorkingProjectStorage() : null;
-  const storedName = storage ? readStoredWorkingProjectName(storage) : null;
+  const storedName = available && !knownPreferred ? getStoredWorkingProjectName() : null;
   const resolution = resolveWorkingProject({
     list: available
       ? { status: 'listed', projects: identities }
@@ -64,6 +65,7 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
 
   return (
     <WorkingProjectProvider
+      status={loadError ? 'project-source-error' : loaded ? 'listed' : 'loading'}
       projects={resolution.orderedProjects}
       activeProject={resolution.activeProject}
       onProjectChange={selectProject}

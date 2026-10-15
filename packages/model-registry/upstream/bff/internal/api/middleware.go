@@ -116,6 +116,9 @@ func (app *App) AttachModelCatalogRESTClient(next func(http.ResponseWriter, *htt
 			apiPath = repositories.AgentCatalogAPIPath
 		} else if strings.HasPrefix(r.URL.Path, ServingRuntimeCatalogPathPrefix) {
 			apiPath = repositories.ServingRuntimeCatalogAPIPath
+		} else if r.URL.Path == CatalogSourceListPath && r.URL.Query().Get("assetType") == "serving_runtimes" {
+			// Serving runtime sources are only served by the v1 catalog API.
+			apiPath = repositories.ModelCatalogV1APIPath
 		}
 
 		modelCatalogBaseURL := modelCatalog.ServerAddress

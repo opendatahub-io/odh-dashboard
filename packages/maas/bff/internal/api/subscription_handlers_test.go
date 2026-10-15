@@ -660,7 +660,7 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			var resp HTTPError
 			Expect(json.Unmarshal(rr.Body.Bytes(), &resp)).To(Succeed())
 			Expect(resp.Error.Code).To(Equal("409"))
-			Expect(resp.Error.Message).To(ContainSubstring("Operation cannot be fulfilled"))
+			Expect(resp.Error.Message).To(ContainSubstring("modified by someone else"))
 		})
 	})
 

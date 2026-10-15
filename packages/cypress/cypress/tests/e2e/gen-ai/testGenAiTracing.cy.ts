@@ -133,9 +133,9 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
       genAiPlayground.findCreateExternalModelModal().should('not.exist');
       genAiPlayground.findAiModelsTable().should('contain', testData.displayName);
 
-      cy.step('Add endpoint to playground with tracing enabled');
+      cy.step('Create playground with tracing enabled');
       cy.intercept('POST', '**/gen-ai/api/v1/lsd/install*').as('installLSD');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground
         .findEnableTracingSwitch({ timeout: 120000 })

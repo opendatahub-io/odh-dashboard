@@ -21,7 +21,9 @@
     "cypress:server:e2e:wait": "pnpm run cypress:server:wait",
     "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9105"
   },
-  "e2eCiTags": ["@NotebooksCI"],
+  "e2eCiTags": [
+    "@NotebooksCI"
+  ],
   "bffConfig": {
     "enabled": true,
     "port": 9105,
@@ -33,7 +35,7 @@
     "branch": "main",
     "src": "",
     "target": "upstream",
-    "commit": "a7d85c1d52305197751594015269331b61a1143b"
+    "commit": "1daef3b052a867496d394ee2f1f3fbe93295583b"
   },
   "module-federation": {
     "name": "notebooks",

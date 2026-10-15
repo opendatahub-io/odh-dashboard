@@ -164,6 +164,14 @@ export class HardwareProfileSection {
       }
     });
   }
+
+  findDRALockedMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('dra-hardware-profile-locked');
+  }
+
+  findCustomizeSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-customize');
+  }
 }
 
 export const hardwareProfileSection = new HardwareProfileSection();

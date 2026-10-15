@@ -4,10 +4,9 @@ import React from 'react';
 import { DashboardPopupIconButton, ScopedLabel } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { NotebookKind } from '@odh-dashboard/k8s-core';
-import { getHardwareProfileDisplayName } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import type { HardwareProfileResource } from './types';
-import { resourceTypeOf } from './utils';
+import { getHardwareProfileDisplayName, isDRAHardwareProfile, resourceTypeOf } from './utils';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import HardwareProfileBindingStateLabel from './HardwareProfileBindingStateLabel';
 import { HardwareProfileBindingState } from './const';
@@ -103,6 +102,7 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
               hardwareProfileName={displayName}
               resourceType={resourceType}
               isRunning={isActive}
+              isDRA={!!hardwareProfile && isDRAHardwareProfile(hardwareProfile)}
             />
           </FlexItem>
         )}

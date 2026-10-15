@@ -25,6 +25,10 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByRole('button', { name });
   }
 
+  findLink(name: string) {
+    return this.findPage().findByRole('link', { name });
+  }
+
   findContainerImageInput() {
     return this.findPage().findByTestId('runtime-container-image-copy').findByRole('textbox');
   }

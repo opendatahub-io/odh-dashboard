@@ -215,10 +215,15 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     isFetching: vectorDbSecretsFetching,
     isError: vectorDbSecretsError,
   } = useSecretsQuery(!isLegacyRun ? namespace : undefined, 'database');
-  const databaseSecrets = React.useMemo(
-    () => [...(vectorDbSecrets ?? []), ...(legacyVectorDbSecrets ?? [])],
-    [legacyVectorDbSecrets, vectorDbSecrets],
-  );
+  const databaseSecrets = React.useMemo(() => {
+    const uniqueSecrets = new Map<string, SecretSelection>();
+    for (const secret of [...(vectorDbSecrets ?? []), ...(legacyVectorDbSecrets ?? [])]) {
+      if (!uniqueSecrets.has(secret.name)) {
+        uniqueSecrets.set(secret.name, secret);
+      }
+    }
+    return [...uniqueSecrets.values()].filter((secret) => secret.databaseProviders?.length === 1);
+  }, [legacyVectorDbSecrets, vectorDbSecrets]);
 
   const parsedParams = React.useMemo(
     () => (params == null ? undefined : parseReconfigureParameters(params)),

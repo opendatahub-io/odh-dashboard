@@ -1,4 +1,4 @@
-import type { Extension, ExtensionPredicate } from '@openshift/dynamic-plugin-sdk';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
 /**
  * Extension point for providing the model registry settings URL.
  * This allows ODH to inject its own settings URL for the registry settings page
@@ -14,4 +14,4 @@ export type RegistrySettingsUrlExtension = Extension<'model-registry.settings/ur
      */
     title: string;
 }>;
-export declare const isRegistrySettingsUrlExtension: ExtensionPredicate<RegistrySettingsUrlExtension>;
+export declare const isRegistrySettingsUrlExtension: import("@openshift/dynamic-plugin-sdk").ExtensionPredicate<RegistrySettingsUrlExtension>;

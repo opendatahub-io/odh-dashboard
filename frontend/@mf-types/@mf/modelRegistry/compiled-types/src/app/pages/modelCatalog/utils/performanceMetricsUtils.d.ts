@@ -8,6 +8,7 @@ export declare const MAX_RPS_MAX_VALUE = 50;
 export declare const MAX_RPS_RANGE: SliderRange;
 export declare const FALLBACK_RPS_RANGE: SliderRange;
 export declare const FALLBACK_LATENCY_RANGE: SliderRange;
+export declare const COLD_START_LOAD_TIME_RANGE: SliderRange;
 type CalculateSliderRangeOptions = {
     performanceArtifacts: CatalogPerformanceMetricsArtifact[];
     getArtifactFilterValue: (artifact: CatalogPerformanceMetricsArtifact) => number;

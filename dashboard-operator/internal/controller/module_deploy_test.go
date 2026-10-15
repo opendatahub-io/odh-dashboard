@@ -188,6 +188,14 @@ func TestBuildFederationConfigMap_ExcludesDisabledModules(t *testing.T) {
 		Phase:  v1alpha1.ModulePhaseNotDeployed,
 		Reason: "ComponentNotAvailable",
 	}
+	statuses["automl"] = v1alpha1.ModuleStatus{
+		Phase:  v1alpha1.ModulePhaseDisabled,
+		Reason: "ExplicitOverride",
+	}
+	statuses["autorag"] = v1alpha1.ModuleStatus{
+		Phase:  v1alpha1.ModulePhaseDisabled,
+		Reason: "ExplicitOverride",
+	}
 
 	cm, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
 	require.NoError(t, err)
@@ -204,6 +212,8 @@ func TestBuildFederationConfigMap_ExcludesDisabledModules(t *testing.T) {
 	}
 	assert.False(t, names["genAi"], "disabled module must be excluded")
 	assert.False(t, names["maas"], "not-deployed module must be excluded")
+	assert.False(t, names["automl"], "explicitly disabled module must be excluded")
+	assert.False(t, names["autorag"], "explicitly disabled module must be excluded")
 	assert.True(t, names["modelRegistry"], "deployed module must be included")
 }
 

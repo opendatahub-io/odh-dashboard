@@ -169,7 +169,14 @@ describe('AutoragReconfigureLoader', () => {
           ? [{ name: 'storage', type: 's3', data: { AWS_S3_BUCKET: 'bucket' } }]
           : type === 'maas'
             ? [{ name: 'maas', type: 'maas', data: {} }]
-            : [{ name: 'vector-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }],
+            : [
+                {
+                  name: 'vector-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+              ],
       ),
     );
     mockUsePipelineRunQuery.mockReturnValue({
@@ -212,8 +219,18 @@ describe('AutoragReconfigureLoader', () => {
           : type === 'maas'
             ? []
             : [
-                { name: 'canonical-db', type: 'database', data: { MILVUS_URI: '[REDACTED]' } },
-                { name: 'legacy-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } },
+                {
+                  name: 'canonical-db',
+                  type: 'database',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+                {
+                  name: 'legacy-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
               ],
       ),
     );
@@ -242,7 +259,14 @@ describe('AutoragReconfigureLoader', () => {
     mockGetSecrets.mockImplementation((type: string) =>
       Promise.resolve(
         type === 'vector-db'
-          ? [{ name: 'legacy-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }]
+          ? [
+              {
+                name: 'legacy-db',
+                type: 'vector-db',
+                data: { MILVUS_URI: '[REDACTED]' },
+                databaseProviders: ['milvus'],
+              },
+            ]
           : [],
       ),
     );
@@ -266,6 +290,150 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.initialValues).toMatchObject({ db_secret_name: 'legacy-db' });
     expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'legacy-db' });
     expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
+  });
+
+  it('should prefer the current database query when current and legacy results duplicate a secret', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'database'
+          ? [
+              {
+                uuid: 'current-db-uuid',
+                name: 'shared-db',
+                type: 'database',
+                data: { MILVUS_URI: '[REDACTED]' },
+                databaseProviders: ['milvus'],
+              },
+            ]
+          : type === 'vector-db'
+            ? [
+                {
+                  uuid: 'legacy-db-uuid',
+                  name: 'shared-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+              ]
+            : [],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: '',
+        vector_db_secret_name: 'shared-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({
+      name: 'shared-db',
+      uuid: 'current-db-uuid',
+    });
+  });
+
+  it('should reject an invalid current duplicate instead of using a valid legacy duplicate', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'database'
+          ? [
+              {
+                uuid: 'current-db-uuid',
+                name: 'shared-db',
+                type: 'database',
+                data: { MILVUS_URI: '[REDACTED]' },
+              },
+            ]
+          : type === 'vector-db'
+            ? [
+                {
+                  uuid: 'legacy-db-uuid',
+                  name: 'shared-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+              ]
+            : [],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: '',
+        vector_db_secret_name: 'shared-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: '' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({
+      name: 'shared-db',
+      uuid: 'unavailable-shared-db',
+      invalid: true,
+    });
+  });
+
+  it('should not fall back to a legacy connection when an unavailable canonical value exists', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(
+        type === 'database'
+          ? []
+          : type === 'vector-db'
+            ? [
+                {
+                  uuid: 'legacy-db-uuid',
+                  name: 'legacy-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+              ]
+            : [],
+      ),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'missing-canonical-db',
+        vector_db_secret_name: 'legacy-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: '' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({
+      name: 'missing-canonical-db',
+      uuid: 'unavailable-missing-canonical-db',
+      invalid: true,
+    });
+    expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
+    expect(mockGetSecrets).not.toHaveBeenCalledWith('vector-db');
   });
 
   it('should preserve a missing current-format database secret for display without restoring it', async () => {
@@ -308,7 +476,9 @@ describe('AutoragReconfigureLoader', () => {
                 data: {
                   MILVUS_URI: '[REDACTED]',
                   NEO4J_URI: '[REDACTED]',
+                  NEO4J_PASSWORD: '[REDACTED]',
                 },
+                databaseProviders: ['milvus', 'neo4j'],
               },
             ]
           : [],
@@ -330,9 +500,13 @@ describe('AutoragReconfigureLoader', () => {
     renderPage();
 
     expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
-    expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'legacy-mixed-db' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({
+      name: 'legacy-mixed-db',
+      uuid: 'unavailable-legacy-mixed-db',
+      invalid: true,
+    });
     expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
-    expect(mockWarning).not.toHaveBeenCalledWith(
+    expect(mockWarning).toHaveBeenCalledWith(
       'Connection secret not found',
       'The previously used database connection "legacy-mixed-db" could not be found. Please select a new connection.',
     );
@@ -509,7 +683,14 @@ describe('AutoragReconfigureLoader', () => {
           ? [{ name: 'storage', type: 's3', data: { AWS_S3_BUCKET: 'bucket' } }]
           : type === 'maas'
             ? [{ name: 'maas', type: 'maas', data: {} }]
-            : [{ name: 'vector-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }],
+            : [
+                {
+                  name: 'vector-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+              ],
       ),
     );
     mockUsePipelineRunQuery.mockReturnValue({
@@ -551,7 +732,14 @@ describe('AutoragReconfigureLoader', () => {
           ? [{ name: 'storage', type: 's3', data: { AWS_S3_BUCKET: 'bucket' } }]
           : type === 'maas'
             ? [{ name: 'maas', type: 'maas', data: {} }]
-            : [{ name: 'vector-db', type: 'vector-db', data: { MILVUS_URI: '[REDACTED]' } }],
+            : [
+                {
+                  name: 'vector-db',
+                  type: 'vector-db',
+                  data: { MILVUS_URI: '[REDACTED]' },
+                  databaseProviders: ['milvus'],
+                },
+              ],
       ),
     );
     mockUsePipelineRunQuery.mockReturnValue({
@@ -819,7 +1007,15 @@ describe('AutoragReconfigureLoader', () => {
     expect(mockWarning).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveDatabase?.([{ uuid: 'database-uuid', name: 'database', type: 'database', data: {} }]);
+      resolveDatabase?.([
+        {
+          uuid: 'database-uuid',
+          name: 'database',
+          type: 'database',
+          data: {},
+          databaseProviders: ['milvus'],
+        },
+      ]);
     });
     await waitFor(() =>
       expect(capturedProps.initialDatabaseSecret).toMatchObject({ name: 'database' }),
@@ -857,7 +1053,15 @@ describe('AutoragReconfigureLoader', () => {
     expect(mockWarning).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveDatabase?.([{ uuid: 'database-uuid', name: 'database', type: 'database', data: {} }]);
+      resolveDatabase?.([
+        {
+          uuid: 'database-uuid',
+          name: 'database',
+          type: 'database',
+          data: {},
+          databaseProviders: ['milvus'],
+        },
+      ]);
     });
     await screen.findByTestId('configure-page');
     expect(mockWarning).not.toHaveBeenCalled();

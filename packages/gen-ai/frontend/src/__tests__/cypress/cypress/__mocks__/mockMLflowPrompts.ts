@@ -19,6 +19,7 @@ export const mockMLflowPromptsList = (
       name: 'summarization-prompt',
       description: 'Summarize content',
       tags: { use_case: 'summarization', language: 'en' },
+      model_config: { model_name: 'llama-3-8b-instruct', provider: 'vllm' },
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
     mockMLflowPrompt({
@@ -26,6 +27,7 @@ export const mockMLflowPromptsList = (
       description: 'Review code for quality and best practices',
       latest_version: 3,
       tags: { use_case: 'code-review' },
+      model_config: { model_name: 'granite-3-8b-instruct', provider: 'vllm' },
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
     mockMLflowPrompt({

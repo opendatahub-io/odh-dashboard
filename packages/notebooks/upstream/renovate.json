@@ -1,0 +1,49 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "MintMaker overlay for workbenches. Global Konflux config is inherited; do not copy it.",
+    "https://konflux-ci.dev/docs/mintmaker/user/",
+    "https://github.com/konflux-ci/mintmaker/blob/main/config/renovate/renovate.json"
+  ],
+  "enabledManagers": [
+    "gomod",
+    "github-actions"
+  ],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "description": "Disable routine version updates; vulnerability alerts still raise PRs",
+      "matchPackageNames": [
+        "*"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Go security PRs: match former Dependabot fix(deps) prefix",
+      "matchManagers": [
+        "gomod"
+      ],
+      "semanticCommits": "enabled",
+      "semanticCommitType": "fix",
+      "semanticCommitScope": "deps",
+      "groupName": "go"
+    },
+    {
+      "description": "GitHub Actions: weekly version bumps, match former Dependabot chore(gha)",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "enabled": true,
+      "schedule": [
+        "before 6am on monday"
+      ],
+      "semanticCommits": "enabled",
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "gha",
+      "groupName": "github-actions"
+    }
+  ]
+}

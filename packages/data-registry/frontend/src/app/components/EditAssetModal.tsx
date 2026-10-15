@@ -4,14 +4,7 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import { Alert, Form, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  AssetResponse,
-  ConnectionModel,
-  ConnectionRef,
-  LICENSE_VALUES,
-  MATURITY_VALUES,
-  PII_STATUS_VALUES,
-} from '~/app/types';
+import { AssetResponse, LICENSE_VALUES, MATURITY_VALUES, PII_STATUS_VALUES } from '~/app/types';
 import {
   isConflictError,
   createLabel,
@@ -19,6 +12,7 @@ import {
   updateVolume,
 } from '~/app/api/dataRegistry';
 import { useConnections } from '~/app/hooks/useConnections';
+import { confirmConnection, getConnectionKey } from '~/app/utilities/connectionUtils';
 import { editAssetSchema, EditAssetFormData } from '~/app/schemas/editAsset.schema';
 import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
 import DataLocationSection from './register-data/DataLocationSection';
@@ -42,6 +36,7 @@ type EditAssetModalProps = {
   onSaved: () => void;
   onManageCollections?: () => void;
   onManageLabels?: () => void;
+  hasExistingDchConnectionReferences?: boolean;
 };
 
 const WELL_KNOWN_PROPERTIES = new Set(['purpose', 'license', 'maturity', 'domain', 'pii']);
@@ -54,26 +49,6 @@ const getEnumPropertyValue = <T extends string>(
 const getValidLabels = (labels: string[]): string[] => [
   ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
 ];
-
-const getConnectionDisplayValue = (connectionRef?: ConnectionRef | null): string => {
-  if (!connectionRef) {
-    return '';
-  }
-  return connectionRef.type === 'rhai' ? connectionRef.secret_name : connectionRef.id;
-};
-
-const getConnectionRef = (
-  connection: string,
-  connections: ConnectionModel[],
-): ConnectionRef | null => {
-  if (!connection) {
-    return null;
-  }
-  const selectedConnection = connections.find((item) => item.name === connection);
-  return selectedConnection?.connectionType?.toLowerCase() === 'dch'
-    ? { type: 'dch', id: connection }
-    : { type: 'rhai', secret_name: connection };
-};
 
 const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAssetFormData => {
   const { asset, assetKind, collection } = props;
@@ -89,7 +64,7 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
     format: asset.format,
     collection,
     labels: getValidLabels(asset.labels ?? []),
-    connection: getConnectionDisplayValue(asset.connection_ref),
+    connection: asset.connection_ref ? getConnectionKey(asset.connection_ref) : '',
     path: asset.storage_location ?? '',
     purpose: properties.purpose || '',
     license: getEnumPropertyValue(properties.license, LICENSE_VALUES),
@@ -121,9 +96,19 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
   onSaved,
   onManageCollections,
   onManageLabels,
+  hasExistingDchConnectionReferences,
 }) => {
   const isTable = assetKind === 'table';
-  const [connections, connectionsLoaded, connectionsError] = useConnections(project);
+  const [
+    connections,
+    connectionsLoaded,
+    connectionsError,
+    refreshConnections,
+    connectionWarnings,
+    fetchedConnectionDisplayData,
+  ] = useConnections(project);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
+  const originalConnectionKey = asset.connection_ref ? getConnectionKey(asset.connection_ref) : '';
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
   const idRef = React.useRef(0);
@@ -189,28 +174,31 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
           !incompleteCustomPropertyKeys.has(key),
       );
 
-      const originalConnection = getConnectionDisplayValue(asset.connection_ref);
-      const connectionUpdate =
-        data.connection !== originalConnection
-          ? { connection_ref: getConnectionRef(data.connection, connections) }
-          : {};
-
-      const commonUpdate = {
-        description: data.description,
-        storage_location: data.path || null,
-        ...connectionUpdate,
-        ...(data.purpose !== defaults.purpose ? { purpose: data.purpose || null } : {}),
-        ...(data.license !== defaults.license ? { license: data.license || null } : {}),
-        ...(data.maturity !== defaults.maturity ? { maturity: data.maturity || null } : {}),
-        ...(data.domain !== defaults.domain ? { domain: data.domain || null } : {}),
-        ...(data.piiStatus !== defaults.piiStatus ? { pii: data.piiStatus || null } : {}),
-        ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
-        ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
-        ...(removeProperties.length > 0 ? { remove_properties: removeProperties } : {}),
-        properties: customProperties,
-      };
-
       try {
+        const connectionUpdate =
+          data.connection !== originalConnectionKey
+            ? {
+                connection_ref: data.connection
+                  ? await confirmConnection(data.connection, refreshConnections)
+                  : null,
+              }
+            : {};
+
+        const commonUpdate = {
+          description: data.description,
+          storage_location: data.path || null,
+          ...connectionUpdate,
+          ...(data.purpose !== defaults.purpose ? { purpose: data.purpose || null } : {}),
+          ...(data.license !== defaults.license ? { license: data.license || null } : {}),
+          ...(data.maturity !== defaults.maturity ? { maturity: data.maturity || null } : {}),
+          ...(data.domain !== defaults.domain ? { domain: data.domain || null } : {}),
+          ...(data.piiStatus !== defaults.piiStatus ? { pii: data.piiStatus || null } : {}),
+          ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
+          ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
+          ...(removeProperties.length > 0 ? { remove_properties: removeProperties } : {}),
+          properties: customProperties,
+        };
+
         if (addLabels.length > 0) {
           await Promise.all(
             addLabels.map((label) =>
@@ -249,16 +237,16 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
       }
     },
     [
-      asset.connection_ref,
       collection,
-      connections,
       defaults,
       isTable,
       name,
       onSaved,
       originalLabels,
+      originalConnectionKey,
       project,
       asset.properties,
+      refreshConnections,
     ],
   );
 
@@ -285,10 +273,17 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
           <Form className="odh-data-registry-registration-form">
             <RegistrationIdentitySection isEditMode />
             <DataLocationSection
-              showConnection
               connections={connections}
+              connectionDisplayData={connectionDisplayData}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
+              connectionWarnings={connectionWarnings}
+              showDchFallbackWarning={
+                hasExistingDchConnectionReferences || asset.connection_ref?.type === 'dch'
+              }
+              showRhaiLookupWarning={asset.connection_ref?.type === 'secret'}
+              currentConnection={asset.connection_ref}
+              isConnectionDisabled={isSubmitting}
             />
             <RegistrationAssetFormatSection isEditMode />
             {isTable ? <SchemaSection /> : null}

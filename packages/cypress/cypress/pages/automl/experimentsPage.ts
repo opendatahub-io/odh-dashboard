@@ -34,6 +34,12 @@ class AutomlExperimentsPage {
     return appChrome.findNavItem({ name: 'AutoML', rootSection: 'Develop & train' });
   }
 
+  // Renders once the lazy AutoML route has actually mounted — the host's loading fallback
+  // for lazy routes is empty, so waiting on this proves AutoML content is on the page.
+  findModuleHeaderIconContainer() {
+    return cy.findByTestId('automl-header-icon-container');
+  }
+
   findEmptyState(timeout?: number) {
     return cy.findByTestId('empty-experiments-state', timeout ? { timeout } : undefined);
   }

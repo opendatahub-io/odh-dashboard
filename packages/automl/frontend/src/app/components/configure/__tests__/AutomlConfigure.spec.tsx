@@ -1315,13 +1315,16 @@ describe('AutomlConfigure', () => {
 
         const fasterRadio = screen.getByTestId('preset-radio-speed');
         const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+        const bestQualityRadio = screen.getByTestId('preset-radio-quality');
         expect(fasterRadio).toBeInTheDocument();
         expect(betterQualityRadio).toBeInTheDocument();
+        expect(bestQualityRadio).toBeInTheDocument();
         expect(fasterRadio).toBeChecked();
         expect(betterQualityRadio).not.toBeChecked();
+        expect(bestQualityRadio).not.toBeChecked();
       });
 
-      it('should display human-readable labels for presets', () => {
+      it('should display preset labels and selection budgets', () => {
         renderComponent();
         selectSecretAndFile();
         selectTargetColumn();
@@ -1329,6 +1332,12 @@ describe('AutomlConfigure', () => {
 
         expect(screen.getByText('Faster')).toBeInTheDocument();
         expect(screen.getByText('Better quality')).toBeInTheDocument();
+        expect(screen.getByText('Best quality')).toBeInTheDocument();
+        expect(screen.getByText(/45-minute model-selection budget/)).toBeInTheDocument();
+        expect(screen.getByText(/Up to 3 hours for model selection/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Up to 6 h for model selection, plus data loading and refit/),
+        ).toBeInTheDocument();
       });
 
       it('should switch preset when clicking the other radio', () => {
@@ -1352,6 +1361,80 @@ describe('AutomlConfigure', () => {
 
         expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
         expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+      });
+
+      it('should select the quality preset and display its summary', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        const qualityRadio = screen.getByTestId('preset-radio-quality');
+        fireEvent.click(qualityRadio);
+
+        expect(qualityRadio).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+        expect(screen.getByText(/16 vCPU \/ 64 GiB/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Up to 6 h for model selection, plus data loading and refit/),
+        ).toBeInTheDocument();
+        expect(screen.getByText(/samples up to 10 GiB/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/maximum model search quality is worth the longer run/i),
+        ).toBeInTheDocument();
+      });
+
+      it('should not offer quality for timeseries runs', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('timeseries');
+
+        expect(screen.queryByTestId('preset-radio-quality')).not.toBeInTheDocument();
+        expect(screen.getByTestId('preset-radio-speed')).toBeInTheDocument();
+        expect(screen.getByTestId('preset-radio-balanced')).toBeInTheDocument();
+      });
+
+      it('should reset quality to speed when switching to timeseries', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+
+        fireEvent.click(screen.getByTestId('preset-radio-quality'));
+        expect(screen.getByTestId('preset-radio-quality')).toBeChecked();
+
+        selectPredictionType('timeseries');
+
+        expect(screen.queryByTestId('preset-radio-quality')).not.toBeInTheDocument();
+        expect(screen.getByTestId('preset-radio-speed')).toBeChecked();
+      });
+
+      it('should normalize quality to speed when opening a timeseries run in reconfigure', () => {
+        const initialValues = {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'ts.csv',
+          task_type: 'timeseries' as const,
+          target_column: 'credit_score',
+          timestamp_column: 'income',
+          preset: 'quality' as const,
+        };
+        renderWithInitialValues(
+          {
+            ...initialValues,
+            initialInputDataSecret: {
+              uuid: 'secret-1',
+              name: 'Test Secret 1',
+              data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+              type: 's3',
+              invalid: false,
+            },
+          },
+          initialValues,
+        );
+
+        expect(screen.queryByTestId('preset-radio-quality')).not.toBeInTheDocument();
+        expect(screen.getByTestId('preset-radio-speed')).toBeChecked();
       });
     });
 

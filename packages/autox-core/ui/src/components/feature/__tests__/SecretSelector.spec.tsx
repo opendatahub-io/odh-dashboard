@@ -282,22 +282,56 @@ describe('SecretSelector', () => {
 
   it('should filter database secrets to allowed single providers', () => {
     const databaseSecrets: SecretListItem[] = [
-      { uuid: 'milvus', name: 'milvus', data: { MILVUS_URI: 'https://milvus' } },
+      {
+        uuid: 'milvus',
+        name: 'milvus',
+        data: { MILVUS_URI: '[REDACTED]' },
+        databaseProviders: ['milvus'],
+      },
       {
         uuid: 'pgvector',
         name: 'pgvector',
         data: {
-          PGVECTOR_HOST: 'host',
-          PGVECTOR_PORT: '5432',
-          PGVECTOR_DB: 'db',
-          PGVECTOR_USER: 'user',
-          PGVECTOR_PASSWORD: 'password',
+          PGVECTOR_HOST: '[REDACTED]',
+          PGVECTOR_PORT: '[REDACTED]',
+          PGVECTOR_DB: '[REDACTED]',
+          PGVECTOR_USER: '[REDACTED]',
+          PGVECTOR_PASSWORD: '[REDACTED]',
         },
+        databaseProviders: ['pgvector'],
+      },
+      {
+        uuid: 'pgvector-legacy-key',
+        name: 'pgvector-legacy-key',
+        data: {
+          PGVECTOR_HOST: '[REDACTED]',
+          PGVECTOR_PORT: '[REDACTED]',
+          PGVECTOR_DB: '[REDACTED]',
+          PGVECTOR_USER: '[REDACTED]',
+          PGVECTOR_PASSWORD: '[REDACTED]',
+          MILVUS_SERVER_CERT: '[REDACTED]',
+        },
+        databaseProviders: ['pgvector'],
+      },
+      {
+        uuid: 'neo4j-legacy-key',
+        name: 'neo4j-legacy-key',
+        data: {
+          NEO4J_URI: '[REDACTED]',
+          NEO4J_PASSWORD: '[REDACTED]',
+          MILVUS_SERVER_CERT: '[REDACTED]',
+        },
+        databaseProviders: ['neo4j'],
       },
       {
         uuid: 'mixed',
         name: 'mixed',
-        data: { MILVUS_URI: 'https://milvus', NEO4J_URI: 'neo4j://db' },
+        data: {
+          MILVUS_URI: '[REDACTED]',
+          NEO4J_URI: '[REDACTED]',
+          NEO4J_PASSWORD: '[REDACTED]',
+        },
+        databaseProviders: ['milvus', 'neo4j'],
       },
     ];
     mockUseSecretsQuery.mockReturnValue({
@@ -311,19 +345,26 @@ describe('SecretSelector', () => {
       <SecretSelector
         namespace="test"
         type="database"
-        allowedProviders={['milvus', 'pgvector']}
+        allowedProviders={['milvus', 'pgvector', 'neo4j']}
         onChange={jest.fn()}
       />,
     );
 
     expect(screen.getByTestId('secret-option-milvus')).toBeInTheDocument();
     expect(screen.getByTestId('secret-option-pgvector')).toBeInTheDocument();
+    expect(screen.getByTestId('secret-option-pgvector-legacy-key')).toBeInTheDocument();
+    expect(screen.getByTestId('secret-option-neo4j-legacy-key')).toBeInTheDocument();
     expect(screen.queryByTestId('secret-option-mixed')).not.toBeInTheDocument();
   });
 
   it('should show compact provider labels for uniquely recognized database secrets', () => {
     const databaseSecrets: SecretListItem[] = [
-      { uuid: 'milvus', name: 'milvus', data: { MILVUS_URI: 'https://milvus' } },
+      {
+        uuid: 'milvus',
+        name: 'milvus',
+        data: { MILVUS_URI: 'https://milvus' },
+        databaseProviders: ['milvus'],
+      },
       {
         uuid: 'pgvector',
         name: 'pgvector',
@@ -334,8 +375,14 @@ describe('SecretSelector', () => {
           PGVECTOR_USER: 'user',
           PGVECTOR_PASSWORD: 'password',
         },
+        databaseProviders: ['pgvector'],
       },
-      { uuid: 'neo4j', name: 'neo4j', data: { NEO4J_URI: 'neo4j://db' } },
+      {
+        uuid: 'neo4j',
+        name: 'neo4j',
+        data: { NEO4J_URI: 'neo4j://db' },
+        databaseProviders: ['neo4j'],
+      },
     ];
     mockUseSecretsQuery.mockReturnValue({
       data: databaseSecrets,
@@ -358,14 +405,73 @@ describe('SecretSelector', () => {
     expect(screen.getByText('Neo4j')).toBeInTheDocument();
   });
 
-  it('should preserve a mixed-provider legacy selection as an option', () => {
-    const legacySecret: SecretListItem = {
-      uuid: 'legacy',
-      name: 'legacy',
-      data: { MILVUS_URI: 'https://milvus', NEO4J_URI: 'neo4j://db' },
-    };
+  it.each([
+    ['missing metadata', undefined],
+    ['empty metadata', []],
+    ['ambiguous metadata', ['milvus', 'pgvector']],
+  ])(
+    'should reject database secrets with %s without allowedProviders',
+    async (_name, providers) => {
+      const onChange = jest.fn();
+      const secret: SecretListItem = {
+        uuid: 'invalid-provider',
+        name: 'invalid-provider',
+        type: 'database',
+        data: { MILVUS_URI: '[REDACTED]' },
+        databaseProviders: providers as SecretListItem['databaseProviders'],
+      };
+      mockUseSecretsQuery.mockReturnValue({
+        data: [secret],
+        isPending: false,
+        error: null,
+        refetch: jest.fn(),
+      } as never);
+
+      render(
+        <SecretSelector
+          namespace="test"
+          type="database"
+          valueName="invalid-provider"
+          preserveSelectedValue
+          onChange={onChange}
+        />,
+      );
+
+      expect(screen.queryByTestId('secret-option-invalid-provider')).not.toBeInTheDocument();
+      await waitFor(() => expect(onChange).toHaveBeenCalledWith(undefined));
+    },
+  );
+
+  it('should reject vector-db secrets with ambiguous metadata without allowedProviders', () => {
     mockUseSecretsQuery.mockReturnValue({
-      data: [legacySecret],
+      data: [
+        {
+          uuid: 'ambiguous-vector',
+          name: 'ambiguous-vector',
+          type: 'vector-db',
+          data: { MILVUS_URI: '[REDACTED]' },
+          databaseProviders: ['milvus', 'pgvector'],
+        },
+      ],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+    render(<SecretSelector namespace="test" type="vector-db" onChange={jest.fn()} />);
+
+    expect(screen.queryByTestId('secret-option-ambiguous-vector')).not.toBeInTheDocument();
+  });
+
+  it('should reject a URI-only Neo4j selection instead of preserving it', async () => {
+    const onChange = jest.fn();
+    mockUseSecretsQuery.mockReturnValue({
+      data: [
+        {
+          uuid: 'neo4j-uri-only',
+          name: 'neo4j-uri-only',
+          data: { NEO4J_URI: 'neo4j://db.example.com' },
+        },
+      ],
       isPending: false,
       error: null,
       refetch: jest.fn(),
@@ -374,15 +480,16 @@ describe('SecretSelector', () => {
     render(
       <SecretSelector
         namespace="test"
-        type="vector-db"
-        allowedProviders={['milvus']}
+        type="database"
+        allowedProviders={['neo4j']}
         preserveSelectedValue
-        valueName="legacy"
-        onChange={jest.fn()}
+        valueName="neo4j-uri-only"
+        onChange={onChange}
       />,
     );
 
-    expect(screen.getByTestId('secret-option-legacy')).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByTestId('secret-option-neo4j-uri-only')).not.toBeInTheDocument();
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(undefined));
   });
 
   it('should preserve a legacy selection supplied outside the database query as disabled', () => {

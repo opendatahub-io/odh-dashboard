@@ -17,6 +17,7 @@ jest.mock('~/app/components/SafeNavigationBlocker', () => ({
 
 jest.mock('~/app/Chatbot/store', () => ({
   useChatbotConfigStore: jest.fn(() => null),
+  selectActivePrompt: jest.fn(() => () => null),
   selectDirtyPrompt: jest.fn(() => () => null),
   selectIsPreview: jest.fn(() => () => false),
   DEFAULT_CONFIG_ID: 'default',
@@ -93,7 +94,7 @@ describe('PromptTabContent', () => {
   it('renders the Prompt title', () => {
     render(<PromptTabContent {...defaultProps} />);
 
-    expect(screen.getByRole('heading', { name: 'Prompt' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'New Prompt' })).toBeInTheDocument();
   });
 
   it('renders SystemInstructionFormGroup with correct props', () => {

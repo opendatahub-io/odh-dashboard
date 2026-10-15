@@ -11,7 +11,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { TypeaheadSelect } from '@odh-dashboard/ui-core';
 import type { TypeaheadSelectProps } from '@odh-dashboard/ui-core';
 import * as React from 'react';
-import type { SecretListItem } from '../../api/k8s/types';
+import type { DatabaseProvider, SecretListItem } from '../../api/k8s/types';
 import { useSecretsQuery } from '../../hooks';
 import { formatMissingKeysMessage, getMissingRequiredKeys } from '../../utils/secretValidation';
 
@@ -27,20 +27,11 @@ type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> &
   description?: React.ReactNode;
 };
 
-type DatabaseProvider = 'milvus' | 'pgvector' | 'neo4j';
+const getDatabaseProviders = (secret: SecretListItem): DatabaseProvider[] =>
+  secret.databaseProviders ?? [];
 
-const getDatabaseProviders = (secret: SecretListItem): DatabaseProvider[] => {
-  const keys = new Set(Object.keys(secret.data ?? {}));
-  return [
-    keys.has('MILVUS_URI') ? 'milvus' : undefined,
-    ['PGVECTOR_HOST', 'PGVECTOR_PORT', 'PGVECTOR_DB', 'PGVECTOR_USER', 'PGVECTOR_PASSWORD'].every(
-      (key) => keys.has(key),
-    )
-      ? 'pgvector'
-      : undefined,
-    keys.has('NEO4J_URI') ? 'neo4j' : undefined,
-  ].filter((provider): provider is DatabaseProvider => provider !== undefined);
-};
+const isDatabaseSecretType = (type?: string): boolean =>
+  type === 'database' || type === 'vector-db';
 
 export type SecretSelectorProps = Omit<
   TypeaheadSelectProps,
@@ -100,18 +91,30 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   const loaded = !loading;
   const secretsList = React.useMemo(() => {
     const allSecrets = Array.isArray(secrets) ? secrets : [];
-    if (!allowedProviders || !['database', 'vector-db'].includes(type ?? '')) {
+    if (!isDatabaseSecretType(type)) {
       return allSecrets;
     }
     const filteredSecrets = allSecrets.filter((secret) => {
       const matchingProviders = getDatabaseProviders(secret);
-      return matchingProviders.length === 1 && allowedProviders.includes(matchingProviders[0]);
+      return (
+        matchingProviders.length === 1 &&
+        (!allowedProviders || allowedProviders.includes(matchingProviders[0]))
+      );
     });
     if (preserveSelectedValue && valueName) {
       const selectedSecret =
         allSecrets.find((secret) => secret.name === valueName) ??
         (preservedSelection?.name === valueName ? preservedSelection : undefined);
-      if (selectedSecret && !filteredSecrets.some((secret) => secret.name === valueName)) {
+      const isAvailable = allSecrets.some((secret) => secret.name === valueName);
+      const selectedProviders = selectedSecret ? getDatabaseProviders(selectedSecret) : [];
+      const hasValidMetadata =
+        selectedProviders.length === 1 &&
+        (!allowedProviders || allowedProviders.includes(selectedProviders[0]));
+      if (
+        selectedSecret &&
+        !filteredSecrets.some((secret) => secret.name === valueName) &&
+        (!isAvailable || hasValidMetadata)
+      ) {
         return [...filteredSecrets, selectedSecret];
       }
     }
@@ -222,12 +225,15 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
             preserveSelectedValue &&
             secret.name === valueName &&
             type !== undefined &&
-            ['database', 'vector-db'].includes(type) &&
-            !!allowedProviders &&
-            ((preservedSelection?.name === secret.name &&
-              !secrets?.some((item) => item.name === secret.name)) ||
-              matchingProviders.length !== 1 ||
-              !allowedProviders.includes(matchingProviders[0])),
+            isDatabaseSecretType(type) &&
+            (() => {
+              const isUnavailable =
+                secret.name === valueName && !secrets?.some((item) => item.name === secret.name);
+              const hasInvalidMetadata =
+                matchingProviders.length !== 1 ||
+                (!!allowedProviders && !allowedProviders.includes(matchingProviders[0]));
+              return isUnavailable || hasInvalidMetadata;
+            })(),
           description: labels.length ? (
             <LabelGroup className="pf-v6-u-mt-sm">{labels}</LabelGroup>
           ) : undefined,
@@ -236,7 +242,6 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     [
       allowedProviders,
       preserveSelectedValue,
-      preservedSelection,
       secrets,
       secretsList,
       selectedValue,

@@ -39,7 +39,11 @@ import {
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
-import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
+import {
+  checkRequiredFieldsForNotebookStart,
+  formatContainerResourcesForTracking,
+  getPvcVolumeDetails,
+} from './spawnerUtils';
 import type { SelectedFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
 import { generateFeastMetadata } from './featureStore/utils';
 
@@ -134,11 +138,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       hardwareProfileFormData.selectedProfile?.spec.scheduling?.kueue?.localQueueName ||
       editNotebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
     const tep: FormTrackingEventProperties = {
-      containerResources: Object.entries(podSpecOptions.resources || {})
-        .map(([key, value]) =>
-          Object.entries(value).map(([k, v]) => `${key}.${k}: ${v?.toString() || ''}`),
-        )
-        .join(', '),
+      containerResources: formatContainerResourcesForTracking(podSpecOptions.resources),
       lastSelectedImage: image.imageVersion?.from
         ? `${image.imageVersion.from.name}`
         : `${image.imageStream?.metadata.name || 'unknown image'} - ${
