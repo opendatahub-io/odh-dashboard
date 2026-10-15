@@ -22,6 +22,8 @@ type ResourceNameTooltipProps = {
   wrap?: boolean;
   onShowPopover?: () => void;
   description?: string;
+  descriptionMaxLines?: number;
+  withFocusTrap?: boolean;
 };
 
 const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
@@ -30,6 +32,8 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
   wrap = true,
   onShowPopover,
   description,
+  descriptionMaxLines = 3,
+  withFocusTrap,
 }) => (
   <div style={{ display: wrap ? 'block' : 'inline-flex' }}>
     <Flex
@@ -41,6 +45,7 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
       {resource.metadata?.name && (
         <Popover
           position="right"
+          withFocusTrap={withFocusTrap}
           onShow={(): void => {
             if (onShowPopover) {
               onShowPopover();
@@ -76,7 +81,11 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
                     <DescriptionListGroup>
                       <DescriptionListTerm>Resource description</DescriptionListTerm>
                       <DescriptionListDescription data-testid="resource-description-text">
-                        <TruncatedText maxLines={3} tabIndex={0} content={description} />
+                        <TruncatedText
+                          maxLines={descriptionMaxLines}
+                          tabIndex={0}
+                          content={description}
+                        />
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   )}

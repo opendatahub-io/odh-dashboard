@@ -37,6 +37,7 @@ const DRAHardwareProfileDetailsSection: React.FC<DRAHardwareProfileDetailsSectio
             metadata: { name: details.resourceClaimTemplateName },
           }}
           description={details.description}
+          withFocusTrap={false}
         >
           {details.resourceClaimTemplateName.length > MAX_TEMPLATE_NAME_LENGTH ? (
             <Truncate

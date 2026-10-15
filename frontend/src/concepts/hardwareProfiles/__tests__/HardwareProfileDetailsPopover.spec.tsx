@@ -239,12 +239,13 @@ describe('HardwareProfileDetailsPopover', () => {
       expect(screen.getByTestId('resource-kind-text')).toHaveTextContent('ResourceClaimTemplate');
       expect(screen.queryByTestId('resource-description-text')).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByTestId('resource-kind-text'));
-      await act(async () => {
-        await new Promise((resolve) => {
-          setTimeout(resolve, 500);
-        });
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      await user.click(screen.getByTestId('resource-kind-text'));
+      act(() => {
+        jest.advanceTimersByTime(1000);
       });
+      jest.useRealTimers();
 
       expect(screen.getByTestId('hardware-profile-details')).toBeInTheDocument();
     });
