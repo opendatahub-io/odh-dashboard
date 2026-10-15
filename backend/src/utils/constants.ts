@@ -116,6 +116,8 @@ export const blankDashboardCR: DashboardConfig = {
       globalProjectPrompts: false,
       gpuaas: true,
       modelCapabilities: false,
+      runtimeCatalog: false,
+      grid: false,
       observabilityDashboard: true,
       nimWizard: true,
     },

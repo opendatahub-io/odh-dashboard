@@ -29,6 +29,9 @@ export const techPreviewFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
+  // Temporary Grid migration switch: enables MaaS Gateway API paths for the MaaS and Gen AI
+  // packages while grid-aware screens are migrated away from Kubernetes APIs.
+  grid: false,
   disableKueue: true,
   disableProjectScoped: true,
   nimServiceOperator: false,

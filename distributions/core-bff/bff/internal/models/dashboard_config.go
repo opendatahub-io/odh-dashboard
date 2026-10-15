@@ -98,6 +98,8 @@ type DashboardFeatureFlags struct {
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
 	ModelCapabilities            bool `json:"modelCapabilities"`
+	RuntimeCatalog               bool `json:"runtimeCatalog"`
+	Grid                         bool `json:"grid"`
 }
 
 type NotebookController struct {
@@ -195,6 +197,8 @@ var BlankDashboardCR = DashboardConfig{
 			PromptManagement:             false,
 			MySubscriptions:              false,
 			ModelCapabilities:            false,
+			RuntimeCatalog:               false,
+			Grid:                         false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,
