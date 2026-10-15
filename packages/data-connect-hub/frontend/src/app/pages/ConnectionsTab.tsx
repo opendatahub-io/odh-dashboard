@@ -34,7 +34,11 @@ import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
-import { isValidTimestamp, statusVariant } from '~/app/utilities/connectionStatus';
+import {
+  hasVerificationOutcome,
+  isValidTimestamp,
+  statusVariant,
+} from '~/app/utilities/connectionStatus';
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
 type ConnectionsTabProps = { namespace: string; isActive?: boolean };
@@ -412,7 +416,8 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                       >
                         Verifying
                       </Label>
-                    ) : isValidTimestamp(connection.status.updated_at) ? (
+                    ) : isValidTimestamp(connection.status.updated_at) &&
+                      hasVerificationOutcome(connection) ? (
                       <>
                         <Label variant="outline" status={statusVariant[connection.status.state]}>
                           {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}

@@ -45,7 +45,11 @@ import RelativeTimestamp from '~/app/components/RelativeTimestamp';
 import { useConnection } from '~/app/hooks/useConnection';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
-import { isValidTimestamp, statusVariant } from '~/app/utilities/connectionStatus';
+import {
+  hasVerificationOutcome,
+  isValidTimestamp,
+  statusVariant,
+} from '~/app/utilities/connectionStatus';
 
 type ConnectionDetailsContentProps = {
   namespace: string;
@@ -69,8 +73,9 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
   );
   const loadingSkeleton = <Skeleton screenreaderText="Loading connection" />;
   const connectionName = connection?.resource.name ?? loadingSkeleton;
-  const lastTested = connection?.status.updated_at;
-  const hasValidTimestamp = isValidTimestamp(lastTested);
+  const hasValidTimestamp = isValidTimestamp(connection?.status.updated_at);
+  const testedConnection =
+    connection && hasValidTimestamp && hasVerificationOutcome(connection) ? connection : undefined;
   const properties = Object.entries(connection?.resource.properties ?? {});
   const connectionTypeId = connection?.resource.data_connection_type_id ?? '';
   const [connectionType] = useConnectionType(
@@ -97,10 +102,6 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
     const operation = ++verificationOperationRef.current;
     try {
       await verifyConnection('')({}, namespace, connection.metadata.id);
-      if (verificationOperationRef.current !== operation) {
-        return;
-      }
-      refresh();
     } catch (failure) {
       if (verificationOperationRef.current !== operation) {
         return;
@@ -110,7 +111,10 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
       );
     } finally {
       if (verificationOperationRef.current === operation) {
-        setVerifying(false);
+        await refresh();
+        if (verificationOperationRef.current === operation) {
+          setVerifying(false);
+        }
       }
     }
   };
@@ -256,9 +260,14 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                         >
                           Verifying
                         </Label>
-                      ) : connection && hasValidTimestamp ? (
-                        <Label variant="outline" status={statusVariant[connection.status.state]}>
-                          {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}
+                      ) : testedConnection ? (
+                        <Label
+                          variant="outline"
+                          status={statusVariant[testedConnection.status.state]}
+                        >
+                          {testedConnection.status.state === 'ready'
+                            ? 'Verified'
+                            : 'Verification failed'}
                         </Label>
                       ) : (
                         <Label variant="outline" color="grey">
@@ -270,8 +279,8 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                   <DescriptionListGroup>
                     <DescriptionListTerm>Last tested</DescriptionListTerm>
                     <DescriptionListDescription data-testid="connection-last-tested">
-                      {hasValidTimestamp && lastTested ? (
-                        <RelativeTimestamp datetime={lastTested} />
+                      {testedConnection?.status.updated_at ? (
+                        <RelativeTimestamp datetime={testedConnection.status.updated_at} />
                       ) : (
                         '-'
                       )}

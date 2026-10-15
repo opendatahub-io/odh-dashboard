@@ -50,7 +50,7 @@ const mockUseConnectionType = jest.mocked(useConnectionType);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
-const refresh = jest.fn();
+const refresh = jest.fn(() => Promise.resolve(undefined));
 
 const connection: Connection = {
   metadata: {
@@ -215,6 +215,26 @@ describe('ConnectionDetails', () => {
     expect(screen.getByTestId('connection-last-tested').textContent).toBe('-');
   });
 
+  it('renders a newly created connection as unverified', () => {
+    mockUseConnection.mockReturnValue([
+      {
+        ...connection,
+        status: {
+          state: 'not_ready',
+          updated_at: connection.metadata.created_at,
+        },
+      },
+      true,
+      undefined,
+      refresh,
+    ]);
+
+    renderDetails();
+
+    expect(screen.getByTestId('connection-status-label').textContent).toBe('Unverified');
+    expect(screen.getByTestId('connection-last-tested').textContent).toBe('-');
+  });
+
   it('verifies the connection and refreshes it', async () => {
     const user = userEvent.setup();
     const verifyRequest = jest.fn(() => Promise.resolve());
@@ -292,8 +312,8 @@ describe('ConnectionDetails', () => {
         'test-project',
         '550e8400-e29b-41d4-a716-446655440001',
       );
+      expect(refresh).toHaveBeenCalledTimes(1);
     });
-    expect(refresh).not.toHaveBeenCalled();
     expect(screen.getByTestId('connection-verify-button')).toHaveProperty('disabled', false);
   });
 
@@ -418,6 +438,91 @@ describe('ConnectionDetails', () => {
       expect(screen.getByText('Connection not found')).toBeTruthy();
     });
     expect(screen.queryByText('Unable to load connection')).toBeNull();
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+
+  it('keeps verification pending until the refreshed connection arrives', async () => {
+    const user = userEvent.setup();
+    let connectionRequests = 0;
+    let readinessRequestStarted = false;
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockImplementation((input, init) => {
+        if (init?.method === 'POST') {
+          readinessRequestStarted = true;
+          return Promise.resolve({
+            status: 204,
+            ok: true,
+            text: () => Promise.resolve(''),
+          } as Response);
+        }
+
+        connectionRequests += 1;
+        if (connectionRequests === 1) {
+          return Promise.resolve({
+            status: 200,
+            ok: true,
+            text: () =>
+              Promise.resolve(
+                JSON.stringify({
+                  data: {
+                    ...connection,
+                    resource: {
+                      ...connection.resource,
+                      credentials_ref: { secret: connection.resource.credentials_ref.secret },
+                    },
+                  },
+                }),
+              ),
+          } as Response);
+        }
+        return new Promise<Response>(() => undefined);
+      });
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    jest.resetModules();
+    jest.doMock('react', () => React);
+    jest.doMock('react-router-dom', () => ReactRouterDom);
+    jest.doMock('~/app/hooks/useConnection', () => jest.requireActual('~/app/hooks/useConnection'));
+    jest.doMock('~/app/hooks/useConnectionType', () => ({
+      useConnectionType: () => [mockConnectionType(), true, undefined],
+    }));
+    jest.doMock('~/app/api/dch', () => ({
+      ...jest.requireActual<typeof import('~/app/api/dch')>('~/app/api/dch'),
+      deleteConnection: jest.fn(),
+    }));
+    jest.doMock('~/app/hooks/useNamespaces', () => ({
+      useNamespaces: () => [[{ name: 'test-project', displayName: 'Test Project' }]],
+    }));
+
+    const ActualConnectionDetails = require('~/app/pages/ConnectionDetails')
+      .default as React.ComponentType;
+    const renderResult = render(
+      <MemoryRouter
+        initialEntries={[
+          '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440001?project=test-project',
+        ]}
+      >
+        <Routes>
+          <Route
+            path="/ai-hub/connections/connections/:connectionId"
+            element={<ActualConnectionDetails />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByTestId('connection-verify-button'));
+    await waitFor(() => {
+      expect(connectionRequests).toBe(2);
+    });
+    expect(readinessRequestStarted).toBe(true);
+    await Promise.resolve();
+
+    expect(screen.getByTestId('connection-verify-button')).toHaveProperty('disabled', true);
+    expect(connectionRequests).toBe(2);
+
+    renderResult?.unmount();
     delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
 

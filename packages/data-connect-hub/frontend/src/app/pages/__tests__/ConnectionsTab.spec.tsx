@@ -168,6 +168,28 @@ describe('ConnectionsTab', () => {
     expect(screen.getByText('Unverified')).toBeTruthy();
   });
 
+  it('renders a newly created connection as unverified', () => {
+    mockUseConnections.mockReturnValue([
+      [
+        {
+          ...connections[0],
+          status: {
+            state: 'not_ready' as const,
+            updated_at: '2026-09-06T16:00:00Z',
+          },
+        },
+      ],
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    expect(screen.getByText('Unverified')).toBeTruthy();
+    expect(screen.queryByText(/Last tested/)).toBeNull();
+  });
+
   it('renders connection detail links', () => {
     mockUseConnections.mockReturnValue([
       [

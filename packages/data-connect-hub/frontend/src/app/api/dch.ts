@@ -2,8 +2,6 @@ import {
   APIOptions,
   handleRestFailures,
   isModArchResponse,
-  restENDPOINT,
-  restDELETE,
   restGET,
   restCREATE,
 } from 'mod-arch-core';
@@ -33,6 +31,14 @@ const getResponseErrorMessage = (body: string, status: number): string => {
     // Fall back to the raw response for non-JSON errors.
   }
   return body || `Request failed with status ${status}`;
+};
+
+const requireNoContent = async (response: Response): Promise<void> => {
+  if (response.status === 204) {
+    return;
+  }
+  const body = await response.text();
+  throw new Error(getResponseErrorMessage(body, response.status));
 };
 
 const isConnection = (value: unknown): value is Connection => {
@@ -210,17 +216,20 @@ export const getConnectionType =
 
 export const verifyConnection =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string, connectionId: string): Promise<void> =>
-    handleRestFailures(
-      restENDPOINT(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
-          connectionId,
-        )}/readiness`,
-        { namespace },
-        { ...opts, parseJSON: false },
-      ),
-    ).then(() => undefined);
+  async (opts: APIOptions, namespace: string, connectionId: string): Promise<void> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+        connectionId,
+      )}/readiness?${searchParams.toString()}`,
+      {
+        method: 'POST',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    await requireNoContent(response);
+  };
 
 export const testCredentials =
   (hostPath: string) =>
@@ -238,23 +247,21 @@ export const testCredentials =
         body: JSON.stringify(request),
         signal: opts.signal,
       },
-    ).then(async (response) => {
-      if (response.status === 204) {
-        return;
-      }
-      const body = await response.text();
-      throw new Error(getResponseErrorMessage(body, response.status));
-    });
+    ).then(requireNoContent);
 
 export const deleteConnection =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string, connectionId: string): Promise<void> =>
-    handleRestFailures(
-      restDELETE(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(connectionId)}`,
-        {},
-        { namespace },
-        { ...opts, parseJSON: false },
-      ),
-    ).then(() => undefined);
+  async (opts: APIOptions, namespace: string, connectionId: string): Promise<void> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+        connectionId,
+      )}?${searchParams.toString()}`,
+      {
+        method: 'DELETE',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    await requireNoContent(response);
+  };

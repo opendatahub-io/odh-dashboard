@@ -1,7 +1,13 @@
 import { handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { describe, expect, it, jest } from '@jest/globals';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
-import { getConnection, getConnectionType, testCredentials } from '~/app/api/dch';
+import {
+  deleteConnection,
+  getConnection,
+  getConnectionType,
+  testCredentials,
+  verifyConnection,
+} from '~/app/api/dch';
 
 jest.mock('mod-arch-core', () => {
   const { jest: jestMock } = require('@jest/globals') as typeof import('@jest/globals');
@@ -242,6 +248,80 @@ describe('testCredentials', () => {
         credentials: { URI: 'valid' },
       }),
     ).resolves.toBeUndefined();
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+});
+
+describe('verifyConnection', () => {
+  it('resolves when the endpoint returns 204 and passes request options', async () => {
+    const opts = { signal: new AbortController().signal };
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(204));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(
+      verifyConnection('')(opts, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
+    ).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/data-connect-hub/api/v1/connections/550e8400-e29b-41d4-a716-446655440001/readiness?namespace=test-project',
+      {
+        method: 'POST',
+        headers: undefined,
+        signal: opts.signal,
+      },
+    );
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+
+  it.each([403, 502])('rejects a verification response with HTTP %i', async (status) => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        response(status, `{"error":{"code":"${status}","message":"verification rejected"}}`),
+      );
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(
+      verifyConnection('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
+    ).rejects.toThrow('verification rejected');
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+});
+
+describe('deleteConnection', () => {
+  it('resolves when the endpoint returns 204 and passes request options', async () => {
+    const opts = { signal: new AbortController().signal };
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(204));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(
+      deleteConnection('')(opts, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
+    ).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/data-connect-hub/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project',
+      {
+        method: 'DELETE',
+        headers: undefined,
+        signal: opts.signal,
+      },
+    );
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+
+  it.each([403, 409, 500])('rejects a deletion response with HTTP %i', async (status) => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        response(status, `{"error":{"code":"${status}","message":"deletion rejected"}}`),
+      );
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(
+      deleteConnection('')({}, 'test-project', '550e8400-e29b-41d4-a716-446655440001'),
+    ).rejects.toThrow('deletion rejected');
     delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
 });

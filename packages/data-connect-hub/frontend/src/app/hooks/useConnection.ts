@@ -1,4 +1,9 @@
-import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
+import {
+  APIOptions,
+  FetchStateCallbackPromise,
+  FetchStateRefreshPromise,
+  useFetchState,
+} from 'mod-arch-core';
 import React from 'react';
 import { getConnection } from '~/app/api/dch';
 import { Connection } from '~/app/types';
@@ -7,7 +12,7 @@ export const useConnection = (
   namespace: string,
   connectionId: string,
   fetchEnabled = true,
-): [Connection | null, boolean, Error | undefined, () => void] => {
+): [Connection | null, boolean, Error | undefined, FetchStateRefreshPromise<Connection | null>] => {
   const callback = React.useCallback<FetchStateCallbackPromise<Connection | null>>(
     async (opts: APIOptions) => {
       if (!namespace || !fetchEnabled) {
