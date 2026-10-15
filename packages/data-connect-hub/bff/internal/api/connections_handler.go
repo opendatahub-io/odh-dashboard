@@ -133,6 +133,7 @@ func (app *App) GetConnectionHandler(w http.ResponseWriter, r *http.Request, par
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	connectionID = strings.ToLower(connectionID)
 
 	apiURL := app.config.DataConnectHubAPIURL
 	if app.dataConnectHubAPIURL != nil {

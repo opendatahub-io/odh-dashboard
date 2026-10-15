@@ -132,9 +132,21 @@ func TestGetConnectionHandlerReturnsMockConnection(t *testing.T) {
 	require.Equal(t, "2026-09-08T16:00:00Z", envelope.Data.Metadata.UpdatedAt)
 }
 
+func TestGetConnectionHandlerNormalizesUUIDCasingInMockMode(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550E8400-E29B-41D4-A716-446655440001?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550E8400-E29B-41D4-A716-446655440001"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var envelope ConnectionResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Equal(t, "550e8400-e29b-41d4-a716-446655440001", envelope.Data.Metadata.ID)
+}
+
 func TestGetConnectionHandlerReturnsNotFoundInMockMode(t *testing.T) {
 	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
-	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/missing?namespace=test-project")
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550e8400-e29b-41d4-a716-446655440009?namespace=test-project")
 
 	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440009"}})
 
