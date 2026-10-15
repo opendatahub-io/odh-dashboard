@@ -127,7 +127,10 @@ describe('Runtime image Install extension navigation', () => {
     runtimeImageInstallPage.visitInstallDirectly('empty-preview');
     runtimeImageInstallPage.loadNoResourceRouterState(runtimeDetailsRoute);
     runtimeImageInstallPage.findNoResourcesMessage().should('exist');
-    runtimeImageInstallPage.findReturn().click();
+    runtimeImageInstallPage.findServingRuntimeRadio().should('be.disabled').and('not.be.checked');
+    runtimeImageInstallPage.findAcceleratorRadio().should('be.disabled').and('not.be.checked');
+    runtimeImageInstallPage.findNext().should('be.disabled');
+    runtimeImageInstallPage.findCancel().click();
     cy.url().should('include', '/serving-runtime-catalog/preview-vllm-0-6-0');
   });
 
@@ -163,8 +166,22 @@ describe('Runtime image Install extension navigation', () => {
       { model: acceleratorConfigModel, ns: 'opendatahub' },
       mockK8sResourceList([createdConfig]),
     );
-    visitInstallWithActionData();
-    runtimeImageInstallPage.findAcceleratorRadio().check();
+    const actionData = mockRuntimeImageActionData();
+    runtimeImageInstallPage.visitInstallDirectly(actionData.runtimeImageId);
+    runtimeImageInstallPage.loadActionDataRouterState({
+      ...actionData,
+      deploymentResources: {
+        llmInferenceServiceConfig: actionData.deploymentResources.llmInferenceServiceConfig,
+      },
+    });
+    runtimeImageInstallPage.findAcceleratorRadio().should('be.checked');
+    runtimeImageInstallPage.findServingRuntimeRadio().should('be.disabled').and('not.be.checked');
+    runtimeImageInstallPage
+      .findSingleTargetAlert()
+      .should(
+        'contain.text',
+        'This runtime image only supports the LLM accelerator configuration install target.',
+      );
     runtimeImageInstallPage.findNext().click();
     llmAcceleratorConfigurations.findNameInput().should('have.value', 'vLLM 0.6.0');
     llmAcceleratorConfigurations.findVersionInput().should('have.value', '0.6.0');
