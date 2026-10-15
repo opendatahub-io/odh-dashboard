@@ -22,16 +22,20 @@ describe('DeleteAssetModal', () => {
     expect(screen.getByTestId('delete-asset-modal')).toHaveTextContent(
       'Type my-table to confirm deletion:',
     );
-    expect(screen.getByTestId('delete-asset-confirmation-required')).toHaveClass(
-      'pf-v6-c-form__label-required',
-    );
+    const confirmation = screen.getByRole('textbox', {
+      name: 'Type my-table to confirm deletion:',
+    });
+    expect(confirmation).toHaveAttribute('id', 'delete-asset-confirmation');
+    expect(confirmation).toHaveAttribute('required');
     expect(screen.getAllByText('my-table')).toHaveLength(2);
   });
 
   it('should require the exact asset name before deleting', async () => {
     render(<DeleteAssetModal {...defaultProps} />);
     const deleteButton = screen.getByTestId('delete-asset-confirm');
-    const confirmation = screen.getByTestId('delete-asset-confirmation');
+    const confirmation = screen.getByRole('textbox', {
+      name: 'Type my-table to confirm deletion:',
+    });
 
     expect(deleteButton).toBeDisabled();
     fireEvent.change(confirmation, { target: { value: 'my' } });

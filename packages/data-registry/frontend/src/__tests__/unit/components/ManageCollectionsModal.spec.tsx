@@ -122,6 +122,109 @@ describe('ManageCollectionsModal', () => {
     expect(defaultProps.onRefresh).toHaveBeenCalled();
   });
 
+  it('shows validation feedback for an invalid inline collection name', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ManageCollectionsModal {...defaultProps} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByTestId('create-collection-button'));
+    await user.type(screen.getByTestId('new-collection-name-input'), 'Invalid Name');
+
+    expect(
+      screen.getByText('Name must contain only lowercase letters, numbers, and hyphens.'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('confirm-create-collection')).toBeDisabled();
+  });
+
+  it('shows a warning when the creator identity is unavailable', async () => {
+    mockUseSettings.mockReturnValue({
+      userSettings: { userId: '' },
+      configSettings: null,
+      loaded: true,
+      loadError: undefined,
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ManageCollectionsModal {...defaultProps} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByTestId('create-collection-button'));
+
+    expect(screen.getByTestId('collection-identity-unavailable')).toHaveTextContent(
+      'Refresh the page and try again before creating a collection.',
+    );
+    expect(screen.getByTestId('confirm-create-collection')).toBeDisabled();
+  });
+
+  it('keeps collection creation conflicts separate from refresh handling', async () => {
+    const user = userEvent.setup();
+    const onRefresh = jest.fn();
+    mockCreateCollection.mockRejectedValue(new Error('API error 409: Collection already exists'));
+    render(
+      <MemoryRouter>
+        <ManageCollectionsModal {...defaultProps} onRefresh={onRefresh} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByTestId('create-collection-button'));
+    await user.type(screen.getByTestId('new-collection-name-input'), 'existing-collection');
+    await user.click(screen.getByTestId('confirm-create-collection'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('manage-collections-action-error')).toHaveTextContent(
+        'Collection "existing-collection" already exists.',
+      );
+    });
+    expect(onRefresh).not.toHaveBeenCalled();
+  });
+
+  it('keeps creation errors separate from refresh errors', async () => {
+    const user = userEvent.setup();
+    const refreshError = new Error('List refresh failed');
+    const collectionsRefresh = jest.fn().mockRejectedValue(refreshError);
+    mockUseAssets.mockReturnValue([[], true, undefined, jest.fn(), ['default']]);
+    mockUseCollections.mockReturnValue([
+      [
+        {
+          name: 'default',
+          description: '',
+          assetNames: [],
+          tableCount: 0,
+          volumeCount: 0,
+        },
+      ],
+      true,
+      undefined,
+      collectionsRefresh,
+    ]);
+    mockCreateCollection.mockResolvedValue({
+      namespace: ['new-collection'],
+      properties: {},
+    });
+
+    render(
+      <MemoryRouter>
+        <ManageCollectionsModal {...defaultProps} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByTestId('create-collection-button'));
+    await user.type(screen.getByTestId('new-collection-name-input'), 'new-collection');
+    await user.click(screen.getByTestId('confirm-create-collection'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('manage-collections-action-error')).toHaveTextContent(
+        'Collection created, but the collection list could not be refreshed: List refresh failed',
+      );
+    });
+    expect(mockCreateCollection).toHaveBeenCalled();
+  });
+
   it('disables deletion for the default collection', async () => {
     const user = userEvent.setup();
     render(

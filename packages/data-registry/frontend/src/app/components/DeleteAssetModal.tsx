@@ -2,8 +2,7 @@ import React from 'react';
 import {
   Alert,
   Button,
-  Flex,
-  FlexItem,
+  FormGroup,
   Modal,
   ModalBody,
   ModalFooter,
@@ -12,7 +11,6 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import './DeleteAssetModal.scss';
 
 type DeleteAssetModalProps = {
   assetName: string;
@@ -52,26 +50,24 @@ const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({ assetName, onDelete
             </p>
           </StackItem>
           <StackItem>
-            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-              <FlexItem>
-                Type <strong>{assetName}</strong> to confirm deletion:
-                <span
-                  className="pf-v6-c-form__label-required odh-data-registry-delete-asset__required"
-                  aria-hidden="true"
-                  data-testid="delete-asset-confirmation-required"
-                >
-                  *
-                </span>
-              </FlexItem>
+            <FormGroup
+              label={
+                <>
+                  Type <strong>{assetName}</strong> to confirm deletion:
+                </>
+              }
+              isRequired
+              fieldId="delete-asset-confirmation"
+            >
               <TextInput
                 id="delete-asset-confirmation"
-                aria-label="Delete asset confirmation"
                 value={confirmation}
                 onChange={(_event, value) => setConfirmation(value)}
+                isRequired
                 isDisabled={isDeleting}
                 data-testid="delete-asset-confirmation"
               />
-            </Flex>
+            </FormGroup>
           </StackItem>
           {error ? (
             <StackItem>

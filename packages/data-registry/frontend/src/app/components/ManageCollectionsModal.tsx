@@ -14,6 +14,9 @@ import {
   ToolbarItem,
   Tooltip,
   TextInput,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { CheckIcon, TimesIcon, TrashIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
@@ -48,6 +51,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
 }) => {
   const { userSettings } = useSettings();
   const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
+  const isUserIdentityUnavailable = !userId.trim();
   const [assets, , assetsError, assetsRefresh, collectionNames] = useAssets(project);
   const [collections, , collectionsError, collectionsRefresh] = useCollections(
     project,
@@ -108,14 +112,25 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
           created_by: userId,
         },
       });
-      resetCreateForm();
-      await handleRefresh();
     } catch (err) {
       if (isConflictError(err)) {
         setActionError(`Collection "${trimmedName}" already exists.`);
       } else {
         setActionError(err instanceof Error ? err.message : 'Failed to create collection');
       }
+      setIsSubmitting(false);
+      return;
+    }
+
+    resetCreateForm();
+    try {
+      await handleRefresh();
+    } catch (err) {
+      setActionError(
+        err instanceof Error
+          ? `Collection created, but the collection list could not be refreshed: ${err.message}`
+          : 'Collection created, but the collection list could not be refreshed.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -207,6 +222,18 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                 </ToolbarContent>
               </Toolbar>
             </StackItem>
+            {isCreating && isUserIdentityUnavailable ? (
+              <StackItem>
+                <Alert
+                  variant="warning"
+                  isInline
+                  title="Unable to determine the current user"
+                  data-testid="collection-identity-unavailable"
+                >
+                  Refresh the page and try again before creating a collection.
+                </Alert>
+              </StackItem>
+            ) : null}
           </Stack>
           <Table aria-label="Collections" data-testid="collections-table">
             <Thead>
@@ -226,6 +253,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                       onChange={(_event, value) => setNewCollectionName(value)}
                       placeholder="Name"
                       aria-label="New collection name"
+                      validated={nameValidationError ? 'error' : 'default'}
                       isDisabled={isSubmitting}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -237,6 +265,13 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                       data-testid="new-collection-name-input"
                       autoFocus
                     />
+                    {nameValidationError ? (
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem variant="error">{nameValidationError}</HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    ) : null}
                   </Td>
                   <Td dataLabel="Description">
                     <TextInput
