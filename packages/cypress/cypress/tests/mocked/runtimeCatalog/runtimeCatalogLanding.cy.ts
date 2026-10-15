@@ -2,6 +2,7 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { runtimeCatalogPage } from '../../../pages/runtimeCatalog';
 import { runtimeCatalogDetailsPage } from '../../../pages/runtimeCatalogDetails';
+import { pageNotfound } from '../../../pages/pageNotFound';
 import { API_VERSION, setupModelCatalogIntercepts } from '../catalogHelpers';
 
 const setupRuntimeCatalogIntercepts = (): void => {
@@ -241,6 +242,20 @@ describe('Runtime image library landing', () => {
 
     runtimeCatalogPage.visit();
     runtimeCatalogPage.findCardDetailLink('idless').should('be.disabled');
+    cy.testA11y();
+  });
+});
+
+describe('Runtime image library landing gating', () => {
+  it('does not expose the library when model serving is disabled', () => {
+    asProductAdminUser();
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ disableModelRegistry: false, disableModelServing: true }),
+    );
+    runtimeCatalogPage.visit(false);
+    pageNotfound.findPage().should('exist');
+    runtimeCatalogPage.findPage().should('not.exist');
     cy.testA11y();
   });
 });

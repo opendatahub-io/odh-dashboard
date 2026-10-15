@@ -108,6 +108,7 @@ describe('Runtime image Install extension navigation', () => {
     asProductAdminUser();
     initialize({ modelServingEnabled: false });
     runtimeImageInstallPage.visitInstallDirectly('preview-vllm-0-6-0');
+    pageNotfound.findPage().should('exist');
     runtimeImageInstallPage.findPageTitle('vLLM 0.6.0').should('not.exist');
     runtimeImageInstallPage.findInvalidDataAlert().should('not.exist');
   });

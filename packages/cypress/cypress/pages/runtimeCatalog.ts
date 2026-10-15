@@ -2,9 +2,11 @@ const RUNTIME_CATALOG_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
 
 class RuntimeCatalogPage {
-  visit() {
+  visit(wait = true) {
     cy.visitWithLogin(RUNTIME_CATALOG_PATH);
-    this.wait();
+    if (wait) {
+      this.wait();
+    }
   }
 
   private wait() {
