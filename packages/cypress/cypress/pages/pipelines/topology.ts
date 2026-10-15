@@ -79,6 +79,10 @@ class PipelinesTopology {
     return cy.findByTestId(`pipeline-group-task-${name}`);
   }
 
+  findGroupDetails(name: string) {
+    return cy.findByTestId(`pipeline-group-details-${name}`);
+  }
+
   findGraphButtons() {
     return cy.get('.odh-pipeline-node-button');
   }

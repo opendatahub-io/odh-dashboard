@@ -55,10 +55,6 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
     AnchorEnd.target,
   );
 
-  const statusLabel = getRunStatusLabel(data?.runStatus);
-  const taskName = element.getLabel();
-  const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
-
   return (
     <g
       className={css(
@@ -100,7 +96,6 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
           <ListIcon width={iconSize} height={iconSize} />
         )}
       </g>
-      <PipelineNodeButton element={element} ariaLabel={ariaLabel} onSelect={onSelect} />
     </g>
   );
 });
@@ -173,11 +168,11 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
                 </g>
               </g>
             ) : null}
-            <PipelineNodeButton element={element} ariaLabel={ariaLabel} onSelect={onSelect} />
           </g>
         ) : (
           <IconTaskNode selected={selected} onSelect={onSelect} element={element} />
         )}
+        <PipelineNodeButton element={element} ariaLabel={ariaLabel} onSelect={onSelect} />
       </g>
     );
   },

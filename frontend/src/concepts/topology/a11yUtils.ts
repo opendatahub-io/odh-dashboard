@@ -62,13 +62,33 @@ export const isHiddenByCollapsedAncestor = (element: Node): boolean => {
   return false;
 };
 
+const getReadingOrderPosition = (node: Node): { x: number; y: number } => {
+  const bounds = node.getBounds();
+  if (!node.isGroup() || node.isCollapsed()) {
+    return bounds;
+  }
+
+  const visibleChildren = node.getNodes().filter((child) => child.isVisible());
+  if (!visibleChildren.length) {
+    return bounds;
+  }
+
+  return visibleChildren
+    .map(getReadingOrderPosition)
+    .reduce((first, child) =>
+      child.y < first.y || (child.y === first.y && child.x < first.x) ? child : first,
+    );
+};
+
 /** Keep the graph's DOM order aligned with the laid-out pipeline, including nested groups. */
 export const orderNodesForKeyboard = action((parent: Graph | Node): void => {
   const nodes = parent.getNodes();
   const orderedNodes = nodes.toSorted((a, b) => {
-    const aBounds = a.getBounds();
-    const bBounds = b.getBounds();
-    return aBounds.y - bBounds.y || aBounds.x - bBounds.x || a.getId().localeCompare(b.getId());
+    const aPosition = getReadingOrderPosition(a);
+    const bPosition = getReadingOrderPosition(b);
+    return (
+      aPosition.y - bPosition.y || aPosition.x - bPosition.x || a.getId().localeCompare(b.getId())
+    );
   });
 
   if (nodes.some((node, index) => node !== orderedNodes[index])) {

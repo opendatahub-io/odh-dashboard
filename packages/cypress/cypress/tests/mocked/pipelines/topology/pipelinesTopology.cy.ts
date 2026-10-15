@@ -399,6 +399,23 @@ describe('Pipeline topology', () => {
       pipelineDetails.findGroupButton('for-loop-2').should('be.focused');
     });
 
+    it('opens group details from the collapsed-group popover', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupDetails('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+      pipelineDetails.findDrawerCloseButton().click();
+      pipelineDetails.findGroupButton('for-loop-2').should('be.focused');
+    });
+
     it('uses PatternFly collapse behavior from the keyboard accessible control', () => {
       initIntercepts(mockGroupedVersion);
       pipelineDetails.visit(
@@ -483,6 +500,29 @@ describe('Pipeline topology', () => {
       cy.press(Cypress.Keyboard.Keys.SPACE);
       pipelineRunDetails.findDrawerTaskTitle().should('be.focused');
       pipelineRunDetails.findDrawerCloseButton().click();
+      pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').should('be.focused');
+    });
+
+    it('keeps focus on an artifact when hovering changes its visual node', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      for (let i = 0; i < 8; i++) {
+        pipelineRunDetails.findControlBar().findByRole('button', { name: 'Zoom In' }).click();
+      }
+
+      pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').focus();
+      pipelineRunDetails
+        .findTaskButton('iris_dataset (Type: Dataset)')
+        .closest('[data-kind="node"]')
+        .find('.pf-topology-pipelines__pill-background')
+        .should('exist');
+      pipelineRunDetails
+        .findTaskButton('iris_dataset (Type: Dataset)')
+        .closest('[data-kind="node"]')
+        .find('g.pf-topology__pipelines__task-node')
+        .first()
+        .trigger('mouseenter');
       pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').should('be.focused');
     });
 

@@ -151,15 +151,31 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       [isCollapsed],
     );
 
-    const selectChild = React.useCallback(
-      (childId: string) => {
-        controller.fireEvent(SELECTION_EVENT, [childId]);
+    const selectNode = React.useCallback(
+      (nodeId: string) => {
+        controller.fireEvent(SELECTION_EVENT, [nodeId]);
       },
       [controller],
     );
 
     const getPopoverTasksList = (items: Node<NodeModel>[], hidePopover: () => void) => (
       <Stack hasGutter>
+        <StackItem>
+          <Button
+            variant="link"
+            isInline
+            onClick={() => {
+              hidePopover();
+              popoverRef.current?.focus();
+              selectNode(element.getId());
+            }}
+            onKeyDown={activateNodeButtonOnKeyDown}
+            aria-label={`View details for ${element.getLabel()} task group`}
+            data-testid={`pipeline-group-details-${element.getLabel()}`}
+          >
+            View group details
+          </Button>
+        </StackItem>
         {items.slice(0, MAX_TIP_ITEMS).map((item: Node) => {
           const childState = item.getData()?.pipelineTask.status?.state;
           const childRunStatus = item.getData()?.runStatus;
@@ -172,7 +188,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
                 isInline
                 onClick={() => {
                   hidePopover();
-                  selectChild(item.getId());
+                  selectNode(item.getId());
                 }}
                 onKeyDown={activateNodeButtonOnKeyDown}
                 aria-label={
@@ -245,7 +261,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         centerLabelOnEdge
         labelPosition={LabelPosition.top}
         showStatusState
-        hover={hover || toggleFocused}
+        hover={isCollapsed ? hover || toggleFocused : toggleFocused || undefined}
         scaleNode={(hover || toggleFocused) && detailsLevel !== ScaleDetailsLevel.high}
         customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
         showLabelOnHover

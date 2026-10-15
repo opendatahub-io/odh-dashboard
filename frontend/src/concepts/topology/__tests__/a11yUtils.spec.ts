@@ -17,20 +17,35 @@ describe('orderNodesForKeyboard', () => {
       {
         graph: { id: 'graph', type: 'graph' },
         nodes: [
-          { id: 'last', type: DEFAULT_TASK_NODE_TYPE, x: 0, y: 200, width: 130, height: 35 },
+          { id: 'z-last', type: DEFAULT_TASK_NODE_TYPE, x: 0, y: 200, width: 130, height: 35 },
           {
-            id: 'group',
+            id: 'a-group',
             type: DEFAULT_TASK_NODE_TYPE,
-            x: 0,
+            x: 200,
             y: 100,
             width: 130,
             height: 100,
             group: true,
-            children: ['child-last', 'child-first'],
+            style: { padding: [64, 15] },
+            children: ['a-child-last', 'z-child-first'],
           },
-          { id: 'child-last', type: DEFAULT_TASK_NODE_TYPE, x: 0, y: 60, width: 130, height: 35 },
-          { id: 'first', type: DEFAULT_TASK_NODE_TYPE, x: 0, y: 0, width: 130, height: 35 },
-          { id: 'child-first', type: DEFAULT_TASK_NODE_TYPE, x: 0, y: 0, width: 130, height: 35 },
+          {
+            id: 'a-child-last',
+            type: DEFAULT_TASK_NODE_TYPE,
+            x: 200,
+            y: 160,
+            width: 130,
+            height: 35,
+          },
+          { id: 'z-first', type: DEFAULT_TASK_NODE_TYPE, x: 0, y: 100, width: 130, height: 35 },
+          {
+            id: 'z-child-first',
+            type: DEFAULT_TASK_NODE_TYPE,
+            x: 200,
+            y: 100,
+            width: 130,
+            height: 35,
+          },
         ],
       },
       false,
@@ -39,13 +54,13 @@ describe('orderNodesForKeyboard', () => {
     const graph = controller.getGraph();
     orderNodesForKeyboard(graph);
 
-    expect(graph.getNodes().map((node) => node.getId())).toEqual(['first', 'group', 'last']);
+    expect(graph.getNodes().map((node) => node.getId())).toEqual(['z-first', 'a-group', 'z-last']);
     expect(
       controller
-        .getNodeById('group')
+        .getNodeById('a-group')
         ?.getNodes()
         .map((node) => node.getId()),
-    ).toEqual(['child-first', 'child-last']);
+    ).toEqual(['z-child-first', 'a-child-last']);
   });
 });
 
