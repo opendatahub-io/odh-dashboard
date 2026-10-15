@@ -193,10 +193,10 @@ describe('getNotebookImageData', () => {
     );
   });
 
-  it('should mark an image from a deprecated ImageStream as deprecated', () => {
+  it('should retain the latest version status for a deprecated ImageStream', () => {
     const result = getRecommendedNotebookImageData('true');
 
-    expect(result?.imageStatus).toBe(NotebookImageStatus.DEPRECATED);
+    expect(result?.imageStatus).toBe(NotebookImageStatus.LATEST);
   });
 
   it('should retain the latest status when the ImageStream deprecation annotation is absent', () => {

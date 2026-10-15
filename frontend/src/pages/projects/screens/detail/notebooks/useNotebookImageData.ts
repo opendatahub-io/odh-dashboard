@@ -8,7 +8,6 @@ import {
   isBYONImageStream,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamSpecTagAnnotation } from '#~/types';
-import { isImageStreamDeprecated } from '#~/utilities/imageStreamUtils';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImageData } from './types';
 
@@ -242,7 +241,6 @@ const getImageStatus = (
   imageVersion: ImageStreamSpecTagType,
 ): NotebookImageStatus | undefined => {
   if (
-    isImageStreamDeprecated(imageStream) ||
     imageVersion.annotations?.[ImageStreamSpecTagAnnotation.OUTDATED] === 'true' ||
     isNotebookImageOutdated(notebook, imageStream)
   ) {
