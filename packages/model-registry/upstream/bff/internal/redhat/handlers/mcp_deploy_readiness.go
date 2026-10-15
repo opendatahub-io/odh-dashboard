@@ -145,20 +145,22 @@ func overrideMcpDeployReadiness(app *api.App, _ func() httprouter.Handle) httpro
 			return
 		}
 
-		// The gateway status is read with the BFF service account, so check the caller's
-		// own permission to deploy here for every auth method.
-		if !requireMcpServersAccess(app, w, r, namespace, "create") {
-			return
-		}
-
 		image := strings.TrimSpace(r.URL.Query().Get("image"))
 		if image == "" {
 			app.BadRequest(w, r, fmt.Errorf("image is required"))
 			return
 		}
 
+		// Other images need nothing, and saying so reveals nothing, so only the gated image
+		// needs the access check (as on create). Otherwise a caller without create access
+		// would see a failed check for every server.
 		readiness := models.McpServerDeployReadiness{Deployable: true}
 		if mcpImageRequiresGateway(image) { //nolint:staticcheck // Deprecated helper is used until catalog metadata exists.
+			// The gateway status is read with the BFF service account, so check the caller's
+			// own permission to deploy here for every auth method.
+			if !requireMcpServersAccess(app, w, r, namespace, "create") {
+				return
+			}
 			readiness = evaluateMcpGatewayReadiness(r.Context(), app, reader, "namespace", namespace, "image", image)
 		}
 

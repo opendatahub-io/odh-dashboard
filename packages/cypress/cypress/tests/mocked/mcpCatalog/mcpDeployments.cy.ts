@@ -662,15 +662,29 @@ describe('MCP Deploy from Catalog', () => {
       mcpServerDetailsPage
         .findDeployButton()
         .should('be.visible')
-        .and('have.attr', 'aria-disabled', 'true')
-        .trigger('mouseenter');
-      cy.findByRole('tooltip').should('contain.text', NO_GATEWAY_TOOLTIP);
-      mcpServerDetailsPage.findDeployButton().trigger('mouseleave');
+        .and('have.attr', 'aria-disabled', 'true');
+      // The docs link is in the popover, not next to the button.
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+      // Screen readers get the explanation with the button, before the popover opens.
+      mcpServerDetailsPage
+        .findDeployButton()
+        .invoke('attr', 'aria-describedby')
+        .then((id) => {
+          cy.get(`[id="${String(id)}"]`).should('have.text', NO_GATEWAY_TOOLTIP);
+        });
 
-      // The explanation is also reachable by keyboard.
+      mcpServerDetailsPage.findDeployButton().trigger('mouseover');
+      mcpServerDetailsPage
+        .findGatewayPopover()
+        .should('be.visible')
+        .and('contain.text', 'MCP gateway required')
+        .and('contain.text', NO_GATEWAY_TOOLTIP);
+      mcpServerDetailsPage.findDeployButton().trigger('mouseout');
+      mcpServerDetailsPage.findGatewayPopover().should('not.exist');
+
+      // The explanation and the docs link are also reachable by keyboard.
       mcpServerDetailsPage.findDeployButton().focus();
-      cy.findByRole('tooltip').should('contain.text', NO_GATEWAY_TOOLTIP);
-
+      mcpServerDetailsPage.findGatewayPopover().should('contain.text', NO_GATEWAY_TOOLTIP);
       mcpServerDetailsPage
         .findGatewayDocsLink()
         .should('be.visible')
@@ -690,8 +704,10 @@ describe('MCP Deploy from Catalog', () => {
 
       // The first load, then the immediate re-check when polling switches on.
       cy.wait(['@getDeployReadiness', '@getDeployReadiness']);
-      mcpServerDetailsPage.findDeployButton().should('have.attr', 'aria-disabled', 'true');
-      mcpServerDetailsPage.findGatewayDocsLink().should('be.visible');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('have.attr', 'aria-disabled', 'true')
+        .and('have.attr', 'aria-describedby');
 
       cy.intercept(
         'GET',
@@ -703,7 +719,10 @@ describe('MCP Deploy from Catalog', () => {
       cy.tick(30000);
 
       cy.wait('@getDeployReadinessReady');
-      mcpServerDetailsPage.findDeployButton().should('not.have.attr', 'aria-disabled', 'true');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('not.have.attr', 'aria-disabled', 'true')
+        .and('not.have.attr', 'aria-describedby');
       mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
     });
 

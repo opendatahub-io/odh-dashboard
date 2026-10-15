@@ -11,7 +11,6 @@ import {
   type McpServerDeployReadiness,
 } from '~/odh/types/mcpDeploymentTypes';
 import McpRegistryServerDeployAction from '~/odh/components/McpRegistryServerDeployAction';
-import { MCP_GATEWAY_POPOVER_BODY_ID } from '~/odh/components/McpGatewayRequiredPopover';
 import { MCP_GATEWAY_SETUP_DOCS_URL } from '~/odh/const';
 
 jest.mock('~/odh/hooks/useMcpServerDeployAvailable', () => ({
@@ -224,6 +223,23 @@ describe('McpRegistryServerDeployAction', () => {
     );
   });
 
+  it.each([
+    ['loading', { available: false, loaded: false }],
+    ['not available', { available: false, loaded: true }],
+  ])('should not check deploy readiness while MCP Lifecycle is %s', (_, lifecycle) => {
+    mockUseMcpServerDeployAvailable.mockReturnValue(lifecycle);
+    renderAction({ deployData: openShiftDeployData });
+
+    expect(mockUseMcpImageDeployReadiness).toHaveBeenCalledWith(
+      undefined,
+      'registry.redhat.io/openshift-mcp/openshift-mcp-server-rhel9:1.0',
+    );
+    expect(mockUseMcpImageDeployReadiness).not.toHaveBeenCalledWith(
+      'test-project',
+      expect.anything(),
+    );
+  });
+
   it('should leave the gateway check to the BFF when the version has no image', async () => {
     // Never-loading readiness: it must not be consulted without an image.
     setReadiness(null, false);
@@ -283,15 +299,15 @@ describe('McpRegistryServerDeployAction', () => {
     renderAction({ deployData: openShiftDeployData });
 
     const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    // Screen readers announce the explanation with the button, so it must not depend on the
+    // popover, which only opens after the button gets focus.
+    expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
+    expect(button).toHaveAccessibleDescription(NO_GATEWAY_TOOLTIP);
+
     await userEvent.tab();
     expect(button).toHaveFocus();
     const popover = await screen.findByTestId('mcp-deploy-gateway-popover');
     expect(popover).toHaveTextContent(NO_GATEWAY_TOOLTIP);
-    // Screen readers announce the explanation with the button.
-    expect(button).toHaveAttribute('aria-describedby', MCP_GATEWAY_POPOVER_BODY_ID);
-    expect(document.getElementById(MCP_GATEWAY_POPOVER_BODY_ID)).toHaveTextContent(
-      NO_GATEWAY_TOOLTIP,
-    );
 
     await userEvent.tab();
     expect(screen.getByTestId('mcp-deploy-gateway-docs-link')).toHaveFocus();

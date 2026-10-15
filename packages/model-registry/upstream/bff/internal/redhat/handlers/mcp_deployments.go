@@ -210,6 +210,7 @@ func overrideMcpDeploymentUpdate(app *api.App, buildDefault func() httprouter.Ha
 	}
 
 	repo := newMcpDeploymentRepository(app)
+	gatewayReader := newMcpLifecycleOperatorReader(app)
 
 	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace, ok := namespaceFromContext(app, w, r)
@@ -238,6 +239,10 @@ func overrideMcpDeploymentUpdate(app *api.App, buildDefault func() httprouter.Ha
 			return
 		}
 
+		if !checkMcpImageChangeGateway(app, w, r, repo, gatewayReader, client, namespace, name, envelope.Data.Image) {
+			return
+		}
+
 		result, err := repo.Update(r.Context(), client, namespace, name, envelope.Data)
 		if err != nil {
 			handleMcpDeploymentError(app, w, r, err)
@@ -249,6 +254,50 @@ func overrideMcpDeploymentUpdate(app *api.App, buildDefault func() httprouter.Ha
 			app.ServerError(w, r, err)
 		}
 	})
+}
+
+// checkMcpImageChangeGateway enforces the MCP gateway prerequisite when an update switches
+// an existing deployment to an image that requires a gateway, so a direct PATCH cannot skip
+// the check on create. A deployment that already runs such an image keeps working: the edit
+// form always sends the current image, and blocking other edits (for example env vars)
+// while the gateway is down would not stop anything from being deployed. It writes the
+// error response and returns false when the update must not go ahead.
+func checkMcpImageChangeGateway(
+	app *api.App,
+	w http.ResponseWriter,
+	r *http.Request,
+	repo mcpDeploymentRepository,
+	gatewayReader redhatrepos.MCPLifecycleOperatorReader,
+	client k8s.KubernetesClientInterface,
+	namespace, name string,
+	image *string,
+) bool {
+	if image == nil || !mcpImageRequiresGateway(*image) { //nolint:staticcheck // Deprecated helper is used until catalog metadata exists.
+		return true
+	}
+
+	// The gateway status is read with the BFF service account, so confirm the caller may make
+	// this change before revealing it, for every auth method. The repository applies updates
+	// as a Kubernetes patch, so check that verb.
+	if !requireMcpServersAccess(app, w, r, namespace, "patch") {
+		return false
+	}
+
+	current, err := repo.Get(r.Context(), client, namespace, name)
+	if err != nil {
+		handleMcpDeploymentError(app, w, r, err)
+		return false
+	}
+	if mcpImageRequiresGateway(current.Image) { //nolint:staticcheck // Deprecated helper is used until catalog metadata exists.
+		return true
+	}
+
+	readiness := evaluateMcpGatewayReadiness(r.Context(), app, gatewayReader, "namespace", namespace, "name", name, "image", *image)
+	if !readiness.Deployable {
+		app.Conflict(w, r, "This MCP server requires an MCP gateway. "+readiness.Message)
+		return false
+	}
+	return true
 }
 
 func overrideMcpDeploymentDelete(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {

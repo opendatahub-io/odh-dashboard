@@ -1,20 +1,11 @@
 import React from 'react';
-import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
+import { FlexItem } from '@patternfly/react-core';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
 import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
 import type { McpDeployModalData, McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
-import McpGatewayRequiredPopover, {
-  MCP_GATEWAY_POPOVER_BODY_ID,
-} from '~/odh/components/McpGatewayRequiredPopover';
-import { getMcpDeployReadinessBlock } from '~/odh/utils/mcpDeployReadiness';
-
-type DeployButtonState = {
-  enabled: boolean;
-  loading: boolean;
-  tooltip?: string;
-  showGatewayDocs?: boolean;
-};
+import McpDeployButton from '~/odh/components/McpDeployButton';
+import { DeployButtonState, getMcpDeployReadinessBlock } from '~/odh/utils/mcpDeployReadiness';
 
 type McpRegistryServerDeployActionProps = {
   deployData?: McpDeployModalData;
@@ -50,12 +41,12 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
   onDeployed,
 }) => {
   const { available, loaded } = useMcpServerDeployAvailable();
+  // Without MCP Lifecycle nothing can be deployed, so there is nothing to check (or poll).
   const [readiness, readinessLoaded, readinessError] = useMcpImageDeployReadiness(
-    deployData?.namespace,
+    loaded && available ? deployData?.namespace : undefined,
     deployData?.image,
   );
   const [openModal, setOpenModal] = React.useState(false);
-  const deployButtonRef = React.useRef<HTMLButtonElement>(null);
 
   const buttonState = React.useMemo<DeployButtonState>(() => {
     if (disabledReason) {
@@ -83,45 +74,15 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
     return { enabled: true, loading: false };
   }, [disabledReason, loaded, available, deployData, readiness, readinessLoaded, readinessError]);
 
-  const showGatewayPopover = !!buttonState.showGatewayDocs && !!buttonState.tooltip;
-
-  const deployButton = (
-    <Button
-      ref={deployButtonRef}
-      variant={ButtonVariant.primary}
-      onClick={() => {
-        if (buttonState.enabled) {
-          setOpenModal(true);
-        }
-      }}
-      isAriaDisabled={!buttonState.enabled}
-      isLoading={buttonState.loading}
-      aria-describedby={showGatewayPopover ? MCP_GATEWAY_POPOVER_BODY_ID : undefined}
-      data-testid="mcp-registry-deploy-action-button"
-    >
-      Deploy
-    </Button>
-  );
-
-  const renderDeployButton = () => {
-    if (!buttonState.tooltip) {
-      return deployButton;
-    }
-    // A popover instead of a tooltip so the docs link can be reached with the mouse or the
-    // keyboard; the host page header has no room for the link next to its own actions.
-    if (showGatewayPopover) {
-      return (
-        <McpGatewayRequiredPopover explanation={buttonState.tooltip} triggerRef={deployButtonRef}>
-          {deployButton}
-        </McpGatewayRequiredPopover>
-      );
-    }
-    return <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>;
-  };
-
   return (
     <FlexItem>
-      {renderDeployButton()}
+      <McpDeployButton
+        state={buttonState}
+        onDeploy={() => setOpenModal(true)}
+        testId="mcp-registry-deploy-action-button"
+      >
+        Deploy
+      </McpDeployButton>
       {openModal && deployData && (
         <McpDeployModal
           data={deployData}
