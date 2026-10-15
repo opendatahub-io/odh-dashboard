@@ -24,7 +24,7 @@ spec:
       env:
         - name: HF_HOME
           value: /tmp/hf_home
-      image: docker.io/vllm/vllm-openai-cpu:latest
+      image: docker.io/vllm/vllm-openai-cpu:v0.31.0
       name: kserve-container
       ports:
         - containerPort: 8080

@@ -11,7 +11,7 @@ metadata:
 spec:
   template:
     containers:
-      - image: docker.io/vllm/vllm-openai-cpu:latest
+      - image: docker.io/vllm/vllm-openai-cpu:v0.31.0
         name: main
         args:
           - --model
