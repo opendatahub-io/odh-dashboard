@@ -71,23 +71,34 @@ func communityProxyPath(remoteName, suffix string) (string, error) {
 	return communityPluginsProxyPrefix + "/" + remoteName + "/" + suffix, nil
 }
 
-func hasInvalidCommunityRemoteEntryPathFormat(remoteEntry string) bool {
-	return remoteEntry == "" ||
-		!strings.HasPrefix(remoteEntry, "/") ||
-		strings.ContainsAny(remoteEntry, "?#%\\") ||
-		strings.IndexFunc(remoteEntry, unicode.IsControl) >= 0
+func hasInvalidCommunityAbsolutePathFormat(path string) bool {
+	return path == "" ||
+		!strings.HasPrefix(path, "/") ||
+		strings.ContainsAny(path, "?#%\\") ||
+		strings.IndexFunc(path, unicode.IsControl) >= 0
 }
 
-func validateCommunityRemoteEntryPath(remoteEntry string) error {
-	if hasInvalidCommunityRemoteEntryPathFormat(remoteEntry) {
-		return fmt.Errorf("backend.remoteEntry %q must be a non-empty absolute URL path", remoteEntry)
+func validateCommunityAbsolutePath(field, path string) error {
+	if hasInvalidCommunityAbsolutePathFormat(path) {
+		return fmt.Errorf("%s %q must be a non-empty absolute URL path", field, path)
 	}
-	for _, segment := range strings.Split(strings.TrimPrefix(remoteEntry, "/"), "/") {
+	for _, segment := range strings.Split(strings.TrimPrefix(path, "/"), "/") {
 		if segment == "" || segment == "." || segment == ".." {
-			return fmt.Errorf("backend.remoteEntry %q contains an invalid path segment", remoteEntry)
+			return fmt.Errorf("%s %q contains an invalid path segment", field, path)
 		}
 	}
 	return nil
+}
+
+func validateCommunityRemoteEntryPath(remoteEntry string) error {
+	return validateCommunityAbsolutePath("backend.remoteEntry", remoteEntry)
+}
+
+func validateCommunityPathRewrite(pathRewrite string) error {
+	if pathRewrite == "" || pathRewrite == "/" {
+		return nil
+	}
+	return validateCommunityAbsolutePath("proxyService.pathRewrite", pathRewrite)
 }
 
 func validateCommunityFederationEntry(entry federationEntry, existingNames map[string]struct{}) error {
@@ -109,6 +120,9 @@ func validateCommunityFederationEntry(entry federationEntry, existingNames map[s
 
 	paths := make(map[string]struct{}, len(entry.ProxyService))
 	for _, proxy := range entry.ProxyService {
+		if err := validateCommunityPathRewrite(proxy.PathRewrite); err != nil {
+			return err
+		}
 		if err := validateCommunityServiceRef("proxyService", proxy.Service); err != nil {
 			return err
 		}

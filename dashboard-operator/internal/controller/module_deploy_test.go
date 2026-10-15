@@ -582,6 +582,7 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 			"tabRemoteEntry":       `{"backend":{"remoteEntry":"/remote\tEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 			"returnRemoteEntry":    `{"backend":{"remoteEntry":"/remote\rEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 			"newlineRemoteEntry":   `{"backend":{"remoteEntry":"/remote\nEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
+			"invalidPathRewrite":   `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api","pathRewrite":"../api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"invalidSuffix":        `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"../core-bff/api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"parameterizedSuffix":  `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api/:id","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"wildcardSuffix":       `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api/*","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
@@ -589,6 +590,7 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 			"unsupportedPathField": `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"path":"/","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"unexpected":           `{"name":"anotherRemote","backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 			"validNestedPaths":     `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}},{"pathSuffix":"api/v1","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
+			"validRootPathRewrite": `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}},"proxyService":[{"pathSuffix":"api","pathRewrite":"/","service":{"name":"bff","namespace":"cai-plugin-system","port":3000}}]}`,
 			"validRemote":          `{"backend":{"remoteEntry":"/remoteEntry.js","service":{"name":"ui","namespace":"cai-plugin-system","port":8080}}}`,
 		},
 	}
@@ -618,6 +620,7 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 	assert.NotContains(t, names, "tabRemoteEntry")
 	assert.NotContains(t, names, "returnRemoteEntry")
 	assert.NotContains(t, names, "newlineRemoteEntry")
+	assert.NotContains(t, names, "invalidPathRewrite")
 	assert.NotContains(t, names, "invalidSuffix")
 	assert.NotContains(t, names, "parameterizedSuffix")
 	assert.NotContains(t, names, "wildcardSuffix")
@@ -625,6 +628,7 @@ func TestBuildFederationConfigMap_RejectsInvalidCommunityPlugins(t *testing.T) {
 	assert.NotContains(t, names, "unsupportedPathField")
 	assert.NotContains(t, names, "unexpected")
 	assert.Contains(t, names, "validNestedPaths")
+	assert.Contains(t, names, "validRootPathRewrite")
 }
 
 func TestBuildFederationConfigMap_ReservesInactiveDashboardFederationNames(t *testing.T) {
