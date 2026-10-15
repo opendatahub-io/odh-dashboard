@@ -1,0 +1,17 @@
+apiVersion: contracts.rhoai.io/v1alpha1
+kind: ContractSet
+metadata:
+  name: model-registry-bff
+spec:
+  contracts:
+    - id: model-registry-bff-model-catalog-v1
+      type: openapi
+      declaredArtifact: packages/model-registry/upstream/api/openapi/mod-arch.yaml
+      matchPath: "^/api/v1/model_catalog(/|$)"
+      policy:
+        oasdiffVersion: "1.33.0"
+        yqVersion: "4.45.1"
+        flattenAllOf: true
+      generator:
+        adapter: openapi.static
+        source: packages/model-registry/upstream/api/openapi/mod-arch.yaml
