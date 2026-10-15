@@ -32,6 +32,8 @@ import { IdentifiedLabelledToValuedLabelled } from '~/app/types';
 
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
+import './ConnectionTypesGallery.scss';
+
 // Types ---------------------------------------------------------------------->
 
 type FilterOption = 'capability' | 'labels';
@@ -221,7 +223,7 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
       onClearAllFilters={onClearAllFilters}
       testIdPrefix="connection-types-gallery"
       toolbarActions={
-        <ToolbarItem>
+        <ToolbarItem className="dch-connection-types-search">
           <SearchInput
             name="ConnectionTypesGallery-toolbar-search"
             aria-label="Search data connection types by name"
