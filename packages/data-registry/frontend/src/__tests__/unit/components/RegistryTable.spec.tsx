@@ -128,6 +128,7 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('registry-toolbar')).toHaveClass('pf-v6-u-display-none');
     expect(screen.queryByRole('columnheader', { name: 'Name' })).toBeNull();
     expect(screen.getByTestId('empty-register-data-button')).toBeTruthy();
+    expect(screen.getByTestId('registry-table')).toHaveClass('pf-m-no-border-rows');
   });
 
   it('should show the filtered empty state when filters match no assets', () => {
@@ -147,6 +148,9 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('filter-value')).toBeTruthy();
     expect(screen.getByTestId('asset-search')).toBeTruthy();
     expect(screen.getByTestId('register-data-button')).toBeTruthy();
+    expect(screen.getByTestId('asset-search')).toHaveClass(
+      'odh-data-registry-registry-table__search',
+    );
     expect(screen.getByTestId('registry-toolbar')).toContainElement(
       screen.getByTestId('registry-pagination'),
     );

@@ -300,10 +300,10 @@ describe('Registry Table', () => {
     cy.findByTestId('registry-kebab').click();
     cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('create-collection-button').click();
-    cy.findByTestId('create-collection-modal').should('exist');
-    cy.findByTestId('collection-name-input').type('new-collection');
-    cy.findByTestId('collection-description-input').type('A new test collection');
-    cy.findByTestId('create-collection-submit').click();
+    cy.findByTestId('create-collection-row').should('exist');
+    cy.findByTestId('new-collection-name-input').type('new-collection');
+    cy.findByTestId('new-collection-description-input').type('A new test collection');
+    cy.findByTestId('confirm-create-collection').click();
     cy.wait('@createCollection').then((interception) => {
       expect(interception.request.body).to.deep.include({
         namespace: ['new-collection'],
@@ -386,10 +386,10 @@ describe('Registration collection management', () => {
 
     cy.findByRole('button', { name: 'Manage collections' }).click();
     cy.findByTestId('create-collection-button').click();
-    cy.findByTestId('collection-name-input').type('new-collection');
-    cy.findByTestId('create-collection-submit').click();
+    cy.findByTestId('new-collection-name-input').type('new-collection');
+    cy.findByTestId('confirm-create-collection').click();
     cy.wait('@createCollectionFromRegistration');
-    cy.findByTestId('create-collection-modal').should('not.exist');
+    cy.findByTestId('create-collection-row').should('not.exist');
 
     cy.findByTestId('manage-collections-close-button').click();
     cy.findByTestId('register-data-modal').should('exist');
@@ -1039,9 +1039,9 @@ describe('Create Collection', () => {
     cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('create-collection-button').click();
 
-    cy.findByTestId('collection-name-input').type('new-collection');
+    cy.findByTestId('new-collection-name-input').type('new-collection');
 
-    cy.findByTestId('create-collection-submit').click();
+    cy.findByTestId('confirm-create-collection').click();
 
     cy.wait('@createCollection').then((interception) => {
       expect(interception.request.body).to.deep.include({

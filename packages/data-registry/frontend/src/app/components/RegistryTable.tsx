@@ -27,6 +27,7 @@ import {
   ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
@@ -106,6 +107,8 @@ const CATEGORY_LABELS: Record<FilterCategory, string> = {
   assetType: 'Asset type',
   format: 'Format',
 };
+
+const REGISTRY_SEARCH_PLACEHOLDER = 'Filter by name, description, properties or labels';
 
 const EMPTY_REGISTRY_DESCRIPTION =
   'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.';
@@ -515,20 +518,22 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               <ToolbarItem>{renderValueDropdown()}</ToolbarItem>
               {/* Search */}
               <ToolbarItem>
-                <SearchInput
-                  placeholder="Filter by name, description, properties or labels"
-                  value={searchText}
-                  onChange={(_event, value) => {
-                    setSearchText(value);
-                    setPage(1);
-                  }}
-                  onClear={() => {
-                    setSearchText('');
-                    setPage(1);
-                  }}
-                  data-testid="asset-search"
-                  className="odh-data-registry-registry-table__search"
-                />
+                <Tooltip content={REGISTRY_SEARCH_PLACEHOLDER}>
+                  <SearchInput
+                    placeholder={REGISTRY_SEARCH_PLACEHOLDER}
+                    value={searchText}
+                    onChange={(_event, value) => {
+                      setSearchText(value);
+                      setPage(1);
+                    }}
+                    onClear={() => {
+                      setSearchText('');
+                      setPage(1);
+                    }}
+                    data-testid="asset-search"
+                    className="odh-data-registry-registry-table__search"
+                  />
+                </Tooltip>
               </ToolbarItem>
             </ToolbarGroup>
             {/* Register data button */}
@@ -710,7 +715,11 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           ) : null}
         </Toolbar>
 
-        <Table aria-label="Registry assets" data-testid="registry-table">
+        <Table
+          aria-label="Registry assets"
+          borders={assets.length > 0}
+          data-testid="registry-table"
+        >
           {assets.length > 0 ? (
             <Thead>
               <Tr>
