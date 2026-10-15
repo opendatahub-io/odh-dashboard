@@ -16,6 +16,8 @@ import {
 import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { verifyRelativeURL } from '../../../utils/url';
+import { captureTracking, expectSafeTracking } from '../../../utils/analytics';
+import { Modal } from '../../../pages/components/Modal';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -1497,6 +1499,75 @@ describe('ManagePermissions', () => {
       .findByText('Manage permissions')
       .trigger('mouseenter');
     modelRegistrySettings.findManagePermissionsTooltip().should('be.visible');
+  });
+});
+
+describe('Model registry failure tracking', () => {
+  const message = 'Private registry diagnostic 95482';
+  const modal = new Modal(/model registry/i);
+
+  beforeEach(() => setupMocksForMRSettingAccess({}));
+
+  it('should keep create diagnostics out of telemetry', () => {
+    cy.intercept('POST', '/api/modelRegistries', { statusCode: 500, body: { message } }).as(
+      'failure',
+    );
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('default-db-registry');
+    captureTracking();
+    modelRegistrySettings.findSubmitButton().click();
+    cy.wait('@failure');
+    modal.find().should('contain.text', message);
+    expectSafeTracking(
+      'Model Registry Created',
+      { success: false, error: 'unknown_error' },
+      message,
+    );
+  });
+
+  it('should keep update diagnostics out of telemetry', () => {
+    cy.intercept('PATCH', '/api/modelRegistries/test-registry-1', {
+      statusCode: 500,
+      body: { message },
+    }).as('failure');
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-1')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).clear().type('Updated registry');
+    captureTracking();
+    modelRegistrySettings.findSubmitButton().click();
+    cy.wait('@failure');
+    modal.find().should('contain.text', message);
+    expectSafeTracking(
+      'Model Registry Updated',
+      { success: false, error: 'unknown_error' },
+      message,
+    );
+  });
+
+  it('should keep delete diagnostics out of telemetry', () => {
+    cy.intercept('DELETE', '/api/modelRegistries/test-registry-1', {
+      statusCode: 500,
+      body: { message },
+    }).as('failure');
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-1')
+      .findKebabAction('Delete model registry')
+      .click();
+    modelRegistrySettings.findConfirmDeleteNameInput().type('test-registry-1');
+    captureTracking();
+    modelRegistrySettings.findSubmitButton().click();
+    cy.wait('@failure');
+    modal.find().should('contain.text', message);
+    expectSafeTracking(
+      'Model Registry Deleted',
+      { success: false, error: 'unknown_error' },
+      message,
+    );
   });
 });
 
