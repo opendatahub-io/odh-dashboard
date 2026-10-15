@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useExtensions } from '@odh-dashboard/plugin-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { Link, type LinkProps } from 'react-router-dom';
 import type { RuntimeImageInstallActionProps } from '@mf/modelRegistry/extension-points';
 import { fireCreateStarted } from './tracking/runtimeImageInstallTracking';
@@ -10,14 +11,15 @@ import { isRuntimeImageInstallTargetExtension } from '../../../extension-points/
 const RuntimeImageInstallAction: React.FC<RuntimeImageInstallActionProps> = ({ actionData }) => {
   const installTargetExtensions = useExtensions(isRuntimeImageInstallTargetExtension);
   const canInstall = getAvailableInstallTargets(actionData, installTargetExtensions).length > 0;
+  const trackEvent = useTrackEvent();
 
   const handleCreateStarted = React.useCallback(() => {
-    fireCreateStarted({
+    fireCreateStarted(trackEvent, {
       runtimeName: actionData.runtimeImageName,
       version: actionData.version ?? 'unknown',
       hardware: actionData.hardware ?? 'unknown',
     });
-  }, [actionData.runtimeImageName, actionData.version, actionData.hardware]);
+  }, [trackEvent, actionData.runtimeImageName, actionData.version, actionData.hardware]);
 
   if (!canInstall) {
     return (

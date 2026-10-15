@@ -1,8 +1,5 @@
-import {
-  fireMiscTrackingEvent,
-  fireFormTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import type { TrackEventFn } from '../../../shared/tracking/modelServingTrackingConstants';
 import type { RuntimeImageInstallTargetId } from '../../../../extension-points/runtime-image-install-target';
 
 export enum RuntimeImageInstallTrackingEvent {
@@ -36,14 +33,23 @@ const TARGET_ID_TO_CONFIGURATION_TYPE: Record<RuntimeImageInstallTargetId, Confi
 export const toConfigurationType = (targetId: RuntimeImageInstallTargetId): ConfigurationType =>
   TARGET_ID_TO_CONFIGURATION_TYPE[targetId];
 
-export const fireCreateStarted = (properties: CreateStartedProperties): void => {
-  fireMiscTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_STARTED, properties);
+export const fireCreateStarted = (
+  trackEvent: TrackEventFn,
+  properties: CreateStartedProperties,
+): void => {
+  trackEvent(RuntimeImageInstallTrackingEvent.CREATE_STARTED, properties);
 };
 
-export const fireConfigurationSelected = (properties: ConfigurationSelectedProperties): void => {
-  fireMiscTrackingEvent(RuntimeImageInstallTrackingEvent.CONFIGURATION_SELECTED, properties);
+export const fireConfigurationSelected = (
+  trackEvent: TrackEventFn,
+  properties: ConfigurationSelectedProperties,
+): void => {
+  trackEvent(RuntimeImageInstallTrackingEvent.CONFIGURATION_SELECTED, properties);
 };
 
-export const fireCreateCompleted = (properties: CreateCompletedProperties): void => {
-  fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, properties);
+export const fireCreateCompleted = (
+  trackEvent: TrackEventFn,
+  properties: CreateCompletedProperties,
+): void => {
+  trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, properties);
 };

@@ -16,7 +16,8 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
-import { fireCreateCompleted } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from './paths';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
@@ -136,7 +137,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           mode,
         });
         if (isInstall) {
-          fireCreateCompleted({
+          fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
             outcome: TrackingOutcome.submit,
             success: false,
             configurationType: 'llm-accelerator-configuration',
@@ -156,7 +157,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           mode,
         });
         if (isInstall) {
-          fireCreateCompleted({
+          fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
             outcome: TrackingOutcome.submit,
             success: false,
             configurationType: 'llm-accelerator-configuration',
@@ -187,7 +188,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
             mode,
           });
           if (isInstall) {
-            fireCreateCompleted({
+            fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: true,
               configurationType: 'llm-accelerator-configuration',
@@ -210,7 +211,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
             mode,
           });
           if (isInstall) {
-            fireCreateCompleted({
+            fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: false,
               configurationType: 'llm-accelerator-configuration',
@@ -296,7 +297,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
                 mode,
               });
               if (isInstall) {
-                fireCreateCompleted({
+                fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                   outcome: TrackingOutcome.cancel,
                   configurationType: 'llm-accelerator-configuration',
                 });

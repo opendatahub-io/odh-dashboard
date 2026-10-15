@@ -1,7 +1,3 @@
-import {
-  fireMiscTrackingEvent,
-  fireFormTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   RuntimeImageInstallTrackingEvent,
@@ -11,13 +7,7 @@ import {
   toConfigurationType,
 } from '../runtimeImageInstallTracking';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockTrackEvent = jest.fn();
 
 describe('RuntimeImageInstallTrackingEvent', () => {
   it('should have correct event names', () => {
@@ -48,21 +38,18 @@ describe('fireCreateStarted', () => {
     jest.clearAllMocks();
   });
 
-  it('should fire miscellaneous tracking event with runtime properties', () => {
-    fireCreateStarted({
+  it('should call trackEvent with runtime properties', () => {
+    fireCreateStarted(mockTrackEvent, {
       runtimeName: 'vLLM',
       version: '0.6.0',
       hardware: 'NVIDIA GPU',
     });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      RuntimeImageInstallTrackingEvent.CREATE_STARTED,
-      {
-        runtimeName: 'vLLM',
-        version: '0.6.0',
-        hardware: 'NVIDIA GPU',
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(RuntimeImageInstallTrackingEvent.CREATE_STARTED, {
+      runtimeName: 'vLLM',
+      version: '0.6.0',
+      hardware: 'NVIDIA GPU',
+    });
   });
 });
 
@@ -71,19 +58,23 @@ describe('fireConfigurationSelected', () => {
     jest.clearAllMocks();
   });
 
-  it('should fire miscellaneous tracking event for serving runtime template selection', () => {
-    fireConfigurationSelected({ configurationType: 'serving-runtime-template' });
+  it('should call trackEvent for serving runtime template selection', () => {
+    fireConfigurationSelected(mockTrackEvent, {
+      configurationType: 'serving-runtime-template',
+    });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       RuntimeImageInstallTrackingEvent.CONFIGURATION_SELECTED,
       { configurationType: 'serving-runtime-template' },
     );
   });
 
-  it('should fire miscellaneous tracking event for llm accelerator configuration selection', () => {
-    fireConfigurationSelected({ configurationType: 'llm-accelerator-configuration' });
+  it('should call trackEvent for llm accelerator configuration selection', () => {
+    fireConfigurationSelected(mockTrackEvent, {
+      configurationType: 'llm-accelerator-configuration',
+    });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       RuntimeImageInstallTrackingEvent.CONFIGURATION_SELECTED,
       { configurationType: 'llm-accelerator-configuration' },
     );
@@ -95,52 +86,43 @@ describe('fireCreateCompleted', () => {
     jest.clearAllMocks();
   });
 
-  it('should fire form tracking event on successful submit', () => {
-    fireCreateCompleted({
+  it('should call trackEvent on successful submit', () => {
+    fireCreateCompleted(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       configurationType: 'serving-runtime-template',
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      RuntimeImageInstallTrackingEvent.CREATE_COMPLETED,
-      {
-        outcome: TrackingOutcome.submit,
-        success: true,
-        configurationType: 'serving-runtime-template',
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      configurationType: 'serving-runtime-template',
+    });
   });
 
-  it('should fire form tracking event on cancel', () => {
-    fireCreateCompleted({
+  it('should call trackEvent on cancel', () => {
+    fireCreateCompleted(mockTrackEvent, {
       outcome: TrackingOutcome.cancel,
       configurationType: 'llm-accelerator-configuration',
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      RuntimeImageInstallTrackingEvent.CREATE_COMPLETED,
-      {
-        outcome: TrackingOutcome.cancel,
-        configurationType: 'llm-accelerator-configuration',
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+      outcome: TrackingOutcome.cancel,
+      configurationType: 'llm-accelerator-configuration',
+    });
   });
 
-  it('should fire form tracking event on failed submit', () => {
-    fireCreateCompleted({
+  it('should call trackEvent on failed submit', () => {
+    fireCreateCompleted(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: false,
       configurationType: 'serving-runtime-template',
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      RuntimeImageInstallTrackingEvent.CREATE_COMPLETED,
-      {
-        outcome: TrackingOutcome.submit,
-        success: false,
-        configurationType: 'serving-runtime-template',
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      configurationType: 'serving-runtime-template',
+    });
   });
 });

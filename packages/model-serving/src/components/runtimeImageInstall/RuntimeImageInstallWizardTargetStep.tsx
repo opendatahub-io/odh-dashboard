@@ -1,5 +1,6 @@
 import React from 'react';
 import { Alert, Radio, Stack, StackItem, Title } from '@patternfly/react-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import {
   fireConfigurationSelected,
   toConfigurationType,
@@ -22,6 +23,7 @@ const RuntimeImageInstallWizardTargetStep: React.FC<RuntimeImageInstallWizardTar
   selected,
   onSelect,
 }) => {
+  const trackEvent = useTrackEvent();
   const soleAvailableTarget =
     availableTargetIds.length === 1
       ? installTargets.find((target) => target.properties.id === availableTargetIds[0])
@@ -72,7 +74,7 @@ const RuntimeImageInstallWizardTargetStep: React.FC<RuntimeImageInstallWizardTar
               isDisabled={!availableTargetIds.includes(id)}
               onChange={() => {
                 onSelect(id);
-                fireConfigurationSelected({
+                fireConfigurationSelected(trackEvent, {
                   configurationType: toConfigurationType(id),
                 });
               }}

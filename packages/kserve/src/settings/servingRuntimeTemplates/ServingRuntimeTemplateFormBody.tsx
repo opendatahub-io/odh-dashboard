@@ -30,7 +30,8 @@ import {
   createServingRuntimeTemplateBackend,
   updateServingRuntimeTemplateBackend,
 } from '@odh-dashboard/internal/services/templateService';
-import { fireCreateCompleted } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 import CustomServingRuntimeAPIProtocolSelector from './CustomServingRuntimeAPIProtocolSelector';
 import CustomServingRuntimeModelTypeSelector from './CustomServingRuntimeModelTypeSelector';
@@ -220,7 +221,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                       modelTypes: selectedModelTypes.join(','),
                     });
                     if (isInstall) {
-                      fireCreateCompleted({
+                      fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                         outcome: TrackingOutcome.submit,
                         success: false,
                         configurationType: 'serving-runtime-template',
@@ -265,7 +266,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                         modelTypes: selectedModelTypesStr,
                       });
                       if (isInstall) {
-                        fireCreateCompleted({
+                        fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                           outcome: TrackingOutcome.submit,
                           success: true,
                           configurationType: 'serving-runtime-template',
@@ -294,7 +295,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                         modelTypes: selectedModelTypesStr,
                       });
                       if (isInstall) {
-                        fireCreateCompleted({
+                        fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                           outcome: TrackingOutcome.submit,
                           success: false,
                           configurationType: 'serving-runtime-template',
@@ -323,7 +324,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                     mode,
                   });
                   if (isInstall) {
-                    fireCreateCompleted({
+                    fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                       outcome: TrackingOutcome.cancel,
                       configurationType: 'serving-runtime-template',
                     });
