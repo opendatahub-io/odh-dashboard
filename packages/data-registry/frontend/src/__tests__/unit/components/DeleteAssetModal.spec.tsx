@@ -5,7 +5,6 @@ import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 describe('DeleteAssetModal', () => {
   const defaultProps = {
     assetName: 'my-table',
-    assetType: 'table' as const,
     onDelete: jest.fn().mockResolvedValue(undefined),
     onClose: jest.fn(),
   };
@@ -14,18 +13,19 @@ describe('DeleteAssetModal', () => {
     jest.clearAllMocks();
   });
 
-  it('should render asset name and type', () => {
+  it('should render the deletion confirmation copy', () => {
     render(<DeleteAssetModal {...defaultProps} />);
-    expect(screen.getByText('Permanently delete "my-table" structured asset?')).toBeTruthy();
+    expect(screen.getByText('Delete data asset?')).toBeTruthy();
     expect(screen.getByTestId('delete-asset-modal')).toHaveTextContent(
-      'my-table will be deleted from the registry.',
+      'The my-table data asset will be deleted.',
+    );
+    expect(screen.getByTestId('delete-asset-modal')).toHaveTextContent(
+      'Type my-table to confirm deletion:',
+    );
+    expect(screen.getByTestId('delete-asset-confirmation-required')).toHaveClass(
+      'pf-v6-c-form__label-required',
     );
     expect(screen.getAllByText('my-table')).toHaveLength(2);
-  });
-
-  it('should render volume type', () => {
-    render(<DeleteAssetModal {...defaultProps} assetType="volume" />);
-    expect(screen.getByText('Permanently delete "my-table" unstructured asset?')).toBeTruthy();
   });
 
   it('should require the exact asset name before deleting', async () => {

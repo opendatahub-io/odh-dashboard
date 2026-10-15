@@ -910,7 +910,6 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       {deleteAsset ? (
         <DeleteAssetModal
           assetName={deleteAsset.name}
-          assetType={deleteAsset.assetType}
           onDelete={() => handleDelete(deleteAsset)}
           onClose={() => setDeleteAsset(null)}
         />
