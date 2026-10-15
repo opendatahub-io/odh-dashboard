@@ -1,6 +1,6 @@
 import { appChrome } from '../appChrome';
 
-const AUTOML_DEV_FEATURE_FLAGS = 'devFeatureFlags=automl=true';
+const AUTOML_DEV_FEATURE_FLAGS = 'devFeatureFlags=';
 
 class AutomlExperimentsPage {
   pathWithDevFlags(): string {
