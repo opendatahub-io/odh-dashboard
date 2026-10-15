@@ -37,12 +37,14 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
     dataTestId,
     type,
     value,
+    valueName,
     onRefreshReady,
   }: {
     onChange: (value: unknown) => void;
     dataTestId: string;
     type: string;
     value?: string;
+    valueName?: string;
     onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
   }) => {
     onRefreshReady?.(mockVectorRefresh);
@@ -52,6 +54,7 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
         data-secret-type={type}
         data-secret-provider={undefined}
         data-selected-value={value}
+        data-value-name={valueName}
         onClick={() =>
           onChange({
             uuid: 'vector-db-1',
@@ -73,10 +76,11 @@ const mockUseParams = jest.mocked(useParams);
 const FormWrapper: React.FC<{
   children: React.ReactNode;
   onChange?: (values: typeof schema.defaults) => void;
-}> = ({ children, onChange }) => {
+  defaultValues?: Partial<typeof schema.defaults>;
+}> = ({ children, onChange, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
-    defaultValues: schema.defaults,
+    defaultValues: { ...schema.defaults, ...defaultValues },
   });
   React.useEffect(() => {
     const subscription = form.watch((values) => onChange?.(values as typeof schema.defaults));
@@ -199,6 +203,63 @@ describe('AutoragVectorStoreSelector', () => {
     );
 
     fireEvent.click(screen.getByTestId('database-secret-selector'));
+    expect(values?.db_secret_name).toBe('vector-db-secret');
+  });
+
+  it('should display the unavailable initial connection without restoring its form value', () => {
+    render(
+      <FormWrapper>
+        <AutoragVectorStoreSelector
+          initialSecret={{
+            uuid: 'missing-db',
+            name: 'missing-db',
+            data: {},
+            invalid: true,
+          }}
+          preserveInitialSelection
+        />
+      </FormWrapper>,
+    );
+
+    const selector = screen.getByTestId('database-secret-selector');
+    expect(selector).toHaveAttribute('data-value-name', 'missing-db');
+    expect(selector).not.toHaveAttribute('data-selected-value', 'missing-db');
+  });
+
+  it('should remain invalid until an available replacement is selected', () => {
+    let values: typeof schema.defaults | undefined;
+    /* eslint-disable camelcase */
+    const validDefaults = {
+      display_name: 'Run',
+      input_data_secret_name: 'storage',
+      input_data_bucket_name: 'bucket',
+      input_data_keys: ['document.pdf'],
+      test_data_secret_name: 'storage',
+      test_data_bucket_name: 'bucket',
+      test_data_key: 'test.json',
+      maas_secret_name: 'maas',
+      generation_models: ['generation-model'],
+      embedding_models: ['embedding-model'],
+    };
+    /* eslint-enable camelcase */
+
+    render(
+      <FormWrapper defaultValues={validDefaults} onChange={(nextValues) => (values = nextValues)}>
+        <AutoragVectorStoreSelector
+          initialSecret={{
+            uuid: 'missing-db',
+            name: 'missing-db',
+            data: {},
+            invalid: true,
+          }}
+          preserveInitialSelection
+        />
+      </FormWrapper>,
+    );
+
+    expect(schema.full.safeParse(values).success).toBe(false);
+    fireEvent.click(screen.getByTestId('database-secret-selector'));
+    expect(schema.full.safeParse(values).success).toBe(true);
     expect(values?.db_secret_name).toBe('vector-db-secret');
   });
 

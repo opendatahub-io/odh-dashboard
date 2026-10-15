@@ -412,4 +412,35 @@ describe('SecretSelector', () => {
 
     expect(screen.getByTestId('secret-option-legacy')).toHaveAttribute('aria-disabled', 'true');
   });
+
+  it('should preserve an unavailable current-format selection supplied outside the database query as disabled', () => {
+    const unavailableSecret: SecretListItem = {
+      uuid: 'unavailable-current',
+      name: 'unavailable-current',
+      data: {},
+    };
+    mockUseSecretsQuery.mockReturnValue({
+      data: [],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+
+    render(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus', 'pgvector', 'neo4j']}
+        preserveSelectedValue
+        preservedSelection={unavailableSecret}
+        valueName="unavailable-current"
+        onChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-option-unavailable-current')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
 });

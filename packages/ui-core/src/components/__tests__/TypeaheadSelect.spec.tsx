@@ -103,6 +103,54 @@ describe('TypeaheadSelect', () => {
 
       expect(onSelect).toHaveBeenCalledWith(undefined, 'only');
     });
+
+    it('should not auto-select a disabled sole option', () => {
+      const onSelect = jest.fn();
+      render(
+        <TypeaheadSelect
+          selectOptions={[{ value: 'unavailable', content: 'Unavailable', isDisabled: true }]}
+          onSelect={onSelect}
+        />,
+      );
+
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('should not dispatch a disabled selected option when clearing a filter', () => {
+      const onSelect = jest.fn();
+      render(
+        <TypeaheadSelect
+          selectOptions={[{ value: 'unavailable', content: 'Unavailable', isDisabled: true }]}
+          selected="unavailable"
+          isRequired={false}
+          allowClear
+          onSelect={onSelect}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'filter' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Clear input value' }));
+
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('should dispatch an enabled selected option when clearing a filter', () => {
+      const onSelect = jest.fn();
+      render(
+        <TypeaheadSelect
+          selectOptions={[{ value: 'available', content: 'Available' }]}
+          selected="available"
+          isRequired={false}
+          allowClear
+          onSelect={onSelect}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'filter' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Clear input value' }));
+
+      expect(onSelect).toHaveBeenCalledWith(undefined, 'available');
+    });
   });
 
   describe('maxMenuHeight', () => {

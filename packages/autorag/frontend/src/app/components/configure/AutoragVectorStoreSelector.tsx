@@ -78,7 +78,9 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({
                 preservedSelection={initialSecret}
                 namespace={namespace}
                 value={field.value ? selected?.uuid : undefined}
-                valueName={field.value}
+                valueName={
+                  field.value || (preserveInitialSelection ? initialSecret?.name : undefined)
+                }
                 onChange={(secret: SecretSelection | undefined) => {
                   setSelected(secret);
                   field.onChange(!secret || secret.invalid ? '' : secret.name);

@@ -402,6 +402,15 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     typeof databaseSecretName === 'string'
       ? databaseSecrets.find((secret) => secret.name === databaseSecretName)
       : undefined;
+  const preservedDatabaseSecret =
+    initialDatabaseSecret ??
+    (typeof databaseSecretName === 'string'
+      ? {
+          uuid: `unavailable-${databaseSecretName}`,
+          name: databaseSecretName,
+          data: {},
+        }
+      : undefined);
 
   const resolvedInputSecret = initialInputDataSecret
     ? {
@@ -425,7 +434,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     generation_models: parsedParams?.data.generation_models ?? [],
     embedding_models: parsedParams?.data.embedding_models ?? [],
     maas_secret_name: parsedParams?.data.maas_secret_name ?? '',
-    db_secret_name: parsedParams?.data.db_secret_name ?? '',
+    db_secret_name: initialDatabaseSecret?.name ?? '',
     display_name: generateReconfigureName(pipelineRun.display_name),
   };
 
@@ -448,9 +457,11 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       initialInputDataSecret={resolvedInputSecret}
       initialMaaSSecret={initialMaaSSecret ? { ...initialMaaSSecret, invalid: false } : undefined}
       initialDatabaseSecret={
-        initialDatabaseSecret ? { ...initialDatabaseSecret, invalid: false } : undefined
+        preservedDatabaseSecret
+          ? { ...preservedDatabaseSecret, invalid: initialDatabaseSecret === undefined }
+          : undefined
       }
-      preserveInitialDatabaseSecret={needsLegacyVectorDbLookup}
+      preserveInitialDatabaseSecret={!!preservedDatabaseSecret}
       sourceRunId={runId}
       sourceRunName={pipelineRun.display_name}
     />

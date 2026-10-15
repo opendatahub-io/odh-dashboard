@@ -268,6 +268,35 @@ describe('AutoragReconfigureLoader', () => {
     expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
   });
 
+  it('should preserve a missing current-format database secret for display without restoring it', async () => {
+    mockGetSecrets.mockImplementation((type: string) =>
+      Promise.resolve(type === 'maas' ? [{ name: 'maas', type: 'maas', data: {} }] : []),
+    );
+    mockUsePipelineRunQuery.mockReturnValue({
+      data: createRun({
+        input_data_keys: ['documents/a.pdf'],
+        maas_secret_name: 'maas',
+        db_secret_name: 'missing-current-db',
+        generation_models: ['model-a'],
+        embedding_models: ['model-b'],
+      }),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('configure-page')).toBeInTheDocument();
+    expect(capturedProps.initialValues).toMatchObject({ db_secret_name: '' });
+    expect(capturedProps.initialDatabaseSecret).toMatchObject({
+      name: 'missing-current-db',
+      uuid: 'unavailable-missing-current-db',
+      invalid: true,
+    });
+    expect(capturedProps.preserveInitialDatabaseSecret).toBe(true);
+  });
+
   it('should use the legacy vector-db lookup for a historical mixed database secret', async () => {
     mockGetSecrets.mockImplementation((type: string) =>
       Promise.resolve(
@@ -584,7 +613,7 @@ describe('AutoragReconfigureLoader', () => {
       generation_models: [],
       embedding_models: ['model-b'],
       maas_secret_name: 'maas',
-      db_secret_name: 'vector-db',
+      db_secret_name: '',
     });
   });
 

@@ -382,6 +382,9 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       | undefined,
     option: TypeaheadSelectOption,
   ) => {
+    if (option.isDisabled || option.isAriaDisabled) {
+      return;
+    }
     if (onSelect) {
       onSelect(_event, option.value);
     }
@@ -392,7 +395,10 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   const isToggleDisabled = isDisabled || (selectOptions.length <= 1 && notAllowEmpty);
   // Only when the field is required, not creatable and there is one option, we auto select the first option
   const isSingleOption = selectOptions.length === 1 && notAllowEmpty;
-  const singleOptionValue = isSingleOption ? selectOptions[0].value : null;
+  const singleOptionValue =
+    isSingleOption && !selectOptions[0].isDisabled && !selectOptions[0].isAriaDisabled
+      ? selectOptions[0].value
+      : null;
   // If there is only one option, call the onChange function (unless already selected)
   React.useEffect(() => {
     if (singleOptionValue && onSelect && props.selected !== singleOptionValue) {
@@ -512,7 +518,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const onClearButtonClick = () => {
     if (isFiltering && filterValue) {
-      if (selected && onSelect) {
+      if (selected && !selected.isDisabled && !selected.isAriaDisabled && onSelect) {
         onSelect(undefined, selected.value);
       }
       setFilterValue('');
