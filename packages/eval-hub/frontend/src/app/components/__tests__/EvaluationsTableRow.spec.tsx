@@ -448,6 +448,7 @@ describe('EvaluationsTableRow', () => {
               isSelected={false}
               onSelectionChange={mockOnSelectionChange}
               isKueueWorkloadStatusLoading={false}
+              isKueueEnabled={false}
             />
           </Tbody>
         </Table>
