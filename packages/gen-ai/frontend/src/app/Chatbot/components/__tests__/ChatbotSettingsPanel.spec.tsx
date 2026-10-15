@@ -251,6 +251,8 @@ describe('ChatbotSettingsPanel', () => {
     expect(onRevertToDefaults).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('temperature-input')).toHaveValue(0.1);
     expect(screen.getByTestId('streaming-toggle')).toBeChecked();
+    rerender(<ChatbotSettingsPanel {...defaultProps} onRevertToDefaults={onRevertToDefaults} />);
+    expect(screen.queryByTestId('settings-panel-reset-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('settings-reverted-alert')).toBeInTheDocument();
     await user.click(
       within(screen.getByTestId('settings-reverted-alert')).getByRole('button', {
