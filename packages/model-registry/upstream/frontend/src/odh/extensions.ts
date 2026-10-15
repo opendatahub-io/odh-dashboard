@@ -108,7 +108,7 @@ const extensions: (
       group: '1_catalog',
     },
   },
-  // Runtime image library tab on the Model deployment settings page
+  // Runtime library tab on the Model deployment settings page
   {
     type: 'app.tab-route/tab',
     flags: {

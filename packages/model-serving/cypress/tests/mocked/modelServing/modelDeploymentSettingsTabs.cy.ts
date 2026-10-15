@@ -51,7 +51,7 @@ const TABS = [
   { name: 'LLM accelerator configurations', path: `${BASE}/llm-accelerator-configurations` },
   { name: 'llm-d topology configurations', path: `${BASE}/topology-configurations` },
   { name: 'llm-d routing configurations', path: `${BASE}/routing-configurations` },
-  { name: 'Runtime image library', path: `${BASE}/serving-runtime-catalog` },
+  { name: 'Runtime library', path: `${BASE}/serving-runtime-catalog` },
 ];
 
 describe('Model deployment settings tab navigation', () => {

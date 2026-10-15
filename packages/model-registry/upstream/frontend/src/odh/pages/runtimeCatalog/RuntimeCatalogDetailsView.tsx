@@ -18,6 +18,7 @@ import {
   FlexItem,
   Label,
   PageSection,
+  Popover,
   Sidebar,
   SidebarContent,
   SidebarPanel,
@@ -113,9 +114,20 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                     </FlexItem>
                     {(runtimeDetails.versionCount ?? 0) > 0 && (
                       <FlexItem>
-                        <Label color="purple" data-testid="runtime-catalog-details-latest">
-                          Latest
-                        </Label>
+                        <Popover
+                          aria-label="Latest version"
+                          bodyContent="This is the newest version of this runtime image available in the library."
+                          data-testid="runtime-catalog-details-latest-popover"
+                        >
+                          {/* onClick renders the label as a button, so the popover opens from the keyboard. */}
+                          <Label
+                            color="purple"
+                            onClick={() => undefined}
+                            data-testid="runtime-catalog-details-latest"
+                          >
+                            Latest
+                          </Label>
+                        </Popover>
                       </FlexItem>
                     )}
                   </Flex>
@@ -156,7 +168,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                         <Card>
                           <CardHeader>
                             <Title headingLevel="h2" size="lg">
-                              Available configurations
+                              Runtimes
                             </Title>
                           </CardHeader>
                           <CardBody>
@@ -167,13 +179,13 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                   ? 'serving-runtime'
                                   : 'llm-inference-service'
                               }
-                              aria-label="Runtime configurations"
+                              aria-label="Runtimes"
                             >
                               {!!selectedVersion.servingRuntimeTemplate && (
                                 <Tab
                                   eventKey="serving-runtime"
                                   data-testid="runtime-serving-runtime-tab"
-                                  title={<TabTitleText>Serving runtime template</TabTitleText>}
+                                  title={<TabTitleText>Serving runtime</TabTitleText>}
                                 >
                                   <Stack
                                     hasGutter
@@ -182,12 +194,11 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                   >
                                     <StackItem>
                                       <Title headingLevel="h3" size="md">
-                                        Serving runtime template
+                                        Serving runtime
                                       </Title>
                                     </StackItem>
                                     <StackItem>
-                                      Use this configuration for model serving. It appears under
-                                      Serving runtime templates and in the model deployment wizard.
+                                      Use this runtime for serving most model types.
                                     </StackItem>
                                     <StackItem>
                                       <CodeBlockComponent copyTestId="runtime-serving-runtime-copy">
@@ -203,7 +214,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                 <Tab
                                   eventKey="llm-inference-service"
                                   data-testid="runtime-llm-inference-service-tab"
-                                  title={<TabTitleText>LLM accelerator configuration</TabTitleText>}
+                                  title={<TabTitleText>LLM runtime</TabTitleText>}
                                 >
                                   <Stack
                                     hasGutter
@@ -212,13 +223,11 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                                   >
                                     <StackItem>
                                       <Title headingLevel="h3" size="md">
-                                        LLM accelerator configuration
+                                        LLM runtime
                                       </Title>
                                     </StackItem>
                                     <StackItem>
-                                      Use this configuration for LLM inference services. It appears
-                                      under LLM accelerator configurations and in the LLM inference
-                                      service deployment wizard.
+                                      Use this runtime for deploying LLM inference services.
                                     </StackItem>
                                     <StackItem>
                                       <CodeBlockComponent copyTestId="runtime-llm-inference-service-copy">
@@ -251,7 +260,7 @@ const RuntimeCatalogDetailsView: React.FC<RuntimeCatalogDetailsViewProps> = ({
                           ['Hardware', hardware],
                           ['Model formats', modelFormats],
                           ['Container image', selectedVersion?.image],
-                          ['Publish on', publishedDate],
+                          ['Published', publishedDate],
                         ].map(([label, value]) => (
                           <DescriptionListGroup key={label}>
                             <DescriptionListTerm>{label}</DescriptionListTerm>
