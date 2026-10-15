@@ -751,6 +751,7 @@ describe('MCP Deploy from Catalog', () => {
       cy.wait('@createDeploymentRejected');
       mcpDeployModal.findSubmitError().should('contain.text', rejection);
       mcpDeployModal.shouldBeOpen();
+      cy.testA11y();
     });
   });
 

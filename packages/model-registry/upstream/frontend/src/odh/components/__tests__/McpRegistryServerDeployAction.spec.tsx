@@ -71,6 +71,16 @@ const openShiftDeployData: McpDeployModalData = {
   image: 'registry.redhat.io/openshift-mcp/openshift-mcp-server-rhel9:1.0',
 };
 
+/** Advance fake timers in small steps so React renders between PatternFly's chained timers. */
+const advance = async (ms: number) => {
+  for (let elapsed = 0; elapsed < ms; elapsed += 50) {
+    // eslint-disable-next-line no-await-in-loop
+    await act(() => {
+      jest.advanceTimersByTime(50);
+    });
+  }
+};
+
 const NO_GATEWAY_TOOLTIP =
   'This MCP server requires an MCP gateway, and none is available. Ask your cluster administrator to set up an MCP gateway.';
 
@@ -298,15 +308,6 @@ describe('McpRegistryServerDeployAction', () => {
   it('should keep the popover open while the pointer moves from Deploy onto it', async () => {
     jest.useFakeTimers();
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    // Advance in small steps so React renders between PatternFly's chained show/hide timers.
-    const advance = async (ms: number) => {
-      for (let elapsed = 0; elapsed < ms; elapsed += 50) {
-        // eslint-disable-next-line no-await-in-loop
-        await act(() => {
-          jest.advanceTimersByTime(50);
-        });
-      }
-    };
     try {
       setReadiness(
         {
@@ -335,6 +336,58 @@ describe('McpRegistryServerDeployAction', () => {
 
       // It closes once the pointer leaves the popover as well.
       await user.unhover(popover);
+      await advance(1000);
+      expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it.each([
+    [
+      'keep the popover open while focus is on the docs link after the pointer leaves',
+      'pointer-leaves',
+    ],
+    ['keep the popover open while the pointer is over it after focus leaves', 'focus-leaves'],
+  ])('should %s', async (_label, scenario) => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    try {
+      setReadiness(
+        {
+          gatewayRequired: true,
+          deployable: false,
+          reason: McpDeployReadinessReason.NO_GATEWAY_AVAILABLE,
+        },
+        true,
+      );
+      renderAction({ deployData: openShiftDeployData });
+      const button = screen.getByTestId('mcp-registry-deploy-action-button');
+
+      // Pointer and keyboard both inside: pointer on the popover, focus on the docs link.
+      await user.hover(button);
+      await advance(100);
+      const popover = screen.getByTestId('mcp-deploy-gateway-popover');
+      await user.hover(popover);
+      await user.tab();
+      await user.tab();
+      expect(screen.getByTestId('mcp-deploy-gateway-docs-link')).toHaveFocus();
+
+      if (scenario === 'pointer-leaves') {
+        await user.unhover(popover);
+        await advance(1000);
+        expect(popover).toBeInTheDocument();
+        expect(popover).toHaveStyle({ opacity: '1' });
+        // Moving focus out closes it.
+        await user.tab();
+      } else {
+        await user.tab();
+        await advance(1000);
+        expect(popover).toBeInTheDocument();
+        expect(popover).toHaveStyle({ opacity: '1' });
+        // Moving the pointer out closes it.
+        await user.unhover(popover);
+      }
       await advance(1000);
       expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
     } finally {
