@@ -215,45 +215,6 @@ describe('Model Serving LLMD', () => {
         .should('have.text', 'Small Profile');
     });
 
-    it('should resolve a name-only hardware profile reference in the deployment namespace', () => {
-      initIntercepts({
-        llmInferenceServices: [
-          mockLLMInferenceServiceK8sResource({
-            name: 'facebook-opt-125m-single',
-            namespace: 'test-project',
-            displayName: 'Facebook OPT 125M',
-            modelName: 'facebook/opt-125m',
-            modelUri: 'hf://facebook/opt-125m',
-            isReady: true,
-            additionalAnnotations: {
-              'opendatahub.io/hardware-profile-name': 'project-profile',
-              'opendatahub.io/hardware-profile-namespace': '',
-            },
-          }),
-        ],
-      });
-      cy.interceptK8sList(
-        { model: HardwareProfileModel, ns: 'test-project' },
-        mockK8sResourceList([
-          mockHardwareProfile({
-            name: 'project-profile',
-            namespace: 'test-project',
-            displayName: 'Project Profile',
-          }),
-        ]),
-      );
-
-      modelServingSection.visit('test-project');
-      const row = modelServingSection.getKServeRow('Facebook OPT 125M');
-
-      // expanded section of the row
-      row.findToggleButton('llmd-serving').click();
-      row
-        .findDescriptionListItem('Hardware profile')
-        .next('dd')
-        .should('contain.text', 'Project Profile');
-    });
-
     it('should display both KServe and LLMD deployments in the same project (global)', () => {
       initIntercepts({
         llmInferenceServices: [

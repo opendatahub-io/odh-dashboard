@@ -1492,7 +1492,12 @@ describe('Workbench Hardware Profiles', () => {
         .findLimitsDetails()
         .should('contain.text', 'Requests')
         .and('contain.text', 'Claim template');
-      notebookRow.findHardwareProfileDRADetails().testA11y();
+
+      notebookRow.findHardwareProfileDRAResourceNameButton().click();
+      hardwareProfileSection
+        .findDRAResourceDescription()
+        .should('contain.text', 'Requests one partitioned GPU device for the workload.');
+      cy.testA11y();
       cy.get('@resourceClaimRequest.all').should('have.length', 0);
     });
 

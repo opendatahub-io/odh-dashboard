@@ -86,7 +86,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
     if (
       event instanceof MouseEvent &&
       event.target instanceof Element &&
-      event.target.closest('[role="dialog"]')
+      event.target.closest('[data-resource-name-popover]')
     ) {
       return;
     }

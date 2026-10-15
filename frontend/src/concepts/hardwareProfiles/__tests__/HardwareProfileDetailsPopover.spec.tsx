@@ -175,6 +175,10 @@ describe('HardwareProfileDetailsPopover', () => {
     const dra = { resourceClaimTemplateName: 'single-mig-partition' };
     const descriptionAnnotation = 'opendatahub.io/resource-claim-description';
 
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     const openPopover = async (
       annotations?: Record<string, string>,
       identifiers?: Identifier[],
@@ -239,14 +243,51 @@ describe('HardwareProfileDetailsPopover', () => {
       expect(screen.getByTestId('resource-kind-text')).toHaveTextContent('ResourceClaimTemplate');
       expect(screen.queryByTestId('resource-description-text')).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByTestId('resource-kind-text'));
-      await act(async () => {
-        await new Promise((resolve) => {
-          setTimeout(resolve, 500);
-        });
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      await user.click(screen.getByTestId('resource-kind-text'));
+      act(() => {
+        jest.advanceTimersByTime(1000);
       });
 
       expect(screen.getByTestId('hardware-profile-details')).toBeInTheDocument();
+    });
+
+    it('should close on a click inside an unrelated dialog', async () => {
+      renderWithContext(
+        <div role="dialog" data-testid="unrelated-dialog">
+          <HardwareProfileDetailsPopover
+            hardwareProfile={mockHardwareProfile({ displayName: 'DRA Profile', dra })}
+          />
+        </div>,
+      );
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+      expect(await screen.findByTestId('hardware-profile-details')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId('unrelated-dialog'));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('hardware-profile-details')).not.toBeInTheDocument(),
+      );
+    });
+
+    it('should close on a click inside an unrelated popover', async () => {
+      renderWithContext(
+        <>
+          <HardwareProfileDetailsPopover
+            hardwareProfile={mockHardwareProfile({ displayName: 'DRA Profile', dra })}
+          />
+          <div className="pf-v6-c-popover" data-testid="unrelated-popover" />
+        </>,
+      );
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+      expect(await screen.findByTestId('hardware-profile-details')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId('unrelated-popover'));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('hardware-profile-details')).not.toBeInTheDocument(),
+      );
     });
 
     it('should show the claim template description in the resource name popover', async () => {
@@ -310,7 +351,7 @@ describe('HardwareProfileDetailsPopover', () => {
       expect(screen.getByTestId('resource-description-text').textContent).toBe(longText);
     });
 
-    it('should truncate a long claim template name and show it in full in a tooltip', async () => {
+    it('should keep the full name of a long claim template', async () => {
       const longName = `${'partitioned-accelerator-'.repeat(8)}template`;
       renderWithContext(
         <HardwareProfileDetailsPopover
@@ -322,43 +363,8 @@ describe('HardwareProfileDetailsPopover', () => {
       );
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
-      const template = screen.getByTestId('hardware-profile-dra-template');
-      expect(template).toHaveTextContent('…');
-
-      await userEvent.hover(template);
-
-      expect(await screen.findByRole('tooltip')).toHaveTextContent(longName);
+      expect(screen.getByTestId('hardware-profile-dra-template')).toHaveTextContent(longName);
     });
-
-    it.each([
-      ['20', 'single-mig-partition', false],
-      ['30', 'a'.repeat(30), false],
-      ['31', 'a'.repeat(31), true],
-    ])(
-      'should truncate a %s-character claim template name: %s',
-      async (_, resourceClaimTemplateName, isTruncated) => {
-        renderWithContext(
-          <HardwareProfileDetailsPopover
-            hardwareProfile={mockHardwareProfile({
-              displayName: 'DRA Profile',
-              dra: { resourceClaimTemplateName },
-            })}
-          />,
-        );
-        await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
-
-        const template = screen.getByTestId('hardware-profile-dra-template');
-        await userEvent.hover(template);
-
-        if (isTruncated) {
-          expect(template).toHaveTextContent('…');
-          expect(await screen.findByRole('tooltip')).toHaveTextContent(resourceClaimTemplateName);
-        } else {
-          expect(template.textContent).toBe(resourceClaimTemplateName);
-          expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-        }
-      },
-    );
 
     it('should collapse a multi-line description into one line', async () => {
       await openPopover({ [descriptionAnnotation]: 'Line one\nLine two\n\nLine three' });

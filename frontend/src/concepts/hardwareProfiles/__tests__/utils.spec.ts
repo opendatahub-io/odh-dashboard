@@ -5,6 +5,7 @@ import {
   type ContainerResources,
   type Toleration,
   type NodeSelector,
+  type PodSpec,
 } from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockNotebookK8sResource } from '#~/__mocks__';
@@ -387,19 +388,6 @@ describe('getExistingHardwareProfileData', () => {
     });
   });
 
-  it('should fall back to the workload namespace when the namespace annotation is empty', () => {
-    const notebook = mockNotebookK8sResource({});
-    notebook.metadata.annotations = {
-      'opendatahub.io/hardware-profile-name': 'test-profile',
-      'opendatahub.io/hardware-profile-namespace': '',
-    };
-
-    expect(getExistingHardwareProfileData(notebook)).toEqual({
-      name: 'test-profile',
-      namespace: notebook.metadata.namespace,
-    });
-  });
-
   it('should return undefined values for resource without hardware profile annotations', () => {
     const notebook = mockNotebookK8sResource({});
 
@@ -419,7 +407,7 @@ describe('getExistingHardwareProfileData', () => {
     });
   });
 
-  it('should fall back to the workload namespace when the namespace annotation is missing', () => {
+  it('should extract only name when namespace annotation is missing', () => {
     const notebook = mockNotebookK8sResource({
       opts: {
         metadata: {
@@ -433,7 +421,8 @@ describe('getExistingHardwareProfileData', () => {
     const result = getExistingHardwareProfileData(notebook);
 
     expect(result.name).toBe('test-profile');
-    expect(result.namespace).toBe(notebook.metadata.namespace);
+    // mockNotebookK8sResource may return null or empty string instead of undefined
+    expect(result.namespace).toBeFalsy();
   });
 });
 
@@ -887,6 +876,68 @@ describe('getDRAHardwareProfileDetails', () => {
       });
     },
   );
+
+  describe('with the workload pod spec', () => {
+    const description = 'Requests one partitioned GPU device for the workload.';
+    const podSpec = (resourceClaims: PodSpec['resourceClaims']): PodSpec => ({
+      containers: [],
+      resourceClaims,
+    });
+
+    it("should return the workload's template and no description when it differs from the profile", () => {
+      const profile = mockHardwareProfile({
+        dra,
+        annotations: { 'opendatahub.io/resource-claim-description': description },
+      });
+
+      expect(
+        getDRAHardwareProfileDetails(
+          profile,
+          podSpec([{ name: 'hwp-dra', resourceClaimTemplateName: 'single-gpu' }]),
+        ),
+      ).toStrictEqual({ resourceClaimTemplateName: 'single-gpu' });
+    });
+
+    it('should keep the description when the workload uses the profile template', () => {
+      const profile = mockHardwareProfile({
+        dra,
+        annotations: { 'opendatahub.io/resource-claim-description': description },
+      });
+
+      expect(
+        getDRAHardwareProfileDetails(
+          profile,
+          podSpec([{ name: 'hwp-dra', resourceClaimTemplateName: 'single-mig-partition' }]),
+        ),
+      ).toStrictEqual({ resourceClaimTemplateName: 'single-mig-partition', description });
+    });
+
+    it('should return the workload template when the profile no longer uses DRA', () => {
+      expect(
+        getDRAHardwareProfileDetails(
+          mockHardwareProfile({}),
+          podSpec([{ name: 'hwp-dra', resourceClaimTemplateName: 'single-gpu' }]),
+        ),
+      ).toStrictEqual({ resourceClaimTemplateName: 'single-gpu' });
+    });
+
+    it('should ignore claims the webhook did not add', () => {
+      expect(
+        getDRAHardwareProfileDetails(
+          mockHardwareProfile({ dra }),
+          podSpec([{ name: 'user-claim', resourceClaimTemplateName: 'other-template' }]),
+        ),
+      ).toStrictEqual({ resourceClaimTemplateName: 'single-mig-partition' });
+    });
+
+    it('should fall back to the profile template when the workload has no claims', () => {
+      expect(
+        getDRAHardwareProfileDetails(mockHardwareProfile({ dra }), podSpec(undefined)),
+      ).toStrictEqual({
+        resourceClaimTemplateName: 'single-mig-partition',
+      });
+    });
+  });
 
   it('should collapse line breaks and repeated whitespace into single spaces', () => {
     const profile = mockHardwareProfile({

@@ -92,7 +92,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY);
   const showMigrationRequired = !isWorkbenchMigrated(obj.notebook);
   const draDetails =
-    bindingStateInfo?.profile && getDRAHardwareProfileDetails(bindingStateInfo.profile);
+    bindingStateInfo?.profile &&
+    getDRAHardwareProfileDetails(bindingStateInfo.profile, obj.notebook.spec.template.spec);
 
   const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
   const isFeatureStoreAvailable = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;

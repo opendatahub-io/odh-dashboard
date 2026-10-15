@@ -235,8 +235,8 @@ describe('NotebookTableRow — DRA claim template', () => {
   const dra = { resourceClaimTemplateName: 'single-mig-partition' };
   const descriptionAnnotation = 'opendatahub.io/resource-claim-description';
 
-  const renderExpandedRow = async () => {
-    renderRow();
+  const renderExpandedRow = async (notebook = mockNotebookK8sResource({})) => {
+    renderRow(notebook);
     await userEvent.click(
       within(screen.getByTestId('notebook-table-expand-cell')).getByRole('button'),
     );
@@ -269,7 +269,6 @@ describe('NotebookTableRow — DRA claim template', () => {
     expect(draDetails).not.toHaveTextContent('Device requests');
     expect(draDetails).toHaveTextContent('Tech Preview');
     expect(draDetails).toHaveTextContent('Claim template');
-    expect(draDetails).not.toHaveTextContent('ResourceClaimTemplate');
     expect(within(draDetails).getByTestId('hardware-profile-dra-template')).toHaveTextContent(
       'single-mig-partition',
     );
@@ -277,6 +276,27 @@ describe('NotebookTableRow — DRA claim template', () => {
       'Requests one partitioned GPU device for the workload.',
     );
     expect(screen.getByText('size-details')).toBeInTheDocument();
+  });
+
+  it("should show the workbench's own claim template when the profile's template has changed", async () => {
+    mockBoundProfile({
+      [descriptionAnnotation]: 'Requests one partitioned GPU device for the workload.',
+    });
+    await renderExpandedRow(
+      mockNotebookK8sResource({
+        opts: {
+          spec: {
+            template: {
+              spec: {
+                resourceClaims: [{ name: 'hwp-dra', resourceClaimTemplateName: 'single-gpu' }],
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    expect(screen.getByTestId('hardware-profile-dra-template')).toHaveTextContent('single-gpu');
   });
 
   it('should not show DRA details for a non-DRA hardware profile', async () => {

@@ -12,8 +12,6 @@ import { ResourceClaimTemplateModel } from '@odh-dashboard/k8s-core/api/models';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import type { DRAHardwareProfileDetails } from './types';
 
-const MAX_TEMPLATE_NAME_LENGTH = 30;
-
 type DRAHardwareProfileDetailsSectionProps = {
   details: DRAHardwareProfileDetails;
 };
@@ -37,18 +35,12 @@ const DRAHardwareProfileDetailsSection: React.FC<DRAHardwareProfileDetailsSectio
             metadata: { name: details.resourceClaimTemplateName },
           }}
           description={details.description}
+          withFocusTrap={false}
         >
-          {details.resourceClaimTemplateName.length > MAX_TEMPLATE_NAME_LENGTH ? (
-            <Truncate
-              content={details.resourceClaimTemplateName}
-              maxCharsDisplayed={MAX_TEMPLATE_NAME_LENGTH}
-              data-testid="hardware-profile-dra-template"
-            />
-          ) : (
-            <div className="pf-v6-u-text-break-word" data-testid="hardware-profile-dra-template">
-              {details.resourceClaimTemplateName}
-            </div>
-          )}
+          <Truncate
+            content={details.resourceClaimTemplateName}
+            data-testid="hardware-profile-dra-template"
+          />
         </ResourceNameTooltip>
       </DescriptionListDescription>
     </DescriptionListGroup>

@@ -5,6 +5,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  ExpandableSection,
   Flex,
   FlexItem,
   Popover,
@@ -14,7 +15,6 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import DashboardPopupIconButton from './DashboardPopupIconButton';
-import TruncatedText from './TruncatedText';
 
 type ResourceNameTooltipProps = {
   resource: K8sResourceCommon;
@@ -22,6 +22,8 @@ type ResourceNameTooltipProps = {
   wrap?: boolean;
   onShowPopover?: () => void;
   description?: string;
+  descriptionMaxLines?: number;
+  withFocusTrap?: boolean;
 };
 
 const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
@@ -30,6 +32,8 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
   wrap = true,
   onShowPopover,
   description,
+  descriptionMaxLines = 3,
+  withFocusTrap,
 }) => (
   <div style={{ display: wrap ? 'block' : 'inline-flex' }}>
     <Flex
@@ -41,6 +45,9 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
       {resource.metadata?.name && (
         <Popover
           position="right"
+          aria-label="Resource name and type"
+          data-resource-name-popover
+          withFocusTrap={withFocusTrap}
           onShow={(): void => {
             if (onShowPopover) {
               onShowPopover();
@@ -76,7 +83,14 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
                     <DescriptionListGroup>
                       <DescriptionListTerm>Resource description</DescriptionListTerm>
                       <DescriptionListDescription data-testid="resource-description-text">
-                        <TruncatedText maxLines={3} tabIndex={0} content={description} />
+                        <ExpandableSection
+                          variant="truncate"
+                          truncateMaxLines={descriptionMaxLines}
+                          toggleTextCollapsed="Show more"
+                          toggleTextExpanded="Show less"
+                        >
+                          {description}
+                        </ExpandableSection>
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   )}
