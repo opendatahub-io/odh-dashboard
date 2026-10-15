@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -106,4 +107,53 @@ func TestDashboardEgressAllowsThanosMonitoring(t *testing.T) {
 		egressAllowsPort(policy, 9091, monitoring),
 		"dashboard NetworkPolicy must allow egress to Thanos (openshift-monitoring) on web port 9091",
 	)
+}
+
+// renderOverlayAllowPorts renders an overlay (e.g. "odh" or "rhoai") with the same
+// kustomize engine the reconciler uses and returns the dashboard-allow-ports
+// NetworkPolicy as a typed object. This exercises the full overlay transformation
+// (commonLabels, podSelector rename) rather than the raw base manifest.
+func renderOverlayAllowPorts(t *testing.T, overlay string) networkingv1.NetworkPolicy {
+	t.Helper()
+	path := filepath.Join("..", "..", "..", "manifests", overlay)
+	resources, err := kustomize.NewEngine().Render(path, kustomize.WithNamespace("redhat-ods-applications"))
+	require.NoError(t, err)
+	for _, resource := range resources {
+		if resource.GetKind() != "NetworkPolicy" || resource.GetName() != "dashboard-allow-ports" {
+			continue
+		}
+		var policy networkingv1.NetworkPolicy
+		require.NoError(t, runtime.DefaultUnstructuredConverter.FromUnstructured(resource.Object, &policy))
+		return policy
+	}
+	t.Fatalf("dashboard-allow-ports NetworkPolicy not found in rendered %q overlay", overlay)
+	return networkingv1.NetworkPolicy{}
+}
+
+// TestDashboardEgressRenderedOverlays guards RHOAIENG-100654 and RHOAIENG-100638 at the
+// overlay level: the DSPA (8443) and Thanos (9091/9092) egress rules, and their
+// destination selectors, must survive the ODH and RHOAI overlay transformations. The
+// overlays apply commonLabels and (for RHOAI) rename the dashboard deployment, so a base
+// rule that renders correctly is not proof the shipped policy does.
+func TestDashboardEgressRenderedOverlays(t *testing.T) {
+	monitoring := namespacePeer("openshift-monitoring")
+	for overlay, wantDeployment := range map[string]string{
+		"odh":   "odh-dashboard",
+		"rhoai": "rhods-dashboard",
+	} {
+		t.Run(overlay, func(t *testing.T) {
+			policy := renderOverlayAllowPorts(t, overlay)
+
+			// The overlay rename must track the podSelector so the policy still selects the pod.
+			assert.Equal(t, wantDeployment, policy.Spec.PodSelector.MatchLabels["deployment"],
+				"%s overlay must select the dashboard deployment", overlay)
+
+			assert.True(t, egressAllowsPort(policy, 8443, crossNamespacePeer),
+				"%s overlay must allow cross-namespace egress to the DSPA pipeline server on port 8443", overlay)
+			assert.True(t, egressAllowsPort(policy, 9092, monitoring),
+				"%s overlay must allow egress to Thanos (openshift-monitoring) on tenancy port 9092", overlay)
+			assert.True(t, egressAllowsPort(policy, 9091, monitoring),
+				"%s overlay must allow egress to Thanos (openshift-monitoring) on web port 9091", overlay)
+		})
+	}
 }
