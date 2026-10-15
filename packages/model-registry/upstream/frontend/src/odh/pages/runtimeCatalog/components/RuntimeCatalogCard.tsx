@@ -11,10 +11,10 @@ import {
   Label,
   Truncate,
 } from '@patternfly/react-core';
+import { RhStandardContainerImageIcon } from '@patternfly/react-icons';
 import { TruncatedText } from 'mod-arch-shared';
 import { Link, type LinkProps } from 'react-router-dom';
 import type { ServingRuntime } from '~/odh/types/servingRuntimeCatalogTypes';
-import RuntimeCatalogIcon from '~/odh/pages/runtimeCatalog/RuntimeCatalogIcon';
 import HardwareIcon from '~/odh/pages/runtimeCatalog/HardwareIcon';
 import {
   getRuntimeCatalogCardKey,
@@ -48,7 +48,7 @@ const RuntimeCatalogCard: React.FC<RuntimeCatalogCardProps> = React.memo(({ runt
               aria-hidden
               data-testid={`runtime-catalog-card-icon-${cardKey}`}
             >
-              <RuntimeCatalogIcon />
+              <RhStandardContainerImageIcon noDefaultStyle />
             </span>
           </FlexItem>
           {showLatestBadge && (

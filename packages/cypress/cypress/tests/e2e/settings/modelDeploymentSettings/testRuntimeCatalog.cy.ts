@@ -32,13 +32,12 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
   it(
     'Admin can filter the runtime image library, open a runtime image and see the Install action',
     {
-      // @Maintain until the catalog server serves runtime images and the Install action is
-      // registered on the details page (RHOAIENG-96642); the non-admin test runs today.
-      tags: ['@Dashboard', '@Featureflagged', '@RuntimeCatalog', '@Maintain'],
+      // @Maintain until the catalog server serves runtime images; the non-admin test runs today.
+      tags: ['@Dashboard', '@RuntimeCatalog', '@Maintain'],
     },
     () => {
-      cy.step('Log in as admin with the runtimeCatalog feature flag enabled');
-      cy.visitWithLogin(`/${testData.devFeatureFlagsQuery}`, LDAP_ADMIN_USER);
+      cy.step('Log in as admin');
+      cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Navigate to Model deployment settings');
       generalSettingsPage.navigate();
@@ -86,10 +85,10 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
 
   it(
     'Non-admin user cannot access the Runtime image library or its details pages',
-    { tags: ['@Dashboard', '@Featureflagged', '@RuntimeCatalog'] },
+    { tags: ['@Dashboard', '@RuntimeCatalog'] },
     () => {
       cy.step('Visit the Runtime image library as a non-admin user');
-      runtimeCatalogPage.visitAs(LDAP_CONTRIBUTOR_USER, testData.devFeatureFlagsQuery);
+      runtimeCatalogPage.visitAs(LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify the page is not found and the library is not rendered');
       pageNotfound.findPage().should('exist');
@@ -97,11 +96,7 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
       runtimeCatalogPage.findTab().should('not.exist');
 
       cy.step('Visit a runtime image details page as a non-admin user');
-      runtimeCatalogDetailsPage.visitAs(
-        testData.nonAdminProbeRuntimeId,
-        LDAP_CONTRIBUTOR_USER,
-        testData.devFeatureFlagsQuery,
-      );
+      runtimeCatalogDetailsPage.visitAs(testData.nonAdminProbeRuntimeId, LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify the page is not found and no Install action is rendered');
       pageNotfound.findPage().should('exist');

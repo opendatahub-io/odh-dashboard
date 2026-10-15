@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/openai/openai-go"
+	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/vectordb"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -101,6 +102,11 @@ func classifyForwardingError(requestCtx, operationCtx context.Context, err error
 }
 
 func (r *ResponsesRepository) forwardVectorDBEndpoint(requestCtx, operationCtx context.Context, namespace string, data map[string][]byte) (forwardedVectorDBData, error) {
+	providers := database.Classify(data)
+	if len(providers) != 1 || providers[0] != database.Milvus {
+		return forwardedVectorDBData{data: data}, nil
+	}
+
 	rawURI, ok := data["MILVUS_URI"]
 	if !ok || strings.TrimSpace(string(rawURI)) == "" {
 		return forwardedVectorDBData{data: data}, nil
@@ -161,14 +167,18 @@ func (r *ResponsesRepository) resolveMaasClient(ctx context.Context, namespace, 
 }
 
 // resolveVectorDB fetches vector DB credentials from K8s and returns the VectorDB.
-// DB type is auto-detected from secret key prefixes (MILVUS_URI → Milvus, PGVECTOR_HOST → pgvector).
 func (r *ResponsesRepository) resolveVectorDB(ctx context.Context, namespace, secretName string) (vectordb.VectorDB, error) {
 	secret, err := r.k8sService.GetSecret(ctx, namespace, secretName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get vector DB secret %q: %w", secretName, err)
 	}
 
-	if _, isMilvus := secret.Data["MILVUS_URI"]; isMilvus {
+	providers := database.Classify(secret.Data)
+	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector) {
+		return nil, fmt.Errorf("failed to classify vector DB secret %q: %w", secretName, vectordb.ErrUnsupportedVectorDB)
+	}
+
+	if providers[0] == database.Milvus {
 		operationCtx, cancel := context.WithTimeout(ctx, vectordb.MilvusOperationTimeout)
 		defer cancel()
 		newVectorDB := r.newVectorDB
@@ -605,7 +615,11 @@ func (r *ResponsesRepository) ValidateResponses(ctx context.Context, params Resp
 		return fmt.Errorf("failed to get database secret %q: %w", params.DBSecretName, err)
 	}
 	validationCtx := ctx
-	if _, isMilvus := secret.Data["MILVUS_URI"]; isMilvus {
+	providers := database.Classify(secret.Data)
+	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector) {
+		return fmt.Errorf("failed to classify vector DB secret %q: %w", params.DBSecretName, vectordb.ErrUnsupportedVectorDB)
+	}
+	if providers[0] == database.Milvus {
 		var cancel context.CancelFunc
 		validationCtx, cancel = context.WithTimeout(ctx, vectordb.MilvusOperationTimeout)
 		defer cancel()

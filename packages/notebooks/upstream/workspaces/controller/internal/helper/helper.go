@@ -63,15 +63,15 @@ func copyAnnotationFields(desiredAnnotations map[string]string, targetAnnotation
 func CopyStatefulSetFields(desired *appsv1.StatefulSet, target *appsv1.StatefulSet) bool {
 	requireUpdate := false
 
-	// copy `metadata.labels`
+	// replace `metadata.labels` and `metadata.annotations`
+	// the controller owns the StatefulSet it created, so stale keys are removed
 	var updated bool
-	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
+	target.Labels, updated = replaceStringMapFields(desired.Labels, target.Labels)
 	if updated {
 		requireUpdate = true
 	}
 
-	// copy `metadata.annotations`
-	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
+	target.Annotations, updated = replaceStringMapFields(desired.Annotations, target.Annotations)
 	if updated {
 		requireUpdate = true
 	}

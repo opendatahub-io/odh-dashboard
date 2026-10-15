@@ -14,12 +14,12 @@ import {
 } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useExtensions } from '@odh-dashboard/plugin-core';
+import type { RuntimeImageInstallActionData } from '@mf/modelRegistry/extension-points';
 import RuntimeImageInstallPageUnavailable from './RuntimeImageInstallPageUnavailable';
 import RuntimeImageInstallWizardConfigureStep from './RuntimeImageInstallWizardConfigureStep';
 import RuntimeImageInstallWizardTargetStep from './RuntimeImageInstallWizardTargetStep';
 import { getAvailableInstallTargets, getMatchingInstallTarget } from './utils';
 import { GENERAL_SETTINGS_PATH } from './const';
-import type { PlaceholderRuntimeImageActionData } from './placeholder-types';
 import {
   isRuntimeImageInstallTargetExtension,
   type RuntimeImageInstallTargetExtension,
@@ -68,7 +68,7 @@ const InstallWizardFooter: React.FC<{
 };
 
 const InstallWizard: React.FC<{
-  data: PlaceholderRuntimeImageActionData;
+  data: RuntimeImageInstallActionData;
   installTargetExtensions: RuntimeImageInstallTargetExtension[];
 }> = ({ data, installTargetExtensions }) => {
   const navigate = useNavigate();
@@ -97,8 +97,9 @@ const InstallWizard: React.FC<{
           <BreadcrumbItem
             render={() => <Link to={GENERAL_SETTINGS_PATH}>Model deployment settings</Link>}
           />
-          {/* TODO: Link to the Runtime image library when its final route is available in https://redhat.atlassian.net/browse/RHOAIENG-96641. */}
-          <BreadcrumbItem>Runtime image library</BreadcrumbItem>
+          <BreadcrumbItem
+            render={() => <Link to={data.libraryReturnRoute}>Runtime library</Link>}
+          />
           <BreadcrumbItem
             render={() => <Link to={cancelReturnRoute}>{data.runtimeImageName}</Link>}
           />
@@ -140,13 +141,13 @@ const InstallWizard: React.FC<{
 const RuntimeImageInstallPage: React.FC = () => {
   const location = useLocation();
   const installTargetExtensions = useExtensions(isRuntimeImageInstallTargetExtension);
-  const actionData: PlaceholderRuntimeImageActionData | undefined = location.state?.actionData;
+  const actionData: RuntimeImageInstallActionData | undefined = location.state?.actionData;
 
   if (!actionData) {
     return (
       <RuntimeImageInstallPageUnavailable
         title="Install runtime image"
-        message="The installation data is missing. Return to the runtime image library and try again."
+        message="The installation data is missing. Return to the runtime library and try again."
         returnRoute={GENERAL_SETTINGS_PATH}
       />
     );

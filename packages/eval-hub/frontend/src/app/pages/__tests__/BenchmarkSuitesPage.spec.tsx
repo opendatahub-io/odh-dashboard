@@ -129,7 +129,7 @@ describe('BenchmarkSuitesPage', () => {
 
     await userEvent.click(
       within(screen.getByTestId('benchmark-suite-card-model-suite-2')).getByRole('button', {
-        name: 'Run',
+        name: 'Run benchmark suite',
       }),
     );
 
@@ -372,6 +372,7 @@ describe('BenchmarkSuitesPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     clickFilterOption('benchmark-suites-category-filter-option-code');
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
     clickFilterOption('benchmark-suites-industry-filter-option-health');
 
@@ -420,6 +421,7 @@ describe('BenchmarkSuitesPage', () => {
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId('benchmark-suites-category-filter'));
+    await user.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
     await user.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
 
     expect(
@@ -501,6 +503,7 @@ describe('BenchmarkSuitesPage', () => {
 
     clickFilterOption('benchmark-suites-category-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
     fireEvent.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
     clickFilterOption('benchmark-suites-evaluates-filter-option-agent');
 

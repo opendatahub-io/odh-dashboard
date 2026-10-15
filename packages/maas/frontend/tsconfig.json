@@ -28,6 +28,9 @@
       ],
       "@odh-dashboard/internal/*": [
         "../../../frontend/src/*"
+      ],
+      "@mf/*": [
+        "../../../../frontend/@mf-types/@mf/*"
       ]
     },
     "importHelpers": true,

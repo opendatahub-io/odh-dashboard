@@ -4,7 +4,6 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvaluationJob } from '~/__mocks__/mockEvaluationJob';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
-import { mockKueueAvailability } from '~/__mocks__/mockKueueAvailability';
 import {
   mockBenchmarkSuiteCollections,
   mockCollectionsListResponse,
@@ -12,13 +11,7 @@ import {
 } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import type {
-  Collection,
-  EvalHubHealthResponse,
-  EvaluationJob,
-  KueueAvailability,
-  Provider,
-} from '~/app/types';
+import type { Collection, EvalHubHealthResponse, EvaluationJob, Provider } from '~/app/types';
 
 const NAMESPACE = 'test-namespace';
 const API_VERSION = { apiVersion: CLIENT_API_VERSION };
@@ -30,7 +23,6 @@ type InterceptOptions = {
   providers?: Provider[];
   collections?: Collection[];
   collectionsTotalCount?: number;
-  kueueAvailability?: KueueAvailability;
 };
 
 const initIntercepts = ({
@@ -40,7 +32,6 @@ const initIntercepts = ({
   providers = [],
   collections = mockCuratedBenchmarkSuiteCollections(),
   collectionsTotalCount,
-  kueueAvailability = mockKueueAvailability(),
 }: InterceptOptions = {}) => {
   cy.interceptApi(
     'GET /api/:apiVersion/user',
@@ -65,12 +56,6 @@ const initIntercepts = ({
     { path: API_VERSION },
     mockCollectionsListResponse(collections, collectionsTotalCount),
   );
-
-  cy.interceptApi(
-    'GET /api/:apiVersion/kueue/availability',
-    { path: API_VERSION },
-    kueueAvailability,
-  );
 };
 
 describe('Evaluations Page - Tabs', () => {
@@ -86,16 +71,19 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findGalleryContent().should('exist');
     evaluationsPage.findCreateSuiteCard().should('not.exist');
     evaluationsPage.findBenchmarkSuitesCategoryFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesIndustryFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesTagsFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesTaskFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesModalityFilter().should('exist');
+    evaluationsPage
+      .findBenchmarkSuitesMoreFiltersToggle()
+      .should('contain.text', 'Show more filters');
+    evaluationsPage.findBenchmarkSuitesIndustryFilter().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesTagsFilter().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesTaskFilter().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesModalityFilter().should('not.exist');
     evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('not.exist');
-    evaluationsPage.findBenchmarkSuitesPagination().should('exist');
+    evaluationsPage.findBenchmarkSuitesPagination().should('not.exist');
     evaluationsPage
       .findBenchmarkSuitesNameFilter()
       .find('input')
-      .should('have.attr', 'placeholder', 'Search collections');
+      .should('have.attr', 'placeholder', 'Search benchmark suites');
     evaluationsPage.findBenchmarkSuiteCard('clawbench').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('curated-open-llm-leaderboard-v2').should('exist');
     evaluationsPage
@@ -121,6 +109,7 @@ describe('Evaluations Page - Tabs', () => {
 
   it('should filter Gallery suites by category, tags, task, modality, and industry', () => {
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
 
     evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
@@ -158,6 +147,7 @@ describe('Evaluations Page - Tabs', () => {
 
   it('should allow multiple selections within a Gallery filter', () => {
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
     evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'safety').click();
@@ -215,7 +205,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
     evaluationsPage
       .findBenchmarkSuitesSummary()
-      .should('contain.text', 'Go to All my benchmark suites');
+      .should('contain.text', 'Go to all my benchmark suites');
   });
 
   it('should filter benchmark suites by industry client-side and clear the filter', () => {
@@ -223,6 +213,7 @@ describe('Evaluations Page - Tabs', () => {
     initIntercepts({ collections, collectionsTotalCount: collections.length });
 
     evaluationsPage.visitBenchmarkSuites(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
     evaluationsPage.findBenchmarkSuitesIndustryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('industry', 'health').click();
 
@@ -242,7 +233,7 @@ describe('Evaluations Page - Tabs', () => {
 
     evaluationsPage.findCollectionDrawerPanel().should('be.visible');
     evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Model suite 2');
-    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run');
+    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run benchmark suite');
   });
 
   it('should render curated suite category cards and link to filtered collections', () => {
@@ -359,26 +350,6 @@ describe('Evaluations Page - Table', () => {
     evaluationsPage.findFilterTextField().should('exist');
     evaluationsPage.findCompareButton().should('exist');
     evaluationsPage.findCreateEvaluationButton().should('not.exist');
-  });
-
-  it('should offer the Queued status filter when Kueue is enabled before a queued run exists', () => {
-    initIntercepts({
-      jobs: [completedJob, runningJob, failedJob],
-      kueueAvailability: mockKueueAvailability({
-        enabled: true,
-        scheduling_ready: true,
-        cluster_enabled: true,
-        namespace_managed: true,
-        local_queues_available: true,
-        local_queue_names: ['gpu-default'],
-      }),
-    });
-
-    evaluationsPage.visitRuns(NAMESPACE);
-    evaluationsPage.findFilterTypeToggle().click();
-    evaluationsPage.findFilterTypeOption('status').click();
-    evaluationsPage.findStatusFilterToggle().click();
-    evaluationsPage.findStatusFilterOption('queued').should('exist');
   });
 });
 

@@ -807,6 +807,17 @@ export type GenAiTestData = {
   servingRuntimesPath: string;
 };
 
+export type GenAiMaaSTestData = {
+  llmInferenceServiceFixturePath: string;
+  subscriptionFixturePath: string;
+  authPolicyFixturePath: string;
+  phase: string;
+  playgroundServiceName: string;
+  playgroundPodPrefix: string;
+  playgroundPodReadyTimeout: string;
+  testMessage: string;
+};
+
 export type GenAiTracingTestData = {
   modelId: string;
   modelType: string;
@@ -1145,6 +1156,15 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
+};
+
+export type AgentRuntimesTestData = {
+  pageTitle: string;
+  projectResourceName: string;
+  filterSearchTerm: string;
+  filterOptionStatus: string;
+  statusPending: string;
+  statusReady: string;
 };
 
 export type MlflowIrisRunData = {

@@ -11,7 +11,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { TypeaheadSelect } from '@odh-dashboard/ui-core';
 import type { TypeaheadSelectProps } from '@odh-dashboard/ui-core';
 import * as React from 'react';
-import type { SecretListItem } from '../../api/k8s/types';
+import type { DatabaseProvider, SecretListItem } from '../../api/k8s/types';
 import { useSecretsQuery } from '../../hooks';
 import { formatMissingKeysMessage, getMissingRequiredKeys } from '../../utils/secretValidation';
 
@@ -26,20 +26,11 @@ type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> &
   description?: React.ReactNode;
 };
 
-type DatabaseProvider = 'milvus' | 'pgvector' | 'neo4j';
+const getDatabaseProviders = (secret: SecretListItem): DatabaseProvider[] =>
+  secret.databaseProviders ?? [];
 
-const getDatabaseProviders = (secret: SecretListItem): DatabaseProvider[] => {
-  const keys = new Set(Object.keys(secret.data ?? {}));
-  return [
-    keys.has('MILVUS_URI') ? 'milvus' : undefined,
-    ['PGVECTOR_HOST', 'PGVECTOR_PORT', 'PGVECTOR_DB', 'PGVECTOR_USER', 'PGVECTOR_PASSWORD'].every(
-      (key) => keys.has(key),
-    )
-      ? 'pgvector'
-      : undefined,
-    keys.has('NEO4J_URI') ? 'neo4j' : undefined,
-  ].filter((provider): provider is DatabaseProvider => provider !== undefined);
-};
+const isDatabaseSecretType = (type?: string): boolean =>
+  type === 'database' || type === 'vector-db';
 
 export type SecretSelectorProps = Omit<
   TypeaheadSelectProps,
@@ -97,16 +88,25 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   const loaded = !loading;
   const secretsList = React.useMemo(() => {
     const allSecrets = Array.isArray(secrets) ? secrets : [];
-    if (!allowedProviders || !['database', 'vector-db'].includes(type ?? '')) {
+    if (!isDatabaseSecretType(type)) {
       return allSecrets;
     }
     const filteredSecrets = allSecrets.filter((secret) => {
       const matchingProviders = getDatabaseProviders(secret);
-      return matchingProviders.length === 1 && allowedProviders.includes(matchingProviders[0]);
+      return (
+        matchingProviders.length === 1 &&
+        (!allowedProviders || allowedProviders.includes(matchingProviders[0]))
+      );
     });
     if (preserveSelectedValue && valueName) {
       const selectedSecret = allSecrets.find((secret) => secret.name === valueName);
-      if (selectedSecret && !filteredSecrets.some((secret) => secret.name === valueName)) {
+      const selectedProviders = selectedSecret ? getDatabaseProviders(selectedSecret) : [];
+      if (
+        selectedSecret &&
+        selectedProviders.length === 1 &&
+        (!allowedProviders || allowedProviders.includes(selectedProviders[0])) &&
+        !filteredSecrets.some((secret) => secret.name === valueName)
+      ) {
         return [...filteredSecrets, selectedSecret];
       }
     }
@@ -203,12 +203,12 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
             preserveSelectedValue &&
             secret.name === valueName &&
             type !== undefined &&
-            ['database', 'vector-db'].includes(type) &&
-            !!allowedProviders &&
+            isDatabaseSecretType(type) &&
             (() => {
               const matchingProviders = getDatabaseProviders(secret);
               return (
-                matchingProviders.length !== 1 || !allowedProviders.includes(matchingProviders[0])
+                matchingProviders.length !== 1 ||
+                (!!allowedProviders && !allowedProviders.includes(matchingProviders[0]))
               );
             })(),
           description: labels.length ? (

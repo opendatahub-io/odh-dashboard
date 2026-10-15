@@ -194,7 +194,8 @@ describe('API keys - Subscription Tab', () => {
           subscription_description: 'Subscription with no keys',
           // eslint-disable-next-line camelcase
           display_name: 'No Keys Sub',
-          priority: 1,
+          // eslint-disable-next-line camelcase
+          inference_priority: 1,
           // eslint-disable-next-line camelcase
           key_count: 0,
           // eslint-disable-next-line camelcase

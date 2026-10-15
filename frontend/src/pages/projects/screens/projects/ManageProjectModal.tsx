@@ -1,4 +1,5 @@
 import * as React from 'react';
+/* eslint-disable @odh-dashboard/no-restricted-imports -- TODO: migrate ManageProjectModal to ContentModal */
 import {
   Alert,
   Button,
@@ -24,9 +25,16 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
   onClose: (newProjectName?: string) => void;
+  title?: string;
+  description?: string;
 };
 
-const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData, onClose }) => {
+const ManageProjectModal: React.FC<ManageProjectModalProps> = ({
+  editProjectData,
+  onClose,
+  title,
+  description: modalDescription,
+}) => {
   const { waitForProject } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -79,7 +87,10 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
 
   return (
     <Modal variant="medium" isOpen onClose={() => onBeforeClose()}>
-      <ModalHeader title={editProjectData ? 'Edit project' : 'Create project'} />
+      <ModalHeader
+        title={title ?? (editProjectData ? 'Edit project' : 'Create project')}
+        description={modalDescription}
+      />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>

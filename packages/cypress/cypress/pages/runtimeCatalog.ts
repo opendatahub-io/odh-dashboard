@@ -6,14 +6,16 @@ const RUNTIME_CATALOG_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
 
 class RuntimeCatalogPage {
-  visit() {
+  visit(wait = true) {
     cy.visitWithLogin(RUNTIME_CATALOG_PATH);
-    this.wait();
+    if (wait) {
+      this.wait();
+    }
   }
 
   // Visits the library without waiting for it to render, for checking users who cannot reach it.
-  visitAs(credentials: UserAuthConfig, search = '') {
-    cy.visitWithLogin(`${RUNTIME_CATALOG_PATH}${search}`, credentials);
+  visitAs(credentials: UserAuthConfig) {
+    cy.visitWithLogin(RUNTIME_CATALOG_PATH, credentials);
   }
 
   navigate() {
@@ -63,6 +65,14 @@ class RuntimeCatalogPage {
 
   findCardDetailLinks() {
     return cy.findAllByTestId(/^runtime-catalog-card-detail-link-/);
+  }
+
+  findPageDescription() {
+    return cy.findByTestId('runtime-catalog-page-description');
+  }
+
+  findCardIcon(cardKey: string) {
+    return cy.findByTestId(`runtime-catalog-card-icon-${cardKey}`);
   }
 
   findCardDescription(cardKey: string) {
