@@ -90,8 +90,11 @@ spec:
             memory: 8Gi
 `;
 
-const setupRuntimeCatalog = (enabled = true): void => {
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ runtimeCatalog: enabled }));
+const setupRuntimeCatalog = (modelServingEnabled = true): void => {
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ disableModelServing: !modelServingEnabled }),
+  );
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -129,7 +132,7 @@ const setupRuntimeCatalog = (enabled = true): void => {
   ).as('runtimeVersions');
 };
 
-describe('Runtime image library details', () => {
+describe('Runtime library details', () => {
   beforeEach(() => {
     asProductAdminUser();
     setupRuntimeCatalog();
@@ -243,7 +246,9 @@ describe('Runtime image library details', () => {
 
   it('copies the two independent configuration YAML values', () => {
     runtimeCatalogDetailsPage.visit(runtimeId);
-    runtimeCatalogDetailsPage.findHeading('Available configurations').should('be.visible');
+    runtimeCatalogDetailsPage.findHeading('Runtimes').should('be.visible');
+    runtimeCatalogDetailsPage.findServingRuntimeTab().should('have.text', 'Serving runtime');
+    runtimeCatalogDetailsPage.findLlmInferenceServiceTab().should('have.text', 'LLM runtime');
     runtimeCatalogDetailsPage
       .findServingRuntimePanel()
       .should('contain.text', 'kind: ServingRuntime');
@@ -264,10 +269,10 @@ describe('Runtime image library details', () => {
     cy.testA11y();
   });
 
-  it('does not expose details when the feature flag is disabled', () => {
+  it('does not expose details when model serving is disabled', () => {
     setupRuntimeCatalog(false);
     runtimeCatalogDetailsPage.visit(runtimeId);
-    cy.location('pathname').should('eq', `${settingsUrl}/general-settings`);
+    pageNotfound.findPage().should('exist');
     runtimeCatalogDetailsPage.findPage().should('not.exist');
     cy.testA11y();
   });
