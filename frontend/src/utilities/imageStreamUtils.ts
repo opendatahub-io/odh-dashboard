@@ -148,12 +148,16 @@ export const mapImageStreamToBYONImage = (image: ImageStreamKind): BYONImage => 
   };
 };
 
+export const isImageStreamDeprecated = (image: ImageStreamKind): boolean =>
+  image.metadata.annotations?.[ImageStreamAnnotation.DEPRECATED] === 'true';
+
 export const mapImageStreamToImageInfo = (image: ImageStreamKind): ImageInfo => {
   const { metadata, status } = image;
   const annotations = metadata.annotations ?? {};
 
   return {
     name: metadata.name,
+    deprecated: isImageStreamDeprecated(image),
     description: annotations[ImageStreamAnnotation.DESC] || '',
     url: annotations[ImageStreamAnnotation.URL] || '',
     // eslint-disable-next-line camelcase

@@ -415,6 +415,8 @@ export type DataScienceClusterKindStatus = {
   };
 };
 
+export type { AIHubKind, AIHubNamespaceResponse } from './aihubTypes';
+
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
   release?: {

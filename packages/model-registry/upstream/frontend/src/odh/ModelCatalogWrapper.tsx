@@ -2,15 +2,10 @@ import React from 'react';
 import {
   BrowserStorageContextProvider,
   NotificationContextProvider,
-  ModularArchContextProvider,
-  ModularArchConfig,
-  DeploymentMode,
   useSettings,
 } from 'mod-arch-core';
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { Bullseye } from '@patternfly/react-core';
-import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import ModelCatalogRoutes from '~/app/pages/modelCatalog/ModelCatalogRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
@@ -18,6 +13,7 @@ import NotificationListener from '~/odh/components/NotificationListener';
 import ProjectsBridgeProviderWrapper from '~/odh/components/ProjectsBridgeProviderWrapper';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
+import OdhWrapper from '~/odh/OdhWrapper';
 
 const ModelCatalogWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
@@ -53,20 +49,11 @@ const ModelCatalogWrapperContent: React.FC = () => {
   ) : null;
 };
 
-const ModelCatalogWrapper: React.FC = () => {
-  const [dscStatus] = useFetchDscStatus();
-  const modularArchConfig: ModularArchConfig = {
-    deploymentMode: DeploymentMode.Federated,
-    URL_PREFIX,
-    BFF_API_VERSION,
-    mandatoryNamespace: dscStatus?.components?.modelregistry?.registriesNamespace,
-  };
-  return (
-    <ModularArchContextProvider config={modularArchConfig}>
-      <ProjectsBridgeProviderWrapper>
-        <ModelCatalogWrapperContent />
-      </ProjectsBridgeProviderWrapper>
-    </ModularArchContextProvider>
-  );
-};
+const ModelCatalogWrapper: React.FC = () => (
+  <OdhWrapper>
+    <ProjectsBridgeProviderWrapper>
+      <ModelCatalogWrapperContent />
+    </ProjectsBridgeProviderWrapper>
+  </OdhWrapper>
+);
 export default ModelCatalogWrapper;
