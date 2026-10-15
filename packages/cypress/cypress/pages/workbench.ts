@@ -212,7 +212,7 @@ class NotebookImageUpdateModal {
   }
 
   findErrorAlert() {
-    return cy.findByRole('heading', { name: /Error creating workbench/ }).parents('.pf-v6-c-alert');
+    return cy.findByTestId('update-image-error-alert');
   }
 }
 

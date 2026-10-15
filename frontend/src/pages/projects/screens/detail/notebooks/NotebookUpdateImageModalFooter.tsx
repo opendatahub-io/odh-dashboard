@@ -104,7 +104,12 @@ const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterPro
       <Stack hasGutter>
         {error && (
           <StackItem>
-            <Alert isInline variant="danger" title="Error creating workbench">
+            <Alert
+              isInline
+              variant="danger"
+              title="Error creating workbench"
+              data-testid="update-image-error-alert"
+            >
               {error.message}
             </Alert>
           </StackItem>
