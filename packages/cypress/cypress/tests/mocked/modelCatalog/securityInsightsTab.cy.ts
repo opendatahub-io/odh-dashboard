@@ -264,12 +264,12 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     cy.wait('@getQualityArtifacts');
   });
 
-  it('should redirect a hidden quality deep link to the overview tab', () => {
+  it('should redirect a hidden quality deep link to the overview page', () => {
     interceptShouldShowQualityArtifacts(false);
 
     cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/quality-insights`);
     modelDetailsPage.findPageTitle().should('exist');
     cy.wait('@shouldShowQualityArtifacts');
-    modelDetailsPage.findOverviewTab().should('have.attr', 'aria-selected', 'true');
+    cy.location('pathname').should('match', /\/overview$/);
   });
 });
