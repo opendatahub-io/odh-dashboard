@@ -21,7 +21,7 @@ class RuntimeImageInstallPage {
   }
 
   findLibraryBreadcrumb() {
-    return cy.findByRole('link', { name: 'Runtime image library' });
+    return cy.findByRole('link', { name: 'Runtime library' });
   }
 
   findRuntimeDetailsBreadcrumb(runtimeImageName: string) {

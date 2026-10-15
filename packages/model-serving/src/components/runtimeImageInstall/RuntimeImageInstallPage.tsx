@@ -98,7 +98,7 @@ const InstallWizard: React.FC<{
             render={() => <Link to={GENERAL_SETTINGS_PATH}>Model deployment settings</Link>}
           />
           <BreadcrumbItem
-            render={() => <Link to={data.libraryReturnRoute}>Runtime image library</Link>}
+            render={() => <Link to={data.libraryReturnRoute}>Runtime library</Link>}
           />
           <BreadcrumbItem
             render={() => <Link to={cancelReturnRoute}>{data.runtimeImageName}</Link>}
@@ -147,7 +147,7 @@ const RuntimeImageInstallPage: React.FC = () => {
     return (
       <RuntimeImageInstallPageUnavailable
         title="Install runtime image"
-        message="The installation data is missing. Return to the runtime image library and try again."
+        message="The installation data is missing. Return to the runtime library and try again."
         returnRoute={GENERAL_SETTINGS_PATH}
       />
     );

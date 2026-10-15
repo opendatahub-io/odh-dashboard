@@ -82,7 +82,7 @@ const renderPage = (data?: TestData, state?: unknown) =>
         <Route path={GENERAL_SETTINGS_PATH} element={<span>Returned to General settings</span>} />
         <Route
           path={RUNTIME_IMAGE_LIBRARY_PATH}
-          element={<span>Returned to Runtime image library</span>}
+          element={<span>Returned to Runtime library</span>}
         />
         <Route
           path={`${RUNTIME_IMAGE_LIBRARY_PATH}/:runtimeId`}
@@ -162,7 +162,7 @@ describe('RuntimeImageInstallPage', () => {
     renderPage(mockRuntimeImageActionData());
     expect(screen.getByText('Choose install target')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Model deployment settings' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Runtime image library' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Runtime library' })).toHaveAttribute(
       'href',
       RUNTIME_IMAGE_LIBRARY_PATH,
     );

@@ -43,6 +43,14 @@ class RuntimeCatalogPage {
     return cy.findByTestId(`runtime-catalog-card-name-${cardKey}`);
   }
 
+  findPageDescription() {
+    return cy.findByTestId('runtime-catalog-page-description');
+  }
+
+  findCardIcon(cardKey: string) {
+    return cy.findByTestId(`runtime-catalog-card-icon-${cardKey}`);
+  }
+
   findCardDescription(cardKey: string) {
     return cy.findByTestId(`runtime-catalog-card-description-${cardKey}`);
   }

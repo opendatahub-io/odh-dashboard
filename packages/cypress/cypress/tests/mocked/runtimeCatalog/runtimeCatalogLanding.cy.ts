@@ -132,9 +132,30 @@ describe('Runtime library landing', () => {
     runtimeCatalogPage.findCard('triton').should('exist');
   });
 
-  it('shows card name and description', () => {
+  it('shows the reviewed page description even when catalog labels have one', () => {
+    cy.intercept('GET', `**/model-registry/api/${API_VERSION}/model_catalog/labels*`, {
+      body: {
+        data: {
+          items: [{ name: 'Red Hat', description: 'Label description from the catalog API' }],
+          size: 1,
+          pageSize: 10,
+          nextPageToken: '',
+        },
+      },
+    });
+    runtimeCatalogPage.visit();
+    runtimeCatalogPage
+      .findPageDescription()
+      .should(
+        'have.text',
+        'Browse runtimes you can add to this cluster for model serving or LLM inference.',
+      );
+  });
+
+  it('shows card name, icon and description', () => {
     runtimeCatalogPage.visit();
     runtimeCatalogPage.findCardName('vllm').should('contain.text', 'vLLM');
+    runtimeCatalogPage.findCardIcon('vllm').find('svg').should('exist');
     runtimeCatalogPage.findCardDescription('vllm').should('contain.text', 'GPU-accelerated');
   });
 
