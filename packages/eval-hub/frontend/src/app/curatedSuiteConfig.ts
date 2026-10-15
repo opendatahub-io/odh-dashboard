@@ -1,11 +1,11 @@
 export const CURATED_SUITE_PAGE_CONFIG = {
   agent: {
-    title: 'Agent benchmark suites',
-    description: 'Select a benchmark suite to evaluate your agent.',
+    title: 'Agent collections',
+    description: 'Select a collection to evaluate your agent.',
   },
   model: {
-    title: 'Model benchmark suites',
-    description: 'Select a benchmark suite to evaluate your model.',
+    title: 'Model collections',
+    description: 'Select a collection to evaluate your model.',
   },
 } as const;
 

@@ -316,7 +316,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
             {prerequisite}
           </Alert>
         ) : null}
-        <FormGroup label="Suite name" isRequired fieldId="suite-name">
+        <FormGroup label="Collection name" isRequired fieldId="suite-name">
           <Controller
             name="suiteName"
             control={control}
@@ -332,7 +332,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
                   <TextInput
                     id="suite-name"
                     data-testid="suite-name-input"
-                    placeholder="Enter suite name"
+                    placeholder="Enter collection name"
                     value={field.value}
                     onChange={(_event, value) => field.onChange(value)}
                     onBlur={field.onBlur}
@@ -360,7 +360,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
               <TextArea
                 id="suite-description"
                 data-testid="suite-description-input"
-                placeholder="Enter suite description"
+                placeholder="Enter collection description"
                 value={field.value}
                 onChange={(_event, value) => field.onChange(value)}
                 onBlur={field.onBlur}
@@ -425,8 +425,8 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
             <BenchmarkThresholdField
               value={field.value}
               onChange={field.onChange}
-              label="Suite threshold"
-              description="Set the minimum passing score for this suite. Results below this threshold are marked as failing."
+              label="Collection threshold"
+              description="Set the minimum passing score for this collection. Results below this threshold are marked as failing."
               fieldId="suite-threshold"
             />
           )}

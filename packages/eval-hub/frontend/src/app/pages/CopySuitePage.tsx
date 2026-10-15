@@ -180,14 +180,14 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
         <EmptyState
           headingLevel="h2"
           icon={ExclamationCircleIcon}
-          titleText="Unable to load benchmark suite"
+          titleText="Unable to load collection"
           status="danger"
           data-testid="copy-suite-load-error"
         >
           <EmptyStateBody>
             {loadError?.message ??
               providersLoadError?.message ??
-              'The requested benchmark suite could not be found.'}
+              'The requested collection could not be found.'}
           </EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
@@ -204,7 +204,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   if ((!isCreateMode && !loaded) || !providersLoaded) {
     return (
       <Bullseye>
-        <Spinner aria-label="Loading benchmark suite" />
+        <Spinner aria-label="Loading collection" />
       </Bullseye>
     );
   }
@@ -217,22 +217,22 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   const pageTitle = isBenchmarksStep
     ? 'Benchmarks'
     : isCreateMode
-      ? 'Create suite'
+      ? 'Create benchmark collection'
       : isEditMode
-        ? 'Edit suite'
-        : 'Copy suite';
+        ? 'Edit collection'
+        : 'Copy collection';
   const pageDescription = isBenchmarksStep
     ? 'Choose the primary metric, number of samples, random seed, threshold, and weight used to calculate the result for each benchmark.'
     : isCreateMode
-      ? 'Create a benchmark suite by choosing its metadata, benchmarks, thresholds, and metrics.'
+      ? 'Create a benchmark collection by choosing its metadata, benchmarks, thresholds, and metrics.'
       : isEditMode
-        ? 'Edit this benchmark suite by updating its metadata, benchmarks, thresholds, and metrics.'
-        : 'Customize benchmarks, thresholds, and metrics before adding this suite to your dashboard.';
+        ? 'Edit this collection by updating its metadata, benchmarks, thresholds, and metrics.'
+        : 'Customize benchmarks, thresholds, and metrics before adding this collection to your dashboard.';
   const settingsBreadcrumbLabel = isCreateMode
-    ? 'Create suite'
+    ? 'Create benchmark collection'
     : isEditMode
-      ? 'Edit benchmark suite'
-      : 'Customize benchmark suite';
+      ? 'Edit collection'
+      : 'Customize collection';
 
   const breadcrumbItems: React.ReactElement[] = [
     <BreadcrumbItem
@@ -267,7 +267,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
         render={() =>
           renderBreadcrumbLink(
             evaluationEvaluateRoute(namespace),
-            'Benchmark suites',
+            'Benchmark collections',
             'copy-suite-breadcrumb-benchmark-suites',
           )
         }
@@ -277,7 +277,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
         render={() =>
           renderBreadcrumbLink(
             evaluationBenchmarkSuitesRoute(namespace),
-            'My benchmark suites',
+            'My benchmark collections',
             'copy-suite-breadcrumb-my-benchmark-suites',
           )
         }
@@ -303,7 +303,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
         render={() =>
           renderBreadcrumbLink(
             evaluationEvaluateRoute(namespace),
-            'Benchmark suites',
+            'Benchmark collections',
             'copy-suite-breadcrumb-benchmark-suites',
           )
         }

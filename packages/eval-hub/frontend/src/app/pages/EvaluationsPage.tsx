@@ -63,7 +63,7 @@ const EVALUATE_TAB = 'evaluate';
 const RUNS_TAB = 'runs';
 const TAB_QUERY_PARAM = 'tab';
 const EVALUATE_DESCRIPTION =
-  'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.';
+  'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.';
 const RUNS_DESCRIPTION = 'Start and manage evaluation runs for models, agents, and datasets.';
 
 const EvaluationsPage: React.FC = () => {
@@ -229,7 +229,7 @@ const EvaluationsPage: React.FC = () => {
               prerequisites={
                 selectedCollectionIsSystem ? CURATED_COLLECTION_PREREQUISITES : undefined
               }
-              primaryActionLabel="Run benchmark suite"
+              primaryActionLabel="Run"
             />
           }
         >
@@ -355,8 +355,8 @@ const EvaluationsPage: React.FC = () => {
                   </Tab>
                   <Tab
                     eventKey={EVALUATE_TAB}
-                    title={<TabTitleText>Benchmark suites</TabTitleText>}
-                    aria-label="Benchmark suites tab"
+                    title={<TabTitleText>Benchmark collections</TabTitleText>}
+                    aria-label="Benchmark collections tab"
                     data-testid="evaluate-tab"
                   >
                     <EvaluateTab

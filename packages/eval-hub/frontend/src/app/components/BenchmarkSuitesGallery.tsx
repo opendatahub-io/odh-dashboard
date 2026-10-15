@@ -257,7 +257,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   queryFilters,
   requireCuratedIndex = false,
   prerequisites,
-  primaryActionLabel = 'Run benchmark suite',
+  primaryActionLabel = 'Run',
   primaryActionRoute,
   primaryActionState,
   primaryActionVariant = 'secondary',
@@ -712,15 +712,12 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     }
     try {
       await deleteCollection(collectionToDelete.resource.id);
-      notification.success(
-        'Benchmark suite deleted',
-        `"${collectionToDelete.name}" has been deleted.`,
-      );
+      notification.success('Collection deleted', `"${collectionToDelete.name}" has been deleted.`);
       setCollectionToDelete(null);
     } catch (deleteError) {
       const message =
-        deleteError instanceof Error ? deleteError.message : 'Unable to delete benchmark suite.';
-      notification.error('Unable to delete benchmark suite', message);
+        deleteError instanceof Error ? deleteError.message : 'Unable to delete collection.';
+      notification.error('Unable to delete collection', message);
       setCollectionToDelete(null);
     }
   }, [collectionToDelete, deleteCollection, notification]);
@@ -775,8 +772,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 >
                   <SearchInput
                     className="evalhub-benchmark-suite-gallery__search-input"
-                    aria-label="Search benchmark suites"
-                    placeholder="Search benchmark suites"
+                    aria-label="Search collections"
+                    placeholder="Search collections"
                     value={nameFilter}
                     isDisabled={areFiltersDisabled}
                     onChange={(_event, value) => setNameFilter(value)}
@@ -1077,11 +1074,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             headingLevel="h2"
             icon={ExclamationCircleIcon}
             status="danger"
-            titleText="Unable to load benchmark suites"
+            titleText="Unable to load collections"
             variant={EmptyStateVariant.lg}
           >
             <EmptyStateBody>
-              We could not load the benchmark suites right now. Please try again later.
+              We could not load the collections right now. Please try again later.
             </EmptyStateBody>
             <EmptyStateFooter>
               <EmptyStateActions>
@@ -1122,12 +1119,12 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
         <Bullseye data-testid="benchmark-suites-empty-state">
           <EmptyState variant={EmptyStateVariant.sm} icon={SearchIcon}>
             <Title headingLevel="h2" size="lg">
-              No benchmark suites found
+              No collections found
             </Title>
             <EmptyStateBody>
               {hasActiveFilters
-                ? 'No benchmark suites match the current filters.'
-                : 'No benchmark suites are available.'}
+                ? 'No collections match the current filters.'
+                : 'No collections are available.'}
             </EmptyStateBody>
           </EmptyState>
         </Bullseye>
@@ -1160,8 +1157,10 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     showRunCount={scope === 'tenant'}
                     primaryAction={{
                       label: hasPrerequisite ? 'Customize' : primaryActionLabel,
-                      href: hasPrerequisite ? undefined : primaryActionRoute?.(collection),
-                      state: hasPrerequisite ? undefined : primaryActionState,
+                      href: hasPrerequisite
+                        ? dropdownActionRoute?.(collection)
+                        : primaryActionRoute?.(collection),
+                      state: hasPrerequisite ? dropdownActionState : primaryActionState,
                       variant: hasPrerequisite ? 'secondary' : primaryActionVariant,
                       onClick: () =>
                         hasPrerequisite
@@ -1193,29 +1192,30 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
               className="evalhub-benchmark-suite-gallery__refresh-loading"
               data-testid="benchmark-suites-refresh-loading"
             >
-              <Spinner aria-label="Refreshing benchmark suites" />
+              <Spinner aria-label="Refreshing collections" />
             </Bullseye>
           )}
         </div>
       )}
       {showSummary && !isLoading && !shouldShowLoadError && totalCount > 0 && (
         <StackItem className="evalhub-evaluate-tab__summary" data-testid="benchmark-suites-summary">
-          <Link to={evaluationBenchmarkSuitesRoute(namespace)}>Go to all my benchmark suites</Link>
+          <Link to={evaluationBenchmarkSuitesRoute(namespace)}>
+            View all my benchmark collections
+          </Link>
         </StackItem>
       )}
       {collectionToDelete && (
         <DeleteConfirmationModal
-          title="Delete benchmark suite?"
+          title="Delete collection?"
           body={
             <>
-              The <strong>{collectionToDelete.name}</strong> benchmark suite will be permanently
-              deleted.
+              The <strong>{collectionToDelete.name}</strong> collection will be permanently deleted.
             </>
           }
           onClose={handleDeleteClose}
           onConfirm={handleDeleteConfirm}
           isSubmitting={isDeleting}
-          ariaLabel="Delete benchmark suite?"
+          ariaLabel="Delete collection?"
           dataTestId="benchmark-suite-delete-modal"
           confirmTestId="benchmark-suite-delete-confirm"
           cancelTestId="benchmark-suite-delete-cancel"

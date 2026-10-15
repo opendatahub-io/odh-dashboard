@@ -373,7 +373,7 @@ export type BenchmarkSuiteCreationOptions = {
 
 /**
  * Finds a suffix that is available for every experiment name used by the
- * benchmark-suite spec, including soft-deleted MLflow experiments.
+ * benchmark collection spec, including soft-deleted MLflow experiments.
  */
 export const findAvailableBenchmarkSuiteExperimentSuffix = (
   workspace: string,
@@ -481,7 +481,7 @@ export const navigateToEvaluationsPage = (evaluationTenantProject: string): void
     .findPageTitle({ timeout: 30000 })
     .should('be.visible')
     .and('contain.text', 'Evaluations');
-  cy.step('Open the Benchmark suites tab');
+  cy.step('Open the Benchmark collections tab');
   evaluationsPage.findEvaluateTab({ timeout: 30000 }).should('be.visible').click();
   evaluationsPage.findEvaluateTabContent({ timeout: 30000 }).should('be.visible');
 };
@@ -566,7 +566,7 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
     .should('be.visible');
 };
 
-// Benchmark-suite flow
+// Benchmark-collection flow
 export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void => {
   const {
     suiteName,
@@ -577,7 +577,7 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
     runAfterSave = false,
   } = opts;
 
-  cy.step(`Create benchmark suite: ${suiteName}`);
+  cy.step(`Create benchmark collection: ${suiteName}`);
   const navigationTimeout = { timeout: 120000 };
   evaluationsPage
     .findCreateSuiteButton(navigationTimeout)
@@ -599,7 +599,7 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
   createEvaluationPage.findCopySuiteNextButton().should('be.enabled').click();
 
   benchmarks.forEach(({ id, name }) => {
-    cy.step(`Add benchmark to suite: ${name} (${id})`);
+    cy.step(`Add benchmark to collection: ${name} (${id})`);
     createEvaluationPage.findBenchmarkCatalogSearch().should('be.visible').clear().type(id);
     createEvaluationPage
       .findBenchmarkCatalogCheckboxById(id, benchmarkProviderId)
@@ -629,7 +629,7 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
   });
 
   if (runAfterSave) {
-    cy.step('Save the suite and open the evaluation run form');
+    cy.step('Save the collection and open the evaluation run form');
     createEvaluationPage.findCreateSuiteSaveAndRunButton().should('be.enabled').click();
     createEvaluationPage
       .findStartEvaluationRunModal('create-suite-run-evaluation-modal', { timeout: 120000 })
@@ -637,7 +637,7 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
     return;
   }
 
-  cy.step('Add the suite to my benchmark suites');
+  cy.step('Add the collection to my collections');
   createEvaluationPage.findCopySuiteSaveOnlyButton().should('be.enabled').click();
   cy.location('pathname', { timeout: 120000 }).should('match', /\/evaluation\/[^/]+\/collections$/);
 };
@@ -692,7 +692,7 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
 export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOptions): void => {
   const { suiteName } = opts;
 
-  cy.step(`Find the newly created suite on the Evaluate tab: ${suiteName}`);
+  cy.step(`Find the newly created collection on the Evaluate tab: ${suiteName}`);
   const suiteLookupTimeout = { timeout: 120000 };
   evaluationsPage.findBenchmarkSuiteCardByName(suiteName, suiteLookupTimeout).should('be.visible');
   evaluationsPage.findBenchmarkSuitePrimaryActionByName(suiteName, suiteLookupTimeout).click();
@@ -705,7 +705,7 @@ export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOpt
 export const submitCreatedBenchmarkSuiteEvaluation = (
   opts: BenchmarkSuiteEvaluationOptions,
 ): void => {
-  cy.step(`Configure the newly created suite evaluation: ${opts.suiteName}`);
+  cy.step(`Configure the newly created collection evaluation: ${opts.suiteName}`);
   configureAndSubmitBenchmarkSuiteEvaluation({
     ...opts,
     modalId: 'create-suite-run-evaluation-modal',

@@ -29,7 +29,7 @@ export const mockCollection = (options: MockCollectionOptions = {}): Collection 
   name: options.name ?? 'Safety Suite',
   category: options.category ?? 'Safety',
   domains: options.domains,
-  description: options.description ?? 'A comprehensive safety benchmark suite.',
+  description: options.description ?? 'A comprehensive safety collection.',
   tags: options.tags ?? ['safety', 'llm'],
   pass_criteria: options.threshold != null ? { threshold: options.threshold } : undefined,
   benchmarks: (options.benchmarkIds ?? ['harmful_request_refusal', 'toxigen']).map((id, index) => ({

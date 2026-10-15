@@ -208,7 +208,7 @@ describe('BenchmarkSuiteCard', () => {
     expect(runCount).toHaveTextContent('3');
     expect(runCount).toHaveAttribute(
       'aria-label',
-      'Run Count: Number of successful executions of this suite',
+      'Run Count: Number of successful executions of this collection',
     );
     expect(
       screen
@@ -218,7 +218,7 @@ describe('BenchmarkSuiteCard', () => {
 
     fireEvent.mouseEnter(runCount);
     expect(
-      await screen.findByText('Run Count: Number of successful executions of this suite'),
+      await screen.findByText('Run Count: Number of successful executions of this collection'),
     ).toBeInTheDocument();
   });
 

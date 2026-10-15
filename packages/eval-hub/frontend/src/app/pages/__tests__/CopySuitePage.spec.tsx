@@ -385,14 +385,14 @@ describe('CopySuitePage', () => {
 
     renderCreatePage();
 
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Create suite');
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Create benchmark collection');
     expect(screen.getByTestId('suite-name-input')).toHaveAttribute(
       'placeholder',
-      'Enter suite name',
+      'Enter collection name',
     );
     expect(screen.getByTestId('suite-description-input')).toHaveAttribute(
       'placeholder',
-      'Enter suite description',
+      'Enter collection description',
     );
     // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
     /*
@@ -400,9 +400,9 @@ describe('CopySuitePage', () => {
     */
     expect(screen.queryByTestId('suite-evaluates-input')).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-description')).toHaveTextContent(
-      'Create a benchmark suite',
+      'Create a benchmark collection',
     );
-    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace?tab=evaluate',
     );
@@ -417,9 +417,7 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-description')).toHaveClass('pf-v6-u-mb-xl');
     expect(screen.queryByTestId('copy-suite-benchmarks-description')).not.toBeInTheDocument();
     expect(screen.getByTestId('create-suite-submit')).toHaveTextContent('Save and run');
-    expect(screen.getByTestId('copy-suite-save-only')).toHaveTextContent(
-      'Add to my benchmark suites',
-    );
+    expect(screen.getByTestId('copy-suite-save-only')).toHaveTextContent('Add to my collections');
     fireEvent.click(screen.getByTestId('copy-suite-back-step-2'));
     expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
     expect(screen.queryByTestId('app-page-title')).not.toBeInTheDocument();
@@ -440,11 +438,11 @@ describe('CopySuitePage', () => {
 
     renderEvaluateOriginPage();
 
-    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace?tab=evaluate',
     );
-    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
       expect.objectContaining({ cancelRoute: '/evaluation/test-namespace?tab=evaluate' }),
     );
@@ -509,7 +507,7 @@ describe('CopySuitePage', () => {
 
     renderPage();
 
-    expect(screen.getByLabelText('Loading benchmark suite')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading collection')).toBeInTheDocument();
     expect(screen.queryByTestId('copy-suite-form')).not.toBeInTheDocument();
   });
 
@@ -541,7 +539,7 @@ describe('CopySuitePage', () => {
     renderPage();
 
     expect(screen.getByTestId('copy-suite-load-error')).toHaveTextContent('Providers unavailable');
-    expect(screen.queryByLabelText('Loading benchmark suite')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Loading collection')).not.toBeInTheDocument();
   });
 
   it('should fetch the collection using the route namespace and id', async () => {
@@ -566,7 +564,7 @@ describe('CopySuitePage', () => {
 
     renderPage();
 
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Copy suite');
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Copy collection');
     expect(screen.getByTestId('copy-suite-description')).toBeInTheDocument();
     expect(screen.getByTestId('suite-name-input')).toHaveValue('Curated suite copy');
     expect(screen.getByTestId('suite-description-input')).toHaveValue('Description');
@@ -586,9 +584,9 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('suite-modalities-tag-text')).toHaveTextContent('Text');
     expect(screen.getByTestId('suite-industries-tag-technology')).toHaveTextContent('Technology');
     */
-    expect(screen.queryByText('Language benchmark suites')).not.toBeInTheDocument();
-    expect(screen.getByText('Customize benchmark suite')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Language collections')).not.toBeInTheDocument();
+    expect(screen.getByText('Customize collection')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-next')).toBeInTheDocument();
     expect(screen.queryByTestId('copy-suite-prerequisite-alert')).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-settings-actions')).toHaveClass(
@@ -629,7 +627,7 @@ describe('CopySuitePage', () => {
 
     renderPage();
 
-    expect(screen.getByRole('link', { name: 'Model benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Model collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace/collections/model',
     );
@@ -653,7 +651,7 @@ describe('CopySuitePage', () => {
       'href',
       '/evaluation/test-namespace?tab=gallery',
     );
-    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
       expect.objectContaining({ cancelRoute: '/evaluation/test-namespace?tab=gallery' }),
     );
@@ -673,15 +671,15 @@ describe('CopySuitePage', () => {
 
     renderBenchmarkSuitesOriginPage();
 
-    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace?tab=evaluate',
     );
-    expect(screen.getByRole('link', { name: 'My benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'My benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace/collections',
     );
-    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
       expect.objectContaining({ cancelRoute: '/evaluation/test-namespace/collections' }),
     );
@@ -706,7 +704,7 @@ describe('CopySuitePage', () => {
 
     renderCreatePage(evaluationBenchmarkSuitesNavigationState);
 
-    expect(screen.getByRole('link', { name: 'My benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'My benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace/collections',
     );
@@ -720,7 +718,7 @@ describe('CopySuitePage', () => {
 
     renderCreatePage({ sourceEvaluationTarget: 'model' });
 
-    expect(screen.getByRole('link', { name: 'Model benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Model collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace/collections/model',
     );
@@ -957,7 +955,7 @@ describe('CopySuitePage', () => {
     renderPage();
 
     expect(
-      screen.getByText('Suite name must be different from the source benchmark suite name.'),
+      screen.getByText('Collection name must be different from the source collection name.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-next')).toBeDisabled();
   });

@@ -46,8 +46,14 @@ import { Collection } from '~/app/types';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
-import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import {
+  evaluationCopySuiteRoute,
+  evaluationCreateRoute,
+  evaluationStartRoute,
+  evaluationsBaseRoute,
+} from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { CURATED_COLLECTION_PREREQUISITES } from '~/app/curatedSuiteConfig';
 import {
   formatCategory,
   getCategoryColor,
@@ -123,6 +129,13 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     [navigate, namespace],
   );
 
+  const handleCustomizeCollection = React.useCallback(
+    (collection: Collection) => {
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id));
+    },
+    [navigate, namespace],
+  );
+
   return (
     <Drawer isExpanded={!!selectedCollection}>
       <DrawerContent
@@ -132,13 +145,15 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             benchmarkDetailsMap={benchmarkDetailsMap}
             onClose={() => setSelectedCollection(undefined)}
             onRunCollection={handleRunCollection}
+            onCustomizeCollection={handleCustomizeCollection}
+            prerequisites={CURATED_COLLECTION_PREREQUISITES}
           />
         }
       >
         <DrawerContentBody>
           <ApplicationsPage
-            title="Select benchmark suite"
-            description="Select a benchmark suite to evaluate your model, agent, or dataset."
+            title="Select collection"
+            description="Select a collection to evaluate your model, agent, or dataset."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -149,7 +164,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                     <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
-                <BreadcrumbItem isActive>Select benchmark suite</BreadcrumbItem>
+                <BreadcrumbItem isActive>Select collection</BreadcrumbItem>
               </Breadcrumb>
             }
             loaded={loaded}
@@ -160,12 +175,12 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                   headingLevel="h2"
                   icon={ExclamationCircleIcon}
                   status="danger"
-                  titleText="Benchmark suites unavailable"
+                  titleText="Collections unavailable"
                   variant={EmptyStateVariant.lg}
                   data-testid="benchmark-suites-load-error"
                 >
                   <EmptyStateBody>
-                    We could not load the benchmark suites right now. Please try again later.
+                    We could not load the collections right now. Please try again later.
                   </EmptyStateBody>
                   <EmptyStateFooter>
                     <EmptyStateActions>
@@ -184,11 +199,11 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 <Alert
                   variant="warning"
                   isInline
-                  title="Not all benchmark suites are shown"
+                  title="Not all collections are shown"
                   data-testid="collections-truncation-alert"
                   style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                 >
-                  This namespace has more benchmark suites than the display limit. Contact your
+                  This namespace has more collections than the display limit. Contact your
                   administrator or use the API directly to access the full list.
                 </Alert>
               )}
@@ -297,8 +312,8 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 <Bullseye data-testid="collections-empty-state">
                   <Content component="p">
                     {nameFilter || categoryFilter.length > 0
-                      ? 'No benchmark suites match the current filters.'
-                      : 'No benchmark suites available.'}
+                      ? 'No collections match the current filters.'
+                      : 'No collections available.'}
                   </Content>
                 </Bullseye>
               ) : (
@@ -311,6 +326,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                     const benchmarkCount = collection.benchmarks?.length ?? 0;
                     const isSelected = selectedCollection?.resource.id === collection.resource.id;
                     const collectionCategory = getCollectionCategoryValues(collection)[0];
+                    const prerequisite = CURATED_COLLECTION_PREREQUISITES[collection.resource.id];
                     return (
                       <Card
                         key={collection.resource.id}
@@ -368,10 +384,18 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           <Button
                             variant="secondary"
                             isInline
-                            data-testid="use-benchmark-suite-button"
-                            onClick={() => handleRunCollection(collection)}
+                            data-testid={
+                              prerequisite
+                                ? 'customize-benchmark-suite-button'
+                                : 'use-benchmark-suite-button'
+                            }
+                            onClick={() =>
+                              prerequisite
+                                ? handleCustomizeCollection(collection)
+                                : handleRunCollection(collection)
+                            }
                           >
-                            Select benchmark suite
+                            {prerequisite ? 'Customize' : 'Select collection'}
                           </Button>
                         </CardFooter>
                       </Card>

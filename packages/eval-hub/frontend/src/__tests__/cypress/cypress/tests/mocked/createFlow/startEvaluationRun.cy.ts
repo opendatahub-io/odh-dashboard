@@ -412,7 +412,7 @@ describe('Start Evaluation Run - Collection Threshold', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should display suite threshold defaulting to 70 when no pass_criteria in metadata', () => {
+  it('should display collection threshold defaulting to 70 when no pass_criteria in metadata', () => {
     navigateToCollectionStart();
 
     startEvaluationRunPage.findBenchmarkThreshold().should('exist');
@@ -428,7 +428,7 @@ describe('Start Evaluation Run - Collection Threshold', () => {
     startEvaluationRunPage.findPrimaryScorerMetricToggle().should('not.exist');
   });
 
-  it('should submit overridden suite threshold when user modifies the slider value', () => {
+  it('should submit overridden collection threshold when user modifies the slider value', () => {
     const createdJob = mockEvaluationJob({
       id: 'new-eval-col-threshold-override',
       name: 'col-threshold-override-eval',

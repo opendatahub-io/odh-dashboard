@@ -83,14 +83,14 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage
       .findBenchmarkSuitesNameFilter()
       .find('input')
-      .should('have.attr', 'placeholder', 'Search benchmark suites');
+      .should('have.attr', 'placeholder', 'Search collections');
     evaluationsPage.findBenchmarkSuiteCard('clawbench').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('curated-open-llm-leaderboard-v2').should('exist');
     evaluationsPage
       .findPageDescription()
       .should(
         'contain.text',
-        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
+        'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.',
       );
   });
 
@@ -132,9 +132,7 @@ describe('Evaluations Page - Tabs', () => {
       evaluationsPage.findBenchmarkSuiteDropdownToggleInCard(collectionId).should('not.exist');
     });
 
-    evaluationsPage
-      .findBenchmarkSuitePrimaryAction('unmapped-suite')
-      .should('contain.text', 'Run benchmark suite');
+    evaluationsPage.findBenchmarkSuitePrimaryAction('unmapped-suite').should('contain.text', 'Run');
     evaluationsPage.findBenchmarkSuiteDropdownToggleInCard('unmapped-suite').should('exist');
 
     evaluationsPage.findBenchmarkSuiteName('trustworthiness-v1').click();
@@ -220,7 +218,7 @@ describe('Evaluations Page - Tabs', () => {
 
   it('should navigate to the single benchmark flow from the browse benchmarks section', () => {
     evaluationsPage.visitEvaluate(NAMESPACE);
-    evaluationsPage.findEvaluateTab().should('contain.text', 'Benchmark suites');
+    evaluationsPage.findEvaluateTab().should('contain.text', 'Benchmark collections');
     evaluationsPage.findBrowseAllBenchmarksExploreButton().click();
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
   });
@@ -235,7 +233,7 @@ describe('Evaluations Page - Tabs', () => {
       .findPageDescription()
       .should(
         'contain.text',
-        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
+        'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.',
       );
     evaluationsPage
       .findRunsDescription()
@@ -266,7 +264,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
     evaluationsPage
       .findBenchmarkSuitesSummary()
-      .should('contain.text', 'Go to all my benchmark suites');
+      .should('contain.text', 'View all my benchmark collections');
   });
 
   it('should filter benchmark suites by industry client-side and clear the filter', () => {
@@ -294,7 +292,7 @@ describe('Evaluations Page - Tabs', () => {
 
     evaluationsPage.findCollectionDrawerPanel().should('be.visible');
     evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Model suite 2');
-    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run benchmark suite');
+    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run');
   });
 
   it('should render curated suite category cards and link to filtered collections', () => {
@@ -322,7 +320,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteDeleteModal().should('be.visible');
     evaluationsPage
       .findBenchmarkSuiteDeleteModal()
-      .should('contain.text', 'The Model suite 2 benchmark suite will be permanently deleted.');
+      .should('contain.text', 'The Model suite 2 collection will be permanently deleted.');
     evaluationsPage.findBenchmarkSuiteDeleteCancel().click();
     evaluationsPage.findBenchmarkSuiteDeleteModal().should('not.exist');
   });
@@ -426,11 +424,11 @@ describe('Evaluations Page - Empty state', () => {
       .findEmptyStateBody()
       .should(
         'contain.text',
-        'Go to benchmark suites to create a suite or run an individual benchmark, or select a different project to view its runs.',
+        'Go to collections to create a collection or run an individual benchmark, or select a different project to view its runs.',
       );
   });
 
-  it('should navigate to the Benchmark suites tab when clicking the empty state action', () => {
+  it('should navigate to the Benchmark collections tab when clicking the empty state action', () => {
     evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findCreateEvaluationButton().click();
     evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');

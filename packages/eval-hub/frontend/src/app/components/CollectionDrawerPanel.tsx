@@ -33,6 +33,8 @@ import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import SearchableMultiSelectFilter from './SearchableMultiSelectFilter';
 import { formatCollectionMetadataValue, getMetricDisplayName } from './benchmarkUtils';
 
+import './CollectionDrawerPanel.scss';
+
 export type BenchmarkWithProvider = ProviderBenchmark & {
   providerName: string;
   providerAgent?: ProviderAgentMetadata;
@@ -56,14 +58,14 @@ type CollectionLabelSectionProps = {
   testId: string;
 };
 
-const COLLECTION_DRAWER_SECTION_TITLE_STYLE: React.CSSProperties = {
-  color: 'var(--pf-t--global--text--color--regular)',
-  fontSize: 'var(--pf-t--global--font--size--heading--h4)',
-  fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+type CollectionBenchmarksSectionProps = {
+  collection: Collection;
+  benchmarkDetailsMap: Map<string, BenchmarkWithProvider>;
+  availableMetrics: string[];
 };
 
 const getCollectionDrawerSectionTitle = (title: string) => (
-  <span style={COLLECTION_DRAWER_SECTION_TITLE_STYLE}>{title}</span>
+  <span className="evalhub-collection-drawer__section-title">{title}</span>
 );
 
 const compareAlphabetically = (a: string, b: string): number =>
@@ -107,6 +109,143 @@ const CollectionLabelSection: React.FC<CollectionLabelSectionProps> = ({
   );
 };
 
+const CollectionBenchmarksSection: React.FC<CollectionBenchmarksSectionProps> = ({
+  collection,
+  benchmarkDetailsMap,
+  availableMetrics,
+}) => {
+  const [benchmarkSearch, setBenchmarkSearch] = React.useState('');
+  const [metricFilter, setMetricFilter] = React.useState<string[]>([]);
+  const [isBenchmarksExpanded, setIsBenchmarksExpanded] = React.useState(true);
+
+  const filteredBenchmarks = (collection.benchmarks ?? [])
+    .filter((b) => {
+      const key = `${b.provider_id ?? ''}:${b.id}`;
+      const details = benchmarkDetailsMap.get(key);
+      const name = details?.name ?? b.id;
+
+      if (benchmarkSearch) {
+        const searchLower = benchmarkSearch.toLowerCase();
+        if (
+          !name.toLowerCase().includes(searchLower) &&
+          !b.id.toLowerCase().includes(searchLower)
+        ) {
+          return false;
+        }
+      }
+
+      if (metricFilter.length > 0) {
+        const benchmarkMetrics = details?.metrics ?? [];
+        if (!metricFilter.some((m) => benchmarkMetrics.includes(m))) {
+          return false;
+        }
+      }
+
+      return true;
+    })
+    .toSorted((a, b) => {
+      const aName = benchmarkDetailsMap.get(`${a.provider_id ?? ''}:${a.id}`)?.name ?? a.id;
+      const bName = benchmarkDetailsMap.get(`${b.provider_id ?? ''}:${b.id}`)?.name ?? b.id;
+      return compareAlphabetically(aName, bName) || compareAlphabetically(a.id, b.id);
+    });
+
+  return (
+    <StackItem>
+      <ExpandableSection
+        toggleContent={getCollectionDrawerSectionTitle('Benchmarks')}
+        isExpanded={isBenchmarksExpanded}
+        isIndented
+        onToggle={(_event, expanded) => setIsBenchmarksExpanded(expanded)}
+        data-testid="collection-drawer-benchmarks-section"
+      >
+        <Stack hasGutter>
+          <StackItem>
+            <Toolbar
+              clearAllFilters={() => {
+                setBenchmarkSearch('');
+                setMetricFilter([]);
+              }}
+            >
+              <ToolbarContent>
+                <ToolbarItem>
+                  <SearchInput
+                    placeholder="Find a benchmark"
+                    value={benchmarkSearch}
+                    onChange={(_event, value) => setBenchmarkSearch(value)}
+                    onClear={() => setBenchmarkSearch('')}
+                    data-testid="benchmark-search-input"
+                  />
+                </ToolbarItem>
+                <ToolbarGroup variant="filter-group">
+                  <SearchableMultiSelectFilter
+                    categoryName="Metrics"
+                    icon={<ChartLineIcon aria-hidden="true" />}
+                    options={availableMetrics}
+                    selected={metricFilter}
+                    formatLabel={getMetricDisplayName}
+                    onToggleOption={(value) =>
+                      setMetricFilter((prev) =>
+                        prev.includes(value) ? prev.filter((m) => m !== value) : [...prev, value],
+                      )
+                    }
+                    onClearAll={() => setMetricFilter([])}
+                    testIdPrefix="benchmark-metric"
+                    popperProps={{ position: 'right', preventOverflow: true }}
+                  />
+                </ToolbarGroup>
+              </ToolbarContent>
+            </Toolbar>
+          </StackItem>
+          {filteredBenchmarks.length > 0 ? (
+            filteredBenchmarks.map((b) => {
+              const key = `${b.provider_id ?? ''}:${b.id}`;
+              const details = benchmarkDetailsMap.get(key);
+              return (
+                <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
+                  <Card isCompact>
+                    <CardBody>
+                      {/* Collection benchmarks can override provider defaults for
+                         primary_score, pass_criteria, and url. */}
+                      <BenchmarkDrawerTileContent
+                        name={details?.name ?? b.id}
+                        id={b.id}
+                        description={details?.description}
+                        metrics={details?.metrics}
+                        providerName={details?.providerName ?? b.provider_id}
+                        providerAgent={details?.providerAgent}
+                        primaryScore={b.primary_score ?? details?.primary_score}
+                        passCriteria={b.pass_criteria ?? details?.pass_criteria}
+                        url={b.url ?? details?.url}
+                        trackingSurface="collection_drawer"
+                        isCompact
+                        isCollapsible
+                      />
+                    </CardBody>
+                  </Card>
+                </StackItem>
+              );
+            })
+          ) : (
+            <StackItem>
+              <EmptyState
+                variant={EmptyStateVariant.sm}
+                icon={SearchIcon}
+                titleText="No matching benchmarks"
+                data-testid="benchmark-search-empty-state"
+              >
+                <EmptyStateBody>
+                  No benchmarks match the current filters. Try adjusting your search or filter
+                  criteria.
+                </EmptyStateBody>
+              </EmptyState>
+            </StackItem>
+          )}
+        </Stack>
+      </ExpandableSection>
+    </StackItem>
+  );
+};
+
 const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   collection,
   benchmarkDetailsMap,
@@ -114,20 +253,9 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   onRunCollection,
   onCustomizeCollection,
   isSystemCollection = false,
-  primaryActionLabel = 'Select benchmark suite',
+  primaryActionLabel = 'Select collection',
   prerequisites,
 }) => {
-  const [benchmarkSearch, setBenchmarkSearch] = React.useState('');
-  const [metricFilter, setMetricFilter] = React.useState<string[]>([]);
-  const [isBenchmarksExpanded, setIsBenchmarksExpanded] = React.useState(true);
-
-  const collectionId = collection?.resource.id;
-  React.useEffect(() => {
-    setBenchmarkSearch('');
-    setMetricFilter([]);
-    setIsBenchmarksExpanded(true);
-  }, [collectionId]);
-
   const availableMetrics = React.useMemo(() => {
     const metricSet = new Set<string>();
     (collection?.benchmarks ?? []).forEach((b) => {
@@ -169,36 +297,6 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     return <DrawerPanelContent isResizable minSize="380px" />;
   }
 
-  const filteredBenchmarks = (collection.benchmarks ?? [])
-    .filter((b) => {
-      const key = `${b.provider_id ?? ''}:${b.id}`;
-      const details = benchmarkDetailsMap.get(key);
-      const name = details?.name ?? b.id;
-
-      if (benchmarkSearch) {
-        const searchLower = benchmarkSearch.toLowerCase();
-        if (
-          !name.toLowerCase().includes(searchLower) &&
-          !b.id.toLowerCase().includes(searchLower)
-        ) {
-          return false;
-        }
-      }
-
-      if (metricFilter.length > 0) {
-        const benchmarkMetrics = details?.metrics ?? [];
-        if (!metricFilter.some((m) => benchmarkMetrics.includes(m))) {
-          return false;
-        }
-      }
-
-      return true;
-    })
-    .toSorted((a, b) => {
-      const aName = benchmarkDetailsMap.get(`${a.provider_id ?? ''}:${a.id}`)?.name ?? a.id;
-      const bName = benchmarkDetailsMap.get(`${b.provider_id ?? ''}:${b.id}`)?.name ?? b.id;
-      return compareAlphabetically(aName, bName) || compareAlphabetically(a.id, b.id);
-    });
   const prerequisite = prerequisites?.[collection.resource.id];
   const showCustomize = Boolean(onCustomizeCollection && (isSystemCollection || prerequisite));
 
@@ -241,101 +339,12 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
           ))}
 
           {collection.benchmarks && collection.benchmarks.length > 0 && (
-            <StackItem>
-              <ExpandableSection
-                toggleContent={getCollectionDrawerSectionTitle('Benchmarks')}
-                isExpanded={isBenchmarksExpanded}
-                isIndented
-                onToggle={(_event, expanded) => setIsBenchmarksExpanded(expanded)}
-                data-testid="collection-drawer-benchmarks-section"
-              >
-                <Stack hasGutter>
-                  <StackItem>
-                    <Toolbar
-                      clearAllFilters={() => {
-                        setBenchmarkSearch('');
-                        setMetricFilter([]);
-                      }}
-                    >
-                      <ToolbarContent>
-                        <ToolbarItem>
-                          <SearchInput
-                            placeholder="Find a benchmark"
-                            value={benchmarkSearch}
-                            onChange={(_event, value) => setBenchmarkSearch(value)}
-                            onClear={() => setBenchmarkSearch('')}
-                            data-testid="benchmark-search-input"
-                          />
-                        </ToolbarItem>
-                        <ToolbarGroup variant="filter-group">
-                          <SearchableMultiSelectFilter
-                            categoryName="Metrics"
-                            icon={<ChartLineIcon aria-hidden="true" />}
-                            options={availableMetrics}
-                            selected={metricFilter}
-                            formatLabel={getMetricDisplayName}
-                            onToggleOption={(value) =>
-                              setMetricFilter((prev) =>
-                                prev.includes(value)
-                                  ? prev.filter((m) => m !== value)
-                                  : [...prev, value],
-                              )
-                            }
-                            onClearAll={() => setMetricFilter([])}
-                            testIdPrefix="benchmark-metric"
-                            popperProps={{ position: 'right', preventOverflow: true }}
-                          />
-                        </ToolbarGroup>
-                      </ToolbarContent>
-                    </Toolbar>
-                  </StackItem>
-                  {filteredBenchmarks.length > 0 ? (
-                    filteredBenchmarks.map((b) => {
-                      const key = `${b.provider_id ?? ''}:${b.id}`;
-                      const details = benchmarkDetailsMap.get(key);
-                      return (
-                        <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
-                          <Card isCompact>
-                            <CardBody>
-                              {/* Collection benchmarks can override provider defaults for
-                                 primary_score, pass_criteria, and url. */}
-                              <BenchmarkDrawerTileContent
-                                name={details?.name ?? b.id}
-                                id={b.id}
-                                description={details?.description}
-                                metrics={details?.metrics}
-                                providerName={details?.providerName ?? b.provider_id}
-                                providerAgent={details?.providerAgent}
-                                primaryScore={b.primary_score ?? details?.primary_score}
-                                passCriteria={b.pass_criteria ?? details?.pass_criteria}
-                                url={b.url ?? details?.url}
-                                trackingSurface="collection_drawer"
-                                isCompact
-                                isCollapsible
-                              />
-                            </CardBody>
-                          </Card>
-                        </StackItem>
-                      );
-                    })
-                  ) : (
-                    <StackItem>
-                      <EmptyState
-                        variant={EmptyStateVariant.sm}
-                        icon={SearchIcon}
-                        titleText="No matching benchmarks"
-                        data-testid="benchmark-search-empty-state"
-                      >
-                        <EmptyStateBody>
-                          No benchmarks match the current filters. Try adjusting your search or
-                          filter criteria.
-                        </EmptyStateBody>
-                      </EmptyState>
-                    </StackItem>
-                  )}
-                </Stack>
-              </ExpandableSection>
-            </StackItem>
+            <CollectionBenchmarksSection
+              key={collection.resource.id}
+              collection={collection}
+              benchmarkDetailsMap={benchmarkDetailsMap}
+              availableMetrics={availableMetrics}
+            />
           )}
         </Stack>
       </DrawerPanelBody>

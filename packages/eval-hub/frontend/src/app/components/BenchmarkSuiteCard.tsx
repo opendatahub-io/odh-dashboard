@@ -208,7 +208,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
     </LabelGroup>
   );
   const runCount = collection.state?.run_count ?? 0;
-  const runCountTooltip = 'Run Count: Number of successful executions of this suite';
+  const runCountTooltip = 'Run Count: Number of successful executions of this collection';
   const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
     action.href ? (
       <Button
@@ -440,18 +440,27 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
           {collection.description || <em>No description provided</em>}
         </Content>
         {prerequisite ? (
-          <div
+          <Flex
             className="evalhub-benchmark-suite-card__prerequisite"
+            alignItems={{ default: 'alignItemsFlexStart' }}
+            gap={{ default: 'gapXs' }}
             data-testid={`benchmark-suite-card-prerequisite-${collection.resource.id}`}
           >
-            <div
+            <Flex
+              flex={{ default: 'flexNone' }}
+              alignItems={{ default: 'alignItemsCenter' }}
               className="evalhub-benchmark-suite-card__prerequisite-icon-container"
               aria-hidden="true"
             >
               <InfoCircleIcon className="evalhub-benchmark-suite-card__prerequisite-icon" />
-            </div>
-            <div className="evalhub-benchmark-suite-card__prerequisite-text">{prerequisite}</div>
-          </div>
+            </Flex>
+            <FlexItem
+              flex={{ default: 'flex_1' }}
+              className="evalhub-benchmark-suite-card__prerequisite-text pf-v6-u-min-width-0"
+            >
+              {prerequisite}
+            </FlexItem>
+          </Flex>
         ) : null}
       </CardBody>
       <CardFooter className="evalhub-benchmark-suite-card__footer">

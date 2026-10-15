@@ -62,6 +62,14 @@ const accuracySuite = mockCollection({
   benchmarkIds: ['truthfulqa_mc1'],
 });
 
+const trustworthinessSuite = mockCollection({
+  id: 'trustworthiness-v1',
+  name: 'Trustworthiness Suite',
+  category: 'Trustworthiness',
+  description: 'Trustworthiness evaluation collection.',
+  benchmarkIds: ['truthfulqa_mc1'],
+});
+
 describe('Choose Collection Page', () => {
   beforeEach(() => {
     initIntercepts({ collections: [safetySuite, reasoningSuite, accuracySuite] });
@@ -69,7 +77,7 @@ describe('Choose Collection Page', () => {
 
   it('should display collection cards in the gallery', () => {
     chooseCollectionPage.visit(NAMESPACE);
-    chooseCollectionPage.findTitle().should('contain.text', 'Select benchmark suite');
+    chooseCollectionPage.findTitle().should('contain.text', 'Select collection');
     chooseCollectionPage.findCollectionsGallery().should('exist');
     chooseCollectionPage.findCollectionCard('col-safety').should('exist');
     chooseCollectionPage.findCollectionCard('col-safety').should('contain.text', 'Safety Suite');
@@ -103,7 +111,7 @@ describe('Choose Collection Page', () => {
     chooseCollectionPage.findCollectionsEmptyState().should('exist');
     chooseCollectionPage
       .findCollectionsEmptyState()
-      .should('contain.text', 'No benchmark suites match the current filters.');
+      .should('contain.text', 'No collections match the current filters.');
   });
 
   it('should open and close the collection drawer panel', () => {
@@ -121,7 +129,7 @@ describe('Choose Collection Page', () => {
     chooseCollectionPage.findCollectionDrawerPanel().should('not.exist');
   });
 
-  it('should navigate to start page when clicking "Select benchmark suite"', () => {
+  it('should navigate to start page when clicking "Select collection"', () => {
     chooseCollectionPage.visit(NAMESPACE);
 
     chooseCollectionPage.findUseBenchmarkSuiteButton('col-safety').click();
@@ -129,6 +137,39 @@ describe('Choose Collection Page', () => {
     cy.url().should('include', `${NAMESPACE}/create/start`);
     cy.url().should('include', 'type=collection');
     cy.url().should('include', 'collectionId=col-safety');
+  });
+});
+
+describe('Choose Collection Page - curated prerequisites', () => {
+  beforeEach(() => {
+    initIntercepts({ collections: [trustworthinessSuite] });
+  });
+
+  it('should route curated suites through customization from the card', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findCustomizeBenchmarkSuiteButton('trustworthiness-v1').click();
+
+    cy.url().should('include', `${NAMESPACE}/create/collections/trustworthiness-v1/copy`);
+  });
+
+  it('should show the prerequisite and customization action in the drawer', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage
+      .findCollectionCard('trustworthiness-v1')
+      .findByText('Trustworthiness Suite')
+      .click();
+
+    chooseCollectionPage
+      .findCollectionDrawerPanel()
+      .should('contain.text', 'Requires a judge model.')
+      .findByTestId('use-benchmark-suite-button')
+      .should('not.exist');
+    chooseCollectionPage
+      .findCollectionDrawerPanel()
+      .findByTestId('customize-benchmark-suite-button')
+      .should('exist');
   });
 });
 
@@ -263,7 +304,7 @@ describe('Choose Collection Page - Truncation Alert', () => {
     chooseCollectionPage.findTruncationAlert().should('exist');
     chooseCollectionPage
       .findTruncationAlert()
-      .should('contain.text', 'Not all benchmark suites are shown');
+      .should('contain.text', 'Not all collections are shown');
   });
 
   it('should not show truncation alert when all collections are returned', () => {
@@ -307,6 +348,6 @@ describe('Choose Collection Page - Empty', () => {
     chooseCollectionPage.findCollectionsEmptyState().should('exist');
     chooseCollectionPage
       .findCollectionsEmptyState()
-      .should('contain.text', 'No benchmark suites available.');
+      .should('contain.text', 'No collections available.');
   });
 });

@@ -182,11 +182,9 @@ describe('CollectionDrawerPanel', () => {
     expect(screen.getByTestId('benchmark-metric-filter')).toHaveAttribute('aria-label', 'Metrics');
     expect(screen.getByTestId('benchmark-metric-filter').querySelector('svg')).toBeInTheDocument();
     const metricsSection = screen.getByTestId('collection-drawer-metrics-section');
-    expect(within(metricsSection).getByText('Metrics evaluated')).toHaveStyle({
-      color: 'var(--pf-t--global--text--color--regular)',
-      fontSize: 'var(--pf-t--global--font--size--heading--h4)',
-      fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
-    });
+    expect(within(metricsSection).getByText('Metrics evaluated')).toHaveClass(
+      'evalhub-collection-drawer__section-title',
+    );
 
     fireEvent.click(within(metricsSection).getByRole('button', { name: 'Metrics evaluated' }));
     expect(
