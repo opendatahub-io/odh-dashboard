@@ -187,6 +187,12 @@ describe('S3FileExplorer', () => {
         expect(screen.getByText('my-s3-secret')).toBeInTheDocument();
       });
     });
+
+    it('should render a custom modal description', () => {
+      render(<S3FileExplorer {...defaultProps} modalDescription="Custom S3 description" />);
+
+      expect(screen.getByText('Custom S3 description')).toBeInTheDocument();
+    });
   });
 
   describe('modal lifecycle', () => {

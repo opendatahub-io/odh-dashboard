@@ -99,6 +99,9 @@ import { metricDomId, parseMetricReference } from '~/app/utilities/metricUtils';
 import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMetricDescription } from '~/app/utilities/metricDisplay';
+import SupportedFileTypesModal, {
+  SupportedFileTypesLink,
+} from '~/app/components/common/SupportedFileTypesModal';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_MAX_FILES,
@@ -202,6 +205,7 @@ function AutoragConfigure({
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isSupportedFileTypesModalOpen, setIsSupportedFileTypesModalOpen] = useState(false);
   const initialInputDataKey = initialValues?.input_data_keys?.[0];
 
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
@@ -229,6 +233,10 @@ function AutoragConfigure({
   const notification = useNotification();
   const { showUIError } = useUIErrorHandler();
   const { onKnowledgeSourceConfigured } = useRunTriggeredTracking();
+  const openSupportedFileTypesModal = useCallback(() => {
+    setFileExplorerMode(false);
+    setIsSupportedFileTypesModalOpen(true);
+  }, []);
 
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
@@ -538,8 +546,8 @@ function AutoragConfigure({
               <CardHeader>
                 <Content component="h3">Knowledge setup</Content>
                 <Content component="p">
-                  Select or upload documents to serve as the source of truth for retrieval, and
-                  determine how they should be indexed.
+                  Audio upload and automatic transcription are supported. Select a file or folder
+                  from this bucket to use as the knowledge for your experiment.
                 </Content>
               </CardHeader>
               <CardBody>
@@ -641,8 +649,11 @@ function AutoragConfigure({
                           </StackItem>
                           <StackItem>
                             <Content component="small">
-                              Select one file or folder from this bucket to use as the knowledge for
-                              your experiment.
+                              Select a file or folder from this bucket to use as a knowledge source.
+                              When you select a folder, only supported files directly inside that
+                              folder are processed. Nested folders are not scanned. Unsupported file
+                              types are skipped.{' '}
+                              <SupportedFileTypesLink onClick={openSupportedFileTypesModal} />
                             </Content>
                           </StackItem>
                           <StackItem>
@@ -708,7 +719,9 @@ function AutoragConfigure({
                           </StackItem>
                           <StackItem>
                             <Content component="small" id="input-data-upload-description">
-                              Drop a file here or browse to select a file.
+                              Audio upload and automatic transcription are supported. Drop a file
+                              here or browse to select a file.{' '}
+                              <SupportedFileTypesLink onClick={openSupportedFileTypesModal} />
                             </Content>
                           </StackItem>
                           <StackItem>
@@ -1384,10 +1397,20 @@ function AutoragConfigure({
         }}
         selectableExtensions={SUPPORTED_FORMAT_EXTENSIONS}
         unselectableReason={SUPPORTED_FORMAT_HINT}
+        modalDescription={
+          <>
+            Select a file or folder from this bucket to use as a knowledge source.{' '}
+            <SupportedFileTypesLink onClick={openSupportedFileTypesModal} />
+          </>
+        }
         disabledPaths={{
           '/autogluon-tabular-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
           '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
         }}
+      />
+      <SupportedFileTypesModal
+        isOpen={isSupportedFileTypesModalOpen}
+        onClose={() => setIsSupportedFileTypesModalOpen(false)}
       />
       {isTemplateModalOpen && (
         <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />
