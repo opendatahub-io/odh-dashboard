@@ -33,6 +33,7 @@ import {
 import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
 import { createCustomResource } from '../../../../utils/oc_commands/customResources';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import { skipOnArm } from '../../../../utils/skipUtils';
 
 let testData: ModelTolerationsTestData;
 let projectName: string;
@@ -49,6 +50,8 @@ const projectUuid = generateTestUUID();
 const applicationNamespace: string = Cypress.env('APPLICATIONS_NAMESPACE');
 
 describe('ModelServing - tolerations tests', () => {
+  skipOnArm();
+
   retryableBefore(() => {
     // Setup: Load test data and ensure clean state
     return loadModelTolerationsFixture(
