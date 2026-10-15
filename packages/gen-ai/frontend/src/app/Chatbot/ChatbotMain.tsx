@@ -126,6 +126,13 @@ const ChatbotMain: React.FunctionComponent = () => {
     (JSON.stringify({
       ...defaultConfig,
       selectedModel: '',
+      guardrail:
+        defaultConfig.guardrail ===
+        models.find((model) =>
+          isLlamaModelEnabled(model.id, aiModels, maasModels, bffConfig?.isCustomLSD ?? false),
+        )?.id
+          ? ''
+          : defaultConfig.guardrail,
       selectedVectorStoreId:
         defaultConfig.knowledgeMode === 'inline' ? null : defaultConfig.selectedVectorStoreId,
       hasVisionImage: false,
