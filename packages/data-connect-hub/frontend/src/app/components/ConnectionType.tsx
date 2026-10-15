@@ -310,10 +310,10 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       <CardBody>
         <TruncatedText maxLines={4} content={connectionType.resource.description} />
       </CardBody>
-      {connectionType.resource.tags?.length && (
+      {Boolean(connectionType.resource.tags?.length) && (
         <CardFooter>
           <LabelGroup>
-            {connectionType.resource.tags.map((tag) => (
+            {connectionType.resource.tags?.map((tag) => (
               <Label key={tag} variant="outline">
                 {tag}
               </Label>
@@ -369,7 +369,7 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
           </div>
         </Card>
       </GridItem>
-      {connectionType.resource.tags?.length && (
+      {Boolean(connectionType.resource.tags?.length) && (
         <GridItem span={4}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div className="dch-u-overflow-auto">
@@ -378,7 +378,7 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
               </CardHeader>
               <CardBody>
                 <LabelGroup>
-                  {connectionType.resource.tags.map((tag) => (
+                  {connectionType.resource.tags?.map((tag) => (
                     <Label key={tag} variant="outline">
                       {tag}
                     </Label>
