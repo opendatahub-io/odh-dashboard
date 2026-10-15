@@ -14,6 +14,10 @@
     overflow-y: auto;
   }
 
+  &__no-results {
+    min-height: 40vh;
+  }
+
   &__count.pf-v6-c-badge {
     --pf-v6-c-badge--m-read--BackgroundColor: var(--pf-t--global--color--nonstatus--blue--default);
     --pf-v6-c-badge--m-read--Color: var(--pf-t--global--text--color--nonstatus--on-blue--default);

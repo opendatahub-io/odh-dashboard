@@ -5,7 +5,9 @@ import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import WorkingProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/WorkingProjectSelector';
+import useNotification from '#~/utilities/useNotification';
 import { AILabel } from '#~/pages/projects/screens/projects/AILabel';
+import EmptyProjects from '#~/pages/projects/screens/projects/EmptyProjects';
 import ManageProjectModal from '#~/pages/projects/screens/projects/ManageProjectModal';
 
 const createProjectResource: AccessReviewResourceAttributes = {
@@ -17,6 +19,7 @@ const createProjectResource: AccessReviewResourceAttributes = {
 const MastheadProjectSelector: React.FC = () => {
   const { projects } = React.useContext(ProjectsContext);
   const { selectProject } = useWorkingProject();
+  const notification = useNotification();
   const [allowCreate, permissionsLoaded] = useAccessReview(createProjectResource);
   const [creation, setCreation] = React.useState<'empty' | 'create' | null>(null);
   const projectByName = React.useMemo(
@@ -37,6 +40,15 @@ const MastheadProjectSelector: React.FC = () => {
         }}
         aiLabel={<AILabel />}
         getProjectHref={(name) => `/projects/${encodeURIComponent(name)}`}
+        emptyListContent={<EmptyProjects allowCreate={false} />}
+        onProjectSelected={(project) =>
+          notification.info(
+            'Working project updated',
+            <>
+              You&apos;re now working in <strong>{project.displayName || project.name}</strong>.
+            </>,
+          )
+        }
         onCreateProject={
           permissionsLoaded && allowCreate
             ? (isEmpty) => setCreation(isEmpty ? 'empty' : 'create')

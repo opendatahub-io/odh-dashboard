@@ -3,12 +3,15 @@ import {
   Alert,
   Badge,
   Button,
+  Bullseye,
   Content,
   DataList,
   DataListCell,
   DataListItem,
   DataListItemCells,
   DataListItemRow,
+  EmptyState,
+  EmptyStateBody,
   Flex,
   FlexItem,
   // ContentModal does not support the split create/select footer required here.
@@ -26,9 +29,14 @@ import {
   Title,
   Truncate,
 } from '@patternfly/react-core';
-import { CheckIcon, ExclamationCircleIcon, OutlinedFolderIcon } from '@patternfly/react-icons';
+import {
+  CheckIcon,
+  ExclamationCircleIcon,
+  OutlinedFolderIcon,
+  SearchIcon,
+} from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { useWorkingProject } from '../../context/WorkingProjectContext';
+import { type ProjectIdentity, useWorkingProject } from '../../context/WorkingProjectContext';
 import DashboardModalFooter from '../DashboardModalFooter';
 import SimpleSelect from '../SimpleSelect';
 import './WorkingProjectSelector.scss';
@@ -39,6 +47,8 @@ type Props = {
   aiLabel?: React.ReactNode;
   getProjectHref?: (name: string) => string;
   onCreateProject?: (isEmpty: boolean) => void;
+  onProjectSelected?: (project: ProjectIdentity) => void;
+  emptyListContent: React.ReactNode;
 };
 
 const WorkingProjectSelector: React.FC<Props> = (props) => {
@@ -61,7 +71,13 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
         aria-haspopup="dialog"
         isDisabled={status === 'loading'}
         isLoading={status === 'loading'}
-        icon={status === 'empty-list' ? <ExclamationCircleIcon /> : <OutlinedFolderIcon />}
+        icon={
+          status === 'empty-list' ? (
+            <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--warning--default)" />
+          ) : (
+            <OutlinedFolderIcon />
+          )
+        }
         onClick={() => {
           if (status === 'empty-list' && props.onCreateProject) {
             props.onCreateProject(true);
@@ -72,7 +88,7 @@ const WorkingProjectSelector: React.FC<Props> = (props) => {
       >
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem className="odh-working-project-selector__name">
-            <Truncate content={label} />
+            <Truncate content={label} tooltipPosition="bottom" />
           </FlexItem>
           {activeProject && props.isAiProject?.(activeProject.name) && (
             <FlexItem>{props.aiLabel}</FlexItem>
@@ -90,6 +106,8 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void }> = ({
   aiLabel,
   getProjectHref,
   onCreateProject,
+  onProjectSelected,
+  emptyListContent,
   onClose,
 }) => {
   const headingId = React.useId();
@@ -125,7 +143,7 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void }> = ({
         ))
     );
   });
-  const canSelect = status === 'listed' || status === 'listing-unavailable';
+  const canSelectProject = status === 'listed' || status === 'listing-unavailable';
   const activeLabel = activeProject?.displayName || activeProject?.name;
   const projectHref = activeProject ? getProjectHref?.(activeProject.name) : undefined;
 
@@ -154,9 +172,7 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void }> = ({
           {status === 'loading' ? (
             <Content>Loading projects…</Content>
           ) : status === 'empty-list' ? (
-            <Content>
-              You do not have access to any projects. Contact your administrator to request access.
-            </Content>
+            emptyListContent
           ) : status === 'project-source-error' || status === 'provider-absent' ? (
             <Alert isInline variant="danger" title="Projects unavailable">
               Unable to load projects. Try again later.
@@ -223,9 +239,17 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void }> = ({
               )}
               <StackItem>
                 {visibleProjects.length === 0 ? (
-                  <Content>
-                    No matching projects. Change the filter or search to see more projects.
-                  </Content>
+                  <Bullseye className="odh-working-project-selector__no-results">
+                    <EmptyState
+                      icon={SearchIcon}
+                      headingLevel="h3"
+                      titleText="No results found"
+                      variant="lg"
+                      data-testid="working-project-no-results"
+                    >
+                      <EmptyStateBody>Adjust your filters and try again.</EmptyStateBody>
+                    </EmptyState>
+                  </Bullseye>
                 ) : (
                   <DataList
                     aria-label="Available projects"
@@ -305,12 +329,13 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void }> = ({
             </FlexItem>
           )}
           <FlexItem align={{ default: 'alignRight' }}>
-            {canSelect ? (
+            {canSelectProject ? (
               <DashboardModalFooter
                 submitLabel="Select"
                 onSubmit={() => {
                   if (selectedProject) {
                     selectProject(selectedProject);
+                    onProjectSelected?.(selectedProject);
                     onClose();
                   }
                 }}
