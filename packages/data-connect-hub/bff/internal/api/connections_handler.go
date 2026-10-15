@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/constants"
@@ -177,7 +178,7 @@ func (app *App) GetConnectionHandler(w http.ResponseWriter, r *http.Request, par
 			app.serverErrorResponse(w, r, err)
 			return
 		}
-		if connection.Metadata.ID != connectionID {
+		if !strings.EqualFold(connection.Metadata.ID, connectionID) {
 			app.serverErrorResponse(w, r, fmt.Errorf("data connection response ID does not match the requested ID"))
 			return
 		}
