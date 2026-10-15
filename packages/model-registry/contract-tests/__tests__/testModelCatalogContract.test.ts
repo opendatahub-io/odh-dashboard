@@ -12,7 +12,8 @@ describe('Model Catalog BFF Contract', () => {
       'kubeflow-groups': 'system:masters',
     },
   });
-  const apiSchema = loadOpenAPISchema('upstream/api/openapi/mod-arch.yaml');
+  const openApiPath = process.env.CONTRACT_OPENAPI_PATH || 'upstream/api/openapi/mod-arch.yaml';
+  const apiSchema = loadOpenAPISchema(openApiPath);
 
   it('returns the catalog model list in the BFF response envelope', async () => {
     const result = await apiClient.get('/api/v1/model_catalog/models?namespace=kubeflow');

@@ -1,0 +1,69 @@
+name: Contract / Model Registry Upstream Main
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/model-registry-main-contract.yml"
+      - "packages/model-registry/contract-tests/**"
+      - "packages/model-registry/upstream/api/openapi/mod-arch.yaml"
+      - "packages/model-registry/upstream/bff/**"
+
+permissions:
+  contents: read
+
+jobs:
+  model-registry-main:
+    name: Model Registry main BFF contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out dashboard
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up pnpm
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: "22"
+
+      - name: Set up Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version: "1.26.3"
+
+      - name: Resolve Model Registry main
+        id: upstream
+        run: |
+          set -euo pipefail
+          UPSTREAM_SHA="$(git ls-remote https://github.com/kubeflow/model-registry.git refs/heads/main | awk '{print $1}')"
+          [[ "$UPSTREAM_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid upstream main SHA: $UPSTREAM_SHA" >&2; exit 2; }
+          echo "sha=$UPSTREAM_SHA" >> "$GITHUB_OUTPUT"
+          echo "Model Registry main resolved to $UPSTREAM_SHA"
+          echo "## Model Registry upstream main" >> "$GITHUB_STEP_SUMMARY"
+          echo "Resolved \`main\` to \`${UPSTREAM_SHA}\`." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check out Model Registry main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: kubeflow/model-registry
+          ref: ${{ steps.upstream.outputs.sha }}
+          path: .upstream-model-registry
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run BFF contract tests against upstream main
+        working-directory: packages/model-registry
+        env:
+          CONTRACT_OPENAPI_PATH: ${{ github.workspace }}/.upstream-model-registry/clients/ui/api/openapi/mod-arch.yaml
+          BFF_MOCK_FLAGS: --mock-k8s-client --mock-mr-client --mock-mr-catalog-client
+        run: |
+          pnpm exec odh-ct-bff-consumer \
+            --bff-dir ../../.upstream-model-registry/clients/ui/bff \
+            --consumer-dir contract-tests \
+            --package-name model-registry-main
+
+      - name: Archive contract test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: model-registry-main-contract-results
+          path: packages/model-registry/contract-tests/contract-test-results/**
+          if-no-files-found: ignore

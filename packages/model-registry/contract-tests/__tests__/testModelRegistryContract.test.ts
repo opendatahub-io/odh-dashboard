@@ -13,8 +13,8 @@ describe('Model Registry List Endpoint', () => {
     },
   });
 
-  // Option 2: Load OpenAPI schema (recommended approach)
-  const apiSchema = loadOpenAPISchema('upstream/api/openapi/mod-arch.yaml');
+  const openApiPath = process.env.CONTRACT_OPENAPI_PATH || 'upstream/api/openapi/mod-arch.yaml';
+  const apiSchema = loadOpenAPISchema(openApiPath);
 
   it('should successfully retrieve model registries list', async () => {
     const result = await apiClient.get('/api/v1/model_registry?namespace=default');
