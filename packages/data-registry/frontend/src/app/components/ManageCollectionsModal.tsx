@@ -28,6 +28,10 @@ import './ManageCollectionsModal.scss';
 
 const COLLECTION_SEARCH_PLACEHOLDER = 'Filter by name or description';
 const COLLECTION_NAME_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+const DEFAULT_COLLECTION_NAME = 'default';
+const DEFAULT_COLLECTION_DELETE_MESSAGE = 'The default collection cannot be deleted.';
+const NON_EMPTY_COLLECTION_DELETE_MESSAGE =
+  'Remove all associated assets to delete this collection';
 
 type ManageCollectionsModalProps = {
   isOpen: boolean;
@@ -297,8 +301,15 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                     {collection.assetNames.length > 0 ? collection.assetNames.join(', ') : '–'}
                   </Td>
                   <Td isActionCell>
-                    {collection.assetNames.length > 0 ? (
-                      <Tooltip content="Remove all associated assets to delete this collection">
+                    {collection.name === DEFAULT_COLLECTION_NAME ||
+                    collection.assetNames.length > 0 ? (
+                      <Tooltip
+                        content={
+                          collection.name === DEFAULT_COLLECTION_NAME
+                            ? DEFAULT_COLLECTION_DELETE_MESSAGE
+                            : NON_EMPTY_COLLECTION_DELETE_MESSAGE
+                        }
+                      >
                         <span>
                           <Button
                             variant="plain"

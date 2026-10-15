@@ -122,7 +122,7 @@ describe('ManageCollectionsModal', () => {
     expect(defaultProps.onRefresh).toHaveBeenCalled();
   });
 
-  it('replaces the manage modal with the delete modal', async () => {
+  it('disables deletion for the default collection', async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -130,13 +130,13 @@ describe('ManageCollectionsModal', () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByTestId('collection-delete-default'));
+    const deleteButton = screen.getByTestId('collection-delete-default');
+    expect(deleteButton).toBeDisabled();
+    await user.hover(deleteButton);
 
-    expect(screen.queryByTestId('manage-collections-modal')).not.toBeInTheDocument();
-    expect(screen.getByTestId('delete-collection-modal')).toBeInTheDocument();
-
-    await user.click(screen.getByTestId('modal-cancel-button'));
-
+    expect(
+      await screen.findByText('The default collection cannot be deleted.'),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('manage-collections-modal')).toBeInTheDocument();
     expect(screen.queryByTestId('delete-collection-modal')).not.toBeInTheDocument();
   });
