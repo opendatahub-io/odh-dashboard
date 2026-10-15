@@ -38,7 +38,7 @@ const PipelineNodeButton: React.FC<PipelineNodeButtonProps> = observer(
       >
         <button
           type="button"
-          className="odh-pipeline-node-button"
+          className="odh-pipeline-node-button pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
           aria-label={ariaLabel}
           onFocus={() => panNodeIntoView(element)}
           onClick={(event) => {

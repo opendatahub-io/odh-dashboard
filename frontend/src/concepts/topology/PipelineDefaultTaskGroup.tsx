@@ -23,7 +23,7 @@ import { BanIcon } from '@patternfly/react-icons';
 import { PipelineNodeModelExpanded, StandardTaskNodeData } from '#~/concepts/topology/types';
 import NodeStatusIcon from '#~/concepts/topology/NodeStatusIcon';
 import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
-import { getRunStatusLabel } from '#~/concepts/topology/utils';
+import { getPipelineTaskStatusLabel, getRunStatusLabel } from '#~/concepts/topology/utils';
 import {
   hideSvgTaskLabelsFromKeyboard,
   isHiddenByCollapsedAncestor,
@@ -161,8 +161,9 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
     const getPopoverTasksList = (items: Node<NodeModel>[], hidePopover: () => void) => (
       <Stack hasGutter>
         {items.slice(0, MAX_TIP_ITEMS).map((item: Node) => {
+          const childState = item.getData()?.pipelineTask.status?.state;
           const childRunStatus = item.getData()?.runStatus;
-          const childStatus = getRunStatusLabel(childRunStatus);
+          const childStatus = getPipelineTaskStatusLabel(childState, childRunStatus);
           const childLabel = item.getLabel();
           return (
             <StackItem key={item.getId()}>
@@ -182,10 +183,10 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
                 <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
                   <FlexItem className="odh-pipeline-group-task-status" aria-hidden="true">
                     {childRunStatus != null && childStatus ? (
-                      <NodeStatusIcon runStatus={childRunStatus} />
+                      <NodeStatusIcon runStatus={childRunStatus} executionState={childState} />
                     ) : null}
                   </FlexItem>
-                  <FlexItem className="odh-pipeline-group-task-label">
+                  <FlexItem flex={{ default: 'flex_1' }}>
                     {childLabel}
                     {childStatus ? ` (${childStatus})` : ''}
                   </FlexItem>
@@ -285,7 +286,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
               <button
                 ref={popoverRef}
                 type="button"
-                className="odh-pipeline-node-button m-group"
+                className="odh-pipeline-node-button m-group pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
                 aria-label={`Show tasks in ${groupAriaLabel}`}
                 aria-expanded={popoverOpen}
                 onFocus={() => panNodeIntoView(element)}
@@ -308,7 +309,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
             <button
               ref={toggleRef}
               type="button"
-              className="odh-pipeline-node-button m-group m-group-toggle"
+              className="odh-pipeline-node-button m-group m-group-toggle pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
               aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${groupLabel} task group`}
               aria-expanded={!isCollapsed}
               onFocus={() => {

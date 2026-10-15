@@ -14,9 +14,6 @@
 }
 
 .odh-pipeline-node-button {
-  display: block;
-  width: 100%;
-  height: 100%;
   background: transparent;
   border: none;
   padding: 0;
@@ -41,8 +38,4 @@
 
 .odh-pipeline-group-task-status {
   flex: 0 0 var(--pf-t--global--spacer--lg);
-}
-
-.odh-pipeline-group-task-label {
-  flex: 1;
 }

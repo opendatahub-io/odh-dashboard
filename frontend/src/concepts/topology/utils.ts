@@ -58,6 +58,11 @@ export const getExecutionStateLabel = (
   }
 };
 
+export const getPipelineTaskStatusLabel = (
+  state: ExecutionStateKF | string | undefined,
+  runStatus: RunStatus | string | undefined,
+): string => getExecutionStateLabel(state) ?? getRunStatusLabel(runStatus);
+
 export const ARTIFACT_NODE_WIDTH = 44;
 export const ARTIFACT_NODE_HEIGHT = NODE_HEIGHT;
 

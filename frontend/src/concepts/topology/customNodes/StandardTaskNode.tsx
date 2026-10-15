@@ -25,7 +25,7 @@ import {
 } from '@patternfly/react-icons';
 import { PipelineNodeModelExpanded, StandardTaskNodeData } from '#~/concepts/topology/types';
 import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
-import { getExecutionStateLabel, getRunStatusLabel } from '#~/concepts/topology/utils';
+import { getPipelineTaskStatusLabel } from '#~/concepts/topology/utils';
 import PipelineNodeButton from '#~/concepts/topology/PipelineNodeButton';
 import { hideSvgTaskLabelsFromKeyboard } from '#~/concepts/topology/a11yUtils';
 
@@ -72,7 +72,7 @@ const StandardTaskNodeInner: React.FunctionComponent<StandardTaskNodeInnerProps>
       }
     }, [state]);
 
-    const statusLabel = getExecutionStateLabel(state) ?? getRunStatusLabel(status);
+    const statusLabel = getPipelineTaskStatusLabel(state, status);
     const taskName = element.getLabel();
     const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
 
