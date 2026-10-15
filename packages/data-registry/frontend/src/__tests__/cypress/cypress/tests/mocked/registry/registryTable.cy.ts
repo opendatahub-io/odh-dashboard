@@ -159,6 +159,7 @@ describe('Registry Table', () => {
     cy.findByTestId('no-projects-empty-state').should('exist');
     cy.findByRole('img', { name: 'No projects' }).should('be.visible');
     cy.findByRole('heading', { name: 'No projects' }).should('exist');
+    cy.contains('To create and use data assets, first create a project.').should('exist');
     cy.findByRole('button', { name: 'Create project' }).should('exist');
   });
 
@@ -410,7 +411,7 @@ describe('Register Volume', () => {
     cy.findByTestId('register-data-modal').should('exist');
     cy.contains('Register data').should('exist');
     cy.contains(
-      'A data asset points to the exact location within a connection where the information is located. It can also record information about the structure of the data.',
+      'A data asset is a metadata record that helps users discover and understand external data. It stores information like location, format, and schema, but not the data itself.',
     ).should('exist');
   });
 

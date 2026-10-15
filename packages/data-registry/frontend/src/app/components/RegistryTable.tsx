@@ -23,6 +23,7 @@ import {
   Dropdown,
   DropdownList,
   DropdownItem,
+  Divider,
   Toolbar,
   ToolbarContent,
   ToolbarGroup,
@@ -111,7 +112,10 @@ const CATEGORY_LABELS: Record<FilterCategory, string> = {
 const REGISTRY_SEARCH_PLACEHOLDER = 'Filter by name, description, properties or labels';
 
 const EMPTY_REGISTRY_DESCRIPTION =
-  'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.';
+  'To help users in your organization discover and understand external data, create a data asset. Data assets are metadata records that store information like location, format, and schema, but not the data itself.';
+
+const ASSET_LOCATION_INFO =
+  'This column shows the connection or path for each data asset. If both are specified, the connection is shown.';
 
 const EmptyRegistryStateIcon: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({
   className,
@@ -725,7 +729,16 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               <Tr>
                 <Th sort={getSortParams(0)}>Name</Th>
                 <Th sort={getSortParams(1)}>Format</Th>
-                <Th sort={getSortParams(2)}>Asset location</Th>
+                <Th
+                  sort={getSortParams(2)}
+                  info={{
+                    popover: ASSET_LOCATION_INFO,
+                    ariaLabel: 'Asset location information',
+                    className: 'odh-data-registry-registry-table__asset-location-info',
+                  }}
+                >
+                  Asset location
+                </Th>
                 <Th>Labels</Th>
                 <Th screenReaderText="Actions" />
               </Tr>
@@ -889,10 +902,12 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                           >
                             Edit
                           </DropdownItem>
+                          <Divider component="li" />
                           <DropdownItem
                             key="delete"
                             onClick={() => setDeleteAsset(asset)}
                             isDisabled={!hasWriteAccess}
+                            isDanger
                             data-testid={assetTestId('asset-delete')}
                           >
                             Delete

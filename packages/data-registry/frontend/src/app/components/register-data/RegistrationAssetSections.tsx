@@ -290,8 +290,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
 
       <FormGroup label="Collection" fieldId="data-collection" isStack>
         <Content component="p">
-          Organize this data asset into a collection. To manage collections for the entire project,
-          go to{' '}
+          Organize this data into a collection.{' '}
           <Button
             variant="link"
             isInline
@@ -300,7 +299,6 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
           >
             Manage collections
           </Button>
-          .
         </Content>
         {isEditMode ? (
           <TextInput
@@ -366,8 +364,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
 
       <FormGroup label="Labels" fieldId="data-labels" isStack>
         <Content component="p">
-          Optionally add labels to this data asset to make it easier to find later. To manage labels
-          for the entire project, go to{' '}
+          Optionally add labels to this data asset to make it easier to find later.{' '}
           <Button variant="link" isInline isDisabled={!onManageLabels} onClick={onManageLabels}>
             Manage labels
           </Button>
