@@ -36,6 +36,7 @@ type ConnectionType struct {
 		Provider          string                          `json:"provider"`
 		Description       string                          `json:"description,omitempty"`
 		CredentialsFields []ConnectionTypeCredentialField `json:"credentials_fields"`
+		Tags              []string                        `json:"tags,omitzero"`
 	} `json:"resource"`
 	Status struct {
 		FlightReady bool   `json:"flight_ready"`
@@ -221,6 +222,7 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 	types[0].Resource.Name = "PostgreSQL"
 	types[0].Resource.Provider = "postgres"
 	types[0].Resource.Description = description
+	types[0].Resource.Tags = []string{"domain: database", "engine: postgresql", "access: sql"}
 	types[0].Resource.CredentialsFields = []ConnectionTypeCredentialField{
 		{
 			Name:        "url",
@@ -248,6 +250,7 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 	types[1].Resource.Name = "S3"
 	types[1].Resource.Provider = "s3"
 	types[1].Resource.Description = description
+	types[1].Resource.Tags = []string{"domain: storage", "engine: s3"}
 	types[1].Resource.CredentialsFields = []ConnectionTypeCredentialField{
 		{
 			Name:        "region",

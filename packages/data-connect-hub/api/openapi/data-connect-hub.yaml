@@ -435,6 +435,18 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/ConnectionTypeField'
+            tags:
+              type: array
+              nullable: true
+              description: |
+                Arbitrary labels for categorising the connection type (e.g. "domain: database", "engine: postgresql").
+              items:
+                type: string
+                minLength: 1
+              example:
+                - 'domain: database'
+                - 'engine: postgresql'
+                - 'access: sql'
         status:
           type: object
           required:

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -138,6 +139,63 @@ func TestGetConnectionTypeHandlerForwardsUpstreamRequest(t *testing.T) {
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
 	require.Equal(t, "provider/type one", envelope.Data.Metadata.ID)
 	require.True(t, envelope.Data.Status.FlightReady)
+}
+
+func TestConnectionTypeHandlersPreserveUpstreamTags(t *testing.T) {
+	tests := []struct {
+		name     string
+		resource string
+		wantTags any
+	}{
+		{name: "populated", resource: `"tags":["domain: database","engine: postgresql"]`, wantTags: []any{"domain: database", "engine: postgresql"}},
+		{name: "empty", resource: `"tags":[]`, wantTags: []any{}},
+		{name: "null", resource: `"tags":null`},
+		{name: "omitted", resource: `"name":"PostgreSQL"`},
+	}
+	for _, tt := range tests {
+		for _, list := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/list=%t", tt.name, list), func(t *testing.T) {
+				upstream := fmt.Sprintf(`{"resource":{%s}}`, tt.resource)
+				if list {
+					upstream = `{"items":[` + upstream + `]}`
+				}
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+					_, err := w.Write([]byte(upstream))
+					require.NoError(t, err)
+				}))
+				t.Cleanup(server.Close)
+				app := connectionTypeTestApp(config.EnvConfig{MockK8Client: true, DataConnectHubAPIURL: server.URL})
+				response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types?namespace=test-project")
+				if list {
+					app.GetConnectionTypesHandler(response, request, httprouter.Params{})
+				} else {
+					app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}})
+				}
+
+				require.Equal(t, http.StatusOK, response.Code)
+				var envelope struct {
+					Data json.RawMessage `json:"data"`
+				}
+				require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+				data := envelope.Data
+				if list {
+					var items []json.RawMessage
+					require.NoError(t, json.Unmarshal(data, &items))
+					require.Len(t, items, 1)
+					data = items[0]
+				}
+				var connectionType struct {
+					Resource map[string]any `json:"resource"`
+				}
+				require.NoError(t, json.Unmarshal(data, &connectionType))
+				if tt.wantTags == nil {
+					require.NotContains(t, connectionType.Resource, "tags")
+				} else {
+					require.Equal(t, tt.wantTags, connectionType.Resource["tags"])
+				}
+			})
+		}
+	}
 }
 
 func TestGetConnectionTypeHandlerHandlesInvalidUpstreamResponse(t *testing.T) {
