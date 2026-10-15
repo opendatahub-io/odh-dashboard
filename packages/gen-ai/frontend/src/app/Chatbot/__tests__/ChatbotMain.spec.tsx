@@ -315,7 +315,7 @@ describe('ChatbotMain - Empty State Logic', () => {
     expect(useChatbotConfigStore.getState().configurations.default?.selectedModel).toBe('');
     selectedModel = 'test-model';
     rerender(renderMain());
-    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
     knowledgeMode = 'external';
     selectedVectorStoreId = 'external-store';
     rerender(renderMain());
@@ -334,7 +334,6 @@ describe('ChatbotMain - Empty State Logic', () => {
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].activePaneConfigId).toBe('default');
     expect(useChatbotConfigStore.getState().configurations.default).toEqual({
       ...DEFAULT_CONFIGURATION,
-      selectedModel: 'test-model',
     });
     act(() => {
       playgroundProps?.onOpenSave?.();

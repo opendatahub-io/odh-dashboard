@@ -118,22 +118,16 @@ const ChatbotMain: React.FunctionComponent = () => {
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
 
   const isProfileDirty = useIsProfileDirty(primaryConfigId, availableMcpServers, mcpConfigMapName);
-  const defaultModelRef = React.useRef<string | null>(null);
   const defaultConfig = useChatbotConfigStore((s) => s.configurations[primaryConfigId]);
-  if (!profileApplied && !defaultModelRef.current && defaultConfig?.selectedModel) {
-    defaultModelRef.current = defaultConfig.selectedModel;
-  }
   const isDefaultConfigDirty =
     !profileApplied &&
     !!defaultConfig &&
-    (JSON.stringify({
+    JSON.stringify({
       ...defaultConfig,
-      selectedModel: '',
       selectedVectorStoreId:
         defaultConfig.knowledgeMode === 'inline' ? null : defaultConfig.selectedVectorStoreId,
       hasVisionImage: false,
-    }) !== JSON.stringify(DEFAULT_CONFIGURATION) ||
-      defaultConfig.selectedModel !== (defaultModelRef.current ?? ''));
+    }) !== JSON.stringify(DEFAULT_CONFIGURATION);
   useSafeBrowserUnloadBlocker(isProfileDirty || isDefaultConfigDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
@@ -212,7 +206,6 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, [models, mcpServers, namespace?.name]);
 
   const handleNewAgentConfiguration = React.useCallback(() => {
-    defaultModelRef.current = null;
     useChatbotConfigStore.getState().resetConfiguration();
     setSearchParams(
       (prev) => {
@@ -432,10 +425,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               onResetToLastSaved={handleResetToLastSaved}
               isDefaultConfigDirty={isDefaultConfigDirty}
               onRevertToDefaults={() => {
-                useChatbotConfigStore.getState().resetConfiguration({
-                  ...DEFAULT_CONFIGURATION,
-                  selectedModel: defaultModelRef.current ?? '',
-                });
+                useChatbotConfigStore.getState().resetConfiguration(DEFAULT_CONFIGURATION);
                 setActivePaneConfigId(DEFAULT_CONFIG_ID);
               }}
               mcpServers={availableMcpServers}
