@@ -55,12 +55,14 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
   sourceId,
   modelName,
   namespace,
+  catalogNamespace,
 }) => {
   const { insights, loaded, loadError } = useQualityArtifacts(
     sourceId,
     modelName,
     namespace,
     QUALITY_ARTIFACTS_PAGE_SIZE,
+    catalogNamespace,
   );
 
   const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);

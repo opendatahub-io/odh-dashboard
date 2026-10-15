@@ -147,12 +147,18 @@ describe('getCatalogQualityArtifacts', () => {
       'namespace-1',
       100,
       'token-2',
+      'catalog-namespace',
     )(opts);
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
       '/eval-hub/api/v1/catalog/sources/source-1/quality_artifacts/model-1',
-      { namespace: 'namespace-1', pageSize: '100', nextPageToken: 'token-2' },
+      {
+        namespace: 'namespace-1',
+        catalogNamespace: 'catalog-namespace',
+        pageSize: '100',
+        nextPageToken: 'token-2',
+      },
       opts,
     );
   });

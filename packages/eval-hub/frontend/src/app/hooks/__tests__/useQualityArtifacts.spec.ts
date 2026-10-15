@@ -89,6 +89,7 @@ describe('useQualityArtifacts', () => {
       'my-ns',
       25,
       undefined,
+      undefined,
     );
     expect(mockGetCatalogQualityArtifacts).toHaveBeenNthCalledWith(
       2,
@@ -98,6 +99,7 @@ describe('useQualityArtifacts', () => {
       'my-ns',
       25,
       'page-2',
+      undefined,
     );
     expect(result.items).toEqual([firstPage, secondPage]);
     expect(fetchPage).toHaveBeenCalledTimes(2);

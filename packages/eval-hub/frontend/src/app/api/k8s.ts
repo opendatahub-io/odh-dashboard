@@ -625,11 +625,21 @@ export const getInferenceServices =
     });
 
 export const getCatalogSecurityArtifacts =
-  (hostPath: string, sourceId: string, modelName: string, namespace?: string, pageSize?: number) =>
+  (
+    hostPath: string,
+    sourceId: string,
+    modelName: string,
+    namespace?: string,
+    pageSize?: number,
+    catalogNamespace?: string,
+  ) =>
   (opts: APIOptions): Promise<CatalogSecurityArtifactList> => {
     const queryParams: Record<string, string> = {};
     if (namespace) {
       queryParams.namespace = namespace;
+    }
+    if (catalogNamespace) {
+      queryParams.catalogNamespace = catalogNamespace;
     }
     if (pageSize != null) {
       queryParams.pageSize = String(pageSize);
@@ -660,11 +670,15 @@ export const getCatalogQualityArtifacts =
     namespace?: string,
     pageSize?: number,
     nextPageToken?: string,
+    catalogNamespace?: string,
   ) =>
   (opts: APIOptions): Promise<CatalogQualityArtifactList> => {
     const queryParams: Record<string, string> = {};
     if (namespace) {
       queryParams.namespace = namespace;
+    }
+    if (catalogNamespace) {
+      queryParams.catalogNamespace = catalogNamespace;
     }
     if (pageSize != null) {
       queryParams.pageSize = String(pageSize);

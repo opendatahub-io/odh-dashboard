@@ -106,6 +106,7 @@ describe('useSecurityArtifacts', () => {
       'my-model',
       'my-ns',
       undefined,
+      undefined,
     );
     expect(mockFetcher).toHaveBeenCalledWith(mockOpts);
   });
@@ -127,6 +128,7 @@ describe('useSecurityArtifacts', () => {
       'my-model',
       'my-ns',
       25,
+      undefined,
     );
   });
 });

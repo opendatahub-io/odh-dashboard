@@ -17,6 +17,8 @@ export type DetailTabProperties = {
   group?: string;
   /** Optional label badge displayed alongside the tab title. */
   label?: string;
+  /** Message shown when the visibility predicate cannot determine whether the tab is available. */
+  visibilityErrorMessage?: string;
   /**
    * Optional predicate controlling tab visibility.
    * Receives the same `componentProps` passed to `ExtensibleDetailTabs`.

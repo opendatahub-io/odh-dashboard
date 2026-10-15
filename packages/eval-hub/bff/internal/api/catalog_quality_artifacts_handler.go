@@ -13,10 +13,18 @@ import (
 )
 
 const (
-	qualityArtifactsPath = "/model_catalog/sources/%s/artifacts/%s"
-	qualityArtifactType  = "metrics-artifact"
-	qualityFilterQuery   = `metricsType.string_value="evaluation-metrics"`
+	qualityArtifactsPath  = "/model_catalog/sources/%s/artifacts/%s"
+	qualityArtifactType   = "metrics-artifact"
+	qualityFilterQuery    = `metricsType.string_value="evaluation-metrics"`
+	catalogNamespaceParam = "catalogNamespace"
 )
+
+func getCatalogDiscoveryNamespace(r *http.Request) string {
+	if namespace := r.URL.Query().Get(catalogNamespaceParam); namespace != "" {
+		return namespace
+	}
+	return r.URL.Query().Get("namespace")
+}
 
 // GetCatalogModelQualityArtifactsHandler proxies the generic model-catalog
 // artifacts endpoint with the fixed evaluation-metrics filter.
@@ -54,7 +62,7 @@ func (app *App) GetCatalogModelQualityArtifactsHandler(w http.ResponseWriter, r 
 	catalogPath := fmt.Sprintf(qualityArtifactsPath, encodedSourceID, encodedModelName)
 
 	query := repositories.FilterPageValues(r.URL.Query())
-	if namespace := r.URL.Query().Get("namespace"); namespace != "" {
+	if namespace := getCatalogDiscoveryNamespace(r); namespace != "" {
 		query.Set("namespace", namespace)
 	}
 	query.Set("artifactType", qualityArtifactType)

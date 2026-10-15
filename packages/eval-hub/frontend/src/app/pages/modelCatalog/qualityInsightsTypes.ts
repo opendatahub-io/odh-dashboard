@@ -56,6 +56,7 @@ export type QualityInsightsViewProps = {
   sourceId: string;
   modelName: string;
   namespace: string;
+  catalogNamespace?: string;
 };
 
 export type QualityInsight = {

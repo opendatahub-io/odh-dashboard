@@ -1,5 +1,8 @@
 import * as React from 'react';
 import {
+  Alert,
+  AlertActionCloseButton,
+  AlertGroup,
   Flex,
   FlexItem,
   Label,
@@ -18,6 +21,7 @@ const EMPTY_COMPONENT_PROPS: Record<string, unknown> = {};
 type ShouldShowResult = {
   visible: boolean;
   props: Record<string, unknown>;
+  error?: unknown;
 };
 
 const areComponentPropsEqual = (
@@ -90,20 +94,22 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
             setResults((prev) => {
               const previous = prev[ext.uid];
               return previous?.visible === visible &&
+                previous.error === undefined &&
                 areComponentPropsEqual(previous.props, componentProps)
                 ? prev
                 : { ...prev, [ext.uid]: { visible, props: componentProps } };
             });
           }
         },
-        () => {
+        (error) => {
           if (!controller.signal.aborted) {
             setResults((prev) => {
               const previous = prev[ext.uid];
               return previous?.visible === false &&
+                previous.error !== undefined &&
                 areComponentPropsEqual(previous.props, componentProps)
                 ? prev
-                : { ...prev, [ext.uid]: { visible: false, props: componentProps } };
+                : { ...prev, [ext.uid]: { visible: false, props: componentProps, error } };
             });
           }
         },
@@ -137,7 +143,9 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
         const previous = (next ?? prev)[uid];
         const current = syncBatch[uid];
         if (
-          previous?.visible !== current.visible ||
+          !previous ||
+          previous.visible !== current.visible ||
+          previous.error !== undefined ||
           !areComponentPropsEqual(previous.props, current.props)
         ) {
           if (!next) {
@@ -265,7 +273,7 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
             return true;
           }
           const result = shouldShowResults[ext.uid];
-          if (!result || result.props !== effectiveComponentProps) {
+          if (!result || !areComponentPropsEqual(result.props, effectiveComponentProps)) {
             return ext.properties.id === activeKey;
           }
           return result.visible;
@@ -274,6 +282,56 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
       ),
     [eligibleExtensions, shouldShowResults, activeKey, effectiveComponentProps],
   );
+
+  const visibilityErrorExtensions = React.useMemo(
+    () =>
+      eligibleExtensions.filter((ext) => {
+        const result = shouldShowResults[ext.uid];
+        return (
+          result?.error !== undefined &&
+          ext.properties.visibilityErrorMessage !== undefined &&
+          areComponentPropsEqual(result.props, effectiveComponentProps)
+        );
+      }),
+    [eligibleExtensions, shouldShowResults, effectiveComponentProps],
+  );
+
+  const [dismissedVisibilityErrors, setDismissedVisibilityErrors] = React.useState<Set<string>>(
+    new Set(),
+  );
+
+  React.useEffect(() => {
+    setDismissedVisibilityErrors((previous) => {
+      const activeErrorIds = new Set(visibilityErrorExtensions.map((ext) => ext.uid));
+      const next = new Set([...previous].filter((uid) => activeErrorIds.has(uid)));
+      return next.size === previous.size ? previous : next;
+    });
+  }, [visibilityErrorExtensions]);
+
+  const visibilityErrorAlerts = visibilityErrorExtensions
+    .filter((ext) => !dismissedVisibilityErrors.has(ext.uid))
+    .map((ext) => (
+      <Alert
+        key={`${ext.uid}-visibility-error`}
+        variant="danger"
+        title={ext.properties.visibilityErrorMessage}
+        actionClose={
+          <AlertActionCloseButton
+            onClose={() =>
+              setDismissedVisibilityErrors((previous) => new Set(previous).add(ext.uid))
+            }
+          />
+        }
+        data-testid={`${ext.properties.id}-visibility-error`}
+      />
+    ));
+
+  const visibilityErrorAlertGroup =
+    visibilityErrorAlerts.length > 0 ? (
+      <AlertGroup isToast isLiveRegion data-testid="visibility-error-alert-group">
+        {visibilityErrorAlerts}
+      </AlertGroup>
+    ) : null;
 
   const allTabs = React.useMemo(
     () => [
@@ -299,77 +357,88 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   }, [effectiveActiveKey, activeKey, onSelect]);
 
   if (allTabs.length === 0) {
-    return null;
+    return visibilityErrorAlertGroup;
   }
 
   if (allTabs.length === 1) {
     const singleTab = allTabs[0];
     if (singleTab.type === 'static') {
-      return <>{singleTab.content}</>;
+      return (
+        <>
+          {visibilityErrorAlertGroup}
+          {singleTab.content}
+        </>
+      );
     }
     return (
-      <LazyCodeRefComponent
-        component={singleTab.extension.properties.component}
-        props={componentProps}
-      />
+      <>
+        {visibilityErrorAlertGroup}
+        <LazyCodeRefComponent
+          component={singleTab.extension.properties.component}
+          props={componentProps}
+        />
+      </>
     );
   }
 
   return (
-    <Tabs
-      activeKey={effectiveActiveKey}
-      aria-label={ariaLabel}
-      role="region"
-      data-testid={testId}
-      isSubtab={isSubtab}
-      mountOnEnter={mountOnEnter}
-      unmountOnExit={unmountOnExit}
-      onSelect={(_event, eventKey) => onSelect(String(eventKey))}
-    >
-      {allTabs.map((tab) => {
-        const titleNode = (
-          <TabTitleText>
-            {tab.type === 'extension'
-              ? renderTabTitle(tab.title, tab.label)
-              : renderTabTitle(tab.title)}
-          </TabTitleText>
-        );
-        const content =
-          tab.type === 'static' ? (
-            tab.content
-          ) : (
-            <LazyCodeRefComponent
-              component={tab.extension.properties.component}
-              props={componentProps}
-            />
+    <>
+      {visibilityErrorAlertGroup}
+      <Tabs
+        activeKey={effectiveActiveKey}
+        aria-label={ariaLabel}
+        role="region"
+        data-testid={testId}
+        isSubtab={isSubtab}
+        mountOnEnter={mountOnEnter}
+        unmountOnExit={unmountOnExit}
+        onSelect={(_event, eventKey) => onSelect(String(eventKey))}
+      >
+        {allTabs.map((tab) => {
+          const titleNode = (
+            <TabTitleText>
+              {tab.type === 'extension'
+                ? renderTabTitle(tab.title, tab.label)
+                : renderTabTitle(tab.title)}
+            </TabTitleText>
           );
+          const content =
+            tab.type === 'static' ? (
+              tab.content
+            ) : (
+              <LazyCodeRefComponent
+                component={tab.extension.properties.component}
+                props={componentProps}
+              />
+            );
 
-        return (
-          <Tab
-            key={tab.id}
-            eventKey={tab.id}
-            title={titleNode}
-            aria-label={`${tab.title} tab`}
-            data-testid={`${tab.id}-tab`}
-          >
-            <PageSection
-              hasBodyWrapper={false}
-              isFilled={tabContentIsFilled}
-              style={
-                tabContentIsFilled
-                  ? undefined
-                  : {
-                      paddingTop: 'var(--pf-t--global--spacer--md)',
-                      paddingBottom: 0,
-                    }
-              }
-              data-testid={`${tab.id}-tab-content`}
+          return (
+            <Tab
+              key={tab.id}
+              eventKey={tab.id}
+              title={titleNode}
+              aria-label={`${tab.title} tab`}
+              data-testid={`${tab.id}-tab`}
             >
-              {content}
-            </PageSection>
-          </Tab>
-        );
-      })}
-    </Tabs>
+              <PageSection
+                hasBodyWrapper={false}
+                isFilled={tabContentIsFilled}
+                style={
+                  tabContentIsFilled
+                    ? undefined
+                    : {
+                        paddingTop: 'var(--pf-t--global--spacer--md)',
+                        paddingBottom: 0,
+                      }
+                }
+                data-testid={`${tab.id}-tab-content`}
+              >
+                {content}
+              </PageSection>
+            </Tab>
+          );
+        })}
+      </Tabs>
+    </>
   );
 };

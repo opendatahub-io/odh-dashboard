@@ -5,8 +5,14 @@ const SecurityInsightsTab: React.FC<{
   modelName?: string;
   sourceId?: string;
   evalHubNamespace?: string;
-}> = ({ sourceId = '', modelName = '', evalHubNamespace = '' }) => (
-  <SecurityInsightsView sourceId={sourceId} modelName={modelName} namespace={evalHubNamespace} />
+  catalogNamespace?: string;
+}> = ({ sourceId = '', modelName = '', evalHubNamespace = '', catalogNamespace }) => (
+  <SecurityInsightsView
+    sourceId={sourceId}
+    modelName={modelName}
+    namespace={evalHubNamespace}
+    catalogNamespace={catalogNamespace}
+  />
 );
 
 export default SecurityInsightsTab;

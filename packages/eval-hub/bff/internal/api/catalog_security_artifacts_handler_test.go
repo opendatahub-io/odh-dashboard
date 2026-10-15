@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient"
@@ -46,6 +47,33 @@ func TestGetCatalogModelSecurityArtifactsHandlerWithEncodedModelName(t *testing.
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	require.NotNil(t, result.Data)
 	assert.Len(t, result.Data.Items, 3)
+}
+
+func TestGetCatalogModelSecurityArtifactsHandlerUsesCatalogNamespaceForDiscovery(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com", Token: "test-token"}
+	mockFactory := bffmocks.NewMockClientFactory(testLogger)
+	client := mockFactory.CreateClient(bffclient.BFFTargetModelCatalog, "test-token").(*bffmocks.MockBFFClient)
+	client.CallHandler = func(_ context.Context, method, path string, _ interface{}, response interface{}) error {
+		assert.Equal(t, http.MethodGet, method)
+		parsedURL, err := url.Parse(path)
+		require.NoError(t, err)
+		assert.Equal(t, "odh-model-registries", parsedURL.Query().Get("namespace"))
+		assert.Empty(t, parsedURL.Query().Get("catalogNamespace"))
+		result, ok := response.(*models.CatalogSecurityArtifactListEnvelope)
+		require.True(t, ok)
+		result.Data = &models.CatalogSecurityArtifactList{}
+		return nil
+	}
+
+	_, response, err := setupApiTestWithBFFClientFactory[models.CatalogSecurityArtifactListEnvelope](
+		http.MethodGet,
+		ApiPathPrefix+"/catalog/sources/sample-source/security_artifacts/granite-8b?namespace=project-only&catalogNamespace=odh-model-registries",
+		identity,
+		mockFactory,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
 }
 
 func TestGetCatalogModelSecurityArtifactsHandlerMissingNamespace(t *testing.T) {

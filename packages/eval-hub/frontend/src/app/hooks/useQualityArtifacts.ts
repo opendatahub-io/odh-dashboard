@@ -43,6 +43,7 @@ const useQualityArtifacts = (
   modelName: string,
   namespace: string,
   pageSize?: number,
+  catalogNamespace?: string,
 ): UseQualityArtifactsResult => {
   const callback = React.useCallback<FetchStateCallbackPromise<CatalogQualityArtifactList>>(
     (opts: APIOptions) =>
@@ -54,9 +55,10 @@ const useQualityArtifacts = (
           namespace,
           pageSize,
           nextPageToken,
+          catalogNamespace,
         )(opts),
       ),
-    [sourceId, modelName, namespace, pageSize],
+    [sourceId, modelName, namespace, pageSize, catalogNamespace],
   );
 
   const [data, loaded, loadError] = useFetchState<CatalogQualityArtifactList>(

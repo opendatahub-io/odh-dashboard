@@ -67,7 +67,7 @@ func TestGetCatalogModelQualityArtifactsHandlerAddsEvaluationFilter(t *testing.T
 		assert.Equal(t, url.Values{
 			"artifactType":  {qualityArtifactType},
 			"filterQuery":   {qualityFilterQuery},
-			"namespace":     {"kubeflow"},
+			"namespace":     {"odh-model-registries"},
 			"pageSize":      {"1"},
 			"nextPageToken": {"token-2"},
 			"orderBy":       {"created_at"},
@@ -81,7 +81,7 @@ func TestGetCatalogModelQualityArtifactsHandlerAddsEvaluationFilter(t *testing.T
 
 	_, response, err := setupApiTestWithBFFClientFactory[models.CatalogQualityArtifactListEnvelope](
 		http.MethodGet,
-		ApiPathPrefix+"/catalog/sources/sample-source/quality_artifacts/granite-8b?pageSize=1&nextPageToken=token-2&orderBy=created_at&sortOrder=desc&namespace=kubeflow",
+		ApiPathPrefix+"/catalog/sources/sample-source/quality_artifacts/granite-8b?pageSize=1&nextPageToken=token-2&orderBy=created_at&sortOrder=desc&namespace=project-only&catalogNamespace=odh-model-registries",
 		identity,
 		mockFactory,
 	)

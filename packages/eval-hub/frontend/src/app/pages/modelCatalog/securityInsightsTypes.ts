@@ -52,6 +52,7 @@ export type SecurityInsightsViewProps = {
   sourceId: string;
   modelName: string;
   namespace: string;
+  catalogNamespace?: string;
 };
 
 export type SecurityInsight = {

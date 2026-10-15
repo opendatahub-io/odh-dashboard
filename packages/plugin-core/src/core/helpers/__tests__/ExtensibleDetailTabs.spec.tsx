@@ -416,6 +416,60 @@ describe('ExtensibleDetailTabs', () => {
       expect(onSelect).toHaveBeenCalledWith('overview');
     });
 
+    it('should show a visibility error alert when shouldShow rejects', async () => {
+      const shouldShow = jest.fn(() => Promise.reject(new Error('predicate failed')));
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={[
+            createMockTabExtension('quality', 'Quality', {
+              shouldShow,
+              visibilityErrorMessage:
+                'An error occurred while trying to determine if quality metrics exist',
+            }),
+          ]}
+        />,
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId('quality-visibility-error')).toHaveTextContent(
+          'An error occurred while trying to determine if quality metrics exist',
+        ),
+      );
+      expect(screen.getByTestId('visibility-error-alert-group')).toBeInTheDocument();
+      expect(screen.queryByTestId('quality-tab')).not.toBeInTheDocument();
+    });
+
+    it('should dismiss a visibility error alert when it is closed', async () => {
+      const shouldShow = jest.fn(() => Promise.reject(new Error('predicate failed')));
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={[
+            createMockTabExtension('quality', 'Quality', {
+              shouldShow,
+              visibilityErrorMessage:
+                'An error occurred while trying to determine if quality metrics exist',
+            }),
+          ]}
+        />,
+      );
+
+      const alert = await screen.findByTestId('quality-visibility-error');
+      fireEvent.click(alert.querySelector('button') as HTMLButtonElement);
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('quality-visibility-error')).not.toBeInTheDocument(),
+      );
+      expect(screen.queryByTestId('visibility-error-alert-group')).not.toBeInTheDocument();
+    });
+
     it('should deduplicate async predicates for stable component props', async () => {
       const shouldShow = jest.fn().mockResolvedValue(true);
 
@@ -458,6 +512,35 @@ describe('ExtensibleDetailTabs', () => {
       );
 
       await waitFor(() => expect(shouldShow).toHaveBeenCalledTimes(1));
+      expect(screen.getByTestId('equivalent-tab')).toBeInTheDocument();
+    });
+
+    it('should keep an inactive synchronous tab visible after an equivalent props rerender', async () => {
+      const extensionTabs = [
+        createMockTabExtension('sync-visible', 'Sync Visible', { shouldShow: () => true }),
+      ];
+      const { rerender } = render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          componentProps={{ modelName: 'model' }}
+        />,
+      );
+
+      await waitFor(() => expect(screen.getByTestId('sync-visible-tab')).toBeInTheDocument());
+      rerender(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          componentProps={{ modelName: 'model' }}
+        />,
+      );
+
+      expect(screen.getByTestId('sync-visible-tab')).toBeInTheDocument();
     });
 
     it('should re-evaluate a tab after component props change', async () => {

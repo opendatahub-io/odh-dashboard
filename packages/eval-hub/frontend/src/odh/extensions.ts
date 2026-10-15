@@ -7,14 +7,26 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 
 const VISIBILITY_REQUEST_TIMEOUT_MS = 10_000;
+const MODEL_CATALOG_API_PATH = '/model-registry/api/v1/model_catalog/sources';
+const EVAL_HUB_CATALOG_API_PATH = '/eval-hub/api/v1/catalog/sources';
+
+type CatalogArtifactVisibilityOptions = {
+  apiPath?: string;
+  namespaceProp: 'catalogNamespace' | 'evalHubNamespace';
+  includeCatalogNamespace?: boolean;
+};
 
 const hasCatalogArtifacts = async (
   props: Record<string, unknown>,
   path: string,
   additionalParams: Record<string, string> = {},
-  apiPath = '/model-registry/api/v1/model_catalog/sources',
+  {
+    apiPath = MODEL_CATALOG_API_PATH,
+    namespaceProp,
+    includeCatalogNamespace = false,
+  }: CatalogArtifactVisibilityOptions = { namespaceProp: 'catalogNamespace' },
 ): Promise<boolean> => {
-  const { sourceId, modelName, evalHubNamespace } = props;
+  const { sourceId, modelName, catalogNamespace } = props;
   if (typeof sourceId !== 'string' || typeof modelName !== 'string') {
     return false;
   }
@@ -24,21 +36,26 @@ const hasCatalogArtifacts = async (
 
   try {
     const params = new URLSearchParams({ pageSize: '1', ...additionalParams });
-    if (typeof evalHubNamespace !== 'string') {
+    const namespace = props[namespaceProp];
+    if (typeof namespace !== 'string') {
       return false;
     }
-    params.set('namespace', evalHubNamespace);
+    params.set('namespace', namespace);
+    if (includeCatalogNamespace) {
+      if (typeof catalogNamespace !== 'string') {
+        return false;
+      }
+      params.set('catalogNamespace', catalogNamespace);
+    }
     const url = `${apiPath}/${encodeURIComponent(sourceId)}/${path}/${encodeURIComponent(
       modelName,
     )}?${params.toString()}`;
     const resp = await fetch(url, { signal: controller.signal });
     if (!resp.ok) {
-      return false;
+      throw new Error(`Catalog artifact visibility request failed with status ${resp.status}.`);
     }
     const json: { data?: { items?: unknown[] } } = await resp.json();
     return Array.isArray(json.data?.items) && json.data.items.length > 0;
-  } catch {
-    return false;
   } finally {
     window.clearTimeout(timeoutId);
   }
@@ -89,8 +106,19 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
       title: 'Safety and security insights',
       group: 'model-catalog.details',
       component: () => import('../app/pages/modelCatalog/SecurityInsightsTab'),
+      visibilityErrorMessage:
+        'An error occurred while trying to determine if security metrics exist',
       shouldShow: (props) =>
-        hasCatalogArtifacts(props, 'security_artifacts', {}, '/eval-hub/api/v1/catalog/sources'),
+        hasCatalogArtifacts(
+          props,
+          'security_artifacts',
+          {},
+          {
+            apiPath: EVAL_HUB_CATALOG_API_PATH,
+            namespaceProp: 'evalHubNamespace',
+            includeCatalogNamespace: true,
+          },
+        ),
     },
   } satisfies DetailTabExtension,
   {
@@ -100,8 +128,19 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
       title: 'Quality insights',
       group: 'model-catalog.details',
       component: () => import('../app/pages/modelCatalog/QualityInsightsTab'),
+      visibilityErrorMessage:
+        'An error occurred while trying to determine if quality metrics exist',
       shouldShow: (props) =>
-        hasCatalogArtifacts(props, 'quality_artifacts', {}, '/eval-hub/api/v1/catalog/sources'),
+        hasCatalogArtifacts(
+          props,
+          'quality_artifacts',
+          {},
+          {
+            apiPath: EVAL_HUB_CATALOG_API_PATH,
+            namespaceProp: 'evalHubNamespace',
+            includeCatalogNamespace: true,
+          },
+        ),
     },
   } satisfies DetailTabExtension,
 ];

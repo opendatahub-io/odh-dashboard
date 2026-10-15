@@ -9,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/eval-hub/bff/internal/models"
+	"github.com/opendatahub-io/eval-hub/bff/internal/repositories"
 )
 
 // GetCatalogModelSecurityArtifactsHandler proxies the request to the model-catalog BFF
@@ -49,9 +50,11 @@ func (app *App) GetCatalogModelSecurityArtifactsHandler(w http.ResponseWriter, r
 	// The bffclient baseURL already includes /api/v1 as PathPrefix.
 	catalogPath := fmt.Sprintf("/model_catalog/sources/%s/security_artifacts/%s", sourceID, encodedModelName)
 
-	if rawQuery := r.URL.RawQuery; rawQuery != "" {
-		catalogPath += "?" + rawQuery
+	query := repositories.FilterPageValues(r.URL.Query())
+	if namespace := getCatalogDiscoveryNamespace(r); namespace != "" {
+		query.Set("namespace", namespace)
 	}
+	catalogPath = repositories.UrlWithParams(catalogPath, query)
 
 	// The model-catalog BFF returns {"data": {"items":[...], "size":N, ...}}.
 	var envelope models.CatalogSecurityArtifactListEnvelope

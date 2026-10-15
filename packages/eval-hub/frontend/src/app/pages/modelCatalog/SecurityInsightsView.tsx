@@ -52,12 +52,14 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   sourceId,
   modelName,
   namespace,
+  catalogNamespace,
 }) => {
   const { insights, loaded, loadError } = useSecurityArtifacts(
     sourceId,
     modelName,
     namespace,
     SECURITY_ARTIFACTS_PAGE_SIZE,
+    catalogNamespace,
   );
 
   const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);

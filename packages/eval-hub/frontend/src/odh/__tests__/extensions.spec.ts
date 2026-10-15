@@ -2,6 +2,10 @@ import type { DetailTabExtension } from '@odh-dashboard/plugin-core/extension-po
 import extensions from '~/odh/extensions';
 
 describe('model catalog detail tab extensions', () => {
+  const securityInsightsExtension = extensions.find(
+    (extension): extension is DetailTabExtension =>
+      extension.type === 'core.detail/tab' && extension.properties.id === 'security-insights',
+  );
   const qualityInsightsExtension = extensions.find(
     (extension): extension is DetailTabExtension =>
       extension.type === 'core.detail/tab' && extension.properties.id === 'quality-insights',
@@ -9,6 +13,31 @@ describe('model catalog detail tab extensions', () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it('uses both namespaces for EvalHub security artifact visibility', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { items: [{ id: 'artifact-1' }] } }),
+    });
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    const shouldShow = securityInsightsExtension?.properties.shouldShow;
+    expect(shouldShow).toBeDefined();
+
+    await expect(
+      shouldShow?.({
+        sourceId: 'source-1',
+        modelName: 'repo/model',
+        catalogNamespace: 'odh-model-registries',
+        evalHubNamespace: 'project-only',
+      }),
+    ).resolves.toBe(true);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/eval-hub/api/v1/catalog/sources/source-1/security_artifacts/repo%2Fmodel?pageSize=1&namespace=project-only&catalogNamespace=odh-model-registries',
+      expect.objectContaining({ signal: expect.anything() }),
+    );
   });
 
   it('uses the preferred project namespace for EvalHub artifact visibility', async () => {
@@ -31,7 +60,7 @@ describe('model catalog detail tab extensions', () => {
     ).resolves.toBe(true);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/eval-hub/api/v1/catalog/sources/source-1/quality_artifacts/repo%2Fmodel?pageSize=1&namespace=project-only',
+      '/eval-hub/api/v1/catalog/sources/source-1/quality_artifacts/repo%2Fmodel?pageSize=1&namespace=project-only&catalogNamespace=odh-model-registries',
       expect.objectContaining({ signal: expect.anything() }),
     );
   });
