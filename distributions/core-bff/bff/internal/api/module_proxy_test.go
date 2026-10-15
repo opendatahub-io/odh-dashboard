@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
@@ -1206,6 +1207,8 @@ func TestRegisterModuleProxies_DualPathRegistration(t *testing.T) {
 func TestRoutes_ModuleProxyPaths(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Got-Path", r.URL.Path)
+		// Upstream may advertise a cacheable policy; module proxy must overwrite to no-store.
+		w.Header().Set(constants.HeaderCacheControl, "public, max-age=60")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()
@@ -1216,9 +1219,12 @@ func TestRoutes_ModuleProxyPaths(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.config.StaticAssetsDir = tmpDir
 	})
-	handler := createTestProxy(t, app, backend.URL, "/gen-ai/api", "/api", false, false, nil)
+	apiHandler := createTestProxy(t, app, backend.URL, "/gen-ai/api", "/api", false, false, nil)
+	// Non-/…/api federated proxy (e.g. mlflow-embedded); Node always forces no-store via rewriteNoStoreCacheHeaders.
+	mlflowHandler := createTestProxy(t, app, backend.URL, "/mlflow", "", false, false, nil)
 	app.moduleProxies = []moduleProxyHandler{
-		{path: "/gen-ai/api", handler: handler},
+		{path: "/gen-ai/api", handler: apiHandler},
+		{path: "/mlflow", handler: mlflowHandler},
 	}
 
 	ts := httptest.NewServer(app.Routes())
@@ -1231,6 +1237,7 @@ func TestRoutes_ModuleProxyPaths(t *testing.T) {
 	}{
 		{"bare path", "/gen-ai/api/v1/models", "/api/v1/models"},
 		{"prefixed path", "/core-bff/gen-ai/api/v1/models", "/api/v1/models"},
+		{"non-api proxy path", "/mlflow/ui", "/ui"},
 	}
 
 	for _, tt := range tests {
@@ -1241,6 +1248,8 @@ func TestRoutes_ModuleProxyPaths(t *testing.T) {
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 			assert.Equal(t, tt.wantPath, resp.Header.Get("X-Got-Path"))
+			assertConsoleSecurityHeaders(t, resp.Header)
+			assertNoStoreCache(t, resp.Header)
 		})
 	}
 }

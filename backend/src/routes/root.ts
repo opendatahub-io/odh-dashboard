@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { getModuleFederationConfigs } from '@odh-dashboard/app-config';
 import { DEV_MODE } from '../utils/constants';
 import { errorHandler } from '../utils';
+import { setNoStoreCacheHeaders } from '../utils/securityHeaders';
 
 export default async (fastify: FastifyInstance): Promise<void> => {
   let mfRemotesJson: string;
@@ -20,7 +21,9 @@ export default async (fastify: FastifyInstance): Promise<void> => {
     fastify.log.error(e, errorHandler(e));
   }
 
-  fastify.get('/*', async (_: FastifyRequest, reply: FastifyReply) =>
-    reply.header('Cache-Control', 'no-cache').view('index.html', { mfRemotesJson }),
-  );
+  // SPA shell under `/*` — not an API path, so set document cache policy here.
+  fastify.get('/*', async (_: FastifyRequest, reply: FastifyReply) => {
+    setNoStoreCacheHeaders(reply);
+    return reply.view('index.html', { mfRemotesJson });
+  });
 };

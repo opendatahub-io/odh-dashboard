@@ -9,6 +9,7 @@ import fastifyAccepts from '@fastify/accepts';
 import type { FastifyInstance, FastifyRegisterOptions } from 'fastify';
 import ejs from 'ejs';
 import { getCacheControlForStaticFile } from './utils/cacheHeaders';
+import { applySecurityHeaders } from './utils/securityHeaders';
 import { registerPlugins, registerRoutes } from './register-routes';
 
 const publicDir = process.env.ODH_STATIC_DIR
@@ -23,6 +24,11 @@ export const initializeApp = async (
     fastify.log.info(`${LOG_DIR} does not exist. Creating`);
     fs.mkdirSync(LOG_DIR);
   }
+
+  fastify.addHook('onSend', async (request, reply, payload) => {
+    applySecurityHeaders(request, reply);
+    return payload;
+  });
 
   fastify.register(fastifySensible);
 
