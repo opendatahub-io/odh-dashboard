@@ -257,6 +257,69 @@ describe('Runtime library details', () => {
     cy.location('pathname').should('eq', `${settingsUrl}/serving-runtime-templates`);
   });
 
+  [false, true].forEach((acceleratorEnabled) => {
+    ['servingRuntimeTemplate', 'llmInferenceServiceConfig'].forEach((resourceType) => {
+      it(`should reflect Install availability for ${resourceType}-only images with accelerator flag ${acceleratorEnabled}`, () => {
+        cy.interceptOdh(
+          'GET /api/config',
+          mockDashboardConfig({
+            disableModelServing: false,
+            disableKServe: false,
+            disableLLMd: false,
+            vLLMDeploymentOnMaaS: acceleratorEnabled,
+          }),
+        );
+        cy.intercept(
+          { method: 'GET', pathname: `${catalogApiPath}/${runtimeId}/versions` },
+          {
+            data: {
+              ...runtimeVersions,
+              items: runtimeVersions.items.map((version) => ({
+                ...version,
+                servingRuntimeTemplate:
+                  resourceType === 'servingRuntimeTemplate' ? servingRuntimeTemplate : undefined,
+                llmInferenceServiceConfig:
+                  resourceType === 'llmInferenceServiceConfig'
+                    ? llmInferenceServiceConfig
+                    : undefined,
+              })),
+            },
+          },
+        );
+        runtimeCatalogDetailsPage.visit(runtimeId);
+        runtimeCatalogDetailsPage.findHeading('vLLM').should('be.visible');
+        if (resourceType === 'llmInferenceServiceConfig' && !acceleratorEnabled) {
+          runtimeCatalogDetailsPage
+            .findInstallAction()
+            .should('have.attr', 'aria-disabled', 'true')
+            .and('not.have.attr', 'href');
+          runtimeCatalogDetailsPage.findInstallAction().focus();
+          runtimeCatalogDetailsPage
+            .findInstallUnavailableTooltip()
+            .should(
+              'contain.text',
+              'No supported installation targets are enabled for this runtime image.',
+            );
+          runtimeCatalogDetailsPage.findInstallAction().click();
+          cy.location('pathname').should(
+            'eq',
+            `${settingsUrl}/serving-runtime-catalog/${runtimeId}`,
+          );
+        } else {
+          runtimeCatalogDetailsPage.findInstallAction().should('have.attr', 'href');
+          runtimeCatalogDetailsPage.findInstallAction().click();
+          runtimeImageInstallPage.findPageTitle('vLLM').should('be.visible');
+          if (resourceType === 'llmInferenceServiceConfig') {
+            runtimeImageInstallPage.findAcceleratorRadio().should('be.visible');
+          } else {
+            runtimeImageInstallPage.findServingRuntimeRadio().should('be.visible');
+          }
+        }
+        cy.testA11y();
+      });
+    });
+  });
+
   it('copies the container image', () => {
     runtimeCatalogDetailsPage.visit(runtimeId);
     stubClipboard('copiedImage');
