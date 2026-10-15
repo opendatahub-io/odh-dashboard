@@ -14,7 +14,7 @@ const hasCatalogArtifacts = async (
   additionalParams: Record<string, string> = {},
   apiPath = '/model-registry/api/v1/model_catalog/sources',
 ): Promise<boolean> => {
-  const { sourceId, modelName, namespace } = props;
+  const { sourceId, modelName, evalHubNamespace } = props;
   if (typeof sourceId !== 'string' || typeof modelName !== 'string') {
     return false;
   }
@@ -24,9 +24,10 @@ const hasCatalogArtifacts = async (
 
   try {
     const params = new URLSearchParams({ pageSize: '1', ...additionalParams });
-    if (typeof namespace === 'string') {
-      params.set('namespace', namespace);
+    if (typeof evalHubNamespace !== 'string') {
+      return false;
     }
+    params.set('namespace', evalHubNamespace);
     const url = `${apiPath}/${encodeURIComponent(sourceId)}/${path}/${encodeURIComponent(
       modelName,
     )}?${params.toString()}`;

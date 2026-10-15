@@ -4,9 +4,9 @@ import SecurityInsightsView from './SecurityInsightsView';
 const SecurityInsightsTab: React.FC<{
   modelName?: string;
   sourceId?: string;
-  namespace?: string;
-}> = ({ sourceId = '', modelName = '', namespace = '' }) => (
-  <SecurityInsightsView sourceId={sourceId} modelName={modelName} namespace={namespace} />
+  evalHubNamespace?: string;
+}> = ({ sourceId = '', modelName = '', evalHubNamespace = '' }) => (
+  <SecurityInsightsView sourceId={sourceId} modelName={modelName} namespace={evalHubNamespace} />
 );
 
 export default SecurityInsightsTab;

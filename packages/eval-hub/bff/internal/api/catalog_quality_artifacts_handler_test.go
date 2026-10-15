@@ -142,6 +142,32 @@ func TestGetCatalogModelQualityArtifactsHandlerRejectsEmptyOrDotSegmentSourceID(
 	}
 }
 
+func TestGetCatalogModelQualityArtifactsHandlerRejectsEmptyOrDotSegmentModelName(t *testing.T) {
+	for _, modelName := range []string{"", ".", ".."} {
+		t.Run(modelName, func(t *testing.T) {
+			mockFactory := bffmocks.NewMockClientFactory(testLogger)
+			client := mockFactory.CreateClient(bffclient.BFFTargetModelCatalog, "test-token").(*bffmocks.MockBFFClient)
+			client.CallHandler = func(_ context.Context, _, _ string, _ interface{}, _ interface{}) error {
+				t.Fatal("upstream client should not be called for an empty or dot-segment model name")
+				return nil
+			}
+
+			req := httptest.NewRequest(http.MethodGet, ApiPathPrefix+"/catalog/sources/sample-source/quality_artifacts/"+modelName, http.NoBody)
+			ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetModelCatalog)), client)
+			req = req.WithContext(ctx)
+			recorder := httptest.NewRecorder()
+			app := &App{logger: testLogger}
+
+			app.GetCatalogModelQualityArtifactsHandler(recorder, req, httprouter.Params{
+				{Key: CatalogSourceID, Value: "sample-source"},
+				{Key: CatalogModelName, Value: "/" + modelName},
+			})
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		})
+	}
+}
+
 func TestGetCatalogModelQualityArtifactsHandlerBFFError(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com", Token: "test-token"}
 

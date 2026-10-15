@@ -1444,6 +1444,26 @@ components:
     # Model Catalog security artifact schemas (inter-BFF)
     # -------------------------------------------------------------------------
 
+    CatalogMetadataStringValue:
+      type: object
+      properties:
+        metadataType:
+          type: string
+          example: 'MetadataStringValue'
+        string_value:
+          type: string
+
+    CatalogMetadataDoubleValue:
+      type: object
+      properties:
+        metadataType:
+          type: string
+          example: 'MetadataDoubleValue'
+        double_value:
+          type: number
+          format: double
+          nullable: true
+
     CatalogSecurityArtifact:
       type: object
       required:
@@ -1551,6 +1571,45 @@ components:
             Typed evaluation fields and additional model-catalog metadata. The
             execution_context value, when present, is a JSON-encoded string.
           additionalProperties: true
+          properties:
+            evaluation:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            category:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            benchmark:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            description:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            result:
+              $ref: '#/components/schemas/CatalogMetadataDoubleValue'
+            result_metric:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            run_id:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            model_id:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            provider_id:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            collection_id:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            benchmark_status:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            job_status:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            rhoai_version:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            source_run_ids:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            execution_context:
+              allOf:
+                - $ref: '#/components/schemas/CatalogMetadataStringValue'
+              description: JSON-encoded evaluation execution context; preserved for consumers that need run details.
+            benchmark_index:
+              $ref: '#/components/schemas/CatalogMetadataDoubleValue'
+            created_at:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            updated_at:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
 
     CatalogQualityArtifactList:
       type: object

@@ -27,8 +27,7 @@ type BFFServiceConfig struct {
 	AuthTokenPrefix string
 
 	// AllowedPathRules restricts which endpoint paths and methods this client can call.
-	// If non-empty, Call() rejects any request that does not match one of these rules.
-	// If empty/nil, all paths and methods are allowed.
+	// An empty or nil list denies all requests.
 	AllowedPathRules []AllowedPathRule
 }
 

@@ -85,19 +85,30 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
     return result;
   }, [insights, filterValue, activeFilter]);
 
-  const sorted = React.useMemo(() => {
-    const asc = filtered.toSorted((a, b) => {
-      const aValue = getQualitySortableValue(a, sortConfig.index);
-      const bValue = getQualitySortableValue(b, sortConfig.index);
+  const sorted = React.useMemo(
+    () =>
+      filtered.toSorted((a, b) => {
+        const aValue = getQualitySortableValue(a, sortConfig.index);
+        const bValue = getQualitySortableValue(b, sortConfig.index);
 
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return aValue - bValue;
-      }
+        if (aValue === undefined || bValue === undefined) {
+          if (aValue === undefined && bValue === undefined) {
+            return 0;
+          }
+          return aValue === undefined ? 1 : -1;
+        }
 
-      return String(aValue ?? '').localeCompare(String(bValue ?? ''));
-    });
-    return sortConfig.direction === 'desc' ? asc.toReversed() : asc;
-  }, [filtered, sortConfig]);
+        let comparison: number;
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          comparison = aValue - bValue;
+        } else {
+          comparison = String(aValue).localeCompare(String(bValue));
+        }
+
+        return sortConfig.direction === 'desc' ? -comparison : comparison;
+      }),
+    [filtered, sortConfig],
+  );
 
   const paginated = React.useMemo(
     () => sorted.slice(perPage * (page - 1), perPage * page),
@@ -289,7 +300,9 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
             <Tr
               key={
                 insight.id ??
-                `${insight.benchmarkName}-${insight.evaluation}-${insight.category}-${insight.score ?? insight.result}`
+                `${insight.benchmarkName}-${insight.evaluation}-${insight.category}-${
+                  insight.score ?? insight.result
+                }`
               }
               data-testid="quality-insight-row"
             >

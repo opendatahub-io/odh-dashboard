@@ -20,6 +20,19 @@ type ShouldShowResult = {
   props: Record<string, unknown>;
 };
 
+const areComponentPropsEqual = (
+  first: Record<string, unknown>,
+  second: Record<string, unknown>,
+): boolean => {
+  const firstKeys = Object.keys(first);
+  const secondKeys = Object.keys(second);
+  if (firstKeys.length !== secondKeys.length) {
+    return false;
+  }
+
+  return firstKeys.every((key) => Object.hasOwn(second, key) && Object.is(first[key], second[key]));
+};
+
 /**
  * Evaluates tab visibility predicates in an effect so async predicates never
  * run during render. The cache deduplicates calls across React StrictMode's
@@ -50,7 +63,7 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
       const cached = cacheRef.current.get(ext.uid);
       let promise: Promise<boolean> | undefined;
 
-      if (cached && cached.props === componentProps) {
+      if (cached && areComponentPropsEqual(cached.props, componentProps)) {
         promise = cached.promise;
       } else {
         let result: boolean | Promise<boolean>;
@@ -76,7 +89,8 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
           if (!controller.signal.aborted) {
             setResults((prev) => {
               const previous = prev[ext.uid];
-              return previous?.visible === visible && previous.props === componentProps
+              return previous?.visible === visible &&
+                areComponentPropsEqual(previous.props, componentProps)
                 ? prev
                 : { ...prev, [ext.uid]: { visible, props: componentProps } };
             });
@@ -86,7 +100,8 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
           if (!controller.signal.aborted) {
             setResults((prev) => {
               const previous = prev[ext.uid];
-              return previous?.visible === false && previous.props === componentProps
+              return previous?.visible === false &&
+                areComponentPropsEqual(previous.props, componentProps)
                 ? prev
                 : { ...prev, [ext.uid]: { visible: false, props: componentProps } };
             });
@@ -105,7 +120,12 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
       let next: Partial<Record<string, ShouldShowResult>> | undefined;
 
       for (const uid of Object.keys(prev)) {
-        if (!activeUids.has(uid) || pendingUids.has(uid) || prev[uid]?.props !== componentProps) {
+        if (
+          !activeUids.has(uid) ||
+          pendingUids.has(uid) ||
+          !prev[uid] ||
+          !areComponentPropsEqual(prev[uid].props, componentProps)
+        ) {
           if (!next) {
             next = { ...prev };
           }
@@ -116,7 +136,10 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
       for (const uid of Object.keys(syncBatch)) {
         const previous = (next ?? prev)[uid];
         const current = syncBatch[uid];
-        if (previous?.visible !== current.visible || previous.props !== current.props) {
+        if (
+          previous?.visible !== current.visible ||
+          !areComponentPropsEqual(previous.props, current.props)
+        ) {
           if (!next) {
             next = { ...prev };
           }

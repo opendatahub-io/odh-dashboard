@@ -1,9 +1,11 @@
 /* eslint-disable camelcase */
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { asProductAdminUser } from '../../../utils/mockUsers';
+import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import {
   mockSecurityArtifacts,
@@ -13,12 +15,14 @@ import {
   mockQualityArtifacts,
   mockQualityArtifactsResponse,
 } from '../../../utils/qualityInsightsUtils';
+import { ProjectModel } from '../../../utils/models';
 
 const API_VERSION = 'v1';
 const SOURCE_ID = 'sample-source';
 const MODEL_NAME = 'repo1/model1';
 const ENCODED_MODEL_NAME = 'repo1%2Fmodel1';
 const REGISTRIES_NAMESPACE = 'odh-model-registries';
+const EVAL_HUB_NAMESPACE = 'test-project';
 
 const catalogModel = {
   source_id: SOURCE_ID,
@@ -30,8 +34,25 @@ const catalogModel = {
   customProperties: {},
 };
 
-const setupCommonIntercepts = ({ disableLMEval = false }: { disableLMEval?: boolean } = {}) => {
-  asProductAdminUser();
+const setupCommonIntercepts = ({
+  disableLMEval = false,
+  nonAdmin = false,
+}: { disableLMEval?: boolean; nonAdmin?: boolean } = {}) => {
+  if (nonAdmin) {
+    asProjectEditUser({ projects: [EVAL_HUB_NAMESPACE] });
+  } else {
+    asProductAdminUser();
+  }
+
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([
+      mockProjectK8sResource({ k8sName: EVAL_HUB_NAMESPACE, displayName: EVAL_HUB_NAMESPACE }),
+    ]),
+  );
+  cy.window().then((window) => {
+    window.localStorage.setItem('mod-arch.namespace.lastUsed', JSON.stringify(EVAL_HUB_NAMESPACE));
+  });
 
   cy.interceptOdh(
     'GET /api/config',
@@ -242,6 +263,18 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     cy.wait('@getQualityArtifacts');
   });
 
+  it('should show quality insights for a non-admin with project-only EvalHub access', () => {
+    setupCommonIntercepts({ nonAdmin: true });
+    interceptQualityArtifacts();
+    interceptShouldShowQualityArtifacts(true);
+    modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
+
+    cy.wait('@shouldShowQualityArtifacts');
+    modelDetailsPage.findQualityInsightsTab().should('exist');
+    modelDetailsPage.findQualityInsightsTable().should('contain.text', 'HumanEval');
+    cy.wait('@getQualityArtifacts');
+  });
+
   it('should hide quality insights when no evaluation artifacts exist', () => {
     interceptShouldShowQualityArtifacts(false);
 
@@ -266,6 +299,7 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
 
   it('should redirect a hidden quality deep link to the overview page', () => {
     interceptShouldShowQualityArtifacts(false);
+    interceptShouldShowSecurityArtifacts(true);
 
     cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/quality-insights`);
     modelDetailsPage.findPageTitle().should('exist');

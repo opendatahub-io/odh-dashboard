@@ -1567,7 +1567,9 @@ components:
         customProperties:
           type: object
           nullable: true
-          description: Evaluation fields encoded as model-registry custom properties.
+          description: >-
+            Typed evaluation fields and additional model-catalog metadata. The
+            execution_context value, when present, is a JSON-encoded string.
           additionalProperties: true
           properties:
             evaluation:

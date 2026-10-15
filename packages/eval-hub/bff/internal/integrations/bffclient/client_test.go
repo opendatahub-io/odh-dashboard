@@ -1,11 +1,39 @@
 package bffclient
 
 import (
+	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestHTTPBFFClientCallDeniesWhenPathRulesAreEmpty(t *testing.T) {
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		requestCount++
+	}))
+	defer server.Close()
+
+	for _, rules := range [][]AllowedPathRule{nil, {}} {
+		client := &HTTPBFFClient{
+			baseURL:          server.URL,
+			target:           BFFTargetModelCatalog,
+			httpClient:       server.Client(),
+			allowedPathRules: rules,
+		}
+
+		err := client.Call(context.Background(), http.MethodGet, "/model_catalog/sources/source/artifacts/model", nil, nil)
+
+		clientErr, ok := err.(*BFFClientError)
+		require.True(t, ok)
+		assert.Equal(t, ErrCodePathNotAllowed, clientErr.Code)
+	}
+
+	assert.Zero(t, requestCount)
+}
 
 func TestHTTPBFFClientIsPathAllowedChecksMethodAndEscapedURLPath(t *testing.T) {
 	client := &HTTPBFFClient{allowedPathRules: []AllowedPathRule{

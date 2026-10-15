@@ -216,4 +216,36 @@ describe('QualityInsightsView', () => {
 
     expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Raw score');
   });
+
+  it('keeps missing scores after scored rows in both sort directions', async () => {
+    mockInsightsData = [
+      {
+        evaluation: 'Missing score',
+        category: 'reasoning',
+        benchmarkName: 'Benchmark A',
+        benchmarkDescription: 'Benchmark description',
+        score: undefined,
+        result: '',
+      },
+      {
+        evaluation: 'Scored result',
+        category: 'reasoning',
+        benchmarkName: 'Benchmark B',
+        benchmarkDescription: 'Benchmark description',
+        score: 0.8,
+        result: '80.0%',
+      },
+    ];
+
+    await renderView();
+    const scoreSortButton = screen
+      .getByRole('columnheader', { name: 'Evaluation score' })
+      .querySelector('button')!;
+
+    fireEvent.click(scoreSortButton);
+    expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Scored result');
+
+    fireEvent.click(scoreSortButton);
+    expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Scored result');
+  });
 });

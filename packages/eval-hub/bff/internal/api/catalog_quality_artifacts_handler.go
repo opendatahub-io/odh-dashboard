@@ -44,6 +44,10 @@ func (app *App) GetCatalogModelQualityArtifactsHandler(w http.ResponseWriter, r 
 		app.badRequestResponse(w, r, fmt.Errorf("missing required path parameter: model_name"))
 		return
 	}
+	if modelName == "." || modelName == ".." {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid path parameter: model_name"))
+		return
+	}
 
 	encodedSourceID := url.PathEscape(sourceID)
 	encodedModelName := url.PathEscape(modelName)

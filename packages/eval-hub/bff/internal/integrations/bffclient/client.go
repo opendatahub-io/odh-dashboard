@@ -72,10 +72,10 @@ func NewHTTPBFFClient(
 	}
 }
 
-// Call makes a request to the target BFF. If allowed path rules are configured,
-// the method and path must match at least one rule or the call is rejected locally.
+// Call makes a request to the target BFF. The method and path must match at
+// least one configured rule or the call is rejected locally.
 func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body interface{}, response interface{}) error {
-	if len(c.allowedPathRules) > 0 && !c.isPathAllowed(method, path) {
+	if !c.isPathAllowed(method, path) {
 		return NewPathNotAllowedError(c.target, path)
 	}
 
