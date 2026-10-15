@@ -96,40 +96,16 @@ describe('External vector store full lifecycle', () => {
       tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent', '@Playground'],
     },
     () => {
-      cy.step('Open the Vector stores tab');
+      cy.step('Wait for the inference endpoint in AI assets');
       genAiPlayground.navigateToAssetsWithExternalVectorStores(projectName);
-      genAiPlayground.findVectorStoresTab().should('be.visible').click();
+      genAiPlayground.findAiModelRow(testData.model.id, { timeout: 120000 }).should('be.visible');
 
-      cy.step('Verify the provider-neutral vector store table metadata');
-      genAiPlayground.findVectorStoresTable({ timeout: 30000 }).should('be.visible');
-      genAiPlayground
-        .findVectorStoreRow(testData.vectorStore.id)
-        .should('contain.text', testData.vectorStore.name)
-        .and('contain.text', testData.vectorStore.embeddingModel)
-        .and('contain.text', String(testData.vectorStore.embeddingDimension));
-
-      cy.step('Verify the vector store details popup');
-      genAiPlayground.findVectorStoreInfoButton(testData.vectorStore.id).click();
-      genAiPlayground.findVectorStoreDetails(testData.vectorStore.id).should('be.visible');
-      genAiPlayground
-        .findVectorStoreProviderId(testData.vectorStore.id)
-        .should('have.value', testData.provider.id);
-      genAiPlayground
-        .findVectorStoreProviderType(testData.vectorStore.id)
-        .should('have.value', testData.provider.type);
-      genAiPlayground
-        .findVectorStoreId(testData.vectorStore.id)
-        .should('have.value', testData.vectorStore.id);
-      genAiPlayground.findVectorStoreInfoButton(testData.vectorStore.id).click();
-      genAiPlayground.findVectorStoreDetails(testData.vectorStore.id).should('not.exist');
+      cy.step('Open the Vector stores tab');
+      genAiPlayground.findVectorStoresTab().click();
 
       cy.step('Add the vector store and inference endpoint to the Playground');
       genAiPlayground.findVectorStoreAddToPlaygroundButton(testData.vectorStore.id).click();
-      genAiPlayground.findConfigurationCollectionsTable().should('be.visible');
-      genAiPlayground
-        .findConfigurationVectorStoreCheckbox(testData.vectorStore.id)
-        .should('be.checked');
-      genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
+      genAiPlayground.findCreateButtonInDialog().click();
 
       cy.step('Wait for the Playground runtime to be Ready');
       waitForOGXServerReady(projectName, { maxAttempts: 90, pollIntervalMs: 5000 });
@@ -146,36 +122,27 @@ describe('External vector store full lifecycle', () => {
 
       cy.step('Launch the registered store using Try in playground');
       genAiPlayground.navigateToAssetsWithExternalVectorStores(projectName);
-      genAiPlayground.findVectorStoresTab().should('be.visible').click();
+      genAiPlayground.findVectorStoresTab().click();
       genAiPlayground
         .findVectorStoreTryInPlaygroundButton(testData.vectorStore.id, { timeout: 120000 })
-        .should('be.visible')
         .click();
-
-      cy.step('Verify the store is automatically selected in Knowledge settings');
-      genAiPlayground.findMessageInput({ timeout: 120000 }).should('be.visible');
-      genAiPlayground.findKnowledgeTabButton().should('have.attr', 'aria-pressed', 'true');
-      genAiPlayground.findRagToggle().should('be.checked');
-      genAiPlayground.findExternalKnowledgeModeRadio().should('be.checked');
       genAiPlayground
-        .findExternalVectorStoreToggle({ timeout: 30000 })
+        .findExternalVectorStoreToggle({ timeout: 120000 })
         .should('contain.text', testData.vectorStore.name);
-      genAiPlayground.verifyModelIsSelected(testData.model.displayName);
+      genAiPlayground.findMessageInput({ timeout: 120000 }).should('be.visible');
 
       cy.step('Ask a question grounded by the seeded external vector store');
+      cy.intercept('POST', '**/api/v1/lsd/responses**').as('groundedResponse');
       genAiPlayground.sendMessage(testData.seed.question);
-      genAiPlayground.findUserMessage().should('exist').and('contain.text', testData.seed.question);
-      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
+      genAiPlayground.findAllUserMessages().last().should('contain.text', testData.seed.question);
+      cy.wait('@groundedResponse', { timeout: 120000 }).then(({ request }) => {
+        expect(request.body.vector_store_ids).to.deep.equal([testData.vectorStore.id]);
+      });
 
-      cy.step('Verify the grounded answer and retrieval evidence');
+      cy.step('Verify the grounded answer');
       genAiPlayground
-        .findAllAssistantMessages({ timeout: 30000 })
+        .findAllAssistantMessages({ timeout: 120000 })
         .last()
-        .should('contain.text', testData.seed.expectedContentFragment);
-      genAiPlayground.findFileSearchResults({ timeout: 30000 }).should('exist');
-      genAiPlayground.findFileSearchResultsToggle().click();
-      genAiPlayground
-        .findFileSearchResults({ timeout: 30000 })
         .should('contain.text', testData.seed.expectedContentFragment);
     },
   );

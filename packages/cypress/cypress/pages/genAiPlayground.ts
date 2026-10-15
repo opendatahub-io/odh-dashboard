@@ -540,10 +540,6 @@ class GenAiPlayground {
     return cy.findByTestId('knowledge-mode-upload-radio');
   }
 
-  findKnowledgeTabButton() {
-    return this.findKnowledgeTab().find('button');
-  }
-
   findDocumentFileInput() {
     return cy.findByTestId('document-file-input');
   }
