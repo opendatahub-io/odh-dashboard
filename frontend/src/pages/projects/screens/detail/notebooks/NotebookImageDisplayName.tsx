@@ -40,6 +40,7 @@ import {
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import { NotebookKind } from '#~/k8sTypes';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
+import { isImageStreamDeprecated } from '#~/utilities/imageStreamUtils';
 
 type NotebookImageDisplayNameProps = {
   notebook: NotebookKind;
@@ -95,8 +96,13 @@ export const NotebookImageDisplayName = ({
     return <Spinner size="md" />;
   }
 
+  const isDeprecatedImageStream =
+    notebookImage.imageStatus !== NotebookImageStatus.DELETED &&
+    isImageStreamDeprecated(notebookImage.imageStream);
   const canUpdateViaModal =
-    notebookImage.imageStatus !== NotebookImageStatus.DELETED && !!notebookImage.latestImageVersion;
+    !isDeprecatedImageStream &&
+    notebookImage.imageStatus !== NotebookImageStatus.DELETED &&
+    !!notebookImage.latestImageVersion;
   const updateToLatestButton = canUpdateViaModal ? (
     <Button
       data-testid="update-latest-version-button"
@@ -146,6 +152,17 @@ export const NotebookImageDisplayName = ({
         footer: updateToLatestButton,
       };
     }
+    if (isDeprecatedImageStream) {
+      return {
+        title: 'Notebook image deprecated',
+        body: (
+          <p>
+            This image is deprecated. Select a different workbench image to keep receiving updates.
+          </p>
+        ),
+        variant: 'warning',
+      };
+    }
     if (notebookImage.imageAvailability === NotebookImageAvailability.DISABLED) {
       return {
         title: 'Notebook image disabled',
@@ -189,6 +206,7 @@ export const NotebookImageDisplayName = ({
       return 'red';
     }
     if (
+      isDeprecatedImageStream ||
       notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
       notebookImage.imageStatus === NotebookImageStatus.DEPRECATED
     ) {
@@ -206,6 +224,7 @@ export const NotebookImageDisplayName = ({
       return <ExclamationCircleIcon />;
     }
     if (
+      isDeprecatedImageStream ||
       notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
       notebookImage.imageStatus === NotebookImageStatus.DEPRECATED
     ) {
@@ -354,6 +373,7 @@ export const NotebookImageDisplayName = ({
         {!isUpdating && (
           <FlexItem>
             {(notebookImage.imageStatus === NotebookImageStatus.DELETED ||
+              isDeprecatedImageStream ||
               notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
               notebookImage.imageStatus === NotebookImageStatus.LATEST ||
               notebookImage.imageStatus === NotebookImageStatus.DEPRECATED) && (
@@ -376,7 +396,9 @@ export const NotebookImageDisplayName = ({
                     color={getNotebookImageLabelColor()}
                     icon={getNotebookImageIcon()}
                   >
-                    {notebookImage.imageStatus || NotebookImageAvailability.DISABLED}
+                    {isDeprecatedImageStream
+                      ? NotebookImageStatus.DEPRECATED
+                      : notebookImage.imageStatus || NotebookImageAvailability.DISABLED}
                   </Label>
                 </span>
               </Popover>
