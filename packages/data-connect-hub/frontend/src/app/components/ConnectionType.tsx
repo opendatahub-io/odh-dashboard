@@ -4,6 +4,7 @@ import React from 'react';
 import {
   Card,
   CardBody,
+  CardFooter,
   CardHeader,
   CardTitle,
   Content,
@@ -18,6 +19,7 @@ import {
   Level,
   LevelItem,
   LabelColor,
+  LabelGroup,
 } from '@patternfly/react-core';
 import type { IconComponentProps } from '@patternfly/react-core';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
@@ -177,10 +179,6 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
   },
 };
 
-const localFeatureFlags = {
-  tags: false,
-};
-
 // Private -------------------------------------------------------------------->
 
 // Classes -------------------------------------------------------------------->
@@ -219,7 +217,17 @@ class ConnectionTypeInstance implements ConnectionType {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Depends on labels being added by API: Return true for now
   matchesLabels(labels: string | string[]) {
-    return true;
+    if (this.resource.tags?.length) {
+      return this.resource.tags.some((tag) => {
+        if (typeof labels === 'string') {
+          return tag === labels;
+        } else if (Array.isArray(labels)) {
+          return labels.some((label) => label === tag);
+        }
+        return false;
+      });
+    }
+    return false;
   }
 
   toJSON() {
@@ -300,8 +308,19 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       </CardHeader>
       <CardTitle id={`${rootId}-card-title`}>{connectionType.resource.name}</CardTitle>
       <CardBody>
-        <TruncatedText maxLines={6} content={connectionType.resource.description} />
+        <TruncatedText maxLines={4} content={connectionType.resource.description} />
       </CardBody>
+      {connectionType.resource.tags?.length && (
+        <CardFooter>
+          <LabelGroup>
+            {connectionType.resource.tags.map((tag) => (
+              <Label key={tag} variant="outline">
+                {tag}
+              </Label>
+            ))}
+          </LabelGroup>
+        </CardFooter>
+      )}
     </Card>
   );
 };
@@ -350,7 +369,7 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
           </div>
         </Card>
       </GridItem>
-      {localFeatureFlags.tags && (
+      {connectionType.resource.tags?.length && (
         <GridItem span={4}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div className="dch-u-overflow-auto">
@@ -358,7 +377,13 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
                 <Content component="h3">Labels</Content>
               </CardHeader>
               <CardBody>
-                <Label>Example</Label>
+                <LabelGroup>
+                  {connectionType.resource.tags.map((tag) => (
+                    <Label key={tag} variant="outline">
+                      {tag}
+                    </Label>
+                  ))}
+                </LabelGroup>
               </CardBody>
             </div>
           </Card>

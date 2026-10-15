@@ -14,9 +14,10 @@ import {
 } from '@patternfly/react-core';
 import {
   ToolbarFilter,
-  type FilterConfigMap,
   type FilterState,
   type FilterValue,
+  type MultiselectFilterConfig,
+  type SelectFilterConfig,
 } from 'mod-arch-shared';
 
 import {
@@ -26,7 +27,7 @@ import {
   ConnectionTypeCard,
   ConnectionTypeCardIdentifier,
 } from '~/app/components/ConnectionType';
-import type { ConnectionType } from '~/app/types';
+import type { Valued, Labelled, ConnectionType } from '~/app/types';
 import { IdentifiedLabelledToValuedLabelled } from '~/app/types';
 
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
@@ -35,6 +36,13 @@ import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
 type FilterOption = 'capability' | 'labels';
 
+type ConnectionTypesFilterConfig = {
+  capability: SelectFilterConfig;
+  labels: MultiselectFilterConfig;
+};
+
+type RenderedLabel = Valued<string> & Labelled<string>;
+
 // Globals -------------------------------------------------------------------->
 
 const capabilityFilters = {
@@ -42,34 +50,7 @@ const capabilityFilters = {
   ...IdentifiedLabelledToValuedLabelled(ConnectionTypeCapabilities.credentials),
 };
 
-const localFeatureFlags = {
-  tags: false,
-};
-
-const mockLabels = [
-  {
-    value: 'label-01',
-    label: 'Label 01',
-  },
-  {
-    value: 'label-02',
-    label: 'Label 02',
-  },
-  {
-    value: 'label-03',
-    label: 'Label 03',
-  },
-  {
-    value: 'label-04',
-    label: 'Label 04',
-  },
-  {
-    value: 'label-05',
-    label: 'Label 05',
-  },
-];
-
-const filterConfig: FilterConfigMap<FilterOption> = {
+const filterConfig: ConnectionTypesFilterConfig = {
   capability: {
     type: 'select',
     label: 'Capability',
@@ -80,13 +61,9 @@ const filterConfig: FilterConfigMap<FilterOption> = {
     type: 'multiselect',
     label: 'Labels',
     placeholder: 'Filter by labels',
-    options: mockLabels,
+    options: [],
   },
 };
-
-const visibleFilterKeys: FilterOption[] = localFeatureFlags.tags
-  ? ['capability', 'labels']
-  : ['capability'];
 
 const initialFilterValues: FilterState<FilterOption> = {
   capability: '',
@@ -138,7 +115,7 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
       if (normalizedSearchTerm) {
         shouldRenderConnectionType = connectionType.matchesSearch(normalizedSearchTerm);
       }
-      if (localFeatureFlags.tags && filterValues.labels.length) {
+      if (filterValues.labels.length) {
         shouldRenderConnectionType =
           shouldRenderConnectionType && connectionType.matchesLabels(filterValues.labels);
       }
@@ -193,18 +170,52 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     return filteredConnectionTypes;
   }, [connectionTypesByGroup, shouldShowConnectionType]);
 
-  const hasFilters =
-    Boolean(filterValues.capability) ||
-    (localFeatureFlags.tags && Boolean(filterValues.labels.length));
+  const connectionTypeLabels = React.useMemo<RenderedLabel[]>(() => {
+    const labelsSet = Object.values(connectionTypesByGroup)
+      .flat()
+      .reduce((set, connectionType) => {
+        if (connectionType.resource.tags) {
+          connectionType.resource.tags.forEach((label) => set.add(label));
+        }
+        return set;
+      }, new Set<string>());
+
+    return Array.from(labelsSet)
+      .sort()
+      .map((label) => ({
+        value: label,
+        label: label,
+      }));
+  }, [connectionTypesByGroup]);
+
+  const hasFilters = Boolean(filterValues.capability) || Boolean(filterValues.labels.length);
 
   const shouldRenderGroupTitles = !hasFilters && !normalizedSearchTerm;
+
+  const dynamicFilterConfig = React.useMemo(
+    () => ({
+      ...filterConfig,
+      labels: {
+        ...filterConfig.labels,
+        options: connectionTypeLabels,
+      },
+    }),
+    [connectionTypeLabels],
+  );
+
+  const dynamicVisibleFilterKeys = React.useMemo<FilterOption[]>(() => {
+    if (!connectionTypeLabels.length) {
+      return ['capability'];
+    }
+    return ['capability', 'labels'];
+  }, [connectionTypeLabels]);
 
   // Rendering ---------------------------------------------------------------->
 
   const toolbar = (
     <ToolbarFilter
-      filterConfig={filterConfig}
-      visibleFilterKeys={visibleFilterKeys}
+      filterConfig={dynamicFilterConfig}
+      visibleFilterKeys={dynamicVisibleFilterKeys}
       filterValues={filterValues}
       onFilterChange={onFilterChange}
       onClearAllFilters={onClearAllFilters}
