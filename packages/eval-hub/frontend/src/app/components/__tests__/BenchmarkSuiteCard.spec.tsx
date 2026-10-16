@@ -1,10 +1,22 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { mockCollection } from '~/__mocks__/mockCollection';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 describe('BenchmarkSuiteCard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
   it('should render collection metadata and metrics', () => {
     const collection = mockCollection({
       id: 'model-suite',
@@ -356,6 +368,19 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-model-suite'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: 'Safety Suite',
+        benchmarkTypes: JSON.stringify(['harmful_request_refusal', 'toxigen']),
+        countOfBenchmarks: 2,
+      },
+      {
+        collectionType: 'custom',
+        providerType: 'safety_eval_suite',
+      },
+    );
   });
 
   it('should render Run as the split button action and Customize in its menu', () => {
@@ -382,6 +407,15 @@ describe('BenchmarkSuiteCard', () => {
     ).not.toBeInTheDocument();
 
     fireEvent.click(runButton);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      expect.objectContaining({
+        runType: 'collection',
+        collectionName: 'Safety Suite',
+        countOfBenchmarks: 2,
+      }),
+      expect.objectContaining({ collectionType: 'custom' }),
+    );
     fireEvent.click(dropdownToggle);
     const customizeAction = screen.getByTestId(
       'benchmark-suite-card-dropdown-action-curated-suite',
@@ -389,6 +423,35 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(within(customizeAction).getByRole('menuitem'));
 
     expect(onRun).toHaveBeenCalledTimes(1);
+    expect(onCustomize).toHaveBeenCalledTimes(1);
+  });
+
+  it('should invoke a routed dropdown callback exactly once before navigation', () => {
+    const onCustomize = jest.fn();
+
+    render(
+      <MemoryRouter>
+        <BenchmarkSuiteCard
+          collection={mockCollection({ id: 'routed-curated-suite' })}
+          primaryAction={{ label: 'Run', onClick: jest.fn(), variant: 'secondary' }}
+          dropdownAction={{
+            label: 'Customize',
+            href: '/collections/routed-curated-suite/copy',
+            onClick: onCustomize,
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(
+      screen.getByTestId('benchmark-suite-card-dropdown-toggle-routed-curated-suite'),
+    );
+    fireEvent.click(
+      within(
+        screen.getByTestId('benchmark-suite-card-dropdown-action-routed-curated-suite'),
+      ).getByRole('menuitem'),
+    );
+
     expect(onCustomize).toHaveBeenCalledTimes(1);
   });
 
@@ -411,6 +474,44 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(suiteName);
 
     expect(onSelect).toHaveBeenCalledWith(collection);
+  });
+
+  it('should track tile clicks and drawer opens separately', () => {
+    const collection = mockCollection({ id: 'tracked-suite' });
+    const onSelect = jest.fn().mockReturnValueOnce(true).mockReturnValueOnce(false);
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        trackingSurface="my_benchmark_suites"
+        onSelect={onSelect}
+      />,
+    );
+
+    const nameButton = screen.getByTestId('benchmark-suite-card-name-tracked-suite');
+    fireEvent.click(nameButton);
+    fireEvent.click(nameButton);
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(3);
+    expect(mockTrackEvalHubEvent).toHaveBeenNthCalledWith(
+      2,
+      EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
+      expect.objectContaining({
+        collectionName: collection.name,
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({ collectionType: 'custom' }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenNthCalledWith(
+      3,
+      EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED,
+      expect.objectContaining({
+        collectionName: collection.name,
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({ collectionType: 'custom' }),
+    );
   });
 
   it('should render the category and evaluation target instead of collection tags or domains', () => {

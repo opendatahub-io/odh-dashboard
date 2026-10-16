@@ -1,9 +1,10 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import isEqual from 'lodash-es/isEqual';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import {
   getThresholdInputValue,
@@ -16,7 +17,11 @@ import { evaluationBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/rout
 import { useNotification } from '~/app/hooks/useNotification';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import {
+  EVAL_HUB_EVENTS,
+  type CollectionSavedProperties,
+} from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
 // import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
 import { MODEL_EVALUATION_TARGETS, type SuiteEvaluatesOption } from '~/app/pages/const';
@@ -42,6 +47,55 @@ export const MAX_BENCHMARKS = 20;
 const EDIT_AFTER_RUN_ERROR = 'Collections cannot be edited after they have been run.';
 
 export type CopySuiteBenchmark = CopySuiteFormValues['benchmarks'][number];
+
+type CollectionSavedFormState = Pick<
+  CollectionSavedProperties,
+  | 'suiteName'
+  | 'suiteDescription'
+  | 'suiteDomains'
+  | 'suiteTasks'
+  | 'suiteModalities'
+  | 'suiteIndustries'
+  | 'suiteEvaluates'
+  | 'suiteThreshold'
+  | 'benchmarkCount'
+  | 'benchmarks'
+>;
+
+/**
+ * Form tracking only accepts primitive property values, so keep the complete final
+ * suite state in JSON strings. This intentionally preserves the raw benchmark
+ * parameter fields, including user-entered advanced JSON, instead of only the
+ * normalized API request.
+ */
+export const serializeCollectionSavedFormState = (
+  values: CopySuiteFormValues,
+): CollectionSavedFormState => ({
+  suiteName: values.suiteName.trim(),
+  suiteDescription: values.suiteDescription.trim(),
+  suiteDomains: JSON.stringify(values.suiteDomains),
+  suiteTasks: JSON.stringify(values.suiteTasks),
+  suiteModalities: JSON.stringify(values.suiteModalities),
+  suiteIndustries: JSON.stringify(values.suiteIndustries),
+  suiteEvaluates: JSON.stringify(values.suiteEvaluates),
+  suiteThreshold: values.suiteThreshold,
+  benchmarkCount: values.benchmarks.length,
+  benchmarks: JSON.stringify(
+    values.benchmarks.map((benchmark) => ({
+      id: benchmark.id,
+      providerId: benchmark.providerId,
+      name: benchmark.name,
+      weight: benchmark.weight,
+      primaryMetric: benchmark.primaryMetric,
+      lowerIsBetter: benchmark.lowerIsBetter,
+      metricDirections: benchmark.metricDirections,
+      parameters: benchmark.parameters,
+      additionalParameters: benchmark.additionalParameters ?? '',
+      threshold: benchmark.threshold,
+      availableMetrics: benchmark.availableMetrics,
+    })),
+  ),
+});
 
 export const getBenchmarkKey = (benchmark: { providerId: string; id: string }): string =>
   `${benchmark.providerId}:${benchmark.id}`;
@@ -910,6 +964,25 @@ export function useCopySuiteForm({
     });
   }, [sourceCollection, form]);
 
+  const trackCollectionSaved = React.useCallback(
+    (
+      values: CopySuiteFormValues,
+      result: Pick<CollectionSavedProperties, 'success' | 'collectionName' | 'error_category'>,
+    ) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_SAVED,
+        {
+          outcome: TrackingOutcome.submit,
+          saveMode: isCreateMode ? 'create' : isEditMode ? 'edit' : 'copy',
+          ...serializeCollectionSavedFormState(values),
+          ...result,
+        },
+        { collectionType: 'custom' },
+      );
+    },
+    [isCreateMode, isEditMode],
+  );
+
   const cloneCollectionForRun = React.useCallback(
     async (parentSignal?: AbortSignal): Promise<Collection | undefined> => {
       if (
@@ -933,6 +1006,7 @@ export function useCopySuiteForm({
       parentSignal?.addEventListener('abort', abortClone, { once: true });
 
       try {
+        const formValues = form.getValues();
         const savedCollection = isEditMode
           ? await patchCollection(
               '',
@@ -953,17 +1027,34 @@ export function useCopySuiteForm({
 
         refreshCollections();
 
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-          runType: 'collection',
+        trackCollectionSaved(formValues, {
+          success: true,
           collectionName: savedCollection.name,
-          benchmarkTypes: JSON.stringify((savedCollection.benchmarks ?? []).map((b) => b.id)),
-          countOfBenchmarks: savedCollection.benchmarks?.length ?? 0,
         });
+
+        trackEvalHubEvent(
+          EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+          {
+            runType: 'collection',
+            collectionName: savedCollection.name,
+            benchmarkTypes: JSON.stringify((savedCollection.benchmarks ?? []).map((b) => b.id)),
+            countOfBenchmarks: savedCollection.benchmarks?.length ?? 0,
+          },
+          {
+            collectionType: savedCollection.resource.read_only ? 'system' : 'custom',
+            providerType: savedCollection.benchmarks?.[0]?.provider_id,
+          },
+        );
 
         return savedCollection;
       } catch (e) {
         if (!controller.signal.aborted) {
           const message = e instanceof Error ? e.message : 'An unknown error occurred.';
+          trackCollectionSaved(form.getValues(), {
+            success: false,
+            // eslint-disable-next-line camelcase -- API tracking field name.
+            error_category: e instanceof Error ? e.name : 'unknown_error',
+          });
           notification.error(
             isEditMode ? 'Failed to update collection' : 'Failed to copy collection',
             message,
@@ -984,6 +1075,7 @@ export function useCopySuiteForm({
       isEditMode,
       buildCloneRequest,
       buildPatchOperations,
+      trackCollectionSaved,
       notification,
       refreshCollections,
     ],
@@ -1007,6 +1099,7 @@ export function useCopySuiteForm({
       parentSignal?.addEventListener('abort', abortCreate, { once: true });
 
       try {
+        const formValues = form.getValues();
         const createdCollection = await createCollection(
           '',
           namespace,
@@ -1021,17 +1114,34 @@ export function useCopySuiteForm({
 
         refreshCollections();
 
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-          runType: 'collection',
+        trackCollectionSaved(formValues, {
+          success: true,
           collectionName: createdCollection.name,
-          benchmarkTypes: JSON.stringify((createdCollection.benchmarks ?? []).map((b) => b.id)),
-          countOfBenchmarks: createdCollection.benchmarks?.length ?? 0,
         });
+
+        trackEvalHubEvent(
+          EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+          {
+            runType: 'collection',
+            collectionName: createdCollection.name,
+            benchmarkTypes: JSON.stringify((createdCollection.benchmarks ?? []).map((b) => b.id)),
+            countOfBenchmarks: createdCollection.benchmarks?.length ?? 0,
+          },
+          {
+            collectionType: createdCollection.resource.read_only ? 'system' : 'custom',
+            providerType: createdCollection.benchmarks?.[0]?.provider_id,
+          },
+        );
 
         return createdCollection;
       } catch (e) {
         if (!controller.signal.aborted) {
           const message = e instanceof Error ? e.message : 'An unknown error occurred.';
+          trackCollectionSaved(form.getValues(), {
+            success: false,
+            // eslint-disable-next-line camelcase -- API tracking field name.
+            error_category: e instanceof Error ? e.name : 'unknown_error',
+          });
           notification.error('Failed to create collection', message);
         }
         return undefined;
@@ -1042,7 +1152,15 @@ export function useCopySuiteForm({
         }
       }
     },
-    [isCreateMode, namespace, form, buildCreateRequest, notification, refreshCollections],
+    [
+      isCreateMode,
+      namespace,
+      form,
+      buildCreateRequest,
+      trackCollectionSaved,
+      notification,
+      refreshCollections,
+    ],
   );
 
   const handleSaveAndRun = React.useCallback(() => {
@@ -1071,6 +1189,7 @@ export function useCopySuiteForm({
         return;
       }
 
+      const formValues = form.getValues();
       controller = new AbortController();
       abortControllerRef.current = controller;
       const savedCollection = isCreateMode
@@ -1089,6 +1208,8 @@ export function useCopySuiteForm({
               buildCloneRequest(),
             )({ signal: controller.signal });
 
+      trackCollectionSaved(formValues, { success: true, collectionName: savedCollection.name });
+
       notification.success(
         isCreateMode
           ? 'Collection created'
@@ -1104,6 +1225,11 @@ export function useCopySuiteForm({
     } catch (e) {
       if (controller && !controller.signal.aborted) {
         const message = e instanceof Error ? e.message : 'An unknown error occurred.';
+        trackCollectionSaved(form.getValues(), {
+          success: false,
+          // eslint-disable-next-line camelcase -- API tracking field name.
+          error_category: e instanceof Error ? e.name : 'unknown_error',
+        });
         notification.error(
           isCreateMode
             ? 'Failed to create collection'
@@ -1129,6 +1255,7 @@ export function useCopySuiteForm({
     buildCreateRequest,
     buildCloneRequest,
     buildPatchOperations,
+    trackCollectionSaved,
     navigate,
     notification,
     refreshCollections,

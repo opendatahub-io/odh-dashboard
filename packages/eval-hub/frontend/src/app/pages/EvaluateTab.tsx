@@ -20,6 +20,8 @@ import {
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 // Show five suites so the create-suite card occupies the sixth slot in the preview gallery.
 const MAX_VISIBLE_BENCHMARK_SUITES = 5;
@@ -58,6 +60,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
           benchmarkNameMap={benchmarkNameMap}
           maxVisibleCollections={MAX_VISIBLE_BENCHMARK_SUITES}
           showSummary
+          trackingSurface="my_benchmark_suites"
           useMockFallback={false}
           primaryActionLabel="Run"
           createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
@@ -99,6 +102,11 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
                   component={(props) => (
                     <Link {...props} to={evaluationBenchmarksRoute(namespace)} />
                   )}
+                  onClick={() =>
+                    trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED, {
+                      surface: 'my_benchmark_suites',
+                    })
+                  }
                   data-testid="browse-all-benchmarks-explore"
                 >
                   Explore

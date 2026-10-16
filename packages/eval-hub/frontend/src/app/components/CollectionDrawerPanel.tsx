@@ -29,6 +29,8 @@ import {
 } from '@patternfly/react-core';
 import { ChartLineIcon, SearchIcon } from '@patternfly/react-icons';
 import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import SearchableMultiSelectFilter from './SearchableMultiSelectFilter';
 import { formatCollectionMetadataValue, getMetricDisplayName } from './benchmarkUtils';
@@ -268,6 +270,29 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     );
   }, [collection?.benchmarks, benchmarkDetailsMap]);
 
+  const handleRunCollection = React.useCallback(() => {
+    if (!collection) {
+      return;
+    }
+
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: collection.name,
+        benchmarkTypes: JSON.stringify(
+          (collection.benchmarks ?? []).map((benchmark) => benchmark.id),
+        ),
+        countOfBenchmarks: collection.benchmarks?.length ?? 0,
+      },
+      {
+        collectionType: collection.resource.read_only ? 'system' : 'custom',
+        providerType: collection.benchmarks?.[0]?.provider_id,
+      },
+    );
+    onRunCollection(collection, isSystemCollection);
+  }, [collection, isSystemCollection, onRunCollection]);
+
   const metadataSections = [
     {
       title: 'Metrics evaluated',
@@ -358,7 +383,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
               <Button
                 variant="primary"
                 data-testid="use-benchmark-suite-button"
-                onClick={() => onRunCollection(collection, isSystemCollection)}
+                onClick={handleRunCollection}
               >
                 {primaryActionLabel}
               </Button>

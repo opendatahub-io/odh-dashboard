@@ -32,11 +32,11 @@ import {
 import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useProviders } from '~/app/hooks/useProviders';
 import { FlatBenchmark } from '~/app/types';
 import { evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import BenchmarkCard from '~/app/components/BenchmarkCard';
 import { formatCategory, getMetricDisplayName } from '~/app/components/benchmarkUtils';
@@ -67,11 +67,18 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
 
   const handleRunBenchmark = React.useCallback(
     (b: FlatBenchmark) => {
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-        runType: 'single',
-        benchmarkTypes: JSON.stringify([b.id]),
-        countOfBenchmarks: 1,
-      });
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+        {
+          runType: 'single',
+          benchmarkTypes: JSON.stringify([b.id]),
+          countOfBenchmarks: 1,
+        },
+        {
+          collectionType: 'system',
+          providerType: b.providerId,
+        },
+      );
       const params = new URLSearchParams({
         type: 'benchmark',
         providerId: b.providerId,

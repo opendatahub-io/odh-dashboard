@@ -5,6 +5,8 @@ import { Card, CardBody, Content, Grid, GridItem, Title } from '@patternfly/reac
 import { RhStandardAiModelIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { evaluationCuratedBenchmarkSuitesRoute } from '~/app/routes';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './CuratedSuiteCategories.scss';
 
 type CuratedCategory = {
@@ -104,6 +106,13 @@ const CuratedSuiteCategories: React.FC<CuratedSuiteCategoriesProps> = ({ namespa
             <Link
               to={getCategoryHref(namespace, category)}
               className="evalhub-curated-suite-categories__link"
+              onClick={() =>
+                trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CATEGORY_SELECTED, {
+                  categoryId: category.id,
+                  evaluationTarget: category.evaluationTargets?.[0],
+                  surface: 'my_benchmark_suites',
+                })
+              }
               data-testid={`curated-suite-category-card-${category.id}`}
             >
               <Card isFullHeight className="evalhub-curated-suite-categories__card">
