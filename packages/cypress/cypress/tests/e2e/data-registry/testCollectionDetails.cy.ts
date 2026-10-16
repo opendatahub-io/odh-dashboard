@@ -114,9 +114,9 @@ describe('Data Registry - Collection Details', () => {
   });
 
   it('should display collection detail page', () => {
-    // Navigate to the collection through its breadcrumb on the asset detail page.
+    // Navigate to the collection through the asset details link.
     dataRegistryPage.openAsset(testData.asset);
-    dataRegistryPage.openCollectionFromBreadcrumb(testData.collection);
+    dataRegistryPage.openCollectionFromAssetDetails(testData.collection);
 
     // Verify collection detail page loaded
     dataRegistryPage.findPageTitle().should('contain.text', testData.collection);

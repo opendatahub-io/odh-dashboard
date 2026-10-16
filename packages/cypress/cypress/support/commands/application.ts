@@ -302,7 +302,9 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
   cy.get('input[type="submit"], button[type="submit"]').click();
 
   // Wait for redirect back to dashboard
-  cy.url().should('include', Cypress.config('baseUrl'));
+  // OpenShift OAuth may redirect back to the canonical dashboard route on a different host.
+  // Ensure authentication left the login and OAuth endpoints before continuing.
+  cy.url().should('not.include', '/login/');
   cy.url().should('not.include', '/oauth');
 };
 

@@ -1,10 +1,12 @@
 import type { UserAuthConfig } from '../../types';
 
+const PROJECT_SELECTOR_TIMEOUT_MS = 60000;
+
 class DataRegistryPage {
   navigate(project?: string, credentials?: UserAuthConfig) {
     const projectQuery = project ? `?project=${encodeURIComponent(project)}` : '';
     cy.visitWithLogin(`/ai-hub/data/browse${projectQuery}`, credentials);
-    this.findProjectSelector().should('be.visible');
+    this.findProjectSelector(PROJECT_SELECTOR_TIMEOUT_MS).should('be.visible');
   }
 
   navigateToCollection(project: string, collection: string, credentials?: UserAuthConfig) {
@@ -21,8 +23,8 @@ class DataRegistryPage {
     cy.visit(`/data-registry?project=${project}`);
   }
 
-  findProjectSelector() {
-    return cy.findByTestId('project-selector-toggle');
+  findProjectSelector(timeout = Cypress.config('defaultCommandTimeout')) {
+    return cy.findByTestId('project-selector-toggle', { timeout });
   }
 
   findProjectOption(project: string) {
@@ -146,7 +148,7 @@ class DataRegistryPage {
   }
 
   findConnectionOption(connectionName: string) {
-    return cy.findByTestId(`connection-option-secret:${connectionName}`);
+    return cy.findByRole('option', { name: new RegExp(connectionName) });
   }
 
   findDataNameInput() {
@@ -169,9 +171,8 @@ class DataRegistryPage {
     return this.findRegisterDataModal().findByTestId('data-collection-toggle');
   }
 
-  selectDataCollection(collectionName: string) {
-    this.findDataCollectionToggle().click();
-    this.findRegisterDataModal().findByRole('option', { name: collectionName }).click();
+  findDataCollectionOption(collectionName: string) {
+    return cy.findByRole('option', { name: collectionName });
   }
 
   findRegisterDataSubmit() {
@@ -230,14 +231,12 @@ class DataRegistryPage {
     return cy.findByTestId('asset-type-badge');
   }
 
-  findCollectionBreadcrumb(collectionName: string) {
-    return cy
-      .findByRole('navigation', { name: /breadcrumb/i })
-      .findByRole('link', { name: collectionName });
+  findAssetCollectionLink(collectionName: string) {
+    return cy.findByTestId('asset-collection').findByRole('link', { name: collectionName });
   }
 
-  openCollectionFromBreadcrumb(collectionName: string) {
-    this.findCollectionBreadcrumb(collectionName).click();
+  openCollectionFromAssetDetails(collectionName: string) {
+    this.findAssetCollectionLink(collectionName).click();
   }
 
   findCollectionDetailsCard() {

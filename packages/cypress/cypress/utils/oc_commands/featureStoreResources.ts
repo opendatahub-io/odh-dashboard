@@ -309,6 +309,7 @@ print("CREATED_SAVED_DATASET:" + ds.name)
 };
 
 const FEAST_OPERATOR_DEPLOY = 'feast-operator-controller-manager';
+const ODH_FEAST_OPERATOR_DEPLOY = 'opendatahub-feast-operator';
 const DATA_REGISTRY_NAMESPACE = 'rhoai-data-registry';
 const K8S_NAME_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
@@ -388,7 +389,9 @@ const waitForFeastOperatorReady = (): Cypress.Chainable => {
   return pollUntilSuccess(
     `oc get deploy -A -o json | jq -e 'any(.items[]?; ` +
       `(.metadata.name == "${FEAST_OPERATOR_DEPLOY}" or ` +
-      `.metadata.labels["app.kubernetes.io/name"] == "feast-operator") and ` +
+      `.metadata.name == "${ODH_FEAST_OPERATOR_DEPLOY}" or ` +
+      `.metadata.labels["app.kubernetes.io/name"] == "feast-operator" or ` +
+      `.metadata.labels["app.kubernetes.io/name"] == "${ODH_FEAST_OPERATOR_DEPLOY}") and ` +
       `(((.status.readyReplicas // 0) > 0) or ` +
       `((.status.availableReplicas // 0) > 0) or ` +
       `any(.status.conditions[]?; .type == "Available" and .status == "True")))'`,
@@ -517,8 +520,8 @@ export const createFeatureStoreCR = (
     return waitForFeastOperatorReady()
       .then(() =>
         pollUntilSuccess(
-          `oc get namespace ${safeNamespace} -o json | jq -e '.metadata.labels["opendatahub.io/data-registry"] == "true"'`,
-          `namespace ${safeNamespace} to have opendatahub.io/data-registry=true label`,
+          `oc get namespace ${safeNamespace} -o json | jq -e '.metadata.labels["dataregistry.opendatahub.io/enabled"] == "true"'`,
+          `namespace ${safeNamespace} to have dataregistry.opendatahub.io/enabled=true label`,
           { maxAttempts: 30, pollIntervalMs: 5000 },
         ),
       )

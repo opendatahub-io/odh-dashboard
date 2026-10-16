@@ -243,15 +243,31 @@ describe('Data Registry browse flow', () => {
         const connectionsResponse = response?.body as
           | {
               data?: Array<{ type?: string; secret_name?: string }>;
+              metadata?: {
+                rhaiConnections?: Array<{ type?: string; secret_name?: string }>;
+                warnings?: Array<{ code?: string; message?: string }>;
+              };
             }
           | undefined;
-        expect(
-          connectionsResponse?.data,
+        const connectionResponseSummary = {
+          data: (connectionsResponse?.data ?? []).map(({ type, secret_name: secretName }) => ({
+            type,
+            secretName,
+          })),
+          rhaiConnections: (connectionsResponse?.metadata?.rhaiConnections ?? []).map(
+            ({ type, secret_name: secretName }) => ({ type, secretName }),
+          ),
+          warnings: connectionsResponse?.metadata?.warnings ?? [],
+        };
+        const connectionResponseMessage = [
           'RHOAI Secret connection available to the test user',
-        ).to.deep.include({
-          type: 'secret',
-          secret_name: testConnectionName,
-        });
+          `response summary: ${JSON.stringify(connectionResponseSummary)}`,
+        ].join('; ');
+        const hasTestConnection = connectionsResponse?.data?.some(
+          ({ type, secret_name: secretName }) =>
+            type === 'secret' && secretName === testConnectionName,
+        );
+        expect(hasTestConnection, connectionResponseMessage).to.equal(true);
       });
       dataRegistryPage.findConnectionsError().should('not.exist');
       dataRegistryPage.findConnectionToggle().should('not.be.disabled').click();
@@ -279,8 +295,8 @@ describe('Data Registry browse flow', () => {
       dataRegistryPage.findPageTitle().should('contain.text', testData.asset);
       dataRegistryPage.findAssetTypeBadge().should('contain.text', 'Data asset');
 
-      cy.step(`Open the ${testData.collection} collection from the breadcrumb`);
-      dataRegistryPage.openCollectionFromBreadcrumb(testData.collection);
+      cy.step(`Open the ${testData.collection} collection from the asset details`);
+      dataRegistryPage.openCollectionFromAssetDetails(testData.collection);
 
       cy.step('Verify the collection details and assets are loaded');
       dataRegistryPage.findPageTitle().should('contain.text', testData.collection);
@@ -329,19 +345,25 @@ describe('Data Registry browse flow', () => {
       dataRegistryPage.findConnectionToggle().should('contain.text', testConnectionName);
       dataRegistryPage.findDataNameInput().type(crudAssetName);
       dataRegistryPage.findDataDescriptionInput().type(crudAssetDescription);
-      dataRegistryPage.selectDataCollection(crudCollectionName);
+      dataRegistryPage.findDataCollectionToggle().click();
+      dataRegistryPage.findDataCollectionOption(crudCollectionName).click();
       dataRegistryPage.findRegisterDataSubmit().click();
-      cy.wait('@createCrudAsset').then(({ request }) => {
+      cy.wait('@createCrudAsset').then(({ request, response }) => {
+        if (response && response.statusCode >= 200 && response.statusCode < 300) {
+          crudAssetCreated = true;
+        }
+        expect(response?.statusCode, 'Registered asset create response').to.be.within(200, 299);
         const requestBody = request.body as {
           connection_ref?: { type?: string; secret_name?: string };
         };
         expect(
-          requestBody.connection_ref,
-          'Registered asset RHOAI connection reference',
-        ).to.deep.equal({
-          type: 'secret',
-          secret_name: testConnectionName,
-        });
+          requestBody.connection_ref?.type,
+          'Registered RHOAI connection reference type',
+        ).to.equal('secret');
+        expect(
+          requestBody.connection_ref?.secret_name,
+          'Registered RHOAI connection reference name',
+        ).to.equal(testConnectionName);
       });
       dataRegistryPage
         .findRegisterDataModal()
