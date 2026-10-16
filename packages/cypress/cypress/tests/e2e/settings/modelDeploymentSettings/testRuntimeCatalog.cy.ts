@@ -1,12 +1,10 @@
 import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { generalSettingsPage } from '../../../../pages/modelDeploymentSettings/generalSettings';
-import { runtimeImageInstallPage } from '../../../../pages/modelDeploymentSettings/runtimeImageInstall';
 import { runtimeCatalogPage } from '../../../../pages/runtimeCatalog';
 import { runtimeCatalogDetailsPage } from '../../../../pages/runtimeCatalogDetails';
 import { pageNotfound } from '../../../../pages/pageNotFound';
 import { verifyModelCatalogDeployment } from '../../../../utils/oc_commands/modelCatalog';
-import { retryableBefore } from '../../../../utils/retryableHooks';
 import {
   interceptRuntimeCatalogList,
   verifyRuntimeCatalogListFilteredByHardware,
@@ -16,7 +14,6 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
   let testData: Record<string, string>;
 
   before(() => {
-    // Loaded outside retryableBefore so non-admin runs, which skip admin setup, still get it
     cy.fixture('e2e/settings/runtimeCatalog/testRuntimeCatalog.yaml', 'utf8').then(
       (yamlContent: string) => {
         testData = yaml.load(yamlContent) as Record<string, string>;
@@ -24,18 +21,14 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
     );
   });
 
-  retryableBefore(() => {
-    cy.step('Verify the model catalog backend that serves the runtime image library is deployed');
-    return verifyModelCatalogDeployment();
-  });
-
   it(
     'Admin can filter the runtime image library, open a runtime image and see the Install action',
-    {
-      // @Maintain until the catalog server serves runtime images; the non-admin test runs today.
-      tags: ['@Dashboard', '@RuntimeCatalog', '@Maintain'],
-    },
+    { tags: ['@Dashboard', '@RuntimeCatalog'] },
     () => {
+      // Checked here rather than in a shared hook so a missing catalog only fails the admin test
+      cy.step('Verify the model catalog backend that serves the runtime image library is deployed');
+      verifyModelCatalogDeployment();
+
       cy.step('Log in as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
@@ -103,7 +96,7 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
       cy.step('Verify the page is not found and no Install action is rendered');
       pageNotfound.findPage().should('exist');
       runtimeCatalogDetailsPage.findPage().should('not.exist');
-      runtimeImageInstallPage.findInstallButton().should('not.exist');
+      runtimeCatalogDetailsPage.findInstallAction().should('not.exist');
     },
   );
 });
