@@ -6,7 +6,9 @@ import extensions, {
   AI_ASSET_CUSTOM_ENDPOINTS,
   CHAT_PLAYGROUND,
   EXTERNAL_VECTOR_STORES,
+  GEN_AI_AUDIO_UPLOAD,
   GEN_AI_AGENT_DEPLOYMENT,
+  GEN_AI_IMAGE_UPLOAD,
   GEN_AI_MCP_REGISTRY_SERVERS,
   GUARDRAILS,
   MODEL_AS_SERVICE,
@@ -23,6 +25,8 @@ export const PluginStoreContextProvider: React.FC<React.PropsWithChildren> = ({ 
     const flags: Record<string, boolean> = {
       [PLUGIN_GEN_AI]: true,
       [CHAT_PLAYGROUND]: true,
+      [GEN_AI_IMAGE_UPLOAD]: true,
+      [GEN_AI_AUDIO_UPLOAD]: true,
       [MODEL_AS_SERVICE]: true,
       [MODEL_AS_SERVICE_CAMEL]: true,
       [GUARDRAILS]: true,

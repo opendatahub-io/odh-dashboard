@@ -1,3 +1,4 @@
+import { appChrome } from './appChrome';
 import type { UserAuthConfig } from '../types';
 
 const HARDWARE_FILTER_TEST_ID_PREFIX = 'runtime-catalog-filter-hardware-';
@@ -19,6 +20,13 @@ class RuntimeCatalogPage {
   }
 
   navigate() {
+    appChrome
+      .findNavItem({
+        name: 'Model deployment settings',
+        rootSection: 'Settings',
+        subSection: 'Model resources and operations',
+      })
+      .click();
     this.findTab().click();
     this.wait();
   }
@@ -36,7 +44,27 @@ class RuntimeCatalogPage {
   }
 
   findSearchInput() {
-    return cy.findByTestId('runtime-catalog-search-input');
+    return cy.findByTestId('runtime-catalog-search-input').findByRole('textbox');
+  }
+
+  findSearchButton() {
+    return cy
+      .get('body')
+      .then(($body) =>
+        $body.find('[data-testid="runtime-catalog-search-button"]').length > 0
+          ? cy.findByTestId('runtime-catalog-search-button')
+          : cy
+              .findByTestId('runtime-catalog-search-input')
+              .findByRole('button', { name: 'Search' }),
+      );
+  }
+
+  findFirstCardName() {
+    return this.findPage().find('[data-testid^="runtime-catalog-card-name-"]').first();
+  }
+
+  findCardDetailLinks() {
+    return this.findPage().find('a[data-testid^="runtime-catalog-card-detail-link-"]');
   }
 
   findSidebar() {
@@ -61,10 +89,6 @@ class RuntimeCatalogPage {
 
   findCardName(cardKey: string) {
     return cy.findByTestId(`runtime-catalog-card-name-${cardKey}`);
-  }
-
-  findCardDetailLinks() {
-    return cy.findAllByTestId(/^runtime-catalog-card-detail-link-/);
   }
 
   findPageDescription() {

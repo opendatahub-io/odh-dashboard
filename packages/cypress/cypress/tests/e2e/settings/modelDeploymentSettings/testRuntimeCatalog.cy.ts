@@ -1,6 +1,5 @@
 import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
-import { generalSettingsPage } from '../../../../pages/modelDeploymentSettings/generalSettings';
 import { runtimeCatalogPage } from '../../../../pages/runtimeCatalog';
 import { runtimeCatalogDetailsPage } from '../../../../pages/runtimeCatalogDetails';
 import { pageNotfound } from '../../../../pages/pageNotFound';
@@ -32,10 +31,7 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
       cy.step('Log in as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
-      cy.step('Navigate to Model deployment settings');
-      generalSettingsPage.navigate();
-
-      cy.step('Open the Runtime image library tab');
+      cy.step('Navigate to the Runtime image library tab on Model deployment settings');
       runtimeCatalogPage.navigate();
 
       cy.step('Verify runtime image cards are displayed');
@@ -72,7 +68,7 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
 
           cy.step('Verify the details page opens for the selected runtime image');
           cy.location('pathname').should('eq', detailsPath);
-          runtimeCatalogDetailsPage.findTitle().should('be.visible');
+          runtimeCatalogDetailsPage.findRuntimeHeading().should('be.visible');
 
           // Install is a link when a target can install this image and aria-disabled otherwise,
           // depending on the runtime's resources, so only its presence is asserted here.
