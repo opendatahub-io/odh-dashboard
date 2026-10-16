@@ -51,12 +51,11 @@ describe('KServeServingRuntimeField', () => {
             id="kserve/modelServer"
             onChange={jest.fn()}
             dependencies={{
-              modelServerTemplates: [globalTemplate, projectTemplate],
               modelType: { type: modelType },
               deploymentMethod: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
             }}
             externalData={{
-              data: { extraOptions: [] },
+              data: { templates: [globalTemplate, projectTemplate], extraOptions: [] },
               loaded: true,
             }}
           />

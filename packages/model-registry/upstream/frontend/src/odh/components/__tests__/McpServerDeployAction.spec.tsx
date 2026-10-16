@@ -68,6 +68,13 @@ const expectTooltip = async (text: string) => {
   expect(await screen.findByText(text)).toBeInTheDocument();
 };
 
+const expectGatewayPopover = async (text: string) => {
+  await userEvent.hover(getButton());
+  const popover = await screen.findByTestId('mcp-deploy-gateway-popover');
+  expect(popover).toHaveTextContent('MCP gateway required');
+  expect(popover).toHaveTextContent(text);
+};
+
 describe('McpServerDeployAction', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -79,6 +86,17 @@ describe('McpServerDeployAction', () => {
   it('should pass the server id from the route to the readiness hook', () => {
     renderAction();
     expect(mockUseMcpServerDeployReadiness).toHaveBeenCalledWith('4');
+  });
+
+  it.each([
+    ['loading', { available: false, loaded: false }],
+    ['not available', { available: false, loaded: true }],
+  ])('should not check deploy readiness while MCP Lifecycle is %s', (_, lifecycle) => {
+    mockUseMcpServerDeployAvailable.mockReturnValue(lifecycle);
+    renderAction();
+
+    expect(mockUseMcpServerDeployReadiness).toHaveBeenCalledWith('');
+    expect(mockUseMcpServerDeployReadiness).not.toHaveBeenCalledWith('4');
   });
 
   it('should render nothing when the server has no deployable artifact', () => {
@@ -141,12 +159,15 @@ describe('McpServerDeployAction', () => {
     renderAction();
 
     expect(getButton()).toHaveAttribute('aria-disabled', 'true');
-    await expectTooltip(tooltip);
+    expect(getButton()).toHaveAccessibleDescription(tooltip);
+    // The docs link is in the popover, not next to the button.
+    expect(screen.queryByTestId('mcp-deploy-gateway-docs-link')).not.toBeInTheDocument();
+    await expectGatewayPopover(tooltip);
 
     await userEvent.click(getButton());
     expect(screen.queryByTestId('mcp-deploy-modal-stub')).not.toBeInTheDocument();
 
-    const docsLink = screen.getByTestId('mcp-deploy-gateway-docs-link');
+    const docsLink = await screen.findByTestId('mcp-deploy-gateway-docs-link');
     expect(docsLink).toHaveTextContent('How to set up an MCP gateway');
     await userEvent.click(docsLink);
     expect(openSpy).toHaveBeenCalledWith(MCP_GATEWAY_SETUP_DOCS_URL);
@@ -165,16 +186,19 @@ describe('McpServerDeployAction', () => {
     renderAction();
 
     expect(getButton()).toHaveAttribute('aria-disabled', 'true');
-    await expectTooltip(
+    await expectGatewayPopover(
       'This MCP server requires an MCP gateway, but MCP gateway availability could not be determined. Try again later or contact your cluster administrator.',
     );
   });
 
-  it('should block Deploy without a gateway docs link when not deployable for another reason', () => {
+  it('should block Deploy without a gateway docs link when not deployable for another reason', async () => {
     setReadiness({ gatewayRequired: false, deployable: false }, true);
     renderAction();
 
     expect(getButton()).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(getButton());
+    expect(await screen.findByRole('tooltip')).toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mcp-deploy-gateway-docs-link')).not.toBeInTheDocument();
   });
 

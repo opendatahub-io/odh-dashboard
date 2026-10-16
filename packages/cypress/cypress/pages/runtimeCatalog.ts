@@ -112,7 +112,7 @@ class RuntimeCatalogPage {
   }
 
   findHardwareFilterCheckboxes() {
-    return cy.findByTestId('runtime-catalog-filter-hardware').find('input[type="checkbox"]');
+    return this.findHardwareFilter().find('input[type="checkbox"]');
   }
 
   // Reads the hardware value a filter checkbox selects from its data-testid. closest() checks the
@@ -122,6 +122,14 @@ class RuntimeCatalogPage {
       $checkbox.closest(`[data-testid^="${HARDWARE_FILTER_TEST_ID_PREFIX}"]`).attr('data-testid') ??
       ''
     ).replace(HARDWARE_FILTER_TEST_ID_PREFIX, '');
+  }
+
+  findHardwareFilter() {
+    return cy.findByTestId('runtime-catalog-filter-hardware');
+  }
+
+  findHardwareFilterCheckbox(hardware: string) {
+    return cy.findByTestId(`runtime-catalog-filter-hardware-${hardware}`);
   }
 
   findHardwareFilterChip(hardware: string) {

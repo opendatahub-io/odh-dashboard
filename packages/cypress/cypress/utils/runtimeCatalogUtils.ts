@@ -19,8 +19,12 @@ export const interceptRuntimeCatalogList = (): void => {
  * the catalog backend; this checks that the dashboard sends the selected filter.
  */
 export const verifyRuntimeCatalogListFilteredByHardware = (hardware: string): void => {
-  // A single selected value is sent as an equality clause, with single quotes doubled
-  const expectedFilterQuery = `hardware='${hardware.replace(/'/g, "''")}'`;
+  // The UI's hardware filter maps to the catalog field capabilities.supportedAccelerators. A single
+  // selected value is sent as an equality clause, with single quotes doubled.
+  const expectedFilterQuery = `capabilities.supportedAccelerators='${hardware.replace(
+    /'/g,
+    "''",
+  )}'`;
   cy.wait(`@${RUNTIME_CATALOG_LIST_ALIAS}`)
     .its('request.url')
     .then((url: string) => {
