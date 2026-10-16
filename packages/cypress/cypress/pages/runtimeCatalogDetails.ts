@@ -13,8 +13,24 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByRole('heading', { name });
   }
 
+  findInstallAction() {
+    return this.findPage().findByTestId('runtime-image-install');
+  }
+
+  findInstallUnavailableTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
   findLatestBadge() {
     return this.findPage().findByTestId('runtime-catalog-details-latest');
+  }
+
+  openLatestPopover() {
+    this.findLatestBadge().findByRole('button', { name: 'Latest' }).click();
+  }
+
+  findLatestPopover() {
+    return cy.findByTestId('runtime-catalog-details-latest-popover');
   }
 
   findText(text: string | RegExp) {
@@ -45,8 +61,12 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByTestId('runtime-llm-inference-service-panel');
   }
 
+  findLlmInferenceServiceTab() {
+    return this.findPage().findByTestId('runtime-llm-inference-service-tab');
+  }
+
   selectLlmInferenceServiceTab() {
-    this.findPage().findByTestId('runtime-llm-inference-service-tab').click();
+    this.findLlmInferenceServiceTab().click();
   }
 
   copyContainerImage() {

@@ -43,6 +43,7 @@ export type PipelineRunTaskDetail = {
   start_time?: string;
   end_time?: string;
   state?: string;
+  state_history?: PipelineRunStateHistoryEntry[];
   execution_id?: string;
   child_tasks?: { pod_name?: string; task_id?: string }[];
   error?: PipelineRunError;

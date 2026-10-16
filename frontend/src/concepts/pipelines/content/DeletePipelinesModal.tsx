@@ -8,6 +8,7 @@ import useDeleteStatuses from '#~/concepts/pipelines/content/useDeleteStatuses';
 import DeletePipelineModalExpandableSection from '#~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
 import { getPipelineAndVersionDeleteString } from '#~/concepts/pipelines/content/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 type DeletePipelinesModalProps = {
   toDeletePipelines?: PipelineKF[];
@@ -131,7 +132,7 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
               fireFormTrackingEventForPipeline({
                 outcome: TrackingOutcome.submit,
                 success: false,
-                error: e,
+                error: errorCategory(e),
               });
             });
         } else {

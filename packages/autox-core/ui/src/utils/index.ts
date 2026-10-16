@@ -13,3 +13,8 @@ export {
 export type { TreeEdgeBounds } from './topology/treeEdgePath';
 export { parseErrorStatus } from './parseErrorStatus';
 export { formatMissingKeysMessage, getMissingRequiredKeys } from './secretValidation';
+export {
+  getPipelineTaskAttemptTimestamp,
+  getPipelineTaskTiming,
+  type PipelineTaskTiming,
+} from './pipelineTaskTiming';

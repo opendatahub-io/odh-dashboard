@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -94,6 +95,19 @@ func (r *MockSubscriptionsRepository) UpdateSubscription(_ context.Context, name
 		return nil, k8sErrors.NewNotFound(constants.MaaSSubscriptionGvr.GroupResource(), name)
 	}
 
+	if request.ResourceVersion != "" && existing.ResourceVersion != "" && request.ResourceVersion != existing.ResourceVersion {
+		return nil, k8sErrors.NewConflict(
+			constants.MaaSSubscriptionGvr.GroupResource(),
+			name,
+			fmt.Errorf("the object has been modified"),
+		)
+	}
+
+	resourceVersion := existing.ResourceVersion
+	if resourceVersion == "" {
+		resourceVersion = "1"
+	}
+
 	return &models.CreateSubscriptionResponse{
 		Subscription: models.MaaSSubscription{
 			Name:              existing.Name,
@@ -102,6 +116,7 @@ func (r *MockSubscriptionsRepository) UpdateSubscription(_ context.Context, name
 			Namespace:         existing.Namespace,
 			Phase:             existing.Phase,
 			InferencePriority: request.InferencePriority,
+			ResourceVersion:   resourceVersion,
 			Owner:             request.Owner,
 			ModelRefs:         request.ModelRefs,
 			TokenMetadata:     request.TokenMetadata,

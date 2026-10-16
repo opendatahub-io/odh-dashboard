@@ -685,7 +685,7 @@ class SubscriptionTableRow extends TableRow {
   }
 
   findPriority(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Priority"]');
+    return this.find().find('[data-label="Inference Priority"]');
   }
 
   findExpandGroupButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -819,20 +819,24 @@ class CreateSubscriptionPage {
   }
 
   findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-priority').find('input[type="number"]');
+    return cy.findByTestId('subscription-inference-priority').find('input[type="number"]');
   }
 
   findPriorityPlusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-priority').findByRole('button', { name: 'Plus' });
+    return cy
+      .findByTestId('subscription-inference-priority')
+      .findByRole('button', { name: 'Plus' });
   }
 
   findPriorityMinusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-priority').findByRole('button', { name: 'Minus' });
+    return cy
+      .findByTestId('subscription-inference-priority')
+      .findByRole('button', { name: 'Minus' });
   }
 
   findPriorityValidationError(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy
-      .findByTestId('subscription-priority')
+      .findByTestId('subscription-inference-priority')
       .parents('.pf-v6-c-form__group')
       .find('.pf-v6-c-helper-text__item');
   }
@@ -921,7 +925,7 @@ class EditSubscriptionPage {
   }
 
   findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-priority').find('input[type="number"]');
+    return cy.findByTestId('subscription-inference-priority').find('input[type="number"]');
   }
 
   findGroupsSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1132,6 +1136,14 @@ class ViewSubscriptionPage {
 
   findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('menuitem', { name: 'Edit' });
+  }
+
+  findModelStatus(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`model-status-${modelName}`);
+  }
+
+  findFlowControlStatus(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`model-flow-control-status-${modelName}`);
   }
 }
 

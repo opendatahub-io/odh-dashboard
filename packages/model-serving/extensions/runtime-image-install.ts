@@ -4,7 +4,7 @@ import type { ActionProperties, RouteExtension } from '@odh-dashboard/plugin-cor
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { RuntimeImageInstallActionProps } from '@mf/modelRegistry/extension-points';
 
-const required = [SupportedArea.RUNTIME_CATALOG, SupportedArea.MODEL_SERVING, 'ADMIN_USER'];
+const required = [SupportedArea.MODEL_SERVING, 'ADMIN_USER'];
 
 type RuntimeImageInstallActionExtension = Extension<
   'core.action',
