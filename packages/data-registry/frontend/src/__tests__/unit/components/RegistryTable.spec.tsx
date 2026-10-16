@@ -44,31 +44,40 @@ const mockAssets: RegistryAsset[] = [
 
 const mockLabels = ['production', 'claims', 'source-docs'];
 
-const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>) =>
-  render(
+type RegistryTableProps = React.ComponentProps<typeof RegistryTable>;
+
+const renderTable = (props?: Partial<RegistryTableProps>) => {
+  const defaultProps: RegistryTableProps = {
+    assets: mockAssets,
+    loaded: true,
+    error: undefined,
+    labels: mockLabels,
+    project: 'test-project',
+    connections: [
+      mockRhaiConnection({
+        secret_name: 'minio-connection',
+        name: 'Minio connection',
+        connectionType: 's3',
+      }),
+    ],
+    connectionsLoaded: true,
+    onManageCollections: jest.fn(),
+    onManageLabels: jest.fn(),
+    onRegisterData: jest.fn(),
+    onRetry: jest.fn(),
+  };
+  const renderView = (nextProps: Partial<RegistryTableProps>) => (
     <MemoryRouter>
-      <RegistryTable
-        assets={mockAssets}
-        loaded
-        error={undefined}
-        labels={mockLabels}
-        project="test-project"
-        connections={[
-          mockRhaiConnection({
-            secret_name: 'minio-connection',
-            name: 'Minio connection',
-            connectionType: 's3',
-          }),
-        ]}
-        connectionsLoaded
-        onManageCollections={jest.fn()}
-        onManageLabels={jest.fn()}
-        onRegisterData={jest.fn()}
-        onRetry={jest.fn()}
-        {...props}
-      />
-    </MemoryRouter>,
+      <RegistryTable {...defaultProps} {...nextProps} />
+    </MemoryRouter>
   );
+  const rendered = render(renderView(props ?? {}));
+  return {
+    ...rendered,
+    rerenderTable: (nextProps: Partial<RegistryTableProps>) =>
+      rendered.rerender(renderView({ ...props, ...nextProps })),
+  };
+};
 
 describe('RegistryTable', () => {
   beforeEach(() => {
@@ -296,6 +305,65 @@ describe('RegistryTable', () => {
       fireEvent.click(screen.getByRole('checkbox', { name: 'source-docs' }));
       act(() => jest.advanceTimersByTime(750));
       expect(mockTrackEvent).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should count refreshed assets when the search debounce settles', () => {
+    jest.useFakeTimers();
+    try {
+      const { rerenderTable } = renderTable({ assets: [mockAssets[0]] });
+      fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+        target: { value: 'docs' },
+      });
+
+      rerenderTable({ assets: [mockAssets[1]] });
+      act(() => jest.advanceTimersByTime(750));
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Data Registry Search Performed',
+        properties: { hasQuery: true, queryLength: 4, resultCount: 1, project: 'test-project' },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should cancel a pending search event when the project changes', () => {
+    jest.useFakeTimers();
+    try {
+      const { rerenderTable } = renderTable();
+      fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+        target: { value: 'claims' },
+      });
+
+      rerenderTable({ project: 'other-project' });
+      act(() => jest.advanceTimersByTime(750));
+
+      expect(mockTrackEvent).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should count the active filters when the search debounce settles', () => {
+    jest.useFakeTimers();
+    try {
+      renderTable();
+      fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+        target: { value: 'data' },
+      });
+      fireEvent.click(screen.getByTestId('filter-value'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'source-docs' }));
+
+      act(() => jest.advanceTimersByTime(750));
+
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Data Registry Search Performed',
+        properties: { hasQuery: true, queryLength: 4, resultCount: 0, project: 'test-project' },
+      });
     } finally {
       jest.useRealTimers();
     }

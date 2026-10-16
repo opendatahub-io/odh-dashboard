@@ -100,9 +100,12 @@ const STATUS_CODE_KEY = 'status_code';
 
 export const getRegistrationErrorCategory = (error: unknown): string => {
   if (error instanceof Error) {
-    const match = error.message.match(/(?:status code|status|code|api error|http)\D+(\d{3})\b/i);
-    if (match) {
-      return `http_${match[1]}`;
+    const match = error.message.match(
+      /\b(?:status code|status|code|api error|http)[\s:=]{1,3}(\d{3})\b/i,
+    );
+    const status = match ? Number(match[1]) : undefined;
+    if (status !== undefined && status >= 100 && status <= 599) {
+      return `http_${status}`;
     }
   }
 

@@ -20,6 +20,15 @@ describe('getRegistrationErrorCategory', () => {
     expect(getRegistrationErrorCategory(new Error('customer project details'))).toBe(
       'unknown_error',
     );
+    expect(getRegistrationErrorCategory(new Error('invalid code: value 123 rejected'))).toBe(
+      'unknown_error',
+    );
+    expect(getRegistrationErrorCategory(new Error('status code 999: invalid'))).toBe(
+      'unknown_error',
+    );
+    expect(getRegistrationErrorCategory(new Error('status code 099: invalid'))).toBe(
+      'unknown_error',
+    );
   });
 });
 

@@ -259,9 +259,6 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       selectedLabels,
     ],
   );
-  const currentFilterStateRef = React.useRef(currentFilterState);
-  currentFilterStateRef.current = currentFilterState;
-
   const clearSearchTrackingTimer = React.useCallback(() => {
     if (searchTrackingTimer.current) {
       clearTimeout(searchTrackingTimer.current);
@@ -272,10 +269,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   const getSearchResultCount = React.useCallback(
     (query: string): number =>
       filterRegistryAssets(assets, {
-        ...currentFilterStateRef.current,
+        ...currentFilterState,
         searchText: query,
       }).length,
-    [assets],
+    [assets, currentFilterState],
   );
 
   const emitSearchTracking = React.useCallback(
@@ -292,19 +289,23 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     },
     [getSearchResultCount, project, trackEvent],
   );
+  const emitSearchTrackingRef = React.useRef(emitSearchTracking);
+  React.useLayoutEffect(() => {
+    emitSearchTrackingRef.current = emitSearchTracking;
+  }, [emitSearchTracking]);
 
   const scheduleSearchTracking = React.useCallback(
     (query: string) => {
       clearSearchTrackingTimer();
       searchTrackingTimer.current = setTimeout(() => {
-        emitSearchTracking(query);
+        emitSearchTrackingRef.current(query);
         searchTrackingTimer.current = undefined;
       }, 750);
     },
-    [clearSearchTrackingTimer, emitSearchTracking],
+    [clearSearchTrackingTimer],
   );
 
-  React.useEffect(() => clearSearchTrackingTimer, [clearSearchTrackingTimer]);
+  React.useLayoutEffect(() => clearSearchTrackingTimer, [clearSearchTrackingTimer, project]);
 
   const clearAllFilters = React.useCallback(() => {
     clearSearchTrackingTimer();
