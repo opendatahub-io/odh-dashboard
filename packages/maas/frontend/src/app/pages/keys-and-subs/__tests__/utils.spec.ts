@@ -16,6 +16,7 @@ import {
   validateExpirationDate,
   getModelDocumentationUrl,
   buildApiKeyUsageExample,
+  findMaaSModelBySubscriptionRef,
   resolveApiKeyUsageExampleKind,
   getApiKeyUsageExampleEndpointPath,
 } from '~/app/pages/keys-and-subs/utils';
@@ -198,6 +199,36 @@ describe('getModelDocumentationUrl', () => {
   });
   it('should return undefined if the gateway URL is not valid', () => {
     expect(getModelDocumentationUrl('granite-3-8b', 'invalid-url')).toBeUndefined();
+  });
+});
+
+describe('findMaaSModelBySubscriptionRef', () => {
+  const models = [
+    { id: 'publishers/maas-models/models/maas-model' },
+    { id: 'publishers/maas-models/models/other-model' },
+    { id: 'granite-3-8b-instruct' },
+  ];
+
+  it('should return an exact id match', () => {
+    expect(findMaaSModelBySubscriptionRef(models, 'granite-3-8b-instruct')?.id).toBe(
+      'granite-3-8b-instruct',
+    );
+  });
+
+  it('should resolve path-style catalog ids from the short subscription ref name', () => {
+    expect(findMaaSModelBySubscriptionRef(models, 'maas-model', 'maas-models')?.id).toBe(
+      'publishers/maas-models/models/maas-model',
+    );
+  });
+
+  it('should fall back to matching the last path segment', () => {
+    expect(findMaaSModelBySubscriptionRef(models, 'other-model')?.id).toBe(
+      'publishers/maas-models/models/other-model',
+    );
+  });
+
+  it('should return undefined when no model matches', () => {
+    expect(findMaaSModelBySubscriptionRef(models, 'missing-model')).toBeUndefined();
   });
 });
 

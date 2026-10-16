@@ -1309,6 +1309,22 @@ declare global {
           response: OdhResponse<{ data: { url: string } }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /maas/api/v1/models',
+          response: OdhResponse<{
+            data: {
+              object: string;
+              data: Array<{
+                id: string;
+                object: string;
+                created: number;
+                owned_by: string;
+                ready: boolean;
+                url?: string;
+              }>;
+            };
+          }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'PUT /api/mlflow-global-namespace',
           response: OdhResponse<{
             success: boolean;

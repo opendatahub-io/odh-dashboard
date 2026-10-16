@@ -74,6 +74,7 @@ import {
   DATE_PICKER_MAX_DAYS,
   type ExpirationMode,
   buildApiKeyUsageExample,
+  findMaaSModelBySubscriptionRef,
   getApiKeyUsageExampleEndpointPath,
   resolveApiKeyUsageExampleKind,
 } from '~/app/pages/keys-and-subs/utils';
@@ -450,8 +451,17 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
 
   const hiddenToken = createdToken ? formatApiKeyHiddenPreview(createdToken) : '';
   const subscriptionIdHeader = selectedSubscription?.subscription_id_header ?? '';
-  const usageExampleModelId = availableModelOptions.length > 0 ? effectiveSelectedModel : '';
-  const selectedMaaSModel = maasModels.find((model) => model.id === usageExampleModelId);
+  const selectedModelRef = selectedSubscription?.model_refs.find(
+    (ref) => ref.name === effectiveSelectedModel,
+  );
+  const selectedMaaSModel = findMaaSModelBySubscriptionRef(
+    maasModels,
+    effectiveSelectedModel,
+    selectedModelRef?.namespace,
+  );
+  const usageExampleModelId =
+    selectedMaaSModel?.id ?? (availableModelOptions.length > 0 ? effectiveSelectedModel : '');
+  const usageExampleBaseUrl = selectedMaaSModel?.url || gatewayUrl;
   const usageExampleKind = resolveApiKeyUsageExampleKind(
     selectedMaaSModel?.modelDetails?.modelCapabilities,
   );
@@ -460,14 +470,14 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     ? 'Hide API key in usage example'
     : 'Show API key in usage example';
   const usageExampleForCopy = buildApiKeyUsageExample(
-    gatewayUrl,
+    usageExampleBaseUrl,
     usageExampleModelId,
     subscriptionIdHeader,
     createdToken ?? '',
     usageExampleKind,
   );
   const usageExampleDisplay = buildApiKeyUsageExample(
-    gatewayUrl,
+    usageExampleBaseUrl,
     usageExampleModelId,
     subscriptionIdHeader,
     isUsageExampleKeyVisible ? (createdToken ?? '') : hiddenToken,
@@ -491,7 +501,18 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   };
 
   return (
-    <Modal variant={ModalVariant.medium} isOpen onClose={() => handleClose()}>
+    <Modal
+      variant={ModalVariant.medium}
+      isOpen
+      // Hide the header X after key creation — close is only via the footer button once acknowledged.
+      {...(createdToken
+        ? {
+            onEscapePress: () => {
+              handleClose(true);
+            },
+          }
+        : { onClose: () => handleClose() })}
+    >
       <ModalHeader title={createdToken ? 'API key created' : 'Create API key'} />
       <ModalBody>
         {createdToken ? (
@@ -590,11 +611,11 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                 data-testid="api-key-access-details"
               >
                 <Form>
-                  {gatewayUrl && (
+                  {usageExampleBaseUrl && (
                     <CopyableDisabledField
                       id="api-key-base-url"
                       label="Base URL"
-                      value={gatewayUrl}
+                      value={usageExampleBaseUrl}
                       helperText="Universal MaaS gateway base URL (shared across models)."
                     />
                   )}

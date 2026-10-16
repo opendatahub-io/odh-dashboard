@@ -157,6 +157,41 @@ export const getModelDocumentationUrl = (
   }
 };
 
+/**
+ * Resolve a MaaS catalog model from a subscription model-ref name.
+ * Catalog `id` values are often path-style (e.g. publishers/maas-models/models/maas-model)
+ * while subscription refs use the short MaaSModelRef name (e.g. maas-model).
+ */
+export const findMaaSModelBySubscriptionRef = <T extends { id: string }>(
+  models: T[],
+  refName: string,
+  refNamespace?: string,
+): T | undefined => {
+  if (!refName) {
+    return undefined;
+  }
+
+  const exact = models.find((model) => model.id === refName);
+  if (exact) {
+    return exact;
+  }
+
+  if (refNamespace) {
+    const byPublisherPath = models.find(
+      (model) =>
+        model.id === `publishers/${refNamespace}/models/${refName}` ||
+        model.id.endsWith(`/${refNamespace}/models/${refName}`),
+    );
+    if (byPublisherPath) {
+      return byPublisherPath;
+    }
+  }
+
+  return models.find(
+    (model) => model.id.endsWith(`/models/${refName}`) || model.id.split('/').pop() === refName,
+  );
+};
+
 export type ApiKeyUsageExampleKind = 'chat' | 'embedding' | 'transcription';
 
 const CAPABILITY_TEXT_GENERATION = 'text-generation';
