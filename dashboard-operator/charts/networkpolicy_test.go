@@ -89,7 +89,7 @@ func TestOperatorNetworkPolicy(t *testing.T) {
 		t.Fatalf("health rule (8081) must be port-scoped with no `from` peers, got %d", len(healthRule.From))
 	}
 
-	// Metrics (:8443) allowed from all four supported monitoring namespaces.
+	// Metrics (:8443) allowed from exactly the four supported monitoring namespaces.
 	metricsRule := ingressRuleForPort(policy, 8443)
 	if metricsRule == nil {
 		t.Fatal("expected an ingress rule allowing metrics port 8443")
@@ -99,6 +99,25 @@ func TestOperatorNetworkPolicy(t *testing.T) {
 		"openshift-user-workload-monitoring",
 		"redhat-ods-monitoring",
 		"opendatahub-monitoring",
+	}
+	// There must be exactly one TCP 8443 rule: a second peerless rule would silently allow
+	// metrics from all sources (CWE-284) while this test only inspects the first match.
+	metricsRuleCount := 0
+	for i := range policy.Spec.Ingress {
+		for _, p := range policy.Spec.Ingress[i].Ports {
+			if p.Port != nil && p.Port.IntVal == 8443 &&
+				(p.Protocol == nil || *p.Protocol == corev1.ProtocolTCP) {
+				metricsRuleCount++
+				break
+			}
+		}
+	}
+	if metricsRuleCount != 1 {
+		t.Fatalf("expected exactly one metrics rule (8443), got %d", metricsRuleCount)
+	}
+	if len(metricsRule.From) != len(wantNamespaces) {
+		t.Fatalf("metrics rule (8443) must contain exactly %d namespace peers, got %d",
+			len(wantNamespaces), len(metricsRule.From))
 	}
 	for _, ns := range wantNamespaces {
 		found := false
