@@ -16,7 +16,7 @@ const mockSubscriptionListItems: UserSubscription[] = [
     subscription_id_header: 'premium-team-sub',
     subscription_description: 'Premium Team Subscription',
     display_name: 'Premium Team',
-    priority: 10,
+    inference_priority: 10,
     cost_center: 'engineering',
     model_refs: [
       {
@@ -29,7 +29,7 @@ const mockSubscriptionListItems: UserSubscription[] = [
   {
     subscription_id_header: 'basic-team-sub',
     subscription_description: 'Basic Team Subscription',
-    priority: 1,
+    inference_priority: 1,
     model_refs: [
       {
         name: 'flan-t5-small',

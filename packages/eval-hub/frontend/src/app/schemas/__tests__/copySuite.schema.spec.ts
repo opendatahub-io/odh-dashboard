@@ -51,7 +51,7 @@ describe('copySuiteSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should reject a copy that keeps the source collection name', () => {
+  it('should reject a copy that keeps the source benchmark suite name', () => {
     const result = getCopySuiteSchema('Source suite').safeParse({
       ...validValues(),
       suiteName: ' Source suite ',
@@ -63,7 +63,7 @@ describe('copySuiteSchema', () => {
         expect.arrayContaining([
           expect.objectContaining({
             path: ['suiteName'],
-            message: 'Suite name must be different from the source collection name.',
+            message: 'Collection name must be different from the source collection name.',
           }),
         ]),
       );

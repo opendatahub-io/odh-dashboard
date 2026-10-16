@@ -17,7 +17,7 @@ const sourceCollection: Collection = {
   resource: { id: 'curated-suite', created_at: '2026-10-01T12:00:00Z' },
   name: 'Knowledge & Reasoning v1',
   category: 'knowledge',
-  description: 'Knowledge and reasoning benchmark suite.',
+  description: 'Knowledge and reasoning collection.',
   tags: ['curated', 'reasoning'],
   domains: ['knowledge'],
   tasks: ['question_answering'],

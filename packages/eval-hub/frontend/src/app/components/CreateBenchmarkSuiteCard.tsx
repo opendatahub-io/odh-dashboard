@@ -29,11 +29,11 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
         <PlusIcon />
       </Bullseye>
       <Title headingLevel="h3" size="md" className="evalhub-create-suite-card__title">
-        Create your own suite
+        Create your own collection
       </Title>
       <Content component="p" className="evalhub-create-suite-card__description">
-        Build a reusable evaluation suite by selecting benchmarks, setting thresholds, and
-        configuring pass criteria.
+        Build a reusable collection by selecting benchmarks, setting thresholds, and configuring
+        pass criteria.
       </Content>
       {createSuiteRoute ? (
         <Button
@@ -49,7 +49,7 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
           }
           data-testid="create-suite-button"
         >
-          Create suite
+          Create collection
         </Button>
       ) : (
         <Button
@@ -63,7 +63,7 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
           }}
           data-testid="create-suite-button"
         >
-          Create suite
+          Create collection
         </Button>
       )}
     </CardBody>

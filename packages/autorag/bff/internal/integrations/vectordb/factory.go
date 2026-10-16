@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	milvusclient "github.com/milvus-io/milvus-sdk-go/v2/client"
+	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 )
 
 // NewFromSecretData detects the vector DB type from the secret keys and returns
@@ -22,8 +23,13 @@ func NewFromSecretDataWithForwarder(ctx context.Context, data map[string][]byte,
 }
 
 func newFromSecretData(ctx context.Context, data map[string][]byte, forwardURL func(context.Context, string) (string, error)) (VectorDB, error) {
+	providers := database.Classify(data)
+	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector) {
+		return nil, fmt.Errorf("%w: expected exactly one supported vector database provider", ErrUnsupportedVectorDB)
+	}
+
 	allowLoopback := forwardURL != nil
-	if _, ok := data["MILVUS_URI"]; ok {
+	if providers[0] == database.Milvus {
 		if forwardURL != nil {
 			original := strings.TrimSpace(string(data["MILVUS_URI"]))
 			originalEndpoint, err := parseMilvusEndpointWithLoopback(original, allowLoopback)
@@ -59,7 +65,7 @@ func newFromSecretData(ctx context.Context, data map[string][]byte, forwardURL f
 			return milvusclient.NewClient(connectCtx, cfg)
 		})
 	}
-	if _, ok := data["PGVECTOR_HOST"]; ok {
+	if providers[0] == database.PGVector {
 		return newPgvectorFromSecretWithLoopback(ctx, data, allowLoopback)
 	}
 	return nil, fmt.Errorf("%w", ErrUnsupportedVectorDB)

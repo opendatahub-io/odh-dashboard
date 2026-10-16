@@ -187,6 +187,11 @@ func (r *SubscriptionsRepository) UpdateSubscription(ctx context.Context, name s
 		return nil, fmt.Errorf("failed to get MaaSSubscription: %w", err)
 	}
 
+	// Prefer the client's resourceVersion so stale form edits conflict instead of overwriting.
+	if request.ResourceVersion != "" {
+		existingObj.SetResourceVersion(request.ResourceVersion)
+	}
+
 	// Update the subscription spec and annotations
 	updateSubscriptionSpec(existingObj, request.DisplayName, request.Description, request.Owner, request.ModelRefs, request.TokenMetadata, request.InferencePriority)
 	updatedSub, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(r.namespace).Update(ctx, existingObj, metav1.UpdateOptions{})
@@ -332,8 +337,9 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 	content := obj.UnstructuredContent()
 
 	sub := &models.MaaSSubscription{
-		Name:      obj.GetName(),
-		Namespace: obj.GetNamespace(),
+		Name:            obj.GetName(),
+		Namespace:       obj.GetNamespace(),
+		ResourceVersion: obj.GetResourceVersion(),
 	}
 
 	annotations := obj.GetAnnotations()

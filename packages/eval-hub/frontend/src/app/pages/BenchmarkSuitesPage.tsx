@@ -114,15 +114,15 @@ const BenchmarkSuitesPage: React.FC = () => {
         >
           <DrawerContentBody>
             <ApplicationsPage
-              title="My benchmark suites"
-              description="View, run, and manage all benchmark suites you have created or saved."
+              title="My benchmark collections"
+              description="View, run, and manage all benchmark collections you have created or saved."
               headerAction={
                 <Button
                   variant="primary"
                   onClick={handleCreateSuite}
                   data-testid="create-benchmark-suite-button"
                 >
-                  Create benchmark suite
+                  Create collection
                 </Button>
               }
               breadcrumb={
@@ -132,10 +132,10 @@ const BenchmarkSuitesPage: React.FC = () => {
                   />
                   <BreadcrumbItem
                     render={() => (
-                      <Link to={evaluationEvaluateRoute(namespace)}>Benchmark suites</Link>
+                      <Link to={evaluationEvaluateRoute(namespace)}>Benchmark collections</Link>
                     )}
                   />
-                  <BreadcrumbItem isActive>My benchmark suites</BreadcrumbItem>
+                  <BreadcrumbItem isActive>My benchmark collections</BreadcrumbItem>
                 </Breadcrumb>
               }
               loaded

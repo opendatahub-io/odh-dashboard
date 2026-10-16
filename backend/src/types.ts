@@ -74,13 +74,15 @@ export type DashboardConfig = K8sResourceCommon & {
       externalVectorStores: boolean;
       agentConfigManagement: boolean;
       genAiAgentDeployment: boolean;
+      genAiImageUpload: boolean;
+      genAiAudioUpload: boolean;
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
       globalProjectPrompts: boolean;
       gpuaas: boolean;
       modelCapabilities: boolean;
-      runtimeCatalog: boolean;
+      grid: boolean;
       observabilityDashboard: boolean;
       nimWizard: boolean;
     };

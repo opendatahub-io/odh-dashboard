@@ -231,10 +231,13 @@ describe('EvaluationsPage', () => {
       screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-category-filter')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-industry-filter')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-tags-filter')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-task-filter')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-modality-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-more-filters-toggle')).toHaveTextContent(
+      'Show more filters',
+    );
+    expect(screen.queryByTestId('benchmark-suites-industry-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-tags-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-task-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-modality-filter')).not.toBeInTheDocument();
     // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
     /*
     expect(screen.getByTestId('benchmark-suites-evaluates-filter')).toBeInTheDocument();
@@ -246,10 +249,6 @@ describe('EvaluationsPage', () => {
       'benchmark-suites-metrics-filter',
       // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
       // 'benchmark-suites-evaluates-filter',
-      'benchmark-suites-modality-filter',
-      'benchmark-suites-task-filter',
-      'benchmark-suites-industry-filter',
-      'benchmark-suites-tags-filter',
     ];
     filterOrder.slice(0, -1).forEach((filterId, index) => {
       expect(
@@ -258,10 +257,60 @@ describe('EvaluationsPage', () => {
           .compareDocumentPosition(screen.getByTestId(filterOrder[index + 1])),
       ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     });
-    expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-pagination-top')).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search collections')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
-      'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
+      'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.',
+    );
+  });
+
+  it('should show prerequisites and customize-only actions for mapped Gallery suites', () => {
+    const ids = ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1', 'unmapped-suite'];
+    const collections = mockCuratedBenchmarkSuiteCollections()
+      .slice(0, ids.length)
+      .map((collection, index) => ({
+        ...collection,
+        resource: { ...collection.resource, id: ids[index] },
+      }));
+    mockUseCollectionsQuery.mockImplementation((_namespace: string, scope?: string) => ({
+      data: {
+        items: scope === 'system' ? collections : mockBenchmarkSuiteCollections(),
+      },
+      isLoading: false,
+      error: null,
+    }));
+
+    renderPage('test-project');
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-prerequisite-trustworthiness-v1'),
+    ).toHaveTextContent('Requires a judge model.');
+    expect(screen.getByTestId('benchmark-suite-card-prerequisite-tool-use-v1')).toHaveTextContent(
+      'Requires a model that supports multiple tool/function calls.',
+    );
+    expect(screen.getByTestId('benchmark-suite-card-prerequisite-multimodal-v1')).toHaveTextContent(
+      'Requires a vision-language model that supports image inputs.',
+    );
+
+    ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
+      const action = screen.getByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
+      expect(action).toHaveTextContent('Customize');
+      expect(action).toHaveClass('pf-m-secondary');
+      expect(
+        screen.queryByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-primary-action-unmapped-suite'),
+    ).toHaveTextContent('Run');
+    expect(
+      screen.getByTestId('benchmark-suite-card-dropdown-toggle-unmapped-suite'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-trustworthiness-v1'));
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/trustworthiness-v1/copy',
     );
   });
 
@@ -342,6 +391,8 @@ describe('EvaluationsPage', () => {
 
   it('should filter Gallery suites by benchmark, category, tags, task, metric, modality, and industry', () => {
     renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
 
     fireEvent.click(screen.getByTestId('benchmark-suites-benchmarks-filter'));
     expect(
@@ -442,7 +493,7 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('evaluate-tab')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('evaluate-tab')).toHaveAttribute(
       'aria-label',
-      'Benchmark suites tab',
+      'Benchmark collections tab',
     );
     expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
     expect(screen.queryByTestId('evalhub-load-error-admin-empty-state')).not.toBeInTheDocument();
@@ -458,6 +509,25 @@ describe('EvaluationsPage', () => {
     });
   });
 
+  it('should keep the create-suite card visible while tenant suites are loading', () => {
+    mockUseCollectionsQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      error: null,
+    });
+
+    renderPage('test-project', '?tab=evaluate');
+
+    expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
+    const loadingCards = screen.getAllByTestId('benchmark-suite-card-loading');
+    expect(loadingCards).toHaveLength(2);
+    expect(screen.getByTestId('benchmark-suites-gallery').children).toHaveLength(3);
+    expect(
+      loadingCards[0].querySelectorAll('.evalhub-benchmark-suite-card__loading-title'),
+    ).toHaveLength(1);
+  });
+
   it('should show the suite contextual actions and delete confirmation modal', () => {
     renderPage('test-project', '?tab=evaluate');
 
@@ -469,7 +539,7 @@ describe('EvaluationsPage', () => {
 
     expect(screen.getByTestId('benchmark-suite-delete-modal')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-delete-modal')).toHaveTextContent(
-      'The Model suite 2 benchmark suite will be permanently deleted.',
+      'The Model suite 2 collection will be permanently deleted.',
     );
 
     fireEvent.click(screen.getByTestId('benchmark-suite-delete-cancel'));
@@ -538,7 +608,7 @@ describe('EvaluationsPage', () => {
 
     await waitFor(() => expect(mockDeleteCollection).toHaveBeenCalledWith('model-suite-2'));
     expect(mockNotificationSuccess).toHaveBeenCalledWith(
-      'Benchmark suite deleted',
+      'Collection deleted',
       '"Model suite 2" has been deleted.',
     );
     expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
@@ -585,10 +655,10 @@ describe('EvaluationsPage', () => {
     });
   });
 
-  it('should link to the tenant benchmark suites page', () => {
+  it('should link to the tenant benchmark collections page', () => {
     renderPage('test-project', '?tab=evaluate');
 
-    expect(screen.getByRole('link', { name: 'Go to All my benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'View all my benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-project/collections',
     );
@@ -685,7 +755,7 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('runs-tab')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
-      'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
+      'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.',
     );
     expect(screen.getByTestId('runs-tab-description')).toHaveTextContent(
       'Start and manage evaluation runs for models, agents, and datasets.',

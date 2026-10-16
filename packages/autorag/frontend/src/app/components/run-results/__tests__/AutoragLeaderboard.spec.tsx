@@ -1651,10 +1651,10 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const countText = screen.getByTestId('columns-selected-count');
-      expect(countText).toHaveTextContent(/4\/\d+ columns selected/);
+      expect(countText).toHaveTextContent(/8\/\d+ columns selected/);
     });
 
-    it('should default to only rank, pattern, model, and optimized metric visible', () => {
+    it('should default to the key configuration columns visible', () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
@@ -1664,15 +1664,16 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('pattern-name-header')).toBeInTheDocument();
       expect(screen.getByTestId('model-name-header')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
-
+      expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
+      expect(screen.getByTestId('retrieval-method-header')).toBeInTheDocument();
+      expect(screen.getByTestId('retrieval-search-mode-header')).toBeInTheDocument();
+      expect(screen.getByTestId('retrieval-ranker-strategy-header')).toBeInTheDocument();
       expect(
         screen.queryByTestId('metric-header-answer_correctness-unitxt'),
       ).not.toBeInTheDocument();
       expect(
         screen.queryByTestId('metric-header-context_correctness-unitxt'),
       ).not.toBeInTheDocument();
-      expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('retrieval-method-header')).not.toBeInTheDocument();
     });
 
     it('should reset to default visibility and order when reset button is clicked', () => {
@@ -1690,7 +1691,7 @@ describe('AutoragLeaderboard component', () => {
 
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
-      expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
+      expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
       expect(
         screen.queryByTestId('metric-header-answer_correctness-unitxt'),
       ).not.toBeInTheDocument();
@@ -1825,7 +1826,7 @@ describe('AutoragLeaderboard component', () => {
 
       // Verify all columns are visible — capture original header order
       const originalHeaders = screen.getAllByTestId(
-        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-.+|chunking-.+-header|retrieval-.+-header)$/,
       );
       const originalOrder = originalHeaders.map((h) => h.getAttribute('data-testid'));
 
@@ -1837,18 +1838,18 @@ describe('AutoragLeaderboard component', () => {
 
       // Headers should still be in the same default order
       const headersAfterPreset = screen.getAllByTestId(
-        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-.+|chunking-.+-header|retrieval-.+-header)$/,
       );
       const orderAfterPreset = headersAfterPreset.map((h) => h.getAttribute('data-testid'));
       expect(orderAfterPreset).toEqual(originalOrder);
 
-      // Now reset to default — should restore default visibility (only 4 columns)
+      // Now reset to default — should restore default visibility and order
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('manage-columns-reset'));
       fireEvent.click(screen.getByText('Save'));
 
       const headersAfterReset = screen.getAllByTestId(
-        /^(rank-header|pattern-name-header|model-name-header|metric-header-)/,
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-.+|chunking-.+-header|retrieval-.+-header)$/,
       );
       const orderAfterReset = headersAfterReset.map((h) => h.getAttribute('data-testid'));
       expect(orderAfterReset).toEqual([
@@ -1856,6 +1857,10 @@ describe('AutoragLeaderboard component', () => {
         'pattern-name-header',
         'model-name-header',
         'metric-header-faithfulness-unitxt',
+        'chunking-method-header',
+        'retrieval-method-header',
+        'retrieval-search-mode-header',
+        'retrieval-ranker-strategy-header',
       ]);
     });
 

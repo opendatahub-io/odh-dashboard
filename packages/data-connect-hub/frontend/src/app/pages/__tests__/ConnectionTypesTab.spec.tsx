@@ -16,7 +16,7 @@ const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const connectionTypes = [
   mockConnectionType(),
   mockConnectionType({
-    metadata: { id: 's3' },
+    metadata: { id: '550e8400-e29b-41d4-a716-446655440004' },
     resource: {
       name: 'S3',
       provider: 's3',
@@ -24,7 +24,7 @@ const connectionTypes = [
     },
   }),
   mockConnectionType({
-    metadata: { id: 'custom' },
+    metadata: { id: '550e8400-e29b-41d4-a716-446655440008' },
     resource: {
       name: 'Custom source',
       provider: 'custom-provider',
@@ -69,7 +69,7 @@ describe('ConnectionTypesTab', () => {
     mockUseConnectionTypes.mockReturnValue([
       [
         mockConnectionType({
-          metadata: { id: 'provider/type one' },
+          metadata: { id: '550e8400-e29b-41d4-a716-446655440007' },
           resource: { name: 'Provider type' },
         }),
       ],
@@ -81,7 +81,7 @@ describe('ConnectionTypesTab', () => {
     await user.click(screen.getByRole('button', { name: 'Provider type' }));
 
     expect(screen.getByTestId('location').textContent).toBe(
-      '/connection-types/provider%2Ftype%20one?project=test-project',
+      '/connection-types/550e8400-e29b-41d4-a716-446655440007?project=test-project',
     );
   });
 
@@ -108,7 +108,7 @@ describe('ConnectionTypesTab', () => {
       [
         mockConnectionType({ resource: { description: undefined } }),
         mockConnectionType({
-          metadata: { id: 'without-description' },
+          metadata: { id: '550e8400-e29b-41d4-a716-446655440009' },
           resource: { name: 'Without description', description: null },
         }),
       ],

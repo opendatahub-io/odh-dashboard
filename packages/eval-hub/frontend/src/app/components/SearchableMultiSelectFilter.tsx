@@ -19,12 +19,14 @@ type SearchableMultiSelectFilterProps = {
   isCompact?: boolean;
   options: string[];
   selected: string[];
+  showSelectedLabels?: boolean;
   formatLabel: (value: string) => string;
   onToggleOption: (value: string) => void;
   onClearAll: () => void;
   testIdPrefix: string;
   testId?: string;
   isDisabled?: boolean;
+  popperProps?: React.ComponentProps<typeof Select>['popperProps'];
 };
 
 const SearchableMultiSelectFilter: React.FC<SearchableMultiSelectFilterProps> = ({
@@ -33,12 +35,14 @@ const SearchableMultiSelectFilter: React.FC<SearchableMultiSelectFilterProps> = 
   isCompact = false,
   options,
   selected,
+  showSelectedLabels = true,
   formatLabel,
   onToggleOption,
   onClearAll,
   testIdPrefix,
   testId,
   isDisabled = false,
+  popperProps,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
@@ -58,7 +62,7 @@ const SearchableMultiSelectFilter: React.FC<SearchableMultiSelectFilterProps> = 
 
   return (
     <ToolbarFilter
-      labels={selected.map((v) => ({ key: v, node: formatLabel(v) }))}
+      labels={showSelectedLabels ? selected.map((v) => ({ key: v, node: formatLabel(v) })) : []}
       deleteLabel={(_category, label) => {
         const val = typeof label === 'string' ? label : label.key;
         onToggleOption(val);
@@ -112,6 +116,7 @@ const SearchableMultiSelectFilter: React.FC<SearchableMultiSelectFilterProps> = 
         }}
         data-testid={`${filterTestId}-select`}
         maxMenuHeight="400px"
+        popperProps={popperProps}
       >
         <MenuSearch>
           <MenuSearchInput>

@@ -83,7 +83,7 @@ export const copySuiteBenchmarkSchema = z
 
 export const copySuiteSchema = z
   .object({
-    suiteName: z.string().trim().min(1, 'Suite name is required'),
+    suiteName: z.string().trim().min(1, 'Collection name is required'),
     suiteDescription: z.string(),
     suiteDomains: z.array(z.string()),
     suiteTasks: z.array(z.string()),
@@ -110,7 +110,7 @@ export const copySuiteSchema = z
   });
 
 export const SOURCE_COLLECTION_NAME_ERROR =
-  'Suite name must be different from the source collection name.';
+  'Collection name must be different from the source collection name.';
 
 export const isSameAsSourceCollectionName = (
   suiteName: string,

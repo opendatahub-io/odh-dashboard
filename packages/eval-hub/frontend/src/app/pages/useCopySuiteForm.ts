@@ -43,8 +43,8 @@ import type {
 
 const DEFAULT_SUITE_THRESHOLD = 70;
 const MIN_WEIGHT_PERCENT = 5;
-export const MAX_BENCHMARKS = 10;
-const EDIT_AFTER_RUN_ERROR = 'Benchmark suites cannot be edited after they have been run.';
+export const MAX_BENCHMARKS = 20;
+const EDIT_AFTER_RUN_ERROR = 'Collections cannot be edited after they have been run.';
 
 export type CopySuiteBenchmark = CopySuiteFormValues['benchmarks'][number];
 
@@ -996,7 +996,7 @@ export function useCopySuiteForm({
       }
 
       if (isEditMode && (sourceCollection.state?.run_count ?? 0) > 0) {
-        notification.error('Failed to update suite', EDIT_AFTER_RUN_ERROR);
+        notification.error('Failed to update collection', EDIT_AFTER_RUN_ERROR);
         return undefined;
       }
 
@@ -1056,7 +1056,7 @@ export function useCopySuiteForm({
             error_category: e instanceof Error ? e.name : 'unknown_error',
           });
           notification.error(
-            isEditMode ? 'Failed to update suite' : 'Failed to copy suite',
+            isEditMode ? 'Failed to update collection' : 'Failed to copy collection',
             message,
           );
         }
@@ -1142,7 +1142,7 @@ export function useCopySuiteForm({
             // eslint-disable-next-line camelcase -- API tracking field name.
             error_category: e instanceof Error ? e.name : 'unknown_error',
           });
-          notification.error('Failed to create suite', message);
+          notification.error('Failed to create collection', message);
         }
         return undefined;
       } finally {
@@ -1181,7 +1181,7 @@ export function useCopySuiteForm({
 
     try {
       if (isEditMode && (sourceCollection?.state?.run_count ?? 0) > 0) {
-        notification.error('Failed to update suite', EDIT_AFTER_RUN_ERROR);
+        notification.error('Failed to update collection', EDIT_AFTER_RUN_ERROR);
         return;
       }
 
@@ -1211,10 +1211,14 @@ export function useCopySuiteForm({
       trackCollectionSaved(formValues, { success: true, collectionName: savedCollection.name });
 
       notification.success(
-        isCreateMode ? 'Suite created' : isEditMode ? 'Suite updated' : 'Suite saved',
+        isCreateMode
+          ? 'Collection created'
+          : isEditMode
+            ? 'Collection updated'
+            : 'Collection saved',
         isEditMode
           ? `"${savedCollection.name}" has been updated.`
-          : `"${savedCollection.name}" has been added to your benchmark suites.`,
+          : `"${savedCollection.name}" has been added to your collections.`,
       );
       refreshCollections();
       navigate(evaluationBenchmarkSuitesRoute(namespace));
@@ -1228,10 +1232,10 @@ export function useCopySuiteForm({
         });
         notification.error(
           isCreateMode
-            ? 'Failed to create suite'
+            ? 'Failed to create collection'
             : isEditMode
-              ? 'Failed to update suite'
-              : 'Failed to copy suite',
+              ? 'Failed to update collection'
+              : 'Failed to copy collection',
           message,
         );
       }

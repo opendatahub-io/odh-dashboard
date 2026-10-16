@@ -50,6 +50,7 @@
     "./concepts/versions": "./src/concepts/versions.ts",
     "./utils": "./src/concepts/utils.ts",
     "./shared/tracking/limitedSupportTracking": "./src/shared/tracking/limitedSupportTracking.ts",
+    "./components/runtimeImageInstall/tracking/runtimeImageInstallTracking": "./src/components/runtimeImageInstall/tracking/runtimeImageInstallTracking.ts",
     "./components/global/GlobalModelServingCoreLoader": "./src/components/global/GlobalModelServingCoreLoader.tsx",
     "./components/metrics/EnsureMetricsAvailable": "./src/components/metrics/EnsureMetricsAvailable.tsx",
     "./components/metrics/GlobalModelMetricsPage": "./src/components/metrics/GlobalModelMetricsPage.tsx",

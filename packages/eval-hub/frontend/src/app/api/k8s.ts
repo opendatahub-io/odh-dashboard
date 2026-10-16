@@ -396,7 +396,7 @@ export const getCollection =
   (hostPath: string, namespace: string, collectionId: string) =>
   (opts: APIOptions): Promise<Collection> => {
     if (!collectionId) {
-      return Promise.reject(new Error('collectionId must not be empty'));
+      return Promise.reject(new Error('Collection ID must not be empty'));
     }
     return handleRestFailures(
       restGET(
@@ -418,7 +418,7 @@ export const deleteCollection =
   (hostPath: string, namespace: string, collectionId: string) =>
   (opts: APIOptions): Promise<void> => {
     if (!collectionId) {
-      return Promise.reject(new Error('collectionId must not be empty'));
+      return Promise.reject(new Error('Collection ID must not be empty'));
     }
     return handleRestFailures(
       restDELETE(
@@ -448,7 +448,7 @@ export const patchCollection =
   ) =>
   (opts: APIOptions): Promise<Collection> => {
     if (!collectionId) {
-      return Promise.reject(new Error('collectionId must not be empty'));
+      return Promise.reject(new Error('Collection ID must not be empty'));
     }
     return handleRestFailures(
       restPATCH(
@@ -550,7 +550,7 @@ export const cloneCollection =
   (hostPath: string, namespace: string, collectionId: string, request: CloneCollectionRequest) =>
   (opts: APIOptions): Promise<Collection> => {
     if (!collectionId) {
-      return Promise.reject(new Error('collectionId must not be empty'));
+      return Promise.reject(new Error('Collection ID must not be empty'));
     }
     return handleRestFailures(
       restCREATE(

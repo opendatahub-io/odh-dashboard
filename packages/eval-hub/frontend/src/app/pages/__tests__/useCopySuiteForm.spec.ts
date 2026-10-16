@@ -392,8 +392,8 @@ describe('useCopySuiteForm', () => {
 
     expect(mockPatchCollection).not.toHaveBeenCalled();
     expect(mockNotification.error).toHaveBeenCalledWith(
-      'Failed to update suite',
-      'Benchmark suites cannot be edited after they have been run.',
+      'Failed to update collection',
+      'Collections cannot be edited after they have been run.',
     );
     expect(mockNavigate).not.toHaveBeenCalled();
   });
@@ -601,8 +601,8 @@ describe('useCopySuiteForm', () => {
     );
     expect(createFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(mockNotification.success).toHaveBeenCalledWith(
-      'Suite created',
-      '"New suite" has been added to your benchmark suites.',
+      'Collection created',
+      '"New suite" has been added to your collections.',
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
     expect(mockCloneCollection).not.toHaveBeenCalled();
@@ -760,7 +760,10 @@ describe('useCopySuiteForm', () => {
       await result.result.current.handleSaveOnly();
     });
 
-    expect(mockNotification.error).toHaveBeenCalledWith('Failed to create suite', 'Create failed');
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to create collection',
+      'Create failed',
+    );
     expect(mockNavigate).not.toHaveBeenCalled();
     expect(result.result.current.isSubmitting).toBe(false);
   });
@@ -1410,7 +1413,7 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.form.formState.errors).toEqual({});
   });
 
-  it('should reject a copy that keeps the source collection name', async () => {
+  it('should reject a copy that keeps the source benchmark suite name', async () => {
     const result = renderForm();
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
@@ -1418,7 +1421,7 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() =>
       expect(result.result.current.form.formState.errors.suiteName?.message).toBe(
-        'Suite name must be different from the source collection name.',
+        'Collection name must be different from the source collection name.',
       ),
     );
     expect(result.result.current.isSettingsValid).toBe(false);
@@ -1564,8 +1567,8 @@ describe('useCopySuiteForm', () => {
     expect(savedCollection).toBeUndefined();
     expect(mockPatchCollection).not.toHaveBeenCalled();
     expect(mockNotification.error).toHaveBeenCalledWith(
-      'Failed to update suite',
-      'Benchmark suites cannot be edited after they have been run.',
+      'Failed to update collection',
+      'Collections cannot be edited after they have been run.',
     );
   });
 
@@ -1777,8 +1780,8 @@ describe('useCopySuiteForm', () => {
     });
 
     expect(mockNotification.success).toHaveBeenCalledWith(
-      'Suite saved',
-      '"Saved suite" has been added to your benchmark suites.',
+      'Collection saved',
+      '"Saved suite" has been added to your collections.',
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
   });
@@ -1868,7 +1871,10 @@ describe('useCopySuiteForm', () => {
       cloned = await result.result.current.cloneCollectionForRun();
     });
 
-    expect(mockNotification.error).toHaveBeenCalledWith('Failed to copy suite', 'Clone failed');
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to copy collection',
+      'Clone failed',
+    );
     expect(cloned).toBeUndefined();
   });
 

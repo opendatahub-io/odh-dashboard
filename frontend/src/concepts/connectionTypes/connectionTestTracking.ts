@@ -58,7 +58,6 @@ export const fireConnectionTestCompleted = (
       ? {}
       : {
           errorType: classifyErrorType(result),
-          errorMessage: result.message,
         }),
   });
 };

@@ -93,12 +93,14 @@ type DashboardFeatureFlags struct {
 	ExternalVectorStores         bool `json:"externalVectorStores"`
 	AgentConfigManagement        bool `json:"agentConfigManagement"`
 	GenAiAgentDeployment         bool `json:"genAiAgentDeployment"`
+	GenAiImageUpload             bool `json:"genAiImageUpload"`
+	GenAiAudioUpload             bool `json:"genAiAudioUpload"`
 	VLLMDeploymentOnMaaS         bool `json:"vLLMDeploymentOnMaaS"`
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
 	ModelCapabilities            bool `json:"modelCapabilities"`
-	RuntimeCatalog               bool `json:"runtimeCatalog"`
+	Grid                         bool `json:"grid"`
 }
 
 type NotebookController struct {
@@ -191,12 +193,14 @@ var BlankDashboardCR = DashboardConfig{
 			DeploymentWizardYAMLViewer:   false,
 			ExternalVectorStores:         false,
 			GenAiAgentDeployment:         false,
+			GenAiImageUpload:             false,
+			GenAiAudioUpload:             false,
 			VLLMDeploymentOnMaaS:         false,
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
 			ModelCapabilities:            false,
-			RuntimeCatalog:               false,
+			Grid:                         false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

@@ -195,11 +195,11 @@ paths:
             - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
             - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
             - 'maas': Filters for hosted MaaS secrets (classification keys: MAAS_BASE_URL, MAAS_API_KEY)
-            - 'vector-db': Filters for the union of Milvus (MILVUS_URI) and PGVector credential keys
-            - 'database': Filters for database credentials; use provider to narrow to milvus, pgvector, or neo4j
+            - 'vector-db': Filters for Milvus (MILVUS_URI) or complete PGVector credentials; MILVUS_CA_CERT is canonical and MILVUS_SERVER_CERT is its legacy alias
+            - 'database': Filters for complete Milvus, PGVector, or Neo4j credentials; Neo4j requires NEO4J_URI and NEO4J_PASSWORD
             - Omit for all secrets
 
-            Filtering uses case-sensitive key-presence matching. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
+            Database and vector-db filtering uses case-sensitive required keys whose values must be non-empty after trimming whitespace. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys or values for filtering. Other filters retain their existing key-presence semantics.
 
             Note: Classification keys are used to identify the secret type. Additional optional keys (like AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets)
             may be present but are not required for type classification. The data field in the response lists all keys
@@ -240,26 +240,26 @@ paths:
       summary: Get filtered secrets
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
-        Key matching is case-sensitive; keys must be uppercase.
+        Key matching is case-sensitive; keys must be uppercase. Database and vector-db classification requires every provider-required value to be non-empty after trimming whitespace.
 
-         Filtering uses case-sensitive key presence. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
-         Supported key sets include:
-            - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
-            - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
-            - 'maas': MAAS_BASE_URL, MAAS_API_KEY
-             - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD
-             - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI
+        Database and vector-db filtering uses case-sensitive required keys whose values must be non-empty after trimming whitespace. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys or values for filtering.
+        Supported key sets include:
+        - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
+        - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
+        - 'maas': MAAS_BASE_URL, MAAS_API_KEY
+        - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD; MILVUS_CA_CERT is canonical, MILVUS_SERVER_CERT is a legacy fallback alias, and PGVECTOR_CA_CERT is optional
+        - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI and NEO4J_PASSWORD; MILVUS_CA_CERT is canonical, MILVUS_SERVER_CERT is a legacy fallback alias, and PGVECTOR_CA_CERT and NEO4J_CA_CERT are optional
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
         The data field lists all keys present, allowing clients to validate additional use-case-specific requirements.
 
-         Type filtering with ?type= parameter:
-         - 'storage': Returns secrets containing a configured storage key set
-         - 'ogx': Returns secrets containing both OGX keys
-         - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
-         - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets; empty values and mixed or extra keys are allowed
-         - 'database': Returns database secrets; provider can narrow the result to milvus, pgvector, or neo4j
+        Type filtering with ?type= parameter:
+        - 'storage': Returns secrets containing a configured storage key set
+        - 'ogx': Returns secrets containing both OGX keys
+        - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
+        - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets when all required values are non-empty after trimming whitespace; legacy keys do not exclude a provider
+        - 'database': Returns complete database secrets with all provider-required values non-empty after trimming whitespace; provider can narrow the result to milvus, pgvector, or neo4j
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
     summary: Path used to retrieve credential data from a named secret.
@@ -1043,6 +1043,37 @@ paths:
         performs a rollout restart of the pipeline server deployment so the
         init container re-registers the pipeline definitions on startup.
 
+  /api/v1/pipeline-server/status:
+    summary: Report pipeline server readiness
+    description: >-
+      Returns the observed readiness state of the DSPipelineApplication in the namespace
+      from a fresh (uncached) resource list, so a restarting server is not reported with
+      stale readiness.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/PipelineServerStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getPipelineServerStatus
+      summary: Get Pipeline Server Status
+      description: >-
+        Returns whether the pipeline server in the namespace is ready, starting,
+        or not present. Unlike pipeline-run endpoints, this reflects a fresh read
+        of the DSPipelineApplication rather than a cached discovery result.
+
 components:
   schemas:
     Config:
@@ -1133,6 +1164,51 @@ components:
                   example: ['OGX_CLIENT_API_KEY', 'OGX_CLIENT_BASE_URL']
                 commonOptionalKeys:
                   example: []
+        vector-db:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  description: >-
+                    One of the supported provider key sets with every required value non-empty after trimming whitespace: Milvus requires MILVUS_URI;
+                    PGVector requires PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER,
+                    and PGVECTOR_PASSWORD. MILVUS_CA_CERT is the canonical Milvus CA key;
+                    MILVUS_SERVER_CERT is accepted as a legacy fallback only when the canonical key
+                    is absent or blank.
+                  example: ['MILVUS_URI']
+                commonOptionalKeys:
+                  description: >-
+                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT or the legacy MILVUS_SERVER_CERT
+                    alias. When both CA keys are non-blank, MILVUS_CA_CERT wins. PGVector may include
+                    PGVECTOR_CA_CERT. These keys are optional and do not replace classification keys.
+                  example: ['MILVUS_TOKEN', 'MILVUS_CA_CERT', 'PGVECTOR_CA_CERT']
+        database:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  description: >-
+                    One of the supported provider key sets with every required value non-empty after trimming whitespace: Milvus requires MILVUS_URI;
+                    PGVector requires PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER,
+                    and PGVECTOR_PASSWORD; Neo4j requires NEO4J_URI and NEO4J_PASSWORD.
+                  example: ['NEO4J_URI', 'NEO4J_PASSWORD']
+                commonOptionalKeys:
+                  description: >-
+                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT or the legacy MILVUS_SERVER_CERT
+                    alias; when both CA keys are non-blank, MILVUS_CA_CERT wins. PGVector may include
+                    PGVECTOR_CA_CERT; Neo4j may include NEO4J_USERNAME, NEO4J_DATABASE, and
+                    NEO4J_CA_CERT. These keys are optional and do not replace classification keys.
+                  example:
+                    [
+                      'MILVUS_TOKEN',
+                      'MILVUS_CA_CERT',
+                      'PGVECTOR_CA_CERT',
+                      'NEO4J_USERNAME',
+                      'NEO4J_DATABASE',
+                      'NEO4J_CA_CERT',
+                    ]
 
     SecretListItem:
       description: A Kubernetes secret with its UUID, name, type classification, and available keys
@@ -1142,6 +1218,14 @@ components:
         - data
       type: object
       properties:
+        databaseProviders:
+          type: array
+          items:
+            type: string
+            enum: [milvus, pgvector, neo4j]
+          description: >-
+            Authoritative database-provider classifications computed from the raw Secret values.
+            Values are never included; an empty or omitted field means no supported provider matched.
         uuid:
           type: string
           description: The Kubernetes UID of the secret
@@ -1159,9 +1243,10 @@ components:
                - 's3': S3 storage secret (has all required S3 classification keys)
                - 'ogx': Open GenAI Stack secret (has all required OGX classification keys)
 
-            When filtering with the ?type= parameter, inclusion is determined by the required key presence for the selected filter.
-            A non-empty connection-type annotation cannot replace the required keys. After inclusion, the annotation takes precedence
-            only for the returned type field.
+            When filtering with the ?type= parameter, inclusion uses the required keys for the selected filter. For database and vector-db
+            filters, every provider-required key must have a non-empty value after trimming whitespace; other filters retain their
+            documented key-presence semantics. A non-empty connection-type annotation cannot replace the required keys or values.
+            After inclusion, the annotation takes precedence only for the returned type field.
 
             This field is omitted from the response if the secret doesn't match any recognized type and has no connection-type annotation.
           example: s3
@@ -1618,6 +1703,28 @@ components:
           type: string
           description: Token for retrieving the next page
           example: 'eyJwYWdlIjoyfQ=='
+
+    PipelineServerStatus:
+      type: object
+      description: Observed readiness state of the pipeline server (DSPA) in a namespace
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: >-
+            Readiness state — "ready" when the DSPA Ready condition is True for its
+            current generation, "starting" when a DSPA exists but is not ready, and
+            "not-found" when no DSPA exists in the namespace.
+          enum:
+            - ready
+            - starting
+            - not-found
+          example: ready
+        dspa_name:
+          type: string
+          description: Name of the DSPipelineApplication the status was observed from
+          example: dspa
 
     S3UploadSuccess:
       description: Response body for successful S3 file upload
@@ -2430,6 +2537,21 @@ components:
                 type: string
                 description: Name of the DSPipelineApplication resource
                 example: 'dspa'
+
+    PipelineServerStatusResponse:
+      description: Observed readiness state of the pipeline server in the namespace
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineServerStatus'
 
     ConflictResponse:
       content:

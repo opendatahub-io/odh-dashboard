@@ -20,8 +20,17 @@ import {
   type RuntimeCatalogFiltersState,
 } from '~/odh/pages/runtimeCatalog/const';
 import { hasRuntimeCatalogFiltersApplied } from '~/odh/pages/runtimeCatalog/utils/runtimeCatalogUtils';
+import { RUNTIME_CATALOG_TAB_TITLE } from '~/odh/routes/runtimeCatalog/runtimeCatalog';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  RuntimeCatalogTrackingEvent,
+  buildHardwareFiltersValue,
+} from '~/odh/pages/runtimeCatalog/tracking/runtimeCatalogTracking';
 
 const MODEL_CATALOG_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
+// Always the reviewed copy: a catalog label description describes that label, not this page.
+const PAGE_DESCRIPTION =
+  'Browse runtimes you can add to this cluster for model serving or LLM inference.';
 
 const RuntimeCatalogView: React.FC = () => {
   const [filters, setFilters] = React.useState<RuntimeCatalogFiltersState>({});
@@ -29,6 +38,7 @@ const RuntimeCatalogView: React.FC = () => {
   const [selectedSourceLabel, setSelectedSourceLabel] = React.useState<string | undefined>(
     undefined,
   );
+  const { trackSimpleEvent } = useUserInteraction();
   const [filterOptions, filterOptionsLoaded, filterOptionsLoadError] =
     useServingRuntimeFilterOptionList();
 
@@ -43,19 +53,23 @@ const RuntimeCatalogView: React.FC = () => {
 
   const pageTitle = React.useMemo(() => {
     const { items } = catalogSources;
-    return items && items.length > 0 ? items[0].name : 'Runtime image library';
+    return items && items.length > 0 ? items[0].name : RUNTIME_CATALOG_TAB_TITLE;
   }, [catalogSources]);
-
-  const pageDescription = React.useMemo(
-    () =>
-      catalogLabels.items[0]?.description ??
-      'Browse container images and templates you can install as serving runtimes on this cluster.',
-    [catalogLabels],
-  );
 
   const handleFilterChange = React.useCallback((key: string, values: string[]) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
   }, []);
+
+  const handleSearch = React.useCallback(
+    (term: string) => {
+      setSearchQuery(term);
+      trackSimpleEvent(RuntimeCatalogTrackingEvent.SEARCH_COMMITTED, {
+        hasSearchTerm: term.trim().length > 0,
+        hardwareFilters: buildHardwareFiltersValue(filters.hardware),
+      });
+    },
+    [trackSimpleEvent, filters.hardware],
+  );
 
   const handleResetFilters = React.useCallback(() => {
     setFilters({});
@@ -68,7 +82,7 @@ const RuntimeCatalogView: React.FC = () => {
     <ApplicationsPage
       noTitle
       title={pageTitle}
-      description={pageDescription}
+      description={<span data-testid="runtime-catalog-page-description">{PAGE_DESCRIPTION}</span>}
       empty={false}
       loaded
       provideChildrenPadding
@@ -101,7 +115,7 @@ const RuntimeCatalogView: React.FC = () => {
           renderToolbar={() => (
             <CatalogSourceLabelSelector
               searchTerm={searchQuery}
-              onSearch={setSearchQuery}
+              onSearch={handleSearch}
               onClearSearch={() => setSearchQuery('')}
               onResetAllFilters={handleResetFilters}
               hasFiltersApplied={hasFiltersApplied}

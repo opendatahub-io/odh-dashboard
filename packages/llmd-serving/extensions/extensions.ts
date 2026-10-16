@@ -670,11 +670,13 @@ const extensions: (
     properties: {
       id: 'llmInferenceServiceConfig',
       label: 'LLM accelerator configuration',
-      description: 'Install as an LLMInferenceServiceConfig for LLM inference service deployments.',
+      description:
+        'Install as an LLMInferenceServiceConfig for LLM inference service deployments. Compatible with Models as a Service.',
       selectedState: {
         listName: 'LLM accelerator configurations',
         description: 'and the LLM inference service deployment wizard.',
       },
+      installTargetName: 'LLM accelerator configuration',
       configureStepLabel: 'Configure accelerator',
       component: () => import('../src/runtimeImageInstall/LlmAcceleratorInstallTarget'),
     },

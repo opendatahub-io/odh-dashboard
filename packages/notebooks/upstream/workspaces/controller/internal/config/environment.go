@@ -26,4 +26,6 @@ type EnvConfig struct {
 	KubeGatewayNamespace string
 	ControllerNamespace  string
 	KubeRbacProxyImage   string
+	ClientQPS            float64
+	ClientBurst          int
 }

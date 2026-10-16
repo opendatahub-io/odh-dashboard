@@ -131,6 +131,28 @@ class EvaluationsPage {
     return cy.findByTestId('collection-drawer-panel');
   }
 
+  findCollectionDrawerPrerequisite() {
+    return cy.findByTestId('collection-drawer-prerequisite');
+  }
+
+  findCollectionDrawerCustomizeButton() {
+    return cy.findByTestId('customize-benchmark-suite-button');
+  }
+
+  findCollectionDrawerCloseFooter() {
+    return cy.findByTestId('collection-drawer-close-footer');
+  }
+
+  findCollectionDrawerSection(section: 'metrics' | 'modalities' | 'tasks' | 'tags' | 'benchmarks') {
+    return cy.findByTestId(`collection-drawer-${section}-section`);
+  }
+
+  findCollectionDrawerSectionToggle(
+    section: 'metrics' | 'modalities' | 'tasks' | 'tags' | 'benchmarks',
+  ) {
+    return this.findCollectionDrawerSection(section).find('button[aria-expanded]').first();
+  }
+
   findBenchmarkSuiteMenu(collectionId: string) {
     return cy.findByTestId(`benchmark-suite-card-menu-${collectionId}`);
   }
@@ -149,6 +171,16 @@ class EvaluationsPage {
 
   findBenchmarkSuitePrimaryAction(collectionId: string) {
     return cy.findByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
+  }
+
+  findBenchmarkSuitePrerequisite(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-prerequisite-${collectionId}`);
+  }
+
+  findBenchmarkSuiteDropdownToggleInCard(collectionId: string) {
+    return this.findBenchmarkSuiteCard(collectionId).find(
+      `[data-testid="benchmark-suite-card-dropdown-toggle-${collectionId}"]`,
+    );
   }
 
   findBenchmarkSuiteDropdownToggle(collectionId: string) {
@@ -193,6 +225,10 @@ class EvaluationsPage {
 
   findBenchmarkSuitesModalityFilter() {
     return cy.findByTestId('benchmark-suites-modality-filter');
+  }
+
+  findBenchmarkSuitesMoreFiltersToggle() {
+    return cy.findByTestId('benchmark-suites-more-filters-toggle');
   }
 
   findBenchmarkSuitesPagination() {

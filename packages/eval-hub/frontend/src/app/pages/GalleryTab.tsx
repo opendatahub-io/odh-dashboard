@@ -3,6 +3,7 @@ import { Stack } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
+import { CURATED_COLLECTION_PREREQUISITES } from '~/app/curatedSuiteConfig';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
@@ -84,9 +85,12 @@ const GalleryTab: React.FC<GalleryTabProps> = ({
         // showEvaluatesFilter
         showEvaluatesFilter={false}
         showPagination
+        // TEMP: Show the full first-release gallery. Re-enable the controls once the gallery grows.
+        showPaginationControls={false}
         showCreateSuiteCard={false}
         showContextualActions={false}
         trackingSurface="collection_gallery"
+        prerequisites={CURATED_COLLECTION_PREREQUISITES}
         primaryActionLabel="Run"
         primaryActionVariant="secondary"
         dropdownActionLabel="Customize"

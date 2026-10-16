@@ -90,11 +90,9 @@ describe('CuratedBenchmarkSuitesPage', () => {
   it('should render agent curated benchmark suites', () => {
     renderPage();
 
-    expect(screen.getByText('Agent benchmark suites')).toBeInTheDocument();
-    expect(
-      screen.getByText('Select a benchmark suite to evaluate your agent.'),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('create-benchmark-suite-button')).toBeInTheDocument();
+    expect(screen.getByText('Agent collections')).toBeInTheDocument();
+    expect(screen.getByText('Select a collection to evaluate your agent.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create collection' })).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-category-filter')).toHaveTextContent('Category');
     expect(screen.getByTestId('benchmark-suites-category-filter-icon')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
@@ -126,13 +124,71 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     renderPage('model');
 
-    expect(screen.getByText('Model benchmark suites')).toBeInTheDocument();
-    expect(
-      screen.getByText('Select a benchmark suite to evaluate your model.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Model collections')).toBeInTheDocument();
+    expect(screen.getByText('Select a collection to evaluate your model.')).toBeInTheDocument();
     expect(
       screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
     ).toBeInTheDocument();
+  });
+
+  it.each(['agent', 'model'] as const)(
+    'should open the details drawer when selecting a %s suite name',
+    (evaluationTarget) => {
+      const [collection] = mockCuratedBenchmarkSuiteCollections(evaluationTarget);
+      mockUseCollectionsQuery.mockReturnValue({
+        data: {
+          items: mockCuratedBenchmarkSuiteCollections(evaluationTarget),
+          // eslint-disable-next-line camelcase
+          total_count: 5,
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      renderPage(evaluationTarget);
+
+      fireEvent.click(screen.getByTestId(`benchmark-suite-card-name-${collection.resource.id}`));
+
+      expect(screen.getByTestId('collection-drawer-panel')).toBeVisible();
+      expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent(collection.name);
+      expect(screen.getByTestId('use-benchmark-suite-button')).toBeInTheDocument();
+      expect(screen.getByTestId('customize-benchmark-suite-button')).toBeInTheDocument();
+    },
+  );
+
+  it('should route mapped curated suites through customization', () => {
+    const ids = ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1'];
+    const collections = mockCuratedBenchmarkSuiteCollections('model')
+      .slice(0, ids.length)
+      .map((collection, index) => ({
+        ...collection,
+        resource: { ...collection.resource, id: ids[index] },
+      }));
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: collections,
+        // eslint-disable-next-line camelcase
+        total_count: collections.length,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage('model');
+
+    ids.forEach((collectionId) => {
+      const customizeAction = screen.getByTestId(
+        `benchmark-suite-card-primary-action-${collectionId}`,
+      );
+      expect(customizeAction).toHaveTextContent('Customize');
+      expect(customizeAction).toHaveAttribute(
+        'href',
+        `/evaluation/test-project/create/collections/${collectionId}/copy`,
+      );
+      expect(
+        screen.queryByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('should link Customize in the action menu to the collection copy route', () => {
@@ -263,6 +319,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     clickFilterOption('benchmark-suites-category-filter-option-code');
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
     clickFilterOption('benchmark-suites-industry-filter-option-government');
 

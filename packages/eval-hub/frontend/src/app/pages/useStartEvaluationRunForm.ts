@@ -962,9 +962,9 @@ export function useStartEvaluationRunForm({
         const cleanupMessage =
           cleanupError instanceof Error
             ? cleanupError.message
-            : 'Unable to remove the copied suite.';
+            : 'Unable to remove the copied collection.';
         notification.error(
-          'Failed to start evaluation and remove copied suite',
+          'Failed to start evaluation and remove copied collection',
           `${message} Cleanup error: ${cleanupMessage}`,
         );
       } else {

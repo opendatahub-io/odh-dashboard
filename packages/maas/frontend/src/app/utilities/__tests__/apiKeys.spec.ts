@@ -10,7 +10,7 @@ describe('subscriptionDetailsFromUserSubscriptions', () => {
         subscription_id_header: 'user-sub',
         subscription_description: 'desc',
         display_name: 'User Sub',
-        priority: 0,
+        inference_priority: 0,
         model_refs: [{ name: 'm1', display_name: 'Model One' }],
       },
     ];

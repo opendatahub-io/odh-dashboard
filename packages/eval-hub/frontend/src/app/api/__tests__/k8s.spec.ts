@@ -399,7 +399,7 @@ describe('getCollection', () => {
 
   it('should reject with an error when collectionId is empty', async () => {
     await expect(getCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'collectionId must not be empty',
+      'Collection ID must not be empty',
     );
 
     expect(mockRestGET).not.toHaveBeenCalled();
@@ -509,7 +509,7 @@ describe('deleteCollection', () => {
 
   it('should reject when collectionId is empty', async () => {
     await expect(deleteCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'collectionId must not be empty',
+      'Collection ID must not be empty',
     );
 
     expect(mockRestDELETE).not.toHaveBeenCalled();
@@ -561,7 +561,7 @@ describe('patchCollection', () => {
   it('should reject when collectionId is empty', async () => {
     await expect(
       patchCollection('', 'test-ns', '', [{ op: 'replace', path: '/name', value: 'Test' }])({}),
-    ).rejects.toThrow('collectionId must not be empty');
+    ).rejects.toThrow('Collection ID must not be empty');
 
     expect(mockRestPATCH).not.toHaveBeenCalled();
   });

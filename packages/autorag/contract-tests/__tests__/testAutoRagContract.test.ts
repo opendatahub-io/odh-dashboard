@@ -219,6 +219,36 @@ describe('AutoRAG API Contract Tests', () => {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
         status: 200,
       });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as {
+            data: {
+              name: string;
+              data: Record<string, string>;
+              databaseProviders?: string[];
+            }[];
+          }
+        ).data;
+        const byName = (name: string) => secrets.find((secret) => secret.name === name);
+        expect(byName('vector-db')?.databaseProviders).toEqual(['milvus']);
+        expect(byName('pgvector-legacy-key')?.databaseProviders).toEqual(['pgvector']);
+        expect(byName('neo4j')?.databaseProviders).toEqual(['neo4j']);
+        expect(byName('ambiguous-database')?.databaseProviders).toEqual(['milvus', 'neo4j']);
+        for (const name of [
+          'milvus-empty-uri',
+          'milvus-whitespace-uri',
+          'pgvector-empty-password',
+          'pgvector-whitespace-host',
+          'neo4j-empty-password',
+          'neo4j-whitespace-uri',
+        ]) {
+          expect(byName(name)?.databaseProviders).toBeUndefined();
+        }
+        expect(JSON.stringify(secrets)).not.toContain('https://milvus.example.com:19530');
+        expect(JSON.stringify(secrets)).not.toContain('fake-pgvector-password');
+        expect(JSON.stringify(secrets)).not.toContain('fake-neo4j-password');
+      }
     });
 
     it('should retrieve storage secrets when type=storage', async () => {
@@ -227,6 +257,100 @@ describe('AutoRAG API Contract Tests', () => {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
         status: 200,
       });
+    });
+
+    it('should classify only Neo4j secrets containing both URI and password', async () => {
+      const result = await apiClient.get(
+        `/api/v1/secrets?namespace=${NS}&type=database&provider=neo4j`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as {
+            data: { name: string; databaseProviders?: string[] }[];
+          }
+        ).data;
+        expect(secrets.map((secret) => secret.name)).toEqual(['neo4j', 'neo4j-legacy-key']);
+        expect(secrets.map((secret) => secret.databaseProviders)).toEqual([['neo4j'], ['neo4j']]);
+      }
+    });
+
+    it('should classify canonical and legacy Milvus secrets and redact certificate values', async () => {
+      const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=vector-db`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as {
+            data: { name: string; data: Record<string, string>; databaseProviders?: string[] }[];
+          }
+        ).data;
+        expect(secrets.map((secret) => secret.name)).toEqual([
+          'vector-db',
+          'legacy-milvus',
+          'pgvector-legacy-key',
+          'ambiguous-database',
+        ]);
+        expect(secrets[0].data).toHaveProperty('MILVUS_CA_CERT', '[REDACTED]');
+        expect(secrets[0].data).not.toHaveProperty('MILVUS_SERVER_CERT');
+        expect(secrets[1].data).toHaveProperty('MILVUS_SERVER_CERT', '[REDACTED]');
+        expect(secrets.find((secret) => secret.name === 'vector-db')?.databaseProviders).toEqual([
+          'milvus',
+        ]);
+        expect(
+          secrets.find((secret) => secret.name === 'pgvector-legacy-key')?.databaseProviders,
+        ).toEqual(['pgvector']);
+        expect(
+          secrets.find((secret) => secret.name === 'pgvector-legacy-key')?.data,
+        ).toHaveProperty('MILVUS_SERVER_CERT', '[REDACTED]');
+        expect(
+          secrets.find((secret) => secret.name === 'ambiguous-database')?.databaseProviders,
+        ).toEqual(['milvus', 'neo4j']);
+        const responsePayload = JSON.stringify(secrets);
+        expect(responsePayload).not.toContain('canonical-ca-certificate');
+        expect(responsePayload).not.toContain('legacy-certificate');
+        expect(responsePayload).not.toContain('fake-neo4j-password');
+      }
+    });
+
+    it.each([
+      ['milvus', ['vector-db', 'legacy-milvus']],
+      ['pgvector', ['pgvector-legacy-key']],
+    ])('should classify only non-empty %s credentials', async (provider, expectedNames) => {
+      const result = await apiClient.get(
+        `/api/v1/secrets?namespace=${NS}&type=database&provider=${provider}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as {
+            data: { name: string; databaseProviders?: string[] }[];
+          }
+        ).data;
+        expect(secrets.map((secret) => secret.name)).toEqual(expectedNames);
+        expect(secrets.every((secret) => secret.databaseProviders?.length === 1)).toBe(true);
+        expect(secrets.map((secret) => secret.name)).not.toEqual(
+          expect.arrayContaining([
+            'milvus-empty-uri',
+            'milvus-whitespace-uri',
+            'pgvector-empty-password',
+            'pgvector-whitespace-host',
+            'neo4j-empty-password',
+            'neo4j-whitespace-uri',
+          ]),
+        );
+      }
     });
 
     it('should return 400 when namespace parameter is missing', async () => {
@@ -660,6 +784,31 @@ describe('AutoRAG API Contract Tests', () => {
       const result = await apiClient.post(`/api/v1/indexing-pipeline-runs?namespace=${NS}`, {
         display_name: 'incomplete-indexing-run',
       });
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+  });
+
+  describe('Pipeline Server Status Endpoint', () => {
+    it('should return 200 with a ready status on a namespace with a DSPA', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 200 with a not-found status when no DSPA exists in namespace', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS_NO_DSPA}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect((result.response.data as { data: { status: string } }).data.status).toBe('not-found');
+    });
+
+    it('should return 400 when namespace query parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/pipeline-server/status');
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);
     });
