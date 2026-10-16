@@ -182,7 +182,13 @@ export function toMatchContract(
     let targetSchema: unknown = schema;
     if (ref) {
       const maybe = getByPointer(schema, ref.startsWith('#') ? ref : `#${ref}`);
-      targetSchema = maybe ?? schema;
+      if (maybe === undefined) {
+        return {
+          pass: false,
+          message: () => `Schema reference ${ref} was not found`,
+        };
+      }
+      targetSchema = maybe;
     }
     // If this looks like OAS3 (has components.schemas), deref $refs that point to components
     const componentsSchemas =
