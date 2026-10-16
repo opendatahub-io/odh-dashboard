@@ -88,7 +88,9 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   );
   const sourceCollection = isCreateMode ? undefined : fetchedCollection;
   const prerequisite =
-    mode === 'copy' && collectionId ? CURATED_COLLECTION_PREREQUISITES[collectionId] : undefined;
+    mode === 'copy' && sourceCollection && !sourceCollection.resource.tenant
+      ? CURATED_COLLECTION_PREREQUISITES[sourceCollection.resource.id]
+      : undefined;
 
   const navigationState = location.state;
   const isEvaluateOrigin =

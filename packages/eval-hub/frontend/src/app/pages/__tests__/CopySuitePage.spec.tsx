@@ -307,12 +307,12 @@ const renderGalleryOriginPage = () =>
     </MemoryRouter>,
   );
 
-const renderBenchmarkSuitesOriginPage = () =>
+const renderBenchmarkSuitesOriginPage = (collectionId = 'source-collection') =>
   render(
     <MemoryRouter
       initialEntries={[
         {
-          pathname: '/evaluation/test-namespace/create/collections/source-collection/copy',
+          pathname: `/evaluation/test-namespace/create/collections/${collectionId}/copy`,
           state: evaluationBenchmarkSuitesNavigationState,
         },
       ]}
@@ -663,6 +663,23 @@ describe('CopySuitePage', () => {
     renderEditPage('trustworthiness-v1');
 
     expect(screen.getByTestId('app-page-title')).toHaveTextContent('Edit collection');
+    expect(screen.queryByTestId('copy-suite-prerequisite-alert')).not.toBeInTheDocument();
+  });
+
+  it('should not show curated prerequisites when copying a tenant collection from benchmark suites', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        resource: { id: 'trustworthiness-v1', tenant: 'test-tenant' },
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderBenchmarkSuitesOriginPage('trustworthiness-v1');
+
+    expect(screen.getByTestId('copy-suite-step-settings')).toBeInTheDocument();
     expect(screen.queryByTestId('copy-suite-prerequisite-alert')).not.toBeInTheDocument();
   });
 

@@ -1145,7 +1145,9 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
               </GalleryItem>
             )}
             {visibleCollections.map((collection) => {
-              const prerequisite = prerequisites?.[collection.resource.id];
+              const prerequisite = !collection.resource.tenant
+                ? prerequisites?.[collection.resource.id]
+                : undefined;
               const hasPrerequisite = Boolean(prerequisite);
 
               return (
