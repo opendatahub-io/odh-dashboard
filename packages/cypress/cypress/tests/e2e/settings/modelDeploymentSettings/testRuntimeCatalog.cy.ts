@@ -64,14 +64,15 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
         .findCardDetailLinks()
         .first()
         .then(($link) => {
-          // Read the name from the same element that is clicked, so a re-render cannot swap cards
-          const runtimeName = $link.text().trim();
+          // Read the destination from the same element that is clicked, so a re-render cannot swap
+          // cards. The URL identifies the runtime; the card label and details heading can fall back
+          // to different identifiers when a runtime has no display name or name.
+          const detailsPath = $link.attr('href');
           cy.wrap($link).click();
 
-          cy.step('Verify the details page shows the selected runtime image');
-          runtimeCatalogDetailsPage
-            .findTitle()
-            .should(($title) => expect($title.text().trim()).to.equal(runtimeName));
+          cy.step('Verify the details page opens for the selected runtime image');
+          cy.location('pathname').should('eq', detailsPath);
+          runtimeCatalogDetailsPage.findTitle().should('be.visible');
 
           // Install is a link when a target can install this image and aria-disabled otherwise,
           // depending on the runtime's resources, so only its presence is asserted here.
@@ -98,10 +99,8 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
 
       cy.step('Verify the page is not found and no Install action is rendered');
       pageNotfound.findPage().should('exist');
+      // The Install action renders only inside the details page, so its absence covers Install too
       runtimeCatalogDetailsPage.findPage().should('not.exist');
-      // Implied by the absent details page, but kept to state the ticket's "no catalog actions
-      // for non-admins" criterion directly
-      runtimeCatalogDetailsPage.findInstallAction().should('not.exist');
     },
   );
 });
