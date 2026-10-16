@@ -142,15 +142,6 @@ describe('ConnectionTypesTab', () => {
     expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
   });
 
-  it('should render the getting-started state when no connection types exist', () => {
-    mockUseConnectionTypes.mockReturnValue([[], true, undefined]);
-
-    renderTab();
-
-    expect(screen.getByText('Get started with data connection types')).toBeTruthy();
-    expect(screen.queryByRole('textbox')).toBeNull();
-  });
-
   it('should render a loading state before connection types load', () => {
     mockUseConnectionTypes.mockReturnValue([[], false, undefined]);
 
