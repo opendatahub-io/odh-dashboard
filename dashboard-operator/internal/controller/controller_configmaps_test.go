@@ -412,23 +412,15 @@ func TestMapConfigMapToDashboard(t *testing.T) {
 	}
 }
 
-func TestConfigMapPredicate(t *testing.T) {
-	r := &DashboardReconciler{Namespace: "test-ns"}
-	p := r.configMapPredicate()
+func TestConfigMapUpdatePredicate(t *testing.T) {
+	r := &DashboardReconciler{}
+	p := r.configMapUpdatePredicate()
 	watched := newConfigMap(distributionConfigMapName, "test-ns", nil, nil)
-	wrongNamespace := newConfigMap(distributionConfigMapName, "other-ns", nil, nil)
-	unrelated := newConfigMap("some-other-config", "test-ns", nil, nil)
 
-	t.Run("create delete and generic events require a watched ConfigMap", func(t *testing.T) {
-		assert.True(t, p.Create(event.CreateEvent{Object: watched}))
-		assert.False(t, p.Create(event.CreateEvent{Object: wrongNamespace}))
-		assert.False(t, p.Create(event.CreateEvent{Object: unrelated}))
-		assert.True(t, p.Delete(event.DeleteEvent{Object: watched}))
-		assert.False(t, p.Delete(event.DeleteEvent{Object: wrongNamespace}))
-		assert.False(t, p.Delete(event.DeleteEvent{Object: unrelated}))
-		assert.True(t, p.Generic(event.GenericEvent{Object: watched}))
-		assert.False(t, p.Generic(event.GenericEvent{Object: wrongNamespace}))
-		assert.False(t, p.Generic(event.GenericEvent{Object: unrelated}))
+	t.Run("create delete and generic events are accepted after cache selection", func(t *testing.T) {
+		assert.True(t, p.Create(event.TypedCreateEvent[*corev1.ConfigMap]{Object: watched}))
+		assert.True(t, p.Delete(event.TypedDeleteEvent[*corev1.ConfigMap]{Object: watched}))
+		assert.True(t, p.Generic(event.TypedGenericEvent[*corev1.ConfigMap]{Object: watched}))
 	})
 
 	churnOld := newConfigMap(distributionConfigMapName, "test-ns", map[string]string{"platformVersion": "2.20.0"}, nil)
@@ -450,20 +442,34 @@ func TestConfigMapPredicate(t *testing.T) {
 		{"operator config annotation change does not fire", newConfigMap(operatorConfigMapName, "test-ns", map[string]string{"reconcileInterval": "30s"}, nil), newConfigMap(operatorConfigMapName, "test-ns", map[string]string{"reconcileInterval": "30s"}, map[string]string{annotations.PlatformVersion: "2.21.0"}), false},
 		{"operator config data change fires", newConfigMap(operatorConfigMapName, "test-ns", map[string]string{"reconcileInterval": "30s"}, nil), newConfigMap(operatorConfigMapName, "test-ns", map[string]string{"reconcileInterval": "60s"}, nil), true},
 		{"unrelated annotation churn does not fire", newConfigMap(distributionConfigMapName, "test-ns", map[string]string{"platformVersion": "2.20.0"}, map[string]string{"kubectl.kubernetes.io/last-applied-configuration": "{}"}), newConfigMap(distributionConfigMapName, "test-ns", map[string]string{"platformVersion": "2.20.0"}, map[string]string{"kubectl.kubernetes.io/last-applied-configuration": "{\"data\":{}}"}), false},
-		{"unrelated ConfigMap does not fire", newConfigMap("some-other-config", "test-ns", map[string]string{"a": "1"}, nil), newConfigMap("some-other-config", "test-ns", map[string]string{"a": "2"}, nil), false},
-		{"different namespace does not fire", newConfigMap(distributionConfigMapName, "other-ns", map[string]string{"platformVersion": "2.20.0"}, nil), newConfigMap(distributionConfigMapName, "other-ns", map[string]string{"platformVersion": "2.21.0"}, nil), false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, p.Update(event.UpdateEvent{ObjectOld: tt.old, ObjectNew: tt.new}))
+			assert.Equal(t, tt.want, p.Update(event.TypedUpdateEvent[*corev1.ConfigMap]{ObjectOld: tt.old, ObjectNew: tt.new}))
 		})
 	}
+}
+
+func TestNamedConfigMapNames(t *testing.T) {
+	t.Run("uses separate distribution and operator config names by default", func(t *testing.T) {
+		assert.Equal(t, []string{distributionConfigMapName, operatorConfigMapName}, namedConfigMapNames())
+	})
+
+	t.Run("uses the configured distribution config name", func(t *testing.T) {
+		t.Setenv("OPERATOR_CONFIGMAP_NAME", "custom-distribution-config")
+		assert.Equal(t, []string{"custom-distribution-config", operatorConfigMapName}, namedConfigMapNames())
+	})
+
+	t.Run("deduplicates a shared distribution and operator config name", func(t *testing.T) {
+		t.Setenv("OPERATOR_CONFIGMAP_NAME", operatorConfigMapName)
+		assert.Equal(t, []string{operatorConfigMapName}, namedConfigMapNames())
+	})
 }
 
 func TestConfigMapWatchHonorsCustomDistributionConfigMapName(t *testing.T) {
 	const customName = "custom-distribution-config"
 	t.Setenv("OPERATOR_CONFIGMAP_NAME", customName)
 	r := &DashboardReconciler{Namespace: "test-ns"}
-	p := r.configMapPredicate()
+	p := r.configMapUpdatePredicate()
 	custom := newConfigMap(customName, "test-ns", map[string]string{"platformVersion": "2.20.0"}, nil)
 
 	reqs := r.mapConfigMapToDashboard(context.Background(), custom)
@@ -472,10 +478,9 @@ func TestConfigMapWatchHonorsCustomDistributionConfigMapName(t *testing.T) {
 
 	defaultConfig := newConfigMap(distributionConfigMapName, "test-ns", map[string]string{"platformVersion": "2.20.0"}, nil)
 	assert.Empty(t, r.mapConfigMapToDashboard(context.Background(), defaultConfig))
-	assert.False(t, p.Create(event.CreateEvent{Object: defaultConfig}))
 
 	updated := newConfigMap(customName, "test-ns", map[string]string{"platformVersion": "2.21.0"}, nil)
-	assert.True(t, p.Update(event.UpdateEvent{ObjectOld: custom, ObjectNew: updated}))
+	assert.True(t, p.Update(event.TypedUpdateEvent[*corev1.ConfigMap]{ObjectOld: custom, ObjectNew: updated}))
 	annotationUpdated := newConfigMap(customName, "test-ns", map[string]string{"platformVersion": "2.20.0"}, map[string]string{annotations.PlatformVersion: "2.21.0"})
-	assert.True(t, p.Update(event.UpdateEvent{ObjectOld: custom, ObjectNew: annotationUpdated}))
+	assert.True(t, p.Update(event.TypedUpdateEvent[*corev1.ConfigMap]{ObjectOld: custom, ObjectNew: annotationUpdated}))
 }

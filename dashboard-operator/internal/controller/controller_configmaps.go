@@ -174,10 +174,7 @@ func newOwnedConfigMapCache(mgr ctrl.Manager, namespace string) (cache.Cache, er
 // newNamedConfigMapCaches creates one cache per physical external input. The
 // distribution and operator config inputs can intentionally share a name.
 func newNamedConfigMapCaches(mgr ctrl.Manager, namespace string) ([]cache.Cache, error) {
-	names := []string{resolveDistributionConfigMapName()}
-	if names[0] != operatorConfigMapName {
-		names = append(names, operatorConfigMapName)
-	}
+	names := namedConfigMapNames()
 	caches := make([]cache.Cache, 0, len(names))
 	for _, name := range names {
 		selectedCache, err := newSelectedConfigMapCache(mgr, namespace, nil, fields.OneTermEqualSelector("metadata.name", name))
@@ -187,6 +184,14 @@ func newNamedConfigMapCaches(mgr ctrl.Manager, namespace string) ([]cache.Cache,
 		caches = append(caches, selectedCache)
 	}
 	return caches, nil
+}
+
+func namedConfigMapNames() []string {
+	names := []string{resolveDistributionConfigMapName()}
+	if names[0] != operatorConfigMapName {
+		names = append(names, operatorConfigMapName)
+	}
+	return names
 }
 
 func newSelectedConfigMapCache(mgr ctrl.Manager, namespace string, labelSelector k8slabels.Selector, fieldSelector fields.Selector) (cache.Cache, error) {
@@ -249,23 +254,4 @@ func configMapInputChanged(oldCM, newCM *corev1.ConfigMap) bool {
 		(oldCM.Annotations[annotations.PlatformType] != newCM.Annotations[annotations.PlatformType] ||
 			oldCM.Annotations[annotations.PlatformVersion] != newCM.Annotations[annotations.PlatformVersion])
 	return !maps.Equal(oldCM.Data, newCM.Data) || annotationChanged
-}
-
-func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
-	return predicate.Funcs{
-		CreateFunc:  func(e event.CreateEvent) bool { return r.isWatchedConfigMap(e.Object) },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return r.isWatchedConfigMap(e.Object) },
-		GenericFunc: func(e event.GenericEvent) bool { return r.isWatchedConfigMap(e.Object) },
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			if !r.isWatchedConfigMap(e.ObjectNew) {
-				return false
-			}
-			oldCM, oldOK := e.ObjectOld.(*corev1.ConfigMap)
-			newCM, newOK := e.ObjectNew.(*corev1.ConfigMap)
-			if !oldOK || !newOK {
-				return true
-			}
-			return configMapInputChanged(oldCM, newCM)
-		},
-	}
 }
