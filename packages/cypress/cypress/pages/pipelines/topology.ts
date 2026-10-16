@@ -43,7 +43,7 @@ class TaskDrawer extends Contextual<HTMLElement> {
   }
 
   shouldHaveTaskName(name: string) {
-    return this.find().findByTestId('pipeline-task-name').should('contain.text', name);
+    return this.find().findByTestId('pipeline-drawer-task-title').should('contain.text', name);
   }
 }
 
@@ -61,6 +61,38 @@ class PipelinesTopology {
 
   findTaskNode(name: string) {
     return cy.get(`[data-id="${name}"][data-kind="node"][data-type="DEFAULT_TASK_NODE"]`);
+  }
+
+  findTaskButton(name: string) {
+    return cy.findByTestId(`pipeline-node-button-${name}`);
+  }
+
+  findGroupToggle(name: string) {
+    return cy.findByTestId(`pipeline-group-toggle-${name}`);
+  }
+
+  findGroupButton(name: string) {
+    return cy.findByTestId(`pipeline-group-button-${name}`);
+  }
+
+  findGroupTask(name: string) {
+    return cy.findByTestId(`pipeline-group-task-${name}`);
+  }
+
+  findGroupDetails(name: string) {
+    return cy.findByTestId(`pipeline-group-details-${name}`);
+  }
+
+  findGraphButtons() {
+    return cy.get('.odh-pipeline-node-button');
+  }
+
+  findDrawerTaskTitle() {
+    return cy.findByTestId('pipeline-drawer-task-title');
+  }
+
+  findDrawerCloseButton() {
+    return cy.findByRole('button', { name: 'Close drawer panel' });
   }
 
   findTaskNodes() {
@@ -113,6 +145,14 @@ class PipelinesTopology {
     return cy.get(
       `[data-id="GROUP.root.ARTIFACT.${name}"][data-kind="node"][data-type="ICON_TASK_NODE"]`,
     );
+  }
+
+  findArtifactIcon(name: string) {
+    return cy.findByTestId(`pipeline-artifact-icon-${name}`);
+  }
+
+  findArtifactVisual(name: string) {
+    return cy.findByTestId(`pipeline-artifact-visual-${name}`);
   }
 }
 
