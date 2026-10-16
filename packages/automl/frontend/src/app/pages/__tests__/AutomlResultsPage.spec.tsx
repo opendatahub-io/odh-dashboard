@@ -1445,7 +1445,7 @@ describe('AutomlResultsPage', () => {
       ['missing task', []],
       [
         'invalid task suffix',
-        [{ prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-3/' }],
+        [{ prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-x/' }],
       ],
       [
         'duplicate allowed tasks',
