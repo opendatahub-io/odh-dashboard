@@ -23,6 +23,7 @@ export const MODEL_AS_SERVICE = 'model-as-service';
 export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
 export const GUARDRAILS = 'guardrails';
 export const PROMPT_MANAGEMENT = 'promptManagement';
+export const PROMPT_MODEL_ASSOCIATIONS = 'promptModelAssociations';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
 export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
@@ -84,6 +85,14 @@ const extensions: (
       id: PROMPT_MANAGEMENT,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [PROMPT_MANAGEMENT],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: PROMPT_MODEL_ASSOCIATIONS,
+      reliantAreas: [PROMPT_MANAGEMENT],
+      devFlags: [PROMPT_MODEL_ASSOCIATIONS],
     },
   },
   {

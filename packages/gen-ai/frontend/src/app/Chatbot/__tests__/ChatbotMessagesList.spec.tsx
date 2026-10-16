@@ -28,20 +28,11 @@ jest.mock('../components/ChatbotErrorAlert', () => ({
 
 jest.mock('../ChatbotMessagesMetrics', () => ({
   ChatbotMessagesMetrics: jest.fn(
-    ({
-      metrics,
-      isDisabled,
-      isExpanded,
-      onExpandedChange,
-      showToggle = true,
-      toggleId,
-      contentId,
-    }) =>
+    ({ metrics, isExpanded, onExpandedChange, showToggle = true, toggleId, contentId }) =>
       showToggle ? (
         <div data-testid="metrics">
           <button
             aria-controls={contentId}
-            disabled={isDisabled}
             id={toggleId}
             onClick={() => onExpandedChange?.(!isExpanded)}
           >
@@ -202,7 +193,7 @@ describe('ChatbotMessages', () => {
 
       expect(screen.getByTestId('tool-calls')).toBeInTheDocument();
       expect(screen.getByTestId('tool-calls')).toHaveAttribute('data-expanded', 'true');
-      expect(screen.getByRole('button', { name: 'Response metrics' })).toBeDisabled();
+      expect(screen.queryByTestId('metrics')).not.toBeInTheDocument();
     });
 
     it('should collapse tool calls while answer text is streaming', () => {
@@ -640,6 +631,25 @@ describe('ChatbotMessages', () => {
 
       expect(screen.getByTestId('end-content')).toBeInTheDocument();
       expect(screen.getByTestId('metrics')).toBeInTheDocument();
+    });
+
+    it('should not render metrics or endContent while the response is still streaming', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Partial answer',
+          isTextStreaming: true,
+          isToolCallStreamComplete: false,
+          // eslint-disable-next-line camelcase
+          metrics: { latency_ms: 500 },
+        },
+      ];
+
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
+
+      expect(screen.queryByTestId('metrics')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('end-content')).not.toBeInTheDocument();
     });
 
     it('should not render extraContent when no metrics or errors', () => {

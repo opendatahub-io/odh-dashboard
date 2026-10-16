@@ -160,6 +160,55 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         promptAssistant.findNameTitle().should('contain.text', 'New Prompt');
       },
     );
+
+    it(
+      'should hide the Model column and Model filter when prompt model associations flag is off',
+      { tags: ['@GenAI', '@PromptManagement', '@FeatureFlag'] },
+      () => {
+        const namespace = config.defaultNamespace;
+
+        cy.step('Setup base mocks without promptModelAssociations flag');
+        setupBaseMCPServerMocks(config, {
+          lsdStatus: 'Ready',
+          includeLsdModel: true,
+          includeAAModel: true,
+        });
+        cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+        cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+        cy.intercept('GET', '**/api/v1/mcp/status**', {
+          statusCode: 200,
+          body: { status: 'ready' },
+        });
+        setupPromptMocks(namespace);
+
+        cy.step('Visit page without promptModelAssociations flag');
+        appChrome.visit(['genAiStudio', 'promptManagement']);
+        chatbotPage.visit(namespace);
+        chatbotPage.verifyOnChatbotPage(namespace);
+        cy.wait('@bffConfig');
+        cy.wait('@aaModels');
+
+        cy.step('Open the prompt table');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTable().should('be.visible');
+
+        cy.step('Verify the Model column is hidden on the Project prompts tab');
+        promptManagementModal.findTableRow('summarization-prompt').should('exist');
+        promptManagementModal.findModelColumnHeader().should('not.exist');
+
+        cy.step('Verify the Model column is hidden on the Global prompts tab');
+        promptManagementModal.findGlobalPromptsTab().click();
+        promptManagementModal.findTableRow('starter-template-prompt').should('exist');
+        promptManagementModal.findModelColumnHeader().should('not.exist');
+
+        cy.step('Verify only the Name filter type is offered');
+        promptManagementModal.findFilterTypeToggle().click();
+        promptManagementModal.findFilterTypeItem('name').should('exist');
+        promptManagementModal.findFilterTypeItem('model').should('not.exist');
+      },
+    );
   });
 
   describe('Prompt Table - Load Flow', () => {
@@ -269,7 +318,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
       });
       setupPromptMocks(namespace);
 
-      appChrome.visit(['genAiStudio', 'promptManagement']);
+      appChrome.visit(['genAiStudio', 'promptManagement', 'promptModelAssociations']);
       chatbotPage.visit(namespace);
       chatbotPage.verifyOnChatbotPage(namespace);
       cy.wait('@bffConfig');

@@ -13,6 +13,7 @@ import extensions, {
   MODEL_AS_SERVICE_CAMEL,
   PLUGIN_GEN_AI,
   PROMPT_MANAGEMENT,
+  PROMPT_MODEL_ASSOCIATIONS,
   GEN_AI_TRACING,
 } from './extensions';
 
@@ -26,6 +27,7 @@ export const PluginStoreContextProvider: React.FC<React.PropsWithChildren> = ({ 
       [MODEL_AS_SERVICE_CAMEL]: true,
       [GUARDRAILS]: true,
       [PROMPT_MANAGEMENT]: true,
+      [PROMPT_MODEL_ASSOCIATIONS]: true,
       [EXTERNAL_VECTOR_STORES]: true,
       [AI_ASSET_CUSTOM_ENDPOINTS]: true,
       [GEN_AI_TRACING]: true,
