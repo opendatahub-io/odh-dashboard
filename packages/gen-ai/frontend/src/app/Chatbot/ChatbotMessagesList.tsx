@@ -183,7 +183,10 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         const updateExpandedDetail = (section: ResponseDetailSection) => (isExpanded: boolean) =>
           setExpandedResponseDetail(isExpanded ? { messageId: message.id ?? '', section } : null);
         const isToolsExpanded = isToolCallPhase || isDetailExpanded('tools');
-        if (message.role === 'bot' && (toolCalls || fileSearchData || metrics || traceId)) {
+        if (
+          message.role === 'bot' &&
+          (toolCalls || fileSearchData || (metrics && isResponseComplete) || traceId)
+        ) {
           extraContent.endContent = (
             <>
               <Flex
@@ -203,13 +206,12 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                     />
                   </FlexItem>
                 )}
-                {!errorClassification && metrics && (
+                {!errorClassification && metrics && isResponseComplete && (
                   <FlexItem>
                     <ChatbotMessagesMetrics
                       metrics={metrics}
                       isExpanded={isDetailExpanded('metrics')}
                       onExpandedChange={updateExpandedDetail('metrics')}
-                      isDisabled={!isResponseComplete}
                       showContent={false}
                       {...metricsDetailIds}
                     />
