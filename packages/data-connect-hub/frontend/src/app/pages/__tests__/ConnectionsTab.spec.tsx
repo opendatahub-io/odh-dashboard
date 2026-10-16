@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
@@ -51,19 +52,32 @@ const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
 
+const renderConnectionsTab = (props: React.ComponentProps<typeof ConnectionsTab>) =>
+  render(
+    <MemoryRouter>
+      <ConnectionsTab {...props} />
+    </MemoryRouter>,
+  );
+
 const connections = [
   {
-    metadata: { id: 'connection-1' },
+    metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
     resource: {
       name: 'warehouse',
-      data_connection_type_id: 'postgresql',
+      data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
       format: 'tabular' as const,
+      credentials_ref: { secret: 'warehouse' },
     },
     status: { state: 'ready' as const, updated_at: '2026-09-08T16:00:00Z' },
   },
   {
-    metadata: { id: 'connection-2' },
-    resource: { name: 'object-store', data_connection_type_id: 's3', format: 'binary' as const },
+    metadata: { id: '550e8400-e29b-41d4-a716-446655440002' },
+    resource: {
+      name: 'object-store',
+      data_connection_type_id: '550e8400-e29b-41d4-a716-446655440004',
+      format: 'binary' as const,
+      credentials_ref: { secret: 'object-store' },
+    },
     status: { state: 'not_ready' as const },
   },
 ];
@@ -71,7 +85,7 @@ const connections = [
 const connectionTypes = [
   {
     metadata: {
-      id: 'postgresql',
+      id: '550e8400-e29b-41d4-a716-446655440003',
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-08T16:00:00Z',
     },
@@ -87,7 +101,7 @@ const connectionTypes = [
   },
   {
     metadata: {
-      id: 's3',
+      id: '550e8400-e29b-41d4-a716-446655440004',
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-08T16:00:00Z',
     },
@@ -97,14 +111,19 @@ const connectionTypes = [
 ];
 
 const newConnection = {
-  metadata: { id: 'connection-3' },
-  resource: { name: 'analytics', data_connection_type_id: 'snowflake', format: 'tabular' as const },
+  metadata: { id: '550e8400-e29b-41d4-a716-446655440005' },
+  resource: {
+    name: 'analytics',
+    data_connection_type_id: '550e8400-e29b-41d4-a716-446655440006',
+    format: 'tabular' as const,
+    credentials_ref: { secret: 'analytics' },
+  },
   status: { state: 'ready' as const },
 };
 
 const newConnectionType = {
   metadata: {
-    id: 'snowflake',
+    id: '550e8400-e29b-41d4-a716-446655440006',
     created_at: '2026-09-08T16:00:00Z',
     updated_at: '2026-09-08T16:00:00Z',
   },
@@ -123,27 +142,83 @@ describe('ConnectionsTab', () => {
 
   it('keeps manually deselected types deselected during polling', () => {
     expect(
-      synchronizeTypeSelection(['postgresql'], ['postgresql', 's3'], ['postgresql', 's3']),
-    ).toEqual(['postgresql']);
+      synchronizeTypeSelection(
+        ['550e8400-e29b-41d4-a716-446655440003'],
+        ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
+        ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
+      ),
+    ).toEqual(['550e8400-e29b-41d4-a716-446655440003']);
   });
 
   it('adds a newly discovered type while preserving existing selection', () => {
     expect(
-      synchronizeTypeSelection(['postgresql'], ['postgresql'], ['postgresql', 'snowflake']),
-    ).toEqual(['postgresql', 'snowflake']);
+      synchronizeTypeSelection(
+        ['550e8400-e29b-41d4-a716-446655440003'],
+        ['550e8400-e29b-41d4-a716-446655440003'],
+        ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006'],
+      ),
+    ).toEqual(['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006']);
   });
 
   it('renders connection names and readable type names', () => {
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Unverified')).toBeTruthy();
   });
 
+  it('renders a newly created connection as unverified', () => {
+    mockUseConnections.mockReturnValue([
+      [
+        {
+          ...connections[0],
+          status: {
+            state: 'not_ready' as const,
+            updated_at: '2026-09-06T16:00:00Z',
+          },
+        },
+      ],
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    expect(screen.getByText('Unverified')).toBeTruthy();
+    expect(screen.queryByText(/Last tested/)).toBeNull();
+  });
+
+  it('renders connection detail links', () => {
+    mockUseConnections.mockReturnValue([
+      [
+        {
+          ...connections[0],
+          metadata: { ...connections[0].metadata, id: '550e8400-e29b-41d4-a716-446655440001' },
+        },
+      ],
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/connections?project=test-project']}>
+        <Routes>
+          <Route path="/connections" element={<ConnectionsTab namespace="test-project" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'warehouse' }).getAttribute('href')).toBe(
+      '/connections/550e8400-e29b-41d4-a716-446655440001?project=test-project',
+    );
+  });
+
   it('opens the create connection wizard from the toolbar', async () => {
     const user = userEvent.setup();
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
 
@@ -155,7 +230,7 @@ describe('ConnectionsTab', () => {
   });
 
   it('disables connection polling while the Connections tab is inactive', () => {
-    render(<ConnectionsTab namespace="test-project" isActive={false} />);
+    renderConnectionsTab({ namespace: 'test-project', isActive: false });
 
     expect(mockUseConnections).toHaveBeenCalledWith('test-project', false);
     expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project', false);
@@ -163,7 +238,7 @@ describe('ConnectionsTab', () => {
 
   it('filters connections by name', async () => {
     const user = userEvent.setup();
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
 
@@ -178,7 +253,7 @@ describe('ConnectionsTab', () => {
     mockVerifyConnection.mockImplementation(
       () => () => Promise.reject(new Error('verification failed')),
     );
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
     await user.click(screen.getByRole('menuitem', { name: 'Verify connection' }));
@@ -191,7 +266,7 @@ describe('ConnectionsTab', () => {
     const refresh = jest.fn();
     mockUseConnections.mockReturnValue([connections, true, undefined, refresh]);
     mockDeleteConnection.mockImplementation(() => (_opts, _namespace, _id) => Promise.resolve());
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
@@ -214,9 +289,10 @@ describe('ConnectionsTab', () => {
     });
     mockUseConnections.mockReturnValue([connections, true, undefined, refresh]);
     mockDeleteConnection.mockImplementation(
-      () => (_opts, _namespace, id) => (id === 'connection-1' ? firstDelete : secondDelete),
+      () => (_opts, _namespace, id) =>
+        id === '550e8400-e29b-41d4-a716-446655440001' ? firstDelete : secondDelete,
     );
-    render(<ConnectionsTab namespace="test-project" />);
+    renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
@@ -239,7 +315,7 @@ describe('ConnectionsTab', () => {
 
   it('includes newly discovered connection types after polling', async () => {
     const user = userEvent.setup();
-    const { rerender } = render(<ConnectionsTab namespace="test-project" />);
+    const { rerender } = renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'S3' }));
@@ -254,21 +330,33 @@ describe('ConnectionsTab', () => {
       true,
       undefined,
     ]);
-    rerender(<ConnectionsTab namespace="test-project" />);
+    rerender(
+      <MemoryRouter>
+        <ConnectionsTab namespace="test-project" />
+      </MemoryRouter>,
+    );
 
     await waitFor(() => expect(screen.getByText('analytics')).toBeTruthy());
   });
 
   it('resets type selections when the project changes', async () => {
     const user = userEvent.setup();
-    const { rerender } = render(<ConnectionsTab key="project-one" namespace="project-one" />);
+    const { rerender } = render(
+      <MemoryRouter>
+        <ConnectionsTab key="project-one" namespace="project-one" />
+      </MemoryRouter>,
+    );
 
     await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'S3' }));
 
     mockUseConnections.mockReturnValue([[connections[1]], true, undefined, jest.fn()]);
     mockUseConnectionTypes.mockReturnValue([[connectionTypes[1]], true, undefined]);
-    rerender(<ConnectionsTab key="project-two" namespace="project-two" />);
+    rerender(
+      <MemoryRouter>
+        <ConnectionsTab key="project-two" namespace="project-two" />
+      </MemoryRouter>,
+    );
 
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Type' })[0]).toBeTruthy());
     expect(screen.getByText('object-store')).toBeTruthy();
@@ -278,7 +366,7 @@ describe('ConnectionsTab', () => {
     const user = userEvent.setup();
     mockUseConnections.mockReturnValue([[], true, undefined, jest.fn()]);
 
-    render(<ConnectionsTab namespace="empty-project" />);
+    renderConnectionsTab({ namespace: 'empty-project' });
 
     expect(screen.getByText('Get started with data connections')).toBeTruthy();
     expect(

@@ -23,7 +23,7 @@ const BenchmarkSuiteCardSkeleton: React.FC = () => (
           className="evalhub-benchmark-suite-card__domain-icon evalhub-benchmark-suite-card__domain-icon--loading"
           aria-hidden="true"
         />
-        <Skeleton width="7rem" screenreaderText="Loading benchmark suite" />
+        <Skeleton width="7rem" screenreaderText="Loading collection" />
       </div>
       <Skeleton
         className="evalhub-benchmark-suite-card__loading-title"

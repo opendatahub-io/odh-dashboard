@@ -7,9 +7,10 @@ import { useFetchState } from 'mod-arch-core';
 import { getCollection } from '~/app/api/k8s';
 import { useProviders } from '~/app/hooks/useProviders';
 import { useCopySuiteForm, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
-import CopySuitePage, { CreateSuitePage } from '~/app/pages/CopySuitePage';
+import CopySuitePage, { CreateSuitePage, EditSuitePage } from '~/app/pages/CopySuitePage';
 import {
   evaluationBenchmarkSuitesNavigationState,
+  evaluationCollectionSelectionNavigationState,
   evaluationEvaluateNavigationState,
   evaluationGalleryNavigationState,
 } from '~/app/routes';
@@ -271,10 +272,10 @@ const LocationDisplay = () => {
   return <div data-testid="location-display">{pathname + search}</div>;
 };
 
-const renderPage = () =>
+const renderPage = (collectionId = 'source-collection') =>
   render(
     <MemoryRouter
-      initialEntries={['/evaluation/test-namespace/create/collections/source-collection/copy']}
+      initialEntries={[`/evaluation/test-namespace/create/collections/${collectionId}/copy`]}
     >
       <LocationDisplay />
       <Routes>
@@ -306,13 +307,33 @@ const renderGalleryOriginPage = () =>
     </MemoryRouter>,
   );
 
-const renderBenchmarkSuitesOriginPage = () =>
+const renderBenchmarkSuitesOriginPage = (collectionId = 'source-collection') =>
+  render(
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: `/evaluation/test-namespace/create/collections/${collectionId}/copy`,
+          state: evaluationBenchmarkSuitesNavigationState,
+        },
+      ]}
+    >
+      <LocationDisplay />
+      <Routes>
+        <Route
+          path="/evaluation/:namespace/create/collections/:collectionId/copy"
+          element={<CopySuitePage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+const renderCollectionSelectionOriginPage = () =>
   render(
     <MemoryRouter
       initialEntries={[
         {
           pathname: '/evaluation/test-namespace/create/collections/source-collection/copy',
-          state: evaluationBenchmarkSuitesNavigationState,
+          state: evaluationCollectionSelectionNavigationState,
         },
       ]}
     >
@@ -363,6 +384,21 @@ const renderCreatePage = (state?: unknown) =>
     </MemoryRouter>,
   );
 
+const renderEditPage = (collectionId = 'source-collection') =>
+  render(
+    <MemoryRouter
+      initialEntries={[`/evaluation/test-namespace/create/collections/${collectionId}/edit`]}
+    >
+      <LocationDisplay />
+      <Routes>
+        <Route
+          path="/evaluation/:namespace/create/collections/:collectionId/edit"
+          element={<EditSuitePage />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
 const goToSelectBenchmarksStep = () => {
   fireEvent.click(screen.getByTestId('copy-suite-next'));
 };
@@ -385,14 +421,14 @@ describe('CopySuitePage', () => {
 
     renderCreatePage();
 
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Create suite');
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Create benchmark collection');
     expect(screen.getByTestId('suite-name-input')).toHaveAttribute(
       'placeholder',
-      'Enter suite name',
+      'Enter collection name',
     );
     expect(screen.getByTestId('suite-description-input')).toHaveAttribute(
       'placeholder',
-      'Enter suite description',
+      'Enter collection description',
     );
     // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
     /*
@@ -400,9 +436,9 @@ describe('CopySuitePage', () => {
     */
     expect(screen.queryByTestId('suite-evaluates-input')).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-description')).toHaveTextContent(
-      'Create a benchmark suite',
+      'Create a benchmark collection',
     );
-    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace?tab=evaluate',
     );
@@ -417,9 +453,7 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-description')).toHaveClass('pf-v6-u-mb-xl');
     expect(screen.queryByTestId('copy-suite-benchmarks-description')).not.toBeInTheDocument();
     expect(screen.getByTestId('create-suite-submit')).toHaveTextContent('Save and run');
-    expect(screen.getByTestId('copy-suite-save-only')).toHaveTextContent(
-      'Add to my benchmark suites',
-    );
+    expect(screen.getByTestId('copy-suite-save-only')).toHaveTextContent('Add to my collections');
     fireEvent.click(screen.getByTestId('copy-suite-back-step-2'));
     expect(screen.getByTestId('copy-suite-step-select-benchmarks')).toBeInTheDocument();
     expect(screen.queryByTestId('app-page-title')).not.toBeInTheDocument();
@@ -440,11 +474,11 @@ describe('CopySuitePage', () => {
 
     renderEvaluateOriginPage();
 
-    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace?tab=evaluate',
     );
-    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
       expect.objectContaining({ cancelRoute: '/evaluation/test-namespace?tab=evaluate' }),
     );
@@ -509,7 +543,7 @@ describe('CopySuitePage', () => {
 
     renderPage();
 
-    expect(screen.getByLabelText('Loading benchmark suite')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading collection')).toBeInTheDocument();
     expect(screen.queryByTestId('copy-suite-form')).not.toBeInTheDocument();
   });
 
@@ -541,7 +575,7 @@ describe('CopySuitePage', () => {
     renderPage();
 
     expect(screen.getByTestId('copy-suite-load-error')).toHaveTextContent('Providers unavailable');
-    expect(screen.queryByLabelText('Loading benchmark suite')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Loading collection')).not.toBeInTheDocument();
   });
 
   it('should fetch the collection using the route namespace and id', async () => {
@@ -566,7 +600,7 @@ describe('CopySuitePage', () => {
 
     renderPage();
 
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Copy suite');
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Copy collection');
     expect(screen.getByTestId('copy-suite-description')).toBeInTheDocument();
     expect(screen.getByTestId('suite-name-input')).toHaveValue('Curated suite copy');
     expect(screen.getByTestId('suite-description-input')).toHaveValue('Description');
@@ -586,14 +620,67 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('suite-modalities-tag-text')).toHaveTextContent('Text');
     expect(screen.getByTestId('suite-industries-tag-technology')).toHaveTextContent('Technology');
     */
-    expect(screen.queryByText('Language benchmark suites')).not.toBeInTheDocument();
-    expect(screen.getByText('Customize benchmark suite')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Language collections')).not.toBeInTheDocument();
+    expect(screen.getByText('Customize collection')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-next')).toBeInTheDocument();
+    expect(screen.queryByTestId('copy-suite-prerequisite-alert')).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-settings-actions')).toHaveClass(
       'evalhub-copy-suite-page__footer',
     );
     expect(screen.queryByTestId('copy-suite-save-and-run')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['trustworthiness-v1', 'Requires a judge model.'],
+    ['tool-use-v1', 'Requires a model that supports multiple tool/function calls.'],
+    ['multimodal-v1', 'Requires a vision-language model that supports image inputs.'],
+  ])('should show the prerequisite warning for %s', (collectionId, prerequisite) => {
+    mockUseFetchState.mockReturnValue([
+      { ...sourceCollection, resource: { ...sourceCollection.resource, id: collectionId } },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderPage(collectionId);
+
+    expect(screen.getByTestId('copy-suite-prerequisite-alert')).toHaveTextContent(prerequisite);
+    expect(screen.getByTestId('copy-suite-next')).not.toBeDisabled();
+  });
+
+  it('should not show curated prerequisites while editing a tenant collection', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        resource: { id: 'trustworthiness-v1', tenant: 'test-tenant' },
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderEditPage('trustworthiness-v1');
+
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Edit collection');
+    expect(screen.queryByTestId('copy-suite-prerequisite-alert')).not.toBeInTheDocument();
+  });
+
+  it('should not show curated prerequisites when copying a tenant collection from benchmark suites', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        resource: { id: 'trustworthiness-v1', tenant: 'test-tenant' },
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderBenchmarkSuitesOriginPage('trustworthiness-v1');
+
+    expect(screen.getByTestId('copy-suite-step-settings')).toBeInTheDocument();
+    expect(screen.queryByTestId('copy-suite-prerequisite-alert')).not.toBeInTheDocument();
   });
 
   it('should link to the originating curated suite page when evaluation target metadata is available', () => {
@@ -610,7 +697,7 @@ describe('CopySuitePage', () => {
 
     renderPage();
 
-    expect(screen.getByRole('link', { name: 'Model benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Model collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace/collections/model',
     );
@@ -634,7 +721,7 @@ describe('CopySuitePage', () => {
       'href',
       '/evaluation/test-namespace?tab=gallery',
     );
-    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
       expect.objectContaining({ cancelRoute: '/evaluation/test-namespace?tab=gallery' }),
     );
@@ -654,17 +741,43 @@ describe('CopySuitePage', () => {
 
     renderBenchmarkSuitesOriginPage();
 
-    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace?tab=evaluate',
     );
-    expect(screen.getByRole('link', { name: 'My benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'My benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace/collections',
     );
-    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
     expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
       expect.objectContaining({ cancelRoute: '/evaluation/test-namespace/collections' }),
+    );
+  });
+
+  it('should show the select collection breadcrumb and return route when opened from there', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        // eslint-disable-next-line camelcase
+        evaluation_targets: ['model'],
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderCollectionSelectionOriginPage();
+
+    expect(screen.getByRole('link', { name: 'Select collection' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace/create/collections',
+    );
+    expect(screen.queryByRole('link', { name: 'Model collections' })).not.toBeInTheDocument();
+    expect(mockUseCopySuiteForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cancelRoute: '/evaluation/test-namespace/create/collections',
+      }),
     );
   });
 
@@ -687,7 +800,7 @@ describe('CopySuitePage', () => {
 
     renderCreatePage(evaluationBenchmarkSuitesNavigationState);
 
-    expect(screen.getByRole('link', { name: 'My benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'My benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace/collections',
     );
@@ -701,7 +814,7 @@ describe('CopySuitePage', () => {
 
     renderCreatePage({ sourceEvaluationTarget: 'model' });
 
-    expect(screen.getByRole('link', { name: 'Model benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Model collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-namespace/collections/model',
     );
@@ -938,7 +1051,7 @@ describe('CopySuitePage', () => {
     renderPage();
 
     expect(
-      screen.getByText('Suite name must be different from the source benchmark suite name.'),
+      screen.getByText('Collection name must be different from the source collection name.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-next')).toBeDisabled();
   });

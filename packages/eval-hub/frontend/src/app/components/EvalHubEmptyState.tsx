@@ -24,7 +24,7 @@ const EvalHubEmptyState: React.FC = () => {
       data-testid="eval-hub-empty-state"
     >
       <EmptyStateBody data-testid="eval-hub-empty-state-body">
-        Go to benchmark suites to create a suite or run an individual benchmark, or select a
+        Go to collections to create a collection or run an individual benchmark, or select a
         different project to view its runs.
       </EmptyStateBody>
       <EmptyStateFooter>
@@ -37,7 +37,7 @@ const EvalHubEmptyState: React.FC = () => {
               navigate({ search: '?tab=evaluate' });
             }}
           >
-            View benchmark suites
+            View collections
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>

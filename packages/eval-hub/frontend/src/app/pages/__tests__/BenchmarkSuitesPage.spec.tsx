@@ -83,15 +83,17 @@ describe('BenchmarkSuitesPage', () => {
   it('should render all tenant benchmark suites', () => {
     renderPage();
 
-    expect(screen.getByTestId('page-title')).toHaveTextContent('My benchmark suites');
-    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+    expect(screen.getByTestId('page-title')).toHaveTextContent('My benchmark collections');
+    expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-project?tab=evaluate',
     );
     expect(
-      screen.getByText('View, run, and manage all benchmark suites you have created or saved.'),
+      screen.getByText(
+        'View, run, and manage all benchmark collections you have created or saved.',
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-benchmark-suite-button')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create collection' })).toBeInTheDocument();
     expect(screen.queryByTestId('create-suite-card')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-filter-toolbar')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
@@ -129,7 +131,7 @@ describe('BenchmarkSuitesPage', () => {
 
     await userEvent.click(
       within(screen.getByTestId('benchmark-suite-card-model-suite-2')).getByRole('button', {
-        name: 'Run benchmark suite',
+        name: 'Run',
       }),
     );
 
@@ -377,7 +379,7 @@ describe('BenchmarkSuitesPage', () => {
     clickFilterOption('benchmark-suites-industry-filter-option-health');
 
     expect(screen.getByTestId('benchmark-suites-empty-state')).toHaveTextContent(
-      'No benchmark suites match the current filters.',
+      'No collections match the current filters.',
     );
     expect(
       screen.getByTestId('benchmark-suites-name-filter').querySelector('input'),
