@@ -21,7 +21,7 @@ describe('ConnectionTypeInstance', () => {
     const original = mockConnectionType().toJSON();
     const connectionType = new ConnectionTypeInstance(original);
 
-    expect(connectionType.id).toBe('postgresql');
+    expect(connectionType.id).toBe('550e8400-e29b-41d4-a716-446655440003');
     expect(connectionType.metadata).toBe(original.metadata);
     expect(connectionType.resource).toBe(original.resource);
     expect(connectionType.status).toBe(original.status);
@@ -104,12 +104,14 @@ describe('ConnectionType', () => {
     const user = userEvent.setup();
     const onClick = jest.fn();
     const connectionType = mockConnectionType({
-      metadata: { id: 'provider/type one' },
+      metadata: { id: '550e8400-e29b-41d4-a716-446655440007' },
       resource: { name: 'Provider type', description: 'Provider description' },
     });
     render(<ConnectionTypeCard connectionType={connectionType} onClick={onClick} />);
 
-    expect(screen.getByTestId(ConnectionTypeCardIdentifier('provider/type one'))).toBeTruthy();
+    expect(
+      screen.getByTestId(ConnectionTypeCardIdentifier('550e8400-e29b-41d4-a716-446655440007')),
+    ).toBeTruthy();
     expect(screen.getByText('Provider type')).toBeTruthy();
     expect(screen.getByText('Provider description')).toBeTruthy();
     expect(screen.getByText('Full integration')).toBeTruthy();
