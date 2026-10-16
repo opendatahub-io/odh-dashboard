@@ -717,6 +717,99 @@ export const verifyLLMInferenceServiceRuntimeArgs = (
   });
 };
 
+export type LLMInferenceServiceGatewayRef = {
+  name: string;
+  namespace: string;
+};
+
+const gatewayRefKey = (ref: LLMInferenceServiceGatewayRef): string =>
+  `${ref.namespace}/${ref.name}`;
+
+/**
+ * Sets the main container image on an LLMInferenceService (CPU workaround for non-GPU clusters).
+ * Prefer this over the YAML viewer when subsequent form fields (e.g. gateway) must be applied —
+ * editing YAML locks submit to the editor snapshot and drops later form field applies.
+ */
+export const patchLLMInferenceServiceContainerImage = (
+  namespace: string,
+  llmInferenceServiceName: string,
+  image: string,
+): Cypress.Chainable<Cypress.Exec> => {
+  const imageArg = JSON.stringify(image);
+  const jqFilter =
+    '.spec.template.containers = ((.spec.template.containers // [{name:"main"}]) | map(if .name == "main" then . + {image: $img} else . end))';
+  const ocCommand = [
+    `oc get LLMInferenceService ${llmInferenceServiceName} -n ${namespace} -o json`,
+    `jq --arg img ${imageArg} '${jqFilter}'`,
+    `oc apply -f -`,
+  ].join(' | ');
+  cy.log(`Patching LLMInferenceService container image: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `Failed to patch image on LLMInferenceService "${llmInferenceServiceName}": ${result.stderr}`,
+      );
+    }
+    cy.log(`✅ Patched image on LLMInferenceService "${llmInferenceServiceName}" to ${image}`);
+  });
+};
+
+/**
+ * Verifies `spec.router.gateway` on an LLMInferenceService.
+ * Pass an empty array to assert the optional empty shape (`gateway: {}` / no refs).
+ */
+export const verifyLLMInferenceServiceGatewayRefs = (
+  namespace: string,
+  llmInferenceServiceName: string,
+  expectedRefs: LLMInferenceServiceGatewayRef[],
+): Cypress.Chainable<Cypress.Exec> => {
+  const ocCommand = `oc get LLMInferenceService ${llmInferenceServiceName} -n ${namespace} -o json`;
+  cy.log(`Executing command: ${ocCommand}`);
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `LLMInferenceService "${llmInferenceServiceName}" not found in namespace "${namespace}": ${result.stderr}`,
+      );
+    }
+
+    const gateway: { refs?: LLMInferenceServiceGatewayRef[] } =
+      JSON.parse(result.stdout).spec?.router?.gateway ?? {};
+    const actualRefs = Array.isArray(gateway.refs) ? gateway.refs : [];
+
+    if (expectedRefs.length === 0) {
+      if (actualRefs.length > 0 || Object.keys(gateway).length > 0) {
+        throw new Error(
+          `Expected empty gateway ({}) on LLMInferenceService "${llmInferenceServiceName}", got: ${JSON.stringify(
+            gateway,
+          )}`,
+        );
+      }
+      cy.log(`✅ Verified empty gateway on LLMInferenceService "${llmInferenceServiceName}"`);
+      return;
+    }
+
+    const actualKeys = actualRefs.map(gatewayRefKey).toSorted();
+    const expectedKeys = expectedRefs.map(gatewayRefKey).toSorted();
+    if (
+      actualKeys.length !== expectedKeys.length ||
+      actualKeys.some((key, index) => key !== expectedKeys[index])
+    ) {
+      throw new Error(
+        `Expected gateway refs ${JSON.stringify(
+          expectedRefs,
+        )} on LLMInferenceService "${llmInferenceServiceName}", got: ${JSON.stringify(actualRefs)}`,
+      );
+    }
+
+    cy.log(
+      `✅ Verified gateway refs on LLMInferenceService "${llmInferenceServiceName}": ${expectedKeys.join(
+        ', ',
+      )}`,
+    );
+  });
+};
+
 export const verifyS3CopyCompleted = (
   podName: string,
   namespace: string,
