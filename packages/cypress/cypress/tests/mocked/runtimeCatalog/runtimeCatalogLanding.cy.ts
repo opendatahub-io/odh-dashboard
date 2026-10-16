@@ -71,11 +71,13 @@ const setupRuntimeCatalogIntercepts = (): void => {
 
   cy.intercept({ method: 'GET', pathname: runtimeListPath }, (req) => {
     const filterQuery = typeof req.query.filterQuery === 'string' ? req.query.filterQuery : '';
+    // Exact values from `field='a'` or `field IN ('a','b')`, so overlapping names cannot match.
+    const selected = Array.from(filterQuery.matchAll(/'([^']*)'/g), ([, value]) => value);
     const items = mockRuntimes.filter(
       (runtime) =>
         !filterQuery ||
         (runtime.capabilities?.supportedAccelerators ?? []).some((accelerator) =>
-          filterQuery.includes(`'${accelerator}'`),
+          selected.includes(accelerator),
         ),
     );
     req.reply({ body: { data: { items, size: items.length, pageSize: 50, nextPageToken: '' } } });
