@@ -461,6 +461,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
       getClipboardContent(CLIPBOARD_WRITE_TEXT_STUB_ALIAS).then((apiKeys: string[]) => {
         expect(apiKeys).to.have.length.at.least(1);
+        copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
         copyApiKeyModal.findCloseButton().click();
 
         cy.step('Verify the model is accessible to the user');
