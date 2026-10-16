@@ -769,7 +769,7 @@ describe('AutoragResultsPage', () => {
       );
     });
 
-    it('should normalize weighted pgvector templates to RRF', () => {
+    it('should reject weighted pgvector templates', () => {
       const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
       const withRanking = {
         ...template,
@@ -781,10 +781,9 @@ describe('AutoragResultsPage', () => {
         ],
       };
 
-      expect(normalizeResponsesTemplate(withRanking, 'pgvector').tools[0].ranking_options).toEqual({
-        ranker: 'rrf',
-        alpha: 0.3,
-      });
+      expect(() => normalizeResponsesTemplate(withRanking, 'pgvector')).toThrow(
+        'Weighted ranking is not supported for pgvector',
+      );
     });
 
     it('should render a canonical run without an OGX secret', () => {

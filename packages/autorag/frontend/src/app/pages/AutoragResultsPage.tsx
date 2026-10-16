@@ -107,6 +107,9 @@ export const buildResponsesTemplate = (
     | undefined;
   if (isHybrid) {
     if (provider === 'pgvector') {
+      if (retrieval.ranker_strategy === 'weighted') {
+        throw new Error('Weighted ranking is not supported for pgvector');
+      }
       rankingOptions = { ranker: 'rrf', alpha: retrieval.ranker_alpha ?? 0.5 };
     } else if (retrieval.ranker_strategy === undefined || retrieval.ranker_strategy === 'rrf') {
       rankingOptions = { ranker: 'rrf', ranker_k: retrieval.ranker_k ?? 60 };
@@ -168,6 +171,9 @@ export const normalizeResponsesTemplate = (
       const ranker = ranking.ranker_strategy ?? ranking.ranker;
       if (ranker !== 'rrf' && ranker !== 'weighted') {
         throw new Error(`Unsupported persisted retrieval ranker: ${ranker}`);
+      }
+      if (provider === 'pgvector' && ranker === 'weighted') {
+        throw new Error('Weighted ranking is not supported for pgvector');
       }
       const weighted = provider !== 'pgvector' && ranker === 'weighted';
       const rankerK =

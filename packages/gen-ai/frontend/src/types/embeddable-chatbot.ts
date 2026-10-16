@@ -37,7 +37,7 @@ type EmbeddableChatbotPlaygroundProps = {
   bffBasePath: string;
   /**
    * Same-origin path of the AutoRAG Responses endpoint, including any query string,
-   * e.g. '/autorag/api/v1/responses?namespace=my-project'. The frontend sends
+   * e.g. '/autorag/api/v1/responses?namespace=my-project&dbSecretName=milvus&maasSecretName=maas-secret'. The frontend sends
    * requests directly to this exact AutoRAG route; absolute and protocol-relative
    * URLs are rejected, and other destinations are not supported.
    */
