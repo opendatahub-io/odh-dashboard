@@ -283,7 +283,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
             className="evalhub-start-evaluation-run-modal__suite-name"
             data-testid="start-evaluation-run-collection-name"
           >
-            Benchmark suite: {collection.name}
+            Collection: {collection.name}
           </Content>
         ) : null}
         {description ? (

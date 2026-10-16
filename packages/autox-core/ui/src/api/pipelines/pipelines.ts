@@ -6,7 +6,12 @@ import {
   restCREATE,
   restGET,
 } from 'mod-arch-core';
-import type { GetPipelineRunsFromBFFParams, PipelineRun, PipelineRunsData } from './types';
+import type {
+  GetPipelineRunsFromBFFParams,
+  PipelineRun,
+  PipelineRunsData,
+  PipelineServerStatusResponse,
+} from './types';
 
 export const DEFAULT_PAGE_SIZE = 20;
 
@@ -34,6 +39,11 @@ export type PipelinesApi<TParams = Record<string, unknown>> = {
     opts?: APIOptions,
   ) => Promise<PipelineRun<TParams>>;
   enableManagedPipelines: (hostPath: string, namespace: string, opts?: APIOptions) => Promise<void>;
+  getPipelineServerStatus: (
+    hostPath: string,
+    namespace: string,
+    opts?: APIOptions,
+  ) => Promise<PipelineServerStatusResponse>;
   terminatePipelineRun: (namespace: string, runId: string) => Promise<void>;
   retryPipelineRun: (namespace: string, runId: string) => Promise<void>;
   deletePipelineRun: (namespace: string, runId: string) => Promise<void>;
@@ -126,6 +136,31 @@ export function createPipelinesApi<TParams = Record<string, unknown>>(
     );
   }
 
+  /**
+   * Fetches the pipeline server (DSPA) readiness state from the BFF status API.
+   * Unlike the run endpoints, this is served from a fresh read of the resource.
+   */
+  async function getPipelineServerStatus(
+    hostPath: string,
+    namespace: string,
+    opts?: APIOptions,
+  ): Promise<PipelineServerStatusResponse> {
+    const queryParams: Record<string, string> = { namespace };
+
+    const response = await handleRestFailures(
+      restGET(
+        hostPath,
+        `${urlPrefix}/api/${bffApiVersion}/pipeline-server/status`,
+        queryParams,
+        opts ?? {},
+      ),
+    );
+    if (isModArchResponse<PipelineServerStatusResponse>(response)) {
+      return response.data;
+    }
+    throw new Error('Invalid response format');
+  }
+
   async function createPipelineRun(
     hostPath: string,
     namespace: string,
@@ -208,6 +243,7 @@ export function createPipelinesApi<TParams = Record<string, unknown>>(
     getPipelineRunsFromBFF,
     getPipelineRunFromBFF,
     enableManagedPipelines,
+    getPipelineServerStatus,
     terminatePipelineRun,
     retryPipelineRun,
     deletePipelineRun,

@@ -10,4 +10,5 @@ export type {
   PipelineRun,
   PipelineRunsData,
   GetPipelineRunsFromBFFParams,
+  PipelineServerStatusResponse,
 } from './types';

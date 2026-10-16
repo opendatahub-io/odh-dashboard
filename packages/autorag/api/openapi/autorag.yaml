@@ -1043,6 +1043,37 @@ paths:
         performs a rollout restart of the pipeline server deployment so the
         init container re-registers the pipeline definitions on startup.
 
+  /api/v1/pipeline-server/status:
+    summary: Report pipeline server readiness
+    description: >-
+      Returns the observed readiness state of the DSPipelineApplication in the namespace
+      from a fresh (uncached) resource list, so a restarting server is not reported with
+      stale readiness.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/PipelineServerStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getPipelineServerStatus
+      summary: Get Pipeline Server Status
+      description: >-
+        Returns whether the pipeline server in the namespace is ready, starting,
+        or not present. Unlike pipeline-run endpoints, this reflects a fresh read
+        of the DSPipelineApplication rather than a cached discovery result.
+
 components:
   schemas:
     Config:
@@ -1672,6 +1703,28 @@ components:
           type: string
           description: Token for retrieving the next page
           example: 'eyJwYWdlIjoyfQ=='
+
+    PipelineServerStatus:
+      type: object
+      description: Observed readiness state of the pipeline server (DSPA) in a namespace
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: >-
+            Readiness state — "ready" when the DSPA Ready condition is True for its
+            current generation, "starting" when a DSPA exists but is not ready, and
+            "not-found" when no DSPA exists in the namespace.
+          enum:
+            - ready
+            - starting
+            - not-found
+          example: ready
+        dspa_name:
+          type: string
+          description: Name of the DSPipelineApplication the status was observed from
+          example: dspa
 
     S3UploadSuccess:
       description: Response body for successful S3 file upload
@@ -2494,6 +2547,21 @@ components:
                 type: string
                 description: Name of the DSPipelineApplication resource
                 example: 'dspa'
+
+    PipelineServerStatusResponse:
+      description: Observed readiness state of the pipeline server in the namespace
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineServerStatus'
 
     ConflictResponse:
       content:

@@ -25,6 +25,7 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {
@@ -180,7 +181,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: e instanceof K8sStatusError ? `k8s_${e.statusObject.code}` : 'unknown_error',
+        error: errorCategory(e),
         projectName,
         notebookName: name,
         ...getWorkbenchKueueTrackingProperties({
