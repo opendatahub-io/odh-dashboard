@@ -103,6 +103,18 @@ class RuntimeCatalogPage {
     return cy.findByTestId(`runtime-catalog-card-hardware-${cardKey}`);
   }
 
+  findHardwareFilter() {
+    return cy.findByTestId('runtime-catalog-filter-hardware');
+  }
+
+  findHardwareFilterCheckbox(hardware: string) {
+    return cy.findByTestId(`runtime-catalog-filter-hardware-${hardware}`);
+  }
+
+  findHardwareFilterChip(hardware: string) {
+    return cy.findByTestId(`runtime-catalog-filter-chip-hardware-${hardware}`);
+  }
+
   findEmptyState() {
     return cy.findByTestId('runtime-catalog-empty-state');
   }
