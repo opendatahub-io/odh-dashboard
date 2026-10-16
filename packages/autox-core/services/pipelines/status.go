@@ -46,19 +46,36 @@ func (s *service) GetDSPAStatus(ctx context.Context, namespace string) (*DSPASta
 		return &DSPAStatus{Status: DSPAStatusNotFound}, nil
 	}
 
+	// A malformed DSPA must not fail the whole namespace when another one is
+	// usable — DiscoverReadyDSPA skips it too, and the two paths must agree.
+	// Keep the first parse error; it only fails the call when no DSPA in the
+	// list could be evaluated.
+	var firstErr error
+	evaluatedName := ""
 	for i := range dspas.Items {
 		dspa := &dspas.Items[i]
 		ready, err := isDSPAReady(dspa.Object)
 		if err != nil {
-			return nil, err
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		// Remember the first evaluable DSPA so the starting status never reports
+		// a malformed sibling's name.
+		if evaluatedName == "" {
+			evaluatedName = dspa.GetName()
 		}
 		if ready {
 			logger.Debug("found ready DSPA", "name", dspa.GetName(), "namespace", namespace)
 			return &DSPAStatus{Status: DSPAStatusReady, DSPAName: dspa.GetName()}, nil
 		}
 	}
+	if firstErr != nil && evaluatedName == "" {
+		return nil, firstErr
+	}
 
-	return &DSPAStatus{Status: DSPAStatusStarting, DSPAName: dspas.Items[0].GetName()}, nil
+	return &DSPAStatus{Status: DSPAStatusStarting, DSPAName: evaluatedName}, nil
 }
 
 // isDSPAReady reports whether a DSPA object's Ready condition is True for its current

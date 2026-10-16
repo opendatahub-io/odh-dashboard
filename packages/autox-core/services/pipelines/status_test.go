@@ -157,6 +157,58 @@ func TestGetDSPAStatus(t *testing.T) {
 		}
 	})
 
+	t.Run("reports ready when a malformed DSPA has a ready sibling", func(t *testing.T) {
+		svc := newTestPipelineServiceForDiscovery(newClient([]unstructured.Unstructured{
+			dspaItem("garbage", map[string]any{"conditions": "invalid"}),
+			dspaItem("dspa1", map[string]any{
+				"conditions": []any{map[string]any{"type": "Ready", "status": "True"}},
+			}),
+		}))
+
+		status, err := svc.GetDSPAStatus(ctx, "my-ns")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if status.Status != DSPAStatusReady {
+			t.Errorf("Status = %q, want ready (a malformed sibling must not fail the call)", status.Status)
+		}
+		if status.DSPAName != "dspa1" {
+			t.Errorf("DSPAName = %q", status.DSPAName)
+		}
+	})
+
+	t.Run("reports starting from the first evaluable DSPA when a sibling is malformed", func(t *testing.T) {
+		svc := newTestPipelineServiceForDiscovery(newClient([]unstructured.Unstructured{
+			dspaItem("garbage", map[string]any{"conditions": "invalid"}),
+			dspaItem("dspa1", map[string]any{
+				"conditions": []any{map[string]any{"type": "Ready", "status": "False"}},
+			}),
+		}))
+
+		status, err := svc.GetDSPAStatus(ctx, "my-ns")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if status.Status != DSPAStatusStarting {
+			t.Errorf("Status = %q, want starting", status.Status)
+		}
+		if status.DSPAName != "dspa1" {
+			t.Errorf("DSPAName = %q, want the evaluable DSPA's name", status.DSPAName)
+		}
+	})
+
+	t.Run("errors when every DSPA is malformed", func(t *testing.T) {
+		svc := newTestPipelineServiceForDiscovery(newClient([]unstructured.Unstructured{
+			dspaItem("garbage1", map[string]any{"conditions": "invalid"}),
+			dspaItem("garbage2", map[string]any{"conditions": "invalid"}),
+		}))
+
+		_, err := svc.GetDSPAStatus(ctx, "my-ns")
+		if !errors.Is(err, ErrInvalidDSPAConditions) {
+			t.Fatalf("err = %v, want ErrInvalidDSPAConditions", err)
+		}
+	})
+
 	t.Run("rejects an empty namespace", func(t *testing.T) {
 		svc := newTestPipelineServiceForDiscovery(newClient(nil))
 
