@@ -326,8 +326,6 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
 
         appChrome.visit(['genAiStudio', 'promptManagement', 'agentConfigManagement']);
         chatbotPage.visit(namespace, { agentProfileId: profileId });
-        cy.wait('@getAgentProfile');
-        cy.wait('@getPrompt');
 
         cy.step('Open the Prompt tab for the first time after the saved agent loads');
         openSettingsPromptTab();
