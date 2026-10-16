@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/kubeflow/hub/ui/bff/internal/integrations/httpclient"
 	"github.com/kubeflow/hub/ui/bff/internal/mocks"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"github.com/stretchr/testify/require"
 )
 
@@ -153,6 +155,30 @@ func TestServingRuntimeFilterOptionsMatchMockData(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, *runtime.VersionCount, versions.Size)
 	}
+}
+
+// testdata/serving_runtime_filter_options.json is the real catalog's
+// GET /api/serving_runtime_catalog/v1/serving_runtimes/filter_options response, recorded from a
+// rhoai-3.6 nightly on 2026-10-16 (displayName values left out). The UI reads these keys from
+// the BFF and sends them back in filterQuery, so a mock key the catalog does not have hides UI
+// bugs that only show on a cluster. Re-record the fixture when the catalog contract changes.
+func TestServingRuntimeFilterOptionsMockMatchesCatalogContract(t *testing.T) {
+	raw, err := os.ReadFile("testdata/serving_runtime_filter_options.json")
+	require.NoError(t, err)
+	var catalog models.FilterOptionsList
+	require.NoError(t, json.Unmarshal(raw, &catalog))
+	require.NotNil(t, catalog.Filters)
+
+	mock, err := (&mocks.ModelCatalogClientMock{}).GetServingRuntimesFilter(nil)
+	require.NoError(t, err)
+	require.NotNil(t, mock.Filters)
+	for key, option := range *mock.Filters {
+		catalogOption, ok := (*catalog.Filters)[key]
+		require.Truef(t, ok, "mock filter key %q is not in the catalog's filter_options", key)
+		require.Equalf(t, catalogOption.Type, option.Type, "mock filter key %q type", key)
+	}
+	// The runtime library's Hardware filter reads this key.
+	require.Contains(t, *catalog.Filters, "capabilities.supportedAccelerators")
 }
 
 type runtimeCatalogHTTPClient struct {

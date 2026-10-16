@@ -1,7 +1,7 @@
 import type { ServingRuntime } from '~/odh/types/servingRuntimeCatalogTypes';
-import { RUNTIME_CATALOG_HARDWARE_FILTER_KEY } from '~/odh/pages/runtimeCatalog/const';
 import {
   getRuntimeCatalogDetailsRoute,
+  getRuntimeCatalogFilterOptions,
   getRuntimeHardwareDisplayLabel,
   getRuntimeHardwareFilterValues,
   getRuntimePrimaryHardwareLabel,
@@ -15,19 +15,39 @@ describe('runtimeCatalogFiltersToFilterQuery', () => {
   });
 
   it('should build an accelerator equality filter query for one value', () => {
-    expect(
-      runtimeCatalogFiltersToFilterQuery({
-        [RUNTIME_CATALOG_HARDWARE_FILTER_KEY]: ['nvidia.com/gpu'],
-      }),
-    ).toBe("capabilities.supportedAccelerators='nvidia.com/gpu'");
+    expect(runtimeCatalogFiltersToFilterQuery({ hardware: ['nvidia.com/gpu'] })).toBe(
+      "capabilities.supportedAccelerators='nvidia.com/gpu'",
+    );
   });
 
   it('should build an accelerator IN filter query for several values', () => {
     expect(
-      runtimeCatalogFiltersToFilterQuery({
-        [RUNTIME_CATALOG_HARDWARE_FILTER_KEY]: ['amd.com/gpu', 'habana.ai/gaudi'],
-      }),
+      runtimeCatalogFiltersToFilterQuery({ hardware: ['amd.com/gpu', 'habana.ai/gaudi'] }),
     ).toBe("capabilities.supportedAccelerators IN ('amd.com/gpu','habana.ai/gaudi')");
+  });
+});
+
+describe('getRuntimeCatalogFilterOptions', () => {
+  it('should key the catalog accelerator options as the hardware filter', () => {
+    const accelerators = {
+      type: 'string' as const,
+      values: ['ibm.com/spyre_pf', 'nvidia.com/gpu'],
+    };
+    expect(
+      getRuntimeCatalogFilterOptions({
+        filters: {
+          'capabilities.supportedAccelerators': accelerators,
+          supportedModelFormats: { type: 'string', values: ['vLLM'] },
+        },
+      }),
+    ).toEqual({ hardware: accelerators });
+  });
+
+  it('should omit filters the catalog does not return', () => {
+    expect(getRuntimeCatalogFilterOptions({ filters: { hardware: { type: 'string' } } })).toEqual(
+      {},
+    );
+    expect(getRuntimeCatalogFilterOptions(null)).toBeUndefined();
   });
 });
 
@@ -37,18 +57,11 @@ describe('hasRuntimeCatalogFiltersApplied', () => {
   });
 
   it('should return true when hardware filters are selected', () => {
-    expect(
-      hasRuntimeCatalogFiltersApplied(
-        { [RUNTIME_CATALOG_HARDWARE_FILTER_KEY]: ['nvidia.com/gpu'] },
-        '',
-      ),
-    ).toBe(true);
+    expect(hasRuntimeCatalogFiltersApplied({ hardware: ['nvidia.com/gpu'] }, '')).toBe(true);
   });
 
   it('should return false when no filters or search are applied', () => {
-    expect(
-      hasRuntimeCatalogFiltersApplied({ [RUNTIME_CATALOG_HARDWARE_FILTER_KEY]: [] }, ' '),
-    ).toBe(false);
+    expect(hasRuntimeCatalogFiltersApplied({ hardware: [] }, ' ')).toBe(false);
   });
 });
 

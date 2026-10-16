@@ -1,16 +1,21 @@
 import type { CatalogGridSpans } from '~/app/shared/components/catalog/types/catalogFilterTypes';
 
-/** Catalog field that lists the accelerators a runtime supports; the filter key and filterQuery field. */
-export const RUNTIME_CATALOG_HARDWARE_FILTER_KEY = 'capabilities.supportedAccelerators';
-
-export const RUNTIME_CATALOG_FILTER_KEYS = [RUNTIME_CATALOG_HARDWARE_FILTER_KEY] as const;
+export const RUNTIME_CATALOG_FILTER_KEYS = ['hardware'] as const;
 
 export type RuntimeCatalogFilterKey = (typeof RUNTIME_CATALOG_FILTER_KEYS)[number];
 
 export type RuntimeCatalogFiltersState = Partial<Record<RuntimeCatalogFilterKey, string[]>>;
 
+/**
+ * Catalog field each filter reads its options from (filter_options) and filters on (filterQuery).
+ * The UI keys stay short and stable for test IDs; only the catalog side uses the field path.
+ */
+export const RUNTIME_CATALOG_FILTER_FIELDS: Record<RuntimeCatalogFilterKey, string> = {
+  hardware: 'capabilities.supportedAccelerators',
+};
+
 export const RUNTIME_CATALOG_FILTER_CATEGORY_NAMES: Record<RuntimeCatalogFilterKey, string> = {
-  [RUNTIME_CATALOG_HARDWARE_FILTER_KEY]: 'Hardware',
+  hardware: 'Hardware',
 };
 
 export const RUNTIME_CATALOG_HARDWARE_LABELS: Record<string, string> = {
@@ -28,7 +33,7 @@ export const RUNTIME_CATALOG_FILTER_LABELS: Record<
   RuntimeCatalogFilterKey,
   Record<string, string>
 > = {
-  [RUNTIME_CATALOG_HARDWARE_FILTER_KEY]: RUNTIME_CATALOG_HARDWARE_LABELS,
+  hardware: RUNTIME_CATALOG_HARDWARE_LABELS,
 };
 
 export const RUNTIME_CATALOG_GALLERY_PAGE_SIZE = 10;

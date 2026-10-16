@@ -7,6 +7,7 @@ import {
   RUNTIME_CATALOG_FILTER_LABELS,
   type RuntimeCatalogFiltersState,
 } from '~/odh/pages/runtimeCatalog/const';
+import { getRuntimeCatalogFilterOptions } from '~/odh/pages/runtimeCatalog/utils/runtimeCatalogUtils';
 
 type RuntimeCatalogFiltersProps = {
   filters: RuntimeCatalogFiltersState;
@@ -23,10 +24,14 @@ const RuntimeCatalogFilters: React.FC<RuntimeCatalogFiltersProps> = ({
   filterOptionsLoaded,
   filterOptionsLoadError,
 }) => {
+  const catalogFilterOptions = React.useMemo(
+    () => getRuntimeCatalogFilterOptions(filterOptions),
+    [filterOptions],
+  );
   const filterPanelItems = useCatalogFilterConfigs({
     filterKeys: [...RUNTIME_CATALOG_FILTER_KEYS],
     filterNames: RUNTIME_CATALOG_FILTER_CATEGORY_NAMES,
-    filterOptions: filterOptions?.filters,
+    filterOptions: catalogFilterOptions,
     selectedFilters: filters,
     onFilterChange,
     labelMappings: RUNTIME_CATALOG_FILTER_LABELS,

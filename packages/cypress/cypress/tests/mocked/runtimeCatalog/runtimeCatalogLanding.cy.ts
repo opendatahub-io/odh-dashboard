@@ -6,7 +6,6 @@ import { pageNotfound } from '../../../pages/pageNotFound';
 import { API_VERSION, setupModelCatalogIntercepts } from '../catalogHelpers';
 
 const runtimeListPath = `/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes`;
-const hardwareFilterKey = 'capabilities.supportedAccelerators';
 
 const mockRuntimes = [
   {
@@ -53,7 +52,7 @@ const setupRuntimeCatalogIntercepts = (): void => {
       body: {
         data: {
           filters: {
-            [hardwareFilterKey]: {
+            'capabilities.supportedAccelerators': {
               type: 'string',
               values: [
                 'amd.com/gpu',
@@ -224,7 +223,7 @@ describe('Runtime library landing', () => {
     runtimeCatalogPage.findCard('vllm').should('not.exist');
     runtimeCatalogPage.findCard('ovms').should('not.exist');
     runtimeCatalogPage
-      .findActiveFilterChip('ibm.com/spyre_pf')
+      .findHardwareFilterChip('ibm.com/spyre_pf')
       .should('have.text', 'IBM Spyre (PF)');
 
     runtimeCatalogPage.findHardwareFilterCheckbox('nvidia.com/gpu').click();
