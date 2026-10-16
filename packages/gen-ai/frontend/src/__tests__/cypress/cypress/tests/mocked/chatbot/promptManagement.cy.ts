@@ -2,6 +2,11 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
 import {
+  interceptExistingAgentProfile,
+  interceptMLflowPrompt,
+  setupPlaygroundBase,
+} from '~/__tests__/cypress/cypress/support/helpers/agentProfiles/agentProfilePlaygroundHelpers';
+import {
   promptManagementModal,
   promptDrawer,
   createPromptModal,
@@ -297,6 +302,44 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         cy.step('Cancel and close');
         promptManagementModal.findCancelButton().click();
         promptManagementModal.find().should('not.exist');
+      },
+    );
+  });
+
+  describe('Saved agent prompt', () => {
+    it(
+      'should display the first prompt version at full height before the textarea receives focus',
+      { tags: ['@GenAI', '@PromptManagement', '@AgentProfile'] },
+      () => {
+        const namespace = 'mock-test-namespace-2';
+        const profileId = 'saved-prompt-profile';
+        const promptName = 'saved-agent-prompt';
+        const instructions =
+          'You are a helpful AI assistant. You are designed to answer questions in a concise and professional manner.';
+
+        setupPlaygroundBase(namespace);
+        interceptExistingAgentProfile(profileId, 'Saved agent', namespace, {
+          promptName,
+          promptVersion: 1,
+        });
+        interceptMLflowPrompt(promptName, instructions);
+
+        appChrome.visit(['genAiStudio', 'promptManagement', 'agentConfigManagement']);
+        chatbotPage.visit(namespace, { agentProfileId: profileId });
+        cy.wait('@getAgentProfile');
+        cy.wait('@getPrompt');
+
+        cy.step('Open the Prompt tab for the first time after the saved agent loads');
+        openSettingsPromptTab();
+        promptAssistant.findNameTitle().should('contain.text', promptName);
+        promptAssistant
+          .findTextarea()
+          .should('have.value', instructions)
+          .should(($field) => {
+            const field = $field[0] as HTMLTextAreaElement;
+            expect(field.clientHeight).to.be.greaterThan(30);
+            expect(field.clientHeight).to.be.at.least(field.scrollHeight - 2);
+          });
       },
     );
   });
