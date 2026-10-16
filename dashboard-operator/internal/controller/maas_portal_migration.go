@@ -130,9 +130,7 @@ func (r *DashboardReconciler) deleteLegacyMaaSPortalResources(ctx context.Contex
 	var result maasPortalMigrationResult
 	var errs []error
 	seen := map[string]bool{}
-	routes := &unstructured.UnstructuredList{}
-	routes.SetAPIVersion(gatewayv1.GroupVersion.String())
-	routes.SetKind("HTTPRouteList")
+	routes := &gatewayv1.HTTPRouteList{}
 	namespacedLists := []client.ObjectList{
 		&appsv1.DeploymentList{}, &corev1.ServiceList{}, &corev1.ServiceAccountList{},
 		&corev1.ConfigMapList{}, &corev1.SecretList{}, &networkingv1.NetworkPolicyList{},
@@ -171,7 +169,7 @@ func (r *DashboardReconciler) deleteLegacyMaaSPortalResources(ctx context.Contex
 func (r *DashboardReconciler) deleteLegacyMaaSPortalResourceList(ctx context.Context, list client.ObjectList, matchesLegacy func(client.Object) bool, seen map[string]bool, options ...client.ListOption) (maasPortalMigrationResult, error) {
 	var result maasPortalMigrationResult
 	if err := r.apiReader().List(ctx, list, options...); err != nil {
-		if meta.IsNoMatchError(err) {
+		if meta.IsNoMatchError(err) || runtime.IsNotRegisteredError(err) {
 			return result, nil
 		}
 		return result, fmt.Errorf("listing legacy MaaS Portal resources: %w", err)

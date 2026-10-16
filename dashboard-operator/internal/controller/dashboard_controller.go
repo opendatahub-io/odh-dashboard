@@ -1111,6 +1111,12 @@ func extractItems(list client.ObjectList) []client.Object {
 			items[i] = &l.Items[i]
 		}
 		return items
+	case *gatewayv1.HTTPRouteList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
 	case *appsv1.DeploymentList:
 		items := make([]client.Object, len(l.Items))
 		for i := range l.Items {
