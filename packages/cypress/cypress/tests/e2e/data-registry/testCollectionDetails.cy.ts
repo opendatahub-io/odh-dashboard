@@ -71,14 +71,26 @@ describe('Data Registry - Collection Details', () => {
         dataRegistryPage
           .findCollectionDescriptionInput()
           .type('Additional collection for collection details E2E');
+        cy.intercept({
+          method: 'POST',
+          pathname: `/data-registry/api/v1/${testData.project}/namespaces`,
+        }).as('createSecondCollection');
         dataRegistryPage.findCreateCollectionSubmit().should('not.be.disabled').click();
-        return dataRegistryPage
-          .findCollectionLink(secondCollectionName)
-          .should('be.visible')
-          .then(() => {
-            secondCollectionCreated = true;
-            return verifyDataRegistryCollectionExists(testData.project, secondCollectionName);
-          });
+        return cy
+          .wait('@createSecondCollection')
+          .then(({ response }) => {
+            if (response && response.statusCode >= 200 && response.statusCode < 300) {
+              secondCollectionCreated = true;
+            }
+            expect(response?.statusCode, 'Data Registry collection create response').to.be.within(
+              200,
+              299,
+            );
+          })
+          .then(() =>
+            dataRegistryPage.findCollectionLink(secondCollectionName).should('be.visible'),
+          )
+          .then(() => verifyDataRegistryCollectionExists(testData.project, secondCollectionName));
       });
   });
 

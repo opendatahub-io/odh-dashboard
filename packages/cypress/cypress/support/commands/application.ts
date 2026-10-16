@@ -302,10 +302,24 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
   cy.get('input[type="submit"], button[type="submit"]').click();
 
   // Wait for redirect back to dashboard
-  // OpenShift OAuth may redirect back to the canonical dashboard route on a different host.
-  // Ensure authentication left the login and OAuth endpoints before continuing.
+  const baseUrl = Cypress.config('baseUrl');
+  if (typeof baseUrl !== 'string' || baseUrl.length === 0) {
+    throw new Error('Cypress baseUrl is required to validate the OAuth redirect');
+  }
+
   cy.url().should('not.include', '/login/');
   cy.url().should('not.include', '/oauth');
+  cy.findByRole('banner', { name: 'page masthead' }).should('be.visible');
+
+  const expectedOrigins = [new URL(baseUrl).origin];
+  const canonicalDashboardUrl = Cypress.env('ODH_DASHBOARD_CANONICAL_URL');
+  if (typeof canonicalDashboardUrl === 'string' && canonicalDashboardUrl.length > 0) {
+    expectedOrigins.push(new URL(canonicalDashboardUrl).origin);
+  }
+
+  cy.location('origin').should((origin) => {
+    expect(origin, 'OAuth redirect origin').to.be.oneOf(expectedOrigins);
+  });
 };
 
 Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {

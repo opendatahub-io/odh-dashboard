@@ -1,4 +1,6 @@
 ODH_DASHBOARD_URL: "http://odh-dashboard-opendatahub.apps.my-cluster.test.redhat.com"
+# Optional canonical host used by OpenShift OAuth when it differs from ODH_DASHBOARD_URL.
+ODH_DASHBOARD_CANONICAL_URL: ""
 PRODUCT: ODH
 ODH_DASHBOARD_PROJECT_NAME: Open Data Hub
 APPLICATIONS_NAMESPACE: opendatahub

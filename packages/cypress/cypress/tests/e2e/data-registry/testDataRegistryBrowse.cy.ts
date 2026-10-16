@@ -100,7 +100,7 @@ const navigateToDataRegistry = (
   });
 };
 
-describe('Data Registry browse flow', () => {
+describe('Data Registry browse flow (RHOAI Secret fallback)', () => {
   let testData: Record<string, string>;
   let dataRegistryNamespace: string;
   let projectCreated = false;
@@ -235,7 +235,7 @@ describe('Data Registry browse flow', () => {
       });
       dataRegistryPage.selectProject(testData.project);
 
-      cy.step('Load the project connections before seeding the browse asset');
+      cy.step('Load RHOAI Secret-fallback connections before seeding the browse asset');
       dataRegistryPage.findEmptyRegisterDataButton().should('not.be.disabled').click();
       dataRegistryPage.findRegisterDataModal().should('be.visible');
       cy.wait('@dataRegistryProjectConnections').then(({ response }) => {
@@ -260,9 +260,14 @@ describe('Data Registry browse flow', () => {
           warnings: connectionsResponse?.metadata?.warnings ?? [],
         };
         const connectionResponseMessage = [
-          'RHOAI Secret connection available to the test user',
+          'This spec requires selectable RHOAI Secret-fallback connections and does not use DCH',
           `response summary: ${JSON.stringify(connectionResponseSummary)}`,
         ].join('; ');
+        const selectableConnections = connectionsResponse?.data ?? [];
+        expect(
+          selectableConnections.every(({ type }) => type === 'secret'),
+          connectionResponseMessage,
+        ).to.equal(true);
         const hasTestConnection = connectionsResponse?.data?.some(
           ({ type, secret_name: secretName }) =>
             type === 'secret' && secretName === testConnectionName,
@@ -316,13 +321,21 @@ describe('Data Registry browse flow', () => {
       dataRegistryPage.findCreateCollectionModal().should('be.visible');
       dataRegistryPage.findCollectionNameInput().type(crudCollectionName);
       dataRegistryPage.findCollectionDescriptionInput().type('Data Registry CRUD collection');
+      cy.intercept({
+        method: 'POST',
+        pathname: `/data-registry/api/v1/${testData.project}/namespaces`,
+      }).as('createCrudCollection');
       dataRegistryPage.findCreateCollectionSubmit().should('not.be.disabled').click();
-      dataRegistryPage
-        .findCreateCollectionModal()
-        .should('not.exist')
-        .then(() => {
+      cy.wait('@createCrudCollection').then(({ response }) => {
+        if (response && response.statusCode >= 200 && response.statusCode < 300) {
           crudCollectionCreated = true;
-        });
+        }
+        expect(response?.statusCode, 'Data Registry collection create response').to.be.within(
+          200,
+          299,
+        );
+      });
+      dataRegistryPage.findCreateCollectionModal().should('not.exist');
       dataRegistryPage.findCollectionLink(crudCollectionName).should('be.visible');
       verifyDataRegistryCollectionExists(testData.project, crudCollectionName);
       dataRegistryPage.closeManageCollections();
