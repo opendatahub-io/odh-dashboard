@@ -70,6 +70,7 @@ webhook:
 # references at install time; only non-empty values are injected as pod env vars.
 relatedImages:
   RELATED_IMAGE_ODH_DASHBOARD_IMAGE: ""
+  RELATED_IMAGE_ODH_RHAII_DASHBOARD_IMAGE: ""
   RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE: ""
   RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE: ""
   RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE: ""

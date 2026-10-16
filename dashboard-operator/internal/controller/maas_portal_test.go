@@ -448,7 +448,7 @@ func TestReconcileDeletion_CleansMaaSPortalResources(t *testing.T) {
 		&gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace, Labels: portalLabels}},
 	}
 	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(append(objects, operatorNamespaces...)...).Build()
-	r := &DashboardReconciler{Client: cli, Scheme: s, ApplicationsNamespace: maasPortalTestNamespace}
+	r := &DashboardReconciler{Client: cli, Scheme: s, ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
 	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}})
 	require.NoError(t, err)
 	for _, object := range objects[1:] {
