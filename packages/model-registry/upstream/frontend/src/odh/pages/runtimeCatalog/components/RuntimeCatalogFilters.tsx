@@ -4,7 +4,7 @@ import type { ServingRuntimeFilterOptionsList } from '~/odh/types/servingRuntime
 import {
   RUNTIME_CATALOG_FILTER_CATEGORY_NAMES,
   RUNTIME_CATALOG_FILTER_KEYS,
-  RUNTIME_CATALOG_HARDWARE_LABELS,
+  RUNTIME_CATALOG_FILTER_LABELS,
   type RuntimeCatalogFiltersState,
 } from '~/odh/pages/runtimeCatalog/const';
 
@@ -29,7 +29,7 @@ const RuntimeCatalogFilters: React.FC<RuntimeCatalogFiltersProps> = ({
     filterOptions: filterOptions?.filters,
     selectedFilters: filters,
     onFilterChange,
-    labelMappings: { hardware: RUNTIME_CATALOG_HARDWARE_LABELS },
+    labelMappings: RUNTIME_CATALOG_FILTER_LABELS,
   });
 
   return (

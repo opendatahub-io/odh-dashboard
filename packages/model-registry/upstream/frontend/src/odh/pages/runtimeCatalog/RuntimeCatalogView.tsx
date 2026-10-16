@@ -17,6 +17,7 @@ import RuntimeCatalogGalleryView from '~/odh/pages/runtimeCatalog/components/Run
 import {
   RUNTIME_CATALOG_FILTER_CATEGORY_NAMES,
   RUNTIME_CATALOG_FILTER_KEYS,
+  RUNTIME_CATALOG_FILTER_LABELS,
   type RuntimeCatalogFiltersState,
 } from '~/odh/pages/runtimeCatalog/const';
 import { hasRuntimeCatalogFiltersApplied } from '~/odh/pages/runtimeCatalog/utils/runtimeCatalogUtils';
@@ -111,6 +112,7 @@ const RuntimeCatalogView: React.FC = () => {
                   categoryNames={RUNTIME_CATALOG_FILTER_CATEGORY_NAMES}
                   filters={filters}
                   setFilters={setFilters}
+                  labelMappings={RUNTIME_CATALOG_FILTER_LABELS}
                   testIdPrefix="runtime-catalog-filter"
                 />
               )}

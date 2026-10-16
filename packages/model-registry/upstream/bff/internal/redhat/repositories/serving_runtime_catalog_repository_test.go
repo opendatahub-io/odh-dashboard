@@ -43,8 +43,8 @@ func TestServingRuntimeCatalogMockBrowsing(t *testing.T) {
 	filters, err := repo.GetServingRuntimesFilter(nil)
 	require.NoError(t, err)
 	require.Len(t, *filters.Filters, 2)
-	require.Contains(t, *filters.Filters, "hardware")
-	require.Contains(t, *filters.Filters, "modelFormat")
+	require.Contains(t, *filters.Filters, "capabilities.supportedAccelerators")
+	require.Contains(t, *filters.Filters, "supportedModelFormats")
 }
 
 func TestServingRuntimeCatalogMockFilters(t *testing.T) {
@@ -64,12 +64,13 @@ func TestServingRuntimeCatalogMockFilters(t *testing.T) {
 		{"comma separated source labels", url.Values{"sourceLabel": {"Red Hat,null"}}, 12},
 		{"unknown source label", url.Values{"sourceLabel": {"unknown"}}, 0},
 		{"source and label intersection", url.Values{"source": {"community-runtimes"}, "sourceLabel": {"Red Hat"}}, 0},
-		{"filter", url.Values{"filterQuery": {"hardware='nvidia.com/gpu' AND modelFormat IN ('safetensors')"}}, 3},
-		{"accelerator", url.Values{"filterQuery": {"hardware='nvidia.com/gpu'"}}, 5},
-		{"format", url.Values{"filterQuery": {"modelFormat IN ('onnx', 'sklearn')"}}, 3},
-		{"huggingface", url.Values{"filterQuery": {"modelFormat='huggingface'"}}, 2},
-		{"cpu or gpu", url.Values{"filterQuery": {"hardware='cpu-or-gpu'"}}, 2},
-		{"amd accelerator", url.Values{"filterQuery": {"hardware='amd.com/gpu'"}}, 1},
+		{"filter", url.Values{"filterQuery": {"capabilities.supportedAccelerators='nvidia.com/gpu' AND supportedModelFormats IN ('safetensors')"}}, 3},
+		{"accelerator", url.Values{"filterQuery": {"capabilities.supportedAccelerators='nvidia.com/gpu'"}}, 5},
+		{"several accelerators", url.Values{"filterQuery": {"capabilities.supportedAccelerators IN ('amd.com/gpu','habana.ai/gaudi')"}}, 2},
+		{"format", url.Values{"filterQuery": {"supportedModelFormats IN ('onnx', 'sklearn')"}}, 3},
+		{"huggingface", url.Values{"filterQuery": {"supportedModelFormats='huggingface'"}}, 2},
+		{"amd accelerator", url.Values{"filterQuery": {"capabilities.supportedAccelerators='amd.com/gpu'"}}, 1},
+		{"spyre accelerator", url.Values{"filterQuery": {"capabilities.supportedAccelerators='ibm.com/spyre_pf'"}}, 1},
 		{"empty", url.Values{"q": {"no-such-runtime"}}, 0},
 		{"end of results", url.Values{"nextPageToken": {"9223372036854775807"}}, 0},
 	} {
@@ -90,9 +91,9 @@ func TestServingRuntimeCatalogMockErrors(t *testing.T) {
 	repo := &mocks.ModelCatalogClientMock{}
 	for _, query := range []url.Values{
 		{"pageSize": {"0"}}, {"pageSize": {"2147483648"}}, {"nextPageToken": {"-1"}},
-		{"filterQuery": {"modelFormat LIKE 'onn%'"}}, {"filterQuery": {"unknown='value'"}}, {"sortOrder": {"invalid"}},
+		{"filterQuery": {"supportedModelFormats LIKE 'onn%'"}}, {"filterQuery": {"unknown='value'"}}, {"sortOrder": {"invalid"}},
 		{"filterQuery": {"provider='Red Hat'"}}, {"filterQuery": {"tags='gpu'"}},
-		{"filterQuery": {"capabilities.supportedAccelerators='nvidia.com/gpu'"}},
+		{"filterQuery": {"hardware='nvidia.com/gpu'"}}, {"filterQuery": {"modelFormat='onnx'"}},
 		{"filterQuery": {"supportedModelFormats.name='onnx'"}},
 	} {
 		_, err := repo.GetAllServingRuntimes(nil, query)
@@ -128,8 +129,8 @@ func TestServingRuntimeFilterOptionsMatchMockData(t *testing.T) {
 	options, err := repo.GetServingRuntimesFilter(nil)
 	require.NoError(t, err)
 	require.Len(t, *options.Filters, 2)
-	require.ElementsMatch(t, []interface{}{"amd.com/gpu", "cpu", "cpu-or-gpu", "ibm.com/spyre", "habana.ai/gaudi", "nvidia.com/gpu"}, (*options.Filters)["hardware"].Values)
-	require.ElementsMatch(t, []interface{}{"caikit", "huggingface", "onnx", "openvino_ir", "pytorch", "xgboost", "safetensors", "sklearn", "tensorflow", "tensorrt", "torchscript"}, (*options.Filters)["modelFormat"].Values)
+	require.ElementsMatch(t, []interface{}{"amd.com/gpu", "ibm.com/spyre_pf", "habana.ai/gaudi", "nvidia.com/gpu"}, (*options.Filters)["capabilities.supportedAccelerators"].Values)
+	require.ElementsMatch(t, []interface{}{"caikit", "huggingface", "onnx", "openvino_ir", "pytorch", "xgboost", "safetensors", "sklearn", "tensorflow", "tensorrt", "torchscript"}, (*options.Filters)["supportedModelFormats"].Values)
 	for field, option := range *options.Filters {
 		for _, value := range option.Values {
 			t.Run(fmt.Sprintf("%s/%v", field, value), func(t *testing.T) {
@@ -141,11 +142,11 @@ func TestServingRuntimeFilterOptionsMatchMockData(t *testing.T) {
 	}
 	for _, runtime := range mocks.GetServingRuntimeMocks() {
 		for _, format := range runtime.SupportedModelFormats {
-			require.Contains(t, (*options.Filters)["modelFormat"].Values, format.Name)
+			require.Contains(t, (*options.Filters)["supportedModelFormats"].Values, format.Name)
 		}
 		if runtime.Capabilities != nil {
-			for _, hardware := range runtime.Capabilities.SupportedAccelerators {
-				require.Contains(t, (*options.Filters)["hardware"].Values, hardware)
+			for _, accelerator := range runtime.Capabilities.SupportedAccelerators {
+				require.Contains(t, (*options.Filters)["capabilities.supportedAccelerators"].Values, accelerator)
 			}
 		}
 		versions, err := repo.GetServingRuntimeVersions(nil, *runtime.ID, nil)

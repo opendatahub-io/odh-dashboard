@@ -1,6 +1,8 @@
 const RUNTIME_CATALOG_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
 
+const HARDWARE_FILTER_KEY = 'capabilities.supportedAccelerators';
+
 class RuntimeCatalogPage {
   visit(wait = true) {
     cy.visitWithLogin(RUNTIME_CATALOG_PATH);
@@ -63,6 +65,18 @@ class RuntimeCatalogPage {
 
   findCardHardware(cardKey: string) {
     return cy.findByTestId(`runtime-catalog-card-hardware-${cardKey}`);
+  }
+
+  findHardwareFilter() {
+    return cy.findByTestId(`runtime-catalog-filter-${HARDWARE_FILTER_KEY}`);
+  }
+
+  findHardwareFilterCheckbox(value: string) {
+    return cy.findByTestId(`runtime-catalog-filter-${HARDWARE_FILTER_KEY}-${value}`);
+  }
+
+  findActiveFilterChip(value: string) {
+    return cy.findByTestId(`runtime-catalog-filter-chip-${HARDWARE_FILTER_KEY}-${value}`);
   }
 
   findEmptyState() {
