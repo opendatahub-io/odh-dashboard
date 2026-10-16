@@ -19,7 +19,7 @@ export const isAwsS3Endpoint = (endpoint: string): boolean => {
     return true;
   }
   const hostname = parseS3Endpoint(endpoint).host.split(':')[0];
-  return /(^|\.)amazonaws\.com$/i.test(hostname);
+  return /(^|\.)amazonaws\.com(?:\.cn)?$/i.test(hostname);
 };
 
 export const getFeastS3Config = (): FeastS3Config => {
