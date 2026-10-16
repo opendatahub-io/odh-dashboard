@@ -67,7 +67,7 @@ describe('useHardwareProfileBindingState', () => {
       const renderResult = testHook(useHardwareProfileBindingState)(nameOnlyNotebook());
 
       expect(mockUseHardwareProfiles).toHaveBeenLastCalledWith(undefined, 'test-project', {
-        includeDRA: true,
+        dra: 'all',
       });
       expect(renderResult.result.current[0]?.profile).toBe(projectProfile);
     });
@@ -94,7 +94,7 @@ describe('useHardwareProfileBindingState', () => {
     const renderResult = testHook(useHardwareProfileBindingState)(notebook);
 
     expect(mockUseHardwareProfiles).toHaveBeenLastCalledWith(undefined, undefined, {
-      includeDRA: true,
+      dra: 'all',
     });
     expect(renderResult.result.current).toEqual([null, true, undefined]);
   });

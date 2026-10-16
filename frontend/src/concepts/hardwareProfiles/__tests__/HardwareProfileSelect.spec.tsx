@@ -394,7 +394,6 @@ describe('HardwareProfileSelect - Use existing settings', () => {
       undefined,
       undefined,
       undefined,
-      true,
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
