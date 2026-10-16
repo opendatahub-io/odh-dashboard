@@ -7219,9 +7219,15 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/UserModel'
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/UserModel'
           example:
-            userId: 'user@example.com'
+            data:
+              userId: 'user@example.com'
 
     BFFConfigResponse:
       description: BFF application-level configuration
