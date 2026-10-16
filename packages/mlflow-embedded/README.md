@@ -5,10 +5,10 @@ Host-side extension package that embeds selected pages from the **external MLflo
 ## What this package does
 
 - Registers the **Experiments** navigation item under "Develop and Train", locked to the Model training workflow type
-- Registers the **Agent observability** navigation item under "Observe & monitor", locked to the GenAI workflow type
+- Registers the **Agent traces** navigation item under "Observe & monitor", locked to the GenAI workflow type
 - Loads the MLflow experiment tracking component from the external MLflow frontend via Module Federation (`loadRemote('mlflowEmbedded/MlflowExperimentWrapper')`)
 - Provides project/workspace selection and breadcrumb navigation around the embedded component
-- Redirects tabs the locked workflow type doesn't support (Prompts → Prompt management, GenAI tabs on Experiments → Agent observability)
+- Redirects tabs the locked workflow type doesn't support (Prompts → Prompt management, GenAI tabs on Experiments → Agent traces)
 
 ## Components
 
@@ -17,7 +17,7 @@ Host-side extension package that embeds selected pages from the **external MLflo
 | `extensions.ts`                            | Registers area, nav item, and route extensions with the dashboard  |
 | `GlobalMLflowExperimentsRoutes.tsx`        | Route handler with project/workspace selection                     |
 | `MlflowExperimentsPage.tsx`                | Loads the federated MLflow experiment tracking component           |
-| `GlobalMLflowAgentObservabilityRoutes.tsx` | Agent observability route handler with project/workspace selection |
+| `GlobalMLflowAgentObservabilityRoutes.tsx` | Agent traces route handler with project/workspace selection |
 | `MlflowAgentObservabilityPage.tsx`         | `MlflowExperimentsPage` configured for the GenAI workflow type     |
 
 ## Module Federation
@@ -32,7 +32,7 @@ This package has no build step of its own -- its TSX files are compiled by the h
 
 1. Start the external MLflow frontend (dev server on `localhost:9300`)
 2. Start the dashboard: `pnpm run dev` (from repo root)
-3. Navigate to **Develop and Train > Experiments** or **Observe & monitor > Agent observability** in the dashboard
+3. Navigate to **Develop and Train > Experiments** or **Observe & monitor > Agent traces** in the dashboard
 
 ## Feature Flags
 
