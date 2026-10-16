@@ -21,8 +21,12 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import { useLabels } from '~/app/hooks/useLabels';
 import {
   DEFAULT_FORMATS,
   STRUCTURED_FORMAT_OPTIONS,
@@ -233,12 +237,14 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
 };
 
 type RegistrationOrganizationSectionProps = EditModeProps & {
+  project: string;
   collections?: string[];
   onManageCollections?: () => void;
   onManageLabels?: () => void;
 };
 
 export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationSectionProps> = ({
+  project,
   collections = [],
   isEditMode = false,
   onManageCollections,
@@ -251,10 +257,13 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
     setValue,
     watch,
   } = useFormContext<AssetFormData>();
+  const [availableLabels] = useLabels(project);
   const labels = watch('labels');
   const [isCollectionOpen, setIsCollectionOpen] = React.useState(false);
+  const [createdLabels, setCreatedLabels] = React.useState<string[]>([]);
   const labelIdsRef = React.useRef<string[]>([]);
   const nextLabelIdRef = React.useRef(0);
+  const initialLabelsRef = React.useRef(labels.filter(Boolean));
 
   while (labelIdsRef.current.length < labels.length) {
     labelIdsRef.current.push(`label-${nextLabelIdRef.current}`);
@@ -263,6 +272,17 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
   if (labelIdsRef.current.length > labels.length) {
     labelIdsRef.current.length = labels.length;
   }
+
+  const labelOptions = React.useMemo<TypeaheadSelectOption[]>(
+    () =>
+      [...new Set([...availableLabels, ...initialLabelsRef.current, ...createdLabels])].map(
+        (label) => ({
+          value: label,
+          content: label,
+        }),
+      ),
+    [availableLabels, createdLabels],
+  );
 
   const handleAddLabel = React.useCallback(() => {
     labelIdsRef.current.push(`label-${nextLabelIdRef.current}`);
@@ -288,10 +308,9 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         Optionally organize and annotate this data asset so it is easier to find later.
       </Content>
 
-      <FormGroup label="Collection" fieldId="data-collection">
+      <FormGroup label="Collection" fieldId="data-collection" isStack>
         <Content component="p">
-          Organize this data asset into a collection. To manage collections for the entire project,
-          go to{' '}
+          Organize this data into a collection.{' '}
           <Button
             variant="link"
             isInline
@@ -300,7 +319,6 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
           >
             Manage collections
           </Button>
-          .
         </Content>
         {isEditMode ? (
           <TextInput
@@ -364,10 +382,9 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         ) : null}
       </FormGroup>
 
-      <FormGroup label="Labels" fieldId="data-labels">
+      <FormGroup label="Labels" fieldId="data-labels" isStack>
         <Content component="p">
-          Optionally add labels to this data asset to make it easier to find later. To manage labels
-          for the entire project, go to{' '}
+          Optionally add labels to this data asset to make it easier to find later.{' '}
           <Button variant="link" isInline isDisabled={!onManageLabels} onClick={onManageLabels}>
             Manage labels
           </Button>
@@ -381,21 +398,33 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
             className="pf-v6-u-mb-xs"
           >
             <FlexItem grow={{ default: 'grow' }}>
-              <TextInput
-                id={`data-labels-input-${index}`}
-                aria-label={`Label ${index + 1}`}
-                value={label}
-                onChange={(_event, value) => {
+              <TypeaheadSelect
+                selectOptions={labelOptions}
+                selected={label}
+                isCreatable
+                isRequired={false}
+                placeholder="e.g. gold, team a"
+                createOptionMessage={(newValue) => `Create "${newValue}"`}
+                maxMenuHeight="20rem"
+                onSelect={(_event, value) => {
+                  const selectedLabel = String(value);
+                  if (!labelOptions.some((option) => option.value === selectedLabel)) {
+                    setCreatedLabels((currentLabels) =>
+                      currentLabels.includes(selectedLabel)
+                        ? currentLabels
+                        : [...currentLabels, selectedLabel],
+                    );
+                  }
                   const currentLabels = getValues('labels');
                   setValue(
                     'labels',
                     currentLabels.map((currentLabel, currentIndex) =>
-                      currentIndex === index ? value : currentLabel,
+                      currentIndex === index ? selectedLabel : currentLabel,
                     ),
                   );
                 }}
-                placeholder="e.g. production, gold, pii"
-                data-testid={`data-labels-input-${index}`}
+                dataTestId={`data-labels-input-${index}`}
+                toggleProps={{ 'aria-label': `Label ${index + 1}` }}
               />
             </FlexItem>
             <FlexItem>
@@ -414,6 +443,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
           variant="link"
           icon={<PlusCircleIcon />}
           onClick={handleAddLabel}
+          className="odh-data-registry-registration-form__add-label"
           data-testid="data-add-label-button"
         >
           Add label

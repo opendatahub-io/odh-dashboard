@@ -268,7 +268,6 @@ const TableDetailPage: React.FC = () => {
       {isDeleteModalOpen && name ? (
         <DeleteAssetModal
           assetName={displayName}
-          assetType={isVolume ? 'volume' : 'table'}
           onDelete={handleDelete}
           onClose={() => setIsDeleteModalOpen(false)}
         />
