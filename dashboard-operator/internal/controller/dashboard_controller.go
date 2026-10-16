@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -198,6 +199,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	previousStatus := dashboard.Status.DeepCopy()
 	migrateMaaSPortalStatus(dashboard)
 
 	// Ready is the rollup condition — auto-derived by the Manager from
@@ -244,7 +246,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// demand before the core teardown so MaaS Portal-only operation retains them.
 		nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
 		if err != nil {
-			r.persistRemovedFailureStatus(ctx, dashboard, cm, "ModuleDeployFailed", err)
+			r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "ModuleDeployFailed", err)
 			return ctrl.Result{}, fmt.Errorf("failed to reconcile MaaS Portal-required modules: %w", err)
 		}
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
@@ -262,7 +264,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		preserveObservability := maasPortalManaged && (observabilityDetectionErr != nil ||
 			(dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled))
 		if err := r.teardownManagedResources(ctx, dashboard, nextStatuses, preserveObservability); err != nil {
-			r.persistRemovedFailureStatus(ctx, dashboard, cm, "TeardownFailed", err)
+			r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "TeardownFailed", err)
 			return ctrl.Result{}, fmt.Errorf("failed to tear down resources: %w", err)
 		}
 
@@ -306,7 +308,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if maasPortalManaged && dashboard.Spec.Observability == nil && portalRetryAfter == 0 {
 			portalRetryAfter = observabilityRetryInterval
 		}
-		if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+		if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after removal")
 
 			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
@@ -352,11 +354,45 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	cm.Sort()
 
-	if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+	if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
 		logger.Error(statusErr, "Failed to update status")
 	}
 
 	return result, err
+}
+
+// updateStatusIfChanged compares the final conditions with persisted state so
+// temporary resets and rollup transitions within a reconcile do not cause churn.
+func (r *DashboardReconciler) updateStatusIfChanged(ctx context.Context, dashboard *v1alpha1.Dashboard, previous *v1alpha1.DashboardStatus) error {
+	type conditionKey struct {
+		Type   string
+		Status metav1.ConditionStatus
+	}
+	previousCount := make(map[conditionKey]int, len(previous.Conditions))
+	currentCount := make(map[conditionKey]int, len(dashboard.Status.Conditions))
+	previousTimes := make(map[conditionKey]metav1.Time, len(previous.Conditions))
+	for _, old := range previous.Conditions {
+		key := conditionKey{Type: old.Type, Status: old.Status}
+		previousCount[key]++
+		previousTimes[key] = old.LastTransitionTime
+	}
+	for _, condition := range dashboard.Status.Conditions {
+		key := conditionKey{Type: condition.Type, Status: condition.Status}
+		currentCount[key]++
+	}
+
+	for i := range dashboard.Status.Conditions {
+		condition := &dashboard.Status.Conditions[i]
+		key := conditionKey{Type: condition.Type, Status: condition.Status}
+		// Duplicate pairs are ambiguous; retain each entry's own timestamp.
+		if previousCount[key] == 1 && currentCount[key] == 1 {
+			condition.LastTransitionTime = previousTimes[key]
+		}
+	}
+	if equality.Semantic.DeepEqual(previous, &dashboard.Status) {
+		return nil
+	}
+	return r.Status().Update(ctx, dashboard)
 }
 
 // persistRemovedFailureStatus records a retryable failure that occurs before
@@ -365,6 +401,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *DashboardReconciler) persistRemovedFailureStatus(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
+	previousStatus *v1alpha1.DashboardStatus,
 	cm *conditions.Manager,
 	reason string,
 	failure error,
@@ -374,7 +411,7 @@ func (r *DashboardReconciler) persistRemovedFailureStatus(
 		conditions.WithMessage("Dashboard removal reconciliation failed: %s", failure))
 	dashboard.Status.Phase = common.PhaseNotReady
 	cm.Sort()
-	if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+	if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
 		log.FromContext(ctx).Error(statusErr, "Failed to update status after removal failure")
 	}
 }
@@ -537,7 +574,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 		conditions.WithMessage("Dashboard and module manifests applied successfully"))
 
 	// Persist module statuses now so early returns from steps 6-9 don't leave
-	// stale status on the CR (the outer Reconcile always calls Status().Update).
+	// stale status on the CR (the outer Reconcile persists any status changes).
 	preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 	dashboard.Status.ModuleStatuses = nextStatuses
 	r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
