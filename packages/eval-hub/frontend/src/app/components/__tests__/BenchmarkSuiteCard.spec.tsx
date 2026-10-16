@@ -413,7 +413,7 @@ describe('BenchmarkSuiteCard', () => {
     expect(onSelect).toHaveBeenCalledWith(collection);
   });
 
-  it('should render the category and evaluation target instead of collection tags or domains', () => {
+  it('should render the resolved category and evaluation target instead of collection tags', () => {
     render(
       <BenchmarkSuiteCard
         collection={{
@@ -433,22 +433,21 @@ describe('BenchmarkSuiteCard', () => {
       screen.queryByTestId('benchmark-suite-card-tags-collection-tags-suite'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Collection tag')).not.toBeInTheDocument();
-    expect(screen.queryByText('Domain value')).not.toBeInTheDocument();
-    expect(screen.getByText('Primary category')).toBeInTheDocument();
+    expect(screen.getByText('Domain value')).toBeInTheDocument();
+    expect(screen.queryByText('Primary category')).not.toBeInTheDocument();
     expect(screen.getByText('Model evaluation')).toBeInTheDocument();
     expect(screen.getByText('2 benchmarks')).toBeInTheDocument();
   });
 
   it.each([
-    ['knowledge_and_reasoning', 'purple'],
-    ['grounded_document_understanding', 'blue'],
-    ['instruction_and_output_reliability', 'green'],
-    ['tool_use_and_function_calling', 'yellow'],
-    ['software', 'orange'],
-    ['trustworthiness', 'red'],
-    ['multilingual', 'teal'],
-    ['multimodal', 'orangered'],
-    ['safety', 'yellow'],
+    ['knowledge_and_reasoning', 'lavender'],
+    ['grounded_document_understanding', 'light-blue'],
+    ['instruction_and_output_reliability', 'light-green'],
+    ['tool_use_and_function_calling', 'apricot'],
+    ['software', 'mint-teal'],
+    ['trustworthiness', 'soft-pink'],
+    ['multilingual', 'pale-cyan'],
+    ['multimodal', 'soft-mint-yellow'],
   ])('should render the %s domain icon with the %s color', (domain, color) => {
     render(
       <BenchmarkSuiteCard
@@ -465,7 +464,7 @@ describe('BenchmarkSuiteCard', () => {
     );
   });
 
-  it('should prefer a supported category over the first domain for the tile icon', () => {
+  it('should use the first supplied domain when the collection category differs', () => {
     render(
       <BenchmarkSuiteCard
         collection={{
@@ -481,7 +480,88 @@ describe('BenchmarkSuiteCard', () => {
 
     expect(
       screen.getByTestId('benchmark-suite-card-domain-icon-category-icon-suite'),
+    ).toHaveAttribute('title', 'Software');
+    expect(
+      screen.getByTestId('benchmark-suite-card-category-category-icon-suite'),
+    ).toHaveTextContent('Software');
+    expect(screen.queryByText('Multilingual')).not.toBeInTheDocument();
+  });
+
+  it('should render an icon for every domain and summarize multiple domains', () => {
+    const collection = mockCollection({
+      id: 'multi-domain-suite',
+      domains: ['software', 'multilingual', 'trustworthiness'],
+    });
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-category-multi-domain-suite'),
+    ).toHaveTextContent('3 categories');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icons-multi-domain-suite'),
+    ).toHaveAttribute('aria-label', 'Software, Multilingual, Trustworthiness');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-group-multi-domain-suite'),
+    ).not.toHaveClass('evalhub-benchmark-suite-card__domain-group--many-domains');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icon-multi-domain-suite'),
+    ).toHaveAttribute('title', 'Software');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icon-multi-domain-suite-1'),
     ).toHaveAttribute('title', 'Multilingual');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icon-multi-domain-suite-2'),
+    ).toHaveAttribute('title', 'Trustworthiness');
+  });
+
+  it('should mark stacks with more than five domains for stable expansion', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({
+          id: 'many-domain-suite',
+          domains: [
+            'software',
+            'multilingual',
+            'trustworthiness',
+            'multimodal',
+            'knowledge_and_reasoning',
+            'safety',
+          ],
+        })}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(screen.getByTestId('benchmark-suite-card-domain-group-many-domain-suite')).toHaveClass(
+      'evalhub-benchmark-suite-card__domain-group--many-domains',
+    );
+  });
+
+  it('should show an individual domain tooltip when an icon is hovered', async () => {
+    const collection = mockCollection({
+      id: 'domain-tooltip-suite',
+      domains: ['software', 'multilingual'],
+    });
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    fireEvent.mouseEnter(
+      screen.getByTestId('benchmark-suite-card-domain-icon-domain-tooltip-suite-1'),
+    );
+
+    expect(await screen.findByText('Multilingual')).toBeInTheDocument();
+    expect(screen.queryByText('Software')).not.toBeInTheDocument();
   });
 
   it('should fall back to the first domain when category is not a supported enum value', () => {
@@ -501,6 +581,8 @@ describe('BenchmarkSuiteCard', () => {
     expect(
       screen.getByTestId('benchmark-suite-card-domain-icon-domain-icon-fallback-suite'),
     ).toHaveAttribute('title', 'Software');
+    expect(screen.getByText('Software')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy category')).not.toBeInTheDocument();
   });
 });
 
