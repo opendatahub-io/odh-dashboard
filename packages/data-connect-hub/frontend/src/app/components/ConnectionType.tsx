@@ -41,8 +41,6 @@ import RhUiContainerIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-cont
 import RhUiSearchIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-search-icon';
 import RhUiStorageIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-storage-icon';
 
-import './ConnectionType.scss';
-
 // Types ---------------------------------------------------------------------->
 
 type KnownConnectionType = Identified<string> & Iconed<React.ReactNode>;
@@ -291,7 +289,6 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       isClickable={!isSelectable}
       isSelectable={isSelectable}
       isSelected={isSelectable ? isSelected : undefined}
-      className="dch-connection-type-card"
     >
       <CardHeader
         selectableActions={{
@@ -314,7 +311,7 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       </CardHeader>
       <CardTitle id={`${rootId}-card-title`}>{connectionType.resource.name}</CardTitle>
       <CardBody>
-        <TruncatedText maxLines={4} content={connectionType.resource.description} />
+        <TruncatedText maxLines={5} content={connectionType.resource.description} />
       </CardBody>
       {Boolean(connectionType.uniqueTags?.length) && (
         <CardFooter>

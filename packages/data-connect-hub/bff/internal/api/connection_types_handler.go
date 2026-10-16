@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 
@@ -213,17 +214,24 @@ func mockConnectionType(namespace, connectionTypeID string) (ConnectionType, boo
 }
 
 func mockConnectionTypes(namespace string) []ConnectionType {
-	description := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor."
-	types := make([]ConnectionType, 2)
-	types[0].Metadata.ID = "550e8400-e29b-41d4-a716-446655440003"
-	types[0].Metadata.TenantID = namespace
-	types[0].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
-	types[0].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
-	types[0].Resource.Name = "PostgreSQL"
-	types[0].Resource.Provider = "postgres"
-	types[0].Resource.Description = description
-	types[0].Resource.Tags = []string{"domain: database", "engine: postgresql", "access: sql"}
-	types[0].Resource.CredentialsFields = []ConnectionTypeCredentialField{
+	var baseMockConnectionType ConnectionType
+	baseMockConnectionType.Metadata.ID = "00000000-0000-0000-0000-000000000000"
+	baseMockConnectionType.Metadata.TenantID = namespace
+	baseMockConnectionType.Metadata.CreatedAt = "2026-01-01T00:00:00Z"
+	baseMockConnectionType.Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
+	baseMockConnectionType.Resource.Provider = "base_provider"
+	baseMockConnectionType.Resource.Description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor."
+	baseMockConnectionType.Resource.CredentialsFields = []ConnectionTypeCredentialField{}
+	baseMockConnectionType.Status.FlightReady = true
+	baseMockConnectionType.Status.FlightURL = "https://dch-default-dataconnectservice-flight.redhat-ods-applications.svc:8443"
+	baseMockConnectionType.Status.UpdatedAt = "2026-01-01T00:00:00Z"
+
+	postgresql := baseMockConnectionType
+	postgresql.Metadata.ID = "550e8400-e29b-41d4-a716-446655440003"
+	postgresql.Resource.Name = "PostgreSQL"
+	postgresql.Resource.Provider = "postgres"
+	postgresql.Resource.Tags = []string{"domain: database", "engine: postgresql", "access: sql"}
+	postgresql.Resource.CredentialsFields = []ConnectionTypeCredentialField{
 		{
 			Name:        "url",
 			Label:       "Connection URL",
@@ -239,19 +247,16 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 			DefaultValue: "postgresql://localhost:5432/database",
 		},
 	}
-	types[0].Status.FlightReady = true
-	types[0].Status.FlightURL = "https://dch-default-dataconnectservice-flight.redhat-ods-applications.svc:8443"
-	types[0].Status.UpdatedAt = "2026-01-01T00:00:00Z"
 
-	types[1].Metadata.ID = "550e8400-e29b-41d4-a716-446655440004"
-	types[1].Metadata.TenantID = namespace
-	types[1].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
-	types[1].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
-	types[1].Resource.Name = "S3"
-	types[1].Resource.Provider = "s3"
-	types[1].Resource.Description = description
-	types[1].Resource.Tags = []string{"domain: storage", "engine: s3"}
-	types[1].Resource.CredentialsFields = []ConnectionTypeCredentialField{
+	s3 := baseMockConnectionType
+	s3.Metadata.ID = "550e8400-e29b-41d4-a716-446655440004"
+	s3.Resource.Name = "S3"
+	s3.Resource.Provider = "s3"
+	s3.Resource.Tags = make([]string, 30)
+	for i := range s3.Resource.Tags {
+		s3.Resource.Tags[i] = fmt.Sprintf("tag: value-%d", i+1)
+	}
+	s3.Resource.CredentialsFields = []ConnectionTypeCredentialField{
 		{
 			Name:        "region",
 			Label:       "Region",
@@ -267,8 +272,20 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 			DefaultValue: "us-east-1",
 		},
 	}
-	types[1].Status.FlightReady = true
-	types[1].Status.FlightURL = "https://dch-default-dataconnectservice-flight.redhat-ods-applications.svc:8443"
-	types[1].Status.UpdatedAt = "2026-01-01T00:00:00Z"
+
+	names := []string{"Analytics", "Warehouse", "Data Lake", "Reporting", "Archive", "Metrics"}
+	tags := []string{"domain: database", "domain: storage", "access: sql", "access: read-only", "environment: dev", "environment: production"}
+	types := []ConnectionType{postgresql, s3}
+	for i := range 30 {
+		dummyConnectionType := baseMockConnectionType
+		dummyConnectionType.Metadata.ID = fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1)
+		dummyConnectionType.Resource.Name = fmt.Sprintf("%s %d", names[rand.IntN(len(names))], i+1)
+		dummyConnectionType.Resource.Description = dummyConnectionType.Resource.Description[:rand.IntN(len(dummyConnectionType.Resource.Description)+1)]
+		dummyConnectionType.Status.FlightReady = rand.IntN(2) == 0
+		for _, j := range rand.Perm(len(tags))[:1+rand.IntN(len(tags))] {
+			dummyConnectionType.Resource.Tags = append(dummyConnectionType.Resource.Tags, tags[j])
+		}
+		types = append(types, dummyConnectionType)
+	}
 	return types
 }
