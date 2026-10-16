@@ -300,6 +300,8 @@ export type DashboardCommonConfig = {
   disableFeatureStore?: boolean;
   featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
+  genAiImageUpload?: boolean;
+  genAiAudioUpload?: boolean;
   guardrails?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
