@@ -41,6 +41,7 @@
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
     "cypress:run:e2e": "cross-env BASE_URL=http://localhost:4010 pnpm run cypress:run",
     "cypress:run:mock": "cross-env CY_MOCK=1 CY_WS_PORT=9002 BASE_URL=http://localhost:8080 pnpm run cypress:run",
+    "cypress:run:maas-portal": "cross-env CY_MOCK=1 CY_WS_PORT=9012 cypress run -b chrome --project src/__tests__/cypress --config-file cypress.maas-portal.config.ts",
     "test:cypress-ci": "pnpm exec concurrently -P -k -s first \"pnpm run cypress:server:bff-mock\" \"cross-env PROXY_HOST=localhost PROXY_PORT=9001 pnpm run cypress:server:dev\" \"pnpm exec wait-on http://localhost:8080 http://localhost:9001 && pnpm run cypress:run:mock\" -- "
   },
   "devDependencies": {
