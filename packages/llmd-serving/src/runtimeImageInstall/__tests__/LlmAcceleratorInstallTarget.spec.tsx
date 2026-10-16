@@ -257,7 +257,11 @@ describe('LlmAcceleratorInstallTarget', () => {
       .mockReturnValueOnce([false, true])
       .mockReturnValueOnce([true, true]);
     renderTarget();
-    expect(screen.getByRole('heading', { name: "We can't find that page" })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: "We can't find that page or you may not have permission to view it",
+      }),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId('llm-accelerator-config-name')).not.toBeInTheDocument();
     expect(createMock).not.toHaveBeenCalled();
   });
