@@ -3,7 +3,7 @@ import {
   WORKSPACE_QUERY_PARAM,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 
-export const agentObservabilityPath = '/observe-and-monitor/agent-observability';
+export const agentObservabilityPath = '/observe-and-monitor/agent-traces';
 export const globAgentObservabilityAll = `${agentObservabilityPath}/*`;
 
 export const withWorkspace = (basePath: string, namespace?: string): string => {
