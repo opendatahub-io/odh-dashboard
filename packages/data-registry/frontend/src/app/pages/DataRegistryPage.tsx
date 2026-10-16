@@ -10,7 +10,6 @@ import {
   Spinner,
   Flex,
   FlexItem,
-  Content,
   Alert,
 } from '@patternfly/react-core';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -67,7 +66,7 @@ const NoProjectsPage: React.FC<NoProjectsPageProps> = ({ onProjectCreated }) => 
       variant={EmptyStateVariant.lg}
       data-testid="no-projects-empty-state"
     >
-      <EmptyStateBody>To browse data assets, first create a project.</EmptyStateBody>
+      <EmptyStateBody>To create and use data assets, first create a project.</EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton onProjectCreated={onProjectCreated} />
       </EmptyStateFooter>
@@ -337,9 +336,6 @@ const DataRegistryPage: React.FC = () => {
   return (
     <>
       <PageSection hasBodyWrapper={false}>
-        <Content component="p" className="pf-v6-u-mb-xs">
-          View and manage this project’s data assets where information is located.
-        </Content>
         <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsMd' }}>
           <FlexItem>
             <ProjectSelector

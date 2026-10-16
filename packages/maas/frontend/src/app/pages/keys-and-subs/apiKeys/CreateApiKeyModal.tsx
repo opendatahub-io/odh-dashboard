@@ -211,7 +211,8 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   );
 
   const sortedSubscriptions = React.useMemo(
-    () => subscriptions.toSorted((a, b) => b.priority - a.priority),
+    () =>
+      subscriptions.toSorted((a, b) => (b.inference_priority ?? 0) - (a.inference_priority ?? 0)),
     [subscriptions],
   );
 
@@ -749,7 +750,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       <MaasModelsSection
                         modelRefSummaries={modelRefSummaries}
                         modelRefsWithRateLimits={subscriptionModelRefs}
-                        hideColumns={['project']}
+                        hideColumns={['project', 'flowControlStatus', 'status']}
                         titleHeadingLevel="h3"
                         titleSize="md"
                         resourceType="subscription"

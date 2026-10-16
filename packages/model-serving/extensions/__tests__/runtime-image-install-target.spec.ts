@@ -3,14 +3,10 @@ import extensions from '../runtime-image-install';
 import { RUNTIME_IMAGE_INSTALL_ROUTE } from '../../src/components/runtimeImageInstall/const';
 
 describe('Runtime image Install registrations', () => {
-  it('should gate the install action and install page route for admins with the area enabled', () => {
+  it('should gate the install action and install page route for model serving admins', () => {
     expect(extensions).toHaveLength(2);
     extensions.forEach((extension) => {
-      expect(extension.flags?.required).toEqual([
-        SupportedArea.RUNTIME_CATALOG,
-        SupportedArea.MODEL_SERVING,
-        'ADMIN_USER',
-      ]);
+      expect(extension.flags?.required).toEqual([SupportedArea.MODEL_SERVING, 'ADMIN_USER']);
     });
     expect(extensions).toEqual(
       expect.arrayContaining([

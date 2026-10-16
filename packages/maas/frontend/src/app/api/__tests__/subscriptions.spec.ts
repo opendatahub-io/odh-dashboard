@@ -198,7 +198,7 @@ describe('listUserSubscriptions', () => {
   const validItem: UserSubscription = {
     subscription_id_header: 'premium-team-sub',
     subscription_description: 'Premium Team Subscription',
-    priority: 10,
+    inference_priority: 10,
     model_refs: [
       {
         name: 'granite-3-8b-instruct',
@@ -232,7 +232,7 @@ describe('listUserSubscriptions', () => {
     const minimal: UserSubscription = {
       subscription_id_header: 'basic-sub',
       subscription_description: 'Basic',
-      priority: 1,
+      inference_priority: 1,
       model_refs: [{ name: 'flan-t5-small' }],
     };
     mockRestGET.mockResolvedValue({ data: [minimal] });
@@ -249,23 +249,24 @@ describe('listUserSubscriptions', () => {
   });
 
   it('should filter out items where subscription_id_header is missing', async () => {
-    const invalid = [{ subscription_description: 'desc', priority: 1, model_refs: [] }];
+    const invalid = [{ subscription_description: 'desc', inference_priority: 1, model_refs: [] }];
     mockRestGET.mockResolvedValue({ data: invalid });
 
     const result = await listUserSubscriptions()({} as never);
     expect(result).toHaveLength(0);
   });
 
-  it('should filter out items where priority is not a number', async () => {
-    const invalid = [{ ...validItem, priority: '10' }];
+  it('should not filter out items where priority is unspecified', async () => {
+    const invalid = [{ ...validItem, inference_priority: undefined }];
     mockRestGET.mockResolvedValue({ data: invalid });
 
     const result = await listUserSubscriptions()({} as never);
-    expect(result).toHaveLength(0);
+    expect(result).toHaveLength(1);
+    expect(result[0].inference_priority).toBeUndefined();
   });
 
   it('should return valid items while filtering out those that fail the guard', async () => {
-    const invalid = { subscription_description: 'desc', priority: 1, model_refs: [] }; // missing subscription_id_header
+    const invalid = { subscription_description: 'desc', inference_priority: 1, model_refs: [] }; // missing subscription_id_header
     mockRestGET.mockResolvedValue({ data: [validItem, invalid] });
 
     const result = await listUserSubscriptions()({} as never);
@@ -302,7 +303,7 @@ describe('updateSubscription', () => {
           tokenRateLimits: [{ limit: 200000, window: '24h' }],
         },
       ],
-      priority: 5,
+      inferencePriority: 5,
     },
   };
 
@@ -323,14 +324,17 @@ describe('updateSubscription', () => {
           tokenRateLimits: [{ limit: 200000, window: '24h' }],
         },
       ],
-      priority: 5,
+      inferencePriority: 5,
+      resourceVersion: '12345',
     });
     expect(result.subscription.name).toBe('test-sub');
     expect(result.subscription.owner.groups[0].name).toBe('updated-group');
     expect(mockRestUPDATE).toHaveBeenCalledWith(
       '',
       expect.stringContaining('/update-subscription/test-sub'),
-      expect.any(Object),
+      expect.objectContaining({
+        data: expect.objectContaining({ resourceVersion: '12345' }),
+      }),
       {},
       {},
     );
@@ -342,7 +346,7 @@ describe('updateSubscription', () => {
     await updateSubscription()({} as never, 'sub with spaces', {
       owner: { groups: [] },
       modelRefs: [],
-      priority: 0,
+      inferencePriority: 0,
     });
 
     expect(mockRestUPDATE).toHaveBeenCalledWith(
@@ -361,7 +365,7 @@ describe('updateSubscription', () => {
       updateSubscription()({} as never, 'test-sub', {
         owner: { groups: [] },
         modelRefs: [],
-        priority: 0,
+        inferencePriority: 0,
       }),
     ).rejects.toThrow('Invalid response format');
   });
@@ -384,7 +388,7 @@ describe('updateSubscription', () => {
     const result = await updateSubscription()({} as never, 'test-sub', {
       owner: { groups: [] },
       modelRefs: [],
-      priority: 0,
+      inferencePriority: 0,
     });
 
     expect(result.subscription.modelRefs[0].tokenRateLimits).toEqual([]);

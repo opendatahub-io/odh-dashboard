@@ -51,8 +51,12 @@ class PromptManagementModal {
     return cy.findByTestId('prompt-filter-type-toggle');
   }
 
+  findFilterTypeItem(type: 'name' | 'model'): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`prompt-filter-type-${type}`);
+  }
+
   findFilterTypeOption(type: 'name' | 'model'): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`prompt-filter-type-${type}`).findByRole('menuitem');
+    return this.findFilterTypeItem(type).findByRole('menuitem');
   }
 
   selectFilterType(type: 'name' | 'model'): void {
@@ -72,8 +76,12 @@ class PromptManagementModal {
     return cy.findByRole('button', { name: 'Clear all filters' });
   }
 
+  findModelColumnHeader(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('prompt-model-column-header');
+  }
+
   findModelColumnSortButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-model-column-header').findByRole('button');
+    return this.findModelColumnHeader().findByRole('button');
   }
 
   shouldHaveRowNames(names: string[]): void {
