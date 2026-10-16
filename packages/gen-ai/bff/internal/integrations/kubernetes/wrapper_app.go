@@ -301,8 +301,18 @@ class MCPServerMiddleware:
             await _send_json(send, 500, {"detail": "Unable to configure agent tools"})
             return
 
+        replayed = False
+
         async def replay_receive():
-            return {"type": "http.request", "body": body, "more_body": False}
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return {"type": "http.request", "body": body, "more_body": False}
+
+            # Streaming responses continue to call receive() while watching for a
+            # client disconnect. Replaying the request more than once causes that
+            # loop to spin indefinitely, so delegate all subsequent reads.
+            return await receive()
 
         await self.app(scope, replay_receive, send)
 

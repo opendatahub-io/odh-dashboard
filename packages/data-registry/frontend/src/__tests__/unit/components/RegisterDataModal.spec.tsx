@@ -5,16 +5,19 @@ import userEvent from '@testing-library/user-event';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
 import * as connectionsHook from '~/app/hooks/useConnections';
+import * as labelsHook from '~/app/hooks/useLabels';
 import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
 jest.mock('~/app/api/dataRegistry');
 jest.mock('~/app/hooks/useConnections');
+jest.mock('~/app/hooks/useLabels');
 
 const mockCreateVolume = jest.mocked(dataRegistryApi.createVolume);
 const mockCreateGenericTable = jest.mocked(dataRegistryApi.createGenericTable);
 const mockUseConnections = jest.mocked(connectionsHook.useConnections);
+const mockUseLabels = jest.mocked(labelsHook.useLabels);
 
 const mockConnections = [
   mockRhaiConnection(),
@@ -47,6 +50,7 @@ describe('RegisterDataModal', () => {
       mockRefreshConnections,
       [],
     ]);
+    mockUseLabels.mockReturnValue([['gold', 'team a', 'production'], true, undefined, jest.fn()]);
   });
 
   it('should render modal with all form fields', () => {
@@ -60,7 +64,13 @@ describe('RegisterDataModal', () => {
     expect(screen.getByTestId('data-collection-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-path-input')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Asset type info' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'PII information' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Personally identifiable information details' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Key-value pairs')).toBeInTheDocument();
+    expect(
+      screen.getByText('Optionally define custom properties using key-value pairs.'),
+    ).toBeInTheDocument();
   });
 
   it('should default to Unstructured asset type', () => {
@@ -259,7 +269,7 @@ describe('RegisterDataModal', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
     await user.click(screen.getByTestId('data-add-label-button'));
-    const labelInput = screen.getByTestId('data-labels-input-0');
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
     await user.type(labelInput, 'production');
 
     expect(labelInput).toHaveValue('production');
@@ -267,6 +277,46 @@ describe('RegisterDataModal', () => {
 
     await user.click(screen.getByTestId('data-label-remove-0'));
     expect(screen.queryByTestId('data-labels-input-0')).not.toBeInTheDocument();
+  });
+
+  it('should offer existing labels and allow new labels through typeahead', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.click(labelInput);
+
+    expect(screen.getByRole('option', { name: 'gold' })).toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: 'gold' }));
+    expect(labelInput).toHaveValue('gold');
+
+    await user.clear(labelInput);
+    await user.type(labelInput, 'team b');
+    const createOption = await screen.findByText('Create "team b"');
+    await user.click(createOption);
+    expect(labelInput).toHaveValue('team b');
+  });
+
+  it('should not submit an uncommitted label typed into the typeahead', async () => {
+    const user = userEvent.setup();
+    mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'test-volume' }));
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.type(labelInput, 'uncommitted-label');
+    await user.click(screen.getByTestId('data-name-input'));
+
+    expect(labelInput).toHaveValue('');
+
+    await user.type(screen.getByTestId('data-name-input'), 'test-volume');
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() => expect(mockCreateVolume).toHaveBeenCalled());
+    expect(mockCreateVolume.mock.calls[0][2]).not.toHaveProperty('labels');
   });
 
   it('should use a minus control for custom property rows', async () => {
