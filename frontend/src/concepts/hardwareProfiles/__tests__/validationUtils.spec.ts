@@ -2,7 +2,7 @@ import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/
 import { isHardwareProfileConfigValid } from '#~/concepts/hardwareProfiles/validationUtils';
 
 describe('isHardwareProfileConfigValid', () => {
-  it('should not validate resources against the limits of a DRA hardware profile', () => {
+  it('should validate resources against the limits of a DRA hardware profile', () => {
     const identifiers = [
       {
         identifier: 'cpu',
@@ -33,8 +33,39 @@ describe('isHardwareProfileConfigValid', () => {
     expect(
       isHardwareProfileConfigValid({
         selectedProfile: draProfile,
-        useExistingSettings: true,
+        useExistingSettings: false,
         resources,
+      }),
+    ).toBe(false);
+    expect(
+      isHardwareProfileConfigValid({
+        selectedProfile: draProfile,
+        useExistingSettings: false,
+        resources: { requests: { cpu: '2' }, limits: { cpu: '2' } },
+      }),
+    ).toBe(true);
+  });
+
+  it('should not validate the existing resources of a locked DRA hardware profile', () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      identifiers: [
+        {
+          identifier: 'cpu',
+          displayName: 'CPU',
+          minCount: '1',
+          maxCount: '2',
+          defaultCount: '1',
+        },
+      ],
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+
+    expect(
+      isHardwareProfileConfigValid({
+        selectedProfile: draProfile,
+        useExistingSettings: true,
+        resources: { requests: { cpu: '8' }, limits: { cpu: '8' } },
       }),
     ).toBe(true);
   });

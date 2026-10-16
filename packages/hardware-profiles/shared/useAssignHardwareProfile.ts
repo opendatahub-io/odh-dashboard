@@ -60,9 +60,10 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
         targetResource,
         hardwareProfileConfig.formData,
         resourcePaths || paths,
+        { name: hwpName, namespace: hwpNamespace },
       );
     },
-    [paths, hardwareProfileConfig.formData],
+    [paths, hardwareProfileConfig.formData, hwpName, hwpNamespace],
   );
 
   const validateHardwareProfileForm = React.useCallback((): boolean => {

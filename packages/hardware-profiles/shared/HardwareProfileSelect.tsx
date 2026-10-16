@@ -81,6 +81,7 @@ const getKueueText = (profile: HardwareProfileKind): string | undefined => {
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
+  isDRASelectable?: boolean;
   previewDescription?: boolean;
   hardwareProfiles: HardwareProfileKind[];
   isProjectScoped: boolean;
@@ -103,8 +104,12 @@ type HardwareProfileSelectProps = {
 const EXISTING_SETTINGS_KEY = '.existing';
 const TOOLTIP_MAX_LINES = 30;
 
+const getProfileOptionKey = (profile: HardwareProfileKind): string =>
+  `${profile.metadata.namespace}/${profile.metadata.name}`;
+
 const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   initialHardwareProfile,
+  isDRASelectable = false,
   previewDescription = false,
   hardwareProfiles,
   isProjectScoped,
@@ -179,7 +184,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const keepInitialProfileInOptions =
     !!initialHardwareProfile &&
-    (!isDRAHardwareProfile(initialHardwareProfile) ||
+    (isDRASelectable ||
+      !isDRAHardwareProfile(initialHardwareProfile) ||
       (hardwareProfileConfig.selectedProfile?.metadata.name ===
         initialHardwareProfile.metadata.name &&
         hardwareProfileConfig.selectedProfile.metadata.namespace ===
@@ -212,7 +218,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
 
       return {
-        key: profile.metadata.name,
+        key: getProfileOptionKey(profile),
         label: displayName,
         description: (
           <Stack>
@@ -407,7 +413,9 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           {isProjectScoped &&
           (currentProjectHardwareProfiles.length > 0 ||
             (!!project &&
-              hardwareProfileConfig.selectedProfile?.metadata.namespace === project)) ? (
+              (hardwareProfileConfig.selectedProfile?.metadata.namespace === project ||
+                (keepInitialProfileInOptions &&
+                  initialHardwareProfile.metadata.namespace === project)))) ? (
             <>
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
@@ -524,20 +532,20 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                     previewDescription={previewDescription}
                     options={options}
                     value={
-                      hardwareProfileConfig.selectedProfile?.metadata.name ??
-                      (hardwareProfileConfig.useExistingSettings
+                      hardwareProfileConfig.selectedProfile
+                        ? getProfileOptionKey(hardwareProfileConfig.selectedProfile)
+                        : hardwareProfileConfig.useExistingSettings
                         ? EXISTING_SETTINGS_KEY
-                        : undefined)
+                        : undefined
                     }
                     onChange={(key) => {
                       if (key === EXISTING_SETTINGS_KEY) {
                         onChange(undefined);
                       } else {
-                        const profile =
-                          hardwareProfiles.find((hp) => hp.metadata.name === key) ??
-                          (initialHardwareProfile?.metadata.name === key
-                            ? initialHardwareProfile
-                            : undefined);
+                        const profile = [
+                          ...hardwareProfiles,
+                          ...(initialHardwareProfile ? [initialHardwareProfile] : []),
+                        ].find((hp) => getProfileOptionKey(hp) === key);
                         if (profile) {
                           onChange(profile);
                         }

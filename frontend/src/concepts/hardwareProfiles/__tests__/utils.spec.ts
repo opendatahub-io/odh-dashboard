@@ -749,7 +749,7 @@ describe('applyHardwareProfileConfig', () => {
     );
   });
 
-  it('should keep the binding and existing resources without refreshing the resource version for a DRA hardware profile', () => {
+  it('should keep the resource version and the claims when saving a workload with its assigned DRA hardware profile', () => {
     const hardwareProfile = mockHardwareProfile({
       name: 'dra-profile',
       namespace: 'opendatahub',
@@ -757,14 +757,21 @@ describe('applyHardwareProfileConfig', () => {
       identifiers: [],
       dra: { resourceClaimTemplateName: 'single-gpu' },
     });
-    const notebook = mockNotebookK8sResource({});
+    const notebook = mockNotebookK8sResource({
+      hardwareProfileName: 'dra-profile',
+      hardwareProfileNamespace: 'opendatahub',
+      opts: {
+        metadata: { annotations: { 'opendatahub.io/hardware-profile-resource-version': '1' } },
+      },
+    });
     const existingResources = {
       requests: { cpu: '1', memory: '2Gi' },
       limits: { cpu: '1', memory: '2Gi' },
+      claims: [{ name: 'hwp-dra' }],
     };
     const config = {
       selectedProfile: hardwareProfile,
-      useExistingSettings: true,
+      useExistingSettings: false,
       resources: existingResources,
     };
 
@@ -776,10 +783,65 @@ describe('applyHardwareProfileConfig', () => {
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
       'opendatahub',
     );
-    expect(
-      result.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'],
-    ).toBeUndefined();
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version']).toBe(
+      '1',
+    );
     expect(result.spec.template.spec.containers[0].resources).toEqual(existingResources);
+  });
+
+  it('should write the resource version when a DRA hardware profile is newly selected', () => {
+    const hardwareProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      namespace: 'opendatahub',
+      resourceVersion: '12345',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const notebook = mockNotebookK8sResource({
+      hardwareProfileName: 'regular-profile',
+      hardwareProfileNamespace: 'opendatahub',
+      opts: {
+        metadata: { annotations: { 'opendatahub.io/hardware-profile-resource-version': '1' } },
+      },
+    });
+
+    const result = applyHardwareProfileConfig(
+      notebook,
+      { selectedProfile: hardwareProfile, useExistingSettings: false },
+      paths,
+    );
+
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'dra-profile',
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version']).toBe(
+      '12345',
+    );
+  });
+
+  it('should use the given existing binding to decide whether a DRA hardware profile is newly selected', () => {
+    const hardwareProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      namespace: 'opendatahub',
+      resourceVersion: '12345',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const config = { selectedProfile: hardwareProfile, useExistingSettings: false };
+
+    const sameBinding = applyHardwareProfileConfig(mockNotebookK8sResource({}), config, paths, {
+      name: 'dra-profile',
+      namespace: 'opendatahub',
+    });
+    const newBinding = applyHardwareProfileConfig(mockNotebookK8sResource({}), config, paths, {
+      name: 'regular-profile',
+      namespace: 'opendatahub',
+    });
+
+    expect(
+      sameBinding.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'],
+    ).toBeUndefined();
+    expect(
+      newBinding.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'],
+    ).toBe('12345');
   });
 
   it('should not create the container resources path for a DRA hardware profile when the workload has no resources', () => {
