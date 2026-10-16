@@ -96,20 +96,17 @@ const generateWarningMessage = (
 export const generateWarningForHardwareProfiles = (
   hardwareProfiles: HardwareProfileKind[],
 ): WarningNotification | undefined => {
-  const selectableProfiles = hardwareProfiles.filter((profile) => !isDRAHardwareProfile(profile));
-  const hasInvalid = selectableProfiles.some((profile) => {
+  const regularProfiles = hardwareProfiles.filter((profile) => !isDRAHardwareProfile(profile));
+  const hasInvalid = regularProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
     );
   });
-  // DRA profiles cannot be enabled from the dashboard, so only regular profiles count here.
-  const hasEnabled =
-    selectableProfiles.length === 0 ||
-    selectableProfiles.some((profile) => isHardwareProfileEnabled(profile));
+  const hasEnabled = hardwareProfiles.some((profile) => isHardwareProfileEnabled(profile));
   const allInvalid =
-    selectableProfiles.length > 0 &&
-    selectableProfiles.every((profile) => {
+    regularProfiles.length > 0 &&
+    regularProfiles.every((profile) => {
       const warnings = validateProfileWarning(profile);
       return warnings.some(
         (warning) =>
@@ -117,8 +114,8 @@ export const generateWarningForHardwareProfiles = (
       );
     });
   const allIncompleteCPUorMemory =
-    selectableProfiles.length > 0 &&
-    selectableProfiles.every((profile) => {
+    regularProfiles.length > 0 &&
+    regularProfiles.every((profile) => {
       const warnings = validateProfileWarning(profile);
       return warnings.some(
         (warning) =>
@@ -126,7 +123,7 @@ export const generateWarningForHardwareProfiles = (
       );
     });
 
-  const someIncompleteCPUorMemory = selectableProfiles.some((profile) => {
+  const someIncompleteCPUorMemory = regularProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,

@@ -21,7 +21,11 @@ import {
   useKueueConfiguration,
 } from './kueueUtils';
 import { isHardwareProfileConfigValid } from './validationUtils';
-import { getContainerResourcesFromHardwareProfile, isDRAHardwareProfile } from './utils';
+import {
+  getContainerResourcesFromHardwareProfile,
+  isDRAHardwareProfile,
+  isDRASelectableIn,
+} from './utils';
 
 export type HardwareProfileConfig = {
   selectedProfile?: HardwareProfileKind;
@@ -32,6 +36,7 @@ export type HardwareProfileConfig = {
 export type UseHardwareProfileConfigResult = {
   formData: HardwareProfileConfig;
   initialHardwareProfile?: HardwareProfileKind;
+  initialResources?: ContainerResources;
   isFormDataValid: boolean;
   setFormData: UpdateObjectAtPropAndValue<HardwareProfileConfig>;
   resetFormData: () => void;
@@ -132,9 +137,10 @@ export const useHardwareProfileConfig = (
       projectScopedProfilesLoaded,
       projectScopedProfilesLoadError,
     ],
-  } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace, { includeDRA: true });
+  } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace, { dra: 'all' });
 
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
+  const initialResources = useRef<ContainerResources | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
@@ -150,6 +156,7 @@ export const useHardwareProfileConfig = (
   );
   const profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
   const profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
+  const isDRASelectable = isDRASelectableIn(visibleIn);
 
   const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
@@ -183,14 +190,23 @@ export const useHardwareProfileConfig = (
       }
 
       if (assignedProfile && isDRAHardwareProfile(assignedProfile)) {
-        initialHardwareProfile.current = assignedProfile;
-        setFormData('resources', {
+        const existingResources: ContainerResources = {
           ...resources,
           requests: resources?.requests ?? {},
           limits: resources?.limits ?? {},
-        });
-        setFormData('useExistingSettings', true);
+        };
+        initialHardwareProfile.current = assignedProfile;
         setFormData('selectedProfile', assignedProfile);
+        if (!isDRASelectable) {
+          setFormData('resources', existingResources);
+          setFormData('useExistingSettings', true);
+          return;
+        }
+        const assignedResources = assignedProfile.spec.identifiers?.length
+          ? mergeProfileIdentifiersIntoResources(existingResources, assignedProfile)
+          : existingResources;
+        initialResources.current = assignedResources;
+        setFormData('resources', assignedResources);
         return;
       }
 
@@ -258,11 +274,13 @@ export const useHardwareProfileConfig = (
     availableLocalQueueNames,
     lqLoaded,
     lqError,
+    isDRASelectable,
   ]);
 
   return {
     formData,
     initialHardwareProfile: initialHardwareProfile.current,
+    initialResources: initialResources.current,
     isFormDataValid,
     setFormData,
     resetFormData,
@@ -275,8 +293,9 @@ const mergeProfileIdentifiersIntoResources = (
   existingResources: ContainerResources,
   hardwareProfile: HardwareProfileKind,
 ): ContainerResources => {
+  const claims = existingResources.claims?.length ? { claims: existingResources.claims } : {};
   if (!hardwareProfile.spec.identifiers || hardwareProfile.spec.identifiers.length === 0) {
-    return { requests: {}, limits: {} };
+    return { requests: {}, limits: {}, ...claims };
   }
   const profileResources = getContainerResourcesFromHardwareProfile(hardwareProfile);
   const profileIdentifierKeys = new Set(
@@ -309,5 +328,6 @@ const mergeProfileIdentifiersIntoResources = (
   return {
     requests: mergedRequests,
     limits: mergedLimits,
+    ...claims,
   };
 };

@@ -32,7 +32,11 @@ import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
 import { PodSpecOptions, HardwarePodSpecOptionsState, HardwarePodSpecOptions } from './types';
-import { getContainerResourcesFromHardwareProfile, isDRAHardwareProfile } from './utils';
+import {
+  getContainerResourcesFromHardwareProfile,
+  isDRAHardwareProfile,
+  isDRASelectableIn,
+} from './utils';
 
 type HardwareProfileFormSectionProps<T extends HardwarePodSpecOptions> = {
   isEditing: boolean;
@@ -54,17 +58,23 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
   isLocalQueueMissing = false,
 }) => {
   const {
-    hardwareProfile: { formData, initialHardwareProfile, setFormData },
+    hardwareProfile: { formData, initialHardwareProfile, initialResources, setFormData },
   } = podSpecOptionsState;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
-  const isDRAProfile = !!formData.selectedProfile && isDRAHardwareProfile(formData.selectedProfile);
+  const isDRASelectable = isDRASelectableIn(visibleIn);
+  const isDRALocked =
+    !isDRASelectable &&
+    !!formData.selectedProfile &&
+    isDRAHardwareProfile(formData.selectedProfile);
 
   const validation = useValidation(formData, hardwareProfileValidationSchema);
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
   const {
     globalProfiles: [hardwareProfiles, loaded, error],
     projectProfiles: projectScopedHardwareProfiles,
-  } = useHardwareProfilesByFeatureVisibility(visibleIn, project);
+  } = useHardwareProfilesByFeatureVisibility(visibleIn, project, {
+    dra: isDRASelectable ? 'valid' : 'none',
+  });
 
   const [isExpanded, setIsExpanded] = React.useState(false);
 
@@ -85,19 +95,32 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
     // Re-selecting the assigned DRA profile is not a change. Its resources are owned outside the
     // dashboard, so keep them rather than resetting to the profile's identifiers.
     if (
-      isDRAProfile &&
+      isDRALocked &&
       formData.selectedProfile?.metadata.name === profile.metadata.name &&
       formData.selectedProfile.metadata.namespace === profile.metadata.namespace
     ) {
       return;
     }
 
-    // Reset customization when changing profiles
-    const newResources = getContainerResourcesFromHardwareProfile(profile);
-
     setFormData('selectedProfile', profile);
     setFormData('useExistingSettings', false);
-    setFormData('resources', newResources);
+
+    if (
+      initialHardwareProfile &&
+      isDRAHardwareProfile(initialHardwareProfile) &&
+      profile.metadata.name === initialHardwareProfile.metadata.name &&
+      profile.metadata.namespace === initialHardwareProfile.metadata.namespace
+    ) {
+      setFormData('resources', initialResources);
+      return;
+    }
+
+    // Reset customization when changing profiles
+    const claims = isDRASelectable ? formData.resources?.claims : undefined;
+    setFormData('resources', {
+      ...getContainerResourcesFromHardwareProfile(profile),
+      ...(claims?.length ? { claims } : {}),
+    });
   };
 
   return (
@@ -135,6 +158,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               isHardwareProfileSupported={isHardwareProfileSupported}
               isHardwareProfilePreferred={isHardwareProfilePreferred}
               initialHardwareProfile={initialHardwareProfile}
+              isDRASelectable={isDRASelectable}
               onChange={onProfileSelect}
               allowExistingSettings={isEditing && !initialHardwareProfile}
               project={project}
@@ -153,7 +177,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               }
             />
             <ZodErrorHelperText zodIssue={validation.getAllValidationIssues()} showAllErrors />
-            {isDRAProfile && (
+            {isDRALocked && (
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem data-testid="dra-hardware-profile-locked">
@@ -164,7 +188,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
             )}
           </FormGroup>
         </StackItem>
-        {!isDRAProfile &&
+        {!isDRALocked &&
           formData.selectedProfile?.spec.identifiers &&
           formData.selectedProfile.spec.identifiers.length > 0 &&
           formData.resources && (

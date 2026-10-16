@@ -2,6 +2,7 @@ import React from 'react';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { get, set } from 'lodash-es';
 import {
+  HardwareProfileFeatureVisibility,
   IdentifierResourceType,
   type HardwareProfileKind,
   type Identifier,
@@ -245,6 +246,7 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   cr: T,
   config: HardwareProfileConfig,
   paths?: CrPathConfig,
+  existingBinding: { name?: string; namespace?: string } = getExistingHardwareProfileData(cr),
 ): T => {
   const result = structuredClone(cr);
   const { selectedProfile, resources, useExistingSettings } = config;
@@ -253,10 +255,19 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     if (!result.metadata) {
       result.metadata = {};
     }
+    const isNewBinding =
+      existingBinding.name !== selectedProfile.metadata.name ||
+      existingBinding.namespace !== selectedProfile.metadata.namespace;
     result.metadata.annotations = {
       ...result.metadata.annotations,
       'opendatahub.io/hardware-profile-name': selectedProfile.metadata.name,
       'opendatahub.io/hardware-profile-namespace': selectedProfile.metadata.namespace,
+      ...(isNewBinding
+        ? {
+            'opendatahub.io/hardware-profile-resource-version':
+              selectedProfile.metadata.resourceVersion ?? '',
+          }
+        : {}),
     };
     // Empty resources mean the workload had none. Writing them could create a container that
     // does not exist, for example on an LLMInferenceService whose container comes from baseRef.
@@ -307,3 +318,6 @@ export const getLocalQueueLabel = (): string => 'Local queue';
 
 export const isDRAHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
   !!hardwareProfile.spec.dra;
+
+export const isDRASelectableIn = (visibleIn?: HardwareProfileFeatureVisibility[]): boolean =>
+  !!visibleIn?.includes(HardwareProfileFeatureVisibility.WORKBENCH);

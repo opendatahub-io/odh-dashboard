@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 import { renderHook, testHook } from '@odh-dashboard/jest-config/hooks';
 import * as pluginCore from '@odh-dashboard/plugin-core';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
-import { SchedulingType } from '@odh-dashboard/k8s-core';
+import { HardwareProfileFeatureVisibility, SchedulingType } from '@odh-dashboard/k8s-core';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
@@ -156,7 +156,7 @@ describe('useHardwareProfileConfig', () => {
     ['empty resources', {}],
     ['no resources', undefined],
   ])(
-    'should keep an assigned DRA hardware profile with the existing settings, with %s',
+    'should keep an assigned DRA hardware profile with the existing settings for a model deployment, with %s',
     (_, resources) => {
       const draProfile = mockHardwareProfile({
         name: 'dra-profile',
@@ -173,7 +173,7 @@ describe('useHardwareProfileConfig', () => {
           filterHardwareProfileByFeatureVisibility(
             [regularProfile, draProfile],
             visibility,
-            options?.includeDRA,
+            options?.dra,
           ),
           true,
           undefined,
@@ -185,7 +185,7 @@ describe('useHardwareProfileConfig', () => {
         resources,
         undefined,
         undefined,
-        undefined,
+        [HardwareProfileFeatureVisibility.MODEL_SERVING],
         undefined,
         draProfile.metadata.namespace,
       );
@@ -200,6 +200,170 @@ describe('useHardwareProfileConfig', () => {
       expect(state.isFormDataValid).toBe(true);
     },
   );
+
+  it.each([
+    ['empty resources', {}],
+    ['no resources', undefined],
+  ])(
+    'should select an assigned DRA hardware profile without identifiers for a workbench, with %s',
+    (_, resources) => {
+      const draProfile = mockHardwareProfile({
+        name: 'dra-profile',
+        identifiers: [],
+        dra: { resourceClaimTemplateName: 'single-gpu' },
+      });
+      const regularProfile = mockHardwareProfile({ name: 'regular-profile' });
+      const { filterHardwareProfileByFeatureVisibility } = jest.requireActual<
+        typeof useHardwareProfilesModule
+      >('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
+      mockUseHardwareProfiles.mockImplementation((visibility, _namespace, options) => ({
+        projectProfiles: [[], true, undefined],
+        globalProfiles: [
+          filterHardwareProfileByFeatureVisibility(
+            [regularProfile, draProfile],
+            visibility,
+            options?.dra,
+          ),
+          true,
+          undefined,
+        ],
+      }));
+
+      const renderResult = testHook(useHardwareProfileConfig)(
+        'dra-profile',
+        resources,
+        undefined,
+        undefined,
+        [HardwareProfileFeatureVisibility.WORKBENCH],
+        undefined,
+        draProfile.metadata.namespace,
+      );
+      const state = renderResult.result.current;
+
+      expect(state.formData).toEqual({
+        selectedProfile: draProfile,
+        useExistingSettings: false,
+        resources: { requests: {}, limits: {} },
+      });
+      expect(state.initialHardwareProfile).toBe(draProfile);
+      expect(state.initialResources).toEqual({ requests: {}, limits: {} });
+      expect(state.isFormDataValid).toBe(true);
+    },
+  );
+
+  it('should keep the existing resources and claims of a workload assigned a DRA hardware profile without identifiers', () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      identifiers: [],
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[draProfile], true, undefined],
+    });
+    const resources = {
+      requests: { cpu: '1', memory: '1Gi' },
+      limits: { cpu: '2', memory: '2Gi' },
+      claims: [{ name: 'hwp-dra' }],
+    };
+
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'dra-profile',
+      resources,
+      undefined,
+      undefined,
+      [HardwareProfileFeatureVisibility.WORKBENCH],
+      undefined,
+      draProfile.metadata.namespace,
+    );
+    const state = renderResult.result.current;
+
+    expect(state.formData.selectedProfile).toBe(draProfile);
+    expect(state.formData.resources).toEqual(resources);
+    expect(state.initialResources).toEqual(resources);
+  });
+
+  it('should merge the identifiers of an assigned DRA hardware profile into the existing resources and keep the claims', () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      identifiers: [
+        {
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '4',
+          displayName: 'CPU',
+          defaultCount: '2',
+        },
+      ],
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[draProfile], true, undefined],
+    });
+
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'dra-profile',
+      {
+        requests: { cpu: '3', 'nvidia.com/gpu': '1' },
+        limits: { cpu: '3', 'nvidia.com/gpu': '1' },
+        claims: [{ name: 'hwp-dra' }],
+      },
+      undefined,
+      undefined,
+      [HardwareProfileFeatureVisibility.WORKBENCH],
+      undefined,
+      draProfile.metadata.namespace,
+    );
+    const state = renderResult.result.current;
+
+    const expectedResources = {
+      requests: { cpu: '3' },
+      limits: { cpu: '3' },
+      claims: [{ name: 'hwp-dra' }],
+    };
+    expect(state.formData).toEqual({
+      selectedProfile: draProfile,
+      useExistingSettings: false,
+      resources: expectedResources,
+    });
+    expect(state.initialResources).toEqual(expectedResources);
+  });
+
+  it('should keep the claims of a workload assigned a regular hardware profile', () => {
+    const regularProfile = mockHardwareProfile({
+      name: 'regular-profile',
+      identifiers: [
+        {
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '4',
+          displayName: 'CPU',
+          defaultCount: '2',
+        },
+      ],
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[regularProfile], true, undefined],
+    });
+
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'regular-profile',
+      { requests: { cpu: '3' }, limits: { cpu: '3' }, claims: [{ name: 'gpu' }] },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      regularProfile.metadata.namespace,
+    );
+
+    expect(renderResult.result.current.formData.resources).toEqual({
+      requests: { cpu: '3' },
+      limits: { cpu: '3' },
+      claims: [{ name: 'gpu' }],
+    });
+  });
 
   it('should not match a workload that has resource claims to a hardware profile', () => {
     const regularProfile = mockHardwareProfile({

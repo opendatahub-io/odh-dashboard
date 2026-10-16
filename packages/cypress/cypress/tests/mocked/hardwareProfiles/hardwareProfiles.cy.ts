@@ -162,7 +162,7 @@ describe('Hardware Profile', () => {
       hardwareProfile.getRow('Custom Profile').findKebabAction('Delete').should('exist');
     });
 
-    it('should disable edit, duplicate and the enable toggle for hardware profiles that use DRA', () => {
+    it('should disable edit, duplicate and the enable toggle and show a Tech Preview label for hardware profiles that use DRA', () => {
       cy.interceptK8sList(
         { model: HardwareProfileModel, ns: 'opendatahub' },
         mockK8sResourceList([
@@ -192,6 +192,10 @@ describe('Hardware Profile', () => {
         .getRow('DRA Profile')
         .findDRAHelpButton()
         .should('have.attr', 'aria-label', 'More info about DRA Profile');
+      hardwareProfile
+        .getRow('DRA Profile')
+        .findTechPreviewLabel()
+        .should('have.text', 'Tech Preview');
 
       hardwareProfile
         .getRow('Custom Profile')
@@ -203,6 +207,7 @@ describe('Hardware Profile', () => {
         .should('not.have.attr', 'aria-disabled', 'true');
       hardwareProfile.getRow('Custom Profile').findEnabled().should('be.enabled');
       hardwareProfile.getRow('Custom Profile').findDRAHelpButton().should('not.exist');
+      hardwareProfile.getRow('Custom Profile').findTechPreviewLabel().should('not.exist');
     });
   });
 

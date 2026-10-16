@@ -26,7 +26,10 @@ import {
 import { getImageStreamDisplayName } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { k8sMergePatchResource } from '#~/api/k8sUtils';
 import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
-import { isDRAHardwareProfile } from '#~/concepts/hardwareProfiles/utils';
+import {
+  getExistingHardwareProfileData,
+  isDRAHardwareProfile,
+} from '#~/concepts/hardwareProfiles/utils';
 
 export const assembleNotebook = (
   data: StartNotebookData,
@@ -352,7 +355,13 @@ export const mergePatchUpdateNotebook = (
 
   const { selectedProfile } =
     assignableData.hardwareProfileOptions.podSpecOptionsState.hardwareProfile.formData;
-  if (selectedProfile && isDRAHardwareProfile(selectedProfile)) {
+  const existingBinding = getExistingHardwareProfileData(existingNotebook);
+  if (
+    selectedProfile &&
+    isDRAHardwareProfile(selectedProfile) &&
+    existingBinding.name === selectedProfile.metadata.name &&
+    existingBinding.namespace === selectedProfile.metadata.namespace
+  ) {
     return k8sMergePatchResource<NotebookKind>(
       applyK8sAPIOptions(
         {
