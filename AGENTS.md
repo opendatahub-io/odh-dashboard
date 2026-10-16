@@ -125,6 +125,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | Skill                              | Directory                              | Use when                                                                       |
 | ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
 | **Dev Workflow**                   | `skills/dev-workflow/`                 | Implementing a feature, fix, or refactor — runs lint, type-check, tests, and optional browser verification |
+| **DSC Outage Workaround**         | `skills/dsc-outage-workaround/`        | Diagnosing and safely remediating DSC infrastructure outages that block merges |
 | **Docs Create**                    | `skills/docs-create/`                  | Creating a new documentation file from a description                           |
 | **Docs Create Package**            | `skills/docs-create-package/`          | Scaffolding a package doc and registering it in BOOKMARKS.md                   |
 | **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |

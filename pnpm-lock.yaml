@@ -4281,6 +4281,9 @@ importers:
       '@patternfly/react-icons':
         specifier: 6.6.1
         version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      echarts:
+        specifier: ^5.6.0
+        version: 5.6.0
       react:
         specifier: ^18
         version: 18.3.1
@@ -5896,19 +5899,19 @@ importers:
         version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/loki-plugin':
         specifier: v0.6.0-rc.2
-        version: 0.6.0-rc.2(1c36e1576871dad28a3941bec5337d34)
+        version: 0.6.0-rc.2(ef23d09c62e65ee16ff7da212e272cd3)
       '@perses-dev/plugin-system':
         specifier: ^0.54.0-beta.10
         version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/prometheus-plugin':
         specifier: v0.58.0-beta.3
-        version: 0.58.0-beta.3(f0d8e50953735a7ba416d12010f7a6ac)
+        version: 0.58.0-beta.3(2bad87e8d13f7ca8cc1722de93123b14)
       '@perses-dev/stat-chart-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(39b42c2fa7ba6005cbf9fcd99bd2547e)
+        version: 0.13.0-rc.1(739ac65d3ad846d405df8a1fc31eca19)
       '@perses-dev/table-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(710bb49623d50ad8e1f3edc9cafb55e3)
+        version: 0.13.0-rc.1(d5015d94851d591d827f4607857b349c)
       '@tanstack/react-query':
         specifier: ^4.44.0
         version: 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -14868,6 +14871,21 @@ packages:
     resolution: {integrity: sha512-DYUF07AHjI3QDKqKbn2F7RqozT4hyi4JvmpodLrq0HHoNP7t/AjeG/uqiBK1/N2PZSAQEThVjDLHSmJN4iqu/w==}
     engines: {node: ^10.19.0 || >=12.0.0 < 13 || >=13.7.0 < 14 || >= 14.2.0}
 
+  openshell-dashboard@1.1.0:
+    resolution: {integrity: sha512-i4fNvaOkMAPhOb6EqlAxgZPDmRFrH69pclh0vjHuoReKVSQgEkizMUiwT7JFlPWulLx7padmtC8lfLCKoNSCqw==}
+    peerDependencies:
+      '@patternfly/react-code-editor': 6.6.1
+      '@patternfly/react-core': 6.6.1
+      '@patternfly/react-icons': 6.6.1
+      '@patternfly/react-log-viewer': ^6.5.0
+      '@patternfly/react-table': 6.6.1
+      '@tanstack/react-query': ^5.59.0
+      i18next: ^26.3.4
+      react: ^18.3.1
+      react-dom: ^18.3.1
+      react-i18next: ^17.0.0
+      react-router-dom: ^7.18.3
+
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
@@ -21045,7 +21063,7 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/loki-plugin@0.6.0-rc.2(1c36e1576871dad28a3941bec5337d34)':
+  '@perses-dev/loki-plugin@0.6.0-rc.2(ef23d09c62e65ee16ff7da212e272cd3)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -21060,7 +21078,6 @@ snapshots:
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
-      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       react: 18.3.1
@@ -21119,7 +21136,7 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/prometheus-plugin@0.58.0-beta.3(f0d8e50953735a7ba416d12010f7a6ac)':
+  '@perses-dev/prometheus-plugin@0.58.0-beta.3(2bad87e8d13f7ca8cc1722de93123b14)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -21137,7 +21154,6 @@ snapshots:
       color-hash: 2.0.2
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
-      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       qs: 6.15.3
@@ -21163,7 +21179,7 @@ snapshots:
       mathjs: 15.2.0
       zod: 3.25.76
 
-  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(39b42c2fa7ba6005cbf9fcd99bd2547e)':
+  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(739ac65d3ad846d405df8a1fc31eca19)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -21175,14 +21191,13 @@ snapshots:
       chroma-js: 3.2.0
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
-      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@perses-dev/table-plugin@0.13.0-rc.1(710bb49623d50ad8e1f3edc9cafb55e3)':
+  '@perses-dev/table-plugin@0.13.0-rc.1(d5015d94851d591d827f4607857b349c)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -21195,7 +21210,6 @@ snapshots:
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
-      echarts: 5.5.0
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)

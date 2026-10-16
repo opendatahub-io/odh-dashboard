@@ -4,7 +4,7 @@ metadata:
   name: whisper-tiny-runtime
   annotations:
     opendatahub.io/apiProtocol: REST
-    opendatahub.io/runtime-version: v0.30.0
+    opendatahub.io/runtime-version: v0.18.0
     openshift.io/display-name: Whisper Tiny vLLM CPU Runtime
   labels:
     opendatahub.io/dashboard: 'true'
@@ -18,8 +18,6 @@ spec:
         - --port=8080
         - --model=/mnt/models
         - --served-model-name={{.Name}}
-        # vLLM uses this option to size its CPU-memory reservation on the CPU backend.
-        # Keep it below the 6 GiB pod limit so the Whisper engine can start.
         - --gpu-memory-utilization=0.5
       command:
         - python
@@ -30,9 +28,11 @@ spec:
           value: /tmp/hf_home
         - name: VLLM_CACHE_ROOT
           value: /tmp/vllm_cache
+        - name: VLLM_CPU_KVCACHE_SPACE
+          value: '1'
         - name: TRITON_CACHE_DIR
           value: /tmp/triton_cache
-      image: vllm/vllm-openai-cpu:v0.30.0
+      image: registry.redhat.io/rhaii/vllm-cpu-rhel9:3.4.1
       name: kserve-container
       ports:
         - containerPort: 8080

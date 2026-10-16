@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormGroup, TextInput, Button, Flex, FlexItem } from '@patternfly/react-core';
+import { Button, Content, Flex, FlexItem, FormGroup, TextInput } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
@@ -10,7 +10,8 @@ const CustomPropertiesSection: React.FC = () => {
   const { fields, append, remove } = useFieldArray({ control, name: 'customProperties' });
 
   const content = (
-    <FormGroup fieldId="data-custom-properties">
+    <FormGroup label="Key-value pairs" fieldId="data-custom-properties" isStack>
+      <Content component="p">Optionally define custom properties using key-value pairs.</Content>
       {fields.map((field, index) => (
         <Flex key={field.id} gap={{ default: 'gapMd' }} className="pf-v6-u-mb-xs">
           <FlexItem grow={{ default: 'grow' }}>
@@ -42,6 +43,7 @@ const CustomPropertiesSection: React.FC = () => {
       <Button
         variant="link"
         icon={<PlusCircleIcon />}
+        className="odh-data-registry-registration-form__add-custom-property"
         onClick={() => append({ id: Date.now(), key: '', value: '' })}
         data-testid="data-add-custom-property"
       >
