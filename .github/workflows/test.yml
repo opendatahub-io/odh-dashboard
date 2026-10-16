@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Package Manager Policy — reject unexpected npm lockfiles
         shell: bash
         run: |
@@ -75,7 +75,7 @@ jobs:
       matrix:
         check: [lint, type-check]
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:
@@ -105,7 +105,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:
@@ -169,7 +169,7 @@ jobs:
       has-tests: ${{ steps.set-groups.outputs.has-tests }}
       full-matrix: ${{ steps.set-groups.outputs.full-matrix }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
           # Keep GitHub's merge checkout so the diff and graph match
@@ -222,7 +222,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:
@@ -313,7 +313,7 @@ jobs:
     outputs:
       packages: ${{ steps.cypress.outputs.packages }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - name: Setup pnpm
@@ -340,7 +340,7 @@ jobs:
       matrix:
         package: ${{ fromJson(needs.Get-Cypress-Packages.outputs.packages) }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - name: Setup pnpm and install dependencies
@@ -380,7 +380,7 @@ jobs:
         if: needs.Get-Test-Groups.outputs.has-tests != 'true'
         run: |
           echo "Documentation-only change; Cypress mock tests are not required."
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         with:
           persist-credentials: false
@@ -478,7 +478,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Setup pnpm
         uses: ./.github/actions/pnpm-setup
         with:
