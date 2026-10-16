@@ -1,7 +1,7 @@
 export const GRID = 'grid';
 
 const DEV_FEATURE_FLAGS_PARAM = 'devFeatureFlags';
-const FEATURE_FLAGS_SESSION_KEY = 'odh-feature-flags';
+const FEATURE_FLAGS_SESSION_KEY = 'odh-maas-portal-feature-flags';
 
 export const getPortalFeatureFlagOverrides = (): Record<string, boolean> => {
   const searchParams = new URLSearchParams(window.location.search);
