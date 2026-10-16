@@ -4,6 +4,7 @@ import {
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { evaluationErrorCategory, type EvaluationStatusMessage } from './evaluationErrorCategory';
 import type { EvalHubEventName, EvalHubEventProperties } from './evalhubTrackingConstants';
 
 export type { EvalHubCollectionSurface } from './evalhubTrackingConstants';
@@ -55,11 +56,25 @@ const redactUrl = (value: unknown): unknown => {
   }
 };
 
+const isEvaluationStatusMessage = (value: unknown): value is EvaluationStatusMessage =>
+  typeof value === 'object' && value !== null;
+
+// Error diagnostics can embed user-submitted content; reduce them to a controlled
+// message-code category before they leave the app.
+const sanitizeError = (value: unknown): unknown =>
+  isEvaluationStatusMessage(value) ? evaluationErrorCategory(value) : value;
+
 const sanitizeProperties = (properties: EvalHubTrackingProperties): EvalHubTrackingProperties =>
   Object.fromEntries(
-    Object.entries(properties).map(([key, value]) =>
-      key === 'url' || key === 'href' ? [key, redactUrl(value)] : [key, value],
-    ),
+    Object.entries(properties).map(([key, value]) => {
+      if (key === 'url' || key === 'href') {
+        return [key, redactUrl(value)];
+      }
+      if (key === 'error') {
+        return [key, sanitizeError(value)];
+      }
+      return [key, value];
+    }),
   );
 
 const isTrackingOutcome = (value: unknown): value is TrackingOutcome =>

@@ -98,14 +98,14 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     benchmarkTypes: JSON.stringify(allBenchmarkNames),
     createdAt: job.resource.created_at,
     updatedAt: job.resource.updated_at,
-    errorMessage: job.status.message?.message,
+    statusMessage: job.status.message,
   });
   completionTrackingDataRef.current = {
     evaluationName,
     benchmarkTypes: JSON.stringify(allBenchmarkNames),
     createdAt: job.resource.created_at,
     updatedAt: job.resource.updated_at,
-    errorMessage: job.status.message?.message,
+    statusMessage: job.status.message,
   };
 
   const prevStateRef = React.useRef<EvaluationJobState>(job.status.state);
@@ -121,7 +121,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         benchmarkTypes,
         createdAt,
         updatedAt,
-        errorMessage,
+        statusMessage,
       } = completionTrackingDataRef.current;
 
       const durationMs =
@@ -141,7 +141,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         runOutcome,
         durationMs,
         benchmarkTypes,
-        error: errorMessage,
+        error: statusMessage,
       });
     }
   }, [job.status.state]); // eslint-disable-line react-hooks/exhaustive-deps

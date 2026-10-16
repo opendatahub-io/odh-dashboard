@@ -1,4 +1,5 @@
 import type { TrackingOutcome } from '@odh-dashboard/ui-core';
+import type { EvaluationStatusMessage } from './evaluationErrorCategory';
 
 export const EVAL_HUB_EVENTS = {
   EVALUATION_RUN_STARTED: 'Evaluations Evaluation Run Started',
@@ -77,7 +78,8 @@ export type EvaluationCompletedProperties = {
   durationMs?: number;
   /** JSON-serialised array of benchmark type IDs. */
   benchmarkTypes?: string;
-  error?: string;
+  /** Raw evaluation status message; the tracking wrapper reduces it to a safe message-code category. */
+  error?: EvaluationStatusMessage;
 };
 
 export type EvaluationDeletedProperties = {
