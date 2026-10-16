@@ -2,6 +2,8 @@ import {
   toTitleCase,
   capitalizeFirst,
   getCategoryColor,
+  getCategoryTileColor,
+  CATEGORY_TILE_COLORS,
   formatCategory,
   getCollectionCategoryValues,
   formatCollectionMetadataValue,
@@ -75,12 +77,60 @@ describe('getCategoryColor', () => {
   });
 
   it('should return a consistent color for the same category', () => {
-    const color = getCategoryColor('safety');
-    expect(getCategoryColor('safety')).toBe(color);
+    const color = getCategoryColor('unknown-category');
+    expect(getCategoryColor('unknown-category')).toBe(color);
   });
 
   it('should be case-insensitive', () => {
-    expect(getCategoryColor('Safety')).toBe(getCategoryColor('safety'));
+    expect(getCategoryColor('Unknown-Category')).toBe(getCategoryColor('unknown-category'));
+  });
+
+  it.each([
+    ['knowledge_and_reasoning', 'purple'],
+    ['grounded_document_understanding', 'blue'],
+    ['instruction_and_output_reliability', 'green'],
+    ['tool_use_and_function_calling', 'orange'],
+    ['software', 'teal'],
+    ['trustworthiness', 'red'],
+    ['multilingual', 'grey'],
+    ['multimodal', 'yellow'],
+  ])('maps %s to the matching PatternFly label family', (category, color) => {
+    expect(getCategoryColor(category)).toBe(color);
+  });
+});
+
+describe('getCategoryTileColor', () => {
+  it.each([
+    ['knowledge_and_reasoning', 'lavender', '#D0C4F3'],
+    ['grounded_document_understanding', 'light-blue', '#B9DCF7'],
+    ['instruction_and_output_reliability', 'light-green', '#C8EFB5'],
+    ['tool_use_and_function_calling', 'apricot', '#FFD0A0'],
+    ['software', 'mint-teal', '#BCE8DF'],
+    ['trustworthiness', 'soft-pink', '#F5C1C1'],
+    ['multilingual', 'pale-cyan', '#B9E5E5'],
+    ['multimodal', 'soft-mint-yellow', '#E6E6A8'],
+  ])('maps %s to the %s tile colour', (category, color, hex) => {
+    expect(getCategoryTileColor(category)).toBe(color);
+    expect(CATEGORY_TILE_COLORS[getCategoryTileColor(category)]).toBe(hex);
+  });
+
+  it('assigns a unique swatch to every supported EvalHub category', () => {
+    const categoryColors = [
+      'knowledge_and_reasoning',
+      'grounded_document_understanding',
+      'instruction_and_output_reliability',
+      'tool_use_and_function_calling',
+      'software',
+      'trustworthiness',
+      'multilingual',
+      'multimodal',
+    ].map((category) => getCategoryTileColor(category));
+
+    expect(new Set(categoryColors).size).toBe(categoryColors.length);
+  });
+
+  it('uses the light-blue swatch for an unknown category', () => {
+    expect(getCategoryTileColor(undefined)).toBe('light-blue');
   });
 });
 
