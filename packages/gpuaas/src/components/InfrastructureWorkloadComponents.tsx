@@ -93,6 +93,7 @@ export const StatusCell: React.FC<{
           workload.resource.metadata.annotations,
         )}
         onClick={onClick}
+        isCompact
       />
     );
   }
