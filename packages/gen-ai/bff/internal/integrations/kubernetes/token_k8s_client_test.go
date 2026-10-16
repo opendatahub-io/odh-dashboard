@@ -616,7 +616,7 @@ func TestRequiresPassthroughProvider(t *testing.T) {
 		{name: "custom endpoint LLM", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeLLM)}, want: true},
 		{name: "namespace embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeNamespace, ModelType: string(models.ModelTypeEmbedding)}},
 		{name: "MaaS embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeEmbedding)}},
-		{name: "custom endpoint embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeEmbedding)}},
+		{name: "custom endpoint embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeEmbedding)}, want: true},
 		{name: "transcription", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeTranscription)}},
 	}
 
@@ -1342,6 +1342,179 @@ registered_resources:
 		assert.Error(t, err)
 		assert.Empty(t, result)
 		assert.Contains(t, err.Error(), "cannot find external model")
+	})
+}
+
+// externalEmbeddingConfigMapYAML returns a gen-ai-aa-custom-model-endpoints ConfigMap body
+// declaring an embedding model. keyed controls only the presence of
+// custom_gen_ai.api_key.secretRef on the provider — the BFF's generated output must be
+// identical either way (RHOAIENG-100933: keyed and keyless take the same proxy-routed path).
+func externalEmbeddingConfigMapYAML(keyed bool) string {
+	credentials := ""
+	if keyed {
+		credentials = `
+        custom_gen_ai:
+          api_key:
+            secretRef:
+              name: "endpoint-api-key-1"
+              key: "api_key"
+`
+	}
+	return `
+providers:
+  inference:
+    - provider_id: "gemini-embedding-provider"
+      provider_type: "remote::passthrough"
+      config:
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"` + credentials + `
+registered_resources:
+  models:
+    - model_id: "gemini-embedding-001"
+      provider_id: "gemini-embedding-provider"
+      model_type: "embedding"
+      metadata:
+        display_name: "Gemini Embedding"
+        embedding_dimension: 3072
+`
+}
+
+// externalEmbeddingVectorStore returns a validated vector store whose embedding model is
+// the custom-endpoint embedding model declared by externalEmbeddingConfigMapYAML.
+func externalEmbeddingVectorStore() ValidatedVectorStore {
+	return ValidatedVectorStore{
+		Provider: models.VectorIOProvider{
+			ProviderID:   "pgvector-provider",
+			ProviderType: "remote::pgvector",
+			Config: models.VectorIOProviderConfig{
+				Extra: map[string]interface{}{
+					"host": "pgvector2.pgvect.svc.cluster.local",
+					"db":   "vectordb",
+				},
+			},
+		},
+		RegisteredStore: models.RegisteredVectorStore{
+			VectorStoreID:      "vs-signoff-001",
+			ProviderID:         "pgvector-provider",
+			EmbeddingModel:     "gemini-embedding-001",
+			EmbeddingDimension: 3072,
+			VectorStoreName:    "Example Team Data",
+		},
+	}
+}
+
+func TestGenerateLlamaStackConfigWithExternalEmbeddingModels(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	newConfigMap := func(yaml string) *corev1.ConfigMap {
+		return &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: "test-namespace",
+			},
+			Data: map[string]string{"config.yaml": yaml},
+		}
+	}
+
+	installModels := []models.InstallModel{
+		{
+			ModelName:       "gemini-embedding-001",
+			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+			ModelType:       string(models.ModelTypeEmbedding),
+		},
+	}
+
+	t.Run("GatewayDomain set: registers embedding model under genai-bff-proxy, no direct provider", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newConfigMap(externalEmbeddingConfigMapYAML(true))).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			Client:    fakeClient,
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
+		}
+
+		result, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+		require.NoError(t, err)
+
+		var cfg LlamaStackConfig
+		require.NoError(t, cfg.FromYAML(result))
+
+		// No direct provider entry for the ConfigMap provider — the model routes via genai-bff-proxy.
+		for _, p := range cfg.Providers.Inference {
+			assert.NotEqual(t, "gemini-embedding-provider", p.ProviderID,
+				"no direct provider entry should be created for the custom-endpoint embedding model")
+		}
+
+		// The model is registered under genai-bff-proxy with the embedding dimension preserved.
+		var registered *Model
+		for i := range cfg.RegisteredResources.Models {
+			if cfg.RegisteredResources.Models[i].ModelID == "gemini-embedding-001" {
+				registered = &cfg.RegisteredResources.Models[i]
+			}
+		}
+		require.NotNil(t, registered, "embedding model should be registered")
+		assert.Equal(t, constants.PassthroughProviderID, registered.ProviderID)
+		assert.Equal(t, string(models.ModelTypeEmbedding), registered.ModelType)
+		assert.Equal(t, 3072, registered.Metadata["embedding_dimension"])
+
+		// The vector store binds to the proxy-routed identifier.
+		require.Len(t, cfg.RegisteredResources.VectorStores, 1)
+		assert.Equal(t, constants.PassthroughProviderID+"/gemini-embedding-001",
+			cfg.RegisteredResources.VectorStores[0].EmbeddingModel)
+
+		// The genai-bff-proxy passthrough provider entry is present.
+		var proxyProvider *Provider
+		for i := range cfg.Providers.Inference {
+			if cfg.Providers.Inference[i].ProviderID == constants.PassthroughProviderID {
+				proxyProvider = &cfg.Providers.Inference[i]
+			}
+		}
+		require.NotNil(t, proxyProvider, "genai-bff-proxy provider should be present")
+		assert.Equal(t, constants.PassthroughProviderType, proxyProvider.ProviderType)
+	})
+
+	t.Run("keyed and keyless providers generate identical output", func(t *testing.T) {
+		generate := func(keyed bool) string {
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(newConfigMap(externalEmbeddingConfigMapYAML(keyed))).
+				Build()
+
+			client := &TokenKubernetesClient{
+				Logger:    slog.Default(),
+				Client:    fakeClient,
+				EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
+			}
+
+			result, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+			require.NoError(t, err)
+			return result
+		}
+
+		assert.Equal(t, generate(true), generate(false),
+			"keyed and keyless custom-endpoint embedding models must produce identical generated config")
+	})
+
+	t.Run("GatewayDomain empty: install fails fast with a clear error", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newConfigMap(externalEmbeddingConfigMapYAML(true))).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		_, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+		require.Error(t, err)
+		// Custom-endpoint embedding models require the genai-bff-proxy passthrough provider,
+		// so a missing GATEWAY_DOMAIN fails the install before any config is emitted.
+		assert.Contains(t, err.Error(), "GATEWAY_DOMAIN is not configured")
+		assert.Contains(t, err.Error(), "gemini-embedding-001")
 	})
 }
 

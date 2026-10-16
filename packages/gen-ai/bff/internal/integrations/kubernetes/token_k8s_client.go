@@ -2399,8 +2399,11 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
 			}
 			if model.ModelType == string(models.ModelTypeEmbedding) {
-				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.EmbeddingDimension, model.IsClusterLocal)
-				kc.Logger.Info("Registered embedding model (custom endpoint)", "model", extDetails.modelID, "providerID", extDetails.providerID)
+				// Proxy-routed registration: register under genai-bff-proxy so query-time
+				// embedding requests flow through the BFF's genai-proxy, which resolves the
+				// real endpoint and credentials per request.
+				config.AddProxyRoutedEmbeddingModel(extDetails.modelID, extDetails.metadata, model.EmbeddingDimension)
+				kc.Logger.Info("Registered embedding model (proxy-routed via genai-bff-proxy)", "model", extDetails.modelID)
 			} else {
 				kc.Logger.Info("Validated external model", "model", extDetails.modelID, "providerID", extDetails.providerID)
 			}
@@ -2518,9 +2521,10 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)
 	} else {
 		// Without GatewayDomain the remote::passthrough provider cannot be registered.
-		// Namespace and custom-endpoint embedding models use static providers; MaaS
-		// embedding models are validation-only. Transcription models are not registered
-		// in Llama Stack. All other supported model sources require passthrough routing.
+		// Namespace embedding models use static in-cluster vLLM providers; MaaS embedding
+		// models are validation-only. Transcription models are not registered in Llama
+		// Stack. All other supported models — custom-endpoint models included — require
+		// passthrough routing.
 		for _, m := range installModels {
 			if !requiresPassthroughProvider(m) {
 				continue
@@ -2562,14 +2566,18 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 }
 
 // requiresPassthroughProvider reports whether a supported model requires
-// remote::passthrough for inference routing. Namespace and custom-endpoint
-// embedding models use static providers, MaaS embedding models are validation-only,
-// and transcription models are not registered in Llama Stack.
+// remote::passthrough for inference routing. Namespace embedding models use
+// static in-cluster vLLM providers, MaaS embedding models are validation-only,
+// and transcription models are not registered in Llama Stack. Custom-endpoint
+// models — embedding included — route through the genai-bff-proxy passthrough
+// provider.
 func requiresPassthroughProvider(model models.InstallModel) bool {
 	switch model.ModelSourceType {
-	case models.ModelSourceTypeNamespace, models.ModelSourceTypeMaaS, models.ModelSourceTypeCustomEndpoint:
+	case models.ModelSourceTypeNamespace, models.ModelSourceTypeMaaS:
 		return model.ModelType != string(models.ModelTypeEmbedding) &&
 			model.ModelType != string(models.ModelTypeTranscription)
+	case models.ModelSourceTypeCustomEndpoint:
+		return model.ModelType != string(models.ModelTypeTranscription)
 	default:
 		return false
 	}
