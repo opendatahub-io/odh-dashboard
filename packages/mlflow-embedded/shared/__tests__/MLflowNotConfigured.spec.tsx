@@ -22,16 +22,30 @@ describe('MLflowNotConfigured', () => {
     });
   });
 
-  it('should link administrators to the MLflow installation guide', () => {
-    render(<MLflowNotConfigured />);
+  it('should direct administrators to the MLflow installation documentation without a link', () => {
+    render(<MLflowNotConfigured featureName="experiments" />);
 
-    expect(screen.getByTestId('mlflow-installation-docs-link')).toHaveAttribute(
-      'href',
-      'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_mlflow/installing-mlflow_mlflow',
+    const emptyState = screen.getByTestId('mlflow-not-configured-admin-empty-state');
+    expect(screen.getByRole('heading', { name: 'Enable experiments' })).toBeInTheDocument();
+    expect(emptyState).toHaveTextContent(
+      'To enable the use of experiments on this cluster, enable the MLflow Operator component and ensure that an MLflow custom resource has been created. To learn more about how to install and configure MLflow, view the documentation.',
     );
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('should show non-administrators the cluster-level guidance without an installation link', () => {
+  it.each(['prompts', 'agent observability'])(
+    'should name %s in the administrator guidance',
+    (featureName) => {
+      render(<MLflowNotConfigured featureName={featureName} />);
+
+      expect(screen.getByRole('heading', { name: `Enable ${featureName}` })).toBeInTheDocument();
+      expect(screen.getByTestId('mlflow-not-configured-admin-empty-state')).toHaveTextContent(
+        `To enable the use of ${featureName} on this cluster`,
+      );
+    },
+  );
+
+  it('should show non-administrators the cluster-level guidance', () => {
     mockUseUser.mockReturnValue({
       username: 'user',
       userID: 'user',
@@ -40,11 +54,11 @@ describe('MLflowNotConfigured', () => {
       userLoading: false,
       userError: null,
     });
-    render(<MLflowNotConfigured />);
+    render(<MLflowNotConfigured featureName="experiments" />);
 
     expect(screen.getByTestId('mlflow-not-configured-empty-state')).toHaveTextContent(
       'Ask your administrator to enable MLflow for this cluster.',
     );
-    expect(screen.queryByTestId('mlflow-installation-docs-link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

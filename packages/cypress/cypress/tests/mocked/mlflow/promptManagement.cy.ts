@@ -177,7 +177,7 @@ describe('Prompt Management page wrapper', () => {
       promptManagement.findNavItem().should('not.exist');
     });
 
-    it('should hide nav item when MLflow operator is removed', () => {
+    it('should show setup guidance when MLflow operator is removed', () => {
       const dscStatus = mockDscStatus({});
       dscStatus.components = {
         ...dscStatus.components,
@@ -185,8 +185,12 @@ describe('Prompt Management page wrapper', () => {
       };
       cy.interceptOdh('GET /api/dsc/status', dscStatus);
 
-      cy.visitWithLogin('/');
-      promptManagement.findNavItem().should('not.exist');
+      promptManagement.visit(PROJECT_A);
+      promptManagement.findNavItem().should('be.visible');
+      promptManagement
+        .findNotConfiguredAdminEmptyState()
+        .should('be.visible')
+        .should('contain', 'Enable prompts');
     });
   });
 });

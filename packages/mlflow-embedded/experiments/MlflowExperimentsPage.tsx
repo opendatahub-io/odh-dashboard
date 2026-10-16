@@ -123,7 +123,11 @@ const MlflowExperimentsPage: React.FC<MlflowExperimentsPageProps> = ({
       empty={mlflowLoaded && !mlflowAvailable}
       emptyStatePage={
         <PageSection hasBodyWrapper={false} isFilled>
-          {mlflowStatusError ? <MLflowUnavailable /> : <MLflowNotConfigured />}
+          {mlflowStatusError ? (
+            <MLflowUnavailable />
+          ) : (
+            <MLflowNotConfigured featureName={pageTitle.toLowerCase()} />
+          )}
         </PageSection>
       }
       noHeader={!isTopLevel}

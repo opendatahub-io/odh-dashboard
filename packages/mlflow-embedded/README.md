@@ -34,6 +34,6 @@ This package has no build step of its own -- its TSX files are compiled by the h
 2. Start the dashboard: `pnpm run dev` (from repo root)
 3. Navigate to **Develop and Train > Experiments** or **Observe & monitor > Agent observability** in the dashboard
 
-## Feature Flags
+## Availability
 
-The MLflow UI requires the `mlflow` and `ds-pipelines` feature flags to be enabled.
+Experiments, Prompts, and Agent observability remain reachable when the MLflow Operator is disabled. The pages show administrator or user setup guidance until the operator is enabled and an MLflow custom resource is available. Prompts navigation also requires Gen AI Studio.

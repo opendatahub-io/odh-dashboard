@@ -15,7 +15,8 @@
 - **Module Federation:** metadata in this package’s `package.json` (`module-federation`); remote name **`mlflowEmbedded`**.
   - At runtime `MlflowExperimentsPage` calls `loadRemote('mlflowEmbedded/MlflowExperimentWrapper')` via `@module-federation/runtime`.
   - Dashboard proxy routes **`/mlflow`** to the cluster MLflow service (or local tracking port during dev) with auth forwarding (`authorize: true`).
-- **Visibility:** controlled by **`OdhDashboardConfig`** feature flags on the cluster (`mlflow`, `ds-pipelines`), not env vars in this package.
+- **Visibility:** Experiments and Agent observability remain in navigation when the MLflow Operator is disabled, so users can reach setup guidance. Prompts also requires the Gen AI Studio plugin. MCP Registry remains gated on MLflow, MCP Catalog, and MCP Registry availability.
+- **Availability:** The host checks whether the MLflow Operator component is enabled before querying the MLflow BFF. A disabled operator or missing MLflow custom resource shows setup guidance that distinguishes administrators from other users; a failed status request shows the service-unavailable state.
 - **Troubleshooting:** confirm the remote URL resolves from the browser (CORS, TLS, cluster route) before assuming a bug in host extension code.
 - **`LazyCodeRefComponent`** uses **`key={workspace}`** so the remote remounts when the project changes (embedded app uses React Router v6 `BrowserRouter`, which does not follow the host’s React Router v7 history).
 - If `loadRemote` fails, the page shows `MLflowUnavailable` instead of crashing.
@@ -66,7 +67,6 @@ This package does not call the main dashboard’s `/api/k8s/` proxy for MLflow d
 
 - **Router mismatch**: Remote v6 `BrowserRouter` vs host v7—deep links inside MLflow may not sync to the host URL; workspace switching relies on the remount workaround.
 - **No retry**: Unavailable remote → `MLflowUnavailable`; user must reload.
-- **Feature flags**: Both **`mlflow`** and **`ds-pipelines`** must be enabled for the nav item; `mlflow` alone is insufficient.
 - **Do not confuse** with `packages/mlflow` (custom ODH MLflow UI vs embedded upstream UI).
 - **Older MLflow images**: without mlflow#395 the remote ignores `workflowType` and `onUnsupportedTab`, so Agent observability shows the unlocked Experiments view and Experiments never redirects.
 - **Agent version links**: the remote's link interceptor blocks same-origin `/models/` URLs that do not contain `/experiments/`, so model version links under the Agent observability base path need a remote fix.
