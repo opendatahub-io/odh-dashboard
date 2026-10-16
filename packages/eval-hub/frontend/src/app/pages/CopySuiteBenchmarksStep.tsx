@@ -63,7 +63,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   onBack,
   primaryActionLabel = 'Save and run',
   primaryActionTestId = 'copy-suite-save-and-run',
-  secondaryActionLabel = 'Add to my benchmark suites',
+  secondaryActionLabel = 'Add to my collections',
   showSecondaryAction = true,
   onCancel,
 }) => {
@@ -290,7 +290,7 @@ const EmptyBenchmarksState: React.FC<EmptyBenchmarksStateProps> = ({ onBack }) =
     headingLevel="h3"
     titleText="No benchmarks added"
   >
-    <EmptyStateBody>No benchmarks have been added to this suite.</EmptyStateBody>
+    <EmptyStateBody>No benchmarks have been added to this collection.</EmptyStateBody>
     <EmptyStateFooter>
       <EmptyStateActions>
         <Button variant="primary" data-testid="copy-suite-empty-back-btn" onClick={onBack}>
