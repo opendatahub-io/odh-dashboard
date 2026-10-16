@@ -520,6 +520,28 @@ describe('BenchmarkSuiteCard', () => {
     ).toHaveAttribute('title', 'Trustworthiness');
   });
 
+  it('should ignore empty domains before counting and rendering domain icons', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({
+          id: 'empty-domain-suite',
+          domains: ['software', '  ', 'SOFTWARE'],
+        })}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-category-empty-domain-suite'),
+    ).toHaveTextContent('Software');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icons-empty-domain-suite'),
+    ).toHaveAttribute('aria-label', 'Software');
+    expect(
+      screen.queryByTestId('benchmark-suite-card-domain-icon-empty-domain-suite-1'),
+    ).not.toBeInTheDocument();
+  });
+
   it('should mark stacks with more than five domains for stable expansion', () => {
     render(
       <BenchmarkSuiteCard
