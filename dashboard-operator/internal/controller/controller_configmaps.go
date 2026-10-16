@@ -43,6 +43,13 @@ type OperatorConfig struct {
 	ReconcileInterval time.Duration
 }
 
+// distributionConfig holds all reconciliation inputs from the chart-deployed
+// distribution ConfigMap.
+type distributionConfig struct {
+	Distribution    *v1alpha1.Distribution
+	PlatformVersion string
+}
+
 // readOperatorConfig reads the dashboard-operator-config ConfigMap from the
 // given namespace. Returns zero-value OperatorConfig on any error.
 func readOperatorConfig(ctx context.Context, reader client.Reader, namespace string) OperatorConfig {
@@ -72,17 +79,19 @@ func readOperatorConfig(ctx context.Context, reader client.Reader, namespace str
 	return cfg
 }
 
-// readDistributionConfig reads distribution identity from the chart-deployed
-// ConfigMap. Orchestrator annotations take precedence over chart data keys.
-func readDistributionConfig(ctx context.Context, reader client.Reader, namespace string) (*v1alpha1.Distribution, error) {
+// readDistributionConfig reads all reconciliation inputs from the chart-deployed
+// ConfigMap in one direct API request. Orchestrator annotations take precedence
+// over chart data keys.
+func readDistributionConfig(ctx context.Context, reader client.Reader, namespace string) (distributionConfig, error) {
 	logger := log.FromContext(ctx)
+	config := distributionConfig{}
 	cm := &corev1.ConfigMap{}
 	key := types.NamespacedName{Name: resolveDistributionConfigMapName(), Namespace: namespace}
 	if err := reader.Get(ctx, key, cm); err != nil {
 		if k8serrors.IsNotFound(err) {
-			return nil, nil
+			return config, nil
 		}
-		return nil, fmt.Errorf("failed to read distribution config ConfigMap: %w", err)
+		return config, fmt.Errorf("failed to read distribution config ConfigMap: %w", err)
 	}
 	name, version := cm.Data["distribution.name"], cm.Data["distribution.version"]
 	if annotationName := cm.Annotations[annotations.PlatformType]; annotationName != "" {
@@ -91,41 +100,26 @@ func readDistributionConfig(ctx context.Context, reader client.Reader, namespace
 	if annotationVersion := cm.Annotations[annotations.PlatformVersion]; annotationVersion != "" {
 		version = annotationVersion
 	}
-	if name == "" && version == "" {
-		return nil, nil
-	}
-	if runeCount := utf8.RuneCountInString(name); runeCount > maxDistributionFieldLen {
-		logger.Info("Truncating distribution.name", "original_runes", runeCount)
-		name = string([]rune(name)[:maxDistributionFieldLen])
-	}
-	if runeCount := utf8.RuneCountInString(version); runeCount > maxDistributionFieldLen {
-		logger.Info("Truncating distribution.version", "original_runes", runeCount)
-		version = string([]rune(version)[:maxDistributionFieldLen])
-	}
-	return &v1alpha1.Distribution{Name: name, Version: version}, nil
-}
-
-// readPlatformVersion reads the platformVersion key from the chart-deployed
-// ConfigMap. A missing ConfigMap or key produces an empty version.
-func readPlatformVersion(ctx context.Context, reader client.Reader, namespace string) (string, error) {
-	logger := log.FromContext(ctx)
-	cm := &corev1.ConfigMap{}
-	key := types.NamespacedName{Name: resolveDistributionConfigMapName(), Namespace: namespace}
-	if err := reader.Get(ctx, key, cm); err != nil {
-		if k8serrors.IsNotFound(err) {
-			return "", nil
+	if name != "" || version != "" {
+		if runeCount := utf8.RuneCountInString(name); runeCount > maxDistributionFieldLen {
+			logger.Info("Truncating distribution.name", "original_runes", runeCount)
+			name = string([]rune(name)[:maxDistributionFieldLen])
 		}
-		return "", fmt.Errorf("failed to read platform config ConfigMap: %w", err)
+		if runeCount := utf8.RuneCountInString(version); runeCount > maxDistributionFieldLen {
+			logger.Info("Truncating distribution.version", "original_runes", runeCount)
+			version = string([]rune(version)[:maxDistributionFieldLen])
+		}
+		config.Distribution = &v1alpha1.Distribution{Name: name, Version: version}
 	}
-	if cm.Data == nil {
-		return "", nil
-	}
-	version := cm.Data["platformVersion"]
-	if runeCount := utf8.RuneCountInString(version); runeCount > maxDistributionFieldLen {
+
+	platformVersion := cm.Data["platformVersion"]
+	if runeCount := utf8.RuneCountInString(platformVersion); runeCount > maxDistributionFieldLen {
 		logger.Info("Truncating platformVersion", "original_runes", runeCount)
-		version = string([]rune(version)[:maxDistributionFieldLen])
+		platformVersion = string([]rune(platformVersion)[:maxDistributionFieldLen])
 	}
-	return version, nil
+	config.PlatformVersion = platformVersion
+
+	return config, nil
 }
 
 // addConfigMapWatches registers selector-scoped ConfigMap caches as event

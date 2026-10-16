@@ -12,12 +12,23 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/annotations"
 )
+
+type countingReader struct {
+	client.Reader
+	gets int
+}
+
+func (r *countingReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	r.gets++
+	return r.Reader.Get(ctx, key, obj, opts...)
+}
 
 func TestAPIReaderPrefersAPIReaderAndFallsBackForUnitTests(t *testing.T) {
 	scheme := runtime.NewScheme()
@@ -48,6 +59,25 @@ func configTestScheme(t *testing.T) *runtime.Scheme {
 	}
 
 	return s
+}
+
+func TestReadDistributionConfigUsesOneSnapshot(t *testing.T) {
+	scheme := configTestScheme(t)
+	reader := &countingReader{Reader: fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-ns"},
+		Data: map[string]string{
+			"distribution.name":    "OpenShift AI",
+			"distribution.version": "3.5.0",
+			"platformVersion":      "3.5.0",
+		},
+	}).Build()}
+
+	got, err := readDistributionConfig(context.Background(), reader, "test-ns")
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, reader.gets)
+	assert.Equal(t, &v1alpha1.Distribution{Name: "OpenShift AI", Version: "3.5.0"}, got.Distribution)
+	assert.Equal(t, "3.5.0", got.PlatformVersion)
 }
 
 func TestReadDistributionConfig(t *testing.T) {
@@ -216,12 +246,12 @@ func TestReadDistributionConfig(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.want, got.Distribution)
 		})
 	}
 }
 
-func TestReadPlatformVersion(t *testing.T) {
+func TestReadDistributionConfigPlatformVersion(t *testing.T) {
 	tests := []struct {
 		name      string
 		configMap *corev1.ConfigMap
@@ -282,7 +312,7 @@ func TestReadPlatformVersion(t *testing.T) {
 			}
 
 			cli := builder.Build()
-			got, err := readPlatformVersion(context.Background(), cli, "test-ns")
+			got, err := readDistributionConfig(context.Background(), cli, "test-ns")
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -290,7 +320,7 @@ func TestReadPlatformVersion(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.want, got.PlatformVersion)
 		})
 	}
 }

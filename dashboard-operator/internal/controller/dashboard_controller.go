@@ -319,16 +319,13 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	cfg := readOperatorConfig(ctx, r.apiReader(), r.Namespace)
 
-	if dist, distErr := readDistributionConfig(ctx, r.apiReader(), r.Namespace); distErr != nil {
-		logger.Error(distErr, "Failed to read distribution config, preserving last-known-good value")
+	distributionConfig, distErr := readDistributionConfig(ctx, r.apiReader(), r.Namespace)
+	if distErr != nil {
+		logger.Error(distErr, "Failed to read distribution config, preserving last-known-good value and skipping handshake")
 	} else {
-		dashboard.Status.Distribution = dist
+		dashboard.Status.Distribution = distributionConfig.Distribution
 	}
-
-	platformVersion, pvErr := readPlatformVersion(ctx, r.apiReader(), r.Namespace)
-	if pvErr != nil {
-		logger.Error(pvErr, "Failed to read platform version, skipping handshake")
-	}
+	platformVersion := distributionConfig.PlatformVersion
 
 	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil)
 
