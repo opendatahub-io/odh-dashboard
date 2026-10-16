@@ -7,10 +7,15 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Popover,
 } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
+import {
+  ApplicationsPage,
+  DashboardPopupIconButton,
+  ProjectObjectType,
+} from '@odh-dashboard/ui-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
@@ -188,14 +193,27 @@ const ModelTraining = (): React.ReactElement => {
     <>
       {description}{' '}
       {project && isUnifiedProjectSelectorEnabled && isAdmin && (
-        <Button
-          variant="link"
-          isInline
-          onClick={() => navigate('/develop-train/training-jobs')}
-          data-testid="training-jobs-view-all-projects"
-        >
-          View across all projects
-        </Button>
+        <>
+          <Button
+            variant="link"
+            isInline
+            onClick={() => navigate('/develop-train/training-jobs?allProjects=true')}
+            data-testid="training-jobs-view-all-projects"
+          >
+            View across all projects
+          </Button>
+          <Popover
+            showClose
+            hasAutoWidth
+            maxWidth="370px"
+            bodyContent="See jobs across every project you have access to."
+          >
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More information about viewing jobs across all projects"
+            />
+          </Popover>
+        </>
       )}
     </>
   );

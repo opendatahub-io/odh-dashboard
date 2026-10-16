@@ -61,7 +61,10 @@ class ModelTrainingGlobal {
   }
 
   findProjectMenuItem(projectName: string) {
-    return cy.findByRole('menuitem', { name: projectName });
+    return cy
+      .findByTestId('project-selector-menuList')
+      .should('be.visible')
+      .findByRole('menuitem', { name: projectName });
   }
 
   findEmptyState() {

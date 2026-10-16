@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Navigate, Outlet, useParams } from 'react-router-dom';
+import { Navigate, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
@@ -26,6 +26,8 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
   getInvalidRedirectPath,
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
+  const [searchParams] = useSearchParams();
+  const allProjectsRequested = searchParams.get('allProjects') === 'true';
   const { projects, preferredProject } = React.useContext(ProjectsContext);
   const { activeProject } = useWorkingProject();
   const { isAdmin } = useUser();
@@ -67,14 +69,16 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
       ),
     };
   } else {
-    const effectiveProject =
-      isUnifiedProjectSelectorEnabled && isAdmin
-        ? null
-        : storedProject ??
-          preferredProject ??
-          (isUnifiedProjectSelectorEnabled
-            ? projects.find(byName(activeProject?.name)) ?? null
-            : null);
+    const fallbackProject = projects[0];
+    const canViewAllProjects = isUnifiedProjectSelectorEnabled && isAdmin && allProjectsRequested;
+
+    const effectiveProject = canViewAllProjects
+      ? null
+      : storedProject ??
+        preferredProject ??
+        (isUnifiedProjectSelectorEnabled
+          ? projects.find(byName(activeProject?.name)) ?? fallbackProject
+          : null);
     if (effectiveProject) {
       return <Navigate to={getInvalidRedirectPath(effectiveProject.metadata.name)} replace />;
     }

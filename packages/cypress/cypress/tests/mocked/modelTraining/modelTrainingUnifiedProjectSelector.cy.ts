@@ -1,6 +1,8 @@
 /* eslint-disable camelcase */
 import {
   initIntercepts,
+  mockAllProjectsRayJobs,
+  mockAllProjectsTrainJobs,
   mockRayJobs,
   mockTrainJobs,
   projectDisplayName,
@@ -8,6 +10,7 @@ import {
 } from './modelTrainingTestUtils';
 import { asClusterAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 import { modelTrainingGlobal } from '../../../pages/modelTraining';
+import { tablePagination } from '../../../pages/components/Pagination';
 
 describe('Model Training unified project selector', () => {
   beforeEach(() => {
@@ -17,20 +20,30 @@ describe('Model Training unified project selector', () => {
   it('should allow an admin to view all training jobs when the flag is enabled', () => {
     initIntercepts({ allProjects: true });
     modelTrainingGlobal.visit(projectName, false, ['unifiedProjectSelector=true']);
+    cy.testA11y();
 
     modelTrainingGlobal.findViewAcrossAllProjectsLink().should('be.visible').click();
     cy.location('pathname').should('eq', '/develop-train/training-jobs');
+    cy.location('search').should('eq', '?allProjects=true');
+    cy.testA11y();
 
     modelTrainingGlobal
       .findAllProjectsBanner()
       .should('be.visible')
       .and('contain.text', "You're viewing jobs across every project you have access to.");
+    tablePagination.top.selectToggleOption('20 per page');
     modelTrainingGlobal.findTrainingJobTable().should('be.visible');
     modelTrainingGlobal
       .findTrainingJobTable()
       .should('contain.text', mockTrainJobs[0].metadata.name);
     modelTrainingGlobal.findTrainingJobTable().should('contain.text', mockRayJobs[0].metadata.name);
-    modelTrainingGlobal.findExitAllProjectsLink().should('be.visible').click();
+    modelTrainingGlobal
+      .findTrainingJobTable()
+      .should('contain.text', mockAllProjectsTrainJobs.at(-1)?.metadata.name ?? '');
+    modelTrainingGlobal
+      .findTrainingJobTable()
+      .should('contain.text', mockAllProjectsRayJobs.at(-1)?.metadata.name ?? '');
+    modelTrainingGlobal.findExitAllProjectsLink().click({ force: true });
     cy.location('pathname').should('match', /\/develop-train\/training-jobs\/[^/]+$/);
   });
 

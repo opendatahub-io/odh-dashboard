@@ -149,6 +149,19 @@ const trainJobConfigs = [
 
 export const mockTrainJobs = mockTrainJobK8sResourceList(trainJobConfigs);
 
+export const mockAllProjectsTrainJobs = [
+  ...mockTrainJobs,
+  ...mockTrainJobK8sResourceList([
+    {
+      name: 'other-project-training-job',
+      namespace: 'other-project',
+      status: TrainingJobState.RUNNING,
+      numNodes: 1,
+      creationTimestamp: '2024-01-20T10:00:00Z',
+    },
+  ]),
+];
+
 export const mockRayJobs = mockRayJobK8sResourceList([
   {
     name: 'ray-data-processing',
@@ -165,6 +178,19 @@ export const mockRayJobs = mockRayJobK8sResourceList([
     succeeded: 1,
   },
 ]);
+
+export const mockAllProjectsRayJobs = [
+  ...mockRayJobs,
+  ...mockRayJobK8sResourceList([
+    {
+      name: 'other-project-ray-job',
+      namespace: 'other-project',
+      jobStatus: RayJobStatusValue.RUNNING,
+      jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+      entrypoint: 'python other_project.py',
+    },
+  ]),
+];
 
 export const mockLocalQueues = [
   mockLocalQueueK8sResource({
@@ -516,7 +542,7 @@ export const initIntercepts = ({
         model: TrainJobModel,
         ns: '',
       },
-      mockK8sResourceList(mockTrainJobs),
+      mockK8sResourceList(mockAllProjectsTrainJobs),
     );
 
     cy.interceptK8sList(
@@ -524,7 +550,7 @@ export const initIntercepts = ({
         model: RayJobModel,
         ns: '',
       },
-      mockK8sResourceList(mockRayJobs),
+      mockK8sResourceList(mockAllProjectsRayJobs),
     );
   }
 };
