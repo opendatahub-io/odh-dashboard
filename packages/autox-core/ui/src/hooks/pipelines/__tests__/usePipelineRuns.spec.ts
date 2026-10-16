@@ -1,5 +1,5 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFetchState } from 'mod-arch-core';
 import React from 'react';
@@ -136,8 +136,50 @@ describe('usePipelineRuns', () => {
     expect(useFetchStateMock).toHaveBeenCalledWith(
       expect.any(Function),
       { runs: [], total_size: 0, next_page_token: '' },
-      { refreshRate: 5000 },
+      { refreshRate: 5000, initialPromisePurity: true },
     );
+  });
+
+  it('should not report the previous namespace as loaded while the new namespace fetch is pending', async () => {
+    // ns-a has no runs; its settled empty result must not leak into ns-b,
+    // whose runs list is still in flight (otherwise pages flash the empty
+    // state for a namespace that actually has runs).
+    getPipelineRunsFromBFF.mockResolvedValueOnce({
+      runs: [],
+      total_size: 0,
+      next_page_token: '',
+    });
+    let resolveNsB: (value: {
+      runs: PipelineRun[];
+      total_size: number;
+      next_page_token: string;
+    }) => void;
+    getPipelineRunsFromBFF.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveNsB = resolve;
+        }),
+    );
+
+    const { result, rerender } = renderHook(({ namespace }) => usePipelineRuns(namespace), {
+      initialProps: { namespace: 'ns-a' },
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.totalSize).toBe(0);
+
+    rerender({ namespace: 'ns-b' });
+
+    expect(result.current.loaded).toBe(false);
+    expect(result.current.runs).toEqual([]);
+    expect(result.current.totalSize).toBe(0);
+
+    await act(async () => {
+      resolveNsB!(mockPipelineRunsData);
+    });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.runs).toEqual(mockRuns);
+    expect(result.current.totalSize).toBe(mockRuns.length);
   });
 
   describe('pagination', () => {

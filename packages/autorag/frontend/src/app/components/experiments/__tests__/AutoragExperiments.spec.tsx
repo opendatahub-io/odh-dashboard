@@ -165,6 +165,23 @@ describe('AutoragExperiments', () => {
     expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
   });
 
+  it('should show a spinner, not the empty state, while runs are still loading with a ready server', () => {
+    // Regression: after a namespace switch, usePipelineRuns keeps loaded=false
+    // while the new namespace's runs fetch is in flight. A stale zero-run count
+    // must not render the "Create run" empty state for a namespace that has runs.
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      runs: [],
+      totalSize: 0,
+      loaded: false,
+    });
+
+    renderAutorag(<AutoragExperiments />);
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.queryByTestId('empty-experiments-state')).not.toBeInTheDocument();
+  });
+
   it('should use the bounded waiting state while the pipeline server is starting', () => {
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,

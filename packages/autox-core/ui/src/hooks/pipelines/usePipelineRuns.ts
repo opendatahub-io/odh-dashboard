@@ -60,7 +60,14 @@ export function usePipelineRuns<TParams = Record<string, unknown>>(
   }>(
     fetchCallback,
     { runs: [], total_size: 0, next_page_token: '' },
-    { refreshRate: pollInterval },
+    {
+      refreshRate: pollInterval,
+      // Without purity, useFetchState keeps the previous namespace's data and
+      // loaded=true while the fetch for a changed namespace/page/pageSize is in
+      // flight, so pages briefly treat a stale zero-run count as settled and
+      // flash the "Create run" empty state for a namespace that has runs.
+      initialPromisePurity: true,
+    },
   );
 
   // Reset to page 1 when namespace or pageSize changes
