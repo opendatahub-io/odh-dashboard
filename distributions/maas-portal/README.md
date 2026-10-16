@@ -155,7 +155,7 @@ existing Kubernetes-backed behavior while the MaaS Gateway API integration is de
 For local testing, enable it on the portal URL:
 
 ```text
-http://localhost:4020/maas-consumer-portal/?devFeatureFlags=grid=true
+http://localhost:4020/maas-portal/?devFeatureFlags=grid=true
 ```
 
 The value is persisted in session storage and is sent to the existing dashboard configuration
