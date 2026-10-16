@@ -17,6 +17,20 @@ export const withWorkspace = (basePath: string, namespace?: string): string => {
 export const agentObservabilityBaseRoute = (namespace?: string): string =>
   withWorkspace(agentObservabilityPath, namespace);
 
+export const skillRegistryPath = '/ai-hub/skills';
+export const globSkillRegistryAll = `${skillRegistryPath}/*`;
+// Hash path of the Skills page in the standalone MLflow UI.
+export const MLFLOW_SKILLS_HASH_PATH = '/skills';
+
+export const skillRegistryBaseRoute = (namespace?: string): string =>
+  withWorkspace(skillRegistryPath, namespace);
+
+export const setWorkspaceParam = (pathname: string, search: string, namespace: string): string => {
+  const params = new URLSearchParams(search);
+  params.set(WORKSPACE_QUERY_PARAM, namespace);
+  return `${pathname}?${params.toString()}`;
+};
+
 export const mlflowPromptRoute = (
   promptName: string,
   namespace?: string,
