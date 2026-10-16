@@ -10,10 +10,10 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
-// SetSecurityHeaders applies Console-equivalent browser security headers on normal HTTP replies.
-// Common security headers are set on every response (including static `/` and `/_mf/`).
-// no-store is applied on API paths (`/api`, `/wss`, module APIs). Federated module proxy
-// replies also force no-store via ModifyResponse (see forceNoStoreCacheHeaders).
+// SetSecurityHeaders applies browser security headers on normal HTTP replies.
+// Common security headers are set on every response. Cache-Control is selective
+// (no-store on API paths). Console also sends Pragma: no-cache and no-store on every response.
+// Module proxy replies force no-store in ModifyResponse (see forceNoStoreCacheHeaders).
 func (app *App) SetSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sw := &securityHeadersWriter{ResponseWriter: w, req: r}
@@ -97,9 +97,9 @@ func applySecurityHeaders(h http.Header, urlPath string) {
 	h.Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
 }
 
-// isApiPath matches Node backend securityHeaders.isApiPath (after PathPrefix strip).
-// Module proxy paths that are not /…/api (e.g. /agent-ops/healthcheck) get no-store via
-// forceNoStoreCacheHeaders on the reverse proxy instead.
+// isApiPath reports host and module API paths after PathPrefix strip.
+// Node only treats /api and /wss as API paths. Module proxy replies force no-store
+// via forceNoStoreCacheHeaders.
 func isApiPath(urlPath string) bool {
 	path := strings.TrimPrefix(urlPath, PathPrefix)
 	if path == APIPathPrefix || strings.HasPrefix(path, APIPathPrefix+"/") {
@@ -118,7 +118,7 @@ func isApiPath(urlPath string) bool {
 	return len(parts) >= 2 && parts[1] == "api"
 }
 
-// forceNoStoreCacheHeaders forces no-store on proxied module API replies (Node rewriteNoStoreCacheHeaders parity).
+// forceNoStoreCacheHeaders forces no-store on proxied module replies (Node rewriteNoStoreCacheHeaders parity).
 func forceNoStoreCacheHeaders(resp *http.Response) error {
 	resp.Header.Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
 	return nil

@@ -40,7 +40,8 @@ const (
 	CacheControlShort     = "public, max-age=86400"
 	CacheControlImmutable = "public, max-age=31536000, immutable"
 
-	// OpenShift Console WithSecurityHeaders wire values.
+	// Cache-Control is applied selectively. Console also sends Pragma: no-cache
+	// and no-store on every response.
 	CacheControlNoStore                       = "no-cache, no-store, must-revalidate"
 	ReferrerPolicyStrictOriginWhenCrossOrigin = "strict-origin-when-cross-origin"
 	XContentTypeOptionsNoSniff                = "nosniff"

@@ -9,7 +9,6 @@ import {
   X_FRAME_OPTIONS,
   applySecurityHeaders,
   isApiPath,
-  isRestrictiveCacheControl,
   resolveStaticProxyCacheControl,
   rewriteNoStoreCacheHeaders,
   rewriteStaticProxyCacheHeaders,
@@ -88,23 +87,6 @@ describe('applySecurityHeaders', () => {
   });
 });
 
-describe('rewriteNoStoreCacheHeaders', () => {
-  it('forces no-store without mutating the input', () => {
-    const input: Record<string, string> = {};
-    const headers = rewriteNoStoreCacheHeaders(input);
-    expect(headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
-    expect(input['cache-control']).toBeUndefined();
-    expect(headers).not.toBe(input);
-  });
-
-  it('overwrites an existing upstream cache-control', () => {
-    const headers = rewriteNoStoreCacheHeaders({
-      'cache-control': 'public, max-age=31536000, immutable',
-    });
-    expect(headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
-  });
-});
-
 describe('resolveStaticProxyCacheControl', () => {
   it.each([
     '/_mf/genAi/api/v1/user?asset=.deadbeef.js',
@@ -117,9 +99,19 @@ describe('resolveStaticProxyCacheControl', () => {
   it.each([
     ['/_mf/genAi/app.abcdef123456.js', 'no-cache, no-store, must-revalidate'],
     ['/_mf/genAi/remoteEntry.js', 'private, max-age=0'],
+    ['/_mf/genAi/api/v1/user', 'no-cache, no-store, must-revalidate'],
   ])('preserves upstream restrictive Cache-Control for %s', (url, upstream) => {
     expect(resolveStaticProxyCacheControl(url, upstream)).toBe(upstream);
   });
+
+  it.each(['/_mf/genAi/api/v1/user', '/_mf/genAi/healthcheck'])(
+    'forces no-store for %s when upstream is private',
+    (url) => {
+      expect(resolveStaticProxyCacheControl(url, 'private, max-age=3600')).toBe(
+        CACHE_CONTROL_NO_STORE,
+      );
+    },
+  );
 
   it.each([
     ['/_mf/genAi/app.abcdef123456.js?v=1', CACHE_HEADER_IMMUTABLE],
@@ -128,8 +120,8 @@ describe('resolveStaticProxyCacheControl', () => {
     expect(resolveStaticProxyCacheControl(url, undefined, 200)).toBe(expected);
   });
 
-  it.each([404, 503])(
-    'forces no-store for error status %s even for hashed assets',
+  it.each([301, 302, 307, 404, 503])(
+    'forces no-store for non-success status %s even for hashed assets',
     (statusCode) => {
       expect(
         resolveStaticProxyCacheControl('/_mf/genAi/app.abcdef123456.js', undefined, statusCode),
@@ -145,22 +137,6 @@ describe('resolveStaticProxyCacheControl', () => {
   });
 });
 
-describe('isRestrictiveCacheControl', () => {
-  it.each(['no-store', 'no-cache, no-store', 'private', 'private, max-age=0'])(
-    'treats %s as restrictive',
-    (value) => {
-      expect(isRestrictiveCacheControl(value)).toBe(true);
-    },
-  );
-
-  it.each(['public, max-age=60', 'no-cache', 'max-age=0'])(
-    'does not treat %s as restrictive',
-    (value) => {
-      expect(isRestrictiveCacheControl(value)).toBe(false);
-    },
-  );
-});
-
 describe('staticProxyCacheOnResponse', () => {
   const run = (statusCode: number, cacheControl: string) => {
     const { reply, headers } = mockReply({ 'cache-control': cacheControl });
@@ -174,16 +150,36 @@ describe('staticProxyCacheOnResponse', () => {
     return { headers, send, stream };
   };
 
-  it('should leave the rewriteHeaders Cache-Control in place on 304', () => {
-    const { headers, send, stream } = run(304, CACHE_HEADER_NO_CACHE);
-    expect(headers['cache-control']).toBe(CACHE_HEADER_NO_CACHE);
-    expect(send).toHaveBeenCalledWith(stream);
-  });
+  it.each([200, 304])(
+    'should leave the rewriteHeaders Cache-Control in place on %s',
+    (statusCode) => {
+      const { headers, send, stream } = run(statusCode, CACHE_HEADER_NO_CACHE);
+      expect(headers['cache-control']).toBe(CACHE_HEADER_NO_CACHE);
+      expect(send).toHaveBeenCalledWith(stream);
+    },
+  );
 
-  it.each([404, 503])('should force no-store on error status %s', (statusCode) => {
+  it.each([302, 307, 404, 503])('should force no-store on non-success status %s', (statusCode) => {
     const { headers, send, stream } = run(statusCode, CACHE_HEADER_IMMUTABLE);
     expect(headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
     expect(send).toHaveBeenCalledWith(stream);
+  });
+});
+
+describe('rewriteNoStoreCacheHeaders', () => {
+  it('forces no-store without mutating the input', () => {
+    const input: Record<string, string> = {};
+    const headers = rewriteNoStoreCacheHeaders(input);
+    expect(headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
+    expect(input['cache-control']).toBeUndefined();
+    expect(headers).not.toBe(input);
+  });
+
+  it('overwrites an existing upstream cache-control', () => {
+    const headers = rewriteNoStoreCacheHeaders({
+      'cache-control': 'public, max-age=31536000, immutable',
+    });
+    expect(headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
   });
 });
 

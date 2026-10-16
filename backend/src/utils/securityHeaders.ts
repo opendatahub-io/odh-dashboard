@@ -1,9 +1,13 @@
 import { FastifyHttpProxyOptions } from '@fastify/http-proxy';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { IncomingHttpHeaders } from 'http';
-import { getCacheControlForStaticFile } from './cacheHeaders';
+import { getCacheControlForStaticFile, isStaticAsset } from './cacheHeaders';
 
-/** Matches OpenShift Console `WithSecurityHeaders` wire values. */
+/**
+ * Header values shared with OpenShift Console `WithSecurityHeaders`.
+ * Cache-Control is selective: no-store on API paths, filename policy for proxied
+ * static assets. Console also sends `Pragma: no-cache` and no-store on every response.
+ */
 export const REFERRER_POLICY = 'strict-origin-when-cross-origin';
 export const X_CONTENT_TYPE_OPTIONS = 'nosniff';
 export const CROSS_ORIGIN_OPENER_POLICY = 'same-origin';
@@ -19,11 +23,18 @@ const COMMON_SECURITY_HEADERS: ReadonlyArray<[string, string]> = [
   ['Referrer-Policy', REFERRER_POLICY],
 ];
 
-/** Extensions treated as static assets for Module Federation `/_mf` proxy cache policy. */
-const LIKELY_STATIC_EXT =
-  /\.(?:js|mjs|cjs|css|map|json|wasm|html?|txt|woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$/i;
+/** Code and text suffixes. Fonts and images use {@link isStaticAsset}. */
+const LIKELY_CODE_EXT = /\.(?:js|mjs|cjs|css|map|json|wasm|html?|txt)$/i;
 
 const getUrlPath = (url: string): string => url.split('?')[0] || '/';
+
+/** Host API surfaces that should not be stored by shared or browser caches. */
+export const isApiPath = (urlPath: string): boolean => {
+  if (urlPath === '/api' || urlPath.startsWith('/api/')) {
+    return true;
+  }
+  return urlPath === '/wss' || urlPath.startsWith('/wss/');
+};
 
 const headerValue = (value: string | string[] | undefined): string => {
   if (Array.isArray(value)) {
@@ -32,51 +43,52 @@ const headerValue = (value: string | string[] | undefined): string => {
   return value ?? '';
 };
 
-/** 4xx/5xx only. 304 must keep the filename policy so revalidation does not evict the stored asset. */
-const isErrorStatus = (statusCode: number): boolean => statusCode >= 400;
-
-/** True when upstream already forbids shared/browser storage. */
-export const isRestrictiveCacheControl = (value: string | string[] | undefined): boolean => {
-  const lower = headerValue(value).toLowerCase();
-  return lower.includes('no-store') || /(^|,)\s*private\b/.test(lower);
+/** 2xx and 304 keep a filename policy. Every other status must not be stored. */
+const forcesNoStoreStatus = (statusCode: number): boolean => {
+  if (statusCode === 304) {
+    return false;
+  }
+  return statusCode < 200 || statusCode >= 300;
 };
+
+const PRIVATE_CACHE_DIRECTIVE = /(^|,)\s*private\b/;
 
 /** API-like paths proxied under `/_mf/{module}/…` (or rewritten `/api/…`). */
 const isModuleFederationProxiedApiPath = (urlPath: string): boolean =>
   /(?:^|\/)api(?:\/|$)/.test(urlPath);
 
-const isLikelyStaticAssetPath = (urlPath: string): boolean => LIKELY_STATIC_EXT.test(urlPath);
+const isLikelyStaticAssetPath = (urlPath: string): boolean =>
+  LIKELY_CODE_EXT.test(urlPath) || isStaticAsset(urlPath);
 
 /**
- * Cache-Control for Module Federation static proxies (`/_mf/…`).
- * Classifies the pathname only (never the query string). Preserves upstream
- * no-store/private. Forces no-store for 4xx/5xx, API-like paths, and non-asset paths.
+ * Cache-Control for `/_mf` static proxies. Module `proxyService` routes use
+ * {@link rewriteNoStoreCacheHeaders} instead.
+ * Classifies the pathname only. Upstream no-store wins on every path; upstream
+ * private wins only for static assets.
  */
 export const resolveStaticProxyCacheControl = (
   url: string,
   upstreamCacheControl?: string | string[],
   statusCode?: number,
 ): string => {
-  if (statusCode !== undefined && isErrorStatus(statusCode)) {
+  if (statusCode !== undefined && forcesNoStoreStatus(statusCode)) {
     return CACHE_CONTROL_NO_STORE;
   }
+
   const upstream = headerValue(upstreamCacheControl);
-  if (isRestrictiveCacheControl(upstream)) {
+  const lower = upstream.toLowerCase();
+  if (lower.includes('no-store')) {
     return upstream;
   }
+
   const pathname = getUrlPath(url);
   if (isModuleFederationProxiedApiPath(pathname) || !isLikelyStaticAssetPath(pathname)) {
     return CACHE_CONTROL_NO_STORE;
   }
-  return getCacheControlForStaticFile(pathname);
-};
-
-/** Host API surfaces that should not be stored by shared/browser caches. */
-export const isApiPath = (urlPath: string): boolean => {
-  if (urlPath === '/api' || urlPath.startsWith('/api/')) {
-    return true;
+  if (PRIVATE_CACHE_DIRECTIVE.test(lower)) {
+    return upstream;
   }
-  return urlPath === '/wss' || urlPath.startsWith('/wss/');
+  return getCacheControlForStaticFile(pathname);
 };
 
 /** Sets the no-store Cache-Control header on a Fastify reply. */
@@ -85,7 +97,7 @@ export const setNoStoreCacheHeaders = (reply: FastifyReply): void => {
 };
 
 /**
- * Applies Console-equivalent browser security headers on normal HTTP replies.
+ * Applies shared browser security headers on normal HTTP replies.
  * Common security headers are set on every response (including static `/*` and `/_mf/`).
  * no-store is applied on host `/api` and `/wss` paths.
  */
@@ -99,6 +111,7 @@ export const applySecurityHeaders = (request: FastifyRequest, reply: FastifyRepl
   }
 };
 
+/** Forces no-store on module `proxyService` replies. Those routes are not static assets. */
 export const rewriteNoStoreCacheHeaders: FastifyHttpProxyOptions['replyOptions']['rewriteHeaders'] =
   (headers: IncomingHttpHeaders): IncomingHttpHeaders => {
     const next: IncomingHttpHeaders = { ...headers };
@@ -108,8 +121,9 @@ export const rewriteNoStoreCacheHeaders: FastifyHttpProxyOptions['replyOptions']
 
 /**
  * Rewrites Cache-Control for `/_mf` static proxies using pathname-based asset
- * classification. Status-aware no-store for errors is applied in
- * {@link staticProxyCacheOnResponse} (rewriteHeaders cannot see the status code).
+ * classification. Status-aware no-store for redirects and other non-success
+ * statuses is applied in {@link staticProxyCacheOnResponse}
+ * (rewriteHeaders cannot see the status code).
  */
 export const rewriteStaticProxyCacheHeaders: FastifyHttpProxyOptions['replyOptions']['rewriteHeaders'] =
   (headers, request) => {
@@ -122,13 +136,14 @@ export const rewriteStaticProxyCacheHeaders: FastifyHttpProxyOptions['replyOptio
   };
 
 /**
- * Forces no-store on 4xx/5xx `/_mf` proxy responses after rewriteHeaders runs.
+ * After rewriteHeaders, forces no-store for redirects and other non-success statuses.
+ * 2xx and 304 keep the header rewriteHeaders already set.
  * Must send the upstream stream when onResponse is set.
  */
 export const staticProxyCacheOnResponse: NonNullable<
   FastifyHttpProxyOptions['replyOptions']
 >['onResponse'] = (_request, reply, res) => {
-  if (isErrorStatus(res.statusCode)) {
+  if (forcesNoStoreStatus(res.statusCode)) {
     reply.header('Cache-Control', CACHE_CONTROL_NO_STORE);
   }
   reply.send(res.stream);

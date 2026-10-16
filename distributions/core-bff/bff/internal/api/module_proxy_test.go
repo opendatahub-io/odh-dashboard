@@ -1220,7 +1220,7 @@ func TestRoutes_ModuleProxyPaths(t *testing.T) {
 		a.config.StaticAssetsDir = tmpDir
 	})
 	apiHandler := createTestProxy(t, app, backend.URL, "/gen-ai/api", "/api", false, false, nil)
-	// Non-/…/api federated proxy (e.g. mlflow-embedded); Node always forces no-store via rewriteNoStoreCacheHeaders.
+	// Non-/…/api federated proxy (e.g. mlflow-embedded); Node forces no-store via rewriteNoStoreCacheHeaders.
 	mlflowHandler := createTestProxy(t, app, backend.URL, "/mlflow", "", false, false, nil)
 	app.moduleProxies = []moduleProxyHandler{
 		{path: "/gen-ai/api", handler: apiHandler},
@@ -1238,6 +1238,7 @@ func TestRoutes_ModuleProxyPaths(t *testing.T) {
 		{"bare path", "/gen-ai/api/v1/models", "/api/v1/models"},
 		{"prefixed path", "/core-bff/gen-ai/api/v1/models", "/api/v1/models"},
 		{"non-api proxy path", "/mlflow/ui", "/ui"},
+		{"mlflow static-looking path", "/mlflow/static-files/app.abcdef123456.js", "/static-files/app.abcdef123456.js"},
 	}
 
 	for _, tt := range tests {
