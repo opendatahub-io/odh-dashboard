@@ -93,6 +93,12 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `"allowed_tools"] = server["allowed_tools"]`)
 	assert.Contains(t, script, `"type": "file_search"`)
 	assert.Contains(t, script, `"vector_store_ids": VECTOR_STORE_IDS`)
+	// The rewritten request must only be replayed once. Streaming responses make
+	// later receive() calls to detect client disconnects.
+	assert.Contains(t, script, `replayed = False`)
+	assert.Contains(t, script, `nonlocal replayed`)
+	assert.Contains(t, script, `if not replayed:`)
+	assert.Contains(t, script, `return await receive()`)
 
 	// create_app synchronous + uvicorn on port 8321
 	assert.Contains(t, script, `create_app()`)

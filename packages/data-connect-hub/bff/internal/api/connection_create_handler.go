@@ -57,6 +57,7 @@ func (app *App) CreateConnectionHandler(w http.ResponseWriter, r *http.Request, 
 		created.Resource.Name = request.Name
 		created.Resource.DataConnectionTypeID = request.DataConnectionTypeID
 		created.Resource.Format = request.Format
+		created.Resource.Properties = request.Properties
 		if err := app.WriteJSON(w, http.StatusCreated, ConnectionResponse{Data: created}, nil); err != nil {
 			app.serverErrorResponse(w, r, err)
 		}
@@ -100,7 +101,8 @@ func (app *App) CreateConnectionHandler(w http.ResponseWriter, r *http.Request, 
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to decode created data connection: %w", err))
 		return
 	}
-	if err := validateCreatedConnection(created); err != nil {
+	normalizeConnectionProperties(&created)
+	if err := validateConnection(created); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -132,18 +134,21 @@ func validateCreateConnectionRequest(request CreateConnectionRequest) error {
 	if request.Format != "tabular" && request.Format != "binary" {
 		return fmt.Errorf("format must be either tabular or binary")
 	}
+	if !isCanonicalUUID(request.DataConnectionTypeID) {
+		return fmt.Errorf("data_connection_type_id must be a valid UUID")
+	}
 	if errors := validation.IsDNS1123Label(request.Credentials.Secret); len(errors) > 0 {
 		return fmt.Errorf("credentials.secret must be a valid DNS-1123 name: %s", errors[0])
 	}
 	return nil
 }
 
-func validateCreatedConnection(connection Connection) error {
+func validateConnection(connection Connection) error {
 	if connection.Metadata.ID == "" || connection.Resource.Name == "" ||
 		connection.Resource.DataConnectionTypeID == "" ||
 		(connection.Resource.Format != "tabular" && connection.Resource.Format != "binary") ||
 		connection.Status.State == "" {
-		return fmt.Errorf("created connection response is missing required fields")
+		return fmt.Errorf("connection response is missing required fields")
 	}
 	return nil
 }

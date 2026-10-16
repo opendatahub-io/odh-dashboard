@@ -23,6 +23,7 @@ type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> &
   content: string | number;
   value: string | number;
   isSelected?: boolean;
+  dropdownLabel?: React.ReactNode;
   description?: React.ReactNode;
 };
 
@@ -41,6 +42,7 @@ export type SecretSelectorProps = Omit<
   provider?: 'milvus' | 'pgvector' | 'neo4j';
   allowedProviders?: readonly ('milvus' | 'pgvector' | 'neo4j')[];
   preserveSelectedValue?: boolean;
+  preservedSelection?: SecretSelection;
   value?: string;
   valueName?: string;
   onChange: (selection: SecretSelection | undefined) => void;
@@ -56,6 +58,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   provider,
   allowedProviders,
   preserveSelectedValue = false,
+  preservedSelection,
   value,
   valueName,
   onChange,
@@ -86,7 +89,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   }, [refresh, onRefreshReady]);
 
   const loaded = !loading;
-  const secretsList = React.useMemo(() => {
+  const availableSecrets = React.useMemo(() => {
     const allSecrets = Array.isArray(secrets) ? secrets : [];
     if (!isDatabaseSecretType(type)) {
       return allSecrets;
@@ -98,27 +101,27 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         (!allowedProviders || allowedProviders.includes(matchingProviders[0]))
       );
     });
-    if (preserveSelectedValue && valueName) {
-      const selectedSecret = allSecrets.find((secret) => secret.name === valueName);
-      const selectedProviders = selectedSecret ? getDatabaseProviders(selectedSecret) : [];
-      if (
-        selectedSecret &&
-        selectedProviders.length === 1 &&
-        (!allowedProviders || allowedProviders.includes(selectedProviders[0])) &&
-        !filteredSecrets.some((secret) => secret.name === valueName)
-      ) {
-        return [...filteredSecrets, selectedSecret];
-      }
-    }
     return filteredSecrets;
-  }, [allowedProviders, preserveSelectedValue, secrets, type, valueName]);
-  const hasSecrets = secretsList.length > 0;
+  }, [allowedProviders, secrets, type]);
+  const displaySecrets = React.useMemo(() => {
+    if (!preserveSelectedValue || !valueName || !isDatabaseSecretType(type)) {
+      return availableSecrets;
+    }
+    if (
+      availableSecrets.some((secret) => secret.name === valueName) ||
+      preservedSelection?.name !== valueName
+    ) {
+      return availableSecrets;
+    }
+    return [...availableSecrets, preservedSelection];
+  }, [availableSecrets, preserveSelectedValue, preservedSelection, type, valueName]);
+  const hasSecrets = displaySecrets.length > 0;
   const hasError = !!error;
   const isLoading = !loaded;
   const hasNoSecrets = loaded && !hasError && !hasSecrets;
   const isSelectDisabled = isDisabled || hasError || !hasSecrets || isLoading;
   const selectedValue = valueName
-    ? secretsList.find((secret) => secret.name === valueName)?.uuid
+    ? availableSecrets.find((secret) => secret.name === valueName)?.uuid
     : value;
 
   const validateSecretKeys = React.useCallback(
@@ -137,46 +140,55 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   React.useEffect(() => {
-    if (!selectedValue || secretsList.length === 0) {
+    if (!selectedValue || availableSecrets.length === 0) {
       setValidationError('');
       return;
     }
-    const secret = secretsList.find((s) => s.uuid === selectedValue);
+    const secret = availableSecrets.find((s) => s.uuid === selectedValue);
     if (!secret) {
       setValidationError('');
       return;
     }
     const missingKeys = validateSecretKeys(secret);
     setValidationError(formatMissingKeysMessage(missingKeys));
-  }, [selectedValue, secretsList, validateSecretKeys]);
+  }, [availableSecrets, selectedValue, validateSecretKeys]);
 
   React.useEffect(() => {
     if (!loaded || error || !valueName) {
       return;
     }
-    if (!secretsList.some((secret) => secret.name === valueName)) {
+    if (!availableSecrets.some((secret) => secret.name === valueName)) {
       onChange(undefined);
     }
-  }, [error, loaded, onChange, secretsList, valueName]);
+  }, [availableSecrets, error, loaded, onChange, valueName]);
 
   React.useEffect(() => {
     if (!loaded || error || !selectedValue) {
       return;
     }
-    if (secretsList.length === 0) {
+    if (availableSecrets.length === 0) {
       onChange(undefined);
       return;
     }
-    const isValueInList = secretsList.some((secret) => secret.uuid === selectedValue);
+    const isValueInList = availableSecrets.some((secret) => secret.uuid === selectedValue);
     if (!isValueInList) {
       onChange(undefined);
     }
-  }, [loaded, error, secretsList, selectedValue, onChange]);
+  }, [availableSecrets, error, loaded, onChange, selectedValue]);
 
   const options: TypeaheadSelectOption[] = React.useMemo(
     () =>
-      secretsList.map((secret) => {
+      displaySecrets.map((secret) => {
         const labels = [];
+        const matchingProviders = getDatabaseProviders(secret);
+        const providerLabel =
+          ['database', 'vector-db'].includes(type ?? '') && matchingProviders.length === 1
+            ? matchingProviders[0] === 'pgvector'
+              ? 'PGVector'
+              : matchingProviders[0] === 'milvus'
+              ? 'Milvus'
+              : 'Neo4j'
+            : undefined;
         if (showType && secret.type) {
           labels.push(
             <Label key="type" color="teal" isCompact>
@@ -198,6 +210,11 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         return {
           content: secret.displayName || secret.name,
           value: secret.uuid,
+          dropdownLabel: providerLabel ? (
+            <Label color="grey" variant="outline" isCompact>
+              {providerLabel}
+            </Label>
+          ) : undefined,
           isSelected: secret.uuid === selectedValue,
           isDisabled:
             preserveSelectedValue &&
@@ -205,11 +222,13 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
             type !== undefined &&
             isDatabaseSecretType(type) &&
             (() => {
-              const matchingProviders = getDatabaseProviders(secret);
-              return (
+              const isUnavailable =
+                secret.name === valueName &&
+                !availableSecrets.some((item) => item.name === secret.name);
+              const hasInvalidMetadata =
                 matchingProviders.length !== 1 ||
-                (!!allowedProviders && !allowedProviders.includes(matchingProviders[0]))
-              );
+                (!!allowedProviders && !allowedProviders.includes(matchingProviders[0]));
+              return isUnavailable || hasInvalidMetadata;
             })(),
           description: labels.length ? (
             <LabelGroup className="pf-v6-u-mt-sm">{labels}</LabelGroup>
@@ -219,7 +238,8 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     [
       allowedProviders,
       preserveSelectedValue,
-      secretsList,
+      availableSecrets,
+      displaySecrets,
       selectedValue,
       showDescription,
       showType,
@@ -252,7 +272,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
             | undefined,
           selection: string | number,
         ) => {
-          const secret = secretsList.find((item) => item.uuid === String(selection));
+          const secret = availableSecrets.find((item) => item.uuid === String(selection));
           if (!secret) {
             setValidationError('');
             onChange(undefined);

@@ -90,6 +90,27 @@ const makePrometheusRangeResponse = (results: ReturnType<typeof makeRangeResult>
   },
 });
 
+const makeAdmissionRangeResponse = (spansMultipleDays: boolean, allNaN = false) => {
+  const end = Math.floor(Date.UTC(2026, 9, 15, 12) / 1000);
+  const start = spansMultipleDays ? end - 3 * 24 * 60 * 60 : end - 30 * 60;
+  const values: [number, string][] = [
+    [start, allNaN ? 'NaN' : '1'],
+    [Math.floor((start + end) / 2), allNaN ? 'NaN' : '2'],
+    [end, allNaN ? 'NaN' : '3'],
+  ];
+
+  return {
+    code: 200,
+    response: {
+      status: 'success',
+      data: {
+        resultType: 'matrix',
+        result: [{ metric: {}, values }],
+      },
+    },
+  };
+};
+
 export type InitInterceptsOptions = {
   isKueueInstalled?: boolean;
   gpuaas?: boolean;
@@ -108,6 +129,9 @@ export type InitInterceptsOptions = {
   cohortNames?: (string | { name: string; parentName?: string })[];
   resourceFlavors?: Parameters<typeof mockResourceFlavorK8sResource>[0][];
   hasChartData?: boolean;
+  admissionDataSpan?: 'same-day' | 'multi-day';
+  admissionLeadTimeNaN?: boolean;
+  admissionRequestError?: boolean;
 };
 
 const MOCK_HARDWARE_MODELS = [
@@ -216,6 +240,9 @@ export const initIntercepts = ({
   cohortNames = ['test-cohort'],
   resourceFlavors = [],
   hasChartData = false,
+  admissionDataSpan,
+  admissionLeadTimeNaN = false,
+  admissionRequestError = false,
 }: InitInterceptsOptions = {}): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -227,7 +254,10 @@ export const initIntercepts = ({
       },
     }),
   );
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ gpuaas }));
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ gpuaas, disableKueue: !isKueueInstalled }),
+  );
   cy.interceptOdh('GET /api/components', null, mockComponents());
 
   cy.interceptK8sList(
@@ -334,6 +364,24 @@ export const initIntercepts = ({
                 makeRangeResult(opts.name ?? '', buildUsageRangeValues(opts)),
               )
             : [],
+        ),
+      );
+    } else if (
+      admissionDataSpan &&
+      (req.body.query.includes('kueue_admitted_workloads_total') ||
+        req.body.query.includes('kueue_admission_wait_time_seconds_bucket') ||
+        req.body.query.includes('kueue_local_queue_pending_workloads') ||
+        req.body.query.includes('kueue_local_queue_admitted_active_workloads'))
+    ) {
+      if (admissionRequestError) {
+        req.reply({ statusCode: 500, body: { message: 'Admission metrics unavailable' } });
+        return;
+      }
+      req.reply(
+        makeAdmissionRangeResponse(
+          admissionDataSpan === 'multi-day',
+          admissionLeadTimeNaN &&
+            req.body.query.includes('kueue_admission_wait_time_seconds_bucket'),
         ),
       );
     } else {

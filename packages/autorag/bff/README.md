@@ -22,6 +22,7 @@ This service exposes the following endpoints:
 - POST `/api/v1/indexing-pipeline-runs` – create a documents indexing pipeline run
 - GET `/api/v1/managed-pipelines` – list discovered managed pipelines (autorag, indexing)
 - POST `/api/v1/managed-pipelines/enable` – enable managed pipelines on a DSPA
+- GET `/api/v1/pipeline-server/status` – get the DSPA pipeline-server readiness status (`ready`, `starting`, or `not-found`) for a namespace
 - POST `/api/v1/responses` – RAG query endpoint; streams an OpenAI Responses API SSE response using MaaS for embeddings and chat completion and a vector DB for retrieval
 
 ## Development

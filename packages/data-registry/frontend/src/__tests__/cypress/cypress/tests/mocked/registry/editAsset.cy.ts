@@ -266,6 +266,7 @@ describe('Edit Table Asset', () => {
 
     editAssetModal.findAddLabelButton().click();
     editAssetModal.findLabelInput(2).type('new-label');
+    editAssetModal.selectCreateLabel('new-label');
 
     editAssetModal.removeLabel(0);
 

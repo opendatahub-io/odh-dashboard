@@ -6,6 +6,8 @@ import extensions, {
   GEN_AI_TRACING,
   GUARDRAILS,
   MODEL_AS_SERVICE_CAMEL,
+  PROMPT_MANAGEMENT,
+  PROMPT_MODEL_ASSOCIATIONS,
 } from '~/odh/extensions';
 
 const findArea = (id: string) => {
@@ -122,6 +124,16 @@ describe.each([GEN_AI_IMAGE_UPLOAD, GEN_AI_AUDIO_UPLOAD])('%s area extension', (
 
     expect(area.properties.reliantAreas).toEqual(['plugin-gen-ai']);
     expect(area.properties.featureFlags).toEqual([featureFlag]);
+  });
+});
+
+describe('promptModelAssociations area extension', () => {
+  it('should rely on promptManagement and be gated only by the promptModelAssociations dev flag', () => {
+    const area = findArea(PROMPT_MODEL_ASSOCIATIONS);
+
+    expect(area.properties.reliantAreas).toEqual([PROMPT_MANAGEMENT]);
+    expect(area.properties.devFlags).toEqual([PROMPT_MODEL_ASSOCIATIONS]);
+    expect(area.properties.featureFlags).toBeUndefined();
   });
 });
 

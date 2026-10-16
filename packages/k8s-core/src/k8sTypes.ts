@@ -333,6 +333,7 @@ export type DashboardCommonConfig = {
   roleManagement?: boolean;
   gpuaas?: boolean;
   modelCapabilities?: boolean;
+  grid?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;

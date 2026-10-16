@@ -289,7 +289,12 @@ const WorkingProjectModal: React.FC<Props & { onClose: () => void }> = ({
                                   )}
                                 </Stack>
                               </DataListCell>,
-                              <DataListCell key="selection" isFilled={false}>
+                              <DataListCell
+                                key="selection"
+                                isFilled={false}
+                                isIcon={Boolean(getProjectDescription?.(name))}
+                                className="odh-working-project-selector__selection"
+                              >
                                 {selectedName === name && (
                                   <Flex
                                     alignItems={{ default: 'alignItemsCenter' }}

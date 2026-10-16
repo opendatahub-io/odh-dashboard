@@ -63,7 +63,7 @@ func maasPortalRequiredModuleSlugs(spec *v1alpha1.DashboardSpec, statuses map[st
 
 func (r *DashboardReconciler) syncMaaSPortalDeploymentFederationHash(ctx context.Context) error {
 	cm := &corev1.ConfigMap{}
-	if err := r.maasPortalAPIReader().Get(ctx, client.ObjectKey{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}, cm); err != nil {
+	if err := r.apiReader().Get(ctx, client.ObjectKey{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}, cm); err != nil {
 		if apierrors.IsNotFound(err) {
 			// The federation ConfigMap is reconciled separately. Its hash will be
 			// applied after it becomes available on a subsequent reconciliation.
@@ -80,7 +80,7 @@ func (r *DashboardReconciler) syncMaaSPortalDeploymentFederationHash(ctx context
 func (r *DashboardReconciler) patchMaaSPortalDeploymentFederationHash(ctx context.Context, configData string) error {
 	var deployment appsv1.Deployment
 	key := client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}
-	if err := r.maasPortalAPIReader().Get(ctx, key, &deployment); err != nil {
+	if err := r.apiReader().Get(ctx, key, &deployment); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
