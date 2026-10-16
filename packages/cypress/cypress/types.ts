@@ -415,6 +415,26 @@ export type AcceleratorTestData = DataScienceProjectData & {
   replaceTargetString: string;
 };
 
+export type RuntimeLibraryInstallTestData = {
+  searchTerm: string;
+  resourceNamePrefix: string;
+  displayNamePrefix: string;
+  resourceKind: string;
+  resourceApiVersion: string;
+  listPath: string;
+};
+
+export type RuntimeLibraryTemplateTestData = RuntimeLibraryInstallTestData & {
+  templateKind: string;
+  templateApiVersion: string;
+  modelServingSupport: string[];
+};
+
+export type RuntimeLibraryAcceleratorTestData = RuntimeLibraryInstallTestData & {
+  editedVersion: string;
+  configType: string;
+};
+
 export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
   servingRuntimeId: string;
   servingRuntimeDisplayName: string;
