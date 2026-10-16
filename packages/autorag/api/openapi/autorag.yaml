@@ -2058,17 +2058,27 @@ components:
                 maximum: 100
               ranking_options:
                 type: object
-                maxProperties: 2
+                description: >-
+                  Omit for dense search. Milvus supports RRF (optional ranker_k, default 60)
+                  and weighted ranking (alpha is the dense weight, default 0.5) over its
+                  dense vector and BM25 sparse fields. Pgvector supports RRF with an
+                  optional alpha weight; its RRF constant is fixed at 60.
+                  Milvus RRF does not accept alpha. Weighted ranking requires Milvus.
+                maxProperties: 3
                 additionalProperties: false
                 properties:
                   ranker:
                     type: string
                     maxLength: 1048576
-                    enum: [rrf]
+                    enum: [rrf, weighted]
                   alpha:
                     type: number
                     minimum: 0
                     maximum: 1
+                  ranker_k:
+                    type: number
+                    minimum: 0
+                    exclusiveMinimum: true
         tool_choice:
           type: object
           maxProperties: 1

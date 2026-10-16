@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	milvusclient "github.com/milvus-io/milvus-sdk-go/v2/client"
+	milvusclient "github.com/milvus-io/milvus/client/v2/milvusclient"
 	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 )
 
@@ -39,8 +39,8 @@ func newFromSecretData(ctx context.Context, data map[string][]byte, forwardURL f
 			// localhost is already an internal endpoint; it must not be replaced
 			// by a dev port-forward target.
 			if originalEndpoint.loopback {
-				return newMilvusFromSecretWithTimeoutPolicy(ctx, data, allowLoopback, MilvusOperationTimeout, func(connectCtx context.Context, cfg milvusclient.Config) (milvusClient, error) {
-					return milvusclient.NewClient(connectCtx, cfg)
+				return newMilvusFromSecretWithTimeoutPolicy(ctx, data, allowLoopback, "", MilvusOperationTimeout, func(connectCtx context.Context, cfg *milvusclient.ClientConfig) (milvusClient, error) {
+					return milvusclient.New(connectCtx, cfg)
 				})
 			}
 			forwarded, err := forwardURL(ctx, original)
@@ -56,13 +56,13 @@ func newFromSecretData(ctx context.Context, data map[string][]byte, forwardURL f
 					forwardedData[key] = value
 				}
 				forwardedData["MILVUS_URI"] = []byte(forwarded)
-				return newMilvusFromSecretWithTimeoutPolicy(ctx, forwardedData, true, MilvusOperationTimeout, func(connectCtx context.Context, cfg milvusclient.Config) (milvusClient, error) {
-					return milvusclient.NewClient(connectCtx, cfg)
+				return newMilvusFromSecretWithTimeoutPolicy(ctx, forwardedData, true, originalEndpoint.host, MilvusOperationTimeout, func(connectCtx context.Context, cfg *milvusclient.ClientConfig) (milvusClient, error) {
+					return milvusclient.New(connectCtx, cfg)
 				})
 			}
 		}
-		return newMilvusFromSecretWithTimeoutPolicy(ctx, data, allowLoopback, MilvusOperationTimeout, func(connectCtx context.Context, cfg milvusclient.Config) (milvusClient, error) {
-			return milvusclient.NewClient(connectCtx, cfg)
+		return newMilvusFromSecretWithTimeoutPolicy(ctx, data, allowLoopback, "", MilvusOperationTimeout, func(connectCtx context.Context, cfg *milvusclient.ClientConfig) (milvusClient, error) {
+			return milvusclient.New(connectCtx, cfg)
 		})
 	}
 	if providers[0] == database.PGVector {

@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"math"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -59,7 +60,7 @@ const (
 	maxResponsesContentFields      = 2
 	maxResponsesToolFields         = 5
 	maxResponsesToolChoiceFields   = 1
-	maxResponsesRankingFields      = 2
+	maxResponsesRankingFields      = 3
 )
 
 const genericStreamingErrorMessage = "The response could not be completed."
@@ -75,6 +76,12 @@ const (
 func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	params, ok := h.extractParams(w, r)
 	if !ok {
+		return
+	}
+
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		badRequestResponse(h.logger, w, r, "invalid request content type: expected application/json")
 		return
 	}
 
@@ -253,11 +260,19 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 		if tool.RankingOptions.Alpha != nil && (math.IsNaN(*tool.RankingOptions.Alpha) || math.IsInf(*tool.RankingOptions.Alpha, 0) || *tool.RankingOptions.Alpha < 0 || *tool.RankingOptions.Alpha > 1) {
 			return fmt.Errorf("file_search ranking_options.alpha must be between 0 and 1")
 		}
-		if tool.RankingOptions.Ranker != "" && tool.RankingOptions.Ranker != "rrf" {
-			return fmt.Errorf("file_search ranking_options.ranker %q is unsupported; only rrf is supported for hybrid search", tool.RankingOptions.Ranker)
+		if tool.RankingOptions.Ranker != "" && tool.RankingOptions.Ranker != "rrf" && tool.RankingOptions.Ranker != "weighted" {
+			return fmt.Errorf("file_search ranking_options.ranker %q is unsupported; only rrf and weighted are supported for hybrid search", tool.RankingOptions.Ranker)
 		}
 		if tool.RankingOptions.Alpha != nil && tool.RankingOptions.Ranker == "" {
 			return fmt.Errorf("file_search ranking_options.alpha requires ranking_options.ranker")
+		}
+		if tool.RankingOptions.RankerK != nil {
+			if tool.RankingOptions.Ranker != "rrf" {
+				return fmt.Errorf("file_search ranking_options.ranker_k requires rrf ranking")
+			}
+			if math.IsNaN(*tool.RankingOptions.RankerK) || math.IsInf(*tool.RankingOptions.RankerK, 0) || *tool.RankingOptions.RankerK <= 0 {
+				return fmt.Errorf("file_search ranking_options.ranker_k must be positive")
+			}
 		}
 	}
 	return nil

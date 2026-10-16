@@ -37,6 +37,16 @@ This is the default context for running a local UI.  Make sure you build the pro
 pnpm run start:dev
 ```
 
+The **Try this pattern** drawer uses the Gen AI frontend's federated playground. To use it
+in standalone development, start the Gen AI frontend in federated mode on port 9102 as well:
+
+```bash
+cd packages/gen-ai/frontend
+DEPLOYMENT_MODE=federated PORT=9102 pnpm run start:dev
+```
+
+Set `GEN_AI_REMOTE_PORT` when starting AutoRAG if the Gen AI frontend uses another port.
+
 For in-depth local run guidance review the [contribution guidelines](../../CONTRIBUTING.md).
 
 ### Testing

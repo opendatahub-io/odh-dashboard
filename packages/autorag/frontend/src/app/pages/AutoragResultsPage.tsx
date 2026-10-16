@@ -69,6 +69,7 @@ import {
   canUseResponsesForPattern,
   getPatternCollectionName,
   getPatternEmbeddingModel,
+  getPatternStoreProvider,
 } from '~/app/utilities/responses';
 
 type DrawerContentType =
@@ -97,9 +98,29 @@ export const buildResponsesTemplate = (
   const collectionName = getPatternCollectionName(pattern);
   const embeddingModel = getPatternEmbeddingModel(pattern);
   const isHybrid = retrieval.search_mode === 'hybrid';
+  const provider = getPatternStoreProvider(pattern);
+  /* eslint-disable camelcase */
+  let rankingOptions:
+    | { ranker: 'rrf'; alpha: number }
+    | { ranker: 'rrf'; ranker_k: number }
+    | { ranker: 'weighted'; alpha: number }
+    | undefined;
+  if (isHybrid) {
+    if (provider === 'pgvector') {
+      if (retrieval.ranker_strategy === 'weighted') {
+        throw new Error('Weighted ranking is not supported for pgvector');
+      }
+      rankingOptions = { ranker: 'rrf', alpha: retrieval.ranker_alpha ?? 0.5 };
+    } else if (retrieval.ranker_strategy === undefined || retrieval.ranker_strategy === 'rrf') {
+      rankingOptions = { ranker: 'rrf', ranker_k: retrieval.ranker_k ?? 60 };
+    } else if (retrieval.ranker_strategy === 'weighted') {
+      rankingOptions = { ranker: 'weighted', alpha: retrieval.ranker_alpha ?? 0.5 };
+    } else {
+      throw new Error(`Unsupported retrieval ranker: ${retrieval.ranker_strategy}`);
+    }
+  }
 
   return {
-    /* eslint-disable camelcase */
     model: generation.model_id,
     stream: true,
     store: false,
@@ -121,14 +142,7 @@ export const buildResponsesTemplate = (
         type: 'file_search',
         vector_store_ids: collectionName ? [collectionName] : [],
         max_num_results: retrieval.number_of_chunks,
-        ...(isHybrid
-          ? {
-              ranking_options: {
-                ranker: 'rrf',
-                alpha: retrieval.ranker_alpha ?? 0.5,
-              },
-            }
-          : {}),
+        ...(rankingOptions ? { ranking_options: rankingOptions } : {}),
       },
     ],
     tool_choice: { type: 'file_search' },
@@ -140,6 +154,7 @@ export const buildResponsesTemplate = (
 /* eslint-disable camelcase */
 export const normalizeResponsesTemplate = (
   template: AutoRAGResponsesTemplate,
+  provider: 'milvus' | 'pgvector' | 'neo4j',
 ): AutoRAGResponsesTemplate => {
   const { autorag_run_id: runId, ...metadata } = template.metadata;
   return {
@@ -152,12 +167,44 @@ export const normalizeResponsesTemplate = (
       if (!tool.ranking_options) {
         return tool;
       }
+      const ranking = tool.ranking_options;
+      const ranker = ranking.ranker_strategy ?? ranking.ranker;
+      if (ranker !== 'rrf' && ranker !== 'weighted') {
+        throw new Error(`Unsupported persisted retrieval ranker: ${ranker}`);
+      }
+      if (provider === 'pgvector' && ranker === 'weighted') {
+        throw new Error('Weighted ranking is not supported for pgvector');
+      }
+      const weighted = provider !== 'pgvector' && ranker === 'weighted';
+      const rankerK =
+        typeof ranking.ranker_k === 'number' &&
+        Number.isFinite(ranking.ranker_k) &&
+        ranking.ranker_k > 0
+          ? ranking.ranker_k
+          : typeof ranking.impact_factor === 'number' &&
+              Number.isFinite(ranking.impact_factor) &&
+              ranking.impact_factor > 0
+            ? ranking.impact_factor
+            : 60;
       return {
         ...tool,
-        ranking_options: {
-          ranker: 'rrf',
-          alpha: Number.isFinite(tool.ranking_options.alpha) ? tool.ranking_options.alpha : 0.5,
-        },
+        ranking_options: weighted
+          ? {
+              ranker: 'weighted',
+              alpha:
+                typeof ranking.alpha === 'number' && Number.isFinite(ranking.alpha)
+                  ? ranking.alpha
+                  : 0.5,
+            }
+          : provider === 'pgvector'
+            ? {
+                ranker: 'rrf',
+                alpha:
+                  typeof ranking.alpha === 'number' && Number.isFinite(ranking.alpha)
+                    ? ranking.alpha
+                    : 0.5,
+              }
+            : { ranker: 'rrf', ranker_k: rankerK },
       };
     }),
   };
@@ -633,6 +680,10 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern) {
         return false;
       }
+      const provider = getPatternStoreProvider(pattern);
+      if (!provider) {
+        return false;
+      }
       let responsesTemplate: AutoRAGResponsesTemplate;
       try {
         const persistedTemplate = pattern.inference?.responses_template;
@@ -656,9 +707,9 @@ function AutoragResultsPage(): React.JSX.Element {
         // carry the explicit unavailable marker rather than a half-valid
         // template.
         responsesTemplate = isUsableResponsesTemplate(candidate)
-          ? normalizeResponsesTemplate(candidate)
+          ? normalizeResponsesTemplate(candidate, provider)
           : isUsableResponsesTemplate(fallback)
-            ? normalizeResponsesTemplate(fallback)
+            ? normalizeResponsesTemplate(fallback, provider)
             : unavailableResponsesTemplate(patternName);
       } catch {
         responsesTemplate = unavailableResponsesTemplate(patternName);
@@ -705,6 +756,10 @@ function AutoragResultsPage(): React.JSX.Element {
         return;
       }
       const persistedTemplate = pattern.inference?.responses_template;
+      const provider = getPatternStoreProvider(pattern);
+      if (!provider) {
+        return;
+      }
       let responsesTemplate: AutoRAGResponsesTemplate;
       try {
         const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
@@ -734,7 +789,7 @@ function AutoragResultsPage(): React.JSX.Element {
         if (!usable) {
           return;
         }
-        responsesTemplate = normalizeResponsesTemplate(usable);
+        responsesTemplate = normalizeResponsesTemplate(usable, provider);
       } catch {
         return;
       }

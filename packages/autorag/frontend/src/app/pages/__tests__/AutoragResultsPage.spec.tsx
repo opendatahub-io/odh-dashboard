@@ -323,7 +323,7 @@ describe('buildResponsesTemplate', () => {
 
     expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
       ranker: 'rrf',
-      alpha: 0.5,
+      ranker_k: 60,
     });
   });
 
@@ -335,14 +335,35 @@ describe('buildResponsesTemplate', () => {
         retrieval: {
           ...mockPatterns['pattern-1'].settings.retrieval,
           search_mode: 'hybrid',
+          ranker_strategy: 'weighted',
           ranker_alpha: 0,
         },
       },
     } as AutoragPattern;
 
     expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
-      ranker: 'rrf',
+      ranker: 'weighted',
       alpha: 0,
+    });
+  });
+
+  it('should keep pgvector RRF alpha when building a hybrid template', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        store_binding: { provider_type: 'pgvector' as const, collection_name: 'chunks' },
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_alpha: 0.3,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 0.3,
     });
   });
 });
@@ -356,22 +377,35 @@ describe('normalizeResponsesTemplate', () => {
         {
           ...template.tools[0],
           ranking_options: {
-            ranker: 'legacy-ranker',
+            ranker: 'rrf',
             alpha: 0.25,
-            impact_factor: 0.75,
+            impact_factor: 42,
           },
         },
       ],
     } as unknown as typeof template;
 
-    expect(normalizeResponsesTemplate(legacyTemplate)).toEqual({
+    expect(normalizeResponsesTemplate(legacyTemplate, 'milvus')).toEqual({
       ...template,
       tools: [
         {
           ...template.tools[0],
-          ranking_options: { ranker: 'rrf', alpha: 0.25 },
+          ranking_options: { ranker: 'rrf', ranker_k: 42 },
         },
       ],
+    });
+  });
+
+  it('should retain pgvector RRF alpha when normalizing a persisted template', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const withRanking = {
+      ...template,
+      tools: [{ ...template.tools[0], ranking_options: { ranker: 'rrf' as const, alpha: 0.2 } }],
+    };
+
+    expect(normalizeResponsesTemplate(withRanking, 'pgvector').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 0.2,
     });
   });
 });
@@ -614,7 +648,7 @@ describe('AutoragResultsPage', () => {
         tools: [
           {
             ...legacyTemplate.tools[0],
-            ranking_options: { ranker: 'rrf', alpha: 0.5 },
+            ranking_options: { ranker: 'weighted', alpha: 0.5 },
           },
         ],
       });
@@ -716,6 +750,40 @@ describe('AutoragResultsPage', () => {
           optimization_max_rag_patterns: 10,
         },
       });
+    });
+
+    it('should reject unsupported persisted ranking strategies', () => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const invalidTemplate = {
+        ...template,
+        tools: [
+          {
+            ...template.tools[0],
+            ranking_options: { ranker: 'unsupported' },
+          },
+        ],
+      } as unknown as typeof template;
+
+      expect(() => normalizeResponsesTemplate(invalidTemplate, 'milvus')).toThrow(
+        'Unsupported persisted retrieval ranker',
+      );
+    });
+
+    it('should reject weighted pgvector templates', () => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const withRanking = {
+        ...template,
+        tools: [
+          {
+            ...template.tools[0],
+            ranking_options: { ranker: 'weighted' as const, alpha: 0.3 },
+          },
+        ],
+      };
+
+      expect(() => normalizeResponsesTemplate(withRanking, 'pgvector')).toThrow(
+        'Weighted ranking is not supported for pgvector',
+      );
     });
 
     it('should render a canonical run without an OGX secret', () => {
