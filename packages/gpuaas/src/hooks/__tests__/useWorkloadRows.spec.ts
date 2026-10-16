@@ -6,7 +6,6 @@ import { QuotaUsageWorkloadStatuses, QuotaUsageWorkloadTypes } from '../../types
 import useWorkloadRows from '../useWorkloadRows';
 import { useKueueNamespaceWorkloadCache } from '../KueueNamespaceWorkloadCacheContext';
 import {
-  fetchNamespaceWorkloadsBase,
   fetchQueuePositions,
   type KueueNamespaceWorkloadCache,
 } from '../../utils/clusterQueueWorkloads';
@@ -37,7 +36,6 @@ jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => ({
 jest.mock('../../utils/clusterQueueWorkloads', () => ({
   ...jest.requireActual('../../utils/clusterQueueWorkloads'),
   fetchQueuePositions: jest.fn(),
-  fetchNamespaceWorkloadsBase: jest.fn(),
   fetchNamespaceWorkloads: jest.fn(),
 }));
 
@@ -45,7 +43,6 @@ const useProjectsMock = jest.mocked(useProjects);
 const useFetchMock = jest.mocked(useFetch);
 const useKueueNamespaceWorkloadCacheMock = jest.mocked(useKueueNamespaceWorkloadCache);
 const fetchQueuePositionsMock = jest.mocked(fetchQueuePositions);
-const fetchNamespaceWorkloadsBaseMock = jest.mocked(fetchNamespaceWorkloadsBase);
 
 const kueueProject = mockProjectK8sResource({ k8sName: 'dsp-1', enableKueue: true });
 
@@ -217,7 +214,6 @@ describe('useWorkloadRows', () => {
   it('fetches all workloads for a namespace scope', () => {
     const workloads = [{ ...gpuCqRow, status: QuotaUsageWorkloadStatuses.Admitted }];
 
-    fetchNamespaceWorkloadsBaseMock.mockResolvedValue(workloads);
     useFetchMock.mockImplementation((callback, initialValue) => {
       void Promise.resolve(callback({ signal: new AbortController().signal })).catch(
         () => undefined,
@@ -239,11 +235,6 @@ describe('useWorkloadRows', () => {
       projectDisplayName: 'DSP 1',
     });
 
-    expect(fetchNamespaceWorkloadsBaseMock).toHaveBeenCalledWith(
-      'dsp-1',
-      'DSP 1',
-      'redhat-ods-applications',
-    );
     expect(renderResult.result.current.data.mode).toBe('namespace');
     if (renderResult.result.current.data.mode === 'namespace') {
       expect(renderResult.result.current.data.workloads).toHaveLength(1);

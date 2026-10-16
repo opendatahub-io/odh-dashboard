@@ -315,6 +315,8 @@ const visitAdmissions = (
   infrastructurePage.visit(false);
   infrastructurePage.findWorkloadsTab().click();
   infrastructurePage.selectProjectByName('Project-A');
+  infrastructurePage.findProjectSelectorToggle().should('contain.text', 'Project-A');
+  infrastructurePage.findAdmissionsTab().should('be.visible');
   infrastructurePage.findAdmissionsTab().click();
 };
 

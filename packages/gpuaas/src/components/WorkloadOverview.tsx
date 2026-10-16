@@ -28,7 +28,6 @@ import {
   t_chart_color_yellow_300 as chartYellow,
   t_chart_global_danger_color_100 as chartRed,
 } from '@patternfly/react-tokens';
-import WorkloadAdmissionsTab from './WorkloadAdmissionsTab';
 import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
 import {
   overviewBuckets,
@@ -37,6 +36,8 @@ import {
   type WorkloadOverviewRow,
 } from '../utils/workloadOverview';
 import './InfrastructureWorkloadsSection.scss';
+
+const WorkloadAdmissionsTab = React.lazy(() => import('./WorkloadAdmissionsTab'));
 
 type WorkloadOverviewProps = {
   workloads: WorkloadOverviewRow[];
@@ -403,12 +404,16 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                           </TabTitleText>
                         }
                       >
-                        <WorkloadAdmissionsTab
-                          metrics={admissionMetrics}
-                          timeWindow={timeWindow}
-                          onTimeWindowChange={setTimeWindow}
-                          canAccessAdminMetrics={canAccessAdminMetrics}
-                        />
+                        <React.Suspense
+                          fallback={<Spinner aria-label="Loading admission metrics" />}
+                        >
+                          <WorkloadAdmissionsTab
+                            metrics={admissionMetrics}
+                            timeWindow={timeWindow}
+                            onTimeWindowChange={setTimeWindow}
+                            canAccessAdminMetrics={canAccessAdminMetrics}
+                          />
+                        </React.Suspense>
                       </Tab>
                     )}
                   </Tabs>

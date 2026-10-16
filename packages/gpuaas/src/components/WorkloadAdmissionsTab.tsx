@@ -27,7 +27,7 @@ import {
   type AdmissionMetric,
 } from '../utils/workloadAdmissions';
 
-echarts.use([LineChart, GridComponent, TooltipComponent, SVGRenderer]);
+let echartsRegistered = false;
 
 type WorkloadAdmissionsTabProps = {
   metrics: ReturnType<typeof useWorkloadAdmissionMetrics>;
@@ -44,6 +44,11 @@ const AdmissionMetricChartComponent: React.FC<{
   animateOnMount: boolean;
   timeWindow: string;
 }> = ({ metric, xDomain, animateOnMount, timeWindow }) => {
+  if (!echartsRegistered) {
+    echarts.use([LineChart, GridComponent, TooltipComponent, SVGRenderer]);
+    echartsRegistered = true;
+  }
+
   const chartContainerRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(240);
   const data = getValidAdmissionMetricPoints(metric.data);

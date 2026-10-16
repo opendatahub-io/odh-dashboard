@@ -11,9 +11,7 @@ import type { WorkloadRowsFetchResult, WorkloadRowsScope, ClusterQueueWorkloadRo
 import { INFRASTRUCTURE_MANUAL_REFRESH_ONLY } from '../const';
 import {
   applyQueuePositionsToMap,
-  applyDisplayStatuses,
-  applyQueuePositions,
-  fetchNamespaceWorkloadsBase,
+  fetchNamespaceWorkloads,
   fetchQueuePositions,
   getProjectDisplayName,
   mapWorkloadsForClusterQueuesSync,
@@ -159,7 +157,7 @@ const useWorkloadRows = (
         return { mode: 'namespace', workloads: [] };
       }
 
-      const workloads = await fetchNamespaceWorkloadsBase(
+      const workloads = await fetchNamespaceWorkloads(
         currentScope.namespace,
         currentScope.projectDisplayName,
         dashboardNamespace,
@@ -170,37 +168,6 @@ const useWorkloadRows = (
     { mode: 'namespace', workloads: [] },
     { refreshRate, initialPromisePurity: true },
   );
-
-  const namespaceRows = React.useMemo(
-    () => (namespaceData.mode === 'namespace' ? namespaceData.workloads : []),
-    [namespaceData],
-  );
-  const { data: namespacePositions, loaded: namespacePositionsLoaded } = useFetch<
-    Map<QueuePositionKey, number>
-  >(
-    React.useCallback(async () => {
-      if (namespaceRows.length === 0) {
-        return emptyPositions;
-      }
-      return fetchQueuePositions(namespaceRows);
-    }, [namespaceRows]),
-    emptyPositions,
-    { refreshRate, initialPromisePurity: true },
-  );
-
-  const enrichedNamespaceData = React.useMemo<WorkloadRowsFetchResult>(() => {
-    if (namespaceData.mode !== 'namespace') {
-      return namespaceData;
-    }
-    return {
-      mode: 'namespace',
-      workloads: applyDisplayStatuses(
-        applyQueuePositions(namespaceData.workloads, namespacePositions),
-        namespacePositionsLoaded,
-      ),
-    };
-  }, [namespaceData, namespacePositions, namespacePositionsLoaded]);
-
   const clusterQueuesRefresh = React.useCallback(async (): Promise<
     WorkloadRowsFetchResult | undefined
   > => {
@@ -235,7 +202,7 @@ const useWorkloadRows = (
 
   if (scope.mode === 'namespace') {
     return {
-      data: enrichedNamespaceData,
+      data: namespaceData,
       loaded: namespaceLoaded,
       error: namespaceError,
       refresh: namespaceRefresh,
