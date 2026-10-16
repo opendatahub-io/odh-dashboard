@@ -53,6 +53,7 @@ export enum ProjectObjectType {
   mcpCatalog = 'mcp-catalog',
   agentsCatalog = 'agents-catalog',
   agentOps = 'agent-ops',
+  skillRegistry = 'skill-registry',
   taskAssistant = 'task-assistant',
   apiKeys = 'api-keys',
   dataRegistry = 'data-registry',

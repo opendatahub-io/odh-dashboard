@@ -165,6 +165,7 @@ const extensions: (
       group: '3_skills',
       section: 'ai-hub',
       label: 'Tech Preview',
+      objectType: 'skill-registry',
     },
   },
   {
