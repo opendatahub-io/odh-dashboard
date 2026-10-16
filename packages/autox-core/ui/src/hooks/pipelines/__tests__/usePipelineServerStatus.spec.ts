@@ -1,83 +1,127 @@
-import { act, renderHook } from '@testing-library/react';
-import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
+/* eslint-disable camelcase -- API response fixtures use snake_case */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
+import type { PipelinesApi } from '../../../api/pipelines/pipelines';
+import { AutoXApiProvider } from '../../../context/AutoXApiContext';
 import { usePipelineServerStatus } from '../usePipelineServerStatus';
 
-jest.mock('@odh-dashboard/ui-core/hooks/useK8sWatchResourceList', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
-
-const mockUseK8sWatchResourceList = jest.mocked(useK8sWatchResourceList);
-
-const unreadyDspa = {
-  apiVersion: 'v1',
-  kind: 'DataSciencePipelinesApplication',
-  metadata: { name: 'pipeline-server', namespace: 'test-project' },
-  status: { conditions: [{ type: 'Ready', status: 'False' }] },
+const mockPipelinesApi: PipelinesApi = {
+  createPipelineRun: jest.fn(),
+  getPipelineRunsFromBFF: jest.fn(),
+  getPipelineRunFromBFF: jest.fn(),
+  enableManagedPipelines: jest.fn(),
+  getPipelineServerStatus: jest.fn(),
+  terminatePipelineRun: jest.fn(),
+  retryPipelineRun: jest.fn(),
+  deletePipelineRun: jest.fn(),
 };
 
-const readyDspa = {
-  ...unreadyDspa,
-  status: { conditions: [{ type: 'Ready', status: 'True' }] },
+jest.mock('../../../api/pipelines/pipelines', () => ({
+  ...jest.requireActual('../../../api/pipelines/pipelines'),
+  createPipelinesApi: jest.fn(() => mockPipelinesApi),
+}));
+
+const createWrapper = () => {
+  const queryClient = new QueryClient();
+  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+    React.createElement(
+      AutoXApiProvider,
+      {
+        apiPrefix: '/test',
+        bffApiVersion: 'v1',
+      },
+      React.createElement(QueryClientProvider, { client: queryClient }, children),
+    );
+  return Wrapper;
 };
 
 describe('usePipelineServerStatus', () => {
+  const getPipelineServerStatus = jest.mocked(mockPipelinesApi.getPipelineServerStatus);
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should report a successfully observed unready DSPA as starting', () => {
-    mockUseK8sWatchResourceList.mockReturnValue([[unreadyDspa], true, undefined]);
+  it('should report a successfully observed unready DSPA as starting', async () => {
+    getPipelineServerStatus.mockResolvedValue({ status: 'starting', dspa_name: 'dspa' });
 
-    const { result } = renderHook(() => usePipelineServerStatus('test-project'));
+    const { result } = renderHook(() => usePipelineServerStatus('test-project'), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
 
     expect(result.current).toStrictEqual({ loaded: true, isStarting: true, error: undefined });
-  });
-
-  it('should stop reporting starting when the watch fails after observing an unready DSPA', () => {
-    const error = new Error('watch interrupted');
-    mockUseK8sWatchResourceList.mockReturnValue([[unreadyDspa], true, error]);
-
-    const { result } = renderHook(() => usePipelineServerStatus('test-project'));
-
-    expect(result.current).toStrictEqual({ loaded: true, isStarting: false, error });
-  });
-
-  it('should return a readiness error when DSPA conditions are not an array', () => {
-    const invalidDspa = {
-      ...unreadyDspa,
-      status: { conditions: 'invalid' },
-    } as unknown as typeof unreadyDspa;
-    mockUseK8sWatchResourceList.mockReturnValue([[invalidDspa], true, undefined]);
-
-    const { result } = renderHook(() => usePipelineServerStatus('test-project'));
-
-    expect(result.current.loaded).toBe(true);
-    expect(result.current.isStarting).toBe(false);
-    expect(result.current.error).toEqual(
-      new Error('Pipeline server returned invalid readiness conditions.'),
+    expect(getPipelineServerStatus).toHaveBeenCalledWith(
+      '',
+      'test-project',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 
-  it('should expose a Ready transition after observing the DSPA', () => {
-    mockUseK8sWatchResourceList.mockReturnValue([[unreadyDspa], true, undefined]);
+  it('should stop reporting starting when the status query fails after observing', async () => {
+    const error = new Error('Pipeline Server returned invalid readiness conditions');
+    getPipelineServerStatus.mockRejectedValue(error);
 
-    const { result, rerender } = renderHook(() => usePipelineServerStatus('test-project'));
+    const { result } = renderHook(() => usePipelineServerStatus('test-project'), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.error).toBe(error));
 
-    expect(result.current.isStarting).toBe(true);
-    mockUseK8sWatchResourceList.mockReturnValue([[readyDspa], true, undefined]);
-    rerender();
-
+    expect(result.current.loaded).toBe(true);
     expect(result.current.isStarting).toBe(false);
   });
 
-  it('should wait for the Ready confirmation delay before marking the server loaded', () => {
-    jest.useFakeTimers();
-    mockUseK8sWatchResourceList.mockReturnValue([[readyDspa], true, undefined]);
+  it('should treat a not-found result as inconclusive rather than starting', async () => {
+    getPipelineServerStatus.mockResolvedValue({ status: 'not-found' });
 
-    const { result, unmount } = renderHook(() => usePipelineServerStatus('test-project'));
+    const { result } = renderHook(() => usePipelineServerStatus('test-project'), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
 
-    try {
+    expect(result.current).toStrictEqual({ loaded: true, isStarting: false, error: undefined });
+  });
+
+  it('should not fetch while disabled and stay unsettled', async () => {
+    getPipelineServerStatus.mockResolvedValue({ status: 'ready', dspa_name: 'dspa' });
+
+    const { result } = renderHook(() => usePipelineServerStatus('test-project', false), {
+      wrapper: createWrapper(),
+    });
+    // Flush any stray microtasks; the query must never fire.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current).toStrictEqual({ loaded: false, isStarting: false, error: undefined });
+    expect(getPipelineServerStatus).not.toHaveBeenCalled();
+  });
+
+  describe('ready confirmation delay', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    // React Query batches result notifications through a 0ms timer, so under fake
+    // timers the initial fetch only lands once that tick is advanced.
+    const flushQuery = () =>
+      act(async () => {
+        await jest.advanceTimersByTimeAsync(0);
+      });
+
+    it('should wait for the Ready confirmation delay before marking the server loaded', async () => {
+      getPipelineServerStatus.mockResolvedValue({ status: 'ready', dspa_name: 'dspa' });
+
+      const { result } = renderHook(() => usePipelineServerStatus('test-project'), {
+        wrapper: createWrapper(),
+      });
+      await flushQuery();
+
       expect(result.current.loaded).toBe(false);
 
       act(() => {
@@ -89,52 +133,44 @@ describe('usePipelineServerStatus', () => {
         jest.advanceTimersByTime(1);
       });
       expect(result.current.loaded).toBe(true);
-    } finally {
-      unmount();
-      jest.useRealTimers();
-    }
-  });
+      expect(result.current.isStarting).toBe(false);
+    });
 
-  it('should accept Ready when observedGeneration is omitted', () => {
-    jest.useFakeTimers();
-    const readyWithoutObservedGeneration = {
-      ...readyDspa,
-      metadata: { ...readyDspa.metadata, generation: 2 },
-    };
-    mockUseK8sWatchResourceList.mockReturnValue([
-      [readyWithoutObservedGeneration],
-      true,
-      undefined,
-    ]);
+    it('should accept Ready when the DSPA reports no dspa_name', async () => {
+      getPipelineServerStatus.mockResolvedValue({ status: 'ready' });
 
-    const { result, unmount } = renderHook(() => usePipelineServerStatus('test-project'));
+      const { result } = renderHook(() => usePipelineServerStatus('test-project'), {
+        wrapper: createWrapper(),
+      });
+      await flushQuery();
 
-    try {
       expect(result.current.isStarting).toBe(false);
       expect(result.current.loaded).toBe(false);
 
       act(() => jest.advanceTimersByTime(2000));
 
       expect(result.current.loaded).toBe(true);
-    } finally {
-      unmount();
-      jest.useRealTimers();
-    }
-  });
+    });
 
-  it('should report a DSPA as starting when Ready is for an older generation', () => {
-    const staleReadyDspa = {
-      ...readyDspa,
-      metadata: { ...readyDspa.metadata, generation: 2 },
-      status: {
-        conditions: [{ type: 'Ready', status: 'True', observedGeneration: 1 }],
-      },
-    };
-    mockUseK8sWatchResourceList.mockReturnValue([[staleReadyDspa], true, undefined]);
+    it('should expose a Ready transition on the next poll after observing the DSPA', async () => {
+      getPipelineServerStatus.mockResolvedValueOnce({ status: 'starting', dspa_name: 'dspa' });
+      getPipelineServerStatus.mockResolvedValue({ status: 'ready', dspa_name: 'dspa' });
 
-    const { result } = renderHook(() => usePipelineServerStatus('test-project'));
+      const { result } = renderHook(() => usePipelineServerStatus('test-project'), {
+        wrapper: createWrapper(),
+      });
+      await flushQuery();
 
-    expect(result.current.loaded).toBe(true);
-    expect(result.current.isStarting).toBe(true);
+      expect(result.current.isStarting).toBe(true);
+
+      // The next poll flips the observed state to Ready. Advance slightly past the
+      // interval: the result notification is a 0ms timer scheduled at poll time,
+      // which lands just after the boundary.
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5100);
+      });
+
+      expect(result.current.isStarting).toBe(false);
+    });
   });
 });

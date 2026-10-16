@@ -1,22 +1,12 @@
-import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
-import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
-import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
+import { useQuery } from '@tanstack/react-query';
 import React from 'react';
+import { useAutoXApi } from '../../context/AutoXApiContext';
 
 const READY_CONFIRMATION_DELAY_MS = 2000;
+const STATUS_POLL_INTERVAL_MS = 5000;
 
-const DataSciencePipelineApplicationModel = {
-  apiVersion: 'v1',
-  apiGroup: 'datasciencepipelinesapplications.opendatahub.io',
-  kind: 'DataSciencePipelinesApplication',
-  plural: 'datasciencepipelinesapplications',
-} as const;
-
-type DataSciencePipelineApplication = K8sResourceCommon & {
-  status?: {
-    conditions?: Array<{ type?: string; status?: string; observedGeneration?: number }>;
-  };
-};
+export const pipelineServerStatusKey = (namespace: string) =>
+  ['pipelineServerStatus', namespace] as const;
 
 export type PipelineServerStatus = {
   loaded: boolean;
@@ -24,60 +14,36 @@ export type PipelineServerStatus = {
   error: Error | undefined;
 };
 
-/** Watches DSPA readiness so empty-run actions stay gated while an observed server is starting. */
+/** Polls BFF-served DSPA readiness so empty-run actions stay gated while an observed server is starting. */
 export const usePipelineServerStatus = (
   namespace?: string,
   enabled = true,
 ): PipelineServerStatus => {
-  const [dspas, loaded, error] = useK8sWatchResourceList<DataSciencePipelineApplication[]>(
-    namespace && enabled
-      ? {
-          isList: true,
-          groupVersionKind: groupVersionKind(DataSciencePipelineApplicationModel),
-          namespace,
-        }
-      : null,
-    DataSciencePipelineApplicationModel,
-  );
+  const { pipelines: pipelinesApi } = useAutoXApi();
 
-  const hasInvalidConditions = dspas.some((dspa) => {
-    const conditions: unknown = dspa.status?.conditions;
-    if (conditions === undefined) {
-      return false;
-    }
-    if (!Array.isArray(conditions)) {
-      return true;
-    }
-    return conditions.some(
-      (condition: unknown) => typeof condition !== 'object' || condition === null,
-    );
+  // Keep polling even once ready: a server restart flips Ready back to Starting,
+  // and the empty-run gating must follow that transition. The BFF reads the DSPA
+  // fresh (uncached) on every request, so this never reports stale readiness.
+  const query = useQuery({
+    queryKey: pipelineServerStatusKey(namespace ?? ''),
+    enabled: Boolean(namespace) && enabled,
+    queryFn: ({ signal }) => pipelinesApi.getPipelineServerStatus('', namespace ?? '', { signal }),
+    refetchInterval: STATUS_POLL_INTERVAL_MS,
+    retry: false,
   });
-  const readinessError =
-    error ??
-    (hasInvalidConditions
-      ? new Error('Pipeline server returned invalid readiness conditions.')
-      : undefined);
-  const hasReadinessError = Boolean(readinessError);
-  const isReady =
-    !hasInvalidConditions &&
-    dspas.some((dspa) => {
-      const generation = dspa.metadata?.generation;
-      return dspa.status?.conditions?.some(
-        (condition) =>
-          condition.type === 'Ready' &&
-          condition.status === 'True' &&
-          // Ignore a Ready condition from an older generation when the operator reports one.
-          (generation === undefined ||
-            condition.observedGeneration === undefined ||
-            condition.observedGeneration === generation),
-      );
-    });
+
+  const status = query.data;
+  const readinessError = query.error ?? undefined;
+  const isReady = status?.status === 'ready';
+  // The query has settled once it holds either a status or an error; before that
+  // the page should keep showing its loading state.
+  const settled = status !== undefined || readinessError !== undefined;
 
   const [confirmedReadyNamespace, setConfirmedReadyNamespace] = React.useState<string>();
 
   React.useEffect(() => {
     setConfirmedReadyNamespace(undefined);
-    if (!namespace || !loaded || hasReadinessError || !isReady) {
+    if (!namespace || !settled || readinessError || !isReady) {
       return undefined;
     }
 
@@ -86,17 +52,18 @@ export const usePipelineServerStatus = (
       READY_CONFIRMATION_DELAY_MS,
     );
     return () => clearTimeout(timeout);
-  }, [namespace, loaded, hasReadinessError, isReady]);
+  }, [namespace, settled, readinessError, isReady]);
 
   const isReadyConfirmed = isReady && confirmedReadyNamespace === namespace;
-  // Only report startup after observing a DSPA. An empty watch result is inconclusive, so let the
-  // experiments page fall back to the BFF state instead of showing the blocking waiting state.
-  const isStarting = !readinessError && loaded && dspas.length > 0 && !isReady;
+  // Only report startup after observing a DSPA. A not-found result is inconclusive
+  // (the server may simply not be deployed), so let the experiments page fall back to
+  // the BFF state instead of showing the blocking waiting state.
+  const isStarting = !readinessError && status?.status === 'starting';
 
   return {
-    // Give the watch a brief chance to deliver an immediate Ready -> Starting transition before
-    // showing the empty state and its Create Run action.
-    loaded: loaded && (!isReady || isReadyConfirmed),
+    // Give readiness a brief chance to deliver an immediate Ready -> Starting transition
+    // before showing the empty state and its Create Run action.
+    loaded: settled && (!isReady || isReadyConfirmed),
     isStarting,
     error: readinessError,
   };

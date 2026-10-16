@@ -13,6 +13,7 @@ const mockPipelinesApi: PipelinesApi = {
   getPipelineRunsFromBFF: jest.fn(),
   getPipelineRunFromBFF: jest.fn(),
   enableManagedPipelines: jest.fn(),
+  getPipelineServerStatus: jest.fn(),
   terminatePipelineRun: jest.fn(),
   retryPipelineRun: jest.fn(),
   deletePipelineRun: jest.fn(),
