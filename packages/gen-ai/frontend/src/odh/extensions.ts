@@ -18,6 +18,8 @@ import type { AIAssetsTabExtension } from '~/odh/extension-points';
 export const PLUGIN_GEN_AI = 'plugin-gen-ai';
 export const CHAT_PLAYGROUND = 'chatPlayground';
 export const GEN_AI_STUDIO = 'genAiStudio';
+export const GEN_AI_IMAGE_UPLOAD = 'genAiImageUpload';
+export const GEN_AI_AUDIO_UPLOAD = 'genAiAudioUpload';
 export const GEN_AI_TRACING = 'genAiTracing';
 export const MODEL_AS_SERVICE = 'model-as-service';
 export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
@@ -56,6 +58,22 @@ const extensions: (
         ['Managed', 'Unmanaged'].includes(
           dscStatus?.components?.[DataScienceStackComponent.OGX_OPERATOR]?.managementState ?? '',
         ),
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: GEN_AI_IMAGE_UPLOAD,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GEN_AI_IMAGE_UPLOAD],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: GEN_AI_AUDIO_UPLOAD,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GEN_AI_AUDIO_UPLOAD],
     },
   },
   {

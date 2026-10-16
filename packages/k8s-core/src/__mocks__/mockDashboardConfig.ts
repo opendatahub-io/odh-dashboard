@@ -41,6 +41,8 @@ export type MockDashboardConfigType = {
   featureStoreAdmin?: boolean;
   dataRegistry?: boolean;
   genAiStudio?: boolean;
+  genAiImageUpload?: boolean;
+  genAiAudioUpload?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
@@ -93,6 +95,8 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = true,
+  genAiImageUpload = false,
+  genAiAudioUpload = false,
   genAiTracing = false,
   automl = true,
   autorag = true,
@@ -301,6 +305,8 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
+      genAiImageUpload,
+      genAiAudioUpload,
       genAiTracing,
       automl,
       autorag,

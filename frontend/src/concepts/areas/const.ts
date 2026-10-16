@@ -6,6 +6,8 @@ import {
 } from '@odh-dashboard/plugin-core/areas';
 
 export const techPreviewFlags = {
+  genAiImageUpload: false,
+  genAiAudioUpload: false,
   genAiTracing: false,
   guardrails: false,
   modelAsService: true,

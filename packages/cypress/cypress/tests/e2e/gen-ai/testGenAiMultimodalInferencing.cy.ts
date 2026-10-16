@@ -205,7 +205,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigateToPlaygroundWithRetry(projectName);
+      genAiPlayground.navigateToMultimodalPlaygroundWithRetry(projectName);
 
       cy.step('Wait for playground to be ready');
       genAiPlayground.findMessageInput({ timeout: 120000 }).should('be.visible');
@@ -318,7 +318,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       });
 
       cy.step('Open a fresh Playground conversation with the Gemini chat model');
-      genAiPlayground.navigateToPlaygroundWithRetry(projectName);
+      genAiPlayground.navigateToMultimodalPlaygroundWithRetry(projectName);
       cy.window().its('POLL_INTERVAL').should('eq', 999999);
       genAiPlayground.findMessageInput({ timeout: 120000 }).should('be.visible');
 

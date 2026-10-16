@@ -1,6 +1,8 @@
 const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
+const GEN_AI_MULTIMODAL_FLAGS =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,genAiImageUpload=true,genAiAudioUpload=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG =
@@ -10,7 +12,7 @@ const GEN_AI_GUARDRAILS_FLAG =
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false';
 const GEN_AI_ALL_FLAGS =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,genAiImageUpload=true,genAiAudioUpload=true,modelAsService=false';
 const GEN_AI_AGENT_DEPLOYMENTS_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,agentConfigManagement=true,genAiAgentDeployment=true,modelAsService=false';
 const GEN_AI_MCP_REGISTRY_FLAG =
@@ -62,6 +64,12 @@ class GenAiPlayground {
 
   navigateToPlaygroundWithRetry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('settings-model-selector-toggle', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToMultimodalPlaygroundWithRetry(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_MULTIMODAL_FLAGS}`;
     cy.visit(playgroundUrl);
     cy.findByTestId('settings-model-selector-toggle', { timeout: 120000 }).should('be.visible');
   }

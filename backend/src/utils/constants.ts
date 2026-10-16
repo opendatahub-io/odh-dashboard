@@ -110,6 +110,8 @@ export const blankDashboardCR: DashboardConfig = {
       externalVectorStores: false,
       agentConfigManagement: false,
       genAiAgentDeployment: false,
+      genAiImageUpload: false,
+      genAiAudioUpload: false,
       vLLMDeploymentOnMaaS: false,
       llmGatewayField: false,
       promptManagement: true,
