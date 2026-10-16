@@ -323,7 +323,7 @@ describe('AutoML API Contract Tests', () => {
           undefined,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application/json/schema',
+          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application~1json/schema',
           status: 200,
         });
       });
