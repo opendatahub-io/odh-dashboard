@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import {
@@ -37,6 +38,8 @@ import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
 import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
+import { GRID } from '~/odh/extensions';
+import ReadOnlyModelSelector from './components/ReadOnlyModelSelector';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
@@ -72,6 +75,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     modelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
+  const [gridEnabled] = useFeatureFlag(GRID);
   const {
     data: mcpServers = [],
     configMapName: mcpConfigMapName,
@@ -509,7 +513,9 @@ const ChatbotMain: React.FunctionComponent = () => {
         }
         loadError={lsdStatusError || aiModelsError || profileLoadError}
         headerAction={
-          hasNoModelsOrSelectedModelDisabled ? undefined : (
+          hasNoModelsOrSelectedModelDisabled ? undefined : gridEnabled ? (
+            <ReadOnlyModelSelector configId={primaryConfigId} />
+          ) : (
             <ChatbotHeaderActions
               onSave={handleOpenSave}
               onSaveAs={handleOpenSaveAs}
@@ -604,6 +610,9 @@ const ChatbotMain: React.FunctionComponent = () => {
               onOpenSaveAs={handleOpenSaveAs}
               onClearAgent={handleNewAgentConfiguration}
               isProfileDirty={isProfileDirty}
+              placeholderBotContent={
+                gridEnabled ? 'Select an entitled model and send a message to begin.' : undefined
+              }
               onResetToLastSaved={handleResetToLastSaved}
               mcpServers={availableMcpServers}
               mcpRegistryAvailable={mcpRegistryAvailable}
@@ -617,6 +626,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               onDeploymentClick={() => {
                 setSelectedDeploymentName(sortedDeployments[0].name);
               }}
+              readOnly={gridEnabled}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (

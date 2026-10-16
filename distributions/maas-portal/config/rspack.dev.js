@@ -12,6 +12,7 @@ const PORT = process.env.SHELL_PORT || 4020;
 const BASE_PATH = '/maas-portal';
 const PORTAL_RESOURCE_NAME = 'maas-portal';
 const portalApiPaths = {
+  standalone: `${BASE_PATH}/maas-consumer/api`,
   maas: `${BASE_PATH}/maas/api`,
   genAi: `${BASE_PATH}/gen-ai/api`,
   perses: `${BASE_PATH}/perses/api`,
@@ -204,9 +205,11 @@ const buildProxyConfig = () => {
 
   // Local mode: proxy to explicit BFF targets (port-forward or local BFF)
   const MAAS_BFF_TARGET = process.env.MAAS_BFF_TARGET || 'http://localhost:4000';
+  const STANDALONE_PORTAL_TARGET = process.env.STANDALONE_PORTAL_TARGET || 'http://localhost:8090';
   const GENAI_BFF_TARGET = process.env.GENAI_BFF_TARGET || 'http://localhost:8080';
   const PERSES_TARGET = process.env.PERSES_TARGET || 'http://localhost:9005';
   const CORE_BFF_TARGET = process.env.CORE_BFF_TARGET || 'http://localhost:4000';
+  const gridEnabled = process.env.GRID === 'true';
   console.info('Proxy targets:', {
     maas: MAAS_BFF_TARGET,
     genAi: GENAI_BFF_TARGET,
@@ -215,16 +218,29 @@ const buildProxyConfig = () => {
   });
 
   return [
-    { path: portalApiPaths.maas, target: MAAS_BFF_TARGET, pathRewrite: '/api' },
-    { path: portalApiPaths.genAi, target: GENAI_BFF_TARGET, pathRewrite: '/api' },
+    { path: portalApiPaths.standalone, target: STANDALONE_PORTAL_TARGET, pathRewrite: '/api' },
+    {
+      path: portalApiPaths.maas,
+      target: process.env.GRID === 'true' ? STANDALONE_PORTAL_TARGET : MAAS_BFF_TARGET,
+      pathRewrite: '/api',
+    },
+    {
+      path: portalApiPaths.genAi,
+      target: gridEnabled ? STANDALONE_PORTAL_TARGET : GENAI_BFF_TARGET,
+      pathRewrite: '/api',
+    },
     { path: portalApiPaths.perses, target: PERSES_TARGET, pathRewrite: '' },
-    { path: portalApiPaths.config, target: CORE_BFF_TARGET, pathRewrite: '/api/config' },
     { path: portalApiPaths.k8s, target: CORE_BFF_TARGET, pathRewrite: '/api/k8s' },
     { path: portalApiPaths.k8sWatch, target: CORE_BFF_TARGET, pathRewrite: '/wss/k8s' },
     {
       path: portalApiPaths.operatorSubscriptionStatus,
       target: CORE_BFF_TARGET,
       pathRewrite: '/api/operator-subscription-status',
+    },
+    {
+      path: portalApiPaths.config,
+      target: gridEnabled ? STANDALONE_PORTAL_TARGET : CORE_BFF_TARGET,
+      pathRewrite: gridEnabled ? '/api/v1/config' : '/api/config',
     },
   ].map(({ path: proxyPath, target, pathRewrite }) => ({
     context: [proxyPath],

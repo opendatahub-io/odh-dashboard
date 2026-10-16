@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import { GRID } from '~/odh/extensions';
 import { useNamespaceSelectorWithPersistence } from './hooks/useNamespaceSelectorWithPersistence';
 import GenAiCoreNoProjects from './GenAiCoreNoProjects';
 import GenAiCoreInvalidProject from './GenAiCoreInvalidProject';
@@ -33,6 +35,15 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
   const { namespace } = useParams<{ namespace: string }>();
   const { namespaces, namespacesLoaded, preferredNamespace } =
     useNamespaceSelectorWithPersistence();
+  const [maasConsumerPortalEnabled] = useFeatureFlag(GRID);
+
+  if (maasConsumerPortalEnabled) {
+    return (
+      <GenAiContextProvider>
+        <Outlet />
+      </GenAiContextProvider>
+    );
+  }
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (namespaces.length === 0) {

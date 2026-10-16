@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import {
   useFetchState,
   FetchStateObject,
@@ -7,15 +8,29 @@ import {
   APIOptions,
 } from 'mod-arch-core';
 import { LlamaStackDistributionModel } from '~/app/types';
+import { GRID } from '~/odh/extensions';
 import { NO_REFRESH_INTERVAL, REFRESH_INTERVAL } from '~/app/const';
 import { useGenAiAPI } from './useGenAiAPI';
 import useChatPlaygroundEnabled from './useChatPlaygroundEnabled';
+
+const MAAS_LSD_STATUS: LlamaStackDistributionModel = {
+  name: 'MaaS',
+  phase: 'Ready',
+  version: '',
+  distributionConfig: {
+    activeDistribution: 'MaaS',
+    providers: [],
+    availableDistributions: {},
+  },
+  tracingEnabled: false,
+};
 
 const useFetchLSDStatus = (
   activelyRefresh?: boolean,
 ): FetchStateObject<LlamaStackDistributionModel | null> => {
   const { api, apiAvailable } = useGenAiAPI();
   const isChatPlaygroundEnabled = useChatPlaygroundEnabled();
+  const [maasConsumerPortalEnabled] = useFeatureFlag(GRID);
   const callback = React.useCallback<FetchStateCallbackPromise<LlamaStackDistributionModel>>(
     async (opts: APIOptions) => {
       if (!apiAvailable) {
@@ -24,9 +39,12 @@ const useFetchLSDStatus = (
       if (!isChatPlaygroundEnabled) {
         return Promise.reject(new NotReadyError('Playground is not enabled'));
       }
+      if (maasConsumerPortalEnabled) {
+        return MAAS_LSD_STATUS;
+      }
       return api.getLSDStatus(opts).then((r) => r);
     },
-    [api, apiAvailable, isChatPlaygroundEnabled],
+    [api, apiAvailable, isChatPlaygroundEnabled, maasConsumerPortalEnabled],
   );
 
   const [data, loaded, error, refresh] = useFetchState(callback, null, {

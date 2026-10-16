@@ -66,7 +66,12 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ 
     refresh: lsdStatusRefresh,
   } = useFetchLSDStatus(activelyRefreshing);
 
-  const { data: aiModels, loaded: aiModelsLoaded, error: aiModelsError } = useFetchAIModels();
+  const {
+    data: aiModels,
+    loaded: aiModelsLoaded,
+    error: aiModelsError,
+    refresh: aiModelsRefresh,
+  } = useFetchAIModels();
 
   const maasModels = React.useMemo(
     (): AIModel[] =>
@@ -87,17 +92,35 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ 
   } = useFetchNemoGuardrailsStatus();
 
   const {
-    data: models,
-    loaded: modelsLoaded,
-    error: modelsError,
+    data: llamaModels,
+    loaded: llamaModelsLoaded,
+    error: llamaModelsError,
     refresh: modelsRefresh,
   } = useFetchLlamaModels(lsdStatus?.phase !== 'Ready');
 
+  const models = React.useMemo(
+    (): LlamaModel[] =>
+      llamaModels.length > 0
+        ? llamaModels
+        : maasModels.map((model) => ({
+            id: model.model_id,
+            modelId: model.model_id,
+            object: 'model',
+            created: 0,
+            // eslint-disable-next-line camelcase
+            owned_by: 'maas',
+          })),
+    [llamaModels, maasModels],
+  );
+  const modelsLoaded = llamaModelsLoaded || maasModelsLoaded;
+  const modelsError = llamaModelsError || maasModelsError;
+
   const refresh = React.useCallback(() => {
     lsdStatusRefresh();
+    aiModelsRefresh();
     modelsRefresh();
     nemoGuardrailsStatusRefresh();
-  }, [lsdStatusRefresh, modelsRefresh, nemoGuardrailsStatusRefresh]);
+  }, [aiModelsRefresh, lsdStatusRefresh, modelsRefresh, nemoGuardrailsStatusRefresh]);
 
   // Set activeRefresh to false when the component unmounts
   React.useEffect(() => {

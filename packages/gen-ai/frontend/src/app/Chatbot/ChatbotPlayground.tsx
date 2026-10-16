@@ -229,6 +229,8 @@ type ChatbotPlaygroundProps = {
   onMcpMissingAuthServersChange?: (serverNames: string[]) => void;
   deploymentCount?: number;
   onDeploymentClick?: () => void;
+  /** Uses the embedded presentation: model selection and basic chat only. */
+  readOnly?: boolean;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -262,10 +264,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   onMcpMissingAuthServersChange,
   deploymentCount = 0,
   onDeploymentClick,
+  readOnly = false,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
   const isEmbedded = useIsEmbeddedPlayground();
+  const isReadOnly = isEmbedded || readOnly;
   const {
     models,
     modelsLoaded,
@@ -1224,7 +1228,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isUploading={sourceManagement.isUploading}
         uploadProgress={sourceManagement.uploadProgress}
       />
-      {!isEmbedded && (
+      {!isReadOnly && (
         <ViewCodeModal
           isOpen={isViewCodeModalOpen}
           onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
@@ -1235,7 +1239,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           namespace={namespace?.name}
         />
       )}
-      {!isEmbedded && (
+      {!isReadOnly && (
         <ChatModal
           isOpen={isNewChatModalOpen}
           onClose={() => setIsNewChatModalOpen(false)}
@@ -1270,11 +1274,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       )}
 
       {/* Main layout */}
-      <Drawer isExpanded={isDrawerExpanded && !isEmbedded} isInline position="right">
+      <Drawer isExpanded={isDrawerExpanded && !isReadOnly} isInline position="right">
         <Divider />
         <DrawerContent
           panelContent={
-            !isEmbedded ? (
+            !isReadOnly ? (
               <ChatbotSettingsPanel
                 configId={activePaneConfigId}
                 alerts={alerts}
@@ -1316,7 +1320,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             >
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Single mode header */}
-                {!isCompareMode && !isEmbedded && (
+                {!isCompareMode && !isReadOnly && (
                   <ChatbotPaneHeader
                     hasDivider
                     isDarkMode={isDarkMode}
@@ -1380,7 +1384,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     audioTranscription.state.phase === 'waiting-for-model' ||
                     isDocumentUploading
                   }
-                  showAttachButton={!isEmbedded}
+                  showAttachButton={!isReadOnly}
                   onDocumentAttach={handleDocumentAttach}
                   documentAttachments={documentAttachments}
                   onRemoveDocument={handleRemoveDocument}

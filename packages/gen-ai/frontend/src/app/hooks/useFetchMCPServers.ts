@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { MCPServerFromAPI } from '~/app/types';
+import { GRID } from '~/odh/extensions';
 import { useGenAiAPI } from './useGenAiAPI';
 
 const useFetchMCPServers = (): {
@@ -11,6 +13,7 @@ const useFetchMCPServers = (): {
   refetch: () => void;
 } => {
   const { api, apiAvailable } = useGenAiAPI();
+  const [gridEnabled] = useFeatureFlag(GRID);
   const [data, setData] = React.useState<MCPServerFromAPI[]>([]);
   const [configMapName, setConfigMapName] = React.useState<string | null>(null);
   const [registryAvailable, setRegistryAvailable] = React.useState(false);
@@ -20,7 +23,13 @@ const useFetchMCPServers = (): {
   const [retryCount, setRetryCount] = React.useState(0);
 
   React.useEffect(() => {
-    if (apiAvailable) {
+    if (gridEnabled) {
+      setData([]);
+      setConfigMapName(null);
+      setRegistryAvailable(false);
+      setLoaded(true);
+      setError(undefined);
+    } else if (apiAvailable) {
       const generation = ++generationRef.current;
 
       setData([]);
@@ -51,7 +60,7 @@ const useFetchMCPServers = (): {
           setLoaded(true);
         });
     }
-  }, [apiAvailable, api, retryCount]);
+  }, [apiAvailable, api, gridEnabled, retryCount]);
 
   const refetch = React.useCallback(() => {
     generationRef.current++;

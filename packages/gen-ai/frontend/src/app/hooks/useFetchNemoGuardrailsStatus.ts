@@ -6,8 +6,10 @@ import {
   NotReadyError,
   APIOptions,
 } from 'mod-arch-core';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { NemoGuardrailsStatus } from '~/app/types';
 import { NO_REFRESH_INTERVAL, REFRESH_INTERVAL } from '~/app/const';
+import { GRID } from '~/odh/extensions';
 import { useGenAiAPI } from './useGenAiAPI';
 
 const useFetchNemoGuardrailsStatus = (
@@ -15,15 +17,16 @@ const useFetchNemoGuardrailsStatus = (
   enabled = true,
 ): FetchStateObject<NemoGuardrailsStatus | null> => {
   const { api, apiAvailable } = useGenAiAPI();
+  const [gridEnabled] = useFeatureFlag(GRID);
 
   const callback = React.useCallback<FetchStateCallbackPromise<NemoGuardrailsStatus | null>>(
     async (opts: APIOptions) => {
-      if (!apiAvailable || !enabled) {
+      if (!apiAvailable || !enabled || gridEnabled) {
         return Promise.reject(new NotReadyError('NemoGuardrails status not available'));
       }
       return api.getNemoGuardrailsStatus(opts).then((r) => r);
     },
-    [api, apiAvailable, enabled],
+    [api, apiAvailable, enabled, gridEnabled],
   );
 
   const [data, loaded, error, refresh] = useFetchState(callback, null, {

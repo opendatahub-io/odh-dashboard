@@ -1,10 +1,12 @@
 import React from 'react';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { BrowserStorageContextProvider, Namespace, useQueryParamNamespaces } from 'mod-arch-core';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import useSyncPreferredNamespace from '~/app/hooks/useSyncPreferredNamespace';
 import useGenAiAPIState, { GenAiAPIState } from '~/app/hooks/useGenAiAPIState';
 import { API_URL_PREFIX } from '~/app/utilities';
 import { GenAiAPIs } from '~/app/types';
+import { GRID } from '~/odh/extensions';
 
 type GenAiContextProps = {
   namespace: Namespace | undefined;
@@ -36,8 +38,12 @@ export const GenAiContextProvider: React.FC<GenAiContextProviderProps> = ({
   useSyncPreferredNamespace(foundNamespace);
 
   const queryParams = useQueryParamNamespaces();
+  const [maasConsumerPortalEnabled] = useFeatureFlag(GRID);
 
-  const [apiState, refreshAPIState] = useGenAiAPIState(`${API_URL_PREFIX}/api/v1`, queryParams);
+  const apiBasePath = maasConsumerPortalEnabled
+    ? `${process.env.BASE_PATH || ''}/maas-consumer/api/v1`
+    : `${API_URL_PREFIX}/api/v1`;
+  const [apiState, refreshAPIState] = useGenAiAPIState(apiBasePath, queryParams);
 
   const contextValue = React.useMemo(
     () => ({ namespace: foundNamespace, apiState, refreshAPIState }),

@@ -1,9 +1,11 @@
 import * as React from 'react';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { FileModel, VectorStoreFile } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { GRID } from '~/odh/extensions';
 
 export interface UseFileManagementReturn {
   files: FileModel[];
@@ -41,6 +43,7 @@ export const DELETE_EVENT_NAME = 'Playground RAG Delete File';
 const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
   const { onShowDeleteSuccessAlert, onShowErrorAlert } = props;
   const { namespace } = React.useContext(GenAiContext);
+  const [gridEnabled] = useFeatureFlag(GRID);
   const [files, setFiles] = React.useState<FileModel[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -49,6 +52,13 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
   const { api, apiAvailable } = useGenAiAPI();
 
   const refreshFiles = React.useCallback(async () => {
+    if (gridEnabled) {
+      setFiles([]);
+      setCurrentVectorStoreId(null);
+      setError(null);
+      return;
+    }
+
     if (!apiAvailable) {
       return;
     }
@@ -89,11 +99,11 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
     } finally {
       setIsLoading(false);
     }
-  }, [onShowErrorAlert, api, apiAvailable]);
+  }, [onShowErrorAlert, api, apiAvailable, gridEnabled]);
 
   const deleteFileById = React.useCallback(
     async (fileId: string) => {
-      if (!apiAvailable || !currentVectorStoreId) {
+      if (gridEnabled || !apiAvailable || !currentVectorStoreId) {
         return;
       }
 
@@ -130,7 +140,14 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         setIsDeleting(false);
       }
     },
-    [currentVectorStoreId, onShowDeleteSuccessAlert, onShowErrorAlert, api, apiAvailable],
+    [
+      currentVectorStoreId,
+      onShowDeleteSuccessAlert,
+      onShowErrorAlert,
+      api,
+      apiAvailable,
+      gridEnabled,
+    ],
   );
 
   // Load files on mount and when namespace changes

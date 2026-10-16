@@ -64,6 +64,7 @@ const AppRoutes = (): React.ReactElement => (
         />
       }
     >
+      <Route index element={<ChatbotPage />} />
       <Route path=":namespace" element={<ChatbotPage />} />
     </Route>
     <Route

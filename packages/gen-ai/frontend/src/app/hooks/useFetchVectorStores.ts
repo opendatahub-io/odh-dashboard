@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { APIOptions, FetchState, NotReadyError, useFetchState } from 'mod-arch-core';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { VectorStore } from '~/app/types';
+import { GRID } from '~/odh/extensions';
 import { useGenAiAPI } from './useGenAiAPI';
 import useChatPlaygroundEnabled from './useChatPlaygroundEnabled';
 
@@ -11,6 +13,7 @@ const isVectorStore = (v: unknown): v is VectorStore =>
 
 const useFetchVectorStores = (): FetchState<VectorStore[]> => {
   const { api, apiAvailable } = useGenAiAPI();
+  const [gridEnabled] = useFeatureFlag(GRID);
   const isChatPlaygroundEnabled = useChatPlaygroundEnabled();
   const fetchData = React.useCallback(
     (opts: APIOptions) => {
@@ -20,11 +23,14 @@ const useFetchVectorStores = (): FetchState<VectorStore[]> => {
       if (!isChatPlaygroundEnabled) {
         return Promise.reject(new NotReadyError('Playground is not enabled'));
       }
+      if (gridEnabled) {
+        return Promise.resolve([]);
+      }
       return api
         .listVectorStores(opts)
         .then((stores) => (Array.isArray(stores) ? stores : []).filter(isVectorStore));
     },
-    [api, apiAvailable, isChatPlaygroundEnabled],
+    [api, apiAvailable, gridEnabled, isChatPlaygroundEnabled],
   );
 
   return useFetchState<VectorStore[]>(fetchData, []);
