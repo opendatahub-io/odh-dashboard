@@ -32,6 +32,10 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		ApplicationsNamespace: opts.ApplicationsNamespace,
 	}
 
+	// The Dashboard controller does not currently need to watch Secrets:
+	// Dashboard-managed Services use service.beta.openshift.io/serving-cert-secret-name
+	// to request TLS Secrets from OpenShift service-ca rather than rendering Secret
+	// desired state.
 	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).
