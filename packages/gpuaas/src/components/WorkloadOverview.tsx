@@ -404,16 +404,18 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                           </TabTitleText>
                         }
                       >
-                        <React.Suspense
-                          fallback={<Spinner aria-label="Loading admission metrics" />}
-                        >
-                          <WorkloadAdmissionsTab
-                            metrics={admissionMetrics}
-                            timeWindow={timeWindow}
-                            onTimeWindowChange={setTimeWindow}
-                            canAccessAdminMetrics={canAccessAdminMetrics}
-                          />
-                        </React.Suspense>
+                        {activeTab === 'admissions' && (
+                          <React.Suspense
+                            fallback={<Spinner aria-label="Loading admission metrics" />}
+                          >
+                            <WorkloadAdmissionsTab
+                              metrics={admissionMetrics}
+                              timeWindow={timeWindow}
+                              onTimeWindowChange={setTimeWindow}
+                              canAccessAdminMetrics={canAccessAdminMetrics}
+                            />
+                          </React.Suspense>
+                        )}
                       </Tab>
                     )}
                   </Tabs>

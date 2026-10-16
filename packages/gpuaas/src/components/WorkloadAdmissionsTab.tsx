@@ -6,6 +6,8 @@ import { GridComponent, TooltipComponent } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 import { Alert, Content, Skeleton, getResizeObserver } from '@patternfly/react-core';
 import {
+  chart_global_FontFamily as chartGlobalFontFamily,
+  chart_global_FontSize_sm as chartGlobalFontSizeSm,
   t_chart_color_blue_300 as chartBlue,
   t_chart_color_orange_300 as chartOrange,
 } from '@patternfly/react-tokens';
@@ -29,6 +31,25 @@ import {
 
 let echartsRegistered = false;
 
+const getCSSVar = (name: string, fallback: string): string => {
+  if (typeof document === 'undefined') {
+    return fallback;
+  }
+
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+const getAdmissionChartTheme = (): Record<string, unknown> => ({
+  textStyle: {
+    fontFamily: getCSSVar(
+      chartGlobalFontFamily.name,
+      String(chartGlobalFontFamily.value).replace(/"/g, "'"),
+    ),
+    fontSize: chartGlobalFontSizeSm.value,
+  },
+});
+
 type WorkloadAdmissionsTabProps = {
   metrics: ReturnType<typeof useWorkloadAdmissionMetrics>;
   timeWindow: string;
@@ -51,6 +72,7 @@ const AdmissionMetricChartComponent: React.FC<{
 
   const chartContainerRef = React.useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = React.useState(240);
+  const theme = React.useMemo(() => getAdmissionChartTheme(), []);
   const data = getValidAdmissionMetricPoints(metric.data);
   const { yMin, yMax, yPadding } = getAdmissionMetricYBounds(data);
   const option = React.useMemo(() => {
@@ -179,7 +201,14 @@ const AdmissionMetricChartComponent: React.FC<{
 
   return (
     <div ref={chartContainerRef} className="gpuaas-workload-overview__admission-chart">
-      <Charts height={140} width={chartWidth} option={option} isSvgRenderer />
+      <Charts
+        theme={theme}
+        nodeSelector="html"
+        height={140}
+        width={chartWidth}
+        option={option}
+        isSvgRenderer
+      />
     </div>
   );
 };
