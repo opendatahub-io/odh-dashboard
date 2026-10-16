@@ -18,6 +18,7 @@ export { default as GroupIcon } from './GroupIcon';
 export { default as ModelIcon } from './ModelIcon';
 export { default as McpCatalogIcon } from './McpCatalogIcon';
 export { default as AgentOpsIcon } from './AgentOpsIcon';
+export { default as AgentObservabilityIcon } from './AgentObservabilityIcon';
 export { default as ModelCatalogIcon } from './ModelCatalogIcon';
 export { default as ModelEvaluationIcon } from './ModelEvaluationIcon';
 export { default as ModelRegistryIcon } from './ModelRegistryIcon';
