@@ -4022,6 +4022,9 @@ importers:
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../../app-config
+      '@odh-dashboard/cypress':
+        specifier: workspace:*
+        version: link:../../cypress
       '@odh-dashboard/jest-config':
         specifier: workspace:*
         version: link:../../jest-config

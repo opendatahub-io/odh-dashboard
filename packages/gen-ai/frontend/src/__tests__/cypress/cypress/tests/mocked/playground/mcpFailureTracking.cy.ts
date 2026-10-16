@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { captureTracking, expectSafeTracking } from '~/__tests__/cypress/cypress/utils/analytics';
+import { captureTracking, expectSafeTracking } from '@odh-dashboard/cypress/cypress/utils/analytics';
 import { playgroundPage } from '~/__tests__/cypress/cypress/pages/playgroundPage';
 import { mcpTokenAuthModal } from '~/__tests__/cypress/cypress/pages/playgroundPage/mcpModals';
 import mcpStatusError from '~/__tests__/cypress/cypress/fixtures/mocked/mcpServers/mcpStatusError400.json';
