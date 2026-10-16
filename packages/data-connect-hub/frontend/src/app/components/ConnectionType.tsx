@@ -200,6 +200,13 @@ class ConnectionTypeInstance implements ConnectionType {
     this.original = connectionType;
   }
 
+  get uniqueTags(): typeof this.resource.tags {
+    if (Array.isArray(this.resource.tags)) {
+      return [...new Set(this.resource.tags)];
+    }
+    return this.resource.tags;
+  }
+
   isFullIntegration() {
     return Boolean(this.status?.flight_ready);
   }
@@ -309,10 +316,10 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       <CardBody>
         <TruncatedText maxLines={4} content={connectionType.resource.description} />
       </CardBody>
-      {Boolean(connectionType.resource.tags?.length) && (
+      {Boolean(connectionType.uniqueTags?.length) && (
         <CardFooter>
           <LabelGroup>
-            {connectionType.resource.tags?.map((tag) => (
+            {connectionType.uniqueTags?.map((tag) => (
               <Label key={tag} variant="outline">
                 {tag}
               </Label>
@@ -368,7 +375,7 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
           </div>
         </Card>
       </GridItem>
-      {Boolean(connectionType.resource.tags?.length) && (
+      {Boolean(connectionType.uniqueTags?.length) && (
         <GridItem span={4}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div className="dch-u-overflow-auto">
@@ -377,7 +384,7 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
               </CardHeader>
               <CardBody>
                 <LabelGroup>
-                  {connectionType.resource.tags?.map((tag) => (
+                  {connectionType.uniqueTags?.map((tag) => (
                     <Label key={tag} variant="outline">
                       {tag}
                     </Label>
