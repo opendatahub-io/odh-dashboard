@@ -13,7 +13,9 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
@@ -28,15 +30,6 @@ const legacyMaaSPortalName = "maas-consumer-portal"
 // held by a finalizer. API failures are returned separately as errors.
 type maasPortalMigrationResult struct {
 	Pending bool
-}
-
-// Migration reads must observe the workload apply and federation hash patch
-// from this reconciliation, rather than an earlier revision in the cache.
-func (r *DashboardReconciler) maasPortalAPIReader() client.Reader {
-	if r.APIReader != nil {
-		return r.APIReader
-	}
-	return r.Client
 }
 
 func (r *DashboardReconciler) deployMaaSPortalRoute(ctx context.Context, dashboard *v1alpha1.Dashboard, routes []unstructured.Unstructured) (maasPortalMigrationResult, error) {
@@ -63,7 +56,7 @@ func (r *DashboardReconciler) deployMaaSPortalRoute(ctx context.Context, dashboa
 func (r *DashboardReconciler) prepareMaaSPortalRouteMigration(ctx context.Context) (bool, error) {
 	route := &gatewayv1.HTTPRoute{}
 	key := client.ObjectKey{Name: legacyMaaSPortalName, Namespace: r.ApplicationsNamespace}
-	if err := r.maasPortalAPIReader().Get(ctx, key, route); err != nil {
+	if err := r.apiReader().Get(ctx, key, route); err != nil {
 		if meta.IsNoMatchError(err) {
 			return true, nil
 		}
@@ -71,7 +64,7 @@ func (r *DashboardReconciler) prepareMaaSPortalRouteMigration(ctx context.Contex
 			return false, fmt.Errorf("getting legacy MaaS Portal HTTPRoute: %w", err)
 		}
 		key.Name = maasPortalDeploymentName
-		if err := r.maasPortalAPIReader().Get(ctx, key, route); err != nil {
+		if err := r.apiReader().Get(ctx, key, route); err != nil {
 			if apierrors.IsNotFound(err) || meta.IsNoMatchError(err) {
 				return true, nil
 			}
@@ -82,14 +75,14 @@ func (r *DashboardReconciler) prepareMaaSPortalRouteMigration(ctx context.Contex
 		}
 	}
 	deployment := &appsv1.Deployment{}
-	if err := r.maasPortalAPIReader().Get(ctx, client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}, deployment); err != nil {
+	if err := r.apiReader().Get(ctx, client.ObjectKey{Name: maasPortalDeploymentName, Namespace: r.ApplicationsNamespace}, deployment); err != nil {
 		return false, client.IgnoreNotFound(err)
 	}
 	if !maasPortalRolloutComplete(deployment) {
 		return false, nil
 	}
 	config := &corev1.ConfigMap{}
-	if err := r.maasPortalAPIReader().Get(ctx, client.ObjectKey{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}, config); err != nil {
+	if err := r.apiReader().Get(ctx, client.ObjectKey{Name: maasPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace}, config); err != nil {
 		return false, client.IgnoreNotFound(err)
 	}
 	if deployment.Spec.Template.Annotations[maasPortalFederationHashAnnotation] != computeFederationConfigHash(config.Data[federationConfigKey]) {
@@ -136,37 +129,47 @@ func maasPortalRolloutComplete(deployment *appsv1.Deployment) bool {
 func (r *DashboardReconciler) deleteLegacyMaaSPortalResources(ctx context.Context) (maasPortalMigrationResult, error) {
 	var result maasPortalMigrationResult
 	var errs []error
-	routes := &unstructured.UnstructuredList{}
-	routes.SetAPIVersion(gatewayv1.GroupVersion.String())
-	routes.SetKind("HTTPRouteList")
-	for _, list := range []client.ObjectList{
+	seen := map[string]bool{}
+	routes := &gatewayv1.HTTPRouteList{}
+	namespacedLists := []client.ObjectList{
 		&appsv1.DeploymentList{}, &corev1.ServiceList{}, &corev1.ServiceAccountList{},
 		&corev1.ConfigMapList{}, &corev1.SecretList{}, &networkingv1.NetworkPolicyList{},
 		&rbacv1.RoleList{}, &rbacv1.RoleBindingList{}, routes,
-	} {
-		deleted, err := r.deleteLegacyMaaSPortalResourceList(ctx, list, legacyMaaSPortalResource, client.InNamespace(r.ApplicationsNamespace))
-		result.Pending = result.Pending || deleted.Pending
-		errs = append(errs, err)
 	}
-	for _, list := range []client.ObjectList{&rbacv1.ClusterRoleList{}, &rbacv1.ClusterRoleBindingList{}} {
-		deleted, err := r.deleteLegacyMaaSPortalResourceList(ctx, list, legacyMaaSPortalResource)
-		result.Pending = result.Pending || deleted.Pending
-		errs = append(errs, err)
+	for _, label := range []string{labels.PlatformPartOf, "app.kubernetes.io/part-of"} {
+		for _, list := range namespacedLists {
+			deleted, err := r.deleteLegacyMaaSPortalResourceList(ctx, list, legacyMaaSPortalResource, seen,
+				client.InNamespace(r.ApplicationsNamespace), client.MatchingLabels{label: legacyMaaSPortalName})
+			result.Pending = result.Pending || deleted.Pending
+			errs = append(errs, err)
+		}
+		for _, list := range []client.ObjectList{&rbacv1.ClusterRoleList{}, &rbacv1.ClusterRoleBindingList{}} {
+			deleted, err := r.deleteLegacyMaaSPortalResourceList(ctx, list, legacyMaaSPortalResource, seen,
+				client.MatchingLabels{label: legacyMaaSPortalName})
+			result.Pending = result.Pending || deleted.Pending
+			errs = append(errs, err)
+		}
+		// Subscription grants can be legacy-labelled in a previous operator
+		// namespace. This is the intentionally cross-namespace discovery path.
+		for _, list := range []client.ObjectList{&rbacv1.RoleList{}, &rbacv1.RoleBindingList{}} {
+			deleted, err := r.deleteLegacyMaaSPortalResourceList(ctx, list, r.legacyMaaSPortalSubscriptionResource, seen,
+				client.MatchingLabels{label: legacyMaaSPortalName})
+			result.Pending = result.Pending || deleted.Pending
+			errs = append(errs, err)
+		}
 	}
-	// Listing across namespaces also finds grants in a formerly configured
-	// operator namespace. Name-only discovery is restricted to known namespaces.
-	for _, list := range []client.ObjectList{&rbacv1.RoleList{}, &rbacv1.RoleBindingList{}} {
-		deleted, err := r.deleteLegacyMaaSPortalResourceList(ctx, list, r.legacyMaaSPortalSubscriptionResource)
+	for _, obj := range r.legacyMaaSPortalKnownObjects() {
+		deleted, err := r.deleteLegacyMaaSPortalKnownObject(ctx, obj, seen)
 		result.Pending = result.Pending || deleted.Pending
 		errs = append(errs, err)
 	}
 	return result, errors.Join(errs...)
 }
 
-func (r *DashboardReconciler) deleteLegacyMaaSPortalResourceList(ctx context.Context, list client.ObjectList, matchesLegacy func(client.Object) bool, options ...client.ListOption) (maasPortalMigrationResult, error) {
+func (r *DashboardReconciler) deleteLegacyMaaSPortalResourceList(ctx context.Context, list client.ObjectList, matchesLegacy func(client.Object) bool, seen map[string]bool, options ...client.ListOption) (maasPortalMigrationResult, error) {
 	var result maasPortalMigrationResult
-	if err := r.List(ctx, list, options...); err != nil {
-		if meta.IsNoMatchError(err) {
+	if err := r.apiReader().List(ctx, list, options...); err != nil {
+		if meta.IsNoMatchError(err) || runtime.IsNotRegisteredError(err) {
 			return result, nil
 		}
 		return result, fmt.Errorf("listing legacy MaaS Portal resources: %w", err)
@@ -174,14 +177,70 @@ func (r *DashboardReconciler) deleteLegacyMaaSPortalResourceList(ctx context.Con
 	var errs []error
 	objects := extractItems(list)
 	for _, obj := range objects {
-		if !matchesLegacy(obj) {
+		key := legacyMaaSPortalObjectKey(obj)
+		if !matchesLegacy(obj) || seen[key] {
 			continue
 		}
+		seen[key] = true
 		deleted, err := r.deleteLegacyMaaSPortalObject(ctx, obj)
 		result.Pending = result.Pending || deleted.Pending
 		errs = append(errs, err)
 	}
 	return result, errors.Join(errs...)
+}
+
+func legacyMaaSPortalObjectKey(obj client.Object) string {
+	return fmt.Sprintf("%T/%s/%s", obj, obj.GetNamespace(), obj.GetName())
+}
+
+// legacyMaaSPortalKnownObjects covers the finite set of historic names that
+// may lack labels (notably the service-ca TLS Secret). Name discovery is
+// intentionally namespace-scoped; label discovery above remains the only
+// cross-namespace path.
+func (r *DashboardReconciler) legacyMaaSPortalKnownObjects() []client.Object {
+	ns := r.ApplicationsNamespace
+	objects := []client.Object{
+		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName, Namespace: ns}},
+		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName, Namespace: ns}},
+		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName, Namespace: ns}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName + "-params", Namespace: ns}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName + "-federation-config", Namespace: ns}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName + "-tls", Namespace: ns}},
+		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName, Namespace: ns}},
+		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName + "-perses", Namespace: ns}},
+		&gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName, Namespace: ns}},
+		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName}},
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: legacyMaaSPortalName}},
+	}
+	for _, subscriptionNamespace := range r.maasPortalSubscriptionNamespaces() {
+		for _, name := range []string{legacyMaaSPortalName + "-rhods-operator-subscription", legacyMaaSPortalName + "-opendatahub-operator-subscription"} {
+			objects = append(objects,
+				&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: subscriptionNamespace}},
+				&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: subscriptionNamespace}},
+			)
+		}
+	}
+	return objects
+}
+
+func (r *DashboardReconciler) deleteLegacyMaaSPortalKnownObject(ctx context.Context, obj client.Object, seen map[string]bool) (maasPortalMigrationResult, error) {
+	if err := r.apiReader().Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		if apierrors.IsNotFound(err) || meta.IsNoMatchError(err) || runtime.IsNotRegisteredError(err) {
+			return maasPortalMigrationResult{}, nil
+		}
+		return maasPortalMigrationResult{}, fmt.Errorf("getting legacy MaaS Portal resource: %w", err)
+	}
+	key := legacyMaaSPortalObjectKey(obj)
+	if seen[key] || !legacyMaaSPortalResource(obj) {
+		return maasPortalMigrationResult{}, nil
+	}
+	seen[key] = true
+	if _, isHTTPRoute := obj.(*gatewayv1.HTTPRoute); isHTTPRoute {
+		// A direct typed Get may not populate TypeMeta. Preserve the GVK for
+		// clients/interceptors that need it when issuing the delete.
+		obj.GetObjectKind().SetGroupVersionKind(gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute"))
+	}
+	return r.deleteLegacyMaaSPortalObject(ctx, obj)
 }
 
 // Reserved names identify older objects with missing labels. New portal names
@@ -237,7 +296,7 @@ func (r *DashboardReconciler) deleteLegacyMaaSPortalObject(ctx context.Context, 
 		return maasPortalMigrationResult{}, fmt.Errorf("deleting legacy MaaS Portal %T %s/%s: %w", obj, obj.GetNamespace(), obj.GetName(), err)
 	}
 	remaining := obj.DeepCopyObject().(client.Object)
-	if err := r.maasPortalAPIReader().Get(ctx, client.ObjectKeyFromObject(obj), remaining); err != nil {
+	if err := r.apiReader().Get(ctx, client.ObjectKeyFromObject(obj), remaining); err != nil {
 		return maasPortalMigrationResult{}, client.IgnoreNotFound(err)
 	}
 	return maasPortalMigrationResult{Pending: true}, nil

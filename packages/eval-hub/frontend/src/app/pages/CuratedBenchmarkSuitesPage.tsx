@@ -1,12 +1,21 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem, Button, PageSection, Stack } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  PageSection,
+  Stack,
+} from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
-import { getBenchmarkNameMap } from '~/app/components/benchmarkUtils';
-import { useProviders } from '~/app/hooks/useProviders';
+import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
+import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
@@ -14,7 +23,11 @@ import {
   evaluationsBaseRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
-import { CURATED_SUITE_PAGE_CONFIG, isCuratedEvaluationTarget } from '~/app/curatedSuiteConfig';
+import {
+  CURATED_COLLECTION_PREREQUISITES,
+  CURATED_SUITE_PAGE_CONFIG,
+  isCuratedEvaluationTarget,
+} from '~/app/curatedSuiteConfig';
 import './BenchmarkSuitesPage.scss';
 
 const CuratedBenchmarkSuitesPage: React.FC = () => {
@@ -24,8 +37,13 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
   }>();
   const navigate = useNavigate();
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
-  const { providers } = useProviders(namespace ?? '');
-  const benchmarkNameMap = React.useMemo(() => getBenchmarkNameMap(providers), [providers]);
+  const {
+    selectedCollection,
+    benchmarkDetailsMap,
+    benchmarkNameMap,
+    selectCollection,
+    closeDrawer,
+  } = useCollectionDrawer(namespace ?? '');
 
   const handleCreateSuite = React.useCallback(() => {
     if (!isCuratedEvaluationTarget(evaluationTarget)) {
@@ -54,6 +72,16 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
     setCollectionToRun(collection);
   }, []);
 
+  const handleDrawerRunCollection = React.useCallback(
+    (collection: Collection, isSystemCollection: boolean) => {
+      if (isSystemCollection) {
+        closeDrawer();
+      }
+      handleRunCollection(collection);
+    },
+    [closeDrawer, handleRunCollection],
+  );
+
   const handleRunSuccess = React.useCallback(() => {
     setCollectionToRun(undefined);
     navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
@@ -67,64 +95,84 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
 
   return (
     <>
-      <ApplicationsPage
-        title={pageConfig.title}
-        description={pageConfig.description}
-        headerAction={
-          <Button
-            variant="primary"
-            onClick={handleCreateSuite}
-            data-testid="create-benchmark-suite-button"
-          >
-            Create benchmark suite
-          </Button>
-        }
-        breadcrumb={
-          <Breadcrumb>
-            <BreadcrumbItem
-              render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
+      <Drawer isExpanded={!!selectedCollection}>
+        <DrawerContent
+          panelContent={
+            <CollectionDrawerPanel
+              collection={selectedCollection}
+              benchmarkDetailsMap={benchmarkDetailsMap}
+              onClose={closeDrawer}
+              onRunCollection={handleDrawerRunCollection}
+              onCustomizeCollection={handleCustomizeCollection}
+              isSystemCollection
+              primaryActionLabel="Run"
+              prerequisites={CURATED_COLLECTION_PREREQUISITES}
             />
-            <BreadcrumbItem isActive>{pageConfig.title}</BreadcrumbItem>
-          </Breadcrumb>
-        }
-        loaded
-        empty={false}
-      >
-        <PageSection hasBodyWrapper={false} isFilled>
-          <Stack
-            className="evalhub-benchmark-suites-page__content"
-            data-testid="curated-benchmark-suites-page"
-          >
-            <BenchmarkSuitesGallery
-              namespace={namespace ?? ''}
-              benchmarkNameMap={benchmarkNameMap}
-              scope="system"
-              queryFilters={{ evaluationTargets: [evaluationTarget] }}
-              requireCuratedIndex
-              useMockFallback
-              showCreateSuiteCard={false}
-              showFilters
-              showEvaluatesFilter={false}
-              showPagination
-              showContextualActions={false}
-              primaryActionLabel="Run benchmark suite"
-              primaryActionVariant="secondary"
-              dropdownActionLabel="Customize"
-              dropdownActionRoute={(collection) =>
-                evaluationCopySuiteRoute(namespace, collection.resource.id)
+          }
+        >
+          <DrawerContentBody>
+            <ApplicationsPage
+              title={pageConfig.title}
+              description={pageConfig.description}
+              headerAction={
+                <Button
+                  variant="primary"
+                  onClick={handleCreateSuite}
+                  data-testid="create-benchmark-suite-button"
+                >
+                  Create collection
+                </Button>
               }
-              dropdownActionState={evaluationCuratedBenchmarkSuitesNavigationState(
-                evaluationTarget,
-              )}
-              onCreateSuite={handleCreateSuite}
-              onPrimaryAction={handleRunCollection}
-              onDropdownAction={handleCustomizeCollection}
-              onDuplicateCollection={handleCustomizeCollection}
-              onSelectCollection={handleCustomizeCollection}
-            />
-          </Stack>
-        </PageSection>
-      </ApplicationsPage>
+              breadcrumb={
+                <Breadcrumb>
+                  <BreadcrumbItem
+                    render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
+                  />
+                  <BreadcrumbItem isActive>{pageConfig.title}</BreadcrumbItem>
+                </Breadcrumb>
+              }
+              loaded
+              empty={false}
+            >
+              <PageSection hasBodyWrapper={false} isFilled>
+                <Stack
+                  className="evalhub-benchmark-suites-page__content"
+                  data-testid="curated-benchmark-suites-page"
+                >
+                  <BenchmarkSuitesGallery
+                    namespace={namespace ?? ''}
+                    benchmarkNameMap={benchmarkNameMap}
+                    scope="system"
+                    queryFilters={{ evaluationTargets: [evaluationTarget] }}
+                    requireCuratedIndex
+                    useMockFallback
+                    showCreateSuiteCard={false}
+                    showFilters
+                    showEvaluatesFilter={false}
+                    showPagination
+                    showContextualActions={false}
+                    prerequisites={CURATED_COLLECTION_PREREQUISITES}
+                    primaryActionLabel="Run"
+                    primaryActionVariant="secondary"
+                    dropdownActionLabel="Customize"
+                    dropdownActionRoute={(collection) =>
+                      evaluationCopySuiteRoute(namespace, collection.resource.id)
+                    }
+                    dropdownActionState={evaluationCuratedBenchmarkSuitesNavigationState(
+                      evaluationTarget,
+                    )}
+                    onCreateSuite={handleCreateSuite}
+                    onPrimaryAction={handleRunCollection}
+                    onDropdownAction={handleCustomizeCollection}
+                    onDuplicateCollection={handleCustomizeCollection}
+                    onSelectCollection={selectCollection}
+                  />
+                </Stack>
+              </PageSection>
+            </ApplicationsPage>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
       {collectionToRun ? (
         <CuratedSuiteRunModal
           isOpen

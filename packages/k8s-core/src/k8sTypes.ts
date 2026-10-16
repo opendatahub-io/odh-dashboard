@@ -331,7 +331,7 @@ export type DashboardCommonConfig = {
   roleManagement?: boolean;
   gpuaas?: boolean;
   modelCapabilities?: boolean;
-  runtimeCatalog?: boolean;
+  grid?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;
@@ -415,6 +415,8 @@ export type DataScienceClusterKindStatus = {
     version: string;
   };
 };
+
+export type { AIHubKind, AIHubNamespaceResponse } from './aihubTypes';
 
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];

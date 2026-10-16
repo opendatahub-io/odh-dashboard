@@ -27,6 +27,11 @@ var (
 	// deployments backed by MySQL without utf8mb4 reject non-ASCII bytes in
 	// PipelineRuntimeManifest/WorkflowRuntimeManifest columns.
 	ErrPipelineServerCharsetRejected = errors.New("pipeline server rejected request due to unsupported character encoding")
+
+	// ErrInvalidDSPAConditions indicates a DSPA's status.conditions could not be
+	// parsed as a readiness condition list (not an array, or entries that are not
+	// objects), so its readiness cannot be determined.
+	ErrInvalidDSPAConditions = errors.New("pipeline server returned invalid readiness conditions")
 )
 
 // KFP v2beta1 run state sets — which states allow which mutations.

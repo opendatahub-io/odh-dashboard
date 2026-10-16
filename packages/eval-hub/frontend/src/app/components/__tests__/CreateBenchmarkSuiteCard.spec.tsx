@@ -7,9 +7,9 @@ describe('CreateBenchmarkSuiteCard', () => {
   it('should render the suite creation CTA content', () => {
     render(<CreateBenchmarkSuiteCard />);
 
-    expect(screen.getByTestId('create-suite-card')).toHaveTextContent('Create your own suite');
-    expect(screen.getByText(/Build a reusable evaluation suite/)).toBeInTheDocument();
-    expect(screen.getByTestId('create-suite-button')).toBeInTheDocument();
+    expect(screen.getByTestId('create-suite-card')).toHaveTextContent('Create your own collection');
+    expect(screen.getByText(/Build a reusable collection/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create collection' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Import from git' })).not.toBeInTheDocument();
   });
 
@@ -29,7 +29,7 @@ describe('CreateBenchmarkSuiteCard', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId('create-suite-button')).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Create collection' })).toHaveAttribute(
       'href',
       '/evaluation/evalhub/create/collections/new',
     );
