@@ -8,7 +8,6 @@ import { LDAP_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { loadRuntimeLibraryTemplateFixture } from '../../../../utils/dataLoader';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
-import { getClipboardContent, stubClipboard } from '../../../../utils/clipboardUtils';
 import {
   checkServingRuntimeAbsent,
   cleanupTemplates,
@@ -68,28 +67,27 @@ describe('Install a Serving runtime template from the Runtime library', () => {
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
       runtimeCatalogPage.navigate();
 
-      cy.step('Search for ServingRuntime and open the first displayed result');
-      runtimeCatalogPage.findSearchInput().clear().type(testData.searchTerm);
+      cy.step('Wait for library results, search for ServingRuntime, and open the first result');
+      runtimeCatalogPage.findCardDetailLinks().should('have.length.greaterThan', 0);
+      runtimeCatalogPage.findSearchInput().clear();
+      runtimeCatalogPage.findSearchInput().type(testData.searchTerm);
       runtimeCatalogPage.findSearchButton().click();
-      runtimeCatalogPage.findCardDetailLinks().should('have.length.greaterThan', 0).first().click();
+      runtimeCatalogPage.findFirstCardName().should('contain.text', testData.searchTerm);
+      runtimeCatalogPage.findCardDetailLinks().first().click();
 
       cy.step('Read the full Template shown to the user, then start installation');
       runtimeCatalogDetailsPage.findServingRuntimeTab().should('be.visible').click();
-      stubClipboard('runtimeTemplateSourceYAML');
-      runtimeCatalogDetailsPage.findServingRuntimeCopyButton().click();
-      getClipboardContent('runtimeTemplateSourceYAML')
-        .should('have.length', 1)
-        .then((copied) => {
-          source = parseLibraryTemplate(
-            YAML.load(copied[0], { schema: YAML.JSON_SCHEMA }),
-            testData,
-          );
-        });
+      runtimeCatalogDetailsPage.readServingRuntimeTemplateYAML().then((sourceYAML) => {
+        source = parseLibraryTemplate(
+          YAML.load(sourceYAML, { schema: YAML.JSON_SCHEMA }),
+          testData,
+        );
+      });
       runtimeCatalogDetailsPage
         .findRuntimeHeading()
         .invoke('text')
         .then((runtimeImageName) => {
-          runtimeCatalogDetailsPage.findInstallAction().should('be.visible').click();
+          runtimeCatalogDetailsPage.findInstallAction().scrollIntoView().click();
           runtimeImageInstallPage.findPageTitle(runtimeImageName).should('be.visible');
         });
 

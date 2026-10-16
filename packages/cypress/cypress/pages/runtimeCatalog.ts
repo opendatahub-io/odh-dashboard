@@ -40,7 +40,19 @@ class RuntimeCatalogPage {
   }
 
   findSearchButton() {
-    return cy.findByTestId('runtime-catalog-search-input').findByRole('button', { name: 'Search' });
+    return cy
+      .get('body')
+      .then(($body) =>
+        $body.find('[data-testid="runtime-catalog-search-button"]').length > 0
+          ? cy.findByTestId('runtime-catalog-search-button')
+          : cy
+              .findByTestId('runtime-catalog-search-input')
+              .findByRole('button', { name: 'Search' }),
+      );
+  }
+
+  findFirstCardName() {
+    return this.findPage().find('[data-testid^="runtime-catalog-card-name-"]').first();
   }
 
   findCardDetailLinks() {

@@ -35,6 +35,49 @@ const strippedConfigMetadata = [
   'ownerReferences',
 ];
 
+const normalizeAddedEmptyContainerResources = (
+  sourceValue: unknown,
+  persistedValue: unknown,
+  isContainer = false,
+): unknown => {
+  if (Array.isArray(persistedValue)) {
+    const sourceItems = Array.isArray(sourceValue) ? sourceValue : [];
+    return persistedValue.map((item, index) =>
+      normalizeAddedEmptyContainerResources(sourceItems[index], item, isContainer),
+    );
+  }
+  if (typeof persistedValue !== 'object' || persistedValue === null) {
+    return persistedValue;
+  }
+
+  const persistedRecord = persistedValue as Record<string, unknown>;
+  const sourceRecord =
+    typeof sourceValue === 'object' && sourceValue !== null && !Array.isArray(sourceValue)
+      ? (sourceValue as Record<string, unknown>)
+      : {};
+  return Object.fromEntries(
+    Object.entries(persistedRecord).flatMap(([key, value]) => {
+      if (
+        isContainer &&
+        key === 'resources' &&
+        !Object.prototype.hasOwnProperty.call(sourceRecord, key) &&
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value) &&
+        Object.keys(value).length === 0
+      ) {
+        return [];
+      }
+      return [
+        [
+          key,
+          normalizeAddedEmptyContainerResources(sourceRecord[key], value, key === 'containers'),
+        ],
+      ];
+    }),
+  );
+};
+
 describe('Install an LLM accelerator configuration from the Runtime library', () => {
   retryableBefore(() =>
     loadRuntimeLibraryAcceleratorFixture(
@@ -64,28 +107,29 @@ describe('Install an LLM accelerator configuration from the Runtime library', ()
       cy.visitWithLogin('/?devFeatureFlags=vLLMDeploymentOnMaaS=true', LDAP_ADMIN_USER);
       runtimeCatalogPage.navigate();
 
-      cy.step('Search for LLMInferenceServiceConfig and open the first displayed result');
-      runtimeCatalogPage.findSearchInput().clear().type(testData.searchTerm);
+      cy.step(
+        'Wait for library results, search for LLMInferenceServiceConfig, and open the first result',
+      );
+      runtimeCatalogPage.findCardDetailLinks().should('have.length.greaterThan', 0);
+      runtimeCatalogPage.findSearchInput().clear();
+      runtimeCatalogPage.findSearchInput().type(testData.searchTerm);
       runtimeCatalogPage.findSearchButton().click();
-      runtimeCatalogPage.findCardDetailLinks().should('have.length.greaterThan', 0).first().click();
+      runtimeCatalogPage.findFirstCardName().should('contain.text', testData.searchTerm);
+      runtimeCatalogPage.findCardDetailLinks().first().click();
 
       cy.step('Read the full configuration shown to the user, then start installation');
       runtimeCatalogDetailsPage.findLlmInferenceServiceTab().should('be.visible').click();
-      stubClipboard('acceleratorYAML');
-      runtimeCatalogDetailsPage.findLlmInferenceServiceCopyButton().click();
-      getClipboardContent('acceleratorYAML')
-        .should('have.length', 1)
-        .then((copied) => {
-          source = parseLibraryResource(
-            YAML.load(copied[0], { schema: YAML.JSON_SCHEMA }),
-            testData,
-          );
-        });
+      runtimeCatalogDetailsPage.readLlmInferenceServiceConfigYAML().then((sourceYAML) => {
+        source = parseLibraryResource(
+          YAML.load(sourceYAML, { schema: YAML.JSON_SCHEMA }),
+          testData,
+        );
+      });
       runtimeCatalogDetailsPage
         .findRuntimeHeading()
         .invoke('text')
         .then((runtimeImageName) => {
-          runtimeCatalogDetailsPage.findInstallAction().should('be.visible').click();
+          runtimeCatalogDetailsPage.findInstallAction().scrollIntoView().click();
           runtimeImageInstallPage.findPageTitle(runtimeImageName).should('be.visible');
         });
 
@@ -111,13 +155,14 @@ describe('Install an LLM accelerator configuration from the Runtime library', ()
           .should('have.value', source.metadata.name);
       });
       // This editor does not use the dashboard wrapper that exposes window.monaco.
-      // Read its complete YAML through the existing copy control instead of relying on that global.
+      // Stub the existing copy action to read complete YAML without browser clipboard permissions.
+      stubClipboard('acceleratorPrefillYAML');
       llmAcceleratorConfigurations.findYAMLCodeEditor().copyToClipboard().click();
-      getClipboardContent('acceleratorYAML')
-        .should('have.length', 2)
+      getClipboardContent('acceleratorPrefillYAML')
+        .should('have.length', 1)
         .then((copied) => {
           const prefill = parseLibraryResource(
-            YAML.load(copied[1], { schema: YAML.JSON_SCHEMA }),
+            YAML.load(copied[0], { schema: YAML.JSON_SCHEMA }),
             testData,
           );
           expect(prefill.spec, 'Complete prefilled accelerator spec').to.deep.equal(source.spec);
@@ -155,7 +200,20 @@ describe('Install an LLM accelerator configuration from the Runtime library', ()
       llmAcceleratorConfigurations.getRowByName(resourceName).find().should('be.visible');
       checkLLMInferenceServiceConfigState(resourceName, namespace).then(({ stdout }) => {
         const config = parseLibraryResource(JSON.parse(stdout), testData);
-        expect(config.spec, 'Complete persisted accelerator spec').to.deep.equal(source.spec);
+        const persistedSpec = Cypress._.cloneDeep(config.spec);
+        if (!Object.prototype.hasOwnProperty.call(source.spec, 'model')) {
+          // The live API defaulted the optional model to an empty URI during installation.
+          expect(persistedSpec.model, 'API-defaulted optional model').to.deep.equal({ uri: '' });
+          delete persistedSpec.model;
+        }
+        const normalizedPersistedSpec = normalizeAddedEmptyContainerResources(
+          source.spec,
+          persistedSpec,
+        );
+        expect(
+          normalizedPersistedSpec,
+          'Complete persisted accelerator spec (allowing only API-added empty container resources)',
+        ).to.deep.equal(source.spec);
         expect(config.metadata.name).to.equal(resourceName);
         expect(config.metadata.namespace).to.equal(namespace);
         expect(config.metadata.labels).to.include(expectedMetadata.labels);

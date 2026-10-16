@@ -80,12 +80,12 @@ class RuntimeCatalogDetailsPage {
       .click();
   }
 
-  findServingRuntimeCopyButton() {
-    return this.findPage().findByTestId('runtime-serving-runtime-copy');
+  readServingRuntimeTemplateYAML() {
+    return this.findServingRuntimePanel().find('code').invoke('text');
   }
 
-  findLlmInferenceServiceCopyButton() {
-    return this.findPage().findByTestId('runtime-llm-inference-service-copy');
+  readLlmInferenceServiceConfigYAML() {
+    return this.findLlmInferenceServicePanel().find('code').invoke('text');
   }
 
   copyServingRuntimeYaml() {
