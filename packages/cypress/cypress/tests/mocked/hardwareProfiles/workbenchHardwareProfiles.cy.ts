@@ -714,7 +714,7 @@ describe('Workbench Hardware Profiles', () => {
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
     });
 
-    it('should show an assigned DRA hardware profile as selected with the locked message and no customization', () => {
+    it('should show an assigned DRA hardware profile as selected with the customization section', () => {
       initIntercepts();
       cy.interceptK8sList(
         { model: HardwareProfileModel, ns: 'opendatahub' },
@@ -745,8 +745,7 @@ describe('Workbench Hardware Profiles', () => {
       editSpawnerPage.visit('test-notebook');
       hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
       hardwareProfileSection.findSelect().should('be.enabled');
-      hardwareProfileSection.findDRALockedMessage().should('exist');
-      hardwareProfileSection.findCustomizeSection().should('not.exist');
+      hardwareProfileSection.findCustomizeSection().should('exist');
     });
   });
 

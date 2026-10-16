@@ -98,6 +98,7 @@ const renderComponent = (
   localQueuesOverride?: LocalQueuesContextType['localQueues'],
   initialHardwareProfile?: HardwareProfileKind,
   selectedProfile?: HardwareProfileKind,
+  isDRASelectable = false,
 ) => {
   // Mock useKueueConfiguration to return the specified filtering state
   useKueueConfigurationMock.mockReturnValue({
@@ -150,6 +151,7 @@ const renderComponent = (
         >
           <HardwareProfileSelect
             initialHardwareProfile={initialHardwareProfile}
+            isDRASelectable={isDRASelectable}
             previewDescription={false}
             hardwareProfiles={hardwareProfiles}
             isProjectScoped={false}
@@ -369,6 +371,37 @@ describe('HardwareProfileSelect - Use existing settings', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
 
     expect(within(screen.getByRole('listbox')).queryByText('DRA Profile')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('listbox')).getByText('Other Profile')).toBeInTheDocument();
+  });
+
+  it('should keep a DRA profile in the options once another profile is selected when DRA profiles are selectable', async () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      displayName: 'DRA Profile',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const otherProfile = mockHardwareProfile({
+      name: 'other-profile',
+      displayName: 'Other Profile',
+    });
+    const project = mockProjectK8sResource({});
+
+    renderComponent(
+      [otherProfile],
+      project,
+      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      [],
+      undefined,
+      true,
+      undefined,
+      draProfile,
+      otherProfile,
+      true,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    expect(within(screen.getByRole('listbox')).getByText('DRA Profile')).toBeInTheDocument();
     expect(within(screen.getByRole('listbox')).getByText('Other Profile')).toBeInTheDocument();
   });
 
@@ -842,5 +875,102 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
 
     expect(screen.getByTestId('hardware-profile-selection-toggle')).toBeInTheDocument();
     expect(screen.queryByTestId('hardware-profile-select')).not.toBeInTheDocument();
+  });
+});
+
+describe('HardwareProfileSelect - Original project-scoped profile', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const projectDRAOnlyProfile = mockHardwareProfile({
+    name: 'gpu',
+    namespace: 'test-project',
+    displayName: 'Project GPU',
+    identifiers: [],
+    dra: { resourceClaimTemplateName: 'single-gpu' },
+  });
+  const globalSameNameProfile = mockHardwareProfile({
+    name: 'gpu',
+    namespace: 'opendatahub',
+    displayName: 'Global GPU',
+  });
+  const otherGlobalProfile = mockHardwareProfile({
+    name: 'other',
+    namespace: 'opendatahub',
+    displayName: 'Other Global',
+  });
+
+  const renderWithOriginalProjectProfile = (isProjectScoped: boolean, onChange: jest.Mock) => {
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+    useKueueConfigurationMock.mockReturnValue({
+      isKueueDisabled: false,
+      isKueueFeatureEnabled: true,
+      isProjectKueueEnabled: false,
+      kueueFilteringState: KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+    });
+
+    return render(
+      <CurrentProjectContext.Provider value={{ currentProject: project }}>
+        <ProjectsContext.Provider
+          value={{
+            projects: [project],
+            modelServingProjects: [],
+            nonActiveProjects: [],
+            preferredProject: null,
+            updatePreferredProject: () => undefined,
+            loaded: true,
+            loadError: undefined,
+            waitForProject: () => Promise.resolve(),
+          }}
+        >
+          <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
+            <HardwareProfileSelect
+              isProjectScoped={isProjectScoped}
+              previewDescription={false}
+              hardwareProfiles={[globalSameNameProfile, otherGlobalProfile]}
+              hardwareProfilesLoaded
+              hardwareProfilesError={undefined}
+              projectScopedHardwareProfiles={[[], true, undefined]}
+              allowExistingSettings={false}
+              hardwareProfileConfig={{
+                selectedProfile: otherGlobalProfile,
+                useExistingSettings: false,
+              }}
+              initialHardwareProfile={projectDRAOnlyProfile}
+              isDRASelectable
+              isHardwareProfileSupported={() => true}
+              onChange={onChange}
+              project="test-project"
+            />
+          </LocalQueuesContext.Provider>
+        </ProjectsContext.Provider>
+      </CurrentProjectContext.Provider>,
+    );
+  };
+
+  it('should keep the project-scoped dropdown and select the original profile after switching away', async () => {
+    const onChange = jest.fn();
+    renderWithOriginalProjectProfile(true, onChange);
+
+    expect(screen.queryByTestId('hardware-profile-select')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('hardware-profile-selection-toggle'));
+    await userEvent.click(
+      within(screen.getByTestId('project-scoped-hardware-profiles')).getByRole('menuitem', {
+        name: /Project GPU/,
+      }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith(projectDRAOnlyProfile);
+  });
+
+  it('should select the profile from the matching namespace when two profiles share a name', async () => {
+    const onChange = jest.fn();
+    renderWithOriginalProjectProfile(false, onChange);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+    await userEvent.click(within(screen.getByRole('listbox')).getByText('Project GPU'));
+
+    expect(onChange).toHaveBeenCalledWith(projectDRAOnlyProfile);
   });
 });
