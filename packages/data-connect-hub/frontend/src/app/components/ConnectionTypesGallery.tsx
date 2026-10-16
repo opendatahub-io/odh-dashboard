@@ -270,7 +270,7 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
     <EmptyState
       headingLevel="h3"
       icon={() => <img src={emptyStateImage} alt="" width={320} height={320} />}
-      titleText="No matching data connection types"
+      titleText="No data connection types"
     >
       <EmptyStateBody>No data connection types available</EmptyStateBody>
     </EmptyState>
