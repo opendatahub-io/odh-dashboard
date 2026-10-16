@@ -12,6 +12,7 @@ import {
   DropdownList,
   Flex,
   FlexItem,
+  getResizeObserver,
   Label,
   LabelGroup,
   List,
@@ -44,6 +45,7 @@ import {
   formatCategory,
   getBenchmarkDisplayName,
   getMetricDisplayName,
+  getVisibleMetricCount,
   VISIBLE_METRICS_COUNT,
 } from './benchmarkUtils';
 import type { BenchmarkNameMap } from './benchmarkUtils';
@@ -99,6 +101,129 @@ type BenchmarkSuiteCardProps = {
   contextualActions?: BenchmarkSuiteCardAction[];
   onSelect?: (collection: Collection) => void;
   reservePopularHeader?: boolean;
+};
+
+type MetricLabelGroupProps = {
+  collectionId: string;
+  metricNames: string[];
+  metricsTooltip: React.ReactNode;
+};
+
+const MetricLabelGroup: React.FC<MetricLabelGroupProps> = ({
+  collectionId,
+  metricNames,
+  metricsTooltip,
+}) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const measurementRef = React.useRef<HTMLDivElement>(null);
+  const [visibleMetricCount, setVisibleMetricCount] = React.useState(() =>
+    Math.min(metricNames.length, VISIBLE_METRICS_COUNT),
+  );
+
+  React.useLayoutEffect(() => {
+    const container = containerRef.current;
+    const measurement = measurementRef.current;
+    if (!container || !measurement) {
+      return undefined;
+    }
+
+    const measure = () => {
+      const availableWidth = container.getBoundingClientRect().width;
+      const metricWidths = Array.from(
+        measurement.querySelectorAll<HTMLElement>('[data-metric-label]'),
+      ).map((label) => label.getBoundingClientRect().width);
+      const overflowLabelWidths = Array.from(
+        measurement.querySelectorAll<HTMLElement>('[data-overflow-label]'),
+      ).map((label) => label.getBoundingClientRect().width);
+      const gap = parseFloat(getComputedStyle(measurement).columnGap) || 0;
+
+      if (!availableWidth || metricWidths.length !== metricNames.length) {
+        return;
+      }
+
+      const nextVisibleMetricCount = getVisibleMetricCount(
+        metricWidths,
+        overflowLabelWidths,
+        availableWidth,
+        gap,
+      );
+      setVisibleMetricCount((currentCount) =>
+        currentCount === nextVisibleMetricCount ? currentCount : nextVisibleMetricCount,
+      );
+    };
+
+    measure();
+    return getResizeObserver(container, measure);
+  }, [metricNames]);
+
+  const labelGroup = (
+    <LabelGroup
+      key={visibleMetricCount}
+      className="evalhub-benchmark-suite-card__metrics"
+      numLabels={visibleMetricCount}
+      isCompact
+      aria-label="Metrics"
+      data-testid={`benchmark-suite-card-metrics-${collectionId}`}
+    >
+      {metricNames.map((metric) => (
+        <Label key={metric} isCompact variant="outline">
+          {metric}
+        </Label>
+      ))}
+    </LabelGroup>
+  );
+
+  return (
+    <div
+      ref={containerRef}
+      className="evalhub-benchmark-suite-card__footer-metrics"
+      data-testid={`benchmark-suite-card-footer-metrics-${collectionId}`}
+    >
+      {visibleMetricCount < metricNames.length ? (
+        <Tooltip content={metricsTooltip}>{labelGroup}</Tooltip>
+      ) : (
+        labelGroup
+      )}
+      <div
+        ref={measurementRef}
+        className="evalhub-benchmark-suite-card__metrics-measurement"
+        aria-hidden="true"
+      >
+        <div className="evalhub-benchmark-suite-card__metrics-measurement-row">
+          {metricNames.map((metric) => (
+            <Label
+              key={metric}
+              className="evalhub-benchmark-suite-card__metrics-measurement-label"
+              data-metric-label
+              isCompact
+              variant="outline"
+            >
+              <span
+                className="evalhub-benchmark-suite-card__metrics-measurement-text"
+                data-label={metric}
+              />
+            </Label>
+          ))}
+        </div>
+        <div className="evalhub-benchmark-suite-card__metrics-measurement-row">
+          {metricNames.map((_, index) => (
+            <Label
+              key={index}
+              className="evalhub-benchmark-suite-card__metrics-measurement-label"
+              data-overflow-label
+              isCompact
+              variant="overflow"
+            >
+              <span
+                className="evalhub-benchmark-suite-card__metrics-measurement-text"
+                data-label={`${index + 1} more`}
+              />
+            </Label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
@@ -193,21 +318,6 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         ))}
       </List>
     </div>
-  );
-  const metricsLabelGroup = (
-    <LabelGroup
-      className="evalhub-benchmark-suite-card__metrics"
-      numLabels={VISIBLE_METRICS_COUNT}
-      isCompact
-      aria-label="Metrics"
-      data-testid={`benchmark-suite-card-metrics-${collection.resource.id}`}
-    >
-      {metricNames.map((metric) => (
-        <Label key={metric} isCompact variant="outline">
-          {metric}
-        </Label>
-      ))}
-    </LabelGroup>
   );
   const runCount = collection.state?.run_count ?? 0;
   const runCountTooltip = 'Run Count: Number of successful executions of this collection';
@@ -473,16 +583,11 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       </CardBody>
       <CardFooter className="evalhub-benchmark-suite-card__footer">
         {metricNames.length > 0 && (
-          <div
-            className="evalhub-benchmark-suite-card__footer-metrics"
-            data-testid={`benchmark-suite-card-footer-metrics-${collection.resource.id}`}
-          >
-            {metricNames.length > VISIBLE_METRICS_COUNT ? (
-              <Tooltip content={metricsTooltip}>{metricsLabelGroup}</Tooltip>
-            ) : (
-              metricsLabelGroup
-            )}
-          </div>
+          <MetricLabelGroup
+            collectionId={collection.resource.id}
+            metricNames={metricNames}
+            metricsTooltip={metricsTooltip}
+          />
         )}
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}

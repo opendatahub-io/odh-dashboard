@@ -203,6 +203,29 @@ export const getMetricDisplayName = (metric: string): string =>
 
 export const VISIBLE_METRICS_COUNT = 3;
 
+export const getVisibleMetricCount = (
+  metricWidths: number[],
+  overflowLabelWidths: number[],
+  availableWidth: number,
+  gap: number,
+): number => {
+  const maximumVisibleCount = Math.min(metricWidths.length, VISIBLE_METRICS_COUNT);
+
+  for (let visibleCount = maximumVisibleCount; visibleCount >= 0; visibleCount -= 1) {
+    const hiddenCount = metricWidths.length - visibleCount;
+    const labelsWidth = metricWidths.slice(0, visibleCount).reduce((sum, width) => sum + width, 0);
+    const labelsGap = Math.max(visibleCount - 1, 0) * gap;
+    const overflowWidth = hiddenCount > 0 ? (overflowLabelWidths[hiddenCount - 1] ?? 0) : 0;
+    const overflowGap = visibleCount > 0 && hiddenCount > 0 ? gap : 0;
+
+    if (labelsWidth + labelsGap + overflowWidth + overflowGap <= availableWidth) {
+      return visibleCount;
+    }
+  }
+
+  return 0;
+};
+
 export const toSafeExternalUrl = (raw?: string): string | undefined => {
   if (!raw) {
     return undefined;

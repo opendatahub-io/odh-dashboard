@@ -9,6 +9,7 @@ import {
   toSafeExternalUrl,
   getBenchmarkDisplayName,
   getBenchmarkNameMap,
+  getVisibleMetricCount,
 } from '~/app/components/benchmarkUtils';
 
 describe('toTitleCase', () => {
@@ -155,6 +156,20 @@ describe('getMetricDisplayName', () => {
     expect(getMetricDisplayName('toString')).toBe('ToString');
     expect(getMetricDisplayName('valueOf')).toBe('ValueOf');
     expect(typeof getMetricDisplayName('__proto__')).toBe('string');
+  });
+});
+
+describe('getVisibleMetricCount', () => {
+  it('should keep the overflow label within the available width', () => {
+    expect(getVisibleMetricCount([165, 175, 109], [48, 48, 48], 308, 4)).toBe(1);
+  });
+
+  it('should show all metrics when they fit without an overflow label', () => {
+    expect(getVisibleMetricCount([65, 80, 110], [48, 48, 48], 300, 4)).toBe(3);
+  });
+
+  it('should preserve the maximum visible metric count', () => {
+    expect(getVisibleMetricCount([40, 40, 40, 40], [48, 48, 48, 48], 300, 4)).toBe(3);
   });
 });
 
