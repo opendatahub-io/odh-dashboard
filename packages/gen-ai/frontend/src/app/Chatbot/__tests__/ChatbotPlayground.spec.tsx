@@ -211,6 +211,16 @@ jest.mock('~/app/hooks/useWorkspaceCapabilities', () => ({
   })),
 }));
 
+jest.mock('~/app/hooks/useGenAiImageUploadEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(() => true),
+}));
+
+jest.mock('~/app/hooks/useGenAiAudioUploadEnabled', () => ({
+  __esModule: true,
+  default: jest.fn(() => true),
+}));
+
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
   fireFormTrackingEvent: jest.fn(),
