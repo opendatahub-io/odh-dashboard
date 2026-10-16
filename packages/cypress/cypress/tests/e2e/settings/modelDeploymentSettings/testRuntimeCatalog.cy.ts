@@ -80,7 +80,8 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
 
   it(
     'Non-admin user cannot access the Runtime image library or its details pages',
-    { tags: ['@Dashboard', '@RuntimeCatalog'] },
+    // Needs no runtime data, so unlike the admin test it runs in the model-registry CI set
+    { tags: ['@Dashboard', '@RuntimeCatalog', '@ModelCatalogCI'] },
     () => {
       cy.step('Visit the Runtime image library as a non-admin user');
       runtimeCatalogPage.visitAs(LDAP_CONTRIBUTOR_USER);
