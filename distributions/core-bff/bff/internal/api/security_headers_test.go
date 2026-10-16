@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/stretchr/testify/assert"
@@ -164,6 +165,52 @@ func (h *hijackRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	c1, c2 := net.Pipe()
 	_ = c2.Close()
 	return c1, bufio.NewReadWriter(bufio.NewReader(c1), bufio.NewWriter(c1)), nil
+}
+
+// deadlineWriter records ResponseController deadline calls that only reach the
+// underlying writer when the security-headers wrapper implements Unwrap.
+type deadlineWriter struct {
+	http.ResponseWriter
+	writeDeadline time.Time
+	readDeadline  time.Time
+	fullDuplex    bool
+}
+
+func (d *deadlineWriter) SetWriteDeadline(deadline time.Time) error {
+	d.writeDeadline = deadline
+	return nil
+}
+
+func (d *deadlineWriter) SetReadDeadline(deadline time.Time) error {
+	d.readDeadline = deadline
+	return nil
+}
+
+func (d *deadlineWriter) EnableFullDuplex() error {
+	d.fullDuplex = true
+	return nil
+}
+
+func TestSetSecurityHeaders_ResponseControllerDeadlines(t *testing.T) {
+	app := newTestApp()
+	deadline := time.Now().Add(time.Hour).UTC()
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rc := http.NewResponseController(w)
+		require.NoError(t, rc.SetWriteDeadline(deadline))
+		require.NoError(t, rc.SetReadDeadline(deadline))
+		require.NoError(t, rc.EnableFullDuplex())
+		w.WriteHeader(http.StatusOK)
+	})
+
+	base := httptest.NewRecorder()
+	wrapped := &deadlineWriter{ResponseWriter: base}
+	app.SetSecurityHeaders(inner).ServeHTTP(wrapped, httptest.NewRequest(http.MethodGet, "/api/v1/stream", nil))
+
+	assert.True(t, deadline.Equal(wrapped.writeDeadline))
+	assert.True(t, deadline.Equal(wrapped.readDeadline))
+	assert.True(t, wrapped.fullDuplex)
+	assertConsoleSecurityHeaders(t, base.Header())
+	assertNoStoreCache(t, base.Header())
 }
 
 func TestSetSecurityHeaders_Hijack(t *testing.T) {

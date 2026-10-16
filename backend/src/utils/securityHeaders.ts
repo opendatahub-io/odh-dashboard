@@ -32,7 +32,8 @@ const headerValue = (value: string | string[] | undefined): string => {
   return value ?? '';
 };
 
-const isNonSuccessStatus = (statusCode: number): boolean => statusCode < 200 || statusCode >= 300;
+/** 4xx/5xx only. 304 must keep the filename policy so revalidation does not evict the stored asset. */
+const isErrorStatus = (statusCode: number): boolean => statusCode >= 400;
 
 /** True when upstream already forbids shared/browser storage. */
 export const isRestrictiveCacheControl = (value: string | string[] | undefined): boolean => {
@@ -49,14 +50,14 @@ const isLikelyStaticAssetPath = (urlPath: string): boolean => LIKELY_STATIC_EXT.
 /**
  * Cache-Control for Module Federation static proxies (`/_mf/…`).
  * Classifies the pathname only (never the query string). Preserves upstream
- * no-store/private. Forces no-store for non-2xx, API-like paths, and non-asset paths.
+ * no-store/private. Forces no-store for 4xx/5xx, API-like paths, and non-asset paths.
  */
 export const resolveStaticProxyCacheControl = (
   url: string,
   upstreamCacheControl?: string | string[],
   statusCode?: number,
 ): string => {
-  if (statusCode !== undefined && isNonSuccessStatus(statusCode)) {
+  if (statusCode !== undefined && isErrorStatus(statusCode)) {
     return CACHE_CONTROL_NO_STORE;
   }
   const upstream = headerValue(upstreamCacheControl);
@@ -121,13 +122,13 @@ export const rewriteStaticProxyCacheHeaders: FastifyHttpProxyOptions['replyOptio
   };
 
 /**
- * Forces no-store on non-2xx `/_mf` proxy responses after rewriteHeaders runs.
+ * Forces no-store on 4xx/5xx `/_mf` proxy responses after rewriteHeaders runs.
  * Must send the upstream stream when onResponse is set.
  */
 export const staticProxyCacheOnResponse: NonNullable<
   FastifyHttpProxyOptions['replyOptions']
 >['onResponse'] = (_request, reply, res) => {
-  if (isNonSuccessStatus(res.statusCode)) {
+  if (isErrorStatus(res.statusCode)) {
     reply.header('Cache-Control', CACHE_CONTROL_NO_STORE);
   }
   reply.send(res.stream);

@@ -48,7 +48,7 @@ Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federa
 `Cache-Control` is selective (not blanket `no-store`):
 
 - **Host APIs** (`/api/…`, `/wss/…`), **SPA document** responses, and **federated module API proxies** use `no-cache, no-store, must-revalidate`.
-- **Static / `/_mf` asset files** use filename-based policies (`immutable` for content-hashed bundles, `no-cache` for unhashed scripts, short TTL for media). `/_mf` classification uses the URL pathname only, preserves upstream `no-store`/`private`, and forces `no-store` for API-like paths and non-2xx responses.
+- **Static / `/_mf` asset files** use filename-based policies (`immutable` for content-hashed bundles, `no-cache` for unhashed scripts, short TTL for media). `/_mf` classification uses the URL pathname only, preserves upstream `no-store`/`private`, and forces `no-store` for API-like paths and 4xx/5xx responses.
 
 Do not confuse response `Cache-Control: no-store` with the **request** header `Cache-Control: no-cache` used to force-refresh watcher-backed reads such as `GET /api/config`.
 

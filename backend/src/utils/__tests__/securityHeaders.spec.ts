@@ -14,6 +14,7 @@ import {
   rewriteNoStoreCacheHeaders,
   rewriteStaticProxyCacheHeaders,
   setNoStoreCacheHeaders,
+  staticProxyCacheOnResponse,
 } from '../securityHeaders';
 
 const mockReply = (existing: Record<string, string> = {}) => {
@@ -128,13 +129,20 @@ describe('resolveStaticProxyCacheControl', () => {
   });
 
   it.each([404, 503])(
-    'forces no-store for non-2xx status %s even for hashed assets',
+    'forces no-store for error status %s even for hashed assets',
     (statusCode) => {
       expect(
         resolveStaticProxyCacheControl('/_mf/genAi/app.abcdef123456.js', undefined, statusCode),
       ).toBe(CACHE_CONTROL_NO_STORE);
     },
   );
+
+  it.each([
+    ['/_mf/genAi/remoteEntry.js', CACHE_HEADER_NO_CACHE],
+    ['/_mf/genAi/app.abcdef123456.js', CACHE_HEADER_IMMUTABLE],
+  ])('keeps the filename cache policy for 304 on %s', (url, expected) => {
+    expect(resolveStaticProxyCacheControl(url, undefined, 304)).toBe(expected);
+  });
 });
 
 describe('isRestrictiveCacheControl', () => {
@@ -151,6 +159,32 @@ describe('isRestrictiveCacheControl', () => {
       expect(isRestrictiveCacheControl(value)).toBe(false);
     },
   );
+});
+
+describe('staticProxyCacheOnResponse', () => {
+  const run = (statusCode: number, cacheControl: string) => {
+    const { reply, headers } = mockReply({ 'cache-control': cacheControl });
+    const send = jest.fn();
+    Object.assign(reply, { send });
+    const stream = {};
+    staticProxyCacheOnResponse(mockRequest('/_mf/genAi/remoteEntry.js'), reply, {
+      statusCode,
+      stream,
+    } as never);
+    return { headers, send, stream };
+  };
+
+  it('should leave the rewriteHeaders Cache-Control in place on 304', () => {
+    const { headers, send, stream } = run(304, CACHE_HEADER_NO_CACHE);
+    expect(headers['cache-control']).toBe(CACHE_HEADER_NO_CACHE);
+    expect(send).toHaveBeenCalledWith(stream);
+  });
+
+  it.each([404, 503])('should force no-store on error status %s', (statusCode) => {
+    const { headers, send, stream } = run(statusCode, CACHE_HEADER_IMMUTABLE);
+    expect(headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
+    expect(send).toHaveBeenCalledWith(stream);
+  });
 });
 
 describe('rewriteStaticProxyCacheHeaders', () => {

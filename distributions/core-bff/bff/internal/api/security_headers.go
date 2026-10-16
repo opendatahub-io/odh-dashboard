@@ -64,6 +64,13 @@ func (w *securityHeadersWriter) Flush() {
 	}
 }
 
+// Unwrap lets http.ResponseController reach the underlying writer for
+// SetReadDeadline, SetWriteDeadline, and EnableFullDuplex. Flush and Hijack
+// are implemented directly on this wrapper.
+func (w *securityHeadersWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
 func (w *securityHeadersWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	h, ok := w.ResponseWriter.(http.Hijacker)
 	if !ok {
