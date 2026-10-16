@@ -12,31 +12,23 @@ const EVAL_HUB_CATALOG_API_PATH = '/eval-hub/api/v1/catalog/sources';
 
 type CatalogArtifactVisibilityOptions = {
   apiPath?: string;
-  namespaceProp: 'catalogNamespace' | 'evalHubNamespace';
-  includeCatalogNamespace?: boolean;
 };
 
 const hasCatalogArtifacts = async (
   props: Record<string, unknown>,
   path: string,
   additionalParams: Record<string, string> = {},
-  {
-    apiPath = MODEL_CATALOG_API_PATH,
-    namespaceProp,
-    includeCatalogNamespace = false,
-  }: CatalogArtifactVisibilityOptions = { namespaceProp: 'catalogNamespace' },
+  { apiPath = MODEL_CATALOG_API_PATH }: CatalogArtifactVisibilityOptions = {},
 ): Promise<boolean> => {
-  const { sourceId, modelName, catalogNamespace } = props;
+  const { sourceId, modelName, namespace } = props;
   if (typeof sourceId !== 'string' || typeof modelName !== 'string') {
     return false;
   }
 
-  const namespace = props[namespaceProp];
   if (typeof namespace !== 'string') {
-    // Keep the visibility check pending until the project selector resolves the namespace.
-    return new Promise<boolean>(() => {
-      // The effect that owns this predicate cancels it when the namespace becomes available.
-    });
+    // The namespace (AI Hub instances namespace) is not resolved yet — hide the tab for now.
+    // The predicate re-runs when the namespace prop changes and resolves.
+    return false;
   }
 
   const controller = new AbortController();
@@ -45,12 +37,6 @@ const hasCatalogArtifacts = async (
   try {
     const params = new URLSearchParams({ pageSize: '1', ...additionalParams });
     params.set('namespace', namespace);
-    if (includeCatalogNamespace) {
-      if (typeof catalogNamespace !== 'string') {
-        return false;
-      }
-      params.set('catalogNamespace', catalogNamespace);
-    }
     const url = `${apiPath}/${encodeURIComponent(sourceId)}/${path}/${encodeURIComponent(
       modelName,
     )}?${params.toString()}`;
@@ -122,8 +108,6 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
           {},
           {
             apiPath: EVAL_HUB_CATALOG_API_PATH,
-            namespaceProp: 'evalHubNamespace',
-            includeCatalogNamespace: true,
           },
         ),
     },
@@ -144,8 +128,6 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
           {},
           {
             apiPath: EVAL_HUB_CATALOG_API_PATH,
-            namespaceProp: 'evalHubNamespace',
-            includeCatalogNamespace: true,
           },
         ),
     },

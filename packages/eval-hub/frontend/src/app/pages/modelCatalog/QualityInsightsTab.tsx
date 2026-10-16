@@ -4,15 +4,9 @@ import QualityInsightsView from './QualityInsightsView';
 const QualityInsightsTab: React.FC<{
   modelName?: string;
   sourceId?: string;
-  evalHubNamespace?: string;
-  catalogNamespace?: string;
-}> = ({ sourceId = '', modelName = '', evalHubNamespace = '', catalogNamespace }) => (
-  <QualityInsightsView
-    sourceId={sourceId}
-    modelName={modelName}
-    namespace={evalHubNamespace}
-    catalogNamespace={catalogNamespace}
-  />
+  namespace?: string;
+}> = ({ sourceId = '', modelName = '', namespace = '' }) => (
+  <QualityInsightsView sourceId={sourceId} modelName={modelName} namespace={namespace} />
 );
 
 export default QualityInsightsTab;

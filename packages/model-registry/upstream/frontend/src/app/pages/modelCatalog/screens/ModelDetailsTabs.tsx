@@ -6,7 +6,6 @@ import { isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-point
 import { ExtensibleDetailTabs } from '@odh-dashboard/plugin-core/helpers/ui';
 import { useQueryParamNamespaces } from 'mod-arch-core';
 import { CatalogArtifactList, CatalogModel } from '~/app/modelCatalogTypes';
-import { useProjectsBridge } from '~/odh/context/ProjectsBridgeContext';
 import {
   isModelValidated,
   hasPerformanceArtifacts,
@@ -49,8 +48,6 @@ const ModelDetailsTabs = ({
   const queryParams = useQueryParamNamespaces();
   const catalogNamespace =
     typeof queryParams.namespace === 'string' ? queryParams.namespace : undefined;
-  const { preferredProject } = useProjectsBridge();
-  const evalHubNamespace = preferredProject?.name;
 
   // Keep the tab available while artifacts are loading so async extension tabs do not redirect.
   const showValidatedInsights =
@@ -61,10 +58,8 @@ const ModelDetailsTabs = ({
       modelName: model.name,
       sourceId,
       namespace: catalogNamespace,
-      catalogNamespace,
-      evalHubNamespace,
     }),
-    [model.name, sourceId, catalogNamespace, evalHubNamespace],
+    [model.name, sourceId, catalogNamespace],
   );
 
   const staticTabs = React.useMemo(() => {

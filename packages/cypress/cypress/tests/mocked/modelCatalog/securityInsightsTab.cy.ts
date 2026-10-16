@@ -51,9 +51,6 @@ const setupCommonIntercepts = ({
       mockProjectK8sResource({ k8sName: EVAL_HUB_NAMESPACE, displayName: EVAL_HUB_NAMESPACE }),
     ]),
   );
-  cy.window().then((window) => {
-    window.localStorage.setItem('mod-arch.namespace.lastUsed', JSON.stringify(EVAL_HUB_NAMESPACE));
-  });
 
   cy.interceptOdh(
     'GET /api/config',
@@ -149,7 +146,7 @@ const interceptShouldShowSecurityArtifacts = (hasData = true) => {
     {
       method: 'GET',
       url: new RegExp(`/eval-hub/api/${API_VERSION}/catalog/sources/.*/security_artifacts/.*`),
-      query: { pageSize: '1' },
+      query: { pageSize: '1', namespace: REGISTRIES_NAMESPACE },
       times: 1,
     },
     {
@@ -178,7 +175,7 @@ const interceptShouldShowQualityArtifacts = (hasData = true) => {
     {
       method: 'GET',
       url: new RegExp(`/eval-hub/api/${API_VERSION}/catalog/sources/.*/quality_artifacts/.*`),
-      query: { pageSize: '1' },
+      query: { pageSize: '1', namespace: REGISTRIES_NAMESPACE },
       times: 1,
     },
     {
@@ -268,7 +265,7 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     cy.wait('@getQualityArtifacts');
   });
 
-  it('should show quality insights for a non-admin with project-only EvalHub access', () => {
+  it('should show quality insights for a non-admin user', () => {
     setupCommonIntercepts({ nonAdmin: true });
     interceptQualityArtifacts();
     interceptShouldShowQualityArtifacts(true);

@@ -15,7 +15,7 @@ describe('model catalog detail tab extensions', () => {
     jest.restoreAllMocks();
   });
 
-  it('uses both namespaces for EvalHub security artifact visibility', async () => {
+  it('uses the catalog namespace for EvalHub security artifact visibility', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ data: { items: [{ id: 'artifact-1' }] } }),
@@ -29,18 +29,17 @@ describe('model catalog detail tab extensions', () => {
       shouldShow?.({
         sourceId: 'source-1',
         modelName: 'repo/model',
-        catalogNamespace: 'odh-model-registries',
-        evalHubNamespace: 'project-only',
+        namespace: 'odh-model-registries',
       }),
     ).resolves.toBe(true);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/eval-hub/api/v1/catalog/sources/source-1/security_artifacts/repo%2Fmodel?pageSize=1&namespace=project-only&catalogNamespace=odh-model-registries',
+      '/eval-hub/api/v1/catalog/sources/source-1/security_artifacts/repo%2Fmodel?pageSize=1&namespace=odh-model-registries',
       expect.objectContaining({ signal: expect.anything() }),
     );
   });
 
-  it('uses the preferred project namespace for EvalHub artifact visibility', async () => {
+  it('uses the catalog namespace for EvalHub quality artifact visibility', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ data: { items: [{ id: 'artifact-1' }] } }),
@@ -54,29 +53,28 @@ describe('model catalog detail tab extensions', () => {
       shouldShow?.({
         sourceId: 'source-1',
         modelName: 'repo/model',
-        catalogNamespace: 'odh-model-registries',
-        evalHubNamespace: 'project-only',
+        namespace: 'odh-model-registries',
       }),
     ).resolves.toBe(true);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/eval-hub/api/v1/catalog/sources/source-1/quality_artifacts/repo%2Fmodel?pageSize=1&namespace=project-only&catalogNamespace=odh-model-registries',
+      '/eval-hub/api/v1/catalog/sources/source-1/quality_artifacts/repo%2Fmodel?pageSize=1&namespace=odh-model-registries',
       expect.objectContaining({ signal: expect.anything() }),
     );
   });
 
-  it('keeps artifact visibility pending without an EvalHub project namespace', async () => {
+  it('hides artifact visibility without a resolved namespace', async () => {
     const fetchMock = jest.fn();
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
     const shouldShow = qualityInsightsExtension?.properties.shouldShow;
 
-    const visibilityResult = shouldShow?.({
-      sourceId: 'source-1',
-      modelName: 'repo/model',
-      catalogNamespace: 'odh-model-registries',
-    });
+    await expect(
+      shouldShow?.({
+        sourceId: 'source-1',
+        modelName: 'repo/model',
+      }),
+    ).resolves.toBe(false);
 
-    expect(visibilityResult).toEqual(expect.any(Promise));
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -89,8 +87,7 @@ describe('model catalog detail tab extensions', () => {
       shouldShow?.({
         sourceId: 'source-1',
         modelName: 'repo/model',
-        catalogNamespace: 'odh-model-registries',
-        evalHubNamespace: 'project-only',
+        namespace: 'odh-model-registries',
       }),
     ).resolves.toBe(false);
   });
@@ -105,8 +102,7 @@ describe('model catalog detail tab extensions', () => {
     const props = {
       sourceId: 'source-1',
       modelName: 'repo/model',
-      catalogNamespace: 'odh-model-registries',
-      evalHubNamespace: 'project-only',
+      namespace: 'odh-model-registries',
     };
 
     await expect(shouldShow?.(props)).rejects.toThrow(
