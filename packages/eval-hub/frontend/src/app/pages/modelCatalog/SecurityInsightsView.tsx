@@ -52,12 +52,14 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   sourceId,
   modelName,
   namespace,
+  catalogNamespace,
 }) => {
   const { insights, loaded, loadError } = useSecurityArtifacts(
     sourceId,
     modelName,
     namespace,
     SECURITY_ARTIFACTS_PAGE_SIZE,
+    catalogNamespace,
   );
 
   const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
@@ -166,19 +168,19 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     </MenuToggle>
   );
 
-  if (!loaded) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-
   if (loadError) {
     return (
       <Alert variant="danger" isInline title="Error loading security insights">
         {loadError.message}
       </Alert>
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
     );
   }
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient"
@@ -46,15 +47,64 @@ func (m *MockBFFClient) handleModelCatalogCall(method, path string, response int
 		return bffclient.NewBadRequestError(m.target, fmt.Sprintf("only GET is supported, got %s", method))
 	}
 
+	items := mockSecurityArtifactItems()
+	if strings.Contains(path, "/artifacts/") {
+		items = mockQualityArtifactItems()
+	}
+
 	mockResp := map[string]interface{}{
 		"data": map[string]interface{}{
 			"nextPageToken": "",
 			"pageSize":      10,
-			"size":          3,
-			"items":         mockSecurityArtifactItems(),
+			"size":          len(items),
+			"items":         items,
 		},
 	}
 	return marshalToResponse(mockResp, response)
+}
+
+func mockQualityArtifactItems() []map[string]interface{} {
+	str := func(v string) map[string]interface{} {
+		return map[string]interface{}{"metadataType": "MetadataStringValue", "string_value": v}
+	}
+	dbl := func(v float64) map[string]interface{} {
+		return map[string]interface{}{"metadataType": "MetadataDoubleValue", "double_value": v}
+	}
+
+	return []map[string]interface{}{
+		{
+			"id":           "quality-art-1",
+			"artifactType": "metrics-artifact",
+			"metricsType":  "evaluation-metrics",
+			"customProperties": map[string]interface{}{
+				"evaluation":        str("Python function generation"),
+				"category":          str("code"),
+				"benchmark":         str("HumanEval"),
+				"description":       str("Writes correct Python functions from docstring specifications."),
+				"result":            dbl(0.628),
+				"result_metric":     str("accuracy"),
+				"run_id":            str("run-quality-001"),
+				"model_id":          str("RedHatAI/example-model"),
+				"execution_context": str(`{"collection_definition":{"name":"Python function generation"}}`),
+			},
+		},
+		{
+			"id":           "quality-art-2",
+			"artifactType": "metrics-artifact",
+			"metricsType":  "evaluation-metrics",
+			"customProperties": map[string]interface{}{
+				"evaluation":        str("Hard multi-step reasoning"),
+				"category":          str("reasoning"),
+				"benchmark":         str("BBH"),
+				"description":       str("Challenging reasoning tasks across multiple domains."),
+				"result":            dbl(0.491),
+				"result_metric":     str("accuracy"),
+				"run_id":            str("run-quality-001"),
+				"model_id":          str("RedHatAI/example-model"),
+				"execution_context": str(`{"collection_definition":{"name":"Hard multi-step reasoning"}}`),
+			},
+		},
+	}
 }
 
 func mockSecurityArtifactItems() []map[string]interface{} {

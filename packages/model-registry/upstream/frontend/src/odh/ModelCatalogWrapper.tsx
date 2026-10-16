@@ -10,6 +10,7 @@ import { AppContext } from '~/app/context/AppContext';
 import ModelCatalogRoutes from '~/app/pages/modelCatalog/ModelCatalogRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 import NotificationListener from '~/odh/components/NotificationListener';
+import ProjectsBridgeProviderWrapper from '~/odh/components/ProjectsBridgeProviderWrapper';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
 import OdhWrapper from '~/odh/OdhWrapper';
@@ -50,7 +51,9 @@ const ModelCatalogWrapperContent: React.FC = () => {
 
 const ModelCatalogWrapper: React.FC = () => (
   <OdhWrapper>
-    <ModelCatalogWrapperContent />
+    <ProjectsBridgeProviderWrapper>
+      <ModelCatalogWrapperContent />
+    </ProjectsBridgeProviderWrapper>
   </OdhWrapper>
 );
 export default ModelCatalogWrapper;

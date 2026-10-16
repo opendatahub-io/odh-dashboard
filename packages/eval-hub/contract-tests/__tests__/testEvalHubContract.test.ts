@@ -26,6 +26,19 @@ describe('EvalHub API Contract Tests', () => {
     });
   });
 
+  describe('Model Catalog Quality Artifacts Endpoint', () => {
+    it('should return evaluation-metrics artifacts for a model', async () => {
+      const result = await apiClient.get(
+        '/eval-hub/api/v1/catalog/sources/sample-source/quality_artifacts/repo1%2Fmodel1?namespace=default&pageSize=1',
+      );
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CatalogQualityArtifactsResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
+
   describe('Namespaces Endpoint', () => {
     it('should successfully retrieve namespaces list', async () => {
       const result = await apiClient.get('/eval-hub/api/v1/namespaces');

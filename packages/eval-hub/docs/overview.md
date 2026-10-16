@@ -12,6 +12,7 @@
   - Standalone/kubeflow: typically serve the SPA from the BFF static flow.
   - Federated: BFF is API-only; main dashboard loads the bundle at runtime.
 - **Data flow**: Kubernetes and eval-hub orchestration → BFF → frontend; Kubeflow Pipelines may orchestrate evaluation pipeline execution depending on deployment.
+- **Quality Insights extension**: The model-registry Model Catalog loads the EvalHub-provided Quality Insights tab. Its visibility and data requests use the model catalog instances namespace; the EvalHub BFF forwards the caller's token to the model-catalog BFF, which enforces namespace access on the underlying artifacts endpoints (no EvalHub access is required).
 - **Module Federation**: Remote `evalHub`; host loads `./extensions` (page registrations) and `./extension-points` (types the host consumes). Runtime: `evalHub@<remote>/remoteEntry.js`.
 
 ## Key Concepts
@@ -32,6 +33,7 @@
 | model-serving | Package | Deployed endpoints to evaluate against. |
 | Kubeflow Pipelines | External service | Can orchestrate evaluation pipeline execution. |
 | eval-hub service | External service | Proxied by the BFF for evaluations API. |
+| model-catalog BFF | Inter-BFF dependency | Proxies model-catalog quality artifacts for the Model Catalog Quality Insights extension. |
 | Kubernetes | Cluster API | CRDs, RBAC, namespace and user context. |
 
 ## Known Issues / Gotchas

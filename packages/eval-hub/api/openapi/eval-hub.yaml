@@ -785,6 +785,7 @@ paths:
         - Bearer: []
       parameters:
         - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/catalogNamespace'
         - name: source_id
           in: path
           required: true
@@ -833,6 +834,70 @@ paths:
         inter-BFF communication. The response is proxied from the model-catalog
         BFF's /model_catalog/sources/{source_id}/security_artifacts/{model_name}
         endpoint.
+
+  /eval-hub/api/v1/catalog/sources/{source_id}/quality_artifacts/{model_name}:
+    summary: Get quality artifacts for a model from the Model Catalog
+    description: >-
+      Proxies the generic Model-Catalog artifacts endpoint with the fixed
+      evaluation-metrics filter for a specific model.
+    get:
+      tags:
+        - ModelCatalog
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespaceRequired'
+        - $ref: '#/components/parameters/catalogNamespace'
+        - name: source_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Catalog source identifier
+          example: 'sample-source'
+        - name: model_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Model name (URL-encoded if it contains slashes)
+          example: 'granite-8b'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/nextPageToken'
+        - $ref: '#/components/parameters/orderBy'
+        - $ref: '#/components/parameters/sortOrder'
+      responses:
+        '200':
+          $ref: '#/components/responses/CatalogQualityArtifactsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          description: Bad Gateway - Model-Catalog BFF returned an error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Service Unavailable - Model-Catalog BFF is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      operationId: getCatalogModelQualityArtifacts
+      summary: Get Model Quality Artifacts
+      description: >-
+        Fetches evaluation-metrics artifacts for a model from the Model Catalog
+        via inter-BFF communication. The EvalHub BFF fixes artifactType to
+        metrics-artifact and filterQuery to
+        metricsType.string_value="evaluation-metrics".
 
   # =============================================================================
   # INFERENCE SERVICES
@@ -1383,6 +1448,26 @@ components:
     # Model Catalog security artifact schemas (inter-BFF)
     # -------------------------------------------------------------------------
 
+    CatalogMetadataStringValue:
+      type: object
+      properties:
+        metadataType:
+          type: string
+          example: 'MetadataStringValue'
+        string_value:
+          type: string
+
+    CatalogMetadataDoubleValue:
+      type: object
+      properties:
+        metadataType:
+          type: string
+          example: 'MetadataDoubleValue'
+        double_value:
+          type: number
+          format: double
+          nullable: true
+
     CatalogSecurityArtifact:
       type: object
       required:
@@ -1452,6 +1537,102 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CatalogSecurityArtifact'
+
+    CatalogQualityArtifact:
+      type: object
+      required:
+        - artifactType
+      properties:
+        artifactType:
+          type: string
+          example: 'metrics-artifact'
+        id:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+        metricsType:
+          type: string
+          nullable: true
+          example: 'evaluation-metrics'
+        uri:
+          type: string
+          nullable: true
+        createTimeSinceEpoch:
+          type: string
+          nullable: true
+        lastUpdateTimeSinceEpoch:
+          type: string
+          nullable: true
+        customProperties:
+          type: object
+          nullable: true
+          description: >-
+            Typed evaluation fields and additional model-catalog metadata. The
+            execution_context value, when present, is a JSON-encoded string.
+          additionalProperties: true
+          properties:
+            evaluation:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            category:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            benchmark:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            description:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            result:
+              $ref: '#/components/schemas/CatalogMetadataDoubleValue'
+            result_metric:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            run_id:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            model_id:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            provider_id:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            collection_id:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            benchmark_status:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            job_status:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            rhoai_version:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            source_run_ids:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            execution_context:
+              allOf:
+                - $ref: '#/components/schemas/CatalogMetadataStringValue'
+              description: JSON-encoded evaluation execution context; preserved for consumers that need run details.
+            benchmark_index:
+              $ref: '#/components/schemas/CatalogMetadataDoubleValue'
+            created_at:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+            updated_at:
+              $ref: '#/components/schemas/CatalogMetadataStringValue'
+
+    CatalogQualityArtifactList:
+      type: object
+      required:
+        - items
+        - size
+      properties:
+        nextPageToken:
+          type: string
+        pageSize:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogQualityArtifact'
 
     # -------------------------------------------------------------------------
     # InferenceService schemas
@@ -2774,6 +2955,48 @@ components:
                       metadataType: 'MetadataStringValue'
                       string_value: 'security'
 
+    CatalogQualityArtifactsResponse:
+      description: Evaluation-metrics artifacts for the requested model
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CatalogQualityArtifactList'
+          example:
+            data:
+              nextPageToken: ''
+              pageSize: 10
+              size: 1
+              items:
+                - artifactType: 'metrics-artifact'
+                  metricsType: 'evaluation-metrics'
+                  customProperties:
+                    evaluation:
+                      metadataType: 'MetadataStringValue'
+                      string_value: 'Python function generation'
+                    category:
+                      metadataType: 'MetadataStringValue'
+                      string_value: 'code'
+                    benchmark:
+                      metadataType: 'MetadataStringValue'
+                      string_value: 'HumanEval'
+                    description:
+                      metadataType: 'MetadataStringValue'
+                      string_value: 'Writes correct Python functions from docstring specifications.'
+                    result:
+                      metadataType: 'MetadataDoubleValue'
+                      double_value: 0.628
+                    result_metric:
+                      metadataType: 'MetadataStringValue'
+                      string_value: 'accuracy'
+                    execution_context:
+                      metadataType: 'MetadataStringValue'
+                      string_value: '{"collection_definition":{"name":"Python function generation"}}'
+
     CancelEvaluationJobResponse:
       description: Evaluation job cancelled or deleted successfully
       content:
@@ -2853,6 +3076,13 @@ components:
         type: string
       required: false
       description: Kubernetes namespace to scope the request (optional)
+    catalogNamespace:
+      in: query
+      name: catalogNamespace
+      schema:
+        type: string
+      required: false
+      description: Namespace where the Model Catalog service is deployed; used for catalog service discovery
     namespaceRequired:
       in: query
       name: namespace

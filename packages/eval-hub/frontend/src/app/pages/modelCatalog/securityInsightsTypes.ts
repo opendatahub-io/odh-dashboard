@@ -52,6 +52,7 @@ export type SecurityInsightsViewProps = {
   sourceId: string;
   modelName: string;
   namespace: string;
+  catalogNamespace?: string;
 };
 
 export type SecurityInsight = {
@@ -62,7 +63,7 @@ export type SecurityInsight = {
   result: string;
 };
 
-const formatRate = (value: number | undefined, lowerIsBetter = false): string => {
+export const formatRate = (value: number | undefined, lowerIsBetter = false): string => {
   if (value === undefined) {
     return '';
   }
