@@ -166,11 +166,11 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
             isInline
             onClick={() => {
               hidePopover();
-              popoverRef.current?.focus();
               selectNode(element.getId());
             }}
             onKeyDown={activateNodeButtonOnKeyDown}
             aria-label={`View details for ${element.getLabel()} task group`}
+            data-pipeline-node-id={element.getId()}
             data-testid={`pipeline-group-details-${element.getLabel()}`}
           >
             View group details
