@@ -68,9 +68,12 @@ export const mlflowCompareRunsRoute = (
   return withWorkspace(basePath, namespace);
 };
 
-export const mlflowLaunchRoute = (namespace?: string): string => {
+// `hashPath` opens a page in the MLflow UI's hash router (e.g. '/skills') instead of its home page.
+export const mlflowLaunchRoute = (namespace?: string, hashPath = '/'): string => {
   if (!namespace) {
-    return MLFLOW_PROXY_BASE_PATH;
+    return hashPath === '/' ? MLFLOW_PROXY_BASE_PATH : `${MLFLOW_PROXY_BASE_PATH}/#${hashPath}`;
   }
-  return `${MLFLOW_PROXY_BASE_PATH}/#/?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
+  return `${MLFLOW_PROXY_BASE_PATH}/#${hashPath}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(
+    namespace,
+  )}`;
 };

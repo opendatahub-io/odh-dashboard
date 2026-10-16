@@ -27,3 +27,8 @@ export const MLFLOW_NOT_CONFIGURED_MESSAGE =
 export const AGENT_OBSERVABILITY_PAGE_TITLE = 'Agent observability';
 export const AGENT_OBSERVABILITY_NO_PROJECTS_MESSAGE =
   'To view agent observability, first create a project.';
+
+export const SKILL_REGISTRY_PAGE_TITLE = 'Skills';
+export const SKILL_REGISTRY_DESCRIPTION =
+  'Discover and register agent skills, and manage their versions in this project.';
+export const SKILL_REGISTRY_NO_PROJECTS_MESSAGE = 'To register skills, first create a project.';

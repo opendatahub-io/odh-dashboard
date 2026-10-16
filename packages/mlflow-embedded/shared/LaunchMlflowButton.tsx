@@ -9,8 +9,9 @@ const LaunchMlflowButton: React.FC<{
   testId: string;
   section: string;
   workspace?: string;
-}> = ({ testId, section, workspace }) => {
-  const href = mlflowLaunchRoute(workspace);
+  hashPath?: string;
+}> = ({ testId, section, workspace, hashPath }) => {
+  const href = mlflowLaunchRoute(workspace, hashPath);
   return (
     <Button
       component="a"
