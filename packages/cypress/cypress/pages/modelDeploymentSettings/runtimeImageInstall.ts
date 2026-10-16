@@ -21,7 +21,7 @@ class RuntimeImageInstallPage {
   }
 
   findLibraryBreadcrumb() {
-    return cy.findByRole('link', { name: 'Runtime image library' });
+    return cy.findByRole('link', { name: 'Runtime library' });
   }
 
   findRuntimeDetailsBreadcrumb(runtimeImageName: string) {
@@ -69,7 +69,15 @@ class RuntimeImageInstallPage {
   }
 
   findNoResourcesMessage() {
-    return cy.findByText('No runtime image install target extensions are available.');
+    return cy.findByText('This runtime image does not support any available install target');
+  }
+
+  findSingleTargetAlert() {
+    return cy.findByTestId('runtime-image-single-target-alert');
+  }
+
+  findCancel() {
+    return cy.findByRole('button', { name: 'Cancel' });
   }
 
   loadActionDataRouterState<T extends { runtimeImageId: string }>(actionData: T) {

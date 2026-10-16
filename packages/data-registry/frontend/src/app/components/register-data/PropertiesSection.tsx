@@ -186,14 +186,14 @@ const PropertiesSection: React.FC = () => {
 
       <SelectField
         name="piiStatus"
-        label="PII status"
+        label="Personally identifiable information (PII) status"
         fieldId="data-pii"
         testId="data-pii-toggle"
         options={PII_OPTIONS}
-        placeholder="Select PII status"
+        placeholder="Select personally identifiable information status"
         labelHelp={
           <Popover bodyContent="The type of personally identifiable information (PII) present in the data.">
-            <FormGroupLabelHelp aria-label="PII information" />
+            <FormGroupLabelHelp aria-label="Personally identifiable information details" />
           </Popover>
         }
       />

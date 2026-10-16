@@ -29,6 +29,7 @@ type PhaseLabelProps = {
   affectedModels?: AffectedModel[];
   overviewLoaded?: boolean;
   secondaryStatus?: React.ReactNode;
+  testId?: string;
 };
 
 const PhaseLabel: React.FC<PhaseLabelProps> = ({
@@ -48,6 +49,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   affectedModels,
   overviewLoaded = false,
   secondaryStatus,
+  testId,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [hasOpenedModal, setHasOpenedModal] = React.useState(false);
@@ -76,7 +78,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
             variant={isClickable ? 'filled' : 'outline'}
             isCompact
             isClickable={isClickable}
-            data-testid="phase-label"
+            data-testid={testId ?? 'phase-label'}
             {...phaseProps}
             onClick={isClickable ? handleClick : undefined}
           >

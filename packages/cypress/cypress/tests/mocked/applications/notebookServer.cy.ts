@@ -18,6 +18,7 @@ import { asClusterAdminUser, asProjectEditUser } from '../../../utils/mockUsers'
 import { notebookController, stopNotebookModal } from '../../../pages/administration';
 import { homePage } from '../../../pages/home/home';
 import { HardwareProfileModel, ImageStreamModel, StorageClassModel } from '../../../utils/models';
+import { captureTracking, expectSafeTracking } from '../../../utils/analytics';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -152,6 +153,33 @@ describe('NotebookServer', () => {
       expect(selectedProfile.spec).to.have.property('identifiers');
       expect(selectedProfile.spec).to.have.property('scheduling');
     });
+  });
+
+  it('should preserve the start failure diagnostic without sending it to analytics', () => {
+    const message = 'Private notebook startup diagnostic';
+    cy.intercept('POST', '**/api/notebooks', {
+      statusCode: 500,
+      body: { message },
+    }).as('startNotebookFailure');
+    cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopFailedNotebook');
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    );
+
+    notebookServer.visit();
+    captureTracking();
+    notebookServer.findStartServerButton().click();
+    cy.wait('@startNotebookFailure');
+    expectSafeTracking(
+      'Notebook Server Started',
+      { success: false, error: 'unknown_error' },
+      message,
+    );
   });
 
   it('should show per-container startup steps in the progress tree', () => {

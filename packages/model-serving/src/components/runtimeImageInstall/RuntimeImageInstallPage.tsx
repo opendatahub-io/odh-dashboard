@@ -18,7 +18,7 @@ import type { RuntimeImageInstallActionData } from '@mf/modelRegistry/extension-
 import RuntimeImageInstallPageUnavailable from './RuntimeImageInstallPageUnavailable';
 import RuntimeImageInstallWizardConfigureStep from './RuntimeImageInstallWizardConfigureStep';
 import RuntimeImageInstallWizardTargetStep from './RuntimeImageInstallWizardTargetStep';
-import { getAvailableInstallTargets, getMatchingInstallTarget } from './utils';
+import { getInstallTargets, getAvailableInstallTargets, getMatchingInstallTarget } from './utils';
 import { GENERAL_SETTINGS_PATH } from './const';
 import {
   isRuntimeImageInstallTargetExtension,
@@ -72,10 +72,20 @@ const InstallWizard: React.FC<{
   installTargetExtensions: RuntimeImageInstallTargetExtension[];
 }> = ({ data, installTargetExtensions }) => {
   const navigate = useNavigate();
-  const installTargets = getAvailableInstallTargets(data, installTargetExtensions);
+  const installTargets = getInstallTargets(installTargetExtensions);
+  const availableTargets = getAvailableInstallTargets(data, installTargets);
+  const availableTargetIds = availableTargets.map((target) => target.properties.id);
   const { cancelReturnRoute } = data;
-  const [selected, setSelected] = React.useState<RuntimeImageInstallTargetId>();
-  const selectedTarget = selected ? getMatchingInstallTarget(installTargets, selected) : undefined;
+  const [chosenTarget, setSelected] = React.useState<RuntimeImageInstallTargetId>();
+  const selected =
+    chosenTarget && availableTargetIds.includes(chosenTarget)
+      ? chosenTarget
+      : availableTargets.length === 1
+      ? availableTargets[0].properties.id
+      : undefined;
+  const selectedTarget = selected
+    ? getMatchingInstallTarget(availableTargets, selected)
+    : undefined;
   const targetData = selected ? data.deploymentResources[selected] : undefined;
 
   if (installTargets.length === 0) {
@@ -98,7 +108,7 @@ const InstallWizard: React.FC<{
             render={() => <Link to={GENERAL_SETTINGS_PATH}>Model deployment settings</Link>}
           />
           <BreadcrumbItem
-            render={() => <Link to={data.libraryReturnRoute}>Runtime image library</Link>}
+            render={() => <Link to={data.libraryReturnRoute}>Runtime library</Link>}
           />
           <BreadcrumbItem
             render={() => <Link to={cancelReturnRoute}>{data.runtimeImageName}</Link>}
@@ -118,6 +128,7 @@ const InstallWizard: React.FC<{
         <WizardStep name="Install target" id="install-target">
           <RuntimeImageInstallWizardTargetStep
             installTargets={installTargets}
+            availableTargetIds={availableTargetIds}
             selected={selected}
             onSelect={setSelected}
           />
@@ -147,7 +158,7 @@ const RuntimeImageInstallPage: React.FC = () => {
     return (
       <RuntimeImageInstallPageUnavailable
         title="Install runtime image"
-        message="The installation data is missing. Return to the runtime image library and try again."
+        message="The installation data is missing. Return to the runtime library and try again."
         returnRoute={GENERAL_SETTINGS_PATH}
       />
     );

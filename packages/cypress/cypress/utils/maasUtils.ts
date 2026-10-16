@@ -99,7 +99,7 @@ export const mockFailedSubscription = (): MaaSSubscription => ({
   reason: 'ReconcileFailed',
   statusMessage:
     'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
-  priority: 99,
+  inferencePriority: 99,
   owner: {
     groups: [{ name: 'system:authenticated' }],
   },
@@ -122,7 +122,7 @@ export const mockDegradedSubscription = (): MaaSSubscription => ({
   conditionType: 'Ready',
   statusMessage: 'some model references are invalid or missing',
   lastTransitionTime: '2025-04-01T12:30:00Z',
-  priority: 99,
+  inferencePriority: 99,
   owner: {
     groups: [{ name: 'system:authenticated' }],
   },
@@ -141,7 +141,7 @@ export const mockPendingSubscription = (): MaaSSubscription => ({
   namespace: 'maas-system',
   phase: 'Pending',
   statusMessage: '',
-  priority: 99,
+  inferencePriority: 99,
   owner: {
     groups: [{ name: 'beta-testers' }],
   },
@@ -160,7 +160,7 @@ export const mockDeletingSubscription = (): MaaSSubscription => ({
   namespace: 'maas-system',
   phase: 'Active',
   statusMessage: 'successfully reconciled',
-  priority: 55,
+  inferencePriority: 55,
   owner: {
     groups: [{ name: 'premium-users' }],
   },
@@ -184,7 +184,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     phase: 'Active',
     statusMessage: 'successfully reconciled',
     reason: 'model running',
-    priority: 10,
+    inferencePriority: 10,
     owner: {
       groups: [{ name: 'premium-users' }],
     },
@@ -196,6 +196,9 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
         description:
           'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
         tokenRateLimits: [{ limit: 100000, window: '24h' }],
+        ready: false,
+        reason: 'BackendNotReady',
+        message: 'Waiting for HTTPRoute to be created',
       },
       {
         name: 'flan-t5-small',
@@ -203,6 +206,9 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
         displayName: 'Flan T5 Small',
         description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         tokenRateLimits: [{ limit: 200000, window: '24h' }],
+        ready: true,
+        reason: 'model running',
+        message: 'successfully reconciled',
       },
     ],
     tokenMetadata: {
@@ -231,7 +237,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
         tokenRateLimits: [{ limit: 10000, window: '24h' }],
       },
     ],
-    priority: 0,
+    inferencePriority: 0,
     creationTimestamp: '2025-02-15T08:00:00Z',
   },
   {
@@ -240,7 +246,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     phase: 'Active',
     statusMessage: 'successfully reconciled',
     reason: 'model running',
-    priority: -10000,
+    inferencePriority: -10000,
     owner: {
       groups: [{ name: 'system:authenticated' }],
     },
@@ -263,7 +269,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     phase: 'Active',
     statusMessage: 'successfully reconciled',
     reason: 'model running',
-    priority: 5,
+    inferencePriority: 5,
     owner: {
       groups: [
         { name: 'platform-admins' },
@@ -307,7 +313,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     subscription_description: 'Premium Team Subscription',
     // eslint-disable-next-line camelcase
     display_name: 'Premium Team',
-    priority: 10,
+    // eslint-disable-next-line camelcase
+    inference_priority: 10,
     // eslint-disable-next-line camelcase
     key_count: 10,
     // eslint-disable-next-line camelcase
@@ -346,7 +353,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     subscription_description: 'Basic Team Subscription',
     // eslint-disable-next-line camelcase
     display_name: 'Basic Team',
-    priority: 1,
+    // eslint-disable-next-line camelcase
+    inference_priority: 1,
     // eslint-disable-next-line camelcase
     key_count: 5,
     // eslint-disable-next-line camelcase
@@ -372,7 +380,7 @@ export const mockSubscriptionInfoMissingModelSummaries = (): SubscriptionInfoRes
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
-    priority: 7,
+    inferencePriority: 7,
     owner: {
       groups: [{ name: 'premium-users' }],
     },
@@ -439,7 +447,9 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     displayName: 'Granite 3 8B Instruct',
     description: 'Granite 3 8B Instruct is a large language model for instruction following.',
     modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
-    phase: 'Ready',
+    phase: 'Failed',
+    reason: 'BackendNotReady',
+    statusMessage: 'Failed to create HTTPRoute',
     endpoint: 'https://granite-3-8b-instruct.maas-models.svc.cluster.local',
   },
   {
@@ -498,7 +508,7 @@ export const mockSandboxGraniteSubscription = (): MaaSSubscription => ({
   namespace: 'maas-system',
   phase: 'Active',
   statusMessage: 'successfully reconciled',
-  priority: 1,
+  inferencePriority: 1,
   owner: {
     groups: [{ name: 'sandbox-users' }],
   },
@@ -767,7 +777,7 @@ export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => 
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
-    priority: 5,
+    inferencePriority: 5,
     owner: {
       groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }],
     },
