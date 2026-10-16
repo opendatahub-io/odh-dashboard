@@ -239,6 +239,7 @@ export type BYONImage = {
   recommendedAcceleratorIdentifiers: string[];
   tier?: string;
   isOOTB: boolean;
+  deprecated: boolean;
 };
 
 export type BYONImagePackage = {
