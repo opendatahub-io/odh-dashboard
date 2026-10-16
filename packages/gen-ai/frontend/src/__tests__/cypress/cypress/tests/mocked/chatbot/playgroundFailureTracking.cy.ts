@@ -1,5 +1,8 @@
+import {
+  captureTracking,
+  expectSafeTracking,
+} from '@odh-dashboard/cypress/cypress/utils/analytics';
 import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
-import { captureTracking, expectSafeTracking } from '@odh-dashboard/cypress/cypress/utils/analytics';
 
 const TEST_NAMESPACE = 'mock-test-namespace-2';
 

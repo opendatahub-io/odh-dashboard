@@ -1,4 +1,8 @@
 /* eslint-disable camelcase */
+import {
+  captureTracking,
+  expectSafeTracking,
+} from '@odh-dashboard/cypress/cypress/utils/analytics';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
 import {
@@ -11,7 +15,6 @@ import {
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 import { mockMCPServers } from '~/__tests__/cypress/cypress/__mocks__';
-import { captureTracking, expectSafeTracking } from '@odh-dashboard/cypress/cypress/utils/analytics';
 
 describe('Prompt failure tracking', () => {
   let config: MCPTestConfig;
