@@ -633,21 +633,23 @@ describe('ChatbotMessages', () => {
       expect(screen.getByTestId('metrics')).toBeInTheDocument();
     });
 
-    it('should not render metrics while the response is still streaming', () => {
+    it('should not render metrics or endContent while the response is still streaming', () => {
       const messages: ChatbotMessageProps[] = [
         {
           id: 'msg-1',
           role: 'bot',
           content: 'Partial answer',
           isTextStreaming: true,
+          isToolCallStreamComplete: false,
           // eslint-disable-next-line camelcase
           metrics: { latency_ms: 500 },
         },
       ];
 
-      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading />);
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.queryByTestId('metrics')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('end-content')).not.toBeInTheDocument();
     });
 
     it('should not render extraContent when no metrics or errors', () => {
