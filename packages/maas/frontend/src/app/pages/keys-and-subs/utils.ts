@@ -156,3 +156,147 @@ export const getModelDocumentationUrl = (
     return undefined;
   }
 };
+
+/**
+ * Resolve a MaaS catalog model from a subscription model-ref name.
+ * Catalog `id` values are often path-style (e.g. publishers/maas-models/models/maas-model)
+ * while subscription refs use the short MaaSModelRef name (e.g. maas-model).
+ */
+export const findMaaSModelBySubscriptionRef = <T extends { id: string }>(
+  models: T[],
+  refName: string,
+  refNamespace?: string,
+): T | undefined => {
+  if (!refName) {
+    return undefined;
+  }
+
+  const exact = models.find((model) => model.id === refName);
+  if (exact) {
+    return exact;
+  }
+
+  if (refNamespace) {
+    const byPublisherPath = models.find(
+      (model) =>
+        model.id === `publishers/${refNamespace}/models/${refName}` ||
+        model.id.endsWith(`/${refNamespace}/models/${refName}`),
+    );
+    if (byPublisherPath) {
+      return byPublisherPath;
+    }
+  }
+
+  return models.find(
+    (model) => model.id.endsWith(`/models/${refName}`) || model.id.split('/').pop() === refName,
+  );
+};
+
+export type ApiKeyUsageExampleKind = 'chat' | 'embedding' | 'transcription';
+
+const CAPABILITY_TEXT_GENERATION = 'text-generation';
+const CAPABILITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
+const EMBEDDING_CAPABILITIES = new Set(['text-embedding', 'embeddings', 'embedding']);
+
+/**
+ * Resolve curl example kind from MaaS modelCapabilities
+ * (opendatahub.io/model-capabilities on the model).
+ */
+export const resolveApiKeyUsageExampleKind = (capabilities?: string[]): ApiKeyUsageExampleKind => {
+  const caps = capabilities ?? [];
+  if (caps.some((cap) => EMBEDDING_CAPABILITIES.has(cap))) {
+    return 'embedding';
+  }
+  const hasAsr = caps.includes(CAPABILITY_AUDIO_TRANSCRIPTION);
+  const hasTextGen = caps.includes(CAPABILITY_TEXT_GENERATION);
+  if (hasAsr && !hasTextGen) {
+    return 'transcription';
+  }
+  return 'chat';
+};
+
+export const getApiKeyUsageExampleEndpointPath = (kind: ApiKeyUsageExampleKind): string => {
+  switch (kind) {
+    case 'embedding':
+      return '/v1/embeddings';
+    case 'transcription':
+      return '/v1/audio/transcriptions';
+    default:
+      return '/v1/chat/completions';
+  }
+};
+
+/** OpenAI-compatible curl example for the created API key (Access details). */
+export const buildApiKeyUsageExample = (
+  baseURL: string | undefined,
+  modelID: string,
+  subscriptionId: string,
+  apiKey: string,
+  kind: ApiKeyUsageExampleKind = 'chat',
+): string => {
+  if (!baseURL || !modelID || !subscriptionId || !apiKey) {
+    return '';
+  }
+
+  try {
+    const requestURL = new URL(baseURL);
+    if (requestURL.protocol !== 'http:' && requestURL.protocol !== 'https:') {
+      return '';
+    }
+
+    requestURL.search = '';
+    requestURL.hash = '';
+    const basePath = requestURL.pathname.replace(/\/$/, '');
+    const apiVersionPath = basePath.endsWith('/v1') ? basePath : `${basePath}/v1`;
+    const endpointSuffix =
+      kind === 'embedding'
+        ? 'embeddings'
+        : kind === 'transcription'
+          ? 'audio/transcriptions'
+          : 'chat/completions';
+    requestURL.pathname = `${apiVersionPath}/${endpointSuffix}`;
+
+    const escapeDoubleQuotedShell = (value: string): string =>
+      value
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"')
+        .replaceAll('$', '\\$')
+        .replaceAll('`', '\\`');
+
+    const shellSafeKey = escapeDoubleQuotedShell(apiKey);
+    const shellSafeSubscription = escapeDoubleQuotedShell(subscriptionId);
+    const shellSafeModelId = escapeDoubleQuotedShell(modelID);
+    const requestURLString = requestURL.toString();
+    const authAndSubscriptionHeaders = [
+      '  -H "Authorization: Bearer $API_KEY" \\',
+      `  -H "X-MAAS-SUBSCRIPTION: ${shellSafeSubscription}" \\`,
+    ];
+
+    if (kind === 'transcription') {
+      return [
+        `export API_KEY="${shellSafeKey}"`,
+        '',
+        `curl -X POST ${requestURLString} \\`,
+        ...authAndSubscriptionHeaders,
+        '  -F "file=@<path-to-audio-file>" \\',
+        `  -F "model=${shellSafeModelId}"`,
+      ].join('\n');
+    }
+
+    const requestBody =
+      kind === 'embedding'
+        ? { model: modelID, input: 'Hello' }
+        : { model: modelID, messages: [{ role: 'user', content: 'Hello' }] };
+    const shellSafeBody = JSON.stringify(requestBody).replaceAll("'", "'\"'\"'");
+
+    return [
+      `export API_KEY="${shellSafeKey}"`,
+      `curl -X POST ${requestURLString} \\`,
+      '  -H "Content-Type: application/json" \\',
+      ...authAndSubscriptionHeaders,
+      `  -d '${shellSafeBody}'`,
+    ].join('\n');
+  } catch {
+    return '';
+  }
+};

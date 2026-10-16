@@ -8,6 +8,7 @@ export type MaaSModelDetails = {
   description?: string;
   genaiUseCase?: string;
   contextWindow?: string;
+  modelCapabilities?: string[];
 };
 
 export type MaaSModelSubscriptionInfo = {

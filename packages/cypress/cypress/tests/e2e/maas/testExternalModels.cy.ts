@@ -378,6 +378,7 @@ describe('An admin can create, edit and delete External Models and Providers and
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
       getClipboardContent(CLIPBOARD_WRITE_TEXT_STUB_ALIAS).then((apiKeys: string[]) => {
         expect(apiKeys).to.have.length.at.least(1);
+        copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
         copyApiKeyModal.findCloseButton().click();
         apiKeysPage.findRows().should('contain.text', apiKeyName);
 
