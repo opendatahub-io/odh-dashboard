@@ -307,13 +307,17 @@ func (app *App) Routes() http.Handler {
 	// Connection verification (probes external endpoints, no EvalHub REST client needed)
 	apiRouter.POST(VerifyConnectionPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyConnectionHandler)))
 
-	// Inter-BFF: model-catalog insight artifacts (paths are restricted by the bffclient allowlist)
-	apiRouter.GET(CatalogModelSecurityArtifactsPath, app.AttachNamespace(app.RequireAccessToService(
+	// Inter-BFF: model-catalog insight artifacts (paths are restricted by the bffclient allowlist).
+	// These endpoints do not depend on EvalHub, so they must not be gated on EvalHub access: the
+	// user's token is forwarded to the model-catalog BFF, which enforces its own namespace
+	// authorization (RequireListServiceAccessInNamespace) on the underlying artifacts endpoint —
+	// the same check the model catalog UI passes to render the hosting page.
+	apiRouter.GET(CatalogModelSecurityArtifactsPath, app.AttachNamespace(
 		bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetModelCatalog)(
-			app.GetCatalogModelSecurityArtifactsHandler))))
-	apiRouter.GET(CatalogModelQualityArtifactsPath, app.AttachNamespace(app.RequireAccessToService(
+			app.GetCatalogModelSecurityArtifactsHandler)))
+	apiRouter.GET(CatalogModelQualityArtifactsPath, app.AttachNamespace(
 		bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetModelCatalog)(
-			app.GetCatalogModelQualityArtifactsHandler))))
+			app.GetCatalogModelQualityArtifactsHandler)))
 
 	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
 	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.EvalHubCRStatusHandler))
