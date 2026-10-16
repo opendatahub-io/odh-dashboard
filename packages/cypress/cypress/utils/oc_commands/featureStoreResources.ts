@@ -1,5 +1,6 @@
+import * as yaml from 'js-yaml';
+import { getFeastS3Config, getS3CaBundle, isAwsS3Endpoint } from './feastS3';
 import { applyOpenShiftYaml, pollUntilSuccess, waitForPodReady } from '../oc_commands/baseCommands';
-import { AWS_BUCKETS } from '../s3Buckets';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const trimOcJsonpath = (stdout: string): string => stdout.trim().replace(/^'|'$/g, '');
@@ -9,6 +10,12 @@ const FEAST_FEATURE_REPO_DIR = '/feast-data/credit_scoring_local/feature_repo';
 
 /** Container port the Feast registry serves its REST API on (set by the feast-operator). */
 const REGISTRY_REST_PORT = 6573;
+
+const S3_CREDENTIALS_SECRET = 's3-credentials-secret';
+const S3_CA_SECRET_KEY = 'AWS_CA_BUNDLE_PEM';
+const S3_CA_MOUNT_DIR = '/tmp/s3-ca';
+const S3_CA_FILE = 'ca.pem';
+const S3_CA_PATH = `${S3_CA_MOUNT_DIR}/${S3_CA_FILE}`;
 
 /**
  * Resolves the Feast Deployment name in the namespace for a given FeatureStore instance.
@@ -341,6 +348,66 @@ const assertFeastOperatorReady = (): Cypress.Chainable => {
 };
 
 /**
+ * Disconnected MinIO has no DynamoDB, so swap the online store for Feast's local file
+ * store and drop the DynamoDB secret. When a CA bundle is present, mount it into the
+ * registry and online servers and point AWS_CA_BUNDLE at it, mirroring s3Cleanup.ts.
+ */
+const applyDisconnectedS3Overrides = (renderedYaml: string, caBundle: string): string => {
+  const docs = yaml.loadAll(renderedYaml).filter(Boolean) as Record<string, unknown>[];
+  const isDynamoSecret = (doc: Record<string, unknown>) =>
+    doc.kind === 'Secret' &&
+    (doc.metadata as { name?: string } | undefined)?.name === 'feast-online-store-secret';
+  const isCredentialsSecret = (doc: Record<string, unknown>) =>
+    doc.kind === 'Secret' &&
+    (doc.metadata as { name?: string } | undefined)?.name === S3_CREDENTIALS_SECRET;
+  return docs
+    .filter((doc) => !isDynamoSecret(doc))
+    .map((doc) => {
+      if (caBundle && isCredentialsSecret(doc)) {
+        const secret = doc as { stringData?: Record<string, string> };
+        secret.stringData = { ...(secret.stringData ?? {}), [S3_CA_SECRET_KEY]: caBundle };
+      }
+      if (doc.kind === 'FeatureStore') {
+        const spec = doc.spec as {
+          services: {
+            onlineStore: { persistence: unknown; server?: Record<string, unknown> };
+            registry: { local: { server?: Record<string, unknown> } };
+            volumes?: unknown[];
+          };
+        };
+        spec.services.onlineStore.persistence = { file: { path: '/feast-data/online_store.db' } };
+        if (caBundle) {
+          spec.services.volumes = [
+            ...(spec.services.volumes ?? []),
+            {
+              name: 's3-ca',
+              secret: {
+                secretName: S3_CREDENTIALS_SECRET,
+                items: [{ key: S3_CA_SECRET_KEY, path: S3_CA_FILE }],
+              },
+            },
+          ];
+          const withCaBundle = (server: Record<string, unknown> = {}): Record<string, unknown> => ({
+            ...server,
+            env: [
+              ...((server.env as unknown[] | undefined) ?? []),
+              { name: 'AWS_CA_BUNDLE', value: S3_CA_PATH },
+            ],
+            volumeMounts: [
+              ...((server.volumeMounts as unknown[] | undefined) ?? []),
+              { name: 's3-ca', mountPath: S3_CA_MOUNT_DIR, readOnly: true },
+            ],
+          });
+          spec.services.registry.local.server = withCaBundle(spec.services.registry.local.server);
+          spec.services.onlineStore.server = withCaBundle(spec.services.onlineStore.server);
+        }
+      }
+      return yaml.dump(doc);
+    })
+    .join('---\n');
+};
+
+/**
  * Creates Feature Store custom resource by applying a YAML template.
  * This function dynamically replaces placeholders in the template with actual values and applies it.
  *
@@ -348,32 +415,29 @@ const assertFeastOperatorReady = (): Cypress.Chainable => {
  */
 export const createFeatureStoreCR = (namespace: string, feastInstanceName: string): void => {
   cy.fixture('resources/yaml/feast.yaml').then((yamlTemplate) => {
-    const buckets = (Cypress.env('AWS_PIPELINES') as typeof AWS_BUCKETS | undefined) ?? AWS_BUCKETS;
-    const {
-      AWS_ACCESS_KEY_ID: awsAccessKey,
-      AWS_SECRET_ACCESS_KEY: awsSecretKey,
-      BUCKET_1: { NAME: awsBucketName, REGION: awsDefaultRegion },
-    } = buckets;
+    const s3 = getFeastS3Config();
 
-    if (!awsBucketName) {
-      throw new Error(
-        'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml before running E2E.',
-      );
-    }
+    const s3EndpointEnv = s3.endpoint
+      ? `FEAST_S3_ENDPOINT_URL: ${JSON.stringify(s3.endpoint)}`
+      : '';
 
     const variables: Record<string, string> = {
-      awsAccessKey,
-      awsSecretKey,
-      awsBucketName,
-      awsDefaultRegion,
+      awsAccessKey: s3.accessKeyId,
+      awsSecretKey: s3.secretAccessKey,
+      awsBucketName: s3.bucket,
+      awsDefaultRegion: s3.region,
+      s3EndpointEnv,
       namespace,
     };
 
     // Replace placeholders in YAML with actual values
-    const yamlContent = Object.entries(variables).reduce(
+    const renderedYaml = Object.entries(variables).reduce(
       (content, [key, value]) => content.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value),
       yamlTemplate,
     );
+    const yamlContent = isAwsS3Endpoint(s3.endpoint)
+      ? renderedYaml
+      : applyDisconnectedS3Overrides(renderedYaml, getS3CaBundle());
     return assertFeastOperatorReady().then(() => {
       // Apply the modified YAML
       applyOpenShiftYaml(yamlContent);
