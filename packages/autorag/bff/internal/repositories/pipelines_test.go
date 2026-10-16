@@ -95,6 +95,9 @@ func (m *mockPipelinesService) DiscoverReadyDSPA(context.Context, string) (*pipe
 func (m *mockPipelinesService) EnableManagedPipelines(_ context.Context, _ string) (*pipelines.EnableManagedPipelinesResult, error) {
 	return nil, nil
 }
+func (m *mockPipelinesService) GetDSPAStatus(_ context.Context, _ string) (*pipelines.DSPAStatus, error) {
+	return nil, nil
+}
 
 // --- Helpers ---
 

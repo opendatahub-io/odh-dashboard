@@ -45,6 +45,7 @@ const (
 	IndexingPipelineRunsPath = ApiPathPrefix + "/indexing-pipeline-runs"
 	ManagedPipelinesListPath = ApiPathPrefix + "/managed-pipelines"
 	ManagedPipelinesPath     = ApiPathPrefix + "/managed-pipelines/enable"
+	PipelineServerStatusPath = ApiPathPrefix + "/pipeline-server/status"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -346,6 +347,7 @@ func (app *App) Routes() http.Handler {
 	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA
 	apiRouter.GET(ManagedPipelinesListPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.ListManagedPipelinesHandler)))
 	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
+	apiRouter.GET(PipelineServerStatusPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.PipelineServerStatusHandler)))
 
 	// RAG responses — vector search + MaaS generation
 	apiRouter.POST(ApiPathPrefix+"/responses", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.responses.HandleResponsesEndpoint)))
