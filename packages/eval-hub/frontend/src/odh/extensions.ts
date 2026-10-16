@@ -31,15 +31,19 @@ const hasCatalogArtifacts = async (
     return false;
   }
 
+  const namespace = props[namespaceProp];
+  if (typeof namespace !== 'string') {
+    // Keep the visibility check pending until the project selector resolves the namespace.
+    return new Promise<boolean>(() => {
+      // The effect that owns this predicate cancels it when the namespace becomes available.
+    });
+  }
+
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), VISIBILITY_REQUEST_TIMEOUT_MS);
 
   try {
     const params = new URLSearchParams({ pageSize: '1', ...additionalParams });
-    const namespace = props[namespaceProp];
-    if (typeof namespace !== 'string') {
-      return false;
-    }
     params.set('namespace', namespace);
     if (includeCatalogNamespace) {
       if (typeof catalogNamespace !== 'string') {
@@ -51,6 +55,9 @@ const hasCatalogArtifacts = async (
       modelName,
     )}?${params.toString()}`;
     const resp = await fetch(url, { signal: controller.signal });
+    if (resp.status === 403 || resp.status === 404) {
+      return false;
+    }
     if (!resp.ok) {
       throw new Error(`Catalog artifact visibility request failed with status ${resp.status}.`);
     }

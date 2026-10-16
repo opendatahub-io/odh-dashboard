@@ -57,7 +57,13 @@ const ModelDetailsTabs = ({
     isModelValidated(model) && (!artifactLoaded || hasPerformanceArtifacts(artifacts.items));
 
   const componentProps = React.useMemo(
-    () => ({ modelName: model.name, sourceId, catalogNamespace, evalHubNamespace }),
+    () => ({
+      modelName: model.name,
+      sourceId,
+      namespace: catalogNamespace,
+      catalogNamespace,
+      evalHubNamespace,
+    }),
     [model.name, sourceId, catalogNamespace, evalHubNamespace],
   );
 

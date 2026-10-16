@@ -543,6 +543,36 @@ describe('ExtensibleDetailTabs', () => {
       expect(screen.getByTestId('sync-visible-tab')).toBeInTheDocument();
     });
 
+    it('should keep an inactive async tab visible after a shallow-equal props rerender', async () => {
+      const shouldShow = jest.fn().mockResolvedValue(true);
+      const extensionTabs = [
+        createMockTabExtension('async-visible', 'Async Visible', { shouldShow }),
+      ];
+      const { rerender } = render(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          componentProps={{ modelName: 'model' }}
+        />,
+      );
+
+      await waitFor(() => expect(screen.getByTestId('async-visible-tab')).toBeInTheDocument());
+      rerender(
+        <ExtensibleDetailTabs
+          activeKey="overview"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          componentProps={{ modelName: 'model' }}
+        />,
+      );
+
+      expect(screen.getByTestId('async-visible-tab')).toBeInTheDocument();
+      expect(shouldShow).toHaveBeenCalledTimes(1);
+    });
+
     it('should re-evaluate a tab after component props change', async () => {
       const shouldShow = jest.fn().mockResolvedValue(true);
       const extensionTabs = [createMockTabExtension('deferred', 'Deferred', { shouldShow })];

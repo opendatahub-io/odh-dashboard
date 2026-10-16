@@ -23,6 +23,12 @@ type ShouldShowResult = {
   props: Record<string, unknown>;
   error?: unknown;
 };
+type CachedShouldShowResult = Pick<ShouldShowResult, 'visible' | 'error'>;
+type ShouldShowCacheEntry = {
+  promise: Promise<boolean>;
+  props: Record<string, unknown>;
+  result?: CachedShouldShowResult;
+};
 
 const areComponentPropsEqual = (
   first: Record<string, unknown>,
@@ -47,9 +53,7 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
   componentProps: Record<string, unknown>,
 ): Partial<Record<string, ShouldShowResult>> => {
   const [results, setResults] = React.useState<Partial<Record<string, ShouldShowResult>>>({});
-  const cacheRef = React.useRef(
-    new Map<string, { promise: Promise<boolean>; props: Record<string, unknown> }>(),
-  );
+  const cacheRef = React.useRef(new Map<string, ShouldShowCacheEntry>());
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -66,8 +70,15 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
       activeUids.add(ext.uid);
       const cached = cacheRef.current.get(ext.uid);
       let promise: Promise<boolean> | undefined;
+      let cacheEntry: ShouldShowCacheEntry;
 
       if (cached && areComponentPropsEqual(cached.props, componentProps)) {
+        if (cached.result) {
+          syncBatch[ext.uid] = { ...cached.result, props: componentProps };
+          return;
+        }
+
+        cacheEntry = cached;
         promise = cached.promise;
       } else {
         let result: boolean | Promise<boolean>;
@@ -84,12 +95,14 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
         }
 
         promise = result;
-        cacheRef.current.set(ext.uid, { promise, props: componentProps });
+        cacheEntry = { promise, props: componentProps };
+        cacheRef.current.set(ext.uid, cacheEntry);
       }
 
       pendingUids.add(ext.uid);
       promise.then(
         (visible) => {
+          cacheEntry.result = { visible };
           if (!controller.signal.aborted) {
             setResults((prev) => {
               const previous = prev[ext.uid];
@@ -102,6 +115,7 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
           }
         },
         (error) => {
+          cacheEntry.result = { visible: false, error };
           if (!controller.signal.aborted) {
             setResults((prev) => {
               const previous = prev[ext.uid];
@@ -145,7 +159,7 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
         if (
           !previous ||
           previous.visible !== current.visible ||
-          previous.error !== undefined ||
+          previous.error !== current.error ||
           !areComponentPropsEqual(previous.props, current.props)
         ) {
           if (!next) {

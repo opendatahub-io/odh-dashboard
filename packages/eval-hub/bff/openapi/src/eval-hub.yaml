@@ -846,7 +846,7 @@ paths:
       security:
         - Bearer: []
       parameters:
-        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/namespaceRequired'
         - $ref: '#/components/parameters/catalogNamespace'
         - name: source_id
           in: path
@@ -873,6 +873,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':

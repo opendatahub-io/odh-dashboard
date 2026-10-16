@@ -65,8 +65,23 @@ describe('model catalog detail tab extensions', () => {
     );
   });
 
-  it('does not query artifact visibility without an EvalHub project namespace', async () => {
+  it('keeps artifact visibility pending without an EvalHub project namespace', async () => {
     const fetchMock = jest.fn();
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+    const shouldShow = qualityInsightsExtension?.properties.shouldShow;
+
+    const visibilityResult = shouldShow?.({
+      sourceId: 'source-1',
+      modelName: 'repo/model',
+      catalogNamespace: 'odh-model-registries',
+    });
+
+    expect(visibilityResult).toEqual(expect.any(Promise));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([403, 404])('treats a %s response as no visible artifacts', async (status) => {
+    const fetchMock = jest.fn().mockResolvedValue({ ok: false, status });
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
     const shouldShow = qualityInsightsExtension?.properties.shouldShow;
 
@@ -75,9 +90,28 @@ describe('model catalog detail tab extensions', () => {
         sourceId: 'source-1',
         modelName: 'repo/model',
         catalogNamespace: 'odh-model-registries',
+        evalHubNamespace: 'project-only',
       }),
     ).resolves.toBe(false);
+  });
 
-    expect(fetchMock).not.toHaveBeenCalled();
+  it('preserves other HTTP and network errors', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 500 })
+      .mockRejectedValueOnce(new Error('network failure'));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+    const shouldShow = qualityInsightsExtension?.properties.shouldShow;
+    const props = {
+      sourceId: 'source-1',
+      modelName: 'repo/model',
+      catalogNamespace: 'odh-model-registries',
+      evalHubNamespace: 'project-only',
+    };
+
+    await expect(shouldShow?.(props)).rejects.toThrow(
+      'Catalog artifact visibility request failed with status 500.',
+    );
+    await expect(shouldShow?.(props)).rejects.toThrow('network failure');
   });
 });
