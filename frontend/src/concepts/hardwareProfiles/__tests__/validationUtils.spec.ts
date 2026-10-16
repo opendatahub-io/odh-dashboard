@@ -45,28 +45,4 @@ describe('isHardwareProfileConfigValid', () => {
       }),
     ).toBe(true);
   });
-
-  it('should not validate the existing resources of a locked DRA hardware profile', () => {
-    const draProfile = mockHardwareProfile({
-      name: 'dra-profile',
-      identifiers: [
-        {
-          identifier: 'cpu',
-          displayName: 'CPU',
-          minCount: '1',
-          maxCount: '2',
-          defaultCount: '1',
-        },
-      ],
-      dra: { resourceClaimTemplateName: 'single-gpu' },
-    });
-
-    expect(
-      isHardwareProfileConfigValid({
-        selectedProfile: draProfile,
-        useExistingSettings: true,
-        resources: { requests: { cpu: '8' }, limits: { cpu: '8' } },
-      }),
-    ).toBe(true);
-  });
 });

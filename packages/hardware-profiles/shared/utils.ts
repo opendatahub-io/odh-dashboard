@@ -2,7 +2,6 @@ import React from 'react';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { get, set } from 'lodash-es';
 import {
-  HardwareProfileFeatureVisibility,
   IdentifierResourceType,
   type HardwareProfileKind,
   type Identifier,
@@ -318,6 +317,3 @@ export const getLocalQueueLabel = (): string => 'Local queue';
 
 export const isDRAHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
   !!hardwareProfile.spec.dra;
-
-export const isDRASelectableIn = (visibleIn?: HardwareProfileFeatureVisibility[]): boolean =>
-  !!visibleIn?.includes(HardwareProfileFeatureVisibility.WORKBENCH);

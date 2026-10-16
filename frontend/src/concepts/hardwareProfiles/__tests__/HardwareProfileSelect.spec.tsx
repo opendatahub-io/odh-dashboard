@@ -98,7 +98,6 @@ const renderComponent = (
   localQueuesOverride?: LocalQueuesContextType['localQueues'],
   initialHardwareProfile?: HardwareProfileKind,
   selectedProfile?: HardwareProfileKind,
-  isDRASelectable = false,
 ) => {
   // Mock useKueueConfiguration to return the specified filtering state
   useKueueConfigurationMock.mockReturnValue({
@@ -151,7 +150,6 @@ const renderComponent = (
         >
           <HardwareProfileSelect
             initialHardwareProfile={initialHardwareProfile}
-            isDRASelectable={isDRASelectable}
             previewDescription={false}
             hardwareProfiles={hardwareProfiles}
             isProjectScoped={false}
@@ -344,7 +342,7 @@ describe('HardwareProfileSelect - Use existing settings', () => {
     expect(within(screen.getByRole('listbox')).getByText('DRA Profile')).toBeInTheDocument();
   });
 
-  it('should drop a DRA profile from the options once another profile is selected', async () => {
+  it('should keep a DRA profile in the options once another profile is selected', async () => {
     const draProfile = mockHardwareProfile({
       name: 'dra-profile',
       displayName: 'DRA Profile',
@@ -366,37 +364,6 @@ describe('HardwareProfileSelect - Use existing settings', () => {
       undefined,
       draProfile,
       otherProfile,
-    );
-
-    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
-
-    expect(within(screen.getByRole('listbox')).queryByText('DRA Profile')).not.toBeInTheDocument();
-    expect(within(screen.getByRole('listbox')).getByText('Other Profile')).toBeInTheDocument();
-  });
-
-  it('should keep a DRA profile in the options once another profile is selected when DRA profiles are selectable', async () => {
-    const draProfile = mockHardwareProfile({
-      name: 'dra-profile',
-      displayName: 'DRA Profile',
-      dra: { resourceClaimTemplateName: 'single-gpu' },
-    });
-    const otherProfile = mockHardwareProfile({
-      name: 'other-profile',
-      displayName: 'Other Profile',
-    });
-    const project = mockProjectK8sResource({});
-
-    renderComponent(
-      [otherProfile],
-      project,
-      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
-      [],
-      undefined,
-      true,
-      undefined,
-      draProfile,
-      otherProfile,
-      true,
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
@@ -938,7 +905,6 @@ describe('HardwareProfileSelect - Original project-scoped profile', () => {
                 useExistingSettings: false,
               }}
               initialHardwareProfile={projectDRAOnlyProfile}
-              isDRASelectable
               isHardwareProfileSupported={() => true}
               onChange={onChange}
               project="test-project"

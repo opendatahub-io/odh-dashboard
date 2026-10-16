@@ -21,11 +21,7 @@ import {
   useKueueConfiguration,
 } from './kueueUtils';
 import { isHardwareProfileConfigValid } from './validationUtils';
-import {
-  getContainerResourcesFromHardwareProfile,
-  isDRAHardwareProfile,
-  isDRASelectableIn,
-} from './utils';
+import { getContainerResourcesFromHardwareProfile, isDRAHardwareProfile } from './utils';
 
 export type HardwareProfileConfig = {
   selectedProfile?: HardwareProfileKind;
@@ -156,7 +152,6 @@ export const useHardwareProfileConfig = (
   );
   const profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
   const profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
-  const isDRASelectable = isDRASelectableIn(visibleIn);
 
   const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
@@ -195,18 +190,13 @@ export const useHardwareProfileConfig = (
           requests: resources?.requests ?? {},
           limits: resources?.limits ?? {},
         };
-        initialHardwareProfile.current = assignedProfile;
-        setFormData('selectedProfile', assignedProfile);
-        if (!isDRASelectable) {
-          setFormData('resources', existingResources);
-          setFormData('useExistingSettings', true);
-          return;
-        }
         const assignedResources = assignedProfile.spec.identifiers?.length
           ? mergeProfileIdentifiersIntoResources(existingResources, assignedProfile)
           : existingResources;
+        initialHardwareProfile.current = assignedProfile;
         initialResources.current = assignedResources;
         setFormData('resources', assignedResources);
+        setFormData('selectedProfile', assignedProfile);
         return;
       }
 
@@ -274,7 +264,6 @@ export const useHardwareProfileConfig = (
     availableLocalQueueNames,
     lqLoaded,
     lqError,
-    isDRASelectable,
   ]);
 
   return {

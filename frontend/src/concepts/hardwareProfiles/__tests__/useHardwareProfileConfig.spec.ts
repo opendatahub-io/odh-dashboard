@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 import { renderHook, testHook } from '@odh-dashboard/jest-config/hooks';
 import * as pluginCore from '@odh-dashboard/plugin-core';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
-import { HardwareProfileFeatureVisibility, SchedulingType } from '@odh-dashboard/k8s-core';
+import { SchedulingType } from '@odh-dashboard/k8s-core';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
@@ -156,7 +156,7 @@ describe('useHardwareProfileConfig', () => {
     ['empty resources', {}],
     ['no resources', undefined],
   ])(
-    'should keep an assigned DRA hardware profile with the existing settings for a model deployment, with %s',
+    'should select an assigned DRA hardware profile without identifiers, with %s',
     (_, resources) => {
       const draProfile = mockHardwareProfile({
         name: 'dra-profile',
@@ -185,56 +185,7 @@ describe('useHardwareProfileConfig', () => {
         resources,
         undefined,
         undefined,
-        [HardwareProfileFeatureVisibility.MODEL_SERVING],
         undefined,
-        draProfile.metadata.namespace,
-      );
-      const state = renderResult.result.current;
-
-      expect(state.formData).toEqual({
-        selectedProfile: draProfile,
-        useExistingSettings: true,
-        resources: { requests: {}, limits: {} },
-      });
-      expect(state.initialHardwareProfile).toBe(draProfile);
-      expect(state.isFormDataValid).toBe(true);
-    },
-  );
-
-  it.each([
-    ['empty resources', {}],
-    ['no resources', undefined],
-  ])(
-    'should select an assigned DRA hardware profile without identifiers for a workbench, with %s',
-    (_, resources) => {
-      const draProfile = mockHardwareProfile({
-        name: 'dra-profile',
-        identifiers: [],
-        dra: { resourceClaimTemplateName: 'single-gpu' },
-      });
-      const regularProfile = mockHardwareProfile({ name: 'regular-profile' });
-      const { filterHardwareProfileByFeatureVisibility } = jest.requireActual<
-        typeof useHardwareProfilesModule
-      >('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
-      mockUseHardwareProfiles.mockImplementation((visibility, _namespace, options) => ({
-        projectProfiles: [[], true, undefined],
-        globalProfiles: [
-          filterHardwareProfileByFeatureVisibility(
-            [regularProfile, draProfile],
-            visibility,
-            options?.dra,
-          ),
-          true,
-          undefined,
-        ],
-      }));
-
-      const renderResult = testHook(useHardwareProfileConfig)(
-        'dra-profile',
-        resources,
-        undefined,
-        undefined,
-        [HardwareProfileFeatureVisibility.WORKBENCH],
         undefined,
         draProfile.metadata.namespace,
       );
@@ -272,7 +223,7 @@ describe('useHardwareProfileConfig', () => {
       resources,
       undefined,
       undefined,
-      [HardwareProfileFeatureVisibility.WORKBENCH],
+      undefined,
       undefined,
       draProfile.metadata.namespace,
     );
@@ -311,7 +262,7 @@ describe('useHardwareProfileConfig', () => {
       },
       undefined,
       undefined,
-      [HardwareProfileFeatureVisibility.WORKBENCH],
+      undefined,
       undefined,
       draProfile.metadata.namespace,
     );

@@ -45,7 +45,7 @@ import {
   KueueFilteringState,
   useKueueConfiguration,
 } from './kueueUtils';
-import { formatResource, formatResourceValue, isDRAHardwareProfile } from './utils';
+import { formatResource, formatResourceValue } from './utils';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 
@@ -81,7 +81,6 @@ const getKueueText = (profile: HardwareProfileKind): string | undefined => {
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
-  isDRASelectable?: boolean;
   previewDescription?: boolean;
   hardwareProfiles: HardwareProfileKind[];
   isProjectScoped: boolean;
@@ -109,7 +108,6 @@ const getProfileOptionKey = (profile: HardwareProfileKind): string =>
 
 const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   initialHardwareProfile,
-  isDRASelectable = false,
   previewDescription = false,
   hardwareProfiles,
   isProjectScoped,
@@ -182,15 +180,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     [availableLocalQueueNames],
   );
 
-  const keepInitialProfileInOptions =
-    !!initialHardwareProfile &&
-    (isDRASelectable ||
-      !isDRAHardwareProfile(initialHardwareProfile) ||
-      (hardwareProfileConfig.selectedProfile?.metadata.name ===
-        initialHardwareProfile.metadata.name &&
-        hardwareProfileConfig.selectedProfile.metadata.namespace ===
-          initialHardwareProfile.metadata.namespace));
-
   const options = React.useMemo(() => {
     const enabledProfiles = orderProfiles(
       filterProfilesByKueue(
@@ -200,11 +189,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       ),
     );
 
-    if (
-      initialHardwareProfile &&
-      keepInitialProfileInOptions &&
-      !enabledProfiles.includes(initialHardwareProfile)
-    ) {
+    if (initialHardwareProfile && !enabledProfiles.includes(initialHardwareProfile)) {
       enabledProfiles.push(initialHardwareProfile);
     }
 
@@ -278,7 +263,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   }, [
     hardwareProfiles,
     initialHardwareProfile,
-    keepInitialProfileInOptions,
     allowExistingSettings,
     isHardwareProfileSupported,
     isQueueMissing,
@@ -364,7 +348,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     if (
       initialHardwareProfile &&
       initialBelongsToGroup &&
-      keepInitialProfileInOptions &&
       !filteredProfiles.includes(initialHardwareProfile)
     ) {
       filteredProfiles.push(initialHardwareProfile);
@@ -414,8 +397,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           (currentProjectHardwareProfiles.length > 0 ||
             (!!project &&
               (hardwareProfileConfig.selectedProfile?.metadata.namespace === project ||
-                (keepInitialProfileInOptions &&
-                  initialHardwareProfile.metadata.namespace === project)))) ? (
+                initialHardwareProfile?.metadata.namespace === project))) ? (
             <>
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
