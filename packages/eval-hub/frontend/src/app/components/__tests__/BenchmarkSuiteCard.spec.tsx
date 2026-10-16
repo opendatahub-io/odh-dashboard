@@ -63,6 +63,32 @@ describe('BenchmarkSuiteCard', () => {
     expect(fallbackDescription.tagName).toBe('EM');
   });
 
+  it('should render a prerequisite below the description with an info icon', () => {
+    const collection = mockCollection({ id: 'prerequisite-suite' });
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        prerequisite="Requires a compatible model."
+        primaryAction={{ label: 'Customize', onClick: jest.fn(), variant: 'secondary' }}
+      />,
+    );
+
+    const description = screen.getByText(collection.description!);
+    const prerequisite = screen.getByTestId('benchmark-suite-card-prerequisite-prerequisite-suite');
+    expect(
+      description.compareDocumentPosition(prerequisite) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(prerequisite).toHaveTextContent('Requires a compatible model.');
+    expect(prerequisite.querySelector('strong')).not.toBeInTheDocument();
+    expect(
+      prerequisite.querySelector('.evalhub-benchmark-suite-card__prerequisite-icon-container'),
+    ).toBeInTheDocument();
+    expect(
+      prerequisite.querySelector('.evalhub-benchmark-suite-card__prerequisite-text'),
+    ).toHaveTextContent('Requires a compatible model.');
+  });
+
   it('should collapse metric labels with a more label', () => {
     render(
       <BenchmarkSuiteCard
@@ -178,7 +204,7 @@ describe('BenchmarkSuiteCard', () => {
     expect(runCount).toHaveTextContent('3');
     expect(runCount).toHaveAttribute(
       'aria-label',
-      'Run Count: Number of successful executions of this suite',
+      'Run Count: Number of successful executions of this collection',
     );
     expect(
       screen
@@ -188,7 +214,7 @@ describe('BenchmarkSuiteCard', () => {
 
     fireEvent.mouseEnter(runCount);
     expect(
-      await screen.findByText('Run Count: Number of successful executions of this suite'),
+      await screen.findByText('Run Count: Number of successful executions of this collection'),
     ).toBeInTheDocument();
   });
 

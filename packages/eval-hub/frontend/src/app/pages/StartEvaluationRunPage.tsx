@@ -120,7 +120,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     onCancel: isReconfigure ? undefined : handleCancel,
   });
 
-  const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
+  const breadcrumbFlowLabel = isCollectionFlow ? 'Select collection' : 'Select benchmark';
 
   const getBreadcrumbItems = (): React.ReactElement[] => {
     const items: React.ReactElement[] = [
@@ -528,10 +528,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
           />
 
           {/* ── Benchmark display ──────────────────────────────── */}
-          <FormGroup
-            label={isCollectionFlow ? 'Benchmark suite' : 'Benchmark'}
-            fieldId="benchmark-name"
-          >
+          <FormGroup label={isCollectionFlow ? 'Collection' : 'Benchmark'} fieldId="benchmark-name">
             <Content component="p" data-testid="benchmark-name-display">
               {form.benchmarkDisplayName}
             </Content>
@@ -541,7 +538,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
           <BenchmarkThresholdField
             value={form.threshold}
             onChange={form.handleThresholdChange}
-            label={isCollectionFlow ? 'Benchmark suite threshold' : 'Benchmark threshold'}
+            label={isCollectionFlow ? 'Collection threshold' : 'Benchmark threshold'}
             fieldId="benchmark-threshold"
             metric={isCollectionFlow ? undefined : form.primaryMetric}
           />

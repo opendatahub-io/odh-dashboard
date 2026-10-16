@@ -100,6 +100,31 @@ func TestLegacyMaaSPortalCleanupIsScopedAndIdempotent(t *testing.T) {
 	}
 }
 
+func TestLegacyMaaSPortalCleanupDeduplicatesLabelledHTTPRoute(t *testing.T) {
+	ctx := context.Background()
+	routeDeletes := 0
+	route := &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{
+		Name:      legacyMaaSPortalName,
+		Namespace: maasPortalTestNamespace,
+		Labels:    map[string]string{labels.PlatformPartOf: legacyMaaSPortalName},
+	}}
+	cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(route).WithInterceptorFuncs(interceptor.Funcs{
+		Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+			if _, ok := obj.(*gatewayv1.HTTPRoute); ok {
+				routeDeletes++
+			}
+			return delegate.Delete(ctx, obj, opts...)
+		},
+	}).Build()
+	r := &DashboardReconciler{Client: cli, ApplicationsNamespace: maasPortalTestNamespace}
+
+	result, err := r.deleteLegacyMaaSPortalResources(ctx)
+
+	require.NoError(t, err)
+	assert.False(t, result.Pending)
+	assert.Equal(t, 1, routeDeletes, "delete a route discovered by both paths once per cleanup pass")
+}
+
 func TestLegacyMaaSPortalCleanupRetriesFailures(t *testing.T) {
 	ctx := context.Background()
 	failed := true

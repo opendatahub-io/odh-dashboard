@@ -63,7 +63,7 @@ describe('copySuiteSchema', () => {
         expect.arrayContaining([
           expect.objectContaining({
             path: ['suiteName'],
-            message: 'Suite name must be different from the source benchmark suite name.',
+            message: 'Collection name must be different from the source collection name.',
           }),
         ]),
       );

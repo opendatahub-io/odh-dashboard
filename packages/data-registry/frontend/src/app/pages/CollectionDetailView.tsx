@@ -127,9 +127,9 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
               data-testid="collection-assets-empty-state"
             >
               <EmptyStateBody>
-                Data assets point to the exact location within a connection where information is
-                located, and can be used across workbenches and pipelines in your project. To get
-                started, create a data asset.
+                To help users in your organization discover and understand external data, create a
+                data asset. Data assets are metadata records that store information like location,
+                format, and schema, but not the data itself.
               </EmptyStateBody>
               {onRegisterData ? (
                 <EmptyStateFooter>

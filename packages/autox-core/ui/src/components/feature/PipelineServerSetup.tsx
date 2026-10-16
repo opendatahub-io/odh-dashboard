@@ -17,6 +17,8 @@ export type PipelineServerSetupProps = {
   config: PipelineServerSetupConfig;
   namespace?: string;
   mode?: 'configure' | 'enable' | 'waiting';
+  /** Use a watched DSPA readiness state instead of the BFF readiness query when provided. */
+  isReady?: boolean;
   onStarted?: () => void;
   onFailed?: () => void;
   onReady?: () => void;
@@ -30,6 +32,7 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
   config,
   namespace,
   mode = 'configure',
+  isReady,
   onStarted,
   onFailed,
   onReady,
@@ -42,6 +45,10 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
   const startedRef = React.useRef(false);
   const mountedRef = React.useRef(true);
   const operationIdRef = React.useRef(0);
+  const callbacksRef = React.useRef({ onStarted, onFailed, onReady });
+  React.useLayoutEffect(() => {
+    callbacksRef.current = { onStarted, onFailed, onReady };
+  });
   const pollingContextRef = React.useRef({ mode, namespace });
   if (
     pollingContextRef.current.mode !== mode ||
@@ -55,7 +62,7 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
   const readinessQuery = usePipelineServerReadinessQuery(
     namespace,
     config.isTransientError,
-    state === 'polling',
+    state === 'polling' && isReady === undefined,
   );
 
   const cleanup = React.useCallback(() => {
@@ -83,7 +90,7 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
     startedRef.current = true;
     setState('polling');
     setErrorMessage('');
-    onStarted?.();
+    callbacksRef.current.onStarted?.();
     timeoutRef.current = setTimeout(() => {
       if (
         !mountedRef.current ||
@@ -95,9 +102,9 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
       cleanup();
       setState('error');
       setErrorMessage('Timed out waiting for the pipeline server to become ready.');
-      onFailed?.();
+      callbacksRef.current.onFailed?.();
     }, POLL_TIMEOUT_MS);
-  }, [cleanup, mode, namespace, onFailed, onStarted]);
+  }, [cleanup, mode, namespace]);
 
   React.useEffect(() => {
     cleanup();
@@ -115,14 +122,14 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
     if (state !== 'polling' || cancelledRef.current) {
       return;
     }
-    if (readinessQuery.data === true) {
+    if (isReady === true || (isReady === undefined && readinessQuery.data === true)) {
       cleanup();
       startedRef.current = false;
       setState('idle');
-      onReady?.();
+      callbacksRef.current.onReady?.();
       return;
     }
-    if (readinessQuery.isError) {
+    if (isReady === undefined && readinessQuery.isError) {
       cleanup();
       startedRef.current = false;
       setState('error');
@@ -131,17 +138,9 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
           ? readinessQuery.error.message
           : 'An unexpected error occurred while waiting for the pipeline server.',
       );
-      onFailed?.();
+      callbacksRef.current.onFailed?.();
     }
-  }, [
-    cleanup,
-    onFailed,
-    onReady,
-    readinessQuery.data,
-    readinessQuery.error,
-    readinessQuery.isError,
-    state,
-  ]);
+  }, [cleanup, isReady, readinessQuery.data, readinessQuery.error, readinessQuery.isError, state]);
 
   React.useEffect(() => cleanup, [cleanup]);
 
@@ -163,7 +162,7 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
     cancelledRef.current = false;
     setState('enabling');
     setErrorMessage('');
-    onStarted?.();
+    callbacksRef.current.onStarted?.();
     try {
       await enableMutation.mutateAsync(namespace);
       if (
@@ -188,11 +187,13 @@ const PipelineServerSetup: React.FC<PipelineServerSetupProps> = ({
       setErrorMessage(
         error instanceof Error ? error.message : 'Failed to enable managed pipelines',
       );
-      onFailed?.();
+      callbacksRef.current.onFailed?.();
     }
-  }, [enableMutation, namespace, onFailed, onStarted, startPolling]);
+  }, [enableMutation, namespace, startPolling]);
 
-  if (state === 'polling') {
+  // Render the waiting state immediately so the first paint doesn't fall through to the generic
+  // error view before the effect starts readiness polling.
+  if (state === 'polling' || (mode === 'waiting' && state === 'idle')) {
     return <PipelineServerStarting namespace={namespace} data-testid="pipeline-server-polling" />;
   }
 

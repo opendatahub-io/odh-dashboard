@@ -150,8 +150,8 @@ func (app *App) GetConnectionTypeHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	connectionTypeID := params.ByName("connection_type_id")
-	if connectionTypeID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("path parameter 'connection_type_id' is required and cannot be empty"))
+	if err := validateID("path parameter", "connection_type_id", connectionTypeID); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -214,7 +214,7 @@ func mockConnectionType(namespace, connectionTypeID string) (ConnectionType, boo
 func mockConnectionTypes(namespace string) []ConnectionType {
 	description := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor."
 	types := make([]ConnectionType, 2)
-	types[0].Metadata.ID = "postgresql"
+	types[0].Metadata.ID = "550e8400-e29b-41d4-a716-446655440003"
 	types[0].Metadata.TenantID = namespace
 	types[0].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
 	types[0].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
@@ -241,7 +241,7 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 	types[0].Status.FlightURL = "https://dch-default-dataconnectservice-flight.redhat-ods-applications.svc:8443"
 	types[0].Status.UpdatedAt = "2026-01-01T00:00:00Z"
 
-	types[1].Metadata.ID = "s3"
+	types[1].Metadata.ID = "550e8400-e29b-41d4-a716-446655440004"
 	types[1].Metadata.TenantID = namespace
 	types[1].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
 	types[1].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"

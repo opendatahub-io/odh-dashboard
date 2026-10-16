@@ -18,6 +18,8 @@ import {
   ListItem,
   MenuToggle,
   MenuToggleAction,
+  Stack,
+  StackItem,
   Tooltip,
 } from '@patternfly/react-core';
 import {
@@ -33,6 +35,7 @@ import {
   RhUiPlugIcon,
   RhUiSecuredIcon,
   RhUiSecurityIcon,
+  InfoCircleIcon,
 } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
@@ -89,6 +92,7 @@ type BenchmarkSuiteCardButton = {
 type BenchmarkSuiteCardProps = {
   collection: Collection;
   benchmarkNameMap?: BenchmarkNameMap;
+  prerequisite?: string;
   primaryAction: BenchmarkSuiteCardButton;
   showRunCount?: boolean;
   dropdownAction?: BenchmarkSuiteCardButton;
@@ -100,6 +104,7 @@ type BenchmarkSuiteCardProps = {
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   collection,
   benchmarkNameMap,
+  prerequisite,
   primaryAction,
   showRunCount = false,
   dropdownAction,
@@ -205,7 +210,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
     </LabelGroup>
   );
   const runCount = collection.state?.run_count ?? 0;
-  const runCountTooltip = 'Run Count: Number of successful executions of this suite';
+  const runCountTooltip = 'Run Count: Number of successful executions of this collection';
   const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
     action.href ? (
       <Button
@@ -429,13 +434,42 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             </button>
           </Tooltip>
         </div>
-        <Content
-          component="p"
-          className="evalhub-benchmark-suite-card__description"
-          title={collection.description || 'No description provided'}
-        >
-          {collection.description || <em>No description provided</em>}
-        </Content>
+        <Stack>
+          <StackItem>
+            <Content
+              component="p"
+              className="evalhub-benchmark-suite-card__description"
+              title={collection.description || 'No description provided'}
+            >
+              {collection.description || <em>No description provided</em>}
+            </Content>
+          </StackItem>
+          {prerequisite ? (
+            <StackItem className="pf-v6-u-mt-sm">
+              <Flex
+                className="evalhub-benchmark-suite-card__prerequisite"
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                gap={{ default: 'gapXs' }}
+                data-testid={`benchmark-suite-card-prerequisite-${collection.resource.id}`}
+              >
+                <Flex
+                  flex={{ default: 'flexNone' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  className="evalhub-benchmark-suite-card__prerequisite-icon-container"
+                  aria-hidden="true"
+                >
+                  <InfoCircleIcon className="evalhub-benchmark-suite-card__prerequisite-icon" />
+                </Flex>
+                <FlexItem
+                  flex={{ default: 'flex_1' }}
+                  className="evalhub-benchmark-suite-card__prerequisite-text pf-v6-u-min-width-0"
+                >
+                  {prerequisite}
+                </FlexItem>
+              </Flex>
+            </StackItem>
+          ) : null}
+        </Stack>
       </CardBody>
       <CardFooter className="evalhub-benchmark-suite-card__footer">
         {metricNames.length > 0 && (

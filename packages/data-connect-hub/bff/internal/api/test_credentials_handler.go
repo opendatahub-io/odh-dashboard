@@ -39,8 +39,12 @@ func (app *App) TestCredentialsHandler(w http.ResponseWriter, r *http.Request, _
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	if request.DataConnectionTypeID == "" || request.Credentials == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("data_connection_type_id and credentials are required"))
+	if request.Credentials == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("request field 'credentials' is required and cannot be empty"))
+		return
+	}
+	if err := validateID("request field", "data_connection_type_id", request.DataConnectionTypeID); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
