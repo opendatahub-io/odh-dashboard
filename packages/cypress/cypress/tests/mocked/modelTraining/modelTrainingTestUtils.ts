@@ -28,6 +28,12 @@ import { ProjectModel } from '../../../utils/models';
 export const projectName = 'test-model-training-project';
 export const projectDisplayName = 'Test Model Training Project';
 
+export const modelTrainingTestIds = {
+  allProjectsBanner: 'training-jobs-all-projects-banner',
+  exitAllProjectsView: 'training-jobs-exit-all-projects',
+  viewAcrossAllProjects: 'training-jobs-view-all-projects',
+} as const;
+
 const trainJobConfigs = [
   {
     name: 'image-classification-job',
@@ -407,7 +413,13 @@ export const initInterceptsForStatusModal = (
   );
 };
 
-export const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}): void => {
+export const initIntercepts = ({
+  isEmpty = false,
+  allProjects = false,
+}: {
+  isEmpty?: boolean;
+  allProjects?: boolean;
+} = {}): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -495,6 +507,24 @@ export const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}):
         ns: projectName,
       },
       mockK8sResourceList(mockWorkloads),
+    );
+  }
+
+  if (allProjects) {
+    cy.interceptK8sList(
+      {
+        model: TrainJobModel,
+        ns: '',
+      },
+      mockK8sResourceList(mockTrainJobs),
+    );
+
+    cy.interceptK8sList(
+      {
+        model: RayJobModel,
+        ns: '',
+      },
+      mockK8sResourceList(mockRayJobs),
     );
   }
 };

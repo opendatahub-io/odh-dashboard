@@ -2,9 +2,13 @@ import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { byName } from '@odh-dashboard/k8s-core';
 import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import { ModelTrainingContextProvider } from './ModelTrainingContext';
 import ModelTrainingNoProjects from '../components/ModelTrainingNoProjects';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
@@ -23,6 +27,11 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const { activeProject } = useWorkingProject();
+  const { isAdmin } = useUser();
+  const isUnifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
   const storedProject = getStoredPreferredProject(projects);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
@@ -31,6 +40,14 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
       empty: true,
       emptyStatePage: <ModelTrainingNoProjects />,
     };
+  } else if (
+    isUnifiedProjectSelectorEnabled &&
+    isAdmin &&
+    namespace &&
+    activeProject &&
+    namespace !== activeProject.name
+  ) {
+    return <Navigate to={getInvalidRedirectPath(activeProject.name)} replace />;
   } else if (namespace) {
     const foundProject = projects.find(byName(namespace));
     if (foundProject) {
@@ -50,7 +67,14 @@ const ModelTrainingCoreLoader: React.FC<ModelTrainingCoreLoaderProps> = ({
       ),
     };
   } else {
-    const effectiveProject = storedProject ?? preferredProject;
+    const effectiveProject =
+      isUnifiedProjectSelectorEnabled && isAdmin
+        ? null
+        : storedProject ??
+          preferredProject ??
+          (isUnifiedProjectSelectorEnabled
+            ? projects.find(byName(activeProject?.name)) ?? null
+            : null);
     if (effectiveProject) {
       return <Navigate to={getInvalidRedirectPath(effectiveProject.metadata.name)} replace />;
     }
