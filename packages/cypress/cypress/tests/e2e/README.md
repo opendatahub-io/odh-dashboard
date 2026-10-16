@@ -198,6 +198,8 @@ Use `retryableBefore`. If using an `after` method, include `if (!wasSetupPerform
 
 Test Data should be referenced from fixture files and loaded into the test in the hook (`retryableBefore`). Typically, testData is then assigned a type, and a custom function is created to assign values to a variable.
 
+`retryableBefore` skips its callback when `IS_NON_ADMIN_RUN` is set, because it is meant for admin-only setup. If a test that runs in non-admin mode needs fixture data, load the fixture in a plain `before()` hook and keep only admin setup in `retryableBefore`.
+
 ### Test IDs
 
 It's recommended to use `testIDs` when referencing page objects. If an element does not have a `testID`, please add one:
