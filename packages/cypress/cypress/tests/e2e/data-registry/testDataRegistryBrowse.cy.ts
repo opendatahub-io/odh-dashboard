@@ -214,7 +214,15 @@ describe('Data Registry browse flow', () => {
 
   it(
     'should browse and create, update, and delete Data Registry collections and structured assets',
-    { tags: ['@Dashboard', '@DataRegistry', '@Smoke', '@SmokeSet1'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@DataRegistry',
+        '@Smoke',
+        '@SmokeSet1',
+        '@ci-dashboard-regression-tags',
+      ],
+    },
     () => {
       cy.step('Log in as the configured Data Registry test user');
       cy.intercept({
