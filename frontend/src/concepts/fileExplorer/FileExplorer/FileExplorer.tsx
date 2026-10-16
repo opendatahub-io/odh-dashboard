@@ -84,6 +84,7 @@ import {
   TimesIcon,
   TrashIcon,
   RhUiInformationFillIcon,
+  VolumeUpIcon,
 } from '@patternfly/react-icons';
 import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 import type {
@@ -133,6 +134,14 @@ const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue
   typeof value === 'number' ||
   typeof value === 'boolean' ||
   React.isValidElement(value);
+
+// Keep global icon coverage broader than AutoRAG's current selectable-format list.
+const AUDIO_FILE_EXTENSIONS = new Set(['flac', 'm4a', 'mp3', 'ogg', 'wav']);
+
+const isAudioFile = (fileName: string): boolean => {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  return extension ? AUDIO_FILE_EXTENSIONS.has(extension) : false;
+};
 
 // Globals -------------------------------------------------------------------->
 
@@ -520,6 +529,11 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         alignItems={{ default: 'alignItemsCenter' }}
                         flexWrap={{ default: 'nowrap' }}
                       >
+                        {!isFolder(file) && isAudioFile(file.name) && (
+                          <FlexItem>
+                            <VolumeUpIcon aria-hidden data-testid="file-explorer-audio-icon" />
+                          </FlexItem>
+                        )}
                         <FlexItem>
                           {isFolder(file) && !file.disabled ? (
                             <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
@@ -1001,6 +1015,9 @@ interface FileExplorerProps {
   /** Callback fired when the user changes the number of items per page. */
   onPerPageSelect?: (perPage: number) => void;
 
+  /** Optional custom description shown below the modal title. */
+  modalDescription?: ReactNode;
+
   /** Callback fired when the primary action button is clicked, passing the selected files. */
   onPrimary: (files: ExplorerFiles) => void;
 
@@ -1040,12 +1057,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onSetPage,
   onPerPageSelect,
   onPrimary,
+  modalDescription,
   searchPlaceholder: searchPlaceholderProp,
   allowedSearchCharacters,
   allowedSearchCharactersLabel,
 }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
+  const modalDescriptionId = `${rootId}-FileExplorer-modal-description`;
   const [selectedFiles, setSelectedFiles] = useState<ExplorerFiles>([]);
   const [filesToView, setFilesToView] = useState<ExplorerFiles>([]);
 
@@ -1057,11 +1076,17 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const charWarningTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(charWarningTimerRef.current), []);
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setSelectedFiles([]);
     setFilesToView([]);
     setSearchQuery('');
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetState();
+    }
+  }, [isOpen, resetState]);
 
   const isIndeterminate = itemCount === undefined;
   const fileCount = Array.isArray(files) ? files.filter((f) => !f.hidden).length : 0;
@@ -1199,11 +1224,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       }}
       variant="large"
       aria-labelledby={`${rootId}-FileExplorer-modal-title`}
-      aria-describedby={`${rootId}-FileExplorer-modal-body`}
+      aria-describedby={modalDescription ? modalDescriptionId : `${rootId}-FileExplorer-modal-body`}
     >
       <ModalHeader
         title={defaults.labels.modalTitle}
-        description={defaults.labels.modalDescription(selection)}
+        description={modalDescription ?? defaults.labels.modalDescription(selection)}
+        descriptorId={modalDescriptionId}
         labelId={`${rootId}-FileExplorer-modal-title`}
       />
       <ModalBody id={`${rootId}-FileExplorer-modal-body`}>

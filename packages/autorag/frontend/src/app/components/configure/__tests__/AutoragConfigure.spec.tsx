@@ -667,6 +667,19 @@ describe('AutoragConfigure', () => {
       ).toBeInTheDocument();
     });
 
+    it('should open and close the supported file types modal from the knowledge guidance', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      fireEvent.click(screen.getByRole('button', { name: 'View supported file types' }));
+      expect(screen.getByRole('heading', { name: 'Supported file types' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect(
+        screen.queryByRole('heading', { name: 'Supported file types' }),
+      ).not.toBeInTheDocument();
+    });
+
     it('should NOT show document input toggle when no secret is selected', () => {
       renderComponent();
 
@@ -724,6 +737,11 @@ describe('AutoragConfigure', () => {
 
       // Verify the "Select file or folder" section is displayed
       expect(screen.getByRole('heading', { name: 'Select file or folder' })).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Audio upload and automatic transcription are supported. Select a file or folder from this bucket to use as the knowledge for your experiment.',
+        ),
+      ).toBeInTheDocument();
     });
 
     it('should display the "Browse bucket" button when a secret is selected', () => {

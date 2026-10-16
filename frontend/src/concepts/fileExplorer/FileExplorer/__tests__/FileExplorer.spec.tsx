@@ -60,8 +60,35 @@ describe('FileExplorer', () => {
 
       expect(screen.getByText('Select which files or folders to use')).toBeInTheDocument();
     });
+    it('should render a custom modal description when provided', () => {
+      render(<FileExplorer {...defaultProps} modalDescription="Custom explorer description" />);
+
+      expect(screen.getByText('Custom explorer description')).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Select 1 file or folder from this bucket to use for your data collection and evaluation sources',
+        ),
+      ).not.toBeInTheDocument();
+    });
   });
   describe('file table', () => {
+    it('should render the global audio icon for configured audio extensions case-insensitively', () => {
+      const files = [
+        mockFile({ name: 'recording.MP3', path: '/recording.MP3' }),
+        mockFile({ name: 'meeting.flac', path: '/meeting.flac' }),
+        mockFile({ name: 'notes.txt', path: '/notes.txt' }),
+      ];
+
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      expect(screen.getAllByTestId('file-explorer-audio-icon')).toHaveLength(2);
+      expect(
+        within(screen.getByTestId('file-explorer-row--notes-txt')).queryByTestId(
+          'file-explorer-audio-icon',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
     it('should render file rows', () => {
       const files = mockFiles(3);
       render(<FileExplorer {...defaultProps} files={files} />);
