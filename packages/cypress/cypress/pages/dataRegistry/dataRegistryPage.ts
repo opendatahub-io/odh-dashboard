@@ -283,10 +283,12 @@ class DataRegistryPage {
     return cy.findByTestId('collection-created-at');
   }
 
-  shouldHaveAssetDetailUrl(project: string, collection: string) {
+  shouldHaveAssetDetailUrl(project: string, collection: string, assetName: string) {
     cy.url().should(
       'include',
-      `/tables/${encodeURIComponent(project)}/${encodeURIComponent(collection)}/`,
+      `/ai-hub/data/browse/assets/table/${encodeURIComponent(project)}/${encodeURIComponent(
+        collection,
+      )}/${encodeURIComponent(assetName)}`,
     );
   }
 

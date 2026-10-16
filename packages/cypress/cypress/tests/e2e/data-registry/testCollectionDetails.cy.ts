@@ -24,7 +24,6 @@ describe('Data Registry - Collection Details', () => {
   let projectCreated = false;
   let secondCollectionCreated = false;
   let browseAssetCreated = false;
-  let browseAssetSeeded = false;
 
   before(() => {
     return ensureAdminOcSession()
@@ -46,9 +45,25 @@ describe('Data Registry - Collection Details', () => {
         );
       })
       .then(() => {
-        cy.step(`Create Data Registry collection/${secondCollectionName}`);
+        cy.step(`Seed Data Registry asset/${testData.asset}`);
         dataRegistryPage.navigate(testData.project, LDAP_ADMIN_USER);
         dataRegistryPage.selectProject(testData.project);
+        return seedDataRegistryBrowseAsset(
+          testData.project,
+          testData.collection,
+          testData.asset,
+        ).then((created) => {
+          browseAssetCreated = created;
+        });
+      })
+      .then(() => {
+        cy.step(`Reload ${testData.project} and wait for ${testData.asset} to appear`);
+        dataRegistryPage.navigate(testData.project, LDAP_ADMIN_USER);
+        dataRegistryPage.selectProject(testData.project);
+        return dataRegistryPage.findAssetLink(testData.asset).should('be.visible');
+      })
+      .then(() => {
+        cy.step(`Create Data Registry collection/${secondCollectionName}`);
         dataRegistryPage.openManageCollections();
         dataRegistryPage.findCreateCollectionButton().click();
         dataRegistryPage.findCreateCollectionModal().should('be.visible');
@@ -97,20 +112,7 @@ describe('Data Registry - Collection Details', () => {
   beforeEach(() => {
     dataRegistryPage.navigate(testData.project, LDAP_ADMIN_USER);
     dataRegistryPage.selectProject(testData.project);
-    if (browseAssetSeeded) {
-      return dataRegistryPage.findAssetLink(testData.asset).should('be.visible');
-    }
-    return seedDataRegistryBrowseAsset(testData.project, testData.collection, testData.asset)
-      .then((created) => {
-        browseAssetCreated = created;
-        browseAssetSeeded = true;
-      })
-      .then(() => {
-        cy.step(`Reload ${testData.project} and wait for ${testData.asset} to appear`);
-        dataRegistryPage.navigate(testData.project, LDAP_ADMIN_USER);
-        dataRegistryPage.selectProject(testData.project);
-        return dataRegistryPage.findAssetLink(testData.asset).should('be.visible');
-      });
+    return dataRegistryPage.findAssetLink(testData.asset).should('be.visible');
   });
 
   it('should display collection detail page', () => {
@@ -165,7 +167,11 @@ describe('Data Registry - Collection Details', () => {
     dataRegistryPage.findCollectionAssetLink(testData.asset).click();
 
     // Verify navigated to asset detail page
-    dataRegistryPage.shouldHaveAssetDetailUrl(testData.project, testData.collection);
+    dataRegistryPage.shouldHaveAssetDetailUrl(
+      testData.project,
+      testData.collection,
+      testData.asset,
+    );
     dataRegistryPage.findAssetTypeBadge().should('contain.text', 'Data asset');
   });
 
