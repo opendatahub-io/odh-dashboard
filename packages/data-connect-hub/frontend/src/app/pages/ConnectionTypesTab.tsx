@@ -22,10 +22,9 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
     [navigate, pathname, search],
   );
 
-  const isEmpty = connectionTypes.length === 0;
   const hasError = Boolean(typesError);
   const shouldRenderLoadingState = !typesLoaded && !hasError;
-  const shouldRenderGallery = typesLoaded && !hasError && !isEmpty;
+  const shouldRenderGallery = typesLoaded && !hasError;
 
   return (
     <PageSection isFilled>
