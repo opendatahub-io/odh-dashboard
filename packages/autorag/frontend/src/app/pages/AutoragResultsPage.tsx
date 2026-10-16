@@ -100,13 +100,22 @@ export const buildResponsesTemplate = (
   const isHybrid = retrieval.search_mode === 'hybrid';
   const provider = getPatternStoreProvider(pattern);
   /* eslint-disable camelcase */
-  const rankingOptions = isHybrid
-    ? provider === 'pgvector'
-      ? { ranker: 'rrf' as const, alpha: retrieval.ranker_alpha ?? 0.5 }
-      : retrieval.ranker_strategy === 'weighted'
-        ? { ranker: 'weighted' as const, alpha: retrieval.ranker_alpha ?? 0.5 }
-        : { ranker: 'rrf' as const, ranker_k: retrieval.ranker_k ?? 60 }
-    : undefined;
+  let rankingOptions:
+    | { ranker: 'rrf'; alpha: number }
+    | { ranker: 'rrf'; ranker_k: number }
+    | { ranker: 'weighted'; alpha: number }
+    | undefined;
+  if (isHybrid) {
+    if (provider === 'pgvector') {
+      rankingOptions = { ranker: 'rrf', alpha: retrieval.ranker_alpha ?? 0.5 };
+    } else if (retrieval.ranker_strategy === undefined || retrieval.ranker_strategy === 'rrf') {
+      rankingOptions = { ranker: 'rrf', ranker_k: retrieval.ranker_k ?? 60 };
+    } else if (retrieval.ranker_strategy === 'weighted') {
+      rankingOptions = { ranker: 'weighted', alpha: retrieval.ranker_alpha ?? 0.5 };
+    } else {
+      throw new Error(`Unsupported retrieval ranker: ${retrieval.ranker_strategy}`);
+    }
+  }
 
   return {
     model: generation.model_id,
@@ -142,7 +151,7 @@ export const buildResponsesTemplate = (
 /* eslint-disable camelcase */
 export const normalizeResponsesTemplate = (
   template: AutoRAGResponsesTemplate,
-  provider?: 'milvus' | 'pgvector' | 'neo4j',
+  provider: 'milvus' | 'pgvector' | 'neo4j',
 ): AutoRAGResponsesTemplate => {
   const { autorag_run_id: runId, ...metadata } = template.metadata;
   return {
@@ -156,9 +165,11 @@ export const normalizeResponsesTemplate = (
         return tool;
       }
       const ranking = tool.ranking_options;
-      const weighted =
-        provider !== 'pgvector' &&
-        (ranking.ranker === 'weighted' || ranking.ranker_strategy === 'weighted');
+      const ranker = ranking.ranker_strategy ?? ranking.ranker;
+      if (ranker !== 'rrf' && ranker !== 'weighted') {
+        throw new Error(`Unsupported persisted retrieval ranker: ${ranker}`);
+      }
+      const weighted = provider !== 'pgvector' && ranker === 'weighted';
       const rankerK =
         typeof ranking.ranker_k === 'number' &&
         Number.isFinite(ranking.ranker_k) &&
@@ -663,6 +674,10 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern) {
         return false;
       }
+      const provider = getPatternStoreProvider(pattern);
+      if (!provider) {
+        return false;
+      }
       let responsesTemplate: AutoRAGResponsesTemplate;
       try {
         const persistedTemplate = pattern.inference?.responses_template;
@@ -686,9 +701,9 @@ function AutoragResultsPage(): React.JSX.Element {
         // carry the explicit unavailable marker rather than a half-valid
         // template.
         responsesTemplate = isUsableResponsesTemplate(candidate)
-          ? normalizeResponsesTemplate(candidate, getPatternStoreProvider(pattern))
+          ? normalizeResponsesTemplate(candidate, provider)
           : isUsableResponsesTemplate(fallback)
-            ? normalizeResponsesTemplate(fallback, getPatternStoreProvider(pattern))
+            ? normalizeResponsesTemplate(fallback, provider)
             : unavailableResponsesTemplate(patternName);
       } catch {
         responsesTemplate = unavailableResponsesTemplate(patternName);
@@ -735,6 +750,10 @@ function AutoragResultsPage(): React.JSX.Element {
         return;
       }
       const persistedTemplate = pattern.inference?.responses_template;
+      const provider = getPatternStoreProvider(pattern);
+      if (!provider) {
+        return;
+      }
       let responsesTemplate: AutoRAGResponsesTemplate;
       try {
         const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
@@ -764,7 +783,7 @@ function AutoragResultsPage(): React.JSX.Element {
         if (!usable) {
           return;
         }
-        responsesTemplate = normalizeResponsesTemplate(usable, getPatternStoreProvider(pattern));
+        responsesTemplate = normalizeResponsesTemplate(usable, provider);
       } catch {
         return;
       }

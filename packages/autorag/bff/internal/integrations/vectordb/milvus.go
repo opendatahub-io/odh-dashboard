@@ -201,19 +201,19 @@ func (m *milvusDB) Search(ctx context.Context, collection string, queryVec []flo
 	if err != nil {
 		return nil, fmt.Errorf("milvus search: %w", classifyMilvusError(ctx, operationCtx, err))
 	}
-	parsed, err := extractMilvusResults(results, options.TopK)
+	parsed, err := extractMilvusResults(ctx, operationCtx, results, options.TopK)
 	if err != nil {
 		return nil, err
 	}
 	return parsed, nil
 }
 
-func extractMilvusResults(results []milvusclient.ResultSet, topK int) ([]SearchResult, error) {
+func extractMilvusResults(parentCtx, operationCtx context.Context, results []milvusclient.ResultSet, topK int) ([]SearchResult, error) {
 	out := make([]SearchResult, 0, topK)
 	totalBytes := 0
 	for _, r := range results {
 		if r.Err != nil {
-			return nil, r.Err
+			return nil, classifyMilvusError(parentCtx, operationCtx, r.Err)
 		}
 		for i := range r.Scores {
 			text := ""

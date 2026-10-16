@@ -116,7 +116,7 @@ func TestMilvusDenseSearchKeepsVectorFieldAndContent(t *testing.T) {
 }
 
 func TestExtractMilvusResultsPreservesContentAndPrimaryKeys(t *testing.T) {
-	results, err := extractMilvusResults([]milvusclient.ResultSet{
+	results, err := extractMilvusResults(context.Background(), context.Background(), []milvusclient.ResultSet{
 		{
 			IDs:    column.NewColumnInt64("id", []int64{42}),
 			Fields: milvusclient.DataSet{column.NewColumnVarChar(milvusTextField, []string{"first chunk"})},
@@ -133,6 +133,15 @@ func TestExtractMilvusResultsPreservesContentAndPrimaryKeys(t *testing.T) {
 		{ID: "42", Text: "first chunk", Score: 0.75},
 		{ID: "chunk-2", Text: "second chunk", Score: 0.5},
 	}, results)
+}
+
+func TestExtractMilvusResultsClassifiesResultErrors(t *testing.T) {
+	results, err := extractMilvusResults(context.Background(), context.Background(), []milvusclient.ResultSet{{
+		Err: errors.New("search failed"),
+	}}, 1)
+
+	assert.Nil(t, results)
+	assert.ErrorIs(t, err, ErrDatabaseUnavailable)
 }
 
 func TestMilvusSearchRejectsRRFAlphaBeforeConnecting(t *testing.T) {

@@ -377,7 +377,7 @@ describe('normalizeResponsesTemplate', () => {
         {
           ...template.tools[0],
           ranking_options: {
-            ranker: 'legacy-ranker',
+            ranker: 'rrf',
             alpha: 0.25,
             impact_factor: 42,
           },
@@ -385,7 +385,7 @@ describe('normalizeResponsesTemplate', () => {
       ],
     } as unknown as typeof template;
 
-    expect(normalizeResponsesTemplate(legacyTemplate)).toEqual({
+    expect(normalizeResponsesTemplate(legacyTemplate, 'milvus')).toEqual({
       ...template,
       tools: [
         {
@@ -749,6 +749,41 @@ describe('AutoragResultsPage', () => {
           optimization_metric: 'unitxt:faithfulness',
           optimization_max_rag_patterns: 10,
         },
+      });
+    });
+
+    it('should reject unsupported persisted ranking strategies', () => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const invalidTemplate = {
+        ...template,
+        tools: [
+          {
+            ...template.tools[0],
+            ranking_options: { ranker: 'unsupported' },
+          },
+        ],
+      } as unknown as typeof template;
+
+      expect(() => normalizeResponsesTemplate(invalidTemplate, 'milvus')).toThrow(
+        'Unsupported persisted retrieval ranker',
+      );
+    });
+
+    it('should normalize weighted pgvector templates to RRF', () => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const withRanking = {
+        ...template,
+        tools: [
+          {
+            ...template.tools[0],
+            ranking_options: { ranker: 'weighted' as const, alpha: 0.3 },
+          },
+        ],
+      };
+
+      expect(normalizeResponsesTemplate(withRanking, 'pgvector').tools[0].ranking_options).toEqual({
+        ranker: 'rrf',
+        alpha: 0.3,
       });
     });
 
