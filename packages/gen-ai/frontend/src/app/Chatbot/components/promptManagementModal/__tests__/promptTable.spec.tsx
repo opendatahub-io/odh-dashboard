@@ -1,15 +1,27 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import PromptTable from '~/app/Chatbot/components/promptManagementModal/promptTable';
 import { mockMLflowPrompt } from '~/__mocks__/mockMLflowPrompts';
+import { PROMPT_MODEL_ASSOCIATIONS } from '~/odh/extensions';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
   DEPLOYMENT_MODE: 'federated',
   MCP_SERVERS_SESSION_STORAGE_KEY: 'gen-ai-playground-servers',
 }));
+
+jest.mock('@openshift/dynamic-plugin-sdk', () => ({
+  useFeatureFlag: jest.fn(),
+}));
+
+const mockUseFeatureFlag = jest.mocked(useFeatureFlag);
+
+beforeEach(() => {
+  mockUseFeatureFlag.mockReturnValue([true, jest.fn()]);
+});
 
 const mockPrompts: MLflowPrompt[] = [
   {
@@ -920,5 +932,47 @@ describe('PromptTable - Tab Navigation', () => {
         expect(rowNames[0]).toBe('prompt-granite');
       });
     });
+
+    describe('with the promptModelAssociations dev flag off', () => {
+      beforeEach(() => {
+        mockUseFeatureFlag.mockReturnValue([false, jest.fn()]);
+      });
+
+      it('should hide the Model column and its cells', () => {
+        render(<PromptTable {...defaultProps} />);
+
+        expect(mockUseFeatureFlag).toHaveBeenCalledWith(PROMPT_MODEL_ASSOCIATIONS);
+        expect(screen.queryByRole('columnheader', { name: 'Model' })).not.toBeInTheDocument();
+        expect(screen.queryByTestId('prompt-model-name')).not.toBeInTheDocument();
+        expect(screen.queryByText('llama-3')).not.toBeInTheDocument();
+      });
+
+      it('should only offer the Name filter type', () => {
+        render(<PromptTable {...defaultProps} />);
+
+        fireEvent.click(screen.getByTestId('prompt-filter-type-toggle'));
+
+        expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Name']);
+      });
+    });
+
+    it.each([
+      [true, ['Name', 'Version', 'Model', 'Last Modified', 'Tags']],
+      [false, ['Name', 'Version', 'Last Modified', 'Tags']],
+    ])(
+      'should label each cell with its own column when model associations enabled is %s',
+      (enabled, columns) => {
+        mockUseFeatureFlag.mockReturnValue([enabled, jest.fn()]);
+        render(<PromptTable {...defaultProps} />);
+
+        expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual(
+          columns,
+        );
+        const cells = within(screen.getByTestId('prompt-table-row-prompt-llama')).getAllByRole(
+          'cell',
+        );
+        expect(cells.map((cell) => cell.getAttribute('data-label'))).toEqual(columns);
+      },
+    );
   });
 });

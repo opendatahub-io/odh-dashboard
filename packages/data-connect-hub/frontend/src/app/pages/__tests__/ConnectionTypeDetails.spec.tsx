@@ -25,13 +25,15 @@ const mockCreateRequest = jest.fn();
 
 const createRequest: CreateConnectionRequest = {
   name: 'warehouse',
-  data_connection_type_id: 'postgresql',
+  data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
   format: 'tabular',
   credentials: { secret: 'warehouse', properties: { URI: 'postgres://example' } },
   properties: {},
 };
 
-const renderDetails = (entry = '/connection-types/postgresql?project=test-project&view=details') =>
+const renderDetails = (
+  entry = '/connection-types/550e8400-e29b-41d4-a716-446655440003?project=test-project&view=details',
+) =>
   render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
@@ -65,13 +67,16 @@ describe('ConnectionTypeDetails', () => {
 
     renderDetails();
 
-    expect(mockUseConnectionType).toHaveBeenCalledWith('test-project', 'postgresql');
+    expect(mockUseConnectionType).toHaveBeenCalledWith(
+      'test-project',
+      '550e8400-e29b-41d4-a716-446655440003',
+    );
     expect(screen.getAllByText('PostgreSQL').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Connect to a PostgreSQL database.')).toHaveLength(2);
     expect(screen.getByText('Provider')).toBeTruthy();
     expect(
       screen.getByTestId('connection-type-details').getAttribute('data-connection-type-id'),
-    ).toBe('postgresql');
+    ).toBe('550e8400-e29b-41d4-a716-446655440003');
     expect(screen.getAllByText('Full integration')).toHaveLength(2);
   });
 
@@ -89,7 +94,7 @@ describe('ConnectionTypeDetails', () => {
       expect.objectContaining({
         isOpen: true,
         namespace: 'test-project',
-        initialFormData: { data_connection_type_id: 'postgresql' },
+        initialFormData: { data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003' },
       }),
     );
 

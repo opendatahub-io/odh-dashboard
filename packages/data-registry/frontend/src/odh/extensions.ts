@@ -36,7 +36,7 @@ const extensions: Extension[] = [
       pageId: 'data-tab-page',
       id: 'browse',
       title: 'Browse',
-      singleTabTitle: 'Data',
+      singleTabTitle: 'Data assets',
       objectType: 'data-registry',
       component: () => import('./DataRegistryWrapper'),
     },

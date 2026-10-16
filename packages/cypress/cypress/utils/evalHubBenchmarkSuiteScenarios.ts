@@ -49,7 +49,7 @@ const getScenarioUuid = (key: BenchmarkSuiteScenarioKey): string => {
 };
 
 /**
- * Creates the independently provisioned lifecycle shared by each benchmark-suite spec.
+ * Creates the independently provisioned lifecycle shared by each benchmark-collection spec.
  * Separate tenants keep failures and cleanup in one journey from affecting the other.
  */
 export const createEvalHubBenchmarkSuiteScenario = (

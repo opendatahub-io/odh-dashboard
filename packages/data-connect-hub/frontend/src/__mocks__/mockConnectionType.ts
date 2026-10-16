@@ -11,7 +11,7 @@ export const mockConnectionType = (
 ): ConnectionTypeInstance =>
   new ConnectionTypeInstance({
     metadata: {
-      id: 'postgresql',
+      id: '550e8400-e29b-41d4-a716-446655440003',
       tenant_id: 'test-project',
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-09T16:00:00Z',

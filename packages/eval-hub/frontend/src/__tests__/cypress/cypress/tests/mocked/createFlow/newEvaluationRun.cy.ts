@@ -43,7 +43,7 @@ describe('New Evaluation Run Page', () => {
     newEvaluationRunPage.findStandardisedBenchmarksCard().should('exist');
     newEvaluationRunPage.findStandardisedBenchmarksCard().should('contain.text', 'Benchmark');
     newEvaluationRunPage.findCollectionsCard().should('exist');
-    newEvaluationRunPage.findCollectionsCard().should('contain.text', 'Benchmark suite');
+    newEvaluationRunPage.findCollectionsCard().should('contain.text', 'Collection');
   });
 
   it('should navigate to the benchmarks page when clicking Benchmark', () => {
@@ -52,7 +52,7 @@ describe('New Evaluation Run Page', () => {
     cy.url().should('include', `${NAMESPACE}/create/benchmarks`);
   });
 
-  it('should navigate to the collections page when clicking Benchmark suite', () => {
+  it('should navigate to the collections page when clicking Collection', () => {
     newEvaluationRunPage.visit(NAMESPACE);
     newEvaluationRunPage.findCollectionsCard().click();
     cy.url().should('include', `${NAMESPACE}/create/collections`);

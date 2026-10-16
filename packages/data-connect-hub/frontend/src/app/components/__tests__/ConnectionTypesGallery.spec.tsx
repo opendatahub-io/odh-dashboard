@@ -12,7 +12,7 @@ jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
 describe('ConnectionTypesGallery', () => {
   const getConnectionTypes = () => [
     mockConnectionType({
-      metadata: { id: 'postgresql' },
+      metadata: { id: '550e8400-e29b-41d4-a716-446655440003' },
       resource: {
         name: 'PostgreSQL',
         description: 'A relational database.',
@@ -20,7 +20,7 @@ describe('ConnectionTypesGallery', () => {
       },
     }),
     mockConnectionType({
-      metadata: { id: 's3' },
+      metadata: { id: '550e8400-e29b-41d4-a716-446655440004' },
       resource: {
         name: 'S3',
         provider: 's3',
@@ -29,7 +29,7 @@ describe('ConnectionTypesGallery', () => {
       },
     }),
     mockConnectionType({
-      metadata: { id: 'oci-v1' },
+      metadata: { id: '550e8400-e29b-41d4-a716-446655440005' },
       resource: {
         name: 'OCI',
         provider: 'oci-v1',
@@ -118,20 +118,26 @@ describe('ConnectionTypesGallery', () => {
         connectionTypes={getConnectionTypes()}
         onConnectionTypeClick={onConnectionTypeClick}
         isSelectable
-        selectedConnectionTypeId="s3"
+        selectedConnectionTypeId="550e8400-e29b-41d4-a716-446655440004"
       />,
     );
 
-    const selectedCard = screen.getByTestId('s3--ConnectionTypeCard');
+    const selectedCard = screen.getByTestId(
+      '550e8400-e29b-41d4-a716-446655440004--ConnectionTypeCard',
+    );
     expect(selectedCard.className).toContain('pf-m-selected');
 
     await user.click(
-      within(screen.getByTestId('oci-v1--ConnectionTypeCard')).getByRole('radio', {
+      within(
+        screen.getByTestId('550e8400-e29b-41d4-a716-446655440005--ConnectionTypeCard'),
+      ).getByRole('radio', {
         hidden: true,
       }),
     );
 
-    expect(onConnectionTypeClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'oci-v1' }));
+    expect(onConnectionTypeClick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: '550e8400-e29b-41d4-a716-446655440005' }),
+    );
   });
 
   it('should filter connection types by capability', async () => {

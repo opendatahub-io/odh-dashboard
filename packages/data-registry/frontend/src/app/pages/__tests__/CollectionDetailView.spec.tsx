@@ -87,7 +87,7 @@ describe('CollectionDetailView', () => {
     expect(screen.getByText('No data assets')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.',
+        'To help users in your organization discover and understand external data, create a data asset. Data assets are metadata records that store information like location, format, and schema, but not the data itself.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByTestId('collection-empty-register-data-button')).toBeInTheDocument();

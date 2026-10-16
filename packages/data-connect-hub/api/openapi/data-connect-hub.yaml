@@ -195,7 +195,31 @@ paths:
       summary: Verify a data connection
       description: Checks the connection and updates its readiness status.
   /api/v1/connections/{id}:
-    summary: Path used to delete a data connection.
+    summary: Path used to retrieve or delete a data connection.
+    get:
+      tags:
+        - DataOperation
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        default:
+          $ref: '#/components/responses/UpstreamErrorResponse'
+      operationId: getConnection
+      summary: Get a data connection
+      description: Returns a data connection belonging to the selected project.
     delete:
       tags:
         - DataOperation
@@ -266,6 +290,7 @@ components:
           type: string
         data_connection_type_id:
           type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
         format:
           type: string
           enum: [tabular, binary]
@@ -293,6 +318,7 @@ components:
       properties:
         data_connection_type_id:
           type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
         credentials:
           type: object
           additionalProperties:
@@ -324,7 +350,7 @@ components:
             id:
               type: string
               minLength: 1
-              pattern: '^[^/]+$'
+              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
             tenant_id:
               type: string
             created_at:
@@ -337,16 +363,30 @@ components:
             - name
             - data_connection_type_id
             - format
+            - credentials_ref
           properties:
             name:
               type: string
               example: warehouse
             data_connection_type_id:
               type: string
-              example: postgresql
+              example: 550e8400-e29b-41d4-a716-446655440003
+              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
             format:
               type: string
               enum: [tabular, binary]
+            credentials_ref:
+              type: object
+              required:
+                - secret
+              properties:
+                secret:
+                  type: string
+            properties:
+              type: object
+              additionalProperties:
+                type: string
+              description: User-provided connection properties.
         status:
           type: object
           required:
@@ -408,6 +448,7 @@ components:
           properties:
             id:
               type: string
+              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
             tenant_id:
               type: string
             created_at:
@@ -815,8 +856,7 @@ components:
       description: The ID of resource.
       schema:
         type: string
-        minLength: 1
-        pattern: '^[^/]+$'
+        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
       in: path
       required: true
     name:
