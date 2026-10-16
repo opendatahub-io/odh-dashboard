@@ -33,7 +33,7 @@ func TestGetConnectionTypesHandlerReturnsMockTypes(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.Code)
 	var envelope ConnectionTypesEnvelope
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
-	require.Len(t, envelope.Data, 2)
+	require.Len(t, envelope.Data, 32)
 	require.Equal(t, "PostgreSQL", envelope.Data[0].Resource.Name)
 	require.Equal(t, "test-project", envelope.Data[0].Metadata.TenantID)
 }
