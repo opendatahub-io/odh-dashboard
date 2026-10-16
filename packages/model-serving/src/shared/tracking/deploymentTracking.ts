@@ -32,6 +32,8 @@ export type DeploymentKueueTrackingProperties = {
   numReplicas?: number;
 };
 
+export type ServingRuntimeSource = 'preinstalled' | 'created-from-catalog';
+
 export type DeploymentTrackingBaseProperties = FormTrackingEventProperties & {
   modelType?: string;
   runtime?: string;
@@ -46,6 +48,7 @@ export type DeploymentTrackingBaseProperties = FormTrackingEventProperties & {
   primaryDeploymentStatus?: string;
   admittedReplicaCount?: number;
   deploymentKind?: string;
+  servingRuntimeSource?: ServingRuntimeSource;
 };
 
 export type DeploymentTrackingProperties = DeploymentTrackingBaseProperties &
