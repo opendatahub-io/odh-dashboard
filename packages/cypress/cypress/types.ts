@@ -407,6 +407,18 @@ export type RoutingTestData = DataScienceProjectData & {
   defaultRoutingLabel: string;
 };
 
+/** Gateway MultiSelection option identity (UI label is `${name} | ${namespace}`). */
+export type MultiGatewayFixtureRef = {
+  name: string;
+  namespace: string;
+};
+
+export type MultiGatewayTestData = DataScienceProjectData & {
+  gatewayA: MultiGatewayFixtureRef;
+  gatewayB: MultiGatewayFixtureRef;
+  cpuContainerImage: string;
+};
+
 export type AcceleratorTestData = DataScienceProjectData & {
   unsupportedAcceleratorConfigFixturePath: string;
   acceleratorConfigName: string;
