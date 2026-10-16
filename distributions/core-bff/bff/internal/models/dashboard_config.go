@@ -183,7 +183,7 @@ var BlankDashboardCR = DashboardConfig{
 			Mlflow:                       true,
 			McpCatalog:                   false,
 			McpRegistry:                  false,
-			SkillRegistry:                true,
+			SkillRegistry:                false,
 			GenAiMcpRegistryServers:      false,
 			AgentsCatalog:                false,
 			ToolCalling:                  false,

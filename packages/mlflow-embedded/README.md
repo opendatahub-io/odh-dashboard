@@ -41,4 +41,4 @@ This package has no build step of its own -- its TSX files are compiled by the h
 
 The MLflow UI requires the `mlflow` and `ds-pipelines` feature flags to be enabled.
 
-The Skills page also requires the `skillRegistry` feature flag (on by default) and an MLflow image that exposes `MlflowSkillRegistryWrapper` ([opendatahub-io/mlflow#411](https://github.com/opendatahub-io/mlflow/pull/411)).
+The Skills page also requires the `skillRegistry` feature flag (off by default, Tech Preview) and an MLflow image that exposes `MlflowSkillRegistryWrapper` ([opendatahub-io/mlflow#411](https://github.com/opendatahub-io/mlflow/pull/411)).

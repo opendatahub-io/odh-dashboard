@@ -12,7 +12,7 @@ export const techPreviewFlags = {
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
   mcpRegistry: false,
-  skillRegistry: true,
+  skillRegistry: false,
   genAiMcpRegistryServers: false,
   toolCalling: false,
   modelCapabilities: false,
