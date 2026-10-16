@@ -28,6 +28,7 @@ import {
   t_chart_color_yellow_300 as chartYellow,
   t_chart_global_danger_color_100 as chartRed,
 } from '@patternfly/react-tokens';
+import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
 import {
   overviewBuckets,
   summarizeOverview,
@@ -36,12 +37,18 @@ import {
 } from '../utils/workloadOverview';
 import './InfrastructureWorkloadsSection.scss';
 
+const WorkloadAdmissionsTab = React.lazy(() => import('./WorkloadAdmissionsTab'));
+
 type WorkloadOverviewProps = {
   workloads: WorkloadOverviewRow[];
   loaded: boolean;
+  kueueAvailable?: boolean;
+  canAccessAdminMetrics?: boolean;
+  namespace?: string;
   dataUnavailable?: boolean;
   partial?: boolean;
   error?: Error;
+  refreshTrigger?: number;
   onViewInTable?: (bucket: OverviewBucket) => void;
 };
 
@@ -308,12 +315,25 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
 const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   workloads,
   loaded,
+  kueueAvailable = false,
+  canAccessAdminMetrics = false,
+  namespace,
   dataUnavailable = false,
   partial = false,
   error,
+  refreshTrigger = 0,
   onViewInTable,
 }) => {
   const [expanded, setExpanded] = React.useState(true);
+  const [activeTab, setActiveTab] = React.useState<string | number>('status');
+  const [timeWindow, setTimeWindow] = React.useState('24h');
+  const admissionMetrics = useWorkloadAdmissionMetrics(
+    namespace,
+    timeWindow,
+    kueueAvailable && activeTab === 'admissions',
+    canAccessAdminMetrics,
+    refreshTrigger,
+  );
   const [visiblePopover, setVisiblePopover] = React.useState<
     { bucket: OverviewBucket; source: 'count' | 'chart' } | undefined
   >();
@@ -355,7 +375,11 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                       Counts include only workload types and resources that loaded successfully.
                     </Alert>
                   )}
-                  <Tabs activeKey="status" aria-label="Workload overview tabs">
+                  <Tabs
+                    activeKey={activeTab}
+                    onSelect={(_event, eventKey) => setActiveTab(eventKey)}
+                    aria-label="Workload overview tabs"
+                  >
                     <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
                       {total === 0 ? (
                         <WorkloadOverviewEmptyState />
@@ -371,6 +395,29 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                         />
                       )}
                     </Tab>
+                    {kueueAvailable && (
+                      <Tab
+                        eventKey="admissions"
+                        title={
+                          <TabTitleText>
+                            <span data-testid="workload-overview-tab-admissions">Admissions</span>
+                          </TabTitleText>
+                        }
+                      >
+                        {activeTab === 'admissions' && (
+                          <React.Suspense
+                            fallback={<Spinner aria-label="Loading admission metrics" />}
+                          >
+                            <WorkloadAdmissionsTab
+                              metrics={admissionMetrics}
+                              timeWindow={timeWindow}
+                              onTimeWindowChange={setTimeWindow}
+                              canAccessAdminMetrics={canAccessAdminMetrics}
+                            />
+                          </React.Suspense>
+                        )}
+                      </Tab>
+                    )}
                   </Tabs>
                 </>
               )}
