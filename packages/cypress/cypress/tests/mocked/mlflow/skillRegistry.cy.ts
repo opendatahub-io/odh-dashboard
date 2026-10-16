@@ -109,6 +109,43 @@ describe('Skill Registry tab wrapper', () => {
     skillRegistry.findMlflowUnavailableState().should('be.visible');
   });
 
+  it('should show the project not found state when the workspace is not a known project', () => {
+    initIntercepts();
+    interceptMlflowEmbeddedRemoteFailure();
+    skillRegistry.visit('missing-project');
+
+    skillRegistry
+      .findInvalidProjectState()
+      .should('be.visible')
+      .and('contain.text', 'Project not found')
+      .and('contain.text', 'Project missing-project was not found.');
+    skillRegistry.findMlflowUnavailableState().should('not.exist');
+  });
+
+  it('should keep the requested skill when picking a project from the detail project not found state', () => {
+    initIntercepts();
+    interceptMlflowEmbeddedRemoteFailure();
+    cy.visitWithLogin(
+      '/ai-hub/skills/registry/@acme/pdf-extract?version=2&workspace=missing-project',
+    );
+
+    skillRegistry.findInvalidProjectState().should('contain.text', 'Project not found');
+    skillRegistry.findMlflowUnavailableState().should('not.exist');
+
+    skillRegistry.findProjectSelector().click();
+    skillRegistry.findProjectInDropdown(PROJECT_B).click();
+    cy.location('pathname').should('eq', '/ai-hub/skills/registry/@acme/pdf-extract');
+    cy.location('search').should('include', 'version=2');
+    skillRegistry.shouldHaveWorkspace(PROJECT_B);
+    skillRegistry.findMlflowUnavailableState().should('be.visible');
+  });
+
+  it('should show the no-projects empty state on a skill detail URL when there are no projects', () => {
+    initIntercepts({ projects: [] });
+    cy.visitWithLogin('/ai-hub/skills/registry/code-review');
+    skillRegistry.findNoProjectsEmptyState().should('be.visible');
+  });
+
   it('should keep the requested skill and version when a detail URL has no workspace', () => {
     initIntercepts();
     interceptMlflowEmbeddedRemoteFailure();

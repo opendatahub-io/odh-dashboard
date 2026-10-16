@@ -12,6 +12,8 @@ import {
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { byName } from '@odh-dashboard/k8s-core';
+import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
@@ -70,6 +72,14 @@ const MlflowSkillRegistryTabContent: React.FC = () => {
   if (!workspace) {
     const defaultProject = storedProject ?? preferredProject ?? projects[0];
     return <Navigate to={skillRegistryBaseRoute(defaultProject.metadata.name)} replace />;
+  }
+
+  if (!projects.find(byName(workspace))) {
+    return (
+      <PageSection hasBodyWrapper={false} isFilled>
+        <InvalidProject namespace={workspace} getRedirectPath={skillRegistryBaseRoute} />
+      </PageSection>
+    );
   }
 
   return (

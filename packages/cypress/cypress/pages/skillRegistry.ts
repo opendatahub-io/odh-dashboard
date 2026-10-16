@@ -22,6 +22,10 @@ class SkillRegistry {
     return cy.findByTestId('skill-registry-no-projects-empty-state');
   }
 
+  findInvalidProjectState() {
+    return cy.findByTestId('empty-state-title');
+  }
+
   findProjectSelector() {
     return cy.findByTestId('project-selector-toggle', { timeout: 30000 });
   }

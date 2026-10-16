@@ -15,7 +15,7 @@
 - **Module Federation:** metadata in this package’s `package.json` (`module-federation`); remote name **`mlflowEmbedded`**.
   - At runtime `MlflowExperimentsPage` calls `loadRemote('mlflowEmbedded/MlflowExperimentWrapper')` via `@module-federation/runtime`.
   - Dashboard proxy routes **`/mlflow`** to the cluster MLflow service (or local tracking port during dev) with auth forwarding (`authorize: true`).
-- **Visibility:** controlled by **`OdhDashboardConfig`** feature flags on the cluster (`mlflow`, `ds-pipelines`), not env vars in this package.
+- **Visibility:** controlled by **`OdhDashboardConfig`** feature flags on the cluster, not env vars in this package. Experiments and Agent observability use `mlflow` and `ds-pipelines`; AI hub > Skills uses `skillRegistry` (on by default) and also needs the MLflow component installed.
 - **Troubleshooting:** confirm the remote URL resolves from the browser (CORS, TLS, cluster route) before assuming a bug in host extension code.
 - **`LazyCodeRefComponent`** uses **`key={workspace}`** so the remote remounts when the project changes (embedded app uses React Router v6 `BrowserRouter`, which does not follow the host’s React Router v7 history).
 - If `loadRemote` fails, the page shows `MLflowUnavailable` instead of crashing.

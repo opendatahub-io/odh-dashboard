@@ -4,12 +4,15 @@ import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { byName } from '@odh-dashboard/k8s-core';
+import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
-import { SKILL_REGISTRY_BASENAME } from './const';
+import { SKILL_REGISTRY_BASENAME, skillRegistryBaseRoute } from './const';
 import useHostRouteSync from '../shared/useHostRouteSync';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
+import NoProjectsEmptyState from '../shared/NoProjectsEmptyState';
 import MlflowBreadcrumbs, { BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
 
 /**
@@ -25,7 +28,12 @@ const MlflowSkillRegistryDetailPage: React.FC = () => {
   const { pathname, search } = useLocation();
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const {
+    projects,
+    preferredProject,
+    loaded: projectsLoaded,
+    loadError: projectsLoadError,
+  } = React.useContext(ProjectsContext);
   const storedProject = getStoredPreferredProject(projects);
   const syncHostRoute = useHostRouteSync();
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbEntry[]>([]);
@@ -46,21 +54,48 @@ const MlflowSkillRegistryDetailPage: React.FC = () => {
     [],
   );
 
+  // Keep the requested skill and version (e.g. a bookmarked/shared detail
+  // URL without a workspace param, or one pointing at a project the user
+  // can't see) instead of dropping back to the list. The pathname is reused
+  // as-is so an encoded `%40org%2Fname` identity stays a single segment.
+  const getDetailPath = useCallback(
+    (namespace: string) => {
+      const params = new URLSearchParams(search);
+      params.set(WORKSPACE_QUERY_PARAM, namespace);
+      return `${pathname}?${params.toString()}`;
+    },
+    [pathname, search],
+  );
+
   if (!workspace && projects.length > 0) {
     const defaultProject = storedProject ?? preferredProject ?? projects[0];
-    // Keep the requested skill and version (e.g. a bookmarked/shared detail
-    // URL without a workspace param) instead of dropping back to the list.
-    // The pathname is reused as-is so an encoded `%40org%2Fname` identity
-    // stays a single segment.
-    const params = new URLSearchParams(search);
-    params.set(WORKSPACE_QUERY_PARAM, defaultProject.metadata.name);
-    return <Navigate to={`${pathname}?${params.toString()}`} replace />;
+    return <Navigate to={getDetailPath(defaultProject.metadata.name)} replace />;
+  }
+
+  let emptyStatePage: React.ReactNode;
+  if (projects.length === 0) {
+    emptyStatePage = (
+      <PageSection hasBodyWrapper={false} isFilled>
+        <NoProjectsEmptyState
+          message="To register a skill, first create a project."
+          testId="skill-registry-no-projects-empty-state"
+          getRedirectPath={skillRegistryBaseRoute}
+        />
+      </PageSection>
+    );
+  } else if (!projects.find(byName(workspace))) {
+    emptyStatePage = (
+      <PageSection hasBodyWrapper={false} isFilled>
+        <InvalidProject namespace={workspace} getRedirectPath={getDetailPath} />
+      </PageSection>
+    );
   }
 
   return (
     <ApplicationsPage
-      loaded
-      empty={false}
+      loaded={projectsLoaded || !!projectsLoadError}
+      empty={!!emptyStatePage}
+      emptyStatePage={emptyStatePage}
       noHeader
       breadcrumb={
         breadcrumbs.length > 0 ? (
