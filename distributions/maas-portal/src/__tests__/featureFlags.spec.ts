@@ -35,6 +35,12 @@ describe('portal feature flags', () => {
     expect(getPortalFeatureFlagOverrides()).toEqual({ [GRID]: false });
   });
 
+  it('ignores invalid grid values', () => {
+    window.history.replaceState({}, '', '/?devFeatureFlags=grid=maybe');
+
+    expect(getPortalFeatureFlagOverrides()).toEqual({});
+  });
+
   it('continues when session storage is unavailable', () => {
     const { sessionStorage } = window;
     Object.defineProperty(window, 'sessionStorage', {

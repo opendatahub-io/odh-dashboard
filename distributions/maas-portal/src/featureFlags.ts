@@ -41,7 +41,12 @@ export const getPortalFeatureFlagOverrides = (): Record<string, boolean> => {
       return {};
     }
 
-    return { [GRID]: gridEntry.split('=')[1] === 'true' };
+    const gridValue = gridEntry.split('=')[1];
+    if (gridValue !== 'true' && gridValue !== 'false') {
+      return {};
+    }
+
+    return { [GRID]: gridValue === 'true' };
   } catch {
     return {};
   }
