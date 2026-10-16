@@ -90,7 +90,7 @@ The finalizer handles a separate concern: cleanup on CR **deletion** (when `Dele
 
 - **Transient errors**: return `(Result{}, err)` -- controller-runtime requeues with backoff
 - **Expected-missing state** (e.g., Route not admitted): return `(Result{RequeueAfter: 10s}, nil)`
-- **Status always updated**: conditions are set before returning errors so the CR reflects failure reasons
+- **Failure status**: conditions are calculated before returning reconciliation errors so the CR reflects failure reasons; status is persisted only when the final status differs from stored state
 
 ## Manifest Management
 
