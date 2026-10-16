@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 )
 
 // SetSecurityHeaders applies Console-equivalent browser security headers on normal HTTP replies.
@@ -17,7 +16,13 @@ import (
 // replies also force no-store via ModifyResponse (see forceNoStoreCacheHeaders).
 func (app *App) SetSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(&securityHeadersWriter{ResponseWriter: w, req: r}, r)
+		sw := &securityHeadersWriter{ResponseWriter: w, req: r}
+		next.ServeHTTP(sw, r)
+		// Handlers that return without writing leave headers unset; finalize so
+		// security headers and /api no-store still apply. Skip after Hijack.
+		if !sw.wroteHeader && !sw.hijacked {
+			sw.WriteHeader(http.StatusOK)
+		}
 	})
 }
 
@@ -25,6 +30,7 @@ type securityHeadersWriter struct {
 	http.ResponseWriter
 	req         *http.Request
 	wroteHeader bool
+	hijacked    bool
 }
 
 func (w *securityHeadersWriter) WriteHeader(statusCode int) {
@@ -63,7 +69,11 @@ func (w *securityHeadersWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if !ok {
 		return nil, nil, fmt.Errorf("response writer does not support hijacking")
 	}
-	return h.Hijack()
+	conn, rw, err := h.Hijack()
+	if err == nil {
+		w.hijacked = true
+	}
+	return conn, rw, err
 }
 
 func applySecurityHeaders(h http.Header, urlPath string) {
@@ -88,8 +98,7 @@ func isApiPath(urlPath string) bool {
 	if path == APIPathPrefix || strings.HasPrefix(path, APIPathPrefix+"/") {
 		return true
 	}
-	wssPrefix := strings.TrimSuffix(proxy.WssProxyPrefix, "/")
-	if path == wssPrefix || strings.HasPrefix(path, wssPrefix+"/") || path == "/wss" || strings.HasPrefix(path, "/wss/") {
+	if path == "/wss" || strings.HasPrefix(path, "/wss/") {
 		return true
 	}
 	trimmed := strings.Trim(path, "/")

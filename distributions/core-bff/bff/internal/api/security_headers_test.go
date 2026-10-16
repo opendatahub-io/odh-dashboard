@@ -59,6 +59,21 @@ func TestSetSecurityHeaders_FlushAppliesHeaders(t *testing.T) {
 	assertNoStoreCache(t, rr.Header())
 }
 
+func TestSetSecurityHeaders_UnwrittenResponseFinalized(t *testing.T) {
+	app := newTestApp()
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Return without Write/WriteHeader/Flush.
+	})
+
+	rr := httptest.NewRecorder()
+	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/v1/healthcheck", nil))
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assertConsoleSecurityHeaders(t, rr.Header())
+	assertNoStoreCache(t, rr.Header())
+}
+
 func TestSetSecurityHeaders_DuplicateWriteHeaderIgnored(t *testing.T) {
 	app := newTestApp()
 
@@ -165,6 +180,8 @@ func TestSetSecurityHeaders_Hijack(t *testing.T) {
 	wrapped := &hijackRecorder{ResponseWriter: base}
 	app.SetSecurityHeaders(inner).ServeHTTP(wrapped, httptest.NewRequest(http.MethodGet, "/wss/k8s", nil))
 	assert.True(t, wrapped.hijacked)
+	// Hijacked responses must not be finalized with WriteHeader.
+	assert.Empty(t, base.Header().Get(constants.HeaderXContentTypeOptions))
 }
 
 func TestIsApiPath(t *testing.T) {
