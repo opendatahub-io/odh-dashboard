@@ -16,6 +16,7 @@ describe('ConnectionRefLink', () => {
     const el = screen.getByTestId('connection-ref-label');
     expect(el).toHaveTextContent('Connection unavailable');
     expect(el.tagName).toBe('SPAN');
+    expect(screen.getByTestId('connection-unavailable-icon')).toBeInTheDocument();
   });
 
   it('should render a resolved RHOAI connection as a link when linkTo is provided', () => {

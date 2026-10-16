@@ -300,7 +300,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
-    requiredComponents: [DataScienceStackComponent.KUEUE],
   },
   [SupportedArea.MODEL_CAPABILITIES]: {
     featureFlags: ['modelCapabilities'],

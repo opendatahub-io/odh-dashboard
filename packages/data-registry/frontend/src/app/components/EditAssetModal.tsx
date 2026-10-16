@@ -288,6 +288,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
             <RegistrationAssetFormatSection isEditMode />
             {isTable ? <SchemaSection /> : null}
             <RegistrationOrganizationSection
+              project={project}
               isEditMode
               onManageCollections={onManageCollections}
               onManageLabels={onManageLabels}

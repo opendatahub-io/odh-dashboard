@@ -37,6 +37,45 @@ func TestSetup_EnabledWhenEndpointSet(t *testing.T) {
 	assert.NoError(t, shutdown(context.Background()))
 }
 
+func TestNormalizeOTLPEndpointURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		endpoint string
+		want     string
+	}{
+		{
+			name:     "pathless URL gets the traces path appended",
+			endpoint: "http://gen-ai-trace-collector-collector.redhat-ods-monitoring.svc:4318",
+			want:     "http://gen-ai-trace-collector-collector.redhat-ods-monitoring.svc:4318/v1/traces",
+		},
+		{
+			name:     "root path gets the traces path appended",
+			endpoint: "http://localhost:4318/",
+			want:     "http://localhost:4318/v1/traces",
+		},
+		{
+			name:     "explicit path is preserved",
+			endpoint: "https://gateway.example.com/otlp/v1/traces",
+			want:     "https://gateway.example.com/otlp/v1/traces",
+		},
+		{
+			name:     "https pathless URL gets the traces path appended",
+			endpoint: "https://collector.example.com:4318",
+			want:     "https://collector.example.com:4318/v1/traces",
+		},
+		{
+			name:     "invalid URL is returned unchanged",
+			endpoint: "://not-a-url",
+			want:     "://not-a-url",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, normalizeOTLPEndpointURL(tt.endpoint))
+		})
+	}
+}
+
 func TestSetup_ShutdownIsIdempotent(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 

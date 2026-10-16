@@ -68,6 +68,8 @@ export type {
   ManagementState,
   DataScienceClusterComponentStatus,
   DataScienceClusterKindStatus,
+  AIHubKind,
+  AIHubNamespaceResponse,
   DataScienceClusterInitializationKindStatus,
   ConfigMapKind,
   EventKind,
