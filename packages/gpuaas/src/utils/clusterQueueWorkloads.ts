@@ -1241,12 +1241,15 @@ export const applyQueuePositions = (
  * UXD display statuses: Kueue "Queued" without a visibility position → Pending;
  * with position → Queued. Other statuses are unchanged.
  */
-export const applyDisplayStatuses = (rows: ClusterQueueWorkloadRow[]): ClusterQueueWorkloadRow[] =>
+export const applyDisplayStatuses = (
+  rows: ClusterQueueWorkloadRow[],
+  positionsLoaded = true,
+): ClusterQueueWorkloadRow[] =>
   rows.map((row) => {
     if (row.status !== QuotaUsageWorkloadStatuses.Queued) {
       return row;
     }
-    if (row.queuePosition != null) {
+    if (!positionsLoaded || row.queuePosition != null) {
       return row;
     }
     return { ...row, status: QuotaUsageWorkloadStatuses.Pending };

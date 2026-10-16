@@ -24,6 +24,40 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-tab-workloads');
   }
 
+  findAdmissionsTab() {
+    return cy.findByTestId('workload-overview-tab-admissions');
+  }
+
+  findAdmissionTimeWindow() {
+    return cy.findByTestId('admission-time-window');
+  }
+
+  selectAdmissionTimeWindow(label: string) {
+    this.findAdmissionTimeWindow().click();
+    cy.findByText(label).click();
+    return this;
+  }
+
+  findAdmissionMetricCharts() {
+    return cy.findByTestId('admission-metric-charts');
+  }
+
+  findAdmissionMetricValue(metricId: string) {
+    return cy.findByTestId(`admission-metric-value-${metricId}`);
+  }
+
+  findAdmissionMetricChartLoading(metricId: string) {
+    return cy.findByTestId(`admission-metric-chart-loading-${metricId}`);
+  }
+
+  findAdmissionMetricValueLoading(metricId: string) {
+    return cy.findByTestId(`admission-metric-value-loading-${metricId}`);
+  }
+
+  findAdmissionMetricsError() {
+    return cy.findByTestId('admission-metrics-error');
+  }
+
   findWorkloadsSection() {
     return cy.findByTestId('infrastructure-workloads');
   }

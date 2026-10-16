@@ -18,18 +18,52 @@ export const ADMISSION_TIME_WINDOW_OPTIONS: SimpleSelectOption[] = [
   { key: '30d', label: 'Last 30 days' },
 ];
 
+const MULTI_DAY_ADMISSION_TIME_WINDOWS = new Set(['7d', '30d']);
+const ADMISSION_TOOLTIP_DATE_TIME_WINDOWS = new Set(['7d', '30d']);
+
+export const formatAdmissionTimestamp = (
+  timestamp: number,
+  timeWindow: string,
+  domain?: [number, number],
+): string => {
+  const date = new Date(timestamp);
+  const spansMultipleCalendarDays =
+    domain && new Date(domain[0]).toDateString() !== new Date(domain[1]).toDateString();
+  const shouldUseDateLabels =
+    MULTI_DAY_ADMISSION_TIME_WINDOWS.has(timeWindow) &&
+    (spansMultipleCalendarDays || domain === undefined);
+
+  return shouldUseDateLabels
+    ? date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
+export const formatAdmissionTooltipTimestamp = (timestamp: number, timeWindow = '1h'): string => {
+  const date = new Date(timestamp);
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: 'numeric',
+    minute: '2-digit',
+  };
+
+  return ADMISSION_TOOLTIP_DATE_TIME_WINDOWS.has(timeWindow)
+    ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    : date.toLocaleTimeString([], timeOptions);
+};
+
 export const formatAdmissionMetricValue = (metricId: string, value: number): string => {
   if (!Number.isFinite(value)) {
     return '--';
   }
   if (metricId === 'admission-rate') {
-    return value === 0 ? '0' : value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+    const formatted = value === 0 ? '0' : value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+    return `${formatted}/s`;
   }
   if (metricId === 'admission-lead-time') {
-    return new Intl.NumberFormat(undefined, {
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(value);
+    if (value >= 1000) {
+      const seconds = Number((value / 1000).toFixed(1));
+      return `${seconds}s`;
+    }
+    return `${Math.round(value)}ms`;
   }
   return Math.round(value).toString();
 };
@@ -50,6 +84,11 @@ export const getAdmissionMetricYBounds = (
   return { yMin, yMax, yPadding };
 };
 
+export const getAdmissionMetricYInterval = (metricId: string, yMax = 0): number | undefined =>
+  metricId === 'waiting-workloads' || metricId === 'active-workloads'
+    ? Math.max(1, Math.ceil(yMax / 5))
+    : undefined;
+
 export const getAdmissionMetricsXDomain = (metrics: AdmissionMetric[]): [number, number] => {
   const timestamps = metrics.flatMap((metric) =>
     metric.data
@@ -68,11 +107,15 @@ export const getAdmissionMetricsXDomain = (metrics: AdmissionMetric[]): [number,
 export const getAdmissionMetricHeadlineValue = (metric: AdmissionMetric): number | null => {
   const values = metric.data.map((point) => point.y).filter(Number.isFinite);
 
-  if (metric.id === 'waiting-workloads' || metric.id === 'active-workloads') {
-    return values.length > 0 ? Math.max(...values) : null;
+  if (values.length === 0) {
+    return null;
   }
 
-  return metric.data.at(-1)?.y ?? null;
+  if (metric.id === 'waiting-workloads' || metric.id === 'active-workloads') {
+    return Math.max(...values);
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 };
 
 export const formatAdmissionMetricHeadline = (
@@ -83,10 +126,11 @@ export const formatAdmissionMetricHeadline = (
     return '--';
   }
   if (metric.id === 'admission-rate') {
-    return `${value.toFixed(3)}/s`;
+    const decimalPlaces = value > 0 && value < 0.001 ? 6 : 3;
+    return `${value.toFixed(decimalPlaces)}/s`;
   }
   if (metric.id === 'admission-lead-time') {
-    return `${value.toFixed(0)} ms`;
+    return formatAdmissionMetricValue(metric.id, value);
   }
   return `${value} ${metric.id === 'waiting-workloads' ? 'waiting' : 'active'}`;
 };
@@ -116,7 +160,7 @@ export const buildAdmissionMetrics = (
       value:
         metrics.admissionLeadTime.value === null
           ? '--'
-          : `${metrics.admissionLeadTime.value.toFixed(0)} ms`,
+          : formatAdmissionMetricValue('admission-lead-time', metrics.admissionLeadTime.value),
       data: metrics.admissionLeadTime.data,
       color: colors.blue,
     },
