@@ -175,7 +175,7 @@ func TestConnectionTypeHandlersPreserveUpstreamTags(t *testing.T) {
 				if list {
 					app.GetConnectionTypesHandler(response, request, httprouter.Params{})
 				} else {
-					app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}})
+					app.GetConnectionTypeHandler(response, request, httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440003"}})
 				}
 
 				require.Equal(t, http.StatusOK, response.Code)
