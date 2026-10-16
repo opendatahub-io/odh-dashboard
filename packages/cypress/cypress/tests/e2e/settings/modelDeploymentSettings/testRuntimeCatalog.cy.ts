@@ -53,8 +53,8 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
 
           cy.step('Verify the runtime image list is requested with the selected hardware');
           verifyRuntimeCatalogListFilteredByHardware(hardware);
+          runtimeCatalogPage.findHardwareFilterChips().should('have.length', 1);
         });
-      runtimeCatalogPage.findHardwareFilterChips().should('have.length', 1);
 
       cy.step('Verify runtime image cards are displayed for the selected hardware');
       runtimeCatalogPage.findCardDetailLinks().should('have.length.at.least', 1);
@@ -63,12 +63,15 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
       runtimeCatalogPage
         .findCardDetailLinks()
         .first()
-        .invoke('text')
-        .then((runtimeName) => {
-          runtimeCatalogPage.findCardDetailLinks().first().click();
+        .then(($link) => {
+          // Read the name from the same element that is clicked, so a re-render cannot swap cards
+          const runtimeName = $link.text().trim();
+          cy.wrap($link).click();
 
           cy.step('Verify the details page shows the selected runtime image');
-          runtimeCatalogDetailsPage.findTitle().should('have.text', runtimeName);
+          runtimeCatalogDetailsPage
+            .findTitle()
+            .should(($title) => expect($title.text().trim()).to.equal(runtimeName));
 
           // Install is a link when a target can install this image and aria-disabled otherwise,
           // depending on the runtime's resources, so only its presence is asserted here.
@@ -96,6 +99,8 @@ describe('Verify the Runtime image library on Model deployment settings', () => 
       cy.step('Verify the page is not found and no Install action is rendered');
       pageNotfound.findPage().should('exist');
       runtimeCatalogDetailsPage.findPage().should('not.exist');
+      // Implied by the absent details page, but kept to state the ticket's "no catalog actions
+      // for non-admins" criterion directly
       runtimeCatalogDetailsPage.findInstallAction().should('not.exist');
     },
   );
