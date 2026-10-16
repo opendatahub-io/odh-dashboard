@@ -53,6 +53,31 @@ const VERSION_SWITCH_CONFIRMATION_CONFIG = {
     'Your current prompt has unsaved changes that will be lost. To keep your changes, cancel and save first.',
   confirmLabel: 'Switch',
 };
+
+// PatternFly measures only on mount and input; the prompt tab may mount while hidden.
+function resizePromptTextArea(field: HTMLTextAreaElement): void {
+  const parent = field.parentElement;
+  if (!parent || field.scrollHeight === 0) {
+    return;
+  }
+  parent.style.setProperty('height', 'inherit');
+  const fieldStyle = window.getComputedStyle(field);
+  const parentStyle = window.getComputedStyle(parent);
+  const contentHeight = Math.max(
+    field.scrollHeight,
+    field.rows * (parseFloat(fieldStyle.lineHeight) || 0) +
+      (parseFloat(fieldStyle.paddingTop) || 0) +
+      (parseFloat(fieldStyle.paddingBottom) || 0),
+  );
+  const height =
+    contentHeight +
+    (parseFloat(fieldStyle.borderTopWidth) || 0) +
+    (parseFloat(fieldStyle.borderBottomWidth) || 0) +
+    (parseFloat(parentStyle.paddingTop) || 0) +
+    (parseFloat(parentStyle.paddingBottom) || 0);
+  parent.style.setProperty('height', `${height}px`);
+}
+
 export default function PromptAssistantFormGroup({
   configId = DEFAULT_CONFIG_ID,
   systemInstruction,
@@ -67,8 +92,10 @@ export default function PromptAssistantFormGroup({
   const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
   const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
+  const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
   // Keep auto-resize enabled after first focus; blurring should not shrink an edited prompt.
   const [hasTextAreaBeenFocused, setHasTextAreaBeenFocused] = React.useState(false);
+  const shouldAutoResize = hasTextAreaBeenFocused || !!activePrompt;
   const activeTemplate =
     activePrompt?.template ??
     activePrompt?.messages?.find((m) => m.role === 'system')?.content ??
@@ -77,6 +104,36 @@ export default function PromptAssistantFormGroup({
 
   useSafeBrowserUnloadBlocker(isEdited);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
+
+  React.useLayoutEffect(() => {
+    const field = textAreaRef.current;
+    const parent = field?.parentElement;
+    if (!field || !parent) {
+      return;
+    }
+    if (!shouldAutoResize) {
+      parent.style.removeProperty('height');
+      return;
+    }
+    const tabPanel = field.closest('[role="tabpanel"]');
+    if (!tabPanel || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        resizePromptTextArea(field);
+      }
+    });
+    observer.observe(tabPanel);
+    return () => observer.disconnect();
+  }, [shouldAutoResize]);
+
+  React.useLayoutEffect(() => {
+    const field = textAreaRef.current;
+    if (shouldAutoResize && field) {
+      resizePromptTextArea(field);
+    }
+  }, [shouldAutoResize, systemInstruction]);
 
   function handleTextChange(value: string) {
     onSystemInstructionChange(value);
@@ -229,9 +286,10 @@ export default function PromptAssistantFormGroup({
           </Flex>
           <TextArea
             id="system-instructions-input"
+            ref={textAreaRef}
             type="text"
             value={systemInstruction}
-            autoResize={hasTextAreaBeenFocused || !!activePrompt}
+            autoResize={shouldAutoResize}
             resizeOrientation="vertical"
             onFocus={() => setHasTextAreaBeenFocused(true)}
             onChange={(_event, value) => handleTextChange(value)}
