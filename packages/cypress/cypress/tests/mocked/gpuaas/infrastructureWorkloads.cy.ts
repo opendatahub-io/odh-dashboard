@@ -517,7 +517,7 @@ describe('GPUaaS Infrastructure Workloads', () => {
 
   it('should use time labels when admissions data is on one calendar day', () => {
     visitAdmissions({ admissionDataSpan: 'same-day' });
-    infrastructurePage.selectAdmissionTimeWindow('Last 7 days');
+    infrastructurePage.selectAdmissionTimeWindow('7d');
     infrastructurePage.findAdmissionMetricCharts().should('be.visible');
 
     infrastructurePage
@@ -547,7 +547,7 @@ describe('GPUaaS Infrastructure Workloads', () => {
 
   it('should use date labels when admissions data spans calendar days', () => {
     visitAdmissions({ admissionDataSpan: 'multi-day' });
-    infrastructurePage.selectAdmissionTimeWindow('Last 7 days');
+    infrastructurePage.selectAdmissionTimeWindow('7d');
     infrastructurePage.findAdmissionMetricCharts().should('be.visible');
 
     infrastructurePage

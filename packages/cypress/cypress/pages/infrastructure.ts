@@ -32,9 +32,9 @@ class InfrastructurePage {
     return cy.findByTestId('admission-time-window');
   }
 
-  selectAdmissionTimeWindow(label: string) {
+  selectAdmissionTimeWindow(timeWindow: '1h' | '24h' | '7d' | '30d') {
     this.findAdmissionTimeWindow().click();
-    cy.findByText(label).click();
+    cy.findByTestId(timeWindow).click();
     return this;
   }
 
