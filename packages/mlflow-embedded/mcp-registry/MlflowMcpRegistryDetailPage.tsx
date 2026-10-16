@@ -17,11 +17,11 @@ import {
   mcpServerDetailRoute,
   DEFAULT_MCP_PATH,
 } from './const';
-import useHostRouteSync from './useHostRouteSync';
 import { createMcpAccessEndpoint } from './api';
 import { buildMcpAccessEndpointUrl } from './buildMcpAccessEndpointUrl';
 import { registryVersionToDeployData } from './registryVersionToDeployData';
 import { MCPServer, MCPServerVersion } from './types';
+import useHostRouteSync from '../shared/useHostRouteSync';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 import MlflowBreadcrumbs, { BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
 

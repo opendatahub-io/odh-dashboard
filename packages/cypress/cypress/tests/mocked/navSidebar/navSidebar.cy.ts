@@ -16,6 +16,7 @@ describe('Nav Sidebar model section', () => {
         genAiStudio: false,
         disableModelServing: true,
         disableFineTuning: true,
+        skillRegistry: false,
       }),
     );
     navSidebar.visit();

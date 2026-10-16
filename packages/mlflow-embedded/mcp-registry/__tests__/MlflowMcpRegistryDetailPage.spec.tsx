@@ -11,7 +11,7 @@ import MlflowMcpRegistryDetailPage from '../MlflowMcpRegistryDetailPage';
 import { MCP_REGISTRY_BASENAME } from '../const';
 
 const mockSyncHostRoute = jest.fn();
-jest.mock('../useHostRouteSync', () => ({
+jest.mock('../../shared/useHostRouteSync', () => ({
   __esModule: true,
   default: () => mockSyncHostRoute,
 }));

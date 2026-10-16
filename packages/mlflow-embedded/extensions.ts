@@ -2,6 +2,7 @@ import type {
   AreaExtension,
   HrefNavItemExtension,
   RouteExtension,
+  TabRoutePageExtension,
   TabRouteTabExtension,
   TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
@@ -22,6 +23,8 @@ import { AGENT_OBSERVABILITY_PAGE_TITLE, PROMPT_MANAGEMENT_PAGE_TITLE } from './
 import { agentObservabilityPath, globAgentObservabilityAll } from './shared/routes';
 // eslint-disable-next-line no-restricted-syntax
 import { MCP_REGISTRY_BASENAME } from './mcp-registry/const';
+// eslint-disable-next-line no-restricted-syntax
+import { SKILL_REGISTRY_BASENAME } from './skill-registry/const';
 
 /**
  * MLflow host-side extensions.
@@ -30,6 +33,7 @@ const extensions: (
   | AreaExtension
   | HrefNavItemExtension
   | RouteExtension
+  | TabRoutePageExtension
   | TabRouteTabExtension
   | TaskItemExtension
 )[] = [
@@ -146,6 +150,60 @@ const extensions: (
     properties: {
       path: `${MCP_REGISTRY_BASENAME}/:serverName`,
       component: () => import('./mcp-registry/MlflowMcpRegistryDetailPage'),
+    },
+  },
+  {
+    type: 'app.tab-route/page',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.SKILL_REGISTRY],
+    },
+    properties: {
+      id: 'skills-tab-page',
+      title: 'Skills',
+      href: '/ai-hub/skills',
+      path: '/ai-hub/skills/*',
+      group: '3_skills',
+      section: 'ai-hub',
+      label: 'Tech Preview',
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.SKILL_REGISTRY],
+    },
+    properties: {
+      pageId: 'skills-tab-page',
+      id: 'registry',
+      title: 'Registry',
+      singleTabTitle: 'Skills',
+      component: () => import('./skill-registry/MlflowSkillRegistryTabContent'),
+      group: '1_registry',
+    },
+  },
+  // Full-page breakout for a single skill's detail view, like the MCP server
+  // detail above. A skill is addressed either as one encoded segment
+  // (`code-review`, `%40acme%2Fcode-review`) or as `@acme/code-review`, so it
+  // takes two routes. Neither matches the bare registry path, which stays
+  // with the tab page.
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.SKILL_REGISTRY],
+    },
+    properties: {
+      path: `${SKILL_REGISTRY_BASENAME}/:skillKey`,
+      component: () => import('./skill-registry/MlflowSkillRegistryDetailPage'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.SKILL_REGISTRY],
+    },
+    properties: {
+      path: `${SKILL_REGISTRY_BASENAME}/:organization/:skillName`,
+      component: () => import('./skill-registry/MlflowSkillRegistryDetailPage'),
     },
   },
   {

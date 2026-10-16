@@ -19,7 +19,7 @@ import { IconSize } from '@odh-dashboard/internal/types';
 import ProjectSelectorNavigator from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import { MCP_REGISTRY_BASENAME, mcpRegistryBaseRoute } from './const';
-import useHostRouteSync from './useHostRouteSync';
+import useHostRouteSync from '../shared/useHostRouteSync';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 import NoProjectsEmptyState from '../shared/NoProjectsEmptyState';
 

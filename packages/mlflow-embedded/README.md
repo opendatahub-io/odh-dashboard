@@ -6,6 +6,7 @@ Host-side extension package that embeds selected pages from the **external MLflo
 
 - Registers the **Experiments** navigation item under "Develop and Train", locked to the Model training workflow type
 - Registers the **Agent observability** navigation item under "Observe & monitor", locked to the GenAI workflow type
+- Registers the **Skills** page under "AI hub" (Tech Preview, behind the `skillRegistry` feature flag), which embeds the MLflow Skill Registry (`loadRemote('mlflowEmbedded/MlflowSkillRegistryWrapper')`)
 - Loads the MLflow experiment tracking component from the external MLflow frontend via Module Federation (`loadRemote('mlflowEmbedded/MlflowExperimentWrapper')`)
 - Provides project/workspace selection and breadcrumb navigation around the embedded component
 - Redirects tabs the locked workflow type doesn't support (Prompts → Prompt management, GenAI tabs on Experiments → Agent observability)
@@ -19,6 +20,8 @@ Host-side extension package that embeds selected pages from the **external MLflo
 | `MlflowExperimentsPage.tsx`                | Loads the federated MLflow experiment tracking component           |
 | `GlobalMLflowAgentObservabilityRoutes.tsx` | Agent observability route handler with project/workspace selection |
 | `MlflowAgentObservabilityPage.tsx`         | `MlflowExperimentsPage` configured for the GenAI workflow type     |
+| `MlflowSkillRegistryTabContent.tsx`        | Skills page content: project selection and the federated registry  |
+| `MlflowSkillRegistryDetailPage.tsx`        | Full-page skill detail with host breadcrumbs                       |
 
 ## Module Federation
 
@@ -37,3 +40,5 @@ This package has no build step of its own -- its TSX files are compiled by the h
 ## Feature Flags
 
 The MLflow UI requires the `mlflow` and `ds-pipelines` feature flags to be enabled.
+
+The Skills page also requires the `skillRegistry` feature flag (on by default) and an MLflow image that exposes `MlflowSkillRegistryWrapper` ([opendatahub-io/mlflow#411](https://github.com/opendatahub-io/mlflow/pull/411)).

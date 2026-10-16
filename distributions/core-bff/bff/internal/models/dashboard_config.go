@@ -83,6 +83,7 @@ type DashboardFeatureFlags struct {
 	Mlflow                       bool `json:"mlflow"`
 	McpCatalog                   bool `json:"mcpCatalog"`
 	McpRegistry                  bool `json:"mcpRegistry"`
+	SkillRegistry                bool `json:"skillRegistry"`
 	GenAiMcpRegistryServers      bool `json:"genAiMcpRegistryServers"`
 	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
@@ -182,6 +183,7 @@ var BlankDashboardCR = DashboardConfig{
 			Mlflow:                       true,
 			McpCatalog:                   false,
 			McpRegistry:                  false,
+			SkillRegistry:                true,
 			GenAiMcpRegistryServers:      false,
 			AgentsCatalog:                false,
 			ToolCalling:                  false,

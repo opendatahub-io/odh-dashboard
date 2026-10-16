@@ -12,6 +12,7 @@ export const techPreviewFlags = {
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
   mcpRegistry: false,
+  skillRegistry: true,
   genAiMcpRegistryServers: false,
   toolCalling: false,
   modelCapabilities: false,
@@ -265,6 +266,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MCP_REGISTRY]: {
     featureFlags: ['mcpRegistry'],
+    requiredComponents: [DataScienceStackComponent.MLFLOW],
+  },
+  [SupportedArea.SKILL_REGISTRY]: {
+    featureFlags: ['skillRegistry'],
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
