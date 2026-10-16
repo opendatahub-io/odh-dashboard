@@ -175,7 +175,9 @@ const useWorkloadRows = (
     () => (namespaceData.mode === 'namespace' ? namespaceData.workloads : []),
     [namespaceData],
   );
-  const { data: namespacePositions } = useFetch<Map<QueuePositionKey, number>>(
+  const { data: namespacePositions, loaded: namespacePositionsLoaded } = useFetch<
+    Map<QueuePositionKey, number>
+  >(
     React.useCallback(async () => {
       if (namespaceRows.length === 0) {
         return emptyPositions;
@@ -194,9 +196,10 @@ const useWorkloadRows = (
       mode: 'namespace',
       workloads: applyDisplayStatuses(
         applyQueuePositions(namespaceData.workloads, namespacePositions),
+        namespacePositionsLoaded,
       ),
     };
-  }, [namespaceData, namespacePositions]);
+  }, [namespaceData, namespacePositions, namespacePositionsLoaded]);
 
   const clusterQueuesRefresh = React.useCallback(async (): Promise<
     WorkloadRowsFetchResult | undefined

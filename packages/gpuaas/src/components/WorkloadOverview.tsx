@@ -47,6 +47,7 @@ type WorkloadOverviewProps = {
   dataUnavailable?: boolean;
   partial?: boolean;
   error?: Error;
+  refreshTrigger?: number;
   onViewInTable?: (bucket: OverviewBucket) => void;
 };
 
@@ -319,6 +320,7 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   dataUnavailable = false,
   partial = false,
   error,
+  refreshTrigger = 0,
   onViewInTable,
 }) => {
   const [expanded, setExpanded] = React.useState(true);
@@ -329,6 +331,7 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
     timeWindow,
     kueueAvailable && activeTab === 'admissions',
     canAccessAdminMetrics,
+    refreshTrigger,
   );
   const [visiblePopover, setVisiblePopover] = React.useState<
     { bucket: OverviewBucket; source: 'count' | 'chart' } | undefined
@@ -392,7 +395,14 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                       )}
                     </Tab>
                     {kueueAvailable && (
-                      <Tab eventKey="admissions" title={<TabTitleText>Admissions</TabTitleText>}>
+                      <Tab
+                        eventKey="admissions"
+                        title={
+                          <TabTitleText>
+                            <span data-testid="workload-overview-tab-admissions">Admissions</span>
+                          </TabTitleText>
+                        }
+                      >
                         <WorkloadAdmissionsTab
                           metrics={admissionMetrics}
                           timeWindow={timeWindow}

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useProjectNotebookStates from '@odh-dashboard/internal/pages/projects/notebook/useProjectNotebookStates';
 import {
   Alert,
@@ -24,6 +25,7 @@ import InfrastructureWorkloadsTable from './InfrastructureWorkloadsTable';
 import WorkloadOverview from './WorkloadOverview';
 import useInfrastructureWorkloads from '../hooks/useInfrastructureWorkloads';
 import useWorkloadStatusFilters from '../hooks/useWorkloadStatusFilters';
+import { isKueueManagedDataScienceProject } from '../utils/kueueProjects';
 import {
   INFRASTRUCTURE_WORKLOADS_EMPTY_BODY,
   INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE,
@@ -118,6 +120,7 @@ type InfrastructureWorkloadsContentProps = {
   kueueAvailable: boolean;
   canAccessAdminMetrics: boolean;
   namespace?: string;
+  refreshTrigger: number;
   kueueEnabled: boolean;
   hardwareProfilesLoading: boolean;
   notebookStates: React.ComponentProps<typeof InfrastructureWorkloadsTable>['notebookStates'];
@@ -131,6 +134,7 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
   kueueAvailable,
   canAccessAdminMetrics,
   namespace,
+  refreshTrigger,
   kueueEnabled,
   hardwareProfilesLoading,
   notebookStates,
@@ -149,6 +153,10 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
     notebookStates,
     scrollToWorkloadsTable,
   );
+  const { setOverviewStatusFilters } = workloadStatusFilters;
+  React.useEffect(() => {
+    setOverviewStatusFilters([]);
+  }, [namespace, setOverviewStatusFilters]);
   const hasBlockingWorkloadFailure = failedSources.length > 0 && workloads.length === 0;
   if (!loaded) {
     return (
@@ -192,6 +200,7 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
             kueueAvailable={kueueAvailable}
             canAccessAdminMetrics={canAccessAdminMetrics}
             namespace={namespace}
+            refreshTrigger={refreshTrigger}
             partial
             onViewInTable={workloadStatusFilters.viewBucketInTable}
           />
@@ -200,6 +209,7 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
           <StackItem>
             <div ref={workloadsTableRef} data-testid="infrastructure-workloads-table-section">
               <InfrastructureWorkloadsTable
+                key={namespace}
                 workloads={workloadStatusFilters.workloads}
                 kueueEnabled={kueueEnabled}
                 hardwareProfilesLoading={hardwareProfilesLoading}
@@ -228,12 +238,14 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
           kueueAvailable={kueueAvailable}
           canAccessAdminMetrics={canAccessAdminMetrics}
           namespace={namespace}
+          refreshTrigger={refreshTrigger}
           onViewInTable={workloadStatusFilters.viewBucketInTable}
         />
       </StackItem>
       <StackItem>
         <div ref={workloadsTableRef} data-testid="infrastructure-workloads-table-section">
           <InfrastructureWorkloadsTable
+            key={namespace}
             workloads={workloadStatusFilters.workloads}
             kueueEnabled={kueueEnabled}
             hardwareProfilesLoading={hardwareProfilesLoading}
@@ -327,6 +339,10 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
   );
 
   const refreshTime = relativeTime(currentTime, lastRefreshed.getTime());
+  const admissionsAvailable =
+    kueueAvailable &&
+    preferredProject !== null &&
+    isKueueManagedDataScienceProject(preferredProject);
 
   return (
     <Stack className="gpuaas-infrastructure-workloads" hasGutter>
@@ -347,9 +363,10 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
               loaded={loaded}
               error={error}
               workloads={workloads}
-              kueueAvailable={kueueAvailable}
+              kueueAvailable={admissionsAvailable}
               canAccessAdminMetrics={canAccessAdminMetrics}
               namespace={preferredProject?.metadata.name}
+              refreshTrigger={refreshTrigger}
               kueueEnabled={kueueEnabled}
               hardwareProfilesLoading={hardwareProfilesLoading}
               notebookStates={notebooks.data}

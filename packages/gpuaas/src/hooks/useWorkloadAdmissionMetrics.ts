@@ -24,17 +24,19 @@ export type WorkloadAdmissionMetrics = {
   error?: Error;
 };
 
-const getWindowConfig = (timeWindow: string): { span: number; step: number } => {
+export const getWindowConfig = (
+  timeWindow: string,
+): { span: number; step: number; rateWindow: string } => {
   switch (timeWindow) {
     case '1h':
-      return { span: 60 * 60, step: 60 };
+      return { span: 60 * 60, step: 60, rateWindow: '5m' };
     case '7d':
-      return { span: 7 * 24 * 60 * 60, step: 60 * 60 };
+      return { span: 7 * 24 * 60 * 60, step: 60 * 60, rateWindow: '2h' };
     case '30d':
-      return { span: 30 * 24 * 60 * 60, step: 4 * 60 * 60 };
+      return { span: 30 * 24 * 60 * 60, step: 4 * 60 * 60, rateWindow: '8h' };
     case '24h':
     default:
-      return { span: 24 * 60 * 60, step: 5 * 60 };
+      return { span: 24 * 60 * 60, step: 5 * 60, rateWindow: '15m' };
   }
 };
 
@@ -43,9 +45,10 @@ const useWorkloadAdmissionMetrics = (
   timeWindow: string,
   enabled: boolean,
   canAccessAdminMetrics: boolean,
+  refreshTrigger: number,
 ): WorkloadAdmissionMetrics => {
   const [endInMs, setEndInMs] = React.useState(() => Date.now());
-  const { span, step } = getWindowConfig(timeWindow);
+  const { span, step, rateWindow } = getWindowConfig(timeWindow);
   const active = enabled && Boolean(namespace);
   const adminActive = active && canAccessAdminMetrics;
   const previousRequest = React.useRef({ active, namespace, timeWindow });
@@ -61,6 +64,12 @@ const useWorkloadAdmissionMetrics = (
   React.useEffect(() => {
     previousRequest.current = { active, namespace, timeWindow };
   }, [active, namespace, timeWindow]);
+
+  React.useEffect(() => {
+    if (refreshTrigger > 0) {
+      setEndInMs(Date.now());
+    }
+  }, [refreshTrigger]);
 
   React.useEffect(() => {
     if (!active) {
@@ -109,7 +118,7 @@ const useWorkloadAdmissionMetrics = (
   const admissionRate = usePrometheusQueryRange(
     adminQueriesActive,
     PROMETHEUS_CLUSTER_QUERY_RANGE_PATH,
-    buildAdmissionRateQuery(clusterQueueNames),
+    buildAdmissionRateQuery(clusterQueueNames, rateWindow),
     span,
     endInMs,
     step,
@@ -120,7 +129,7 @@ const useWorkloadAdmissionMetrics = (
   const admissionLeadTime = usePrometheusQueryRange(
     adminQueriesActive,
     PROMETHEUS_CLUSTER_QUERY_RANGE_PATH,
-    buildAdmissionLeadTimeQuery(clusterQueueNames),
+    buildAdmissionLeadTimeQuery(clusterQueueNames, rateWindow),
     span,
     endInMs,
     step,
@@ -150,29 +159,19 @@ const useWorkloadAdmissionMetrics = (
     '',
     fetchOptions,
   );
+  const activeQueryStates = [
+    ...(queriesActive ? [waitingWorkloads, activeWorkloads] : []),
+    ...(adminQueriesActive ? [admissionRate, admissionLeadTime] : []),
+  ];
+  const activeQueriesSettled = activeQueryStates.every(([, loaded, error]) => loaded || error);
 
   return {
     admissionRate: mapAdmissionMetricSeries(admissionRate[0]),
     admissionLeadTime: mapAdmissionLeadTimeSeries(admissionLeadTime[0]),
     waitingWorkloads: mapAdmissionMetricSeries(waitingWorkloads[0], Math.round),
     activeWorkloads: mapAdmissionMetricSeries(activeWorkloads[0], Math.round),
-    loading:
-      active &&
-      (requestChanged ||
-        !localQueuesLoaded ||
-        ![
-          waitingWorkloads,
-          activeWorkloads,
-          ...(canAccessAdminMetrics ? [admissionRate, admissionLeadTime] : []),
-        ].every((state) => state[1])),
-    loaded:
-      !active ||
-      !localQueuesLoaded ||
-      [
-        waitingWorkloads,
-        activeWorkloads,
-        ...(canAccessAdminMetrics ? [admissionRate, admissionLeadTime] : []),
-      ].every((state) => state[1]),
+    loading: active && (requestChanged || !localQueuesLoaded || !activeQueriesSettled),
+    loaded: !active || (localQueuesLoaded && activeQueriesSettled),
     error:
       localQueueError ||
       admissionRate[2] ||

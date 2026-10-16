@@ -43,6 +43,7 @@ import {
 } from '@odh-dashboard/internal/api/k8s/workloads';
 import { getHardwareProfile } from '@odh-dashboard/internal/api/k8s/hardwareProfiles';
 import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { NotebookState } from '@odh-dashboard/internal/pages/projects/notebook/types';
 import { fetchNamespaceWorkloads } from './clusterQueueWorkloads';
 import { mapWorkloadStatusToOverview, type WorkloadOverviewRow } from './workloadOverview';
@@ -305,7 +306,7 @@ export const getWorkloadOverviewRow = (
   const kueueOverridesWorkload =
     kueueOverview?.bucket === 'waiting' || kueueOverview?.bucket === 'blockers';
   const overview = kueueOverridesWorkload ? kueueOverview : workloadOverview ?? kueueOverview;
-  const primaryStatus = kueueOverridesWorkload ? kueueStatus : workloadStatus;
+  const primaryStatus = kueueOverridesWorkload || !workloadOverview ? kueueStatus : workloadStatus;
 
   return overview
     ? {
