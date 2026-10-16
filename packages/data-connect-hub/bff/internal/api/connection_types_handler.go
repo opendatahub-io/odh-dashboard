@@ -214,6 +214,8 @@ func mockConnectionType(namespace, connectionTypeID string) (ConnectionType, boo
 }
 
 func mockConnectionTypes(namespace string) []ConnectionType {
+	rng := rand.New(rand.NewPCG(1, 2))
+
 	var baseMockConnectionType ConnectionType
 	baseMockConnectionType.Metadata.ID = "00000000-0000-0000-0000-000000000000"
 	baseMockConnectionType.Metadata.TenantID = namespace
@@ -279,10 +281,10 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 	for i := range 30 {
 		dummyConnectionType := baseMockConnectionType
 		dummyConnectionType.Metadata.ID = fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1)
-		dummyConnectionType.Resource.Name = fmt.Sprintf("%s %d", names[rand.IntN(len(names))], i+1)
-		dummyConnectionType.Resource.Description = dummyConnectionType.Resource.Description[:rand.IntN(len(dummyConnectionType.Resource.Description)+1)]
-		dummyConnectionType.Status.FlightReady = rand.IntN(2) == 0
-		for _, j := range rand.Perm(len(tags))[:1+rand.IntN(len(tags))] {
+		dummyConnectionType.Resource.Name = fmt.Sprintf("%s %d", names[rng.IntN(len(names))], i+1)
+		dummyConnectionType.Resource.Description = dummyConnectionType.Resource.Description[:rng.IntN(len(dummyConnectionType.Resource.Description)+1)]
+		dummyConnectionType.Status.FlightReady = rng.IntN(2) == 0
+		for _, j := range rng.Perm(len(tags))[:1+rng.IntN(len(tags))] {
 			dummyConnectionType.Resource.Tags = append(dummyConnectionType.Resource.Tags, tags[j])
 		}
 		types = append(types, dummyConnectionType)
