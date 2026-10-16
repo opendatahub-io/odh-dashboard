@@ -1,0 +1,7 @@
+apiVersion: feast.dev/v1
+kind: FeatureStore
+metadata:
+  name: data-registry
+  namespace: ${namespace}
+  annotations:
+    dataregistry.opendatahub.io/enabled: "true"
