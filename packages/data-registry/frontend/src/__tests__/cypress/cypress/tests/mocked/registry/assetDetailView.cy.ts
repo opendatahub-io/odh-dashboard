@@ -146,7 +146,7 @@ describe('Table Detail View', () => {
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();
     cy.findByTestId('delete-asset-modal').should('exist');
-    cy.contains('Permanently delete "claims-data" structured asset?').should('exist');
+    cy.contains('Delete data asset?').should('exist');
   });
 
   it('should delete a table and return to the data browse view', () => {
@@ -270,7 +270,7 @@ describe('Volume Detail View', () => {
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();
     cy.findByTestId('delete-asset-modal').should('exist');
-    cy.contains('Permanently delete "training-documents" unstructured asset?').should('exist');
+    cy.contains('Delete data asset?').should('exist');
   });
 
   it('should delete a volume and return to the data browse view', () => {

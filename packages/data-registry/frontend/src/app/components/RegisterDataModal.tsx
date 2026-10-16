@@ -224,8 +224,8 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         title="Create data asset"
         description={
           <Content component="p">
-            A data asset points to the exact location within a connection where the information is
-            located. It can also record information about the structure of the data.
+            A data asset is a metadata record that helps users discover and understand external
+            data. It stores information like location, format, and schema, but not the data itself.
           </Content>
         }
       />
@@ -251,6 +251,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
             <RegistrationAssetFormatSection />
             {assetType === 'structured' ? <SchemaSection /> : null}
             <RegistrationOrganizationSection
+              project={project}
               collections={collections}
               onManageCollections={onManageCollections}
               onManageLabels={onManageLabels}

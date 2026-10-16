@@ -4,7 +4,6 @@ import {
   DATA_CONNECTION_PREFIX,
   getDisplayNameFromK8sResource,
   isGeneratedSecretName,
-  K8sStatusError,
 } from '@odh-dashboard/k8s-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
@@ -14,6 +13,7 @@ import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { getEnvFromList } from '#~/pages/projects/pvc/utils';
 import { ConfigMapRef, SecretRef } from '#~/pages/projects/types';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import {
   getWorkbenchKueueTrackingProperties,
@@ -90,7 +90,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
             fireFormTrackingEvent(WorkbenchTrackingEvent.Deleted, {
               outcome: TrackingOutcome.submit,
               success: false,
-              error: e instanceof K8sStatusError ? `k8s_${e.statusObject.code}` : 'unknown_error',
+              error: errorCategory(e),
               projectName: namespace,
               notebookName: notebook.metadata.name,
               ...getWorkbenchKueueTrackingProperties({ kueueStatus }),

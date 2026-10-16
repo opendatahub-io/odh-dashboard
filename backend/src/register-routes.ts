@@ -5,6 +5,7 @@ import kubePlugin from './plugins/kube';
 import rootRoute from './routes/root';
 import moduleFederationRoute from './routes/module-federation';
 
+import aihubRoute from './routes/api/aihub/index';
 import apiNotFoundRoute from './routes/api/not-found';
 import buildsRoute from './routes/api/builds/index';
 import clusterSettingsRoute from './routes/api/cluster-settings/index';
@@ -61,6 +62,7 @@ export async function registerRoutes(
   fastify.register(rootRoute, opts);
   fastify.register(moduleFederationRoute, opts);
 
+  fastify.register(aihubRoute, { ...opts, prefix: '/api/aihub' });
   fastify.register(buildsRoute, { ...opts, prefix: '/api/builds' });
   fastify.register(clusterSettingsRoute, { ...opts, prefix: '/api/cluster-settings' });
   fastify.register(componentsRoute, { ...opts, prefix: '/api/components' });
