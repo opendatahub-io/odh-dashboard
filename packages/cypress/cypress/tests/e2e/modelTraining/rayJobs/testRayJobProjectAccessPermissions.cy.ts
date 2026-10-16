@@ -10,7 +10,10 @@ import { createCleanProject } from '../../../../utils/projectChecker';
 import { createTrainingKueueResources } from '../../../../utils/oc_commands/trainingJobs';
 import { createBasicRayJob, deleteRayJob } from '../../../../utils/oc_commands/rayJobs';
 import { deleteKueueResources } from '../../../../utils/oc_commands/distributedWorkloads';
-import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
+import {
+  ensureAdminOcSession,
+  getClusterArchitecture,
+} from '../../../../utils/oc_commands/baseCommands';
 import { modelTrainingGlobal, trainingJobTable } from '../../../../pages/modelTraining';
 import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
@@ -23,6 +26,7 @@ describe('Verify project access for user types in Ray Jobs', () => {
   let projectName: string;
   let rayJobName: string;
   let rayImage: string;
+  let architecture: string;
   let flavorName: string;
   let clusterQueueName: string;
   let localQueueName: string;
@@ -62,7 +66,6 @@ describe('Verify project access for user types in Ray Jobs', () => {
 
           projectName = `${testData.projectName}-${uuid}`;
           rayJobName = `${testData.rayJobName}-${uuid}`;
-          rayImage = testData.rayImage;
           flavorName = `${testData.flavorName}-${uuid}`;
           clusterQueueName = `${testData.clusterQueueName}-${uuid}`;
           localQueueName = `${testData.localQueueName}-${uuid}`;
@@ -71,6 +74,10 @@ describe('Verify project access for user types in Ray Jobs', () => {
           gpuQuota = testData.gpuQuota;
 
           cy.log(`Test configuration loaded for project: ${projectName}`);
+          return getClusterArchitecture().then((arch) => {
+            architecture = arch;
+            rayImage = arch === 'arm64' ? testData.rayImageArm64 : testData.rayImage;
+          });
         })
         .then(() => {
           cy.step('Create testing project');
@@ -90,13 +97,13 @@ describe('Verify project access for user types in Ray Jobs', () => {
         })
         .then(() => {
           cy.step('Create RayJob');
-          createBasicRayJob(projectName, rayJobName, rayImage, localQueueName);
+          createBasicRayJob(projectName, rayJobName, rayImage, localQueueName, architecture);
         });
     });
   });
 
   after(() => {
-    if (!wasSetupPerformed() || shouldSkip()) {
+    if (!projectName || !wasSetupPerformed() || shouldSkip()) {
       cy.log('Skipping cleanup: Setup was not performed or tests were skipped');
       return;
     }
