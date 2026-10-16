@@ -79,6 +79,11 @@ const getKueueText = (profile: HardwareProfileKind): string | undefined => {
   return `Local queue: ${localQueueName}${priorityClass ? `; Priority: ${priorityClass}` : ''}`;
 };
 
+const getClaimTemplateText = (profile: HardwareProfileKind): string | undefined => {
+  const resourceClaimTemplateName = profile.spec.dra?.resourceClaimTemplateName;
+  return resourceClaimTemplateName ? `Claim template: ${resourceClaimTemplateName}` : undefined;
+};
+
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
   previewDescription?: boolean;
@@ -200,6 +205,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       const description = getHardwareProfileDescription(profile);
       const identifiersText = getIdentifiersText(profile.spec.identifiers);
       const kueueText = getKueueText(profile);
+      const claimTemplateText = getClaimTemplateText(profile);
       const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
 
       return {
@@ -224,6 +230,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             {kueueText && (
               <StackItem>
                 <Truncate content={kueueText} />
+              </StackItem>
+            )}
+            {claimTemplateText && (
+              <StackItem>
+                <Truncate content={claimTemplateText} />
               </StackItem>
             )}
           </Stack>
@@ -279,6 +290,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     const description = getHardwareProfileDescription(profile);
     const identifiersText = getIdentifiersText(profile.spec.identifiers);
     const kueueText = getKueueText(profile);
+    const claimTemplateText = getClaimTemplateText(profile);
     const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
     return (
       <MenuItem
@@ -304,6 +316,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             {kueueText && (
               <StackItem>
                 <Truncate content={kueueText} />
+              </StackItem>
+            )}
+            {claimTemplateText && (
+              <StackItem>
+                <Truncate content={claimTemplateText} />
               </StackItem>
             )}
           </Stack>
@@ -469,9 +486,12 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                   hardwareProfileConfig.selectedProfile.spec.identifiers,
                 );
                 const kueueText = getKueueText(hardwareProfileConfig.selectedProfile);
+                const claimTemplateText = getClaimTemplateText(
+                  hardwareProfileConfig.selectedProfile,
+                );
 
                 // No preview content.
-                if (!description && !identifiersText && !kueueText) {
+                if (!description && !identifiersText && !kueueText && !claimTemplateText) {
                   return null;
                 }
 
@@ -489,6 +509,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                         {identifiersText && <Truncate content={identifiersText} />}
                         {identifiersText && kueueText && <br />}
                         {kueueText && <Truncate content={kueueText} />}
+                        {(identifiersText || kueueText) && claimTemplateText && <br />}
+                        {claimTemplateText && <Truncate content={claimTemplateText} />}
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>

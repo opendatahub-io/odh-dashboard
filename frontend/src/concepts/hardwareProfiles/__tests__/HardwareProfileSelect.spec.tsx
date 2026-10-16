@@ -372,6 +372,38 @@ describe('HardwareProfileSelect - Use existing settings', () => {
     expect(within(screen.getByRole('listbox')).getByText('Other Profile')).toBeInTheDocument();
   });
 
+  it('should show the claim template only for DRA profiles in the options', async () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      displayName: 'DRA Profile',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const otherProfile = mockHardwareProfile({
+      name: 'other-profile',
+      displayName: 'Other Profile',
+    });
+    const project = mockProjectK8sResource({});
+
+    renderComponent(
+      [otherProfile, draProfile],
+      project,
+      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      [],
+      undefined,
+      false,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    expect(
+      within(screen.getByRole('listbox')).getAllByText('Claim template: single-gpu'),
+    ).toHaveLength(1);
+  });
+
   it('should not show "Use existing settings" as the first option when allowExistingSettings is false', async () => {
     const project = mockProjectK8sResource({});
     renderComponent(
@@ -809,6 +841,48 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
     expect(screen.getByText(kueuePreview)).toBeInTheDocument();
     expect(screen.queryByText(/Memory:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/CPU:/)).not.toBeInTheDocument();
+  });
+
+  it('should show the claim template of a DRA profile in project-scoped preview', () => {
+    renderProjectScopedPreview({
+      selectedProfile: mockHardwareProfile({
+        name: 'dra-profile',
+        displayName: 'DRA Profile',
+        namespace: 'test-project',
+        dra: { resourceClaimTemplateName: 'single-gpu' },
+      }),
+    });
+
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText('Claim template: single-gpu')).toBeInTheDocument();
+  });
+
+  it('should not show a claim template in project-scoped preview for a profile without DRA', () => {
+    renderProjectScopedPreview({ selectedProfile: profileWithDescriptionAndKueue });
+
+    expect(screen.queryByText(/Claim template:/)).not.toBeInTheDocument();
+  });
+
+  it('should show the claim template of a DRA profile in the project-scoped options', async () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-kueue-profile',
+      displayName: 'DRA Kueue Profile',
+      namespace: 'test-project',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'my-queue',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    renderProjectScopedPreview({
+      projectProfiles: [profileWithDescriptionAndKueue, draProfile],
+    });
+
+    await userEvent.click(screen.getByTestId('hardware-profile-selection-toggle'));
+
+    expect(
+      within(screen.getByTestId('project-scoped-hardware-profiles')).getAllByText(
+        'Claim template: single-gpu',
+      ),
+    ).toHaveLength(1);
   });
 
   it('should not show preview when previewDescription is false', () => {
