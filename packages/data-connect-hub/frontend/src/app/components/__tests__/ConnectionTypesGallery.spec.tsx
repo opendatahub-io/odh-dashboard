@@ -9,35 +9,39 @@ jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
   default: ({ content }: { content?: string | null }) => <>{content}</>,
 }));
 
+const mockPSQLConnectionType = mockConnectionType({
+  metadata: { id: '550e8400-e29b-41d4-a716-446655440003' },
+  resource: {
+    name: 'PostgreSQL',
+    description: 'A relational database.',
+    tags: ['production', 'finance'],
+  },
+});
+const mockS3ConnectionType = mockConnectionType({
+  metadata: { id: '550e8400-e29b-41d4-a716-446655440004' },
+  resource: {
+    name: 'S3',
+    provider: 's3',
+    description: 'Binary object storage.',
+    tags: ['storage', 'production'],
+  },
+});
+const mockOCIConnectionType = mockConnectionType({
+  metadata: { id: '550e8400-e29b-41d4-a716-446655440005' },
+  resource: {
+    name: 'OCI',
+    provider: 'oci-v1',
+    description: 'Container credentials.',
+    tags: ['storage', 'containers'],
+  },
+  status: { flight_ready: false },
+});
+
 describe('ConnectionTypesGallery', () => {
   const getConnectionTypes = () => [
-    mockConnectionType({
-      metadata: { id: '550e8400-e29b-41d4-a716-446655440003' },
-      resource: {
-        name: 'PostgreSQL',
-        description: 'A relational database.',
-        tags: ['production', 'finance'],
-      },
-    }),
-    mockConnectionType({
-      metadata: { id: '550e8400-e29b-41d4-a716-446655440004' },
-      resource: {
-        name: 'S3',
-        provider: 's3',
-        description: 'Binary object storage.',
-        tags: ['storage', 'production'],
-      },
-    }),
-    mockConnectionType({
-      metadata: { id: '550e8400-e29b-41d4-a716-446655440005' },
-      resource: {
-        name: 'OCI',
-        provider: 'oci-v1',
-        description: 'Container credentials.',
-        tags: ['storage', 'containers'],
-      },
-      status: { flight_ready: false },
-    }),
+    mockPSQLConnectionType,
+    mockS3ConnectionType,
+    mockOCIConnectionType,
   ];
 
   it('should render the empty state when no connection types are passed in', () => {
@@ -439,16 +443,28 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.queryByText('No data connection types available')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
-    expect(screen.queryByTestId('postgresql--ConnectionTypeCard')).toBeNull();
-    expect(screen.queryByTestId('s3--ConnectionTypeCard')).toBeNull();
-    expect(screen.queryByTestId('oci-v1--ConnectionTypeCard')).toBeNull();
+    expect(
+      screen.queryByTestId(`${mockPSQLConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId(`${mockS3ConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId(`${mockOCIConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Reset' }));
 
     expect(screen.queryByText('No matching data connection types')).toBeNull();
     expect(screen.queryByText('No data connection types match your search or filter')).toBeNull();
-    expect(screen.getByTestId('postgresql--ConnectionTypeCard')).toBeTruthy();
-    expect(screen.getByTestId('s3--ConnectionTypeCard')).toBeTruthy();
-    expect(screen.getByTestId('oci-v1--ConnectionTypeCard')).toBeTruthy();
+    expect(
+      screen.queryByTestId(`${mockPSQLConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId(`${mockS3ConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId(`${mockOCIConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeTruthy();
   });
 });
