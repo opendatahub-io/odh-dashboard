@@ -240,14 +240,14 @@ const DataRegistryPage: React.FC = () => {
 
   const handleProjectSelect = React.useCallback(
     (projectName: string) => {
-      if (selectedProject && projectName && projectName !== selectedProject) {
+      const namespace = projectNamespaces.find((project) => project.name === projectName);
+      if (namespace && selectedProject && projectName !== selectedProject) {
         trackEvent({
           eventName: DATA_REGISTRY_EVENT_NAMES.projectSwitched,
           properties: { previousProject: selectedProject, selectedProject: projectName },
         });
       }
       returnToEditRef.current = undefined;
-      const namespace = projectNamespaces.find((project) => project.name === projectName);
       if (namespace) {
         updatePreferredNamespace(namespace);
       }

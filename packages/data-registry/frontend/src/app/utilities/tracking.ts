@@ -100,14 +100,16 @@ const STATUS_CODE_KEY = 'status_code';
 
 export const getRegistrationErrorCategory = (error: unknown): string => {
   if (error instanceof Error) {
-    const match = error.message.match(/(?:status code|status|code)\D+(\d{3})\b/i);
+    const match = error.message.match(/(?:status code|status|code|api error|http)\D+(\d{3})\b/i);
     if (match) {
       return `http_${match[1]}`;
     }
   }
 
   if (isRecord(error)) {
-    const status = error.status ?? error.statusCode ?? error[STATUS_CODE_KEY];
+    const response = isRecord(error.response) ? error.response : {};
+    const status =
+      error.status ?? error.statusCode ?? error[STATUS_CODE_KEY] ?? error.code ?? response.status;
     if (typeof status === 'number' && status >= 100 && status <= 599) {
       return `http_${status}`;
     }
@@ -123,14 +125,14 @@ export const toDataRegistryTrackEvent = (
   // The standalone mocked Cypress app has no dashboard host analytics provider. Expose the
   // already-sanitized event contract only when explicitly opted in by the Cypress URL so UI tests
   // can verify real interactions without sending telemetry or depending on Segment.
-  if (
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get(DATA_REGISTRY_CYPRESS_TRACKING_QUERY) === 'true'
-  ) {
-    window.dispatchEvent(new CustomEvent(DATA_REGISTRY_CYPRESS_TRACK_EVENT, { detail: event }));
-  }
-
   try {
+    if (
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get(DATA_REGISTRY_CYPRESS_TRACKING_QUERY) ===
+        'true'
+    ) {
+      window.dispatchEvent(new CustomEvent(DATA_REGISTRY_CYPRESS_TRACK_EVENT, { detail: event }));
+    }
     trackEvent(event.eventName, event.properties);
   } catch {
     // Telemetry must never interrupt the user workflow.

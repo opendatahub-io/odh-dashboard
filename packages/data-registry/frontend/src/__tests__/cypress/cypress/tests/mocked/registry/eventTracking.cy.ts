@@ -79,7 +79,28 @@ const initIntercepts = () => {
     body: mockModArchResponse(mockUserSettings({ userId: 'test-user' })),
   });
   cy.intercept('GET', `${MAIN_API}/namespaces`, {
-    body: mockModArchResponse([mockNamespace({ name: 'test-project' })]),
+    body: mockModArchResponse([
+      mockNamespace({ name: 'test-project' }),
+      mockNamespace({ name: 'other-project' }),
+    ]),
+  });
+  cy.intercept('GET', `${REGISTRY_API}/other-project/namespaces`, {
+    body: { namespaces: [['default']] },
+  });
+  cy.intercept('GET', `${REGISTRY_API}/other-project/namespaces/default`, {
+    body: { namespace: ['default'], properties: {} },
+  });
+  cy.intercept('GET', `${REGISTRY_API}/other-project/namespaces/*/generic-tables`, {
+    body: { assets: [] },
+  });
+  cy.intercept('GET', `${REGISTRY_API}/other-project/namespaces/*/volumes`, {
+    body: { volumes: [] },
+  });
+  cy.intercept('GET', `${REGISTRY_API}/other-project/labels`, {
+    body: { labels: [] },
+  });
+  cy.intercept('GET', `${MAIN_API}/connections/other-project`, {
+    body: mockModArchResponse([]),
   });
   cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces`, {
     body: { namespaces: [['analytics'], ['default']] },
@@ -132,6 +153,46 @@ describe('Data Registry event tracking', () => {
     initIntercepts();
   });
 
+  it('tracks only a real project switch, not initial or repeated selection', () => {
+    const events: TrackingEvent[] = [];
+    cy.visit(
+      `/ai-hub/data/browse?project=test-project&${DATA_REGISTRY_CYPRESS_TRACKING_QUERY}=true`,
+      {
+        onBeforeLoad: (window) => {
+          window.addEventListener(DATA_REGISTRY_CYPRESS_TRACK_EVENT, (event) => {
+            events.push((event as CustomEvent<TrackingEvent>).detail);
+          });
+        },
+      },
+    );
+    cy.findByTestId('registry-table', { timeout: 15000 }).should('exist');
+    cy.then(() => {
+      expect(events.filter((event) => event.eventName === 'Data Project Switched')).to.have.length(
+        0,
+      );
+    });
+
+    cy.findByTestId('project-selector-toggle').click();
+    cy.findByRole('menuitem', { name: 'other-project' }).click();
+    cy.url().should('include', 'project=other-project');
+    cy.then(() => {
+      expect(events.filter((event) => event.eventName === 'Data Project Switched')).to.deep.equal([
+        {
+          eventName: 'Data Project Switched',
+          properties: { previousProject: 'test-project', selectedProject: 'other-project' },
+        },
+      ]);
+    });
+
+    cy.findByTestId('project-selector-toggle').click();
+    cy.findByRole('menuitem', { name: 'other-project' }).click();
+    cy.then(() => {
+      expect(events.filter((event) => event.eventName === 'Data Project Switched')).to.have.length(
+        1,
+      );
+    });
+  });
+
   it('tracks a debounced search with the total result count and no raw query', () => {
     visitWithData();
     const events = captureTrackingEvents();
@@ -176,6 +237,41 @@ describe('Data Registry event tracking', () => {
       expect(
         events.find((event) => event.eventName === 'Data Asset Opened')?.properties,
       ).not.to.have.property('assetName');
+    });
+  });
+
+  it('tracks registration start and the two cancellation methods without sending form values', () => {
+    visitWithData();
+    const events = captureTrackingEvents();
+
+    cy.findByTestId('register-data-button').click();
+    cy.findByTestId('register-data-modal').should('be.visible');
+    cy.findByRole('button', { name: 'Cancel' }).click();
+    cy.findByTestId('register-data-modal').should('not.exist');
+
+    cy.findByTestId('register-data-button').click();
+    cy.findByTestId('register-data-modal').should('be.visible');
+    cy.findByRole('button', { name: 'Close' }).click();
+
+    cy.then(() => {
+      expect(events).to.deep.include({
+        eventName: 'Data Registration Started',
+        properties: { project: 'test-project' },
+      });
+      expect(events).to.deep.include({
+        eventName: 'Data Registration Canceled',
+        properties: { cancelMethod: 'cancel_button', project: 'test-project' },
+      });
+      expect(events).to.deep.include({
+        eventName: 'Data Registration Canceled',
+        properties: { cancelMethod: 'close_x', project: 'test-project' },
+      });
+      expect(
+        events.filter((event) => event.eventName === 'Data Registration Started'),
+      ).to.have.length(2);
+      expect(
+        events.filter((event) => event.eventName === 'Data Registration Canceled'),
+      ).to.have.length(2);
     });
   });
 });

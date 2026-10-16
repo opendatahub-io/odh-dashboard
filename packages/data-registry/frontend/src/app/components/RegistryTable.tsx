@@ -140,8 +140,7 @@ const filterRegistryAssets = (
       filters.selectedFormats.some((selectedFormat) => {
         const selectedOption = FORMAT_OPTIONS.find((option) => option.key === selectedFormat);
         return (
-          asset.format.toLowerCase() ===
-            (selectedOption?.value ?? selectedFormat).toLowerCase() &&
+          asset.format.toLowerCase() === (selectedOption?.value ?? selectedFormat).toLowerCase() &&
           (!selectedOption || asset.assetType === selectedOption.assetType)
         );
       }),

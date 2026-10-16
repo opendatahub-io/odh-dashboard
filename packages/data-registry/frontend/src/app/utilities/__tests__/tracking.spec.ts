@@ -11,6 +11,9 @@ describe('getRegistrationErrorCategory', () => {
 
   it('should normalize an HTTP status from an error object', () => {
     expect(getRegistrationErrorCategory({ status: 503 })).toBe('http_503');
+    expect(getRegistrationErrorCategory({ code: 409 })).toBe('http_409');
+    expect(getRegistrationErrorCategory({ response: { status: 401 } })).toBe('http_401');
+    expect(getRegistrationErrorCategory(new Error('API error 409: Conflict'))).toBe('http_409');
   });
 
   it('should return unknown_error without exposing the error message', () => {

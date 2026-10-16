@@ -6,6 +6,7 @@ import RegisterDataModal from '~/app/components/RegisterDataModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
 import * as connectionsHook from '~/app/hooks/useConnections';
 import * as labelsHook from '~/app/hooks/useLabels';
+import * as trackingHook from '~/app/hooks/useDataRegistryTrackEvent';
 import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
@@ -13,11 +14,13 @@ import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 jest.mock('~/app/api/dataRegistry');
 jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useLabels');
+jest.mock('~/app/hooks/useDataRegistryTrackEvent');
 
 const mockCreateVolume = jest.mocked(dataRegistryApi.createVolume);
 const mockCreateGenericTable = jest.mocked(dataRegistryApi.createGenericTable);
 const mockUseConnections = jest.mocked(connectionsHook.useConnections);
 const mockUseLabels = jest.mocked(labelsHook.useLabels);
+const mockTrackEvent = jest.fn();
 
 const mockConnections = [
   mockRhaiConnection(),
@@ -42,6 +45,7 @@ describe('RegisterDataModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(trackingHook.useDataRegistryTrackEvent).mockReturnValue(mockTrackEvent);
     mockRefreshConnections.mockResolvedValue(mockConnections);
     mockUseConnections.mockReturnValue([
       mockConnections,
@@ -95,11 +99,17 @@ describe('RegisterDataModal', () => {
     await user.click(screen.getByText('My S3 Connection'));
 
     await user.click(screen.getByTestId('data-add-label-button'));
-    await user.type(screen.getByTestId('data-labels-input'), 'Finance');
-    await user.keyboard('{Enter}');
+    await user.type(
+      within(screen.getByTestId('data-labels-input-0')).getByRole('combobox'),
+      'Finance',
+    );
+    await user.click(await screen.findByText('Create "Finance"'));
     await user.click(screen.getByTestId('data-add-label-button'));
-    await user.type(screen.getByTestId('data-labels-input'), 'finance');
-    await user.keyboard('{Enter}');
+    await user.type(
+      within(screen.getByTestId('data-labels-input-1')).getByRole('combobox'),
+      'finance',
+    );
+    await user.click(await screen.findByRole('option', { name: 'Finance' }));
 
     expect(mockTrackEvent).toHaveBeenCalledWith({
       eventName: 'Data Asset Type Selected',
@@ -284,7 +294,7 @@ describe('RegisterDataModal', () => {
         hasCollection: true,
         labelCount: 0,
         project: 'test-project',
-        error: 'unknown_error',
+        error: 'http_409',
       },
     });
   });
@@ -300,6 +310,25 @@ describe('RegisterDataModal', () => {
     expect(mockTrackEvent).toHaveBeenCalledWith({
       eventName: 'Data Registration Canceled',
       properties: { cancelMethod: 'cancel_button', project: 'test-project' },
+    });
+  });
+
+  it('should classify close-X as cancellation and leave collection management out of the funnel', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Manage collections' }));
+    expect(defaultProps.onManageCollections).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).not.toHaveBeenCalledWith({
+      eventName: 'Data Registration Canceled',
+      properties: { cancelMethod: 'close_x', project: 'test-project' },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registration Canceled',
+      properties: { cancelMethod: 'close_x', project: 'test-project' },
     });
   });
 

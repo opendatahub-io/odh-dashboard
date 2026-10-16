@@ -199,11 +199,11 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
     async (data: RegisterDataFormData) => {
       setIsSubmitting(true);
       setError('');
+      const labels = getValidLabels(data.labels);
       try {
         const connectionRef = data.connection
           ? await confirmConnection(data.connection, refreshConnections)
           : undefined;
-        const labels = getValidLabels(data.labels);
         if (labels.length > 0) {
           await Promise.all(
             labels.map((label) =>
@@ -225,21 +225,6 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
             buildTableRequest(data, connectionRef),
           );
         }
-        trackEvent({
-          eventName: DATA_REGISTRY_EVENT_NAMES.registered,
-          properties: {
-            success: true,
-            assetType: data.assetType,
-            format: data.format,
-            hasConnection: Boolean(data.connection),
-            hasCollection: Boolean(data.collection),
-            labelCount: labels.length,
-            project,
-          },
-        });
-        form.reset(registerDataDefaults);
-        onCreated();
-        onClose();
       } catch (err) {
         trackEvent({
           eventName: DATA_REGISTRY_EVENT_NAMES.registered,
@@ -249,12 +234,32 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
             format: data.format,
             hasConnection: Boolean(data.connection),
             hasCollection: Boolean(data.collection),
-            labelCount: getValidLabels(data.labels).length,
+            labelCount: labels.length,
             project,
             error: getRegistrationErrorCategory(err),
           },
         });
         setError(err instanceof Error ? err.message : 'Failed to register data asset');
+        setIsSubmitting(false);
+        return;
+      }
+
+      trackEvent({
+        eventName: DATA_REGISTRY_EVENT_NAMES.registered,
+        properties: {
+          success: true,
+          assetType: data.assetType,
+          format: data.format,
+          hasConnection: Boolean(data.connection),
+          hasCollection: Boolean(data.collection),
+          labelCount: labels.length,
+          project,
+        },
+      });
+      try {
+        form.reset(registerDataDefaults);
+        onCreated();
+        onClose();
       } finally {
         setIsSubmitting(false);
       }

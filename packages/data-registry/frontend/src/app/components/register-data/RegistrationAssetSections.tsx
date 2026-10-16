@@ -155,8 +155,11 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({
                 selected={field.value}
                 onSelect={(_event, value) => {
                   const newType = String(value);
-                  if (!isEditMode && project && newType !== field.value &&
-                    (newType === 'structured' || newType === 'unstructured')) {
+                  if (
+                    project &&
+                    newType !== field.value &&
+                    (newType === 'structured' || newType === 'unstructured')
+                  ) {
                     trackEvent({
                       eventName: DATA_REGISTRY_EVENT_NAMES.assetTypeSelected,
                       properties: { assetType: newType, project },
@@ -448,18 +451,22 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
                       currentLabel.trim().toLocaleLowerCase() ===
                         selectedLabel.trim().toLocaleLowerCase(),
                   );
-                  if (!isEditMode && selectedLabel.trim() &&
-                    selectedLabel !== currentLabels[index] && !isDuplicate) {
+                  if (
+                    !isEditMode &&
+                    selectedLabel.trim() &&
+                    selectedLabel !== currentLabels[index] &&
+                    !isDuplicate
+                  ) {
                     trackEvent({
                       eventName: DATA_REGISTRY_EVENT_NAMES.labelAdded,
                       properties: { project },
                     });
                   }
                   if (!labelOptions.some((option) => option.value === selectedLabel)) {
-                    setCreatedLabels((currentLabels) =>
-                      currentLabels.includes(selectedLabel)
-                        ? currentLabels
-                        : [...currentLabels, selectedLabel],
+                    setCreatedLabels((existingCreatedLabels) =>
+                      existingCreatedLabels.includes(selectedLabel)
+                        ? existingCreatedLabels
+                        : [...existingCreatedLabels, selectedLabel],
                     );
                   }
                   setValue(
