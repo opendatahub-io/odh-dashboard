@@ -766,9 +766,22 @@ export function useStartEvaluationRunForm({
       return values.sourceName.trim();
     })();
 
+    let clusterUrlParseError: Error | undefined;
     const resolvedEndpointUrl = (() => {
       if (values.sourceMode === 'model' && values.modelSelection === 'cluster') {
-        return selectedInferenceServiceRef.current?.url ?? '';
+        const serviceUrl = selectedInferenceServiceRef.current?.url ?? '';
+        if (!serviceUrl) {
+          return '';
+        }
+        try {
+          const url = new URL(serviceUrl);
+          const pathname = url.pathname.replace(/\/+$/, '');
+          url.pathname = pathname.endsWith('/v1') ? pathname : `${pathname}/v1`;
+          return url.toString();
+        } catch {
+          clusterUrlParseError = new Error('The selected model endpoint URL is invalid.');
+          return '';
+        }
       }
       if (values.sourceMode === 'model' || values.sourceMode === 'agent') {
         return values.endpointUrl.trim();
@@ -851,6 +864,9 @@ export function useStartEvaluationRunForm({
     abortControllerRef.current = controller;
 
     try {
+      if (clusterUrlParseError) {
+        throw clusterUrlParseError;
+      }
       if (selectedHardwareProfile) {
         // Refresh the structural profile and LocalQueue selection without depending on
         // advisory provider compatibility, which may be unavailable or lack provider IDs.

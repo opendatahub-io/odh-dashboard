@@ -559,6 +559,105 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
   });
 
   describe('Evaluation run submission', () => {
+    it.each([
+      ['http://model-a.svc:8080', 'http://model-a.svc:8080/v1'],
+      ['http://model-a.svc:8080/', 'http://model-a.svc:8080/v1'],
+      ['http://model-a.svc:8080/v1', 'http://model-a.svc:8080/v1'],
+      ['http://model-a.svc:8080?key=value', 'http://model-a.svc:8080/v1?key=value'],
+      ['http://model-a.svc:8080/#section', 'http://model-a.svc:8080/v1#section'],
+      [
+        'http://model-a.svc:8080/v1/?key=value#section',
+        'http://model-a.svc:8080/v1?key=value#section',
+      ],
+      [
+        'http://model-a.svc:8080/api/?key=value#section',
+        'http://model-a.svc:8080/api/v1?key=value#section',
+      ],
+      ['', ''],
+    ])('should submit cluster model URL %s as %s', async (serviceUrl, expectedUrl) => {
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', [
+          { ...mockInferenceServices[0], url: serviceUrl },
+        ]);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+        '',
+        'test-ns',
+        expect.objectContaining({ model: expect.objectContaining({ url: expectedUrl }) }),
+      );
+    });
+
+    it('should report an invalid cluster URL and allow a retry', async () => {
+      const onRunFailure = jest.fn();
+      const renderResult = renderForm({
+        collection: mockCollection,
+        isCollectionFlow: true,
+        onRunFailure,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', [
+          { ...mockInferenceServices[0], url: 'not-a-url' },
+        ]);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+      expect(onRunFailure).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'The selected model endpoint URL is invalid.' }),
+        mockCollection,
+      );
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Invalid request',
+        'The selected model endpoint URL is invalid.',
+      );
+      expect(renderResult.result.current.isSubmitting).toBe(false);
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1);
+    });
+
+    it('should preserve a manually entered external endpoint URL', async () => {
+      const renderResult = renderForm();
+      const externalUrl = 'https://external.example.com/custom/openai?key=value#section';
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect(
+          EXTERNAL_ENDPOINT_VALUE,
+          mockInferenceServices,
+        );
+        renderResult.result.current.setModelName('external-model');
+        renderResult.result.current.setEndpointUrl(externalUrl);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+        '',
+        'test-ns',
+        expect.objectContaining({ model: expect.objectContaining({ url: externalUrl }) }),
+      );
+    });
+
     it('should notify the parent and track the configured source after a successful submission', async () => {
       const onSuccess = jest.fn();
       const renderResult = renderForm({ trackingSource: 'copy_suite', onSuccess });
