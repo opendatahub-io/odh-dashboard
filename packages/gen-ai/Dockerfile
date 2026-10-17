@@ -29,7 +29,7 @@ ENV DEPLOYMENT_MODE=standalone
 RUN npm run build:prod
 
 # Backend build stage
-FROM registry.redhat.io/ubi9/go-toolset:1.24 AS bff-builder
+FROM registry.redhat.io/ubi9/go-toolset:1.26.7-1792010711 AS bff-builder
 WORKDIR /usr/src/app
 COPY packages/gen-ai/bff/go.mod packages/gen-ai/bff/go.sum ./
 RUN go mod download
@@ -38,7 +38,7 @@ COPY packages/gen-ai/bff/internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/bff ./cmd
 
 # Final minimal image
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8-1791898448
 WORKDIR /
 COPY --from=bff-builder /tmp/bff ./
 COPY --from=ui-builder /usr/src/workspace/packages/gen-ai/frontend/dist/ ./static/
