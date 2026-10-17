@@ -52,7 +52,7 @@ const notebook: NotebookKind = {
               initialDelaySeconds: 10,
               periodSeconds: 5,
               successThreshold: 1,
-              timeoutSeconds: 1,
+              timeoutSeconds: 5,
             },
             name: 'test-workbench',
             ports: [
@@ -72,7 +72,7 @@ const notebook: NotebookKind = {
               initialDelaySeconds: 10,
               periodSeconds: 5,
               successThreshold: 1,
-              timeoutSeconds: 1,
+              timeoutSeconds: 5,
             },
             resources: {
               limits: {
@@ -110,7 +110,7 @@ const notebook: NotebookKind = {
               initialDelaySeconds: 30,
               periodSeconds: 5,
               successThreshold: 1,
-              timeoutSeconds: 1,
+              timeoutSeconds: 5,
             },
             name: 'kube-rbac-proxy',
             ports: [
@@ -130,7 +130,7 @@ const notebook: NotebookKind = {
               initialDelaySeconds: 5,
               periodSeconds: 5,
               successThreshold: 1,
-              timeoutSeconds: 1,
+              timeoutSeconds: 5,
             },
             resources: {
               limits: {

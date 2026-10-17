@@ -360,6 +360,7 @@ export const mockDashboardConfig = ({
     notebookController: {
       enabled: !disableNotebookController,
       pvcSize,
+      probeTimeoutSeconds: 5,
     },
     groupsConfig: {
       adminGroups: 'openshift-ai-admins',
