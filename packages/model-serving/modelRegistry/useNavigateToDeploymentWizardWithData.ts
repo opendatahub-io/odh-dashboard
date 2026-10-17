@@ -86,6 +86,8 @@ export const useNavigateToDeploymentWizardWithData = (
     {
       fromCatalog: true,
       catalogModelId: deployPrefillData.catalogModelId,
+      hfAccessType: deployPrefillData.hfAccessType,
+      isAccessGranted: deployPrefillData.isAccessGranted,
     },
   );
 
