@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@cypress/code-coverage": "^3.12.34",
-    "@cypress/grep": "^4.1.0",
+    "@cypress/grep": "^7.0.0",
     "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/feature-store": "*",
