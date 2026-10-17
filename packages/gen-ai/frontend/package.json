@@ -106,9 +106,9 @@
     "zustand": "^5.0.10"
   },
   "optionalDependencies": {
-    "@babel/preset-env": "^7.27.2",
-    "@babel/preset-react": "^7.27.1",
-    "@babel/preset-typescript": "^7.27.1",
+    "@babel/preset-env": "^8.0.0",
+    "@babel/preset-react": "^8.0.0",
+    "@babel/preset-typescript": "^8.0.0",
     "@cypress/code-coverage": "^3.14.1",
     "@cypress/webpack-preprocessor": "^6.0.4",
     "@testing-library/dom": "^10.4.0",

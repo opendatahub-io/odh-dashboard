@@ -112,7 +112,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@babel/core": "^7.21.0",
+    "@babel/core": "^8.0.0",
     "@module-federation/enhanced": "^0.18.0",
     "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
@@ -193,9 +193,9 @@
     "yaml-eslint-parser": "^1.3.0"
   },
   "optionalDependencies": {
-    "@babel/preset-env": "^7.21.5",
-    "@babel/preset-react": "^7.18.6",
-    "@babel/preset-typescript": "^7.21.5",
+    "@babel/preset-env": "^8.0.0",
+    "@babel/preset-react": "^8.0.0",
+    "@babel/preset-typescript": "^8.0.0",
     "@cypress/code-coverage": "^3.12.34",
     "@cypress/grep": "^4.1.0",
     "@jsdevtools/coverage-istanbul-loader": "^3.0.5",
