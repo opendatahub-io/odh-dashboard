@@ -28,6 +28,8 @@ const config = {
             options: {
               transpileOnly: true,
               configFile: path.resolve(__dirname, '../../../tsconfig.json'),
+              // Shared mock factories are TypeScript sources in sibling workspace packages.
+              compilerOptions: { rootDir: path.resolve(__dirname, '../../../../../..') },
             },
           },
         ],
