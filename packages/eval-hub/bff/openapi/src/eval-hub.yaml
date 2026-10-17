@@ -1263,7 +1263,6 @@ components:
         - status
         - results
         - model
-        - benchmarks
       properties:
         resource:
           $ref: '#/components/schemas/JobResource'
@@ -2587,7 +2586,9 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/EvaluationJobsData'
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationJob'
           example:
             data:
               first:
