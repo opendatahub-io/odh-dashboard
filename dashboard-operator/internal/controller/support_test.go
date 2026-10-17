@@ -172,6 +172,7 @@ func TestResolveImageParams(t *testing.T) {
 	t.Run("returns mapped params for set env vars", func(t *testing.T) {
 		t.Setenv("RELATED_IMAGE_ODH_DASHBOARD_IMAGE", "quay.io/dashboard:latest")
 		t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:v1")
+		t.Setenv("RELATED_IMAGE_ODH_MODEL_REGISTRY_OCI_BASE_IMAGE", "registry.internal.test:5000/openshift-ai/busybox:test")
 		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", "quay.io/automl-runtime:v2")
 		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "quay.io/autorag-runtime:v3")
 		t.Setenv("RELATED_IMAGE_ODH_OGX_CORE_IMAGE", "registry.redhat.io/rhoai/odh-ogx-core-rhel9@sha256:abc123")
@@ -180,6 +181,7 @@ func TestResolveImageParams(t *testing.T) {
 		got := resolveImageParams()
 		assert.Equal(t, "quay.io/dashboard:latest", got["odh-dashboard-image"])
 		assert.Equal(t, "quay.io/mr:v1", got["model-registry-ui-image"])
+		assert.Equal(t, "registry.internal.test:5000/openshift-ai/busybox:test", got["images-oci-base-image"])
 		assert.Equal(t, "quay.io/automl-runtime:v2", got["automl-pipeline-runtime-image"])
 		assert.Equal(t, "quay.io/autorag-runtime:v3", got["autorag-pipeline-runtime-image"])
 		assert.Equal(t, "registry.redhat.io/rhoai/odh-ogx-core-rhel9@sha256:abc123", got["ogx-core-image"])

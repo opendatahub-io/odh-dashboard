@@ -29,6 +29,7 @@ var imagesMap = map[string]string{
 	"odh-dashboard-image":            "RELATED_IMAGE_ODH_DASHBOARD_IMAGE",
 	"kube-rbac-proxy":                "RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE",
 	"images-jobs-async-upload":       "RELATED_IMAGE_ODH_MODEL_REGISTRY_JOB_ASYNC_UPLOAD_IMAGE",
+	"images-oci-base-image":          "RELATED_IMAGE_ODH_MODEL_REGISTRY_OCI_BASE_IMAGE",
 	"automl-pipeline-runtime-image":  "RELATED_IMAGE_ODH_AUTOML_IMAGE",
 	"autorag-pipeline-runtime-image": "RELATED_IMAGE_ODH_AUTORAG_IMAGE",
 	"core-bff-image":                 "RELATED_IMAGE_ODH_CORE_BFF_IMAGE",
