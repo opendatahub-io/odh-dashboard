@@ -19,7 +19,7 @@
     "run:electron": "cypress run -b electron"
   },
   "devDependencies": {
-    "@cypress/code-coverage": "^3.12.34",
+    "@cypress/code-coverage": "^4.0.0",
     "@cypress/grep": "^4.1.0",
     "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
