@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -44,6 +45,8 @@ func testScheme(t *testing.T) *runtime.Scheme {
 	require.NoError(t, clientgoscheme.AddToScheme(s))
 	require.NoError(t, v1alpha1.AddToScheme(s))
 	require.NoError(t, routev1.AddToScheme(s))
+	require.NoError(t, policyv1.AddToScheme(s))
+	require.NoError(t, gatewayv1.Install(s))
 
 	return s
 }
@@ -70,6 +73,32 @@ data:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(kustomization), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
+
+	return base
+}
+
+func createMinimalRHAIIManifests(t *testing.T) string {
+	t.Helper()
+
+	base := t.TempDir()
+	bundle := filepath.Join(base, "distributions", "rhaii")
+	require.NoError(t, os.MkdirAll(bundle, 0755))
+
+	kustomization := `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+`
+	configmap := `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rhaii-dashboard-test
+data:
+  key: value
+`
+	require.NoError(t, os.WriteFile(filepath.Join(bundle, "kustomization.yaml"), []byte(kustomization), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(bundle, "configmap.yaml"), []byte(configmap), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(bundle, "params.env"), []byte(""), 0644))
 
 	return base
 }
@@ -1029,6 +1058,54 @@ func TestReconcile_StatusContract(t *testing.T) {
 			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
 		})
 	}
+}
+
+func TestReconcile_XKSStatusContract(t *testing.T) {
+	s := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Generation: 1,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+	}
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     createMinimalRHAIIManifests(t),
+		Platform:              cluster.XKS,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}}
+
+	_, err := r.Reconcile(context.Background(), request)
+	require.NoError(t, err)
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), request.NamespacedName, updated))
+	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+	assert.Nil(t, conditions.FindStatusCondition(updated, "ObservabilityAvailable"))
+	assert.Nil(t, conditions.FindStatusCondition(updated, "MaaSPortalAvailable"))
+
+	updated.Spec.ManagementState = common.Removed
+	require.NoError(t, cli.Update(context.Background(), updated))
+	_, err = r.Reconcile(context.Background(), request)
+	require.NoError(t, err)
+
+	require.NoError(t, cli.Get(context.Background(), request.NamespacedName, updated))
+	ready := conditions.FindStatusCondition(updated, string(common.ConditionTypeReady))
+	require.NotNil(t, ready)
+	assert.Equal(t, metav1.ConditionFalse, ready.Status)
+	assert.Equal(t, "Removed", ready.Reason)
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 }
 
 func TestReconcileDegradedCondition(t *testing.T) {

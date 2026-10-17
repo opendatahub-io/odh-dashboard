@@ -204,19 +204,13 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	previousStatus := dashboard.Status.DeepCopy()
 	migrateMaaSPortalStatus(dashboard)
 
-	// Ready is the rollup condition — auto-derived by the Manager from
-	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
-	// MaaSPortalAvailable. It is set explicitly only when both operands are
-	// Removed. The manager is built
-	// here, before the managementState branch, because the MaaS Portal is
-	// reconciled unconditionally below regardless of the core dashboard's state.
+	// Ready is a lifecycle-specific rollup condition. The manager is built
+	// before the managementState branch because removal also reports lifecycle
+	// status through the same readiness contract.
 	cm := conditions.NewManager(
 		dashboard,
 		string(common.ConditionTypeReady),
-		string(common.ConditionTypeProvisioningSucceeded),
-		string(common.ConditionTypeDegraded),
-		conditionObservabilityAvailable,
-		conditionMaaSPortalAvailable,
+		lifecycle.readyDependents()...,
 	)
 
 	if dashboard.Spec.ManagementState == common.Removed {

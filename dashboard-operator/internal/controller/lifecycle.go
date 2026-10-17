@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -16,9 +17,21 @@ import (
 // finalizers, and common status metadata); platform implementations own the
 // resources and readiness semantics they expose.
 type dashboardLifecycle interface {
+	// readyDependents declares the conditions this lifecycle uses to derive the
+	// Dashboard Ready condition. Each platform owns its readiness contract.
+	readyDependents() []string
 	Reconcile(context.Context, *v1alpha1.Dashboard, *conditions.Manager, OperatorConfig) (ctrl.Result, error)
 	Remove(context.Context, *v1alpha1.Dashboard, *v1alpha1.DashboardStatus, *conditions.Manager) (ctrl.Result, error)
 	Finalize(context.Context, *v1alpha1.Dashboard) (ctrl.Result, error)
+}
+
+func openShiftReadyDependents() []string {
+	return []string{
+		string(common.ConditionTypeProvisioningSucceeded),
+		string(common.ConditionTypeDegraded),
+		conditionObservabilityAvailable,
+		conditionMaaSPortalAvailable,
+	}
 }
 
 func (r *DashboardReconciler) dashboardLifecycle() dashboardLifecycle {
