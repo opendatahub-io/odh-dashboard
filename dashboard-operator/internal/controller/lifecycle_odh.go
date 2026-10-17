@@ -11,6 +11,10 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
+func (odhDashboardLifecycle) readyDependents() []string {
+	return openShiftReadyDependents()
+}
+
 func (l odhDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig) (ctrl.Result, error) {
 	r := l.reconciler
 	observabilityConfigErr := r.resolveObservabilityConfiguration(ctx, dashboard, cm)

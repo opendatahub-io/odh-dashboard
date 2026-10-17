@@ -23,6 +23,13 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
+func (xksDashboardLifecycle) readyDependents() []string {
+	return []string{
+		string(common.ConditionTypeProvisioningSucceeded),
+		string(common.ConditionTypeDegraded),
+	}
+}
+
 func (l xksDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig) (ctrl.Result, error) {
 	return l.reconcileRHAIIDashboard(ctx, dashboard, cm, cfg)
 }
