@@ -5,7 +5,13 @@ import KserveRequestCountGraph from './KserveRequestCountGraph';
 import KserveMeanLatencyGraph from './KserveMeanLatencyGraph';
 import KserveCpuUsageGraph from './KserveCpuUsageGraph';
 import KserveMemoryUsageGraph from './KserveMemoryUsageGraph';
-import { KserveMetricsGraphTypes } from '../const';
+import NIMTimeToFirstTokenGraph from './NIMTimeForFirstTokenGraphs';
+import NIMTimePerOutputTokenGraph from './NIMTimePerOutputTokenGraph';
+import NIMKVCacheUsageGraph from './NIMKVCacheUsageGraph';
+import NIMCurrentRequestsGraph from './NIMCurrentRequestsGraph';
+import NIMTokensCountGraph from './NIMTokensCountGraph';
+import NIMRequestsOutcomesGraph from './NIMRequestsOutcomesGraph';
+import { KserveMetricsGraphTypes, NimMetricsGraphTypes } from '../const';
 import { KserveMetricGraphDefinition } from '../types';
 
 type KservePerformanceGraphsProps = {
@@ -62,6 +68,75 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
       return (
         <KserveMemoryUsageGraph
           graphDefinition={graphDefinition}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    if (graphDefinition.type === KserveMetricsGraphTypes.TIME_TO_FIRST_TOKEN) {
+      return (
+        <NIMTimeToFirstTokenGraph
+          graphDefinition={{ ...graphDefinition, type: NimMetricsGraphTypes.TIME_TO_FIRST_TOKEN }}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    if (graphDefinition.type === KserveMetricsGraphTypes.TIME_PER_OUTPUT_TOKEN) {
+      return (
+        <NIMTimePerOutputTokenGraph
+          graphDefinition={{ ...graphDefinition, type: NimMetricsGraphTypes.TIME_PER_OUTPUT_TOKEN }}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    if (graphDefinition.type === KserveMetricsGraphTypes.KV_CACHE) {
+      return (
+        <NIMKVCacheUsageGraph
+          graphDefinition={{ ...graphDefinition, type: NimMetricsGraphTypes.KV_CACHE }}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    if (graphDefinition.type === KserveMetricsGraphTypes.CURRENT_REQUESTS) {
+      return (
+        <NIMCurrentRequestsGraph
+          graphDefinition={{ ...graphDefinition, type: NimMetricsGraphTypes.CURRENT_REQUESTS }}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    if (graphDefinition.type === KserveMetricsGraphTypes.TOKENS_COUNT) {
+      return (
+        <NIMTokensCountGraph
+          graphDefinition={{ ...graphDefinition, type: NimMetricsGraphTypes.TOKENS_COUNT }}
+          timeframe={timeframe}
+          end={end}
+          namespace={namespace}
+        />
+      );
+    }
+
+    // Condition IS necessary as graph types are provided by the backend.
+    // We need to guard against receiving an unknown value at runtime and fail gracefully.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (graphDefinition.type === KserveMetricsGraphTypes.REQUEST_OUTCOMES) {
+      return (
+        <NIMRequestsOutcomesGraph
+          graphDefinition={{ ...graphDefinition, type: NimMetricsGraphTypes.REQUEST_OUTCOMES }}
           timeframe={timeframe}
           end={end}
           namespace={namespace}
