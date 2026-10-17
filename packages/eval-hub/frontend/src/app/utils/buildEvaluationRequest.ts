@@ -6,6 +6,7 @@ import {
   JobPrimaryScore,
   SourceMode,
 } from '~/app/types';
+import { parseS3Url } from '~/app/utils/validationUtils';
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
@@ -63,19 +64,21 @@ const buildEvaluationRequest = ({
 
   const trimmedDatasetUrl = datasetUrl.trim();
   const trimmedAccessToken = accessToken.trim();
-  const prerecordedDataRef =
-    sourceMode === 'prerecorded' && trimmedDatasetUrl
-      ? {
-          // eslint-disable-next-line camelcase
-          test_data_ref: {
-            s3: {
-              key: trimmedDatasetUrl,
-              // eslint-disable-next-line camelcase
-              ...(trimmedAccessToken ? { secret_ref: trimmedAccessToken } : {}),
-            },
+  const s3Data = sourceMode === 'prerecorded' ? parseS3Url(trimmedDatasetUrl) : undefined;
+  const prerecordedDataRef = s3Data
+    ? {
+        // eslint-disable-next-line camelcase
+        test_data_ref: {
+          type: 'pre_recorded_data' as const,
+          s3: {
+            bucket: s3Data.bucket,
+            key: s3Data.key,
+            // eslint-disable-next-line camelcase
+            ...(trimmedAccessToken ? { secret_ref: trimmedAccessToken } : {}),
           },
-        }
-      : {};
+        },
+      }
+    : {};
 
   const benchmarkEntries: NonNullable<CreateEvaluationJobRequest['benchmarks']> = [];
 
@@ -128,7 +131,7 @@ const buildEvaluationRequest = ({
   return {
     name: evaluationName.trim(),
     model: {
-      url: resolvedUrl,
+      ...(resolvedUrl ? { url: resolvedUrl } : {}),
       name: resolvedModelName,
       // eslint-disable-next-line camelcase
       ...(resolvedAuth ? { auth: { secret_ref: resolvedAuth } } : {}),

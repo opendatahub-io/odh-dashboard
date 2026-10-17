@@ -208,7 +208,8 @@ type S3DataRef struct {
 }
 
 type TestDataRef struct {
-	S3 *S3DataRef `json:"s3,omitempty"`
+	Type string     `json:"type,omitempty"`
+	S3   *S3DataRef `json:"s3,omitempty"`
 }
 
 // HardwareConfig describes the resource and scheduling configuration for an evaluation job.
