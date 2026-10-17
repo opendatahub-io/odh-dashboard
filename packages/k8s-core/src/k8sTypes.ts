@@ -115,6 +115,12 @@ export type TemplateParameter = {
   required: boolean;
 };
 
+export type PodResourceClaim = {
+  name: string;
+  resourceClaimName?: string;
+  resourceClaimTemplateName?: string;
+};
+
 export type PodSpec = {
   affinity?: PodAffinity;
   enableServiceLinks?: boolean;
@@ -123,6 +129,7 @@ export type PodSpec = {
   volumes?: Volume[];
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
+  resourceClaims?: PodResourceClaim[];
 };
 
 export type PodContainerStatus = {
