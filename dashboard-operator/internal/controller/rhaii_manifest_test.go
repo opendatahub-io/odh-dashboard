@@ -16,7 +16,7 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-func TestXKSLifecycleUsesRHAIIManifestBundle(t *testing.T) {
+func TestApplyKustomizeParamsOverridesRHAIIImage(t *testing.T) {
 	dir := t.TempDir()
 	bundle := filepath.Join(dir, "distributions", "rhaii")
 	require.NoError(t, os.MkdirAll(bundle, 0755))
@@ -24,8 +24,6 @@ func TestXKSLifecycleUsesRHAIIManifestBundle(t *testing.T) {
 	t.Setenv("RELATED_IMAGE_ODH_RHAII_DASHBOARD_IMAGE", "quay.io/example/rhaii-dashboard@sha256:abc123")
 	t.Setenv("RELATED_IMAGE_ODH_DASHBOARD_IMAGE", "quay.io/example/odh-dashboard@sha256:def456")
 
-	// The XKS lifecycle owns this selection rather than the shared OpenShift
-	// rendering helper. Keep the manifest construction local to that contract.
 	manifests := []render.ManifestInfo{rhaiiManifestInfo(dir)}
 	require.NoError(t, applyKustomizeParams(&v1alpha1.Dashboard{}, manifests, cluster.XKS))
 
@@ -69,5 +67,19 @@ func TestRenderRHAIIDashboardManifestBundle(t *testing.T) {
 
 	for _, kind := range []string{"ServiceAccount", "Role", "RoleBinding", "ClusterRole", "ClusterRoleBinding", "Service", "NetworkPolicy", "PodDisruptionBudget"} {
 		assert.Contains(t, resources, kind+"/rhaii-dashboard")
+	}
+
+	serviceAccount := resources["ServiceAccount/rhaii-dashboard"]
+	require.NotNil(t, serviceAccount)
+	assert.Equal(t, "redhat-ods-applications", serviceAccount.GetNamespace())
+
+	for _, kind := range []string{"RoleBinding", "ClusterRoleBinding"} {
+		binding := resources[kind+"/rhaii-dashboard"]
+		require.NotNil(t, binding)
+		subjects, found, err := unstructured.NestedSlice(binding.Object, "subjects")
+		require.NoError(t, err)
+		require.True(t, found)
+		subject := namedManifestObject(t, subjects, "rhaii-dashboard")
+		assert.Equal(t, "redhat-ods-applications", subject["namespace"])
 	}
 }

@@ -77,28 +77,32 @@ data:
 	return base
 }
 
-func createMinimalRHAIIManifests(t *testing.T) string {
+func createMinimalXKSManifests(t *testing.T) string {
 	t.Helper()
 
 	base := t.TempDir()
-	bundle := filepath.Join(base, "distributions", "rhaii")
-	require.NoError(t, os.MkdirAll(bundle, 0755))
-
-	kustomization := `apiVersion: kustomize.config.k8s.io/v1beta1
+	writeBundle := func(path, configMapName string) {
+		t.Helper()
+		require.NoError(t, os.MkdirAll(path, 0755))
+		kustomization := `apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - configmap.yaml
 `
-	configmap := `apiVersion: v1
+		configmap := `apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: rhaii-dashboard-test
+  name: ` + configMapName + `
 data:
   key: value
 `
-	require.NoError(t, os.WriteFile(filepath.Join(bundle, "kustomization.yaml"), []byte(kustomization), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(bundle, "configmap.yaml"), []byte(configmap), 0644))
-	require.NoError(t, os.WriteFile(filepath.Join(bundle, "params.env"), []byte(""), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(path, "kustomization.yaml"), []byte(kustomization), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(path, "configmap.yaml"), []byte(configmap), 0644))
+		require.NoError(t, os.WriteFile(filepath.Join(path, "params.env"), []byte(""), 0644))
+	}
+
+	writeBundle(filepath.Join(base, "odh"), "openshift-dashboard-test")
+	writeBundle(filepath.Join(base, "distributions", "rhaii"), "rhaii-dashboard-test")
 
 	return base
 }
@@ -1077,7 +1081,7 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                cli,
 		Scheme:                s,
-		ManifestsBasePath:     createMinimalRHAIIManifests(t),
+		ManifestsBasePath:     createMinimalXKSManifests(t),
 		Platform:              cluster.XKS,
 		Namespace:             testNamespace,
 		ApplicationsNamespace: testNamespace,
@@ -1086,6 +1090,11 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 
 	_, err := r.Reconcile(context.Background(), request)
 	require.NoError(t, err)
+
+	// The real reconciler must select and apply the XKS/RHAII bundle, rather
+	// than merely producing a healthy status through an OpenShift lifecycle.
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: "rhaii-dashboard-test", Namespace: testNamespace}, &corev1.ConfigMap{}))
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), types.NamespacedName{Name: "openshift-dashboard-test", Namespace: testNamespace}, &corev1.ConfigMap{})))
 
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), request.NamespacedName, updated))
