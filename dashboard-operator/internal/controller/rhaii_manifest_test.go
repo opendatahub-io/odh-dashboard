@@ -54,7 +54,7 @@ func TestRenderRHAIIDashboardManifestBundle(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, found)
 	container := namedManifestObject(t, containers, "rhaii-dashboard")
-	assert.Equal(t, "quay.io/opendatahub/rhaii-dashboard:REPLACE_WITH_IMMUTABLE_TAG", container["image"])
+	assert.Equal(t, "quay.io/opendatahub/rhaii-dashboard:main", container["image"])
 	assert.Contains(t, container["args"], "--platform-type=XKS")
 	assert.Equal(t, "dashboard", container["ports"].([]interface{})[0].(map[string]interface{})["name"])
 
