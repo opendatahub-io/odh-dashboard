@@ -145,9 +145,6 @@ func (l xksDashboardLifecycle) removeRHAIIDashboard(
 		return ctrl.Result{RequeueAfter: teardownRetryInterval}, nil
 	}
 
-	dashboard.Status.ObservedGeneration = dashboard.Generation
-	dashboard.Status.URL = ""
-	dashboard.Status.Distribution = nil
 	dashboard.Status.ModuleStatuses = nil
 	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 		conditions.WithReason(conditionReasonRemoved),
@@ -165,9 +162,8 @@ func (l xksDashboardLifecycle) removeRHAIIDashboard(
 		conditions.WithReason(conditionReasonRemoved),
 		conditions.WithMessage("RHAII dashboard has been removed via managementState"))
 	dashboard.Status.Phase = common.PhaseNotReady
-	cm.Sort()
 
-	if err := r.updateStatusIfChanged(ctx, dashboard, previousStatus); err != nil {
+	if err := r.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update XKS removal status: %w", err)
 	}
 

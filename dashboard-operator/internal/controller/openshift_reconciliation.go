@@ -184,9 +184,9 @@ func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, da
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
-// persistDashboardRemovalStatus applies status bookkeeping common to the ODH
-// and RHOAI dashboard removal lifecycles. Each lifecycle owns the conditions,
-// phase, and retained operands it sets before calling this helper.
+// persistDashboardRemovalStatus applies status bookkeeping common to every
+// dashboard removal lifecycle. Each lifecycle owns the conditions, phase, and
+// retained operands it sets before calling this helper.
 func (r *DashboardReconciler) persistDashboardRemovalStatus(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) error {
 	dashboard.Status.ObservedGeneration = dashboard.Generation
 	dashboard.Status.URL = ""
