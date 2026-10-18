@@ -24,6 +24,16 @@ const FederationHashAnnotation = federationHashAnnotation
 
 const CommunityPluginsNamespace = communityPluginsNamespace
 
+const ODHDashboardResourceName = odhDashboardResourceName
+
+const RHOAIDashboardResourceName = rhoaiDashboardResourceName
+
+const RHAIIDashboardResourceName = rhaiiDashboardResourceName
+
+const DashboardAvailableCondition = conditionDashboardAvailable
+
+const RemovedConditionReason = conditionReasonRemoved
+
 func BuildFederationConfigMap(r *DashboardReconciler, statuses map[string]v1alpha1.ModuleStatus, dashboard *v1alpha1.Dashboard) (*corev1.ConfigMap, error) {
 	return r.buildFederationConfigMap(context.Background(), statuses, dashboard)
 }

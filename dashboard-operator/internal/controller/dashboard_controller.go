@@ -387,7 +387,7 @@ func (r *DashboardReconciler) reconcileURL(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
-) (string, time.Duration, error) {
+) string {
 	logger := log.FromContext(ctx)
 
 	url, err := extractDashboardURL(ctx, r.apiReader(), dashboard, r.ApplicationsNamespace, r.Platform)
@@ -396,30 +396,26 @@ func (r *DashboardReconciler) reconcileURL(
 	case errors.Is(err, ErrDashboardRouteNotReady):
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
 			conditions.WithReason("RouteNotReady"),
-			conditions.WithMessage("Dashboard route is not yet admitted"),
+			conditions.WithMessage("Legacy Dashboard Route is not admitted"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		cm.MarkFalse(string(common.ConditionTypeReady),
-			conditions.WithReason("RouteNotReady"),
-			conditions.WithMessage("Dashboard route is not yet admitted"))
-		logger.Info("Dashboard route not yet available, requeuing")
-		return "", 10 * time.Second, nil
+		dashboard.Status.URL = ""
+		logger.Info("Legacy Dashboard Route is not available; Dashboard availability is reported through Deployment and HTTPRoute")
+		return ""
 	case err != nil:
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
 			conditions.WithReason("URLExtractionFailed"),
 			conditions.WithError(err),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		cm.MarkFalse(string(common.ConditionTypeReady),
-			conditions.WithReason("URLExtractionFailed"),
-			conditions.WithError(err))
-		logger.Error(err, "Failed to extract dashboard URL")
-		return "", 0, fmt.Errorf("failed to extract dashboard URL: %w", err)
+		dashboard.Status.URL = ""
+		logger.Error(err, "Failed to extract legacy Dashboard Route URL; Dashboard availability is reported through Deployment and HTTPRoute")
+		return ""
 	default:
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
 			conditions.WithReason("NoDegradation"),
 			conditions.WithMessage("All sub-modules healthy"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		dashboard.Status.URL = url
-		return url, 0, nil
+		return url
 	}
 }
 

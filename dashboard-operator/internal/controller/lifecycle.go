@@ -12,6 +12,13 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
+const (
+	odhDashboardResourceName   = "odh-dashboard"
+	rhoaiDashboardResourceName = "rhods-dashboard"
+	rhaiiDashboardResourceName = "rhaii-dashboard"
+	conditionReasonRemoved     = "Removed"
+)
+
 // dashboardLifecycle isolates the operand contract for a platform. The
 // reconciler retains Kubernetes controller plumbing (fetching the CR,
 // finalizers, and common status metadata); platform implementations own the
@@ -28,6 +35,7 @@ type dashboardLifecycle interface {
 func openShiftReadyDependents() []string {
 	return []string{
 		string(common.ConditionTypeProvisioningSucceeded),
+		conditionDashboardAvailable,
 		string(common.ConditionTypeDegraded),
 		conditionObservabilityAvailable,
 		conditionMaaSPortalAvailable,

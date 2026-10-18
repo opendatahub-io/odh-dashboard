@@ -156,34 +156,30 @@ func (r *DashboardReconciler) reconcileOpenShiftFeatures(ctx context.Context, da
 	return state, nil
 }
 
-func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig, state openShiftFeatureState, extraRetryAfter time.Duration) (ctrl.Result, error) {
+func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig, state openShiftFeatureState, extraRetryAfter time.Duration, availabilityTarget dashboardAvailabilityTarget) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	if err := r.patchDeploymentFederationHash(ctx, state.federationData); err != nil {
 		logger.Error(err, "Failed to patch federation hash on deployment")
 		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
-	url, requeueAfter, urlErr := r.reconcileURL(ctx, dashboard, cm)
-	if urlErr != nil {
-		return ctrl.Result{}, urlErr
+	url := r.reconcileURL(ctx, dashboard, cm)
+	availabilityRetryAfter, err := r.reconcileDashboardAvailability(ctx, dashboard, cm, availabilityTarget)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
-	if requeueAfter == 0 {
-		r.reconcileDegradedCondition(cm, state.statuses)
-	}
+	r.reconcileDegradedCondition(cm, state.statuses)
 	if state.rbacErr != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded), conditions.WithReason("NamespacedRBACFailed"), conditions.WithError(state.rbacErr))
+	}
+	requeueAfter := minNonZeroDuration(cfg.ReconcileInterval, availabilityRetryAfter, extraRetryAfter, state.observabilityRetryAfter)
+	if dashboard.Spec.Observability == nil && requeueAfter == 0 {
+		requeueAfter = observabilityRetryInterval
 	}
 	if requeueAfter > 0 {
 		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
 	} else {
 		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
-	}
-	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
-		requeueAfter = cfg.ReconcileInterval
-	}
-	requeueAfter = minNonZeroDuration(requeueAfter, extraRetryAfter, state.observabilityRetryAfter)
-	if dashboard.Spec.Observability == nil && requeueAfter == 0 {
-		requeueAfter = observabilityRetryInterval
 	}
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }

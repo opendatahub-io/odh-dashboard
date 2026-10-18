@@ -228,7 +228,7 @@ func (r *DashboardReconciler) reconcileMaaSPortalAvailability(ctx context.Contex
 			conditions.WithMessage("getting MaaS Portal HTTPRoute: %s", err))
 		return maasPortalRetryInterval
 	}
-	if !portalRouteReady(&route) {
+	if !httpRouteAvailable(&route) {
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason(reasonMaaSPortalRouteNotReady),
 			conditions.WithMessage("MaaS Portal HTTPRoute is not accepted and resolved by Gateway %q", maasPortalGatewayName))
@@ -263,35 +263,6 @@ func portalGatewayDomain(d *v1alpha1.Dashboard) string {
 		return d.Spec.Gateway.Domain
 	}
 	return ""
-}
-
-func deploymentAvailable(dep *appsv1.Deployment) bool {
-	if dep.Status.ObservedGeneration != dep.Generation {
-		return false
-	}
-	for _, c := range dep.Status.Conditions {
-		if c.Type == appsv1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
-func portalRouteReady(route *gatewayv1.HTTPRoute) bool {
-	for _, p := range route.Status.Parents {
-		accepted, resolved := false, false
-		for _, c := range p.Conditions {
-			if c.Type == string(gatewayv1.RouteConditionAccepted) && c.Status == metav1.ConditionTrue && c.ObservedGeneration == route.Generation {
-				accepted = true
-			}
-			if c.Type == string(gatewayv1.RouteConditionResolvedRefs) && c.Status == metav1.ConditionTrue && c.ObservedGeneration == route.Generation {
-				resolved = true
-			}
-		}
-		if accepted && resolved {
-			return true
-		}
-	}
-	return false
 }
 
 func (r *DashboardReconciler) deployMaaSPortalBundle(ctx context.Context, dashboard *v1alpha1.Dashboard) (maasPortalMigrationResult, error) {

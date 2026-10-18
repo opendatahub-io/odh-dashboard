@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	dashboardSANameODH   = "odh-dashboard"
-	dashboardSANameRHOAI = "rhods-dashboard"
+	dashboardSANameODH   = odhDashboardResourceName
+	dashboardSANameRHOAI = rhoaiDashboardResourceName
 
 	namespacedRBACManagedLabel = "dashboard.opendatahub.io/namespaced-rbac"
 )

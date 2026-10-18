@@ -127,6 +127,34 @@ func admittedRoute(namespace string) *routev1.Route {
 	}
 }
 
+func readyDashboardResources(namespace, dashboardName string) []client.Object {
+	const testGatewayName = "test-gateway"
+
+	return []client.Object{
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: dashboardName, Namespace: namespace, Generation: 1},
+			Status: appsv1.DeploymentStatus{
+				ObservedGeneration: 1,
+				AvailableReplicas:  1,
+				Conditions:         []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}},
+			},
+		},
+		&gatewayv1.HTTPRoute{
+			ObjectMeta: metav1.ObjectMeta{Name: dashboardName, Namespace: namespace, Generation: 1},
+			Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
+				ParentRefs: []gatewayv1.ParentReference{{Name: testGatewayName}},
+			}},
+			Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: []gatewayv1.RouteParentStatus{{
+				ParentRef: gatewayv1.ParentReference{Name: testGatewayName},
+				Conditions: []metav1.Condition{
+					{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 1},
+					{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 1},
+				},
+			}}}},
+		},
+	}
+}
+
 func TestReconcile_NotFound(t *testing.T) {
 	s := testScheme(t)
 	cli := fake.NewClientBuilder().WithScheme(s).Build()
@@ -172,7 +200,8 @@ func TestReconcile_DisabledObservabilityCleanupFailureDoesNotBlockCore(t *testin
 					Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "observability"},
 				}}
 				failCleanup := true
-				cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dashboard, stale).
+				objects := append([]client.Object{dashboard, stale}, readyDashboardResources(testNamespace, ctrlpkg.ODHDashboardResourceName)...)
+				cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).
 					WithStatusSubresource(dashboard).WithInterceptorFuncs(interceptor.Funcs{
 					List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
 						if failCleanup && operation == "list" && list.GetObjectKind().GroupVersionKind().Kind == "PersesDashboardList" {
@@ -236,7 +265,7 @@ func TestReconcile_ObservabilityDetectionFailureDoesNotBlockCore(t *testing.T) {
 		Data: map[string]string{"module-federation-config.json": `[{"name":"perses","extra":"preserved"},{"name":"obsolete"}]`}}
 	lookupFails := true
 	cli := fake.NewClientBuilder().WithScheme(scheme).
-		WithObjects(dashboard, admittedRoute(testNamespace), observability, federation).WithStatusSubresource(dashboard).
+		WithObjects(append([]client.Object{dashboard, admittedRoute(testNamespace), observability, federation}, readyDashboardResources(testNamespace, ctrlpkg.ODHDashboardResourceName)...)...).WithStatusSubresource(dashboard).
 		WithInterceptorFuncs(interceptor.Funcs{
 			Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 				if _, isService := obj.(*corev1.Service); lookupFails && isService && key.Name == "data-science-perses" {
@@ -328,14 +357,14 @@ func TestReconcile(t *testing.T) {
 			wantGeneration:  1,
 		},
 		{
-			name:       "route not ready requeues",
+			name:       "legacy route does not affect readiness",
 			generation: 2,
 			manifestsBase: func(t *testing.T) string {
 				return createMinimalManifests(t)
 			},
-			wantRequeue:     10 * time.Second,
-			wantPhase:       common.PhaseNotReady,
-			wantReady:       boolPtr(false),
+			wantRequeue:     ctrlpkg.ObservabilityRetryInterval,
+			wantPhase:       common.PhaseReady,
+			wantReady:       boolPtr(true),
 			wantProvisioned: boolPtr(true),
 			wantGeneration:  2,
 			wantModuleCount: registrySize,
@@ -346,9 +375,9 @@ func TestReconcile(t *testing.T) {
 			manifestsBase: func(t *testing.T) string {
 				return createMinimalManifests(t)
 			},
-			wantRequeue:     10 * time.Second,
-			wantPhase:       common.PhaseNotReady,
-			wantReady:       boolPtr(false),
+			wantRequeue:     ctrlpkg.ObservabilityRetryInterval,
+			wantPhase:       common.PhaseReady,
+			wantReady:       boolPtr(true),
 			wantProvisioned: boolPtr(true),
 			wantGeneration:  42,
 			wantModuleCount: registrySize,
@@ -428,7 +457,7 @@ func TestReconcile(t *testing.T) {
 
 			builder := fake.NewClientBuilder().
 				WithScheme(s).
-				WithObjects(dashboard).
+				WithObjects(append([]client.Object{dashboard}, readyDashboardResources(testNamespace, ctrlpkg.ODHDashboardResourceName)...)...).
 				WithStatusSubresource(dashboard)
 
 			if tt.extraObjects != nil {
@@ -987,13 +1016,13 @@ func TestReconcile_StatusContract(t *testing.T) {
 			wantPhase:       common.PhaseNotReady,
 		},
 		{
-			name: "phase tracks condition happiness — route not ready",
+			name: "phase tracks condition happiness — primary resources available",
 			manifestsBase: func(t *testing.T) string {
 				return createMinimalManifests(t)
 			},
-			wantReady:       false,
+			wantReady:       true,
 			wantProvisioned: true,
-			wantPhase:       common.PhaseNotReady,
+			wantPhase:       common.PhaseReady,
 		},
 	}
 
@@ -1011,7 +1040,7 @@ func TestReconcile_StatusContract(t *testing.T) {
 
 			builder := fake.NewClientBuilder().
 				WithScheme(s).
-				WithObjects(dashboard).
+				WithObjects(append([]client.Object{dashboard}, readyDashboardResources(testNamespace, ctrlpkg.ODHDashboardResourceName)...)...).
 				WithStatusSubresource(dashboard)
 
 			if tt.extraObjects != nil {
@@ -1099,10 +1128,26 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), request.NamespacedName, updated))
 	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
-	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
-	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+	availability := conditions.FindStatusCondition(updated, ctrlpkg.DashboardAvailableCondition)
+	require.NotNil(t, availability)
+	assert.Equal(t, metav1.ConditionFalse, availability.Status)
+	assert.Equal(t, "DeploymentNotFound", availability.Reason)
+	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 	assert.Nil(t, conditions.FindStatusCondition(updated, "ObservabilityAvailable"))
 	assert.Nil(t, conditions.FindStatusCondition(updated, "MaaSPortalAvailable"))
+
+	resources := readyDashboardResources(testNamespace, ctrlpkg.RHAIIDashboardResourceName)
+	deployment := resources[0].(*appsv1.Deployment)
+	route := resources[1].(*gatewayv1.HTTPRoute)
+	require.NoError(t, cli.Create(context.Background(), deployment))
+	require.NoError(t, cli.Create(context.Background(), route))
+	_, err = r.Reconcile(context.Background(), request)
+	require.NoError(t, err)
+	require.NoError(t, cli.Get(context.Background(), request.NamespacedName, updated))
+	assert.True(t, conditions.IsStatusConditionTrue(updated, ctrlpkg.DashboardAvailableCondition))
+	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
 
 	updated.Spec.ManagementState = common.Removed
 	require.NoError(t, cli.Update(context.Background(), updated))
@@ -1113,7 +1158,11 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 	ready := conditions.FindStatusCondition(updated, string(common.ConditionTypeReady))
 	require.NotNil(t, ready)
 	assert.Equal(t, metav1.ConditionFalse, ready.Status)
-	assert.Equal(t, "Removed", ready.Reason)
+	assert.Equal(t, ctrlpkg.RemovedConditionReason, ready.Reason)
+	availability = conditions.FindStatusCondition(updated, ctrlpkg.DashboardAvailableCondition)
+	require.NotNil(t, availability)
+	assert.Equal(t, metav1.ConditionFalse, availability.Status)
+	assert.Equal(t, ctrlpkg.RemovedConditionReason, availability.Reason)
 	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 }
 
@@ -1162,7 +1211,7 @@ func TestReconcile_DistinctNamespaces(t *testing.T) {
 
 	builder := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(dashboard).
+		WithObjects(append([]client.Object{dashboard}, readyDashboardResources(appNS, ctrlpkg.ODHDashboardResourceName)...)...).
 		WithStatusSubresource(dashboard).
 		WithObjects(admittedRoute(appNS))
 

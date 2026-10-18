@@ -23,6 +23,7 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
 // TestIntegration_ManagementStateRemoved_TeardownResources verifies that switching a
@@ -97,12 +98,12 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	cond := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeProvisioningSucceeded))
 	require.NotNil(t, cond, "ProvisioningSucceeded condition should be present")
 	assert.Equal(t, metav1.ConditionFalse, cond.Status)
-	assert.Equal(t, "Removed", cond.Reason)
+	assert.Equal(t, ctrlpkg.RemovedConditionReason, cond.Reason)
 
 	observability := conditions.FindStatusCondition(dashboard, "ObservabilityAvailable")
 	require.NotNil(t, observability, "ObservabilityAvailable condition should be present")
 	assert.Equal(t, metav1.ConditionFalse, observability.Status)
-	assert.Equal(t, "Removed", observability.Reason)
+	assert.Equal(t, ctrlpkg.RemovedConditionReason, observability.Reason)
 }
 
 // TestIntegration_ManagementStateRemoved_IdempotentRereconcile verifies that repeated

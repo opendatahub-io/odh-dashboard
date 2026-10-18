@@ -15,6 +15,10 @@ func (odhDashboardLifecycle) readyDependents() []string {
 	return openShiftReadyDependents()
 }
 
+func (odhDashboardLifecycle) availabilityTarget() dashboardAvailabilityTarget {
+	return dashboardAvailabilityTarget{deploymentName: odhDashboardResourceName, httpRouteName: odhDashboardResourceName}
+}
+
 func (l odhDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig) (ctrl.Result, error) {
 	r := l.reconciler
 	observabilityConfigErr := r.resolveObservabilityConfiguration(ctx, dashboard, cm)
@@ -29,7 +33,7 @@ func (l odhDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alpha
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, 0)
+	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, 0, l.availabilityTarget())
 }
 
 func (l odhDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) (ctrl.Result, error) {
@@ -58,10 +62,11 @@ func (l odhDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.D
 		return ctrl.Result{RequeueAfter: teardownRetryInterval}, nil
 	}
 
-	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("Removed"), conditions.WithMessage("Dashboard has been removed via managementState"), conditions.WithSeverity(common.ConditionSeverityInfo))
-	cm.MarkFalse(string(common.ConditionTypeDegraded), conditions.WithReason("Removed"), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
-	cm.MarkFalse(conditionObservabilityAvailable, conditions.WithReason("Removed"), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
-	cm.MarkFalse(string(common.ConditionTypeReady), conditions.WithReason("Removed"), conditions.WithMessage("Dashboard has been removed via managementState"))
+	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed via managementState"), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(string(common.ConditionTypeDegraded), conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(conditionDashboardAvailable, conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(conditionObservabilityAvailable, conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(string(common.ConditionTypeReady), conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed via managementState"))
 	if cm.IsHappy() {
 		dashboard.Status.Phase = common.PhaseReady
 	} else {

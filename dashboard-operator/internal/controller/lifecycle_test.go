@@ -42,6 +42,7 @@ func TestDashboardLifecycleReadyDependents(t *testing.T) {
 			lifecycle: odhDashboardLifecycle{},
 			want: []string{
 				string(common.ConditionTypeProvisioningSucceeded),
+				conditionDashboardAvailable,
 				string(common.ConditionTypeDegraded),
 				conditionObservabilityAvailable,
 				conditionMaaSPortalAvailable,
@@ -52,6 +53,7 @@ func TestDashboardLifecycleReadyDependents(t *testing.T) {
 			lifecycle: rhoaiDashboardLifecycle{},
 			want: []string{
 				string(common.ConditionTypeProvisioningSucceeded),
+				conditionDashboardAvailable,
 				string(common.ConditionTypeDegraded),
 				conditionObservabilityAvailable,
 				conditionMaaSPortalAvailable,
@@ -62,6 +64,7 @@ func TestDashboardLifecycleReadyDependents(t *testing.T) {
 			lifecycle: xksDashboardLifecycle{},
 			want: []string{
 				string(common.ConditionTypeProvisioningSucceeded),
+				conditionDashboardAvailable,
 				string(common.ConditionTypeDegraded),
 			},
 		},
@@ -84,10 +87,29 @@ func TestXKSReadyContract(t *testing.T) {
 	)
 
 	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded))
+	cm.MarkTrue(conditionDashboardAvailable)
 	cm.MarkFalse(string(common.ConditionTypeDegraded), conditions.WithSeverity(common.ConditionSeverityInfo))
 
 	assert.True(t, cm.IsHappy())
 	assert.True(t, conditions.IsStatusConditionTrue(dashboard, string(common.ConditionTypeReady)))
 	assert.Nil(t, conditions.FindStatusCondition(dashboard, conditionObservabilityAvailable))
 	assert.Nil(t, conditions.FindStatusCondition(dashboard, conditionMaaSPortalAvailable))
+}
+
+func TestDashboardAvailabilityTargets(t *testing.T) {
+	tests := []struct {
+		name string
+		got  dashboardAvailabilityTarget
+		want dashboardAvailabilityTarget
+	}{
+		{name: "ODH", got: odhDashboardLifecycle{}.availabilityTarget(), want: dashboardAvailabilityTarget{deploymentName: "odh-dashboard", httpRouteName: "odh-dashboard"}},
+		{name: "self-managed RHOAI", got: rhoaiDashboardLifecycle{}.availabilityTarget(), want: dashboardAvailabilityTarget{deploymentName: "rhods-dashboard", httpRouteName: "rhods-dashboard"}},
+		{name: "XKS", got: xksDashboardLifecycle{}.availabilityTarget(), want: dashboardAvailabilityTarget{deploymentName: "rhaii-dashboard", httpRouteName: "rhaii-dashboard"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.got)
+		})
+	}
 }

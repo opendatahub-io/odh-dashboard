@@ -43,7 +43,12 @@ func TestMaaSPortalAvailabilityHelpers(t *testing.T) {
 		[]metav1.Condition{{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 2}},
 		[]metav1.Condition{{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 2}},
 	)
-	availableDeployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Generation: 2}, Status: appsv1.DeploymentStatus{ObservedGeneration: 2, Conditions: []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}}}
+	foreignParentRoute := portalTestRoute(2,
+		metav1.Condition{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 2},
+		metav1.Condition{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 2},
+	)
+	foreignParentRoute.Status.Parents[0].ParentRef.Name = "foreign-gateway"
+	availableDeployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Generation: 2}, Status: appsv1.DeploymentStatus{ObservedGeneration: 2, AvailableReplicas: 1, Conditions: []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}}}
 
 	tests := []struct {
 		name            string
@@ -53,6 +58,7 @@ func TestMaaSPortalAvailabilityHelpers(t *testing.T) {
 		wantDeployReady bool
 	}{
 		{name: "accepted and resolved route with available deployment", route: readyRoute, deployment: availableDeployment, wantRouteReady: true, wantDeployReady: true},
+		{name: "accepted and resolved status for an undeclared parent", route: foreignParentRoute, deployment: availableDeployment, wantDeployReady: true},
 		{name: "route without resolved references", route: portalTestRoute(2, metav1.Condition{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 2}), deployment: availableDeployment, wantDeployReady: true},
 		{name: "route conditions split across parents", route: splitConditionRoute, deployment: availableDeployment, wantDeployReady: true},
 		{name: "route with stale accepted condition", route: portalTestRoute(2, metav1.Condition{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 1}, metav1.Condition{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 2}), deployment: availableDeployment, wantDeployReady: true},
@@ -62,7 +68,7 @@ func TestMaaSPortalAvailabilityHelpers(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.wantRouteReady, portalRouteReady(&tt.route))
+			assert.Equal(t, tt.wantRouteReady, httpRouteAvailable(&tt.route))
 			assert.Equal(t, tt.wantDeployReady, deploymentAvailable(&tt.deployment))
 		})
 	}
@@ -116,25 +122,34 @@ func portalTestRoute(generation int64, conditions ...metav1.Condition) gatewayv1
 func portalTestRouteWithParents(generation int64, conditions ...[]metav1.Condition) gatewayv1.HTTPRoute {
 	parents := make([]gatewayv1.RouteParentStatus, 0, len(conditions))
 	for _, conditionSet := range conditions {
-		parents = append(parents, gatewayv1.RouteParentStatus{Conditions: conditionSet})
+		parents = append(parents, gatewayv1.RouteParentStatus{
+			ParentRef:  gatewayv1.ParentReference{Name: "gateway"},
+			Conditions: conditionSet,
+		})
 	}
 	return gatewayv1.HTTPRoute{
 		ObjectMeta: metav1.ObjectMeta{Generation: generation},
-		Status:     gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: parents}},
+		Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
+			ParentRefs: []gatewayv1.ParentReference{{Name: "gateway"}},
+		}},
+		Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: parents}},
 	}
 }
 
 func TestReconcileMaaSPortalAvailability(t *testing.T) {
 	readyRoute := &gatewayv1.HTTPRoute{
 		ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace},
-		Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+		Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
+			ParentRefs: []gatewayv1.ParentReference{{Name: maasPortalGatewayName}},
+		}},
+		Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: []gatewayv1.RouteParentStatus{{ParentRef: gatewayv1.ParentReference{Name: maasPortalGatewayName}, Conditions: []metav1.Condition{
 			{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue},
 			{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue},
 		}}}}},
 	}
 	availableDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace},
-		Status:     appsv1.DeploymentStatus{Conditions: []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}},
+		Status:     appsv1.DeploymentStatus{AvailableReplicas: 1, Conditions: []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}},
 	}
 	statuses := map[string]v1alpha1.ModuleStatus{
 		"maas":  {Phase: v1alpha1.ModulePhaseDeployed},
@@ -366,8 +381,13 @@ func TestReconcileMaaSPortal_LegacyCleanupPendingKeepsAvailable(t *testing.T) {
 				},
 				Status: v1alpha1.DashboardStatus{MaaSPortalURL: previousURL, MaaSConsumerPortalURL: previousURL},
 			}
-			route := &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace, Generation: 1}}
-			route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+			route := &gatewayv1.HTTPRoute{
+				ObjectMeta: metav1.ObjectMeta{Name: maasPortalDeploymentName, Namespace: maasPortalTestNamespace, Generation: 1},
+				Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
+					ParentRefs: []gatewayv1.ParentReference{{Name: maasPortalGatewayName}},
+				}},
+			}
+			route.Status.Parents = []gatewayv1.RouteParentStatus{{ParentRef: route.Spec.ParentRefs[0], Conditions: []metav1.Condition{
 				{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 1},
 				{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 1},
 			}}}

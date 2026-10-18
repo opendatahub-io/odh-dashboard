@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
@@ -22,8 +21,13 @@ import (
 func (xksDashboardLifecycle) readyDependents() []string {
 	return []string{
 		string(common.ConditionTypeProvisioningSucceeded),
+		conditionDashboardAvailable,
 		string(common.ConditionTypeDegraded),
 	}
+}
+
+func (xksDashboardLifecycle) availabilityTarget() dashboardAvailabilityTarget {
+	return dashboardAvailabilityTarget{deploymentName: rhaiiDashboardResourceName, httpRouteName: rhaiiDashboardResourceName}
 }
 
 func (l xksDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig) (ctrl.Result, error) {
@@ -101,15 +105,17 @@ func (l xksDashboardLifecycle) reconcileRHAIIDashboard(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("RHAII dashboard manifests applied successfully"))
 
-	// XKS intentionally does not wait for Gateway acceptance: the Gateway is
-	// provisioned independently and the current platform contract treats a
-	// successfully applied dashboard as Ready without an externally known URL.
+	availabilityRetryAfter, err := r.reconcileDashboardAvailability(ctx, dashboard, cm, l.availabilityTarget())
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	dashboard.Status.URL = ""
 	cm.MarkFalse(string(common.ConditionTypeDegraded),
 		conditions.WithReason("NoDegradation"),
-		conditions.WithMessage("All XKS dashboard resources healthy"),
+		conditions.WithMessage("No Dashboard degradation has been observed"),
 		conditions.WithSeverity(common.ConditionSeverityInfo))
-	var requeueAfter time.Duration
+	requeueAfter := availabilityRetryAfter
 	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
 		requeueAfter = cfg.ReconcileInterval
 	}
@@ -144,15 +150,19 @@ func (l xksDashboardLifecycle) removeRHAIIDashboard(
 	dashboard.Status.Distribution = nil
 	dashboard.Status.ModuleStatuses = nil
 	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-		conditions.WithReason("Removed"),
+		conditions.WithReason(conditionReasonRemoved),
 		conditions.WithMessage("RHAII dashboard has been removed via managementState"),
 		conditions.WithSeverity(common.ConditionSeverityInfo))
 	cm.MarkFalse(string(common.ConditionTypeDegraded),
-		conditions.WithReason("Removed"),
+		conditions.WithReason(conditionReasonRemoved),
+		conditions.WithMessage("RHAII dashboard has been removed"),
+		conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(conditionDashboardAvailable,
+		conditions.WithReason(conditionReasonRemoved),
 		conditions.WithMessage("RHAII dashboard has been removed"),
 		conditions.WithSeverity(common.ConditionSeverityInfo))
 	cm.MarkFalse(string(common.ConditionTypeReady),
-		conditions.WithReason("Removed"),
+		conditions.WithReason(conditionReasonRemoved),
 		conditions.WithMessage("RHAII dashboard has been removed via managementState"))
 	dashboard.Status.Phase = common.PhaseNotReady
 	cm.Sort()

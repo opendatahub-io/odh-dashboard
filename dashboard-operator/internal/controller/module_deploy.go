@@ -63,9 +63,9 @@ func standaloneServiceName(_ cluster.Platform, slug string) string {
 
 func mainDashboardDeploymentName(platform cluster.Platform) string {
 	if platform == cluster.SelfManagedRhoai {
-		return "rhods-dashboard"
+		return rhoaiDashboardResourceName
 	}
-	return "odh-dashboard"
+	return odhDashboardResourceName
 }
 
 // --- Federation config hash for rolling restart ---

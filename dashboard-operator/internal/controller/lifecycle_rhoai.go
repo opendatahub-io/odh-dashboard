@@ -16,6 +16,10 @@ func (rhoaiDashboardLifecycle) readyDependents() []string {
 	return openShiftReadyDependents()
 }
 
+func (rhoaiDashboardLifecycle) availabilityTarget() dashboardAvailabilityTarget {
+	return dashboardAvailabilityTarget{deploymentName: rhoaiDashboardResourceName, httpRouteName: rhoaiDashboardResourceName}
+}
+
 func (l rhoaiDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig) (ctrl.Result, error) {
 	r := l.reconciler
 	observabilityConfigErr := r.resolveObservabilityConfiguration(ctx, dashboard, cm)
@@ -38,7 +42,7 @@ func (l rhoaiDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alp
 	}
 	r.setMaaSPortalModuleCondition(cm, dashboard, features.statuses)
 	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, features.statuses, observabilityConfigResolved)
-	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, minNonZeroDuration(portalRetryAfter, configRetryAfter))
+	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, minNonZeroDuration(portalRetryAfter, configRetryAfter), l.availabilityTarget())
 }
 
 func (l rhoaiDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) (ctrl.Result, error) {
@@ -86,14 +90,15 @@ func (l rhoaiDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1
 		return ctrl.Result{RequeueAfter: teardownRetryInterval}, nil
 	}
 
-	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("Removed"), conditions.WithMessage("Dashboard has been removed via managementState"), conditions.WithSeverity(common.ConditionSeverityInfo))
-	cm.MarkFalse(string(common.ConditionTypeDegraded), conditions.WithReason("Removed"), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed via managementState"), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(string(common.ConditionTypeDegraded), conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(conditionDashboardAvailable, conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
 	if !portalManaged {
-		cm.MarkFalse(conditionObservabilityAvailable, conditions.WithReason("Removed"), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
+		cm.MarkFalse(conditionObservabilityAvailable, conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed"), conditions.WithSeverity(common.ConditionSeverityInfo))
 	}
 	portal := effectiveMaaSPortal(dashboard.Spec)
 	if portal == nil || portal.ManagementState != "Managed" {
-		cm.MarkFalse(string(common.ConditionTypeReady), conditions.WithReason("Removed"), conditions.WithMessage("Dashboard has been removed via managementState"))
+		cm.MarkFalse(string(common.ConditionTypeReady), conditions.WithReason(conditionReasonRemoved), conditions.WithMessage("Dashboard has been removed via managementState"))
 	}
 	if cm.IsHappy() {
 		dashboard.Status.Phase = common.PhaseReady
