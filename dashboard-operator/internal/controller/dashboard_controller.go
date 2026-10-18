@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,8 +36,9 @@ import (
 )
 
 const (
-	dashboardFinalizer  = "components.platform.opendatahub.io/cleanup"
-	dashboardFieldOwner = "dashboard-operator"
+	dashboardFinalizer    = "components.platform.opendatahub.io/cleanup"
+	dashboardFieldOwner   = "dashboard-operator"
+	teardownRetryInterval = 10 * time.Second
 )
 
 const conditionObservabilityAvailable = "ObservabilityAvailable"
@@ -648,7 +650,57 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 // teardownManagedResources deletes all resources labeled with
 // platform.opendatahub.io/part-of=dashboard in the applications namespace,
 // and cleans up cross-namespace resources.
-func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, preserveObservability bool) error {
+// teardownResult distinguishes expected asynchronous cleanup from API failures.
+// A pending workload keeps its NetworkPolicies so that isolation remains in
+// force until all of its Pods have terminated.
+type teardownResult struct {
+	Pending bool
+}
+
+type workloadTerminationState int
+
+const (
+	workloadTerminationSafe workloadTerminationState = iota
+	workloadTerminationPending
+)
+
+// confirmDeletableWorkloadsTerminated determines whether it is safe to remove
+// NetworkPolicies for the dashboard resources selected for teardown. It uses a
+// direct API reader: a stale cache must never turn an unknown workload state
+// into permission to remove an isolation policy.
+func (r *DashboardReconciler) confirmDeletableWorkloadsTerminated(
+	ctx context.Context,
+	matchLabels client.MatchingLabels,
+	inNamespace client.InNamespace,
+	operatorResources map[string]bool,
+	shouldPreserve func(client.Object) bool,
+) (workloadTerminationState, error) {
+	reader := r.apiReader()
+	var deployments appsv1.DeploymentList
+	if err := reader.List(ctx, &deployments, matchLabels, inNamespace); err != nil {
+		return workloadTerminationPending, fmt.Errorf("confirming Deployment removal before deleting NetworkPolicies: %w", err)
+	}
+	for i := range deployments.Items {
+		deployment := &deployments.Items[i]
+		if !isOperatorOwned(operatorResources, "Deployment", deployment.Name) && !shouldPreserve(deployment) {
+			return workloadTerminationPending, nil
+		}
+	}
+
+	var pods corev1.PodList
+	if err := reader.List(ctx, &pods, matchLabels, inNamespace); err != nil {
+		return workloadTerminationPending, fmt.Errorf("confirming Pod removal before deleting NetworkPolicies: %w", err)
+	}
+	for i := range pods.Items {
+		if !shouldPreserve(&pods.Items[i]) {
+			return workloadTerminationPending, nil
+		}
+	}
+
+	return workloadTerminationSafe, nil
+}
+
+func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus, preserveObservability, cleanupCrossNamespace bool) (teardownResult, error) {
 	logger := log.FromContext(ctx)
 	maasPortalRequiredModules := maasPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
 	shouldPreserve := func(resource client.Object) bool {
@@ -674,6 +726,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 			return fmt.Errorf("listing %s: %w", kind, err)
 		}
 
+		var deleteErr error
 		items := extractItems(list)
 		for i := range items {
 			if isOperatorOwned(operatorResources, kind, items[i].GetName()) || shouldPreserve(items[i]) {
@@ -681,11 +734,37 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 			}
 			logger.Info("Deleting managed resource", "kind", kind, "name", items[i].GetName())
 			if err := r.Delete(ctx, items[i]); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("deleting %s %s: %w", kind, items[i].GetName(), err)
+				deleteErr = errors.Join(deleteErr, fmt.Errorf("deleting %s %s: %w", kind, items[i].GetName(), err))
 			}
 		}
 
-		return nil
+		return deleteErr
+	}
+	deleteDeployments := func() error {
+		var deployments appsv1.DeploymentList
+		if err := r.List(ctx, &deployments, matchLabels, inNamespace); err != nil {
+			return fmt.Errorf("listing Deployments: %w", err)
+		}
+
+		var deleteErr error
+		for i := range deployments.Items {
+			deployment := &deployments.Items[i]
+			if isOperatorOwned(operatorResources, "Deployment", deployment.Name) || shouldPreserve(deployment) {
+				continue
+			}
+			logger.Info("Deleting managed resource", "kind", "Deployment", "name", deployment.Name)
+			if err := r.Delete(ctx, deployment, client.PropagationPolicy(metav1.DeletePropagationForeground)); client.IgnoreNotFound(err) != nil {
+				deleteErr = errors.Join(deleteErr, fmt.Errorf("deleting Deployment %s: %w", deployment.Name, err))
+			}
+		}
+
+		return deleteErr
+	}
+	var teardownErr error
+	record := func(err error) {
+		if err != nil {
+			teardownErr = errors.Join(teardownErr, err)
+		}
 	}
 
 	// Remove ingress before its backend workloads. Gateway API is optional on
@@ -693,98 +772,55 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	httpRoutes := &unstructured.UnstructuredList{}
 	httpRoutes.SetGroupVersionKind(gatewayv1.SchemeGroupVersion.WithKind("HTTPRouteList"))
 	if err := deleteTyped(httpRoutes, "HTTPRoute", matchLabels, inNamespace); err != nil && !meta.IsNoMatchError(err) {
-		return err
+		record(err)
 	}
 
-	var deployments appsv1.DeploymentList
-	if err := r.List(ctx, &deployments, matchLabels, inNamespace); err != nil {
-		return fmt.Errorf("listing Deployments: %w", err)
-	}
-	for i := range deployments.Items {
-		dep := &deployments.Items[i]
-		if isOperatorOwned(operatorResources, "Deployment", dep.Name) || shouldPreserve(dep) {
-			continue
-		}
-		logger.Info("Deleting managed resource", "kind", "Deployment", "name", dep.Name)
-		if err := r.Delete(ctx, dep); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting Deployment %s: %w", dep.Name, err)
-		}
-	}
+	var pdbs policyv1.PodDisruptionBudgetList
+	record(deleteTyped(&pdbs, "PodDisruptionBudget", matchLabels, inNamespace))
+
+	deploymentCleanupErr := deleteDeployments()
+	record(deploymentCleanupErr)
 
 	var services corev1.ServiceList
-	if err := deleteTyped(&services, "Service", matchLabels, inNamespace); err != nil {
-		return err
-	}
+	record(deleteTyped(&services, "Service", matchLabels, inNamespace))
 
 	var configmaps corev1.ConfigMapList
-	if err := deleteTyped(&configmaps, "ConfigMap", matchLabels, inNamespace); err != nil {
-		return err
-	}
+	record(deleteTyped(&configmaps, "ConfigMap", matchLabels, inNamespace))
 
 	var serviceAccounts corev1.ServiceAccountList
-	if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
-		return fmt.Errorf("listing ServiceAccounts: %w", err)
-	}
-	for i := range serviceAccounts.Items {
-		sa := &serviceAccounts.Items[i]
-		if isOperatorOwned(operatorResources, "ServiceAccount", sa.Name) || shouldPreserve(sa) {
-			continue
-		}
-		logger.Info("Deleting managed resource", "kind", "ServiceAccount", "name", sa.Name)
-		if err := r.Delete(ctx, sa); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting ServiceAccount %s: %w", sa.Name, err)
-		}
-	}
+	record(deleteTyped(&serviceAccounts, "ServiceAccount", matchLabels, inNamespace))
 
 	var secrets corev1.SecretList
-	if err := deleteTyped(&secrets, "Secret", matchLabels, inNamespace); err != nil {
-		return err
-	}
+	record(deleteTyped(&secrets, "Secret", matchLabels, inNamespace))
 
-	var networkPolicies networkingv1.NetworkPolicyList
-	if err := deleteTyped(&networkPolicies, "NetworkPolicy", matchLabels, inNamespace); err != nil {
-		return err
+	// NetworkPolicies are protective controls. Retain them until an
+	// authoritative read confirms that every workload selected for deletion has
+	// terminated. A Deployment can disappear before Kubernetes garbage-collects
+	// its ReplicaSets and Pods.
+	workloadsPending := false
+	if deploymentCleanupErr == nil {
+		termination, err := r.confirmDeletableWorkloadsTerminated(ctx, matchLabels, inNamespace, operatorResources, shouldPreserve)
+		if err != nil {
+			record(err)
+		} else if termination == workloadTerminationPending {
+			workloadsPending = true
+		} else {
+			var networkPolicies networkingv1.NetworkPolicyList
+			record(deleteTyped(&networkPolicies, "NetworkPolicy", matchLabels, inNamespace))
+		}
 	}
 
 	var roles rbacv1.RoleList
-	if err := deleteTyped(&roles, "Role", matchLabels, inNamespace); err != nil {
-		return err
-	}
+	record(deleteTyped(&roles, "Role", matchLabels, inNamespace))
 
 	var roleBindings rbacv1.RoleBindingList
-	if err := deleteTyped(&roleBindings, "RoleBinding", matchLabels, inNamespace); err != nil {
-		return err
-	}
+	record(deleteTyped(&roleBindings, "RoleBinding", matchLabels, inNamespace))
 
 	var clusterRoles rbacv1.ClusterRoleList
-	if err := r.List(ctx, &clusterRoles, matchLabels); err != nil {
-		return fmt.Errorf("listing ClusterRoles: %w", err)
-	}
-	for i := range clusterRoles.Items {
-		cr := &clusterRoles.Items[i]
-		if isOperatorOwned(operatorResources, "ClusterRole", cr.Name) || shouldPreserve(cr) {
-			continue
-		}
-		logger.Info("Deleting managed resource", "kind", "ClusterRole", "name", cr.Name)
-		if err := r.Delete(ctx, cr); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting ClusterRole %s: %w", cr.Name, err)
-		}
-	}
+	record(deleteTyped(&clusterRoles, "ClusterRole", matchLabels))
 
 	var clusterRoleBindings rbacv1.ClusterRoleBindingList
-	if err := r.List(ctx, &clusterRoleBindings, matchLabels); err != nil {
-		return fmt.Errorf("listing ClusterRoleBindings: %w", err)
-	}
-	for i := range clusterRoleBindings.Items {
-		crb := &clusterRoleBindings.Items[i]
-		if isOperatorOwned(operatorResources, "ClusterRoleBinding", crb.Name) || shouldPreserve(crb) {
-			continue
-		}
-		logger.Info("Deleting managed resource", "kind", "ClusterRoleBinding", "name", crb.Name)
-		if err := r.Delete(ctx, crb); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting ClusterRoleBinding %s: %w", crb.Name, err)
-		}
-	}
+	record(deleteTyped(&clusterRoleBindings, "ClusterRoleBinding", matchLabels))
 
 	// ConsoleLinks are cluster-scoped and have no Go type, so they are listed
 	// as unstructured. Only the core dashboard link (rhodslink/odhlink) carries
@@ -792,25 +828,17 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	// ConsoleLink CRD is not installed (non-OpenShift).
 	consoleLinks := &unstructured.UnstructuredList{}
 	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
-	if err := r.List(ctx, consoleLinks, matchLabels); err != nil {
-		if !meta.IsNoMatchError(err) {
-			return fmt.Errorf("listing ConsoleLinks: %w", err)
-		}
-	} else {
-		for i := range consoleLinks.Items {
-			cl := &consoleLinks.Items[i]
-			logger.Info("Deleting managed resource", "kind", "ConsoleLink", "name", cl.GetName())
-			if err := r.Delete(ctx, cl); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("deleting ConsoleLink %s: %w", cl.GetName(), err)
-			}
+	if err := deleteTyped(consoleLinks, "ConsoleLink", matchLabels); err != nil && !meta.IsNoMatchError(err) {
+		record(err)
+	}
+
+	if cleanupCrossNamespace {
+		if err := r.cleanupCrossNamespaceResources(ctx, dashboard, preserveObservability); err != nil {
+			record(fmt.Errorf("cross-namespace cleanup: %w", err))
 		}
 	}
 
-	if err := r.cleanupCrossNamespaceResources(ctx, dashboard, preserveObservability); err != nil {
-		return fmt.Errorf("cross-namespace cleanup: %w", err)
-	}
-
-	return nil
+	return teardownResult{Pending: workloadsPending}, teardownErr
 }
 
 // extractItems returns the slice of client.Object from a supported list.
@@ -823,6 +851,12 @@ func extractItems(list client.ObjectList) []client.Object {
 		}
 		return items
 	case *gatewayv1.HTTPRouteList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
+	case *policyv1.PodDisruptionBudgetList:
 		items := make([]client.Object, len(l.Items))
 		for i := range l.Items {
 			items[i] = &l.Items[i]

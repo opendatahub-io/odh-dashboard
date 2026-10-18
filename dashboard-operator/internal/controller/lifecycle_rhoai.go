@@ -74,9 +74,16 @@ func (l rhoaiDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1
 	portalRetryAfter = minNonZeroDuration(portalRetryAfter, observabilityRetryAfter)
 
 	preserveObservability := portalManaged && (!observabilityConfigResolved || (dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled))
-	if err := r.teardownManagedResources(ctx, dashboard, statuses, preserveObservability); err != nil {
+	teardown, err := r.teardownManagedResources(ctx, dashboard, statuses, preserveObservability, true)
+	if err != nil {
 		r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "TeardownFailed", err)
 		return ctrl.Result{}, fmt.Errorf("failed to tear down RHOAI dashboard resources: %w", err)
+	}
+	if teardown.Pending {
+		if err := r.persistDashboardRemovalPendingStatus(ctx, dashboard, previousStatus, cm); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update removal-in-progress status: %w", err)
+		}
+		return ctrl.Result{RequeueAfter: teardownRetryInterval}, nil
 	}
 
 	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("Removed"), conditions.WithMessage("Dashboard has been removed via managementState"), conditions.WithSeverity(common.ConditionSeverityInfo))

@@ -12,13 +12,9 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
-	policyv1 "k8s.io/api/policy/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
@@ -131,13 +127,16 @@ func (l xksDashboardLifecycle) removeRHAIIDashboard(
 	cm *conditions.Manager,
 ) (ctrl.Result, error) {
 	r := l.reconciler
-	if err := r.teardownManagedResources(ctx, dashboard, nil, false); err != nil {
+	teardown, err := r.teardownManagedResources(ctx, dashboard, nil, false, false)
+	if err != nil {
 		r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "TeardownFailed", err)
 		return ctrl.Result{}, fmt.Errorf("failed to tear down XKS dashboard resources: %w", err)
 	}
-	if err := l.deleteRHAIIIngressResources(ctx); err != nil {
-		r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "TeardownFailed", err)
-		return ctrl.Result{}, fmt.Errorf("failed to tear down XKS ingress resources: %w", err)
+	if teardown.Pending {
+		if err := r.persistDashboardRemovalPendingStatus(ctx, dashboard, previousStatus, cm); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update removal-in-progress status: %w", err)
+		}
+		return ctrl.Result{RequeueAfter: teardownRetryInterval}, nil
 	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
@@ -163,40 +162,4 @@ func (l xksDashboardLifecycle) removeRHAIIDashboard(
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// deleteRHAIIIngressResources handles resource types intentionally absent from
-// the shared core-dashboard teardown. HTTPRoutes and PodDisruptionBudgets are
-// both part of the standalone RHAII bundle and must be removed on soft stop.
-// TODO: Standardize soft-removal cleanup in teardownManagedResources,
-// including HTTPRoutes and PodDisruptionBudgets, across all lifecycles.
-func (l xksDashboardLifecycle) deleteRHAIIIngressResources(ctx context.Context) error {
-	r := l.reconciler
-	matchLabels := client.MatchingLabels{labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind)}
-	inNamespace := client.InNamespace(r.ApplicationsNamespace)
-
-	pdbs := &policyv1.PodDisruptionBudgetList{}
-	if err := r.List(ctx, pdbs, matchLabels, inNamespace); err != nil {
-		return fmt.Errorf("listing PodDisruptionBudgets: %w", err)
-	}
-	for i := range pdbs.Items {
-		if err := r.Delete(ctx, &pdbs.Items[i]); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting PodDisruptionBudget %s: %w", pdbs.Items[i].Name, err)
-		}
-	}
-
-	routes := &gatewayv1.HTTPRouteList{}
-	if err := r.List(ctx, routes, matchLabels, inNamespace); err != nil {
-		if meta.IsNoMatchError(err) {
-			return nil
-		}
-		return fmt.Errorf("listing HTTPRoutes: %w", err)
-	}
-	for i := range routes.Items {
-		if err := r.Delete(ctx, &routes.Items[i]); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting HTTPRoute %s: %w", routes.Items[i].Name, err)
-		}
-	}
-
-	return nil
 }

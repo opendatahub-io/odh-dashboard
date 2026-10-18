@@ -198,3 +198,17 @@ func (r *DashboardReconciler) persistDashboardRemovalStatus(ctx context.Context,
 	cm.Sort()
 	return r.updateStatusIfChanged(ctx, dashboard, previousStatus)
 }
+
+// persistDashboardRemovalPendingStatus reports that ingress has been removed
+// and waits for managed workloads to terminate before their NetworkPolicies can
+// be safely deleted. Lifecycle-specific retained operand conditions are left
+// intact so their current health remains visible during the requeue.
+func (r *DashboardReconciler) persistDashboardRemovalPendingStatus(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) error {
+	const message = "Dashboard removal is in progress; waiting for managed workloads to terminate"
+	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("RemovalInProgress"), conditions.WithMessage(message), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(string(common.ConditionTypeDegraded), conditions.WithReason("RemovalInProgress"), conditions.WithMessage(message), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(conditionDashboardAvailable, conditions.WithReason("RemovalInProgress"), conditions.WithMessage(message), conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkFalse(string(common.ConditionTypeReady), conditions.WithReason("RemovalInProgress"), conditions.WithMessage(message))
+	dashboard.Status.Phase = common.PhaseNotReady
+	return r.persistDashboardRemovalStatus(ctx, dashboard, previousStatus, cm)
+}
