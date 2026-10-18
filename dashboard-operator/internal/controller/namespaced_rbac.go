@@ -30,7 +30,7 @@ const (
 // dashboardSAName returns the dashboard ServiceAccount name for the given platform.
 func dashboardSAName(platform cluster.Platform) string {
 	switch platform {
-	case cluster.SelfManagedRhoai, cluster.ManagedRhoai:
+	case cluster.SelfManagedRhoai:
 		return dashboardSANameRHOAI
 	default:
 		return dashboardSANameODH

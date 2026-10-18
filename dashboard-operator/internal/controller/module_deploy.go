@@ -62,7 +62,7 @@ func standaloneServiceName(_ cluster.Platform, slug string) string {
 }
 
 func mainDashboardDeploymentName(platform cluster.Platform) string {
-	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
+	if platform == cluster.SelfManagedRhoai {
 		return "rhods-dashboard"
 	}
 	return "odh-dashboard"

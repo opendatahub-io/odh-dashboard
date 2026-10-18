@@ -15,13 +15,11 @@ import (
 
 var sectionTitle = map[cluster.Platform]string{
 	cluster.SelfManagedRhoai: "OpenShift Self Managed Services",
-	cluster.ManagedRhoai:     "OpenShift Managed Services",
 	cluster.OpenDataHub:      "OpenShift Open Data Hub",
 }
 
 var platformPaths = map[cluster.Platform]string{
 	cluster.SelfManagedRhoai: "/rhoai",
-	cluster.ManagedRhoai:     "/not-supported",
 	cluster.OpenDataHub:      "/odh",
 }
 

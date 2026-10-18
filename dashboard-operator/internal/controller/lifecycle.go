@@ -36,7 +36,7 @@ func openShiftReadyDependents() []string {
 
 func (r *DashboardReconciler) dashboardLifecycle() dashboardLifecycle {
 	switch r.Platform {
-	case cluster.SelfManagedRhoai, cluster.ManagedRhoai:
+	case cluster.SelfManagedRhoai:
 		return rhoaiDashboardLifecycle{reconciler: r}
 	case cluster.XKS:
 		return xksDashboardLifecycle{reconciler: r}

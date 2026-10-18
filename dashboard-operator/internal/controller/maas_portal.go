@@ -249,7 +249,7 @@ func (r *DashboardReconciler) reconcileMaaSPortalAvailability(ctx context.Contex
 }
 
 func maasPortalSupportedPlatform(platform cluster.Platform) bool {
-	return platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai
+	return platform == cluster.SelfManagedRhoai
 }
 
 func (r *DashboardReconciler) maasPortalManaged(dashboard *v1alpha1.Dashboard) bool {

@@ -22,14 +22,15 @@ func (l rhoaiDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alp
 	observabilityConfigResolved := observabilityConfigErr == nil
 	// MaaS Portal reconciliation below establishes its current condition.
 	cm.ClearCondition(conditionMaaSPortalAvailable)
-	if err := r.reconcileRHOAIDashboardConfigDefaults(ctx); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("DashboardConfigDefaultFailed"), conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to reconcile RHOAI dashboard config defaults: %w", err)
-	}
 	coreManifest := openShiftManifestInfo(r.ManifestsBasePath, r.Platform)
 	observabilityManifest := openShiftObservabilityManifestInfo(r.ManifestsBasePath, r.Platform)
 	if err := r.reconcileOpenShiftCore(ctx, dashboard, cm, coreManifest); err != nil {
 		return ctrl.Result{}, err
+	}
+	configRetryAfter, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(ctx)
+	if err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("DashboardConfigDefaultFailed"), conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to reconcile RHOAI dashboard config defaults: %w", err)
 	}
 	features, err := r.reconcileOpenShiftFeatures(ctx, dashboard, cm, observabilityConfigResolved, observabilityManifest)
 	if err != nil {
@@ -37,7 +38,7 @@ func (l rhoaiDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alp
 	}
 	r.setMaaSPortalModuleCondition(cm, dashboard, features.statuses)
 	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, features.statuses, observabilityConfigResolved)
-	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, portalRetryAfter)
+	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, minNonZeroDuration(portalRetryAfter, configRetryAfter))
 }
 
 func (l rhoaiDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) (ctrl.Result, error) {

@@ -54,7 +54,7 @@ const (
 
 func (r *DashboardReconciler) monitoringNamespace() string {
 	switch r.Platform {
-	case cluster.SelfManagedRhoai, cluster.ManagedRhoai:
+	case cluster.SelfManagedRhoai:
 		return rhoaiMonitoringNamespace
 	default:
 		return r.ApplicationsNamespace
@@ -141,7 +141,7 @@ func remapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, appli
 }
 
 func dataConnectHubGatewayRBACForPlatform(platform cluster.Platform) (string, string) {
-	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
+	if platform == cluster.SelfManagedRhoai {
 		return dchRhoaiGatewayRBACName, dataScienceGatewayNamespace
 	}
 

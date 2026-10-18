@@ -50,7 +50,6 @@ func TestMainDashboardDeploymentName(t *testing.T) {
 	}{
 		{name: "OpenDataHub", platform: cluster.OpenDataHub, want: "odh-dashboard"},
 		{name: "SelfManagedRhoai", platform: cluster.SelfManagedRhoai, want: "rhods-dashboard"},
-		{name: "ManagedRhoai", platform: cluster.ManagedRhoai, want: "rhods-dashboard"},
 		{name: "XKS falls back to ODH", platform: cluster.XKS, want: "odh-dashboard"},
 	}
 
@@ -60,6 +59,32 @@ func TestMainDashboardDeploymentName(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestBuildFederationConfigMap_ManagedRhoaiTargetsODHDashboardService(t *testing.T) {
+	scheme := testScheme(t)
+	reconciler := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(scheme).Build(),
+		Scheme:                scheme,
+		Platform:              cluster.ManagedRhoai,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	configMap, err := ctrlpkg.BuildFederationConfigMap(reconciler, nil, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(configMap.Data["module-federation-config.json"]), &entries))
+	for _, entry := range entries {
+		if entry["name"] != "coreBff" {
+			continue
+		}
+		proxyServices := entry["proxyService"].([]interface{})
+		target := proxyServices[0].(map[string]interface{})["service"].(map[string]interface{})
+		assert.Equal(t, "odh-dashboard", target["name"])
+		return
+	}
+	t.Fatal("coreBff federation entry is missing")
 }
 
 func allDeployedStatuses() map[string]v1alpha1.ModuleStatus {

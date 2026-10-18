@@ -158,8 +158,8 @@ func (r *DashboardReconciler) mlflowEmbeddedFederationEntry(statuses map[string]
 // mainDashboardServiceName returns the platform-specific name of the main
 // dashboard Service that exposes the core-bff port.
 func mainDashboardServiceName(platform cluster.Platform) string {
-	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
-		return "rhods-dashboard"
+	if platform == cluster.SelfManagedRhoai {
+		return rhoaiDashboardResourceName
 	}
-	return "odh-dashboard"
+	return odhDashboardResourceName
 }

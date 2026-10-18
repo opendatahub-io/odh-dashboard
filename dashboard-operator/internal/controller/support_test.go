@@ -23,7 +23,6 @@ func TestOpenShiftManifestInfo(t *testing.T) {
 		wantSource string
 	}{
 		{name: "SelfManagedRhoai", platform: cluster.SelfManagedRhoai, wantSource: "/rhoai"},
-		{name: "ManagedRhoai", platform: cluster.ManagedRhoai, wantSource: "/not-supported"},
 		{name: "OpenDataHub", platform: cluster.OpenDataHub, wantSource: "/odh"},
 		{name: "Unknown falls back to OpenDataHub", platform: cluster.Platform("unknown"), wantSource: "/odh"},
 	}

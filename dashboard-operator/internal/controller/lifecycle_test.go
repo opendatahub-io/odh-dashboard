@@ -20,7 +20,6 @@ func TestDashboardLifecycleSelection(t *testing.T) {
 	}{
 		{name: "ODH", platform: cluster.OpenDataHub, want: odhDashboardLifecycle{}},
 		{name: "self-managed RHOAI", platform: cluster.SelfManagedRhoai, want: rhoaiDashboardLifecycle{}},
-		{name: "managed RHOAI", platform: cluster.ManagedRhoai, want: rhoaiDashboardLifecycle{}},
 		{name: "XKS", platform: cluster.XKS, want: xksDashboardLifecycle{}},
 	}
 

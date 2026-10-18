@@ -342,16 +342,6 @@ func TestFilterAndRemapDataConnectHubGatewayRBAC(t *testing.T) {
 		assert.Equal(t, "redhat-ods-applications", subjects[0].(map[string]interface{})["namespace"])
 	})
 
-	t.Run("Managed RHOAI keeps only RHOAI gateway resources", func(t *testing.T) {
-		result := filterAndRemapDataConnectHubGatewayRBAC(makeResources(), "redhat-ods-applications", cluster.ManagedRhoai)
-
-		require.Len(t, result, 3)
-		assert.Equal(t, dchRhoaiGatewayRBACName, result[0].GetName())
-		assert.Equal(t, dataScienceGatewayNamespace, result[0].GetNamespace())
-		assert.Equal(t, dchRhoaiGatewayRBACName, result[1].GetName())
-		assert.Equal(t, dataScienceGatewayNamespace, result[1].GetNamespace())
-	})
-
 	t.Run("ODH keeps only ODH gateway resources in opendatahub", func(t *testing.T) {
 		result := filterAndRemapDataConnectHubGatewayRBAC(makeResources(), "opendatahub", cluster.OpenDataHub)
 
@@ -421,12 +411,6 @@ func TestMonitoringNamespace(t *testing.T) {
 		{
 			name:                  "SelfManagedRhoai returns hardcoded monitoring namespace",
 			platform:              cluster.SelfManagedRhoai,
-			applicationsNamespace: "redhat-ods-applications",
-			want:                  "redhat-ods-monitoring",
-		},
-		{
-			name:                  "ManagedRhoai returns hardcoded monitoring namespace",
-			platform:              cluster.ManagedRhoai,
 			applicationsNamespace: "redhat-ods-applications",
 			want:                  "redhat-ods-monitoring",
 		},
