@@ -56,6 +56,8 @@ describe('Workbench Storage Classes Tests', () => {
   let mountPathB: string;
   let mountPathC: string;
 
+  let isS390x: boolean;
+
   const rwoLabel = AccessMode.RWO;
   const rwxLabel = AccessMode.RWX;
   const roxLabel = AccessMode.ROX;
@@ -65,8 +67,12 @@ describe('Workbench Storage Classes Tests', () => {
     return loadWBStorageClassesFixture('e2e/dataScienceProjects/testWorkbenchStorageClasses.yaml')
       .then((fixtureData: WBStorageClassesTestData) => {
         cy.log('Loaded test data from fixtures');
+        isS390x = !!fixtureData.isS390x;
         projectName = `${fixtureData.projectName}-${uuid}`;
-        storageClassRWO = `${fixtureData.storageClassRWO}-${uuid}`;
+        // Pre-existing on s390x — use verbatim; provisioned elsewhere so needs UUID.
+        storageClassRWO = isS390x
+          ? fixtureData.storageClassRWO
+          : `${fixtureData.storageClassRWO}-${uuid}`;
         storageClassMultiAccess = `${fixtureData.storageClassMultiAccess}-${uuid}`;
         workbenchNameRWO = fixtureData.workbenchRWO;
         workbenchNameMultiA = fixtureData.workbenchMultiAccessA;
@@ -86,12 +92,20 @@ describe('Workbench Storage Classes Tests', () => {
       })
       .then(() => {
         cy.step('Provisioning storage class');
-        provisionDualAccessStorageClass(storageClassRWO);
-        provisionMultiAccessStorageClass(storageClassMultiAccess);
-        // Only add if not already in the array (prevent duplicates on retry)
-        if (!createdStorageClasses.includes(storageClassRWO)) {
-          createdStorageClasses.push(storageClassRWO);
+        // On s390x the RWO StorageClass is pre-existing — skip provisioning.
+        if (isS390x) {
+          cy.log(
+            `s390x: skipping RWO StorageClass provisioning — using pre-existing: ${storageClassRWO}`,
+          );
+        } else {
+          provisionDualAccessStorageClass(storageClassRWO);
+          // Guard against duplicates on retries
+          if (!createdStorageClasses.includes(storageClassRWO)) {
+            createdStorageClasses.push(storageClassRWO);
+          }
         }
+        provisionMultiAccessStorageClass(storageClassMultiAccess);
+        // Guard against duplicates on retries
         if (!createdStorageClasses.includes(storageClassMultiAccess)) {
           createdStorageClasses.push(storageClassMultiAccess);
         }
@@ -123,7 +137,7 @@ describe('Workbench Storage Classes Tests', () => {
   it(
     'Create workbench with RWO storage and verify storage attachment',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@Storage', '@ODS-1931', '@Dashboard', '@Workbenches'],
+      tags: ['@Smoke', '@SmokeSet2', '@Storage', '@ODS-1931', '@Dashboard', '@Workbenches'],
     },
     () => {
       let selectedImageStream: string;
@@ -153,12 +167,14 @@ describe('Workbench Storage Classes Tests', () => {
           createSpawnerPage.selectHardwareProfile(hardwareProfileName);
           cy.step('Attach RWO storage to workbench');
           createSpawnerPage.findAttachExistingStorageButton().click();
+          attachExistingStorageModal.selectExistingPersistentStorage(storageNameRWO);
           attachExistingStorageModal.findStandardPathInput().fill(mountPathA);
           attachExistingStorageModal.findAttachButton().click();
           createSpawnerPage.findSubmitButton().click();
 
           cy.step('Verify workbench is running with attached RWO storage');
           const notebookRow = workbenchPage.getNotebookRow(workbenchNameRWO);
+          notebookRow.find().should('exist');
 
           cy.step('Verify RWO storage details in workbench edit view');
           notebookRow.findKebab().click();
@@ -166,7 +182,11 @@ describe('Workbench Storage Classes Tests', () => {
 
           cy.step('Verify storage access mode in table');
           const storageTable = createSpawnerPage.getStorageTable();
-          storageTable.verifyStorageAccessMode(storageNameRWO, AccessMode.RWO);
+          if (isS390x) {
+            storageTable.verifyStorageAccessModeAfterNav(storageNameRWO, AccessMode.RWO, 15000);
+          } else {
+            storageTable.verifyStorageAccessMode(storageNameRWO, AccessMode.RWO);
+          }
 
           createSpawnerPage.findSubmitButton().click();
         },
@@ -177,7 +197,7 @@ describe('Workbench Storage Classes Tests', () => {
   it(
     'Display access mode information when selecting storage to attach to workbench',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@Storage', '@Dashboard', '@Workbenches', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet2', '@Storage', '@Dashboard', '@Workbenches', '@NonConcurrent'],
     },
     () => {
       cy.step('Create storages with different access modes');
@@ -262,7 +282,7 @@ describe('Workbench Storage Classes Tests', () => {
   it(
     'Create new storage with different access modes during workbench creation',
     {
-      tags: ['@Smoke', '@SmokeSet1', '@Storage', '@Dashboard', '@Workbenches', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet2', '@Storage', '@Dashboard', '@Workbenches', '@NonConcurrent'],
     },
     () => {
       cy.step('Open workbench creation form');

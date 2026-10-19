@@ -81,6 +81,14 @@ type MaaSBFFModelsResponse struct {
 	Data MaaSBFFModelsData `json:"data"`
 }
 
+// MaaSBFFGatewayURLResponse is the MaaS BFF response for the externally
+// reachable MaaS API base URL.
+type MaaSBFFGatewayURLResponse struct {
+	Data struct {
+		URL string `json:"url"`
+	} `json:"data"`
+}
+
 // MaaSBFFAPIKeyRequestData represents the payload inside the envelope for API key creation.
 type MaaSBFFAPIKeyRequestData struct {
 	Name         string `json:"name"`

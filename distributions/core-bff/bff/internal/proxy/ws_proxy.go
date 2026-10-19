@@ -168,19 +168,25 @@ func bearerSubprotocol(token string) string {
 	return "base64url.bearer.authorization.k8s.io." + base64.RawURLEncoding.EncodeToString([]byte(token))
 }
 
-func negotiatedSubprotocolHeader(targetConn *websocket.Conn, clientSubprotocols []string) http.Header {
+// clientUpgradeResponseHeader builds the response header map for the browser-facing
+// WebSocket 101 response. The gorilla upgrader writes the 101 directly and does not
+// include headers already queued on the ResponseWriter, so security-relevant headers
+// must be supplied here explicitly. Unrelated queued headers (CSP, Set-Cookie, etc.)
+// are deliberately excluded — matching OpenShift Console's approach (console#17376).
+func clientUpgradeResponseHeader(targetConn *websocket.Conn, clientSubprotocols []string) http.Header {
+	h := http.Header{}
+	h.Set(constants.HeaderXContentTypeOptions, constants.XContentTypeOptionsNoSniff)
+
 	sp := targetConn.Subprotocol()
-	if sp == "" {
-		return nil
-	}
-	for _, csp := range clientSubprotocols {
-		if csp == sp {
-			h := http.Header{}
-			h.Set(constants.HeaderSecWebSocketProto, sp)
-			return h
+	if sp != "" {
+		for _, csp := range clientSubprotocols {
+			if csp == sp {
+				h.Set(constants.HeaderSecWebSocketProto, sp)
+				break
+			}
 		}
 	}
-	return nil
+	return h
 }
 
 func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *websocket.Conn) {
@@ -277,7 +283,7 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientConn, upgradeErr := p.upgrader.Upgrade(w, r, negotiatedSubprotocolHeader(targetConn, clientSubprotocols))
+	clientConn, upgradeErr := p.upgrader.Upgrade(w, r, clientUpgradeResponseHeader(targetConn, clientSubprotocols))
 	if upgradeErr != nil {
 		p.logger.Error("WebSocket upgrade failed", slog.Any("error", upgradeErr))
 		targetConn.Close()

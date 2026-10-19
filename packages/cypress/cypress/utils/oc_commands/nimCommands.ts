@@ -51,30 +51,64 @@ export const applyNIMApplication = (
 };
 
 /**
- * Deletes odh-nim-account in the APPLICATIONS_NAMESPACE.
+ * Deletes odh-nim-account in the APPLICATIONS_NAMESPACE, then waits until it is gone.
+ * Uses --wait=false on delete so a stuck finalizer cannot hang indefinitely; a bounded
+ * `oc wait --for=delete` follows (same pattern as waitForNIMDeploymentResourceDeletion).
+ *
  * @param namespace The namespace where account exist.
+ * @param timeout Max time to wait for the Account CR to be removed (default 120s).
  * @returns A Cypress chainable that performs the account deletion process.
  */
 export const deleteNIMAccount = (
   namespace: string = Cypress.env('APPLICATIONS_NAMESPACE'),
+  timeout = 120000,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc delete account odh-nim-account -n ${namespace}`;
+  const ocCommand = `oc delete account odh-nim-account -n ${namespace} --ignore-not-found=true --wait=false`;
   cy.log(`Executing: ${ocCommand}`);
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.exitCode === 0) {
-      // Account was successfully deleted
-      cy.log(`Account deletion: ${result.stdout}`);
-    } else if (result.stderr.includes('not found')) {
-      // Account doesn't exist, which is fine
-      cy.log('✅ NIM account does not exist - no cleanup needed');
-    } else {
-      // Some other error occurred
-      const maskedStderr = maskSensitiveInfo(result.stderr);
-      cy.log(`⚠️  Warning: Failed to delete NIM account: ${maskedStderr}`);
-      cy.log('Continuing with test execution...');
-    }
-  });
+  return cy
+    .exec(ocCommand, { failOnNonZeroExit: false, timeout: 30000 })
+    .then((result: CommandLineResult) => {
+      const deleteNotFound =
+        result.stderr.includes('not found') ||
+        result.stdout.includes('not found') ||
+        result.stderr.includes('NotFound');
+
+      if (result.exitCode !== 0 && !deleteNotFound) {
+        throw new Error(
+          `Failed to delete NIM account: ${maskSensitiveInfo(result.stderr || result.stdout)}`,
+        );
+      }
+
+      cy.log(`Account deletion: ${result.stdout || result.stderr || 'requested'}`);
+
+      // Bounded wait so setup does not race with a terminating Account CR
+      const waitSeconds = Math.floor(timeout / 1000);
+      cy.log(`Waiting for odh-nim-account deletion (timeout ${waitSeconds}s)`);
+      return cy
+        .exec(
+          `oc wait --for=delete account/odh-nim-account -n ${namespace} --timeout=${waitSeconds}s`,
+          { failOnNonZeroExit: false, timeout },
+        )
+        .then((waitResult: CommandLineResult) => {
+          const alreadyGone =
+            waitResult.exitCode === 0 ||
+            waitResult.stderr.includes('not found') ||
+            waitResult.stderr.includes('NotFound') ||
+            waitResult.stderr.includes('no matching resources');
+
+          if (alreadyGone) {
+            cy.log('✅ NIM account is gone');
+            return cy.wrap(waitResult);
+          }
+
+          throw new Error(
+            `NIM account was not removed within ${waitSeconds}s. Check finalizers: oc get account odh-nim-account -n ${namespace} -o yaml. ${maskSensitiveInfo(
+              waitResult.stderr || waitResult.stdout,
+            )}`,
+          );
+        });
+    });
 };
 
 /**

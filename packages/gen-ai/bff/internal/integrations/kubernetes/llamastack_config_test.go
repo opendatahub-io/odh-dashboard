@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1197,8 +1198,8 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	assert.Equal(t, expectedAPIs, config.APIs)
 
 	require.Len(t, config.Providers.FileProcessors, 1)
-	assert.Equal(t, "pypdf", config.Providers.FileProcessors[0].ProviderID)
-	assert.Equal(t, "inline::pypdf", config.Providers.FileProcessors[0].ProviderType)
+	assert.Equal(t, "auto", config.Providers.FileProcessors[0].ProviderID)
+	assert.Equal(t, "inline::auto", config.Providers.FileProcessors[0].ProviderType)
 
 	require.Len(t, config.Providers.Responses, 1)
 	assert.Equal(t, "builtin", config.Providers.Responses[0].ProviderID)
@@ -1264,7 +1265,7 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, yamlStr, "inline::builtin")
 		assert.Contains(t, yamlStr, "inline::file-search")
 		assert.NotContains(t, yamlStr, "inline::milvus")
-		assert.Contains(t, yamlStr, "inline::pypdf")
+		assert.Contains(t, yamlStr, "inline::auto")
 		assert.Contains(t, yamlStr, "default_provider_id: pgvector")
 	})
 
@@ -1276,7 +1277,7 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, jsonStr, "inline::builtin")
 		assert.Contains(t, jsonStr, "inline::file-search")
 		assert.NotContains(t, jsonStr, "inline::milvus")
-		assert.Contains(t, jsonStr, "inline::pypdf")
+		assert.Contains(t, jsonStr, "inline::auto")
 		assert.Contains(t, jsonStr, "\"default_provider_id\":\"pgvector\"")
 	})
 }
@@ -1440,6 +1441,9 @@ func TestNewPassthroughProvider(t *testing.T) {
 	assert.True(t, ok, "forward_headers should be a map")
 	assert.Equal(t, "X-MaaS-Subscription", fh["maas_subscription"])
 	assert.Equal(t, "X-Inference-Model-Source-Type", fh["inference_model_source_type"])
+	assert.Equal(t, "traceparent", fh[constants.TraceParentHeader])
+	assert.Equal(t, "tracestate", fh[constants.TraceStateHeader])
+	assert.Equal(t, "baggage", fh[constants.BaggageHeader])
 }
 
 func TestHasPassthroughProvider(t *testing.T) {
@@ -1472,6 +1476,17 @@ func TestHasPassthroughProvider(t *testing.T) {
 
 		assert.False(t, config.HasPassthroughProvider(matchingURL),
 			"a stale passthrough provider must be updated to forward model source type")
+	})
+
+	t.Run("returns false when trace context forwarding is absent", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		provider := NewPassthroughProvider("genai-bff-proxy", matchingURL)
+		forwardHeaders := provider.Config["forward_headers"].(map[string]interface{})
+		delete(forwardHeaders, constants.TraceParentHeader)
+		config.AddInferenceProvider(provider)
+
+		assert.False(t, config.HasPassthroughProvider(matchingURL),
+			"a stale passthrough provider must be updated to forward trace context")
 	})
 
 	t.Run("returns false when only vllm providers exist", func(t *testing.T) {

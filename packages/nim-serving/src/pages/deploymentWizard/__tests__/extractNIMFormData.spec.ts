@@ -1,4 +1,5 @@
 import { ModelLocationType } from '@odh-dashboard/model-serving/shared/types/form-data';
+import { EnvironmentVariableType } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { NIMDeployment } from '../../../api/nimservices/types';
 import { NIM_SERVICE_ID, NIM_MODEL_TYPE } from '../../../constants';
 import {
@@ -106,8 +107,8 @@ describe('extractNIMEnvironmentVariables', () => {
     expect(result).toEqual({
       enabled: true,
       variables: [
-        { name: 'NIM_LOG_LEVEL', value: 'DEBUG' },
-        { name: 'CUDA_VISIBLE_DEVICES', value: '0,1' },
+        { type: EnvironmentVariableType.Value, name: 'NIM_LOG_LEVEL', value: 'DEBUG' },
+        { type: EnvironmentVariableType.Value, name: 'CUDA_VISIBLE_DEVICES', value: '0,1' },
       ],
     });
   });
@@ -127,7 +128,40 @@ describe('extractNIMEnvironmentVariables', () => {
       env: [{ name: 'KEY' }],
     });
     const result = extractNIMEnvironmentVariables(deployment);
-    expect(result?.variables[0].value).toBe('');
+    expect(result?.variables[0]).toEqual({
+      type: EnvironmentVariableType.Value,
+      name: 'KEY',
+      value: '',
+    });
+  });
+
+  it('should extract secretKeyRef env vars', () => {
+    const deployment = makeDeployment({
+      env: [
+        {
+          name: 'HF_TOKEN',
+          valueFrom: {
+            secretKeyRef: {
+              name: 'hf-secret',
+              key: 'HF_TOKEN',
+            },
+          },
+        },
+      ],
+    });
+
+    const result = extractNIMEnvironmentVariables(deployment);
+    expect(result).toEqual({
+      enabled: true,
+      variables: [
+        {
+          type: EnvironmentVariableType.Secret,
+          name: 'HF_TOKEN',
+          secretName: 'hf-secret',
+          secretKey: 'HF_TOKEN',
+        },
+      ],
+    });
   });
 });
 

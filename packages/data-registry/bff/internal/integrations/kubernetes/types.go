@@ -12,7 +12,6 @@ type ServiceDetails struct {
 
 type RequestIdentity struct {
 	UserID string
-	Groups []string
 	Token  string
 }
 

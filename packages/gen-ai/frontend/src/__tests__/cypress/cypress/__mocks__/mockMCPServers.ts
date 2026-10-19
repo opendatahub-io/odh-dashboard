@@ -10,6 +10,7 @@ export type MCPServer = {
   description: string;
   logo: string | null;
   status: 'healthy' | 'error' | 'unknown';
+  version: string;
   source?: 'registry' | 'configmap';
 };
 
@@ -39,6 +40,7 @@ export const mockMCPServer = ({
   status = 'healthy',
   description = 'Test MCP server',
   logo = null,
+  version = '',
   source,
 }: Partial<MCPServer> = {}): MCPServer => ({
   name,
@@ -47,6 +49,7 @@ export const mockMCPServer = ({
   description,
   logo,
   status,
+  version,
   ...(source !== undefined && { source }),
 });
 
@@ -95,6 +98,7 @@ export const mockMCPServersWithRegistry = (
       status: 'healthy',
       description: 'MCP server from registry',
       source: 'registry',
+      version: '3',
     }),
   ];
   const cmServers = configmapServers ?? [

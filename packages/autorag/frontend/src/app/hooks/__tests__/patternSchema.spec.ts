@@ -33,7 +33,7 @@ const canonicalPattern = {
   ...baseFields,
   settings: {
     ...baseSettings,
-    vector_store_binding: {
+    store_binding: {
       provider_type: 'milvus',
       collection_name: 'col0',
     },
@@ -77,11 +77,47 @@ describe('CanonicalPatternSchema', () => {
       ...canonicalPattern,
       settings: {
         ...canonicalPattern.settings,
-        vector_store_binding: { provider_type: 'milvus', collection_name: 'run-collection' },
+        store_binding: { provider_type: 'milvus', collection_name: 'run-collection' },
       },
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it('should reject legacy provider aliases in canonical store_binding', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        store_binding: { provider_type: 'remote::milvus' },
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('should normalize legacy provider aliases in vector_store_binding', () => {
+    const result = CanonicalPatternSchema.safeParse({
+      ...canonicalPattern,
+      settings: {
+        ...canonicalPattern.settings,
+        vector_store_binding: {
+          provider_type: 'remote::pgvector',
+          vector_store_id: 'legacy-collection',
+          namespace: 'tenant-a',
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.settings.vector_store_binding).toMatchObject({
+        provider_type: 'pgvector',
+        vector_store_id: 'legacy-collection',
+        collection_name: 'legacy-collection',
+        namespace: 'tenant-a',
+      });
+    }
   });
 
   it('should normalize a legacy vector_store_id in a canonical artifact', () => {
@@ -131,7 +167,7 @@ describe('CanonicalPatternSchema', () => {
     }
   });
 
-  it('should reject a canonical binding with neither collection field', () => {
+  it('should accept a provider-only canonical binding', () => {
     const result = CanonicalPatternSchema.safeParse({
       ...canonicalPattern,
       settings: {
@@ -140,7 +176,7 @@ describe('CanonicalPatternSchema', () => {
       },
     });
 
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it('should preserve nullable canonical aggregate scores', () => {

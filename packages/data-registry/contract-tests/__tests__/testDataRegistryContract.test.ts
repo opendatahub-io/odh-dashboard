@@ -44,22 +44,40 @@ describe('Data Registry BFF Contract Tests', () => {
     });
   });
 
-  describe('Data Registry Proxy Routes - Upstream Unavailable', () => {
-    it('should return 503 for list projects when upstream is unavailable', async () => {
-      const result = await apiClient.get('/api/v1/projects');
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.status).toBe(503);
-        expect({
-          status: result.error.status,
-          data: result.error.data,
-        }).toMatchContract(bffSchema, {
-          ref: '#/components/responses/ServiceUnavailable/content/application~1json/schema',
-          status: 503,
-        });
+  describe('Connection lookup', () => {
+    it('should return the active source using the ConnectionRef contract', async () => {
+      const result = await apiClient.get<{
+        data: { type: string; id?: string; secret_name?: string }[];
+      }>('/api/v1/connections/default');
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      if (result.success && process.env.BFF_DCH_SERVICE_NAME) {
+        expect(result.data.data).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ type: 'dch', id: '550e8400-e29b-41d4-a716-446655440000' }),
+          ]),
+        );
       }
     });
 
+    it('should reject an invalid project namespace', async () => {
+      const result = await apiClient.get('/api/v1/connections/Invalid_Project');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          bffSchema,
+          {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          },
+        );
+      }
+    });
+  });
+
+  describe('Data Registry Proxy Routes - Upstream Unavailable', () => {
     it('should return 503 for get config when upstream is unavailable', async () => {
       const result = await apiClient.get('/api/v1/config');
       expect(result.success).toBe(false);
@@ -230,7 +248,7 @@ describe('Data Registry BFF Contract Tests', () => {
     });
 
     it('should return 400 for proxy routes without auth headers', async () => {
-      const result = await unauthenticatedClient.get('/api/v1/projects');
+      const result = await unauthenticatedClient.get('/api/v1/test-project/search?query=sales');
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.status).toBe(400);

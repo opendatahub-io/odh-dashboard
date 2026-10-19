@@ -16,6 +16,7 @@ import type { DeploymentMethodSelectFieldType } from '../src/components/deployme
 import type { ModelCapabilitiesFieldType } from '../src/components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField';
 
 const ADMIN_USER = 'ADMIN_USER';
+const BIDIRECTIONAL_YAML_WIZARD_GA = 'bidirectionalYamlWizardGa';
 
 // Base path of the Model deployment settings tabbed page.
 const MODEL_DEPLOYMENT_SETTINGS_PATH =
@@ -99,6 +100,13 @@ const extensions: (
     properties: {
       id: SupportedArea.MODEL_SERVING,
       featureFlags: ['disableModelServing'],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: BIDIRECTIONAL_YAML_WIZARD_GA,
+      devFlags: [BIDIRECTIONAL_YAML_WIZARD_GA],
     },
   },
   {
@@ -190,6 +198,7 @@ const extensions: (
       id: 'model-deployment-settings',
       title: 'Model deployment settings',
       href: MODEL_DEPLOYMENT_SETTINGS_PATH,
+      breadcrumbTabId: 'general-settings',
       path: `${MODEL_DEPLOYMENT_SETTINGS_PATH}/*`,
       section: 'settings-model-resources-and-operations',
       group: '1_model-resources',

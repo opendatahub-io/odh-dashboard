@@ -1,12 +1,12 @@
 import { EvaluationJob } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import {
-  formatAsPercentage,
   getBenchmarkDisplayName,
   getBenchmarkName,
   getBenchmarkResultScore,
   getEvaluationName,
   getJobBenchmarks,
+  getResultScore,
 } from '~/app/utilities/evaluationUtils';
 
 export type BenchmarkSelection = {
@@ -125,26 +125,20 @@ export const getComparableRunsForJob = (job: EvaluationJob): ComparableRun[] => 
 export const isBenchmarkSuiteRun = (job: EvaluationJob): boolean =>
   getJobBenchmarks(job).length > 1;
 
-export type CompareRunType = 'Single benchmark' | 'Benchmark suite';
+export type CompareRunType = 'Single benchmark' | 'Collection';
 
 export const COMPARE_RUNS_PAGE_TITLE = 'Compare runs';
 
 export const COMPARE_CHILD_RUN_TYPE = 'Benchmark';
 
 export const getCompareRunType = (job: EvaluationJob): CompareRunType =>
-  isBenchmarkSuiteRun(job) ? 'Benchmark suite' : 'Single benchmark';
+  isBenchmarkSuiteRun(job) ? 'Collection' : 'Single benchmark';
 
 /** Evaluation run column for parent rows. */
 export const getCompareParentEvaluationRunLabel = (job: EvaluationJob): string =>
   getEvaluationName(job);
 
-export const getCompareParentResultScore = (job: EvaluationJob): string => {
-  const score = job.results.test?.score;
-  if (score != null && Number.isFinite(score)) {
-    return formatAsPercentage(score);
-  }
-  return '-';
-};
+export const getCompareParentResultScore = (job: EvaluationJob): string => getResultScore(job);
 
 export const getCompareBenchmarkResultScore = (
   job: EvaluationJob,

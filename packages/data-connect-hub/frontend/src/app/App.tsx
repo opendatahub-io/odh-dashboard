@@ -19,6 +19,7 @@ import {
   useNamespaceSelector,
   useSettings,
 } from 'mod-arch-core';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
 
@@ -94,7 +95,10 @@ const App: React.FC = () => {
   ) : (
     <AppContext.Provider value={contextValue}>
       <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
-        <AppRoutes />
+        <Routes>
+          <Route path="/main-view/*" element={<AppRoutes />} />
+          <Route path="*" element={<Navigate to="/main-view" replace />} />
+        </Routes>
       </Page>
     </AppContext.Provider>
   );

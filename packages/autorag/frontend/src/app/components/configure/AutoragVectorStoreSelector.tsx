@@ -4,45 +4,68 @@ import {
   DropdownList,
   Flex,
   FlexItem,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   MenuToggle,
   MenuToggleAction,
 } from '@patternfly/react-core';
 import React from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import {
+  SecretSelector,
+  type SecretSelection,
+} from '@odh-dashboard/autox-core/ui/components/feature';
 import VectorDbConnectionModal from '~/app/components/common/VectorDbConnectionModal';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { SecretListItem } from '~/app/types';
 import {
   fireAutoragVectorStoreConfigured,
-  getVectorStoreProviderTypeFromSecretData,
+  getVectorStoreProviderTypeFromDatabaseProviders,
   TrackingOutcome,
+  type VectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
 type Props = {
   initialSecret?: SecretSelection;
+  preserveInitialSelection?: boolean;
+  selectedSecret?: SecretSelection;
+  onSelectedSecretChange?: (secret: SecretSelection | undefined) => void;
 };
 
-const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
+const unavailableDatabaseMessageId = 'database-secret-unavailable-helper';
+
+const AutoragVectorStoreSelector: React.FC<Props> = ({
+  initialSecret,
+  preserveInitialSelection = false,
+  selectedSecret: controlledSelectedSecret,
+  onSelectedSecretChange,
+}) => {
   const { namespace = '' } = useParams();
   const [selectedSecret, setSelectedSecret] = React.useState<SecretSelection | undefined>(
     initialSecret,
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const [isAddDropdownOpen, setIsAddDropdownOpen] = React.useState(false);
-  const [modalProvider, setModalProvider] = React.useState<'milvus' | 'pgvector'>('milvus');
+  const [modalProvider, setModalProvider] = React.useState<VectorStoreProviderType>('milvus');
   const secretsRefreshRef = React.useRef<(() => Promise<SecretListItem[] | undefined>) | null>(
     null,
   );
   const { onVectorStoreConfigured } = useRunTriggeredTracking();
   const form = useFormContext<ConfigureSchema>();
+  const selected = onSelectedSecretChange ? controlledSelectedSecret : selectedSecret;
+
+  const setSelected = (secret: SecretSelection | undefined) => {
+    setSelectedSecret(secret);
+    onSelectedSecretChange?.(secret);
+  };
 
   return (
     <Controller
       control={form.control}
-      name="vector_db_secret_name"
+      name="db_secret_name"
       render={({ field }) => (
         <>
           <Flex
@@ -52,17 +75,24 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
           >
             <FlexItem flex={{ default: 'flex_1' }}>
               <SecretSelector
-                dataTestId="vector-db-secret-selector"
-                placeholder="Select vector database secret"
-                type="vector-db"
+                dataTestId="database-secret-selector"
+                placeholder="Select database connection"
+                type="database"
+                allowedProviders={['milvus', 'pgvector', 'neo4j']}
+                preserveSelectedValue={preserveInitialSelection}
+                preservedSelection={initialSecret}
                 namespace={namespace}
-                value={selectedSecret?.uuid}
-                valueName={field.value}
+                value={field.value ? selected?.uuid : undefined}
+                valueName={
+                  field.value || (preserveInitialSelection ? initialSecret?.name : undefined)
+                }
                 onChange={(secret: SecretSelection | undefined) => {
-                  setSelectedSecret(secret);
+                  setSelected(secret);
                   field.onChange(!secret || secret.invalid ? '' : secret.name);
                   if (secret && !secret.invalid) {
-                    const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
+                    const providerType = getVectorStoreProviderTypeFromDatabaseProviders(
+                      secret.databaseProviders,
+                    );
                     if (providerType) {
                       fireAutoragVectorStoreConfigured({
                         providerType,
@@ -77,7 +107,22 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
                   secretsRefreshRef.current = refresh;
                 }}
                 isDisabled={form.formState.isSubmitting}
+                toggleProps={{
+                  'aria-describedby':
+                    initialSecret?.invalid && !field.value
+                      ? unavailableDatabaseMessageId
+                      : undefined,
+                }}
               />
+              {initialSecret?.invalid && !field.value && (
+                <FormHelperText id={unavailableDatabaseMessageId}>
+                  <HelperText>
+                    <HelperTextItem variant="warning">
+                      The previous database connection is unavailable. Select a new connection.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              )}
             </FlexItem>
             <FlexItem>
               <Dropdown
@@ -91,9 +136,9 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
                     isDisabled={form.formState.isSubmitting}
                     splitButtonItems={[
                       <MenuToggleAction
-                        key="add-vector-db"
+                        key="add-database"
                         className="pf-v6-u-text-nowrap"
-                        data-testid="add-vector-db-connection-button"
+                        data-testid="add-database-connection-button"
                         aria-label="Add new connection"
                         onClick={() => {
                           setModalProvider('milvus');
@@ -103,8 +148,8 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
                         Add new connection
                       </MenuToggleAction>,
                     ]}
-                    data-testid="add-vector-db-dropdown-toggle"
-                    aria-label="Add vector database connection options"
+                    data-testid="add-database-dropdown-toggle"
+                    aria-label="Add database connection options"
                     onClick={() => setIsAddDropdownOpen((open) => !open)}
                   />
                 )}
@@ -130,6 +175,16 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
                   >
                     Add PGVector connection
                   </DropdownItem>
+                  <DropdownItem
+                    data-testid="add-neo4j-connection-option"
+                    onClick={() => {
+                      setModalProvider('neo4j');
+                      setIsConnectionModalOpen(true);
+                      setIsAddDropdownOpen(false);
+                    }}
+                  >
+                    Add Neo4j connection
+                  </DropdownItem>
                 </DropdownList>
               </Dropdown>
             </FlexItem>
@@ -138,31 +193,37 @@ const AutoragVectorStoreSelector: React.FC<Props> = ({ initialSecret }) => {
             <VectorDbConnectionModal
               namespace={namespace}
               initialProvider={modalProvider}
+              allowedProviders={['milvus', 'pgvector', 'neo4j']}
               onClose={() => setIsConnectionModalOpen(false)}
-              onSubmit={async (secretName) => {
+              onSubmit={async (secretName, provider) => {
                 const refresh = secretsRefreshRef.current;
                 if (!refresh) {
-                  throw new Error('The vector database Secret list could not be refreshed.');
+                  throw new Error('The database connection list could not be refreshed.');
                 }
                 const list = await refresh();
                 const secret = list?.find((item) => item.name === secretName);
                 if (!secret) {
                   throw new Error(
-                    'The new vector database Secret was not found after refreshing the Secret list.',
+                    'The new database connection was not found after refreshing the connection list.',
                   );
                 }
-                const selected = { ...secret, invalid: false };
-                setSelectedSecret(selected);
-                field.onChange(secret.name);
-                const providerType = getVectorStoreProviderTypeFromSecretData(secret.data);
-                if (providerType) {
-                  fireAutoragVectorStoreConfigured({
-                    providerType,
-                    outcome: TrackingOutcome.submit,
-                    success: true,
-                  });
-                  onVectorStoreConfigured(providerType);
+                const providerType = getVectorStoreProviderTypeFromDatabaseProviders(
+                  secret.databaseProviders,
+                );
+                if (providerType !== provider) {
+                  throw new Error(
+                    'The new database connection has invalid or mismatched provider metadata.',
+                  );
                 }
+                const selectedSecretFromList = { ...secret, invalid: false };
+                setSelected(selectedSecretFromList);
+                field.onChange(secret.name);
+                fireAutoragVectorStoreConfigured({
+                  providerType,
+                  outcome: TrackingOutcome.submit,
+                  success: true,
+                });
+                onVectorStoreConfigured(providerType);
               }}
             />
           )}

@@ -74,6 +74,104 @@ paths:
       summary: Get configuration info
       description: Gets the configuration information needed for the UI [TBD]
 
+  /api/v1/responses:
+    summary: Execute an AutoRAG Responses API query
+    description: >-
+      Executes retrieval against a Milvus or pgvector database and generates an answer through
+      MaaS. Neo4j/GraphRAG runs are not supported by this endpoint.
+    post:
+      summary: Create an AutoRAG response
+      tags:
+        - Responses
+      operationId: createResponse
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: Kubernetes namespace containing the configured secrets
+          schema:
+            type: string
+          example: my-project
+        - name: dbSecretName
+          in: query
+          required: true
+          description: Kubernetes Secret containing Milvus or pgvector credentials
+          schema:
+            type: string
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          example: database-secret
+        - name: maasSecretName
+          in: query
+          required: true
+          description: Kubernetes Secret containing MaaS credentials
+          schema:
+            type: string
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          example: maas-secret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResponsesRequest'
+      responses:
+        '200':
+          description: Non-streaming RAG response or an OpenAI Responses API SSE stream
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RAGResponseEnvelope'
+            text/event-stream:
+              schema:
+                type: string
+                format: binary
+                description: >-
+                  Server-Sent Events stream. Each JSON event is sent as a `data:` line followed by
+                  a blank line. JSON events have monotonically increasing `sequence_number` values.
+                  The stream emits `response.created` with `response.id`, `response.model`,
+                  `response.status`, and `response.created_at`; `response.content_part.added` and
+                  `response.content_part.done` with `item_id`, `output_index`, and `response`;
+                  zero or more `response.output_text.delta` events with `item_id`, `output_index`,
+                  `delta`, and `response`; `response.completed` with the final `response.output`
+                  containing a `file_search_call` item and a `message` item; and `response.metrics`
+                  with top-level `metrics.latency_ms`, `metrics.time_to_first_token_ms`, and token usage.
+                  Retrieval results in the `file_search_call` item contain `text`, `score`, and
+                  `file_id` when available. On an unrelated streaming failure, an `error` event with
+                  `sequence_number` and the safe message `The response could not be completed.` is emitted.
+                  Milvus connection failures and operation timeouts use the same error event with
+                  `code` values `vector_database_unavailable` or `vector_database_timeout` and safe
+                  messages. The stream always terminates with `[DONE]`.
+                  The stream terminates with the literal `data: [DONE]` line, which has no
+                  sequence number.
+                example: |
+                  data: {"type":"response.created","sequence_number":0,"output_index":0,"response":{"id":"resp_123","model":"model","status":"in_progress","created_at":1700000000}}
+
+                  data: {"type":"response.content_part.added","sequence_number":1,"item_id":"msg_123","output_index":1,"response":{"id":"","model":"","status":"","created_at":0}}
+
+                  data: {"type":"response.output_text.delta","sequence_number":2,"item_id":"msg_123","output_index":1,"delta":"answer","response":{"id":"","model":"","status":"","created_at":0}}
+
+                  data: {"type":"response.content_part.done","sequence_number":3,"item_id":"msg_123","output_index":1,"response":{"id":"","model":"","status":"","created_at":0}}
+
+                  data: {"type":"response.completed","sequence_number":4,"output_index":0,"response":{"id":"resp_123","model":"model","status":"completed","created_at":1700000000,"output":[{"id":"fc_123","type":"file_search_call","role":"assistant","status":"completed","queries":["question"],"results":[{"text":"source","score":0.9,"file_id":"file_123"}],"output":""},{"id":"msg_123","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"answer"}],"output":""}]}}
+
+                   data: {"type":"response.metrics","sequence_number":5,"metrics":{"latency_ms":100,"time_to_first_token_ms":20,"usage":{"input_tokens":10,"output_tokens":5,"total_tokens":15}}}
+
+                  data: [DONE]
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/v1/secrets:
     summary: Path used to retrieve and filter secrets from a namespace.
     description: >-
@@ -97,10 +195,11 @@ paths:
             - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
             - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
             - 'maas': Filters for hosted MaaS secrets (classification keys: MAAS_BASE_URL, MAAS_API_KEY)
-            - 'vector-db': Filters for the union of Milvus (MILVUS_URI) and PGVector credential keys
+            - 'vector-db': Filters for Milvus (MILVUS_URI) or complete PGVector credentials; MILVUS_CA_CERT is canonical and MILVUS_SERVER_CERT is its legacy alias
+            - 'database': Filters for complete Milvus, PGVector, or Neo4j credentials; Neo4j requires NEO4J_URI and NEO4J_PASSWORD
             - Omit for all secrets
 
-            Filtering uses case-sensitive key-presence matching. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
+            Database and vector-db filtering uses case-sensitive required keys whose values must be non-empty after trimming whitespace. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys or values for filtering. Other filters retain their existing key-presence semantics.
 
             Note: Classification keys are used to identify the secret type. Additional optional keys (like AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets)
             may be present but are not required for type classification. The data field in the response lists all keys
@@ -112,7 +211,18 @@ paths:
               - ogx
               - maas
               - vector-db
+              - database
           example: storage
+        - name: provider
+          in: query
+          required: false
+          description: Database provider filter. Valid only with type=database.
+          schema:
+            type: string
+            enum:
+              - milvus
+              - pgvector
+              - neo4j
       responses:
         '200':
           $ref: '#/components/responses/SecretsResponse'
@@ -130,24 +240,26 @@ paths:
       summary: Get filtered secrets
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
-        Key matching is case-sensitive; keys must be uppercase.
+        Key matching is case-sensitive; keys must be uppercase. Database and vector-db classification requires every provider-required value to be non-empty after trimming whitespace.
 
-         Filtering uses case-sensitive key presence. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys for filtering.
-         Supported key sets include:
-            - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
-            - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
-            - 'maas': MAAS_BASE_URL, MAAS_API_KEY
-            - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD
+        Database and vector-db filtering uses case-sensitive required keys whose values must be non-empty after trimming whitespace. A non-empty connection-type annotation may determine the returned type field after a secret matches; it does not replace the required keys or values for filtering.
+        Supported key sets include:
+        - 's3': AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
+        - 'ogx': OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL
+        - 'maas': MAAS_BASE_URL, MAAS_API_KEY
+        - 'vector-db': MILVUS_URI, or all of PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER, PGVECTOR_PASSWORD; MILVUS_CA_CERT is canonical, MILVUS_SERVER_CERT is a legacy fallback alias, and PGVECTOR_CA_CERT is optional
+        - 'database': MILVUS_URI, PGVector credentials, or NEO4J_URI and NEO4J_PASSWORD; MILVUS_CA_CERT is canonical, MILVUS_SERVER_CERT is a legacy fallback alias, and PGVECTOR_CA_CERT and NEO4J_CA_CERT are optional
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
         The data field lists all keys present, allowing clients to validate additional use-case-specific requirements.
 
-         Type filtering with ?type= parameter:
-         - 'storage': Returns secrets containing a configured storage key set
-         - 'ogx': Returns secrets containing both OGX keys
-         - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
-         - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets; empty values and mixed or extra keys are allowed
+        Type filtering with ?type= parameter:
+        - 'storage': Returns secrets containing a configured storage key set
+        - 'ogx': Returns secrets containing both OGX keys
+        - 'maas': Returns secrets containing both MaaS keys; empty values and extra keys are allowed
+        - 'vector-db': Returns the deduplicated union of the Milvus and PGVector key sets when all required values are non-empty after trimming whitespace; legacy keys do not exclude a provider
+        - 'database': Returns complete database secrets with all provider-required values non-empty after trimming whitespace; provider can narrow the result to milvus, pgvector, or neo4j
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
     summary: Path used to retrieve credential data from a named secret.
@@ -931,6 +1043,37 @@ paths:
         performs a rollout restart of the pipeline server deployment so the
         init container re-registers the pipeline definitions on startup.
 
+  /api/v1/pipeline-server/status:
+    summary: Report pipeline server readiness
+    description: >-
+      Returns the observed readiness state of the DSPipelineApplication in the namespace
+      from a fresh (uncached) resource list, so a restarting server is not reported with
+      stale readiness.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/PipelineServerStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getPipelineServerStatus
+      summary: Get Pipeline Server Status
+      description: >-
+        Returns whether the pipeline server in the namespace is ready, starting,
+        or not present. Unlike pipeline-run endpoints, this reflects a fresh read
+        of the DSPipelineApplication rather than a cached discovery result.
+
 components:
   schemas:
     Config:
@@ -1021,6 +1164,51 @@ components:
                   example: ['OGX_CLIENT_API_KEY', 'OGX_CLIENT_BASE_URL']
                 commonOptionalKeys:
                   example: []
+        vector-db:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  description: >-
+                    One of the supported provider key sets with every required value non-empty after trimming whitespace: Milvus requires MILVUS_URI;
+                    PGVector requires PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER,
+                    and PGVECTOR_PASSWORD. MILVUS_CA_CERT is the canonical Milvus CA key;
+                    MILVUS_SERVER_CERT is accepted as a legacy fallback only when the canonical key
+                    is absent or blank.
+                  example: ['MILVUS_URI']
+                commonOptionalKeys:
+                  description: >-
+                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT or the legacy MILVUS_SERVER_CERT
+                    alias. When both CA keys are non-blank, MILVUS_CA_CERT wins. PGVector may include
+                    PGVECTOR_CA_CERT. These keys are optional and do not replace classification keys.
+                  example: ['MILVUS_TOKEN', 'MILVUS_CA_CERT', 'PGVECTOR_CA_CERT']
+        database:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  description: >-
+                    One of the supported provider key sets with every required value non-empty after trimming whitespace: Milvus requires MILVUS_URI;
+                    PGVector requires PGVECTOR_HOST, PGVECTOR_PORT, PGVECTOR_DB, PGVECTOR_USER,
+                    and PGVECTOR_PASSWORD; Neo4j requires NEO4J_URI and NEO4J_PASSWORD.
+                  example: ['NEO4J_URI', 'NEO4J_PASSWORD']
+                commonOptionalKeys:
+                  description: >-
+                    Milvus may include MILVUS_TOKEN and MILVUS_CA_CERT or the legacy MILVUS_SERVER_CERT
+                    alias; when both CA keys are non-blank, MILVUS_CA_CERT wins. PGVector may include
+                    PGVECTOR_CA_CERT; Neo4j may include NEO4J_USERNAME, NEO4J_DATABASE, and
+                    NEO4J_CA_CERT. These keys are optional and do not replace classification keys.
+                  example:
+                    [
+                      'MILVUS_TOKEN',
+                      'MILVUS_CA_CERT',
+                      'PGVECTOR_CA_CERT',
+                      'NEO4J_USERNAME',
+                      'NEO4J_DATABASE',
+                      'NEO4J_CA_CERT',
+                    ]
 
     SecretListItem:
       description: A Kubernetes secret with its UUID, name, type classification, and available keys
@@ -1030,6 +1218,14 @@ components:
         - data
       type: object
       properties:
+        databaseProviders:
+          type: array
+          items:
+            type: string
+            enum: [milvus, pgvector, neo4j]
+          description: >-
+            Authoritative database-provider classifications computed from the raw Secret values.
+            Values are never included; an empty or omitted field means no supported provider matched.
         uuid:
           type: string
           description: The Kubernetes UID of the secret
@@ -1047,9 +1243,10 @@ components:
                - 's3': S3 storage secret (has all required S3 classification keys)
                - 'ogx': Open GenAI Stack secret (has all required OGX classification keys)
 
-            When filtering with the ?type= parameter, inclusion is determined by the required key presence for the selected filter.
-            A non-empty connection-type annotation cannot replace the required keys. After inclusion, the annotation takes precedence
-            only for the returned type field.
+            When filtering with the ?type= parameter, inclusion uses the required keys for the selected filter. For database and vector-db
+            filters, every provider-required key must have a non-empty value after trimming whitespace; other filters retain their
+            documented key-presence semantics. A non-empty connection-type annotation cannot replace the required keys or values.
+            After inclusion, the annotation takes precedence only for the returned type field.
 
             This field is omitted from the response if the secret doesn't match any recognized type and has no connection-type annotation.
           example: s3
@@ -1131,7 +1328,7 @@ components:
               description: Key-value map of pipeline parameters
               additionalProperties: true
               example:
-                optimization_metric: 'overall_score'
+                optimization_metric: 'custom:overall_score'
                 test_data_secret_name: 'minio-secret'
                 test_data_bucket_name: 'autorag'
             pipeline_root:
@@ -1318,7 +1515,7 @@ components:
         - input_data_bucket_name
         - input_data_keys
         - maas_secret_name
-        - vector_db_secret_name
+        - db_secret_name
         - embedding_models
         - generation_models
       properties:
@@ -1382,16 +1579,21 @@ components:
         optimization_metric:
           type: string
           enum:
-            - overall_score
+            - custom:overall_score
+            - unitxt:faithfulness
+            - unitxt:answer_correctness
+            - ragas:faithfulness
+            - ragas:answer_relevancy
+            - ragas:context_precision
+            - ragas:context_recall
             - faithfulness
-            - answer_correctness
-            - context_correctness
-          description: Metric to optimize (defaults to overall_score)
-        vector_db_secret_name:
+          default: custom:overall_score
+          description: Metric to optimize. Defaults to custom:overall_score. speed permits the Unitxt faithfulness, Unitxt answer correctness, and custom overall score metrics; balanced permits all seven qualified metrics. The legacy bare faithfulness value is normalized according to the selected preset.
+        db_secret_name:
           type: string
           minLength: 1
-          description: Name of the K8s secret for vector database access
-          example: vector-db-secret
+          description: Name of the database Connection selected by the active RAG template
+          example: database-connection
         optimization_max_rag_patterns:
           type: integer
           minimum: 4
@@ -1426,7 +1628,7 @@ components:
           type: object
           description: >-
             Pipeline runtime parameters from pattern.indexing.pipeline_spec.parameters
-            (for example embedding_model_id, input_data_*, maas_secret_name, vector_db_secret_name, chunking fields).
+            (for example embedding_model_id, input_data_*, maas_secret_name, db_secret_name, chunking fields).
             Parameters not declared by the discovered pipeline version are removed by the BFF.
           additionalProperties: true
           minProperties: 1
@@ -1436,7 +1638,7 @@ components:
             input_data_bucket_name: 'my-bucket'
             input_data_key: 'docs/'
             maas_secret_name: 'maas-connection'
-            vector_db_secret_name: 'vector-db-connection'
+            db_secret_name: 'database-connection'
             chunk_size: 512
             chunk_overlap: 50
             chunking_method: 'recursive'
@@ -1501,6 +1703,28 @@ components:
           type: string
           description: Token for retrieving the next page
           example: 'eyJwYWdlIjoyfQ=='
+
+    PipelineServerStatus:
+      type: object
+      description: Observed readiness state of the pipeline server (DSPA) in a namespace
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: >-
+            Readiness state — "ready" when the DSPA Ready condition is True for its
+            current generation, "starting" when a DSPA exists but is not ready, and
+            "not-found" when no DSPA exists in the namespace.
+          enum:
+            - ready
+            - starting
+            - not-found
+          example: ready
+        dspa_name:
+          type: string
+          description: Name of the DSPipelineApplication the status was observed from
+          example: dspa
 
     S3UploadSuccess:
       description: Response body for successful S3 file upload
@@ -1742,6 +1966,180 @@ components:
       properties:
         error:
           $ref: '#/components/schemas/Error'
+    ResponsesRequest:
+      description: >-
+        OpenAI Responses API-compatible request accepted by the AutoRAG BFF. The raw request body
+        is limited to 10 MiB; array and object cardinality limits below are enforced before request
+        decoding. Individual request strings are limited to 1 MiB, and cumulative input content is
+        limited to 2,000 items and cumulative vector store IDs to 200 items.
+      type: object
+      maxProperties: 16
+      additionalProperties: false
+      required:
+        - model
+        - input
+        - tools
+        - metadata
+      properties:
+        model:
+          type: string
+          minLength: 1
+          maxLength: 1048576
+          pattern: '\S'
+        input:
+          description: A prompt string or an array of Responses API input messages.
+          anyOf:
+            - type: string
+              maxLength: 1048576
+            - type: array
+              maxItems: 1000
+              items:
+                type: object
+                maxProperties: 3
+                additionalProperties: false
+                required:
+                  - type
+                  - role
+                  - content
+                properties:
+                  type:
+                    type: string
+                    maxLength: 1048576
+                  role:
+                    type: string
+                    maxLength: 1048576
+                  content:
+                    type: array
+                    maxItems: 1000
+                    items:
+                      type: object
+                      maxProperties: 2
+                      additionalProperties: false
+                      required:
+                        - type
+                        - text
+                      properties:
+                        type:
+                          type: string
+                          maxLength: 1048576
+                        text:
+                          type: string
+                          maxLength: 1048576
+        instructions:
+          type: string
+          maxLength: 1048576
+        tools:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            maxProperties: 5
+            additionalProperties: false
+            required:
+              - type
+              - vector_store_ids
+            properties:
+              type:
+                type: string
+                maxLength: 1048576
+                enum: [file_search]
+              vector_store_ids:
+                type: array
+                minItems: 1
+                maxItems: 100
+                items:
+                  type: string
+                  maxLength: 1048576
+                  pattern: '^[A-Za-z0-9_.-]+$'
+              max_num_results:
+                type: integer
+                minimum: 0
+                maximum: 100
+              ranking_options:
+                type: object
+                maxProperties: 2
+                additionalProperties: false
+                properties:
+                  ranker:
+                    type: string
+                    maxLength: 1048576
+                    enum: [rrf]
+                  alpha:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+        tool_choice:
+          type: object
+          maxProperties: 1
+          additionalProperties: false
+          required:
+            - type
+          properties:
+            type:
+              type: string
+              maxLength: 1048576
+              enum: [file_search]
+        store:
+          type: boolean
+        include:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+            maxLength: 1048576
+            enum: [file_search_call.results, file_search_call.output]
+        metadata:
+          type: object
+          required:
+            - embedding_model
+          maxProperties: 100
+          additionalProperties:
+            type: string
+            maxLength: 1048576
+          properties:
+            embedding_model:
+              type: string
+              minLength: 1
+              pattern: '\S'
+        stream:
+          type: boolean
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+        max_output_tokens:
+          type: integer
+          minimum: 0
+          maximum: 4096
+          default: 2048
+          description: Maximum generated tokens. Zero uses the default of 2048; explicit values above 4096 are rejected.
+    RAGResponseEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - answer
+          properties:
+            answer:
+              type: string
+            sources:
+              type: array
+              items:
+                type: object
+                required:
+                  - text
+                  - score
+                properties:
+                  text:
+                    type: string
+                  score:
+                    type: number
+                  file_id:
+                    type: string
     SortOrder:
       description: Supported sort direction for ordering result entities.
       enum:
@@ -2027,7 +2425,7 @@ components:
                 pipeline_version_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
               runtime_config:
                 parameters:
-                  optimization_metric: 'overall_score'
+                  optimization_metric: 'custom:overall_score'
                   test_data_secret_name: 'minio-secret'
                   test_data_bucket_name: 'autorag'
                   test_data_key: 'test_data.json'
@@ -2036,7 +2434,7 @@ components:
                   input_data_keys:
                     - 'documents/'
                   maas_secret_name: 'maas-secret'
-                  vector_db_secret_name: 'vector-db-secret'
+                  db_secret_name: 'database-secret'
                   embedding_models:
                     - 'vllm-embedding/ibm-granite/granite-embedding-english-r2'
                   generation_models:
@@ -2139,6 +2537,21 @@ components:
                 type: string
                 description: Name of the DSPipelineApplication resource
                 example: 'dspa'
+
+    PipelineServerStatusResponse:
+      description: Observed readiness state of the pipeline server in the namespace
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: '#/components/schemas/PipelineServerStatus'
 
     ConflictResponse:
       content:

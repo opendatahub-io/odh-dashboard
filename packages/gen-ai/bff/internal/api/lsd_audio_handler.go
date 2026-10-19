@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -246,10 +245,6 @@ func (app *App) resolveASRModel(ctx context.Context, identity *integrations.Requ
 		// allowed
 	default:
 		return "", "", "", &asrResolutionError{code: http.StatusBadRequest, errorCode: constants.ASRCodeModelInvalid, msg: fmt.Sprintf("ASR model %q has unsupported source type %q", modelID, found.ModelSourceType)}
-	}
-
-	if !slices.Contains(found.Capabilities, constants.CapabilityAudioTranscription) {
-		return "", "", "", &asrResolutionError{code: http.StatusNotFound, errorCode: constants.ASRCodeModelInvalid, msg: fmt.Sprintf("model %q does not have audio-transcription capability", modelID)}
 	}
 
 	// Custom endpoint models have no readiness probe; skip the running check for them.

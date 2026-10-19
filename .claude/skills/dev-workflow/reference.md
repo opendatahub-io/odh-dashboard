@@ -98,19 +98,8 @@ pnpm run validate:ports
 
 The source of truth for each package is:
 - **Frontend port**: `module-federation.local.port` in the package's `package.json`
-- **BFF port (local dev/E2E)**: `bffConfig.port` in the package's `package.json` (used by CI E2E workflow and Cypress scripts; not currently conflict-checked by the validator)
+- **BFF port (local dev/E2E)**: the package's development script or Makefile (not currently conflict-checked by the validator)
 - **Production service port**: `service.port` in `federation-configmap.yaml` (validated by CI via `pnpm run validate:ports`)
-
-**Known port conflict:**
-
-- **model-registry BFF (4000) vs dashboard backend (4000).** Both default to port 4000. To run them together, change the dashboard backend port via `.env.development.local`:
-
-  ```bash
-  # .env.development.local
-  BACKEND_PORT=4050
-  ```
-
-  The frontend's rspack proxy target (`_BACKEND_PORT`) and the backend itself both pick up this override. The model-registry BFF keeps port 4000 (hardcoded in its Makefile). Avoid using 4020 — mlflow's BFF uses that port.
 
 ### Running multi-component dev
 
@@ -127,12 +116,10 @@ pnpm run dev          # backend (4000) + host frontend (4010)
 **Dashboard + turbo-managed packages** (backend, frontend, model-registry, notebooks only):
 
 ```bash
-# First, resolve the model-registry BFF port conflict (both default to 4000):
-# Create .env.development.local with BACKEND_PORT=4050
 pnpm run start:dev    # turbo run start:dev
 ```
 
-Only packages with `start:dev` in `packages/*/package.json` (workspace root) are started by turbo. Currently that's just model-registry and notebooks — all other packages must be started manually.
+Only packages with `start:dev` in `packages/*/package.json` (workspace root) are started by turbo. Currently that's just model-registry and notebooks — all other packages must be started manually. The Model Registry wrapper starts its BFF on port `4005`, leaving the dashboard backend on port `4000`.
 
 **Dashboard + a specific federated package** (separate terminals):
 

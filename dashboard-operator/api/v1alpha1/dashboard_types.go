@@ -101,19 +101,23 @@ type ObservabilitySpec struct {
 
 // +kubebuilder:object:generate=true
 
-// MaaSConsumerPortalSpec configures the MaaS Consumer Portal.
-type MaaSConsumerPortalSpec struct {
+// MaaSPortalSpec configures the MaaS Portal.
+type MaaSPortalSpec struct {
 	// ManagementState controls whether the portal is deployed.
 	// "Managed" deploys the portal (requires Gateway.Domain to be set,
 	// since the portal host is derived from it); "Removed" tears it down.
 	// This mirrors the shape the ODH Operator projects from
-	// dashboard.maasConsumerPortal.managementState.
+	// dashboard.maasPortal.managementState.
 	//
 	// +kubebuilder:validation:Enum=Managed;Removed
 	// +kubebuilder:default=Removed
 	// +optional
 	ManagementState string `json:"managementState,omitempty"`
 }
+
+// MaaSConsumerPortalSpec is retained as a Go compatibility alias for clients
+// using the pre-DSC-v3 name. New code should use MaaSPortalSpec.
+type MaaSConsumerPortalSpec = MaaSPortalSpec
 
 // +kubebuilder:object:generate=true
 
@@ -177,9 +181,16 @@ type DashboardSpec struct {
 	// +optional
 	Observability *ObservabilitySpec `json:"observability,omitempty"`
 
-	// MaaSConsumerPortal configures the MaaS Consumer Portal.
+	// MaaSPortal configures the MaaS Portal.
 	// +optional
-	MaaSConsumerPortal *MaaSConsumerPortalSpec `json:"maasConsumerPortal,omitempty"`
+	MaaSPortal *MaaSPortalSpec `json:"maasPortal,omitempty"`
+
+	// MaaSConsumerPortal is the pre-DSC-v3 spelling. It is accepted for
+	// compatibility with existing Dashboard resources; MaaSPortal takes
+	// precedence when both fields are present.
+	// +optional
+	// Deprecated: use MaaSPortal.
+	MaaSConsumerPortal *MaaSPortalSpec `json:"maasConsumerPortal,omitempty"`
 
 	// NotebooksNamespace is the namespace where Workbenches (notebooks) run.
 	// When set, the dashboard-operator creates a Role and RoleBinding in this
@@ -214,9 +225,16 @@ type DashboardStatus struct {
 	// +optional
 	URL string `json:"url,omitempty"`
 
-	// MaaSConsumerPortalURL is the externally-reachable MaaS Consumer Portal URL (last known good).
+	// MaaSPortalURL is the externally-reachable MaaS Portal URL (last known good).
 	// It is cleared when the portal operand is removed.
+	// +kubebuilder:validation:MaxLength=2048
 	// +optional
+	MaaSPortalURL string `json:"maasPortalUrl,omitempty"`
+
+	// MaaSConsumerPortalURL is the pre-DSC-v3 spelling retained for status
+	// compatibility. New consumers should use MaaSPortalURL.
+	// +optional
+	// Deprecated: use MaaSPortalURL.
 	MaaSConsumerPortalURL string `json:"maasConsumerPortalUrl,omitempty"`
 
 	// ModuleStatuses reports the deployment state of each module.

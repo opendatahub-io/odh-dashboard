@@ -145,6 +145,22 @@ export const mockMCPRegistryStatusAutoConnect = (
     .as('registryStatusCheckAutoConnect');
 };
 
+/** Registry tools are resolved by name, even though selections are keyed by runtime URL. */
+export const mockMCPRegistryToolsAutoConnect = (
+  serverName: string,
+  serverUrl: string,
+): Cypress.Chainable<null> => {
+  const encodedServerName = encodeURIComponent(serverName);
+
+  return cy
+    .intercept('GET', `**/mcp/tools*server_name=${encodedServerName}*`, (req) => {
+      const response = JSON.parse(JSON.stringify(mcpToolsKubernetes));
+      response.data.server_url = serverUrl;
+      req.reply({ statusCode: 200, body: response });
+    })
+    .as('registryToolsRequestAutoConnect');
+};
+
 /**
  * Mock MCP tools endpoint for auto-connectable servers
  * Returns tools list without requiring authentication

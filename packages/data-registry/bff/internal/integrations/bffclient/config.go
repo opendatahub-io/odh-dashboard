@@ -9,6 +9,7 @@ import (
 type BFFTarget string
 
 const (
+	BFFTargetDCH           BFFTarget = "data-connect-hub"
 	BFFTargetMaaS          BFFTarget = "maas"
 	BFFTargetGenAI         BFFTarget = "gen-ai"
 	BFFTargetModelRegistry BFFTarget = "model-registry"
@@ -39,8 +40,8 @@ type BFFServiceConfig struct {
 	DevOverrideURL string
 
 	// ─── AUTH CONFIGURATION ─────────────────────────────────
-	// AuthMethod specifies the auth method the target BFF uses
-	// Supported values: "internal" (kubeflow-userid), "user_token" (token in header)
+	// AuthMethod specifies the auth method the target BFF uses. Data Registry targets use
+	// user-token authentication.
 	AuthMethod string
 
 	// AuthTokenHeader is the header the target BFF expects for user_token auth

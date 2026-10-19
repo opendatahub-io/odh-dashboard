@@ -11,6 +11,7 @@ import {
   ClusterQueueModel,
   LocalQueueModel,
   WorkloadModel,
+  PodModel,
 } from '@odh-dashboard/k8s-core/api/models';
 import { TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
@@ -33,7 +34,6 @@ import {
 } from '../../../pages/modelTraining';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { tablePagination } from '../../../pages/components/Pagination';
-import { PodModel } from '../../../utils/models';
 
 describe('Model Training', () => {
   beforeEach(() => {

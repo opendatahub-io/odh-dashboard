@@ -158,6 +158,20 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 	return true, nil
 }
 
+func (kc *TokenKubernetesClient) CanAccessResource(ctx context.Context, _ *RequestIdentity, namespace, verb, group, resource string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	response, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{ResourceAttributes: &authv1.ResourceAttributes{
+			Verb: verb, Group: group, Resource: resource, Namespace: namespace,
+		}},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to check resource access: %w", err)
+	}
+	return response.Status.Allowed, nil
+}
+
 // RequestIdentity is unused because the token already represents the user identity.
 // This endpoint is used only on dev mode that is why is safe to ignore permissions errors
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {

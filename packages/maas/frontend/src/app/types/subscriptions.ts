@@ -9,7 +9,8 @@ export type MaaSSubscription = {
   conditionType?: string;
   lastTransitionTime?: string;
   reason?: string;
-  priority?: number;
+  inferencePriority?: number;
+  resourceVersion?: string;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
   tokenMetadata?: TokenMetadata;
@@ -24,6 +25,11 @@ export type ModelSubscriptionRef = {
   description?: string;
   tokenRateLimits: TokenRateLimit[];
   billingRate?: BillingRate;
+  objectiveName?: string;
+  targetPool?: string;
+  ready?: boolean;
+  reason?: string;
+  message?: string;
 };
 
 export type BillingRate = {
@@ -91,7 +97,7 @@ export type CreateSubscriptionRequest = {
   description?: string;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
-  priority: number;
+  inferencePriority?: number;
   createAuthPolicy: boolean;
 };
 
@@ -101,7 +107,8 @@ export type UpdateSubscriptionRequest = {
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
   tokenMetadata?: TokenMetadata;
-  priority: number;
+  inferencePriority?: number;
+  resourceVersion?: string;
 };
 
 export type CreateSubscriptionResponse = {
@@ -162,7 +169,7 @@ export type UserSubscription = {
   subscription_id_header: string;
   subscription_description: string;
   display_name?: string;
-  priority: number;
+  inference_priority?: number;
   key_count?: number;
   model_refs: ModelRefInfo[];
   organization_id?: string;
@@ -219,3 +226,22 @@ export type ModelOverviewItem = {
   subscriptions: ModelOverviewSubscription[];
   authPolicies: ModelOverviewPolicy[];
 };
+
+export const SYSTEM_AUTHENTICATED_GROUP = 'system:authenticated';
+
+export enum FlowControlStatusReason {
+  ObjectiveFailure = 'ObjectiveFailure',
+  PendingPoolDiscovery = 'PendingPoolDiscovery',
+  ObjectiveReconciled = 'ObjectiveReconciled',
+  Reconciled = 'Reconciled',
+  NotApplicable = 'NotApplicable',
+  Unsupported = 'Unsupported',
+  NoObjectiveRequired = 'NoObjectiveRequired',
+  Unmanaged = 'Unmanaged',
+  PoolPending = 'PoolPending',
+  ObjectivePending = 'ObjectivePending',
+  NotOnTenantGateway = 'NotOnTenantGateway',
+  ObjectiveConflict = 'ObjectiveConflict',
+  InferenceObjectiveAPIUnavailable = 'InferenceObjectiveAPIUnavailable',
+  ReconcileFailed = 'ReconcileFailed',
+}

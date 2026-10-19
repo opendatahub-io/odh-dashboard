@@ -27,6 +27,10 @@ import {
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 import { filterRuntimeArgsForContainer } from '../fields/RuntimeArgsField';
 import { isHuggingFaceApiKeyConfigured } from '../fields/HuggingFaceApiKeyField';
+import {
+  formatEnvironmentVariableForReview,
+  normalizeEnvironmentVariable,
+} from '../../../shared/environmentVariablesUtils';
 import { ExternalDataMap } from '../ExternalDataLoader';
 import { isWizardStepTitle } from '../utils';
 
@@ -389,7 +393,7 @@ const getStatusSections = (
                 <>{envVars.variables.length}</>
                 {envVars.variables.map((envVar, index: number) => (
                   <div key={index}>
-                    {envVar.name}, {envVar.value}
+                    {formatEnvironmentVariableForReview(normalizeEnvironmentVariable(envVar))}
                   </div>
                 ))}
               </>
@@ -524,11 +528,11 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
                     }}
                   >
                     {visibleItems.map((item) => (
-                      <DescriptionListGroup key={item.key}>
+                      <DescriptionListGroup key={item.key} data-testid={`review-item-${item.key}`}>
                         <DescriptionListTerm style={{ fontWeight: 'normal' }}>
                           {item.label}
                         </DescriptionListTerm>
-                        <DescriptionListDescription>
+                        <DescriptionListDescription data-testid={`review-item-${item.key}-value`}>
                           {item.comp(wizardState.state)}
                         </DescriptionListDescription>
                       </DescriptionListGroup>

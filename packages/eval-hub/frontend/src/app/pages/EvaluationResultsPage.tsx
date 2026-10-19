@@ -248,7 +248,7 @@ const EvaluationResultsPage: React.FC = () => {
                     content={
                       job.collection
                         ? 'Weighted average based on the primary metric score of the benchmark runs and the benchmark weights.'
-                        : 'Normalised score based on the primary metric score of the benchmark run.'
+                        : "Value of the benchmark run's primary metric."
                     }
                   />
                 </FlexItem>

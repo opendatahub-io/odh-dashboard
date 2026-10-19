@@ -1,5 +1,69 @@
 import type { SortableData } from '@odh-dashboard/ui-core';
 import type { QuotaUsageAcceleratorRow } from './types';
+import type { InfrastructureWorkloadRow } from './types/infrastructureWorkloads';
+
+export const INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE = 'No workloads yet';
+export const INFRASTRUCTURE_WORKLOADS_EMPTY_BODY =
+  'When workloads are admitted or waiting in this project, the workload overview shows status and admission metrics, and the workloads table lists workload details.';
+export const INFRASTRUCTURE_WORKLOADS_PARTIAL_FAILURE_TITLE = 'Some workload data unavailable';
+export const INFRASTRUCTURE_WORKLOAD_NON_KUEUE_LABEL = 'Non-Kueue';
+
+const compareQueuePosition = (a?: string, b?: string): number => {
+  if (a === undefined) return b === undefined ? 0 : 1;
+  if (b === undefined) return -1;
+  return Number(a) - Number(b);
+};
+
+export const getInfrastructureWorkloadsTableColumns = (
+  kueueEnabled: boolean,
+): SortableData<InfrastructureWorkloadRow>[] => {
+  const columns: SortableData<InfrastructureWorkloadRow>[] = [
+    {
+      field: 'name',
+      label: 'Name',
+      sortable: (a, b) => a.name.localeCompare(b.name),
+      width: kueueEnabled ? 30 : 40,
+    },
+    {
+      field: 'type',
+      label: 'Type',
+      sortable: (a, b) => a.type.localeCompare(b.type),
+      width: kueueEnabled ? 15 : 20,
+    },
+    {
+      field: 'status',
+      label: 'Status',
+      sortable: (a, b) => a.status.label.localeCompare(b.status.label),
+      width: kueueEnabled ? 15 : 20,
+    },
+  ];
+
+  if (kueueEnabled) {
+    columns.push(
+      {
+        field: 'queuePosition',
+        label: 'Queue position',
+        sortable: (a, b) => compareQueuePosition(a.queuePosition, b.queuePosition),
+        width: 15,
+      },
+      {
+        field: 'priority',
+        label: 'Priority class',
+        sortable: (a, b) => (a.priority ?? '').localeCompare(b.priority ?? ''),
+        width: 10,
+      },
+    );
+  }
+
+  columns.push({
+    field: 'hardwareProfile',
+    label: 'Hardware profile',
+    sortable: (a, b) => (a.hardwareProfile ?? '').localeCompare(b.hardwareProfile ?? ''),
+    width: kueueEnabled ? 15 : 20,
+  });
+
+  return columns;
+};
 
 export const INFRASTRUCTURE_PAGE_DESCRIPTION =
   'View accelerator utilization, cluster queue cohort configuration, and workload details.';
@@ -52,18 +116,47 @@ export const QUOTA_USAGE_SEARCH_TELEMETRY_DEBOUNCE = 300;
 
 /** Pass to useFetch refreshRate to disable polling; initial load + manual refresh only. */
 export const INFRASTRUCTURE_MANUAL_REFRESH_ONLY = -1;
+export const INFRASTRUCTURE_WORKLOADS_REFRESH_INTERVAL = 10 * 60 * 1000;
 
 /** 5m polling for trend charts and quota-usage workload tables (see useBorrowingLendingMetrics). */
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
 export const PROMETHEUS_CLUSTER_QUERY_PATH = '/api/prometheus/cluster/query';
 export const PROMETHEUS_CLUSTER_QUERY_RANGE_PATH = '/api/prometheus/cluster/queryRange';
 
-export const INFRASTRUCTURE_TABS = [
-  { id: 'utilization', title: 'Accelerator utilization', layout: 'page' },
-  { id: 'quota-usage', title: 'Quota usage', layout: 'viewport' },
+export const ADMIN_INFRASTRUCTURE_TABS = [
+  { id: 'utilization', title: 'Accelerator utilization', layout: 'page', isDefault: true },
+  { id: 'quota-usage', title: 'Quota usage', layout: 'viewport', isDefault: false },
 ] as const;
 
+export const USER_INFRASTRUCTURE_TABS = [
+  { id: 'workloads', title: 'Workloads', layout: 'page', isDefault: true },
+] as const;
+
+export const INFRASTRUCTURE_TABS = [
+  ...ADMIN_INFRASTRUCTURE_TABS,
+  ...USER_INFRASTRUCTURE_TABS,
+] as const;
+
+export type InfrastructureTab = (typeof INFRASTRUCTURE_TABS)[number];
 export type InfrastructureTabId = (typeof INFRASTRUCTURE_TABS)[number]['id'];
+
+export const getVisibleInfrastructureTabs = (
+  canAccessAdminTabs: boolean,
+): readonly InfrastructureTab[] =>
+  canAccessAdminTabs ? INFRASTRUCTURE_TABS : USER_INFRASTRUCTURE_TABS;
+
+export const getDefaultInfrastructureTab = (
+  tabs: readonly InfrastructureTab[],
+): InfrastructureTabId => {
+  const defaultTab = tabs.find((tab) => tab.isDefault);
+
+  if (!defaultTab) {
+    throw new Error('Infrastructure tabs must define a default tab');
+  }
+
+  return defaultTab.id;
+};
+
 export type InfrastructureTabLayout = (typeof INFRASTRUCTURE_TABS)[number]['layout'];
 
 export const QUOTA_USAGE_DESCRIPTION =

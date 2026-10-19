@@ -4,6 +4,7 @@ import { ImageInfo } from '#~/types';
 export const mockNotebookImageInfo = (): ImageInfo[] => [
   {
     name: 'code-server-notebook',
+    deprecated: false,
     description:
       'code-server workbench allows users to code, build, and collaborate on projects directly from web.',
     url: 'https://github.com/opendatahub-io/notebooks/tree/main/codeserver',
@@ -54,6 +55,7 @@ export const mockNotebookImageInfo = (): ImageInfo[] => [
   },
   {
     name: 'custom-test-with-accelerators',
+    deprecated: false,
     description: '',
     url: 'quay.io/opendatahub/workbench-images:jupyter-minimal-ubi8-python-3.8-pr-89',
     display_name: 'Test with accelerators',
@@ -75,6 +77,7 @@ export const mockNotebookImageInfo = (): ImageInfo[] => [
 
   {
     name: 'custom-image',
+    deprecated: false,
     description: '',
     url: 'quay.io/pnaik/custom-image',
     display_name: 'image',

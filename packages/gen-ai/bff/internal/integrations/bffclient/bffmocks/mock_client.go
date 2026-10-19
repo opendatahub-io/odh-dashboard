@@ -63,6 +63,13 @@ func (m *MockBFFClient) Call(ctx context.Context, method, path string, body inte
 // handleMaaSCall handles mock calls to MaaS BFF
 func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string, body interface{}, response interface{}) error {
 	switch {
+	case path == "/gateway-url" && method == "GET":
+		return marshalToResponse(map[string]interface{}{
+			"data": map[string]interface{}{
+				"url": "https://maas.apps.example.com/maas-api",
+			},
+		}, response)
+
 	case path == "/api-keys" && method == "POST":
 		// Mock API key creation response.
 		// Per MaaS BFF OpenAPI spec, POST /api/v1/api-keys returns an envelope wrapper {"data": {...}}.

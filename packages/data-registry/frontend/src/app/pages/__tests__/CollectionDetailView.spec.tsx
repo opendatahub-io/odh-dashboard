@@ -72,13 +72,26 @@ describe('CollectionDetailView', () => {
       unstructuredCount: 0,
     };
 
+    const onRegisterData = jest.fn();
     render(
       <BrowserRouter>
-        <CollectionDetailView collection={emptyCollection} project="demo-user-1" />
+        <CollectionDetailView
+          collection={emptyCollection}
+          project="demo-user-1"
+          onRegisterData={onRegisterData}
+        />
       </BrowserRouter>,
     );
 
-    expect(screen.getByText('No data assets in this collection.')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-assets-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No data assets')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'To help users in your organization discover and understand external data, create a data asset. Data assets are metadata records that store information like location, format, and schema, but not the data itself.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('collection-empty-register-data-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('collection-assets-table')).not.toBeInTheDocument();
   });
 
   it('should link to table detail pages', () => {

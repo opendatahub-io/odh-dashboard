@@ -211,6 +211,90 @@ func newDashboard(spec v1alpha1.DashboardSpec) *v1alpha1.Dashboard {
 	}
 }
 
+func TestIntegration_MaaSPortalAPICompatibility(t *testing.T) {
+	ctx := context.Background()
+
+	legacyOnly := newDashboard(v1alpha1.DashboardSpec{
+		MaaSConsumerPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+	})
+	require.NoError(t, k8sClient.Create(ctx, legacyOnly))
+	t.Cleanup(func() { deleteDashboard(t) })
+	fetched := getDashboard(t)
+	assert.Nil(t, fetched.Spec.MaaSPortal, "legacy-only resources must not gain the new field")
+	require.NotNil(t, fetched.Spec.MaaSConsumerPortal)
+	assert.Equal(t, "Managed", fetched.Spec.MaaSConsumerPortal.ManagementState)
+	deleteDashboard(t)
+
+	manifests := createIntegrationManifests(t, []string{"maas"})
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{},
+		MaaSConsumerPortal: &v1alpha1.MaaSPortalSpec{
+			ManagementState: "Managed",
+		},
+	})
+	require.NoError(t, k8sClient.Create(ctx, dashboard))
+	t.Cleanup(func() {
+		deleteDashboard(t)
+		cleanupModuleResources(t)
+	})
+
+	fetched = getDashboard(t)
+	require.NotNil(t, fetched.Spec.MaaSPortal)
+	assert.Equal(t, "Removed", fetched.Spec.MaaSPortal.ManagementState,
+		"the API server should default the new field to Removed")
+	require.NotNil(t, fetched.Spec.MaaSConsumerPortal)
+	assert.Equal(t, "Managed", fetched.Spec.MaaSConsumerPortal.ManagementState)
+
+	r := newManifestReconciler(manifests)
+	r.Platform = cluster.SelfManagedRhoai
+	reconcile(t, r)
+	reconcile(t, r)
+	assert.Empty(t, listDeployments(t, "maas"),
+		"the defaulted new field must take precedence over the legacy Managed field")
+}
+
+func TestIntegration_MaaSPortalURLMigrationOnEarlyFailure(t *testing.T) {
+	manifests := createIntegrationManifests(t, []string{"maas"})
+	require.NoError(t, os.WriteFile(
+		filepath.Join(manifests, "modules", "maas", "kustomization.yaml"),
+		[]byte("invalid: ["),
+		0644,
+	))
+
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+	})
+	ctx := context.Background()
+	require.NoError(t, k8sClient.Create(ctx, dashboard))
+	t.Cleanup(func() {
+		deleteDashboard(t)
+		cleanupModuleResources(t)
+	})
+
+	dashboard = getDashboard(t)
+	dashboard.Status.MaaSConsumerPortalURL = "https://previous.example.com/"
+	require.NoError(t, k8sClient.Status().Update(ctx, dashboard))
+	seeded := getDashboard(t)
+	assert.Equal(t, "https://previous.example.com/", seeded.Status.MaaSConsumerPortalURL)
+	assert.Empty(t, seeded.Status.MaaSPortalURL)
+
+	r := newManifestReconciler(manifests)
+	r.Platform = cluster.SelfManagedRhoai
+	reconcile(t, r)
+	_, err := r.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+	require.ErrorContains(t, err, "failed to reconcile MaaS Portal-required modules")
+
+	fetched := getDashboard(t)
+	assert.Equal(t, "ModuleDeployFailed", conditionReason(fetched, string(common.ConditionTypeProvisioningSucceeded)))
+	assert.Equal(t, "https://previous.example.com/", fetched.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://previous.example.com/", fetched.Status.MaaSPortalURL)
+}
+
 func reconcile(t *testing.T, r *ctrlpkg.DashboardReconciler) ctrl.Result {
 	t.Helper()
 	ctx := context.Background()
@@ -351,8 +435,12 @@ func getConfigMap(t *testing.T, name string) *corev1.ConfigMap {
 }
 
 type federationEntry struct {
-	Name    string      `json:"name"`
-	Enabled bool        `json:"enabled"`
+	Name    string             `json:"name"`
+	Enabled bool               `json:"enabled"`
+	Backend *federationBackend `json:"backend,omitempty"`
+}
+
+type federationBackend struct {
 	Service *serviceRef `json:"service,omitempty"`
 }
 
@@ -512,11 +600,12 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 	require.NotNil(t, entry, "modelRegistry should be in federation config")
 	// envtest has no kubelet so pods never become ready — module phase is
 	// Degraded not Deployed, meaning entry.Enabled is false. The important
-	// check is that the service reference is correct.
-	require.NotNil(t, entry.Service, "federation entry should include a service reference")
-	assert.Equal(t, "odh-dashboard-model-registry-ui", entry.Service.Name)
-	assert.Equal(t, integrationNamespace, entry.Service.Namespace)
-	assert.Equal(t, int32(8043), entry.Service.Port)
+	// check is that the backend service reference is correct.
+	require.NotNil(t, entry.Backend, "federation entry should include a backend")
+	require.NotNil(t, entry.Backend.Service, "federation backend should include a service reference")
+	assert.Equal(t, "odh-dashboard-model-registry-ui", entry.Backend.Service.Name)
+	assert.Equal(t, integrationNamespace, entry.Backend.Service.Namespace)
+	assert.Equal(t, int32(8043), entry.Backend.Service.Port)
 
 	// Verify Dashboard status has modelRegistry deployed or degraded.
 	dashboard = getDashboard(t)

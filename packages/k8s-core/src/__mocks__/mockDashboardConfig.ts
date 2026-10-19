@@ -39,13 +39,17 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   featureStoreAdmin?: boolean;
+  dataRegistry?: boolean;
   genAiStudio?: boolean;
+  genAiImageUpload?: boolean;
+  genAiAudioUpload?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
+  genAiAgentDeployment?: boolean;
   aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
@@ -54,6 +58,8 @@ export type MockDashboardConfigType = {
   workbenchesV2?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
+  skillRegistry?: boolean;
+  genAiMcpRegistryServers?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
@@ -70,9 +76,7 @@ export type MockDashboardConfigType = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
-  connectionTest?: boolean;
   modelCapabilities?: boolean;
-  runtimeCatalog?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -91,10 +95,12 @@ export const mockDashboardConfig = ({
   disableTracking = false,
   disableBYONImageStream = false,
   disableISVBadges = false,
-  genAiStudio = false,
+  genAiStudio = true,
+  genAiImageUpload = false,
+  genAiAudioUpload = false,
   genAiTracing = false,
-  automl = false,
-  autorag = false,
+  automl = true,
+  autorag = true,
   modelAsService = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
@@ -115,6 +121,8 @@ export const mockDashboardConfig = ({
   disableModelCatalog = false,
   mcpCatalog = false,
   mcpRegistry = false,
+  skillRegistry = false,
+  genAiMcpRegistryServers = false,
   toolCalling = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
@@ -126,6 +134,7 @@ export const mockDashboardConfig = ({
   disableKueue = true,
   disableFeatureStore = true,
   featureStoreAdmin = false,
+  dataRegistry = false,
   trainingJobs = true,
   observabilityDashboard = true,
   disableLLMd = false,
@@ -133,9 +142,10 @@ export const mockDashboardConfig = ({
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
   agentConfigManagement = false,
+  genAiAgentDeployment = false,
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
-  promptManagement = false,
+  promptManagement = true,
   globalProjectPrompts = false,
   nimWizard = true,
   nimServiceOperator = false,
@@ -144,9 +154,7 @@ export const mockDashboardConfig = ({
   agentsCatalog = false,
   roleManagement = true,
   gpuaas = true,
-  connectionTest = false,
   modelCapabilities = false,
-  runtimeCatalog = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -299,6 +307,8 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
+      genAiImageUpload,
+      genAiAudioUpload,
       genAiTracing,
       automl,
       autorag,
@@ -311,6 +321,8 @@ export const mockDashboardConfig = ({
       disableModelCatalog,
       mcpCatalog,
       mcpRegistry,
+      skillRegistry,
+      genAiMcpRegistryServers,
       toolCalling,
       disableModelRegistry,
       disableModelRegistrySecureDB,
@@ -323,6 +335,7 @@ export const mockDashboardConfig = ({
       disableKueue,
       disableFeatureStore,
       featureStoreAdmin,
+      dataRegistry,
       trainingJobs,
       observabilityDashboard,
       disableLLMd,
@@ -330,6 +343,7 @@ export const mockDashboardConfig = ({
       deploymentWizardYAMLViewer,
       externalVectorStores,
       agentConfigManagement,
+      genAiAgentDeployment,
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
@@ -341,9 +355,7 @@ export const mockDashboardConfig = ({
       agentsCatalog,
       roleManagement,
       gpuaas,
-      connectionTest,
       modelCapabilities,
-      runtimeCatalog,
     },
     notebookController: {
       enabled: !disableNotebookController,

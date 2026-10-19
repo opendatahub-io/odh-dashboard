@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { LICENSE_VALUES, MATURITY_VALUES, PII_STATUS_VALUES } from '~/app/types';
 
 export const editAssetSchema = z.object({
   assetType: z.enum(['unstructured', 'structured']),
@@ -10,9 +11,10 @@ export const editAssetSchema = z.object({
   connection: z.string(),
   path: z.string(),
   purpose: z.string().max(200, 'Purpose must be 200 characters or fewer'),
-  license: z.string(),
-  maturity: z.string(),
-  piiStatus: z.string(),
+  license: z.union([z.enum(LICENSE_VALUES), z.literal('')]),
+  maturity: z.union([z.enum(MATURITY_VALUES), z.literal('')]),
+  domain: z.string(),
+  piiStatus: z.union([z.enum(PII_STATUS_VALUES), z.literal('')]),
   customProperties: z
     .array(z.object({ id: z.number(), key: z.string(), value: z.string() }))
     .superRefine((properties, ctx) => {

@@ -274,7 +274,7 @@ describe('NIMImageFieldComponent', () => {
     expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
     expect(screen.queryByText('No NVIDIA NIM key', { exact: false })).not.toBeInTheDocument();
     expect(
-      screen.getByText(/NVIDIA NIM account information could not be loaded/),
+      screen.getByText(/Unable to retrieve NVIDIA NIM account information/),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('nim-image-not-found-warning')).not.toBeInTheDocument();
   });
@@ -295,7 +295,7 @@ describe('NIMImageFieldComponent', () => {
 
     expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
     expect(
-      screen.getByText(/NVIDIA NIM account information could not be loaded/),
+      screen.getByText(/Unable to retrieve NVIDIA NIM account information/),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('nim-image-not-found-warning')).not.toBeInTheDocument();
@@ -317,7 +317,7 @@ describe('NIMImageFieldComponent', () => {
 
     expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
     expect(
-      screen.getByText(/deployed image is preserved but cannot be changed/),
+      screen.getByText(/deployed image is preserved but cannot be edited/),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
   });

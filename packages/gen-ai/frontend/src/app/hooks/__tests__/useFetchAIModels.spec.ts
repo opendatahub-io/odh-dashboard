@@ -4,6 +4,8 @@ import { isValidAAModel } from '~/app/hooks/useFetchAIModels';
 jest.mock('mod-arch-core', () => ({
   useFetchState: jest.fn(),
   FetchStateCallbackPromise: jest.fn(),
+  asEnumMember: jest.fn(),
+  DeploymentMode: { Federated: 'federated' },
   NotReadyError: class NotReadyError extends Error {
     constructor(message: string) {
       super(message);

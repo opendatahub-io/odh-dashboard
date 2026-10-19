@@ -10,7 +10,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
-	"sort"
+	"regexp"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -32,41 +32,16 @@ import (
 )
 
 const (
-	federationConfigMapName = "federation-config"
-	federationConfigKey     = "module-federation-config.json"
-	moduleComponentLabel    = "app.kubernetes.io/component"
+	federationConfigMapName      = "federation-config"
+	federationConfigKey          = "module-federation-config.json"
+	dashboardFederationConfigKey = "dashboard-federation-config.json"
+	communityFederationConfigKey = "community-federation-config.json"
+	runtimeFederationConfigKey   = federationConfigKey
+	moduleComponentLabel         = "app.kubernetes.io/component"
+	dataConnectHubModuleName     = "dataConnectHub"
 )
 
-// --- Module proxy and federation types ---
-
-type proxyRoute struct {
-	Path        string `json:"path"`
-	PathRewrite string `json:"pathRewrite"`
-}
-
-type serviceRef struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Port      int32  `json:"port"`
-}
-
-type federationEntry struct {
-	Name         string              `json:"name"`
-	RemoteEntry  string              `json:"remoteEntry,omitempty"`
-	Authorize    bool                `json:"authorize"`
-	TLS          bool                `json:"tls"`
-	Proxy        []proxyRoute        `json:"proxy,omitempty"`
-	Service      *serviceRef         `json:"service,omitempty"`
-	ProxyService []proxyServiceEntry `json:"proxyService,omitempty"`
-}
-
-type proxyServiceEntry struct {
-	Authorize   bool       `json:"authorize"`
-	Path        string     `json:"path"`
-	PathRewrite string     `json:"pathRewrite"`
-	TLS         bool       `json:"tls"`
-	Service     serviceRef `json:"service"`
-}
+var moduleFederationRemoteName = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 
 // --- Service discovery env vars (inter-BFF injection) ---
 
@@ -74,49 +49,6 @@ type interBFFDependency struct {
 	EnvServiceName string
 	EnvServicePort string
 	TargetModule   string
-}
-
-// proxyPathsFor returns the proxy routes for a module. If the module has
-// explicit ProxyPaths set, those are returned. Otherwise the standard
-// convention /<slug>/api → /api is used.
-func proxyPathsFor(mod ModuleDefinition) []proxyRoute {
-	if mod.ProxyPaths != nil {
-		return mod.ProxyPaths
-	}
-	return []proxyRoute{{
-		Path:        "/" + mod.ManifestSlug + "/api",
-		PathRewrite: "/api",
-	}}
-}
-
-// moduleFederationEntry builds the common remote-module entry used by each
-// federation ConfigMap. The module registry is the source of service, TLS, and
-// proxy-route configuration for every consumer.
-func (r *DashboardReconciler) moduleFederationEntry(name string, mod ModuleDefinition) federationEntry {
-	return federationEntry{
-		Name:        name,
-		RemoteEntry: "/remoteEntry.js",
-		Authorize:   true,
-		TLS:         mod.TLS,
-		Proxy:       proxyPathsFor(mod),
-		Service: &serviceRef{
-			Name:      standaloneServiceName(r.Platform, mod.ManifestSlug),
-			Namespace: r.ApplicationsNamespace,
-			Port:      mod.Port,
-		},
-	}
-}
-
-// coreBffPort is the port core-bff listens on within the main dashboard pod/service.
-const coreBffPort = 8943
-
-// mainDashboardServiceName returns the platform-specific name of the main
-// dashboard Service that exposes the core-bff port (8943).
-func mainDashboardServiceName(platform cluster.Platform) string {
-	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
-		return "rhods-dashboard"
-	}
-	return "odh-dashboard"
 }
 
 // --- Platform-aware service name resolution ---
@@ -209,6 +141,13 @@ func (r *DashboardReconciler) deployModuleManifests(
 			continue
 		}
 
+		if name == dataConnectHubModuleName {
+			activeRBACName, _ := dataConnectHubGatewayRBACForPlatform(r.Platform)
+			if err := r.cleanupDataConnectHubGatewayRBAC(ctx, activeRBACName); err != nil {
+				return fmt.Errorf("cleaning up inactive DCH gateway RBAC: %w", err)
+			}
+		}
+
 		params := readExistingParams(filepath.Join(modulePath, "params.env"))
 		maps.Copy(params, computed)
 		addInterBFFParams(params, name, statuses, r.Platform)
@@ -221,6 +160,13 @@ func (r *DashboardReconciler) deployModuleManifests(
 		if err != nil {
 			logger.Error(err, "Failed to render module manifests", "module", name)
 			return fmt.Errorf("failed to render manifests for module %s: %w", name, err)
+		}
+		remapRayDashboardGatewayRBAC(rendered)
+		rendered = filterAndRemapDataConnectHubGatewayRBAC(rendered, r.ApplicationsNamespace, r.Platform)
+		if maasPortalSupportedPlatform(r.Platform) && mod.RequiredByMaaSPortal {
+			if err := preserveLegacyMaaSPortalNetworkAccess(ctx, r.Client, rendered, r.ApplicationsNamespace); err != nil {
+				return err
+			}
 		}
 
 		deployer := deploy.NewDeployer(
@@ -259,6 +205,12 @@ func (r *DashboardReconciler) deleteModuleResources(
 		status := statuses[name]
 		if status.Phase == v1alpha1.ModulePhaseDeployed || status.Phase == v1alpha1.ModulePhaseDegraded {
 			continue
+		}
+
+		if name == dataConnectHubModuleName {
+			if err := r.cleanupDataConnectHubGatewayRBAC(ctx, ""); err != nil {
+				errs = append(errs, fmt.Errorf("cleaning up DCH gateway RBAC: %w", err))
+			}
 		}
 
 		matchLabels := client.MatchingLabels{
@@ -411,84 +363,38 @@ func addInterBFFParams(params map[string]string, moduleName string, statuses map
 	}
 }
 
-// --- Build dynamic federation ConfigMap ---
-
 func (r *DashboardReconciler) buildFederationConfigMap(
+	ctx context.Context,
 	statuses map[string]v1alpha1.ModuleStatus,
 	dashboard *v1alpha1.Dashboard,
 ) (*corev1.ConfigMap, error) {
-	var entries []federationEntry
+	dashboardEntries := r.dashboardFederationEntries(statuses, dashboard)
 
-	for name, mod := range moduleRegistry {
-		status := statuses[name]
-		if status.Phase != v1alpha1.ModulePhaseDeployed && status.Phase != v1alpha1.ModulePhaseDegraded {
-			continue
-		}
-
-		entries = append(entries, r.moduleFederationEntry(name, mod))
-	}
-
-	// Add coreBff entry — core-bff is always present when the dashboard is deployed
-	// (it is a core container in the main pod, not a module). The Fastify backend
-	// uses this proxyService entry to route /core-bff/api/* requests to port 8943.
-	entries = append(entries, federationEntry{
-		Name: "coreBff",
-		ProxyService: []proxyServiceEntry{{
-			Authorize:   true,
-			Path:        "/core-bff/api",
-			PathRewrite: "/api",
-			TLS:         true,
-			Service: serviceRef{
-				Name:      mainDashboardServiceName(r.Platform),
-				Namespace: r.ApplicationsNamespace,
-				Port:      coreBffPort,
-			},
-		}},
-	})
-
-	// Add perses entry if observability is enabled
-	if dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled &&
-		dashboard.Spec.Observability.PersesService != nil {
-		ps := dashboard.Spec.Observability.PersesService
-		entries = append(entries, federationEntry{
-			Name: "perses",
-			ProxyService: []proxyServiceEntry{{
-				Authorize:   true,
-				Path:        "/perses/api",
-				PathRewrite: "",
-				TLS:         false,
-				Service: serviceRef{
-					Name:      ps.Name,
-					Namespace: ps.Namespace,
-					Port:      ps.Port,
-				},
-			}},
-		})
-	}
-
-	// Add mlflowEmbedded entry if mlflow is deployed
-	if s, ok := statuses["mlflow"]; ok && (s.Phase == v1alpha1.ModulePhaseDeployed || s.Phase == v1alpha1.ModulePhaseDegraded) {
-		entries = append(entries, federationEntry{
-			Name:        "mlflowEmbedded",
-			RemoteEntry: "/mlflow/static-files/federated/remoteEntry.js",
-			Authorize:   true,
-			TLS:         true,
-			Service: &serviceRef{
-				Name:      "mlflow",
-				Namespace: r.ApplicationsNamespace,
-				Port:      8443,
-			},
-		})
-	}
-
-	// Sort entries by name for deterministic output
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name < entries[j].Name
-	})
-
-	data, err := json.MarshalIndent(entries, "    ", "  ")
+	communityEntries, err := communityFederationEntries(ctx, r.Client)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal federation config: %w", err)
+		// The community source is optional. Retain its last-known-good entries so
+		// a read failure cannot block Dashboard federation updates or cause a
+		// transient disappearance of every accepted community plugin.
+		log.FromContext(ctx).Error(err, "Unable to read community plugin federation entries; retaining last-known-good entries")
+		communityEntries, err = r.lastKnownGoodCommunityFederationEntries(ctx)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "Unable to retain last-known-good community plugin federation entries")
+			communityEntries = nil
+		}
+	}
+
+	dashboardData, err := marshalFederationEntries(dashboardEntries)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling Dashboard federation config: %w", err)
+	}
+	communityData, err := marshalFederationEntries(communityEntries)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling community federation config: %w", err)
+	}
+	runtimeEntries := append(append([]federationEntry{}, dashboardEntries...), communityEntries...)
+	runtimeData, err := marshalFederationEntries(runtimeEntries)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling runtime federation config: %w", err)
 	}
 
 	cm := &corev1.ConfigMap{
@@ -501,7 +407,9 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 			Namespace: r.ApplicationsNamespace,
 		},
 		Data: map[string]string{
-			federationConfigKey: string(data),
+			dashboardFederationConfigKey: string(dashboardData),
+			communityFederationConfigKey: string(communityData),
+			runtimeFederationConfigKey:   string(runtimeData),
 		},
 	}
 
@@ -585,10 +493,16 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 	ctx context.Context,
 	statuses map[string]v1alpha1.ModuleStatus,
 	dashboard *v1alpha1.Dashboard,
+	observabilityKnown bool,
 ) (string, error) {
-	fedCM, err := r.buildFederationConfigMap(statuses, dashboard)
+	fedCM, err := r.buildFederationConfigMap(ctx, statuses, dashboard)
 	if err != nil {
 		return "", fmt.Errorf("building federation ConfigMap: %w", err)
+	}
+	if !observabilityKnown {
+		if err := r.preservePersesFederationEntry(ctx, fedCM); err != nil {
+			return "", err
+		}
 	}
 
 	fedResources, err := configMapToUnstructured(fedCM)
@@ -610,7 +524,46 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 		return "", fmt.Errorf("deploying federation ConfigMap: %w", err)
 	}
 
-	return fedCM.Data[federationConfigKey], nil
+	return fedCM.Data[runtimeFederationConfigKey], nil
+}
+
+// preservePersesFederationEntry retains the last-known-good Perses entry while
+// detection is unavailable. Other entries come from the current module demand;
+// an absent ConfigMap does not prevent a first installation from starting.
+func (r *DashboardReconciler) preservePersesFederationEntry(ctx context.Context, desired *corev1.ConfigMap) error {
+	existing := &corev1.ConfigMap{}
+	if err := r.Get(ctx, client.ObjectKeyFromObject(desired), existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("reading federation ConfigMap %s: %w", desired.Name, err)
+	}
+	var existingEntries []json.RawMessage
+	if err := json.Unmarshal([]byte(existing.Data[federationConfigKey]), &existingEntries); err != nil {
+		return fmt.Errorf("reading federation entries from %s: %w", desired.Name, err)
+	}
+	for _, entry := range existingEntries {
+		var identity struct {
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal(entry, &identity); err != nil {
+			return fmt.Errorf("reading federation entry from %s: %w", desired.Name, err)
+		}
+		if identity.Name != persesFederationName {
+			continue
+		}
+		var desiredEntries []json.RawMessage
+		if err := json.Unmarshal([]byte(desired.Data[federationConfigKey]), &desiredEntries); err != nil {
+			return fmt.Errorf("reading desired federation entries: %w", err)
+		}
+		data, err := json.MarshalIndent(append(desiredEntries, entry), "    ", "  ")
+		if err != nil {
+			return fmt.Errorf("preserving Perses federation entry: %w", err)
+		}
+		desired.Data[federationConfigKey] = string(data)
+		return nil
+	}
+	return nil
 }
 
 // reconcileModuleDemand deploys and removes shared BFFs based on both operand
@@ -618,12 +571,13 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 // are common dependencies rather than resources owned by a single operand.
 func (r *DashboardReconciler) reconcileModuleDemand(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
 	statuses := resolveModuleStatuses(&dashboard.Spec)
-	// The MaaS Consumer Portal is a RHOAI-only operand. Do not let an unsupported
-	// MaaS Consumer Portal request create MaaS/GenAI demand when the core dashboard is removed.
-	if !maasConsumerPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && dashboard.Spec.MaaSConsumerPortal != nil && dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" {
-		for _, name := range maasConsumerPortalRequiredModuleNames() {
+	// The MaaS Portal is a RHOAI-only operand. Do not let an unsupported
+	// MaaS Portal request create MaaS/GenAI demand when the core dashboard is removed.
+	portal := effectiveMaaSPortal(dashboard.Spec)
+	if !maasPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && portal != nil && portal.ManagementState == "Managed" {
+		for _, name := range maasPortalRequiredModuleNames() {
 			if statuses[name].Reason != "ExplicitOverride" {
-				statuses[name] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseNotDeployed, Reason: "UnsupportedPlatform", Message: "MaaS Consumer Portal is supported only on RHOAI", LastTransitionTime: metav1.Now()}
+				statuses[name] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseNotDeployed, Reason: "UnsupportedPlatform", Message: "MaaS Portal is supported only on RHOAI", LastTransitionTime: metav1.Now()}
 			}
 		}
 	}

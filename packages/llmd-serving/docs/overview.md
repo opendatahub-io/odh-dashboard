@@ -12,29 +12,42 @@
 - **No Module Federation remote**: Dashboard loads via monorepo exports (e.g. `./extensions`, `./types`, test helpers under `./__tests__/utils`).
 - **API**: Group `serving.kserve.io`, resource `llminferenceservices`, version `v1alpha2`; shapes in `src/types.ts` as `LLMInferenceServiceKind`.
 
+## Modular Dependency Boundaries
+
+- Follow the repository [package topology](../../../docs/package-topology.md): `llmd-serving` is a
+  spoke of the `model-serving` hub, and feature packages may depend on core shared libraries.
+- The remaining `@odh-dashboard/internal` imports and KServe-area activation are transitional; do
+  not introduce new uses of either boundary.
+
+| Legacy import                                               | Modular import                                         | Symbols                                     |
+| ----------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------- |
+| `@odh-dashboard/internal/api/k8sUtils`                      | `@odh-dashboard/k8s-core/api/k8sUtils`                 | `createPatchesFromDiff`, `groupVersionKind` |
+| `@odh-dashboard/internal/api/models`                        | `@odh-dashboard/k8s-core/api/models`                   | `PodModel`                                  |
+| `@odh-dashboard/internal/utilities/useK8sWatchResourceList` | `@odh-dashboard/ui-core/hooks/useK8sWatchResourceList` | `useK8sWatchResourceList`                   |
+
 ## Key Concepts
 
-| Term | Definition |
-|------|-----------|
-| **LLMInferenceService** | CR `serving.kserve.io/v1alpha2` / `llminferenceservices`; deployed LLM-d model. |
-| **LLMdDeployment** | `Deployment<LLMInferenceServiceKind>` with `modelServingPlatformId = 'llmd-serving'`. |
-| **LLMdContainer** | Container in `spec.template.containers`; vLLM args via `VLLM_ADDITIONAL_ARGS`. |
-| **Router** | `spec.router` with `gateway`, `route`, `scheduler`; LLM-d routing layer. |
-| **Token authentication** | Secrets via `deployUtils.setUpTokenAuth`; wizard `tokenAuthField`. |
-| **Deployment strategy** | Rolling vs recreate via `deploymentStrategyField`. |
+| Term                       | Definition                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| **LLMInferenceService**    | CR `serving.kserve.io/v1alpha2` / `llminferenceservices`; deployed LLM-d model.             |
+| **LLMdDeployment**         | `Deployment<LLMInferenceServiceKind>` with `modelServingPlatformId = 'llmd-serving'`.       |
+| **LLMdContainer**          | Container in `spec.template.containers`; vLLM args via `VLLM_ADDITIONAL_ARGS`.              |
+| **Router**                 | `spec.router` with `gateway`, `route`, `scheduler`; LLM-d routing layer.                    |
+| **Token authentication**   | Secrets via `deployUtils.setUpTokenAuth`; wizard `tokenAuthField`.                          |
+| **Deployment strategy**    | Rolling vs recreate via `deploymentStrategyField`.                                          |
 | **Hardware profile paths** | `LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS` JSONPaths for `applyHardwareProfileConfig`. |
-| **External route** | Public route via LLM-d gateway; `externalRouteField`. |
-| **isLLMdDeployActive** | `deployUtils.ts`; true only when `disableLLMd` is off and `K_SERVE` area exists. |
+| **External route**         | Public route via LLM-d gateway; `externalRouteField`.                                       |
+| **isLLMdDeployActive**     | `deployUtils.ts`; true only when `disableLLMd` is off and `K_SERVE` area exists.            |
 
 ## Interactions
 
-| Dependency | Type | Details |
-|-----------|------|---------|
-| `@odh-dashboard/model-serving` | Package | Extension-point interfaces this package implements |
-| `@odh-dashboard/kserve` | Package | Shared KServe utilities and types |
-| `@odh-dashboard/internal` | Package | Hardware profiles, k8s types, flags / areas |
-| `LLMInferenceService` CRD | Kubernetes API | Group `serving.kserve.io`, `v1alpha2` |
-| Main ODH Dashboard | Host application | Loads extensions; model-serving wizard and table |
+| Dependency                     | Type                       | Details                                                                                          |
+| ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------ |
+| `@odh-dashboard/model-serving` | Package                    | Extension-point interfaces this package implements                                               |
+| `@odh-dashboard/kserve`        | Transitional package edge  | No production import; declared dependency and frontend-area activation are scheduled for removal |
+| `@odh-dashboard/internal`      | Transitional monolith edge | Use the modular destinations listed in Modular Dependency Boundaries; do not add new imports     |
+| `LLMInferenceService` CRD      | Kubernetes API             | Group `serving.kserve.io`, `v1alpha2`                                                            |
+| Main ODH Dashboard             | Host application           | Loads extensions; model-serving wizard and table                                                 |
 
 ## Known Issues / Gotchas
 

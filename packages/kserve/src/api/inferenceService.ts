@@ -7,7 +7,7 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/index';
-import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
+import { createPatchesFromDiff } from '@odh-dashboard/k8s-core/api/k8sUtils';
 
 export const createInferenceService = (
   inferenceService: InferenceServiceKind,

@@ -84,6 +84,7 @@ describe('SaveAgentProfileModal', () => {
       loadedProfileDisplayName: null,
       loadedProfileDescription: null,
       loadedResourceVersion: null,
+      loadedProfileSpec: null,
     });
     jest.mocked(mockGenAiContextValue.apiState.api.createAgentProfile).mockResolvedValue({
       profileId: 'new-uuid',
@@ -117,6 +118,18 @@ describe('SaveAgentProfileModal', () => {
       renderModal('save-as');
       expect(screen.getByText('Save as new agent')).toBeInTheDocument();
       expect(screen.getByTestId('save-agent-profile-name-input')).toHaveValue('');
+      expect(
+        screen.getByText('Save your model, prompt, RAG, and MCP servers as a reusable agent.'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('RAG')).toBeInTheDocument();
+    });
+
+    it('should identify a missing RAG source when external RAG is enabled', () => {
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+      useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+      renderModal('save-as');
+
+      expect(screen.getByText('No RAG source selected')).toBeInTheDocument();
     });
 
     it('should explain that guardrails are not saved with the agent', () => {
@@ -194,6 +207,33 @@ describe('SaveAgentProfileModal', () => {
   });
 
   describe('Save mode', () => {
+    it('should preview a preserved unavailable Registry server and its allowed tools', () => {
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION, selectedMcpServerIds: [] },
+        },
+        loadedProfileId: 'existing-uuid',
+        loadedProfileDisplayName: 'My Agent',
+        loadedProfileSpec: {
+          displayName: 'My Agent',
+          model: { id: 'llama-3b', uri: 'http://llama/v1', sourceType: 'namespace' },
+          mcpServers: [
+            {
+              name: 'com.example/jira',
+              source: 'mlflow',
+              allowedTools: ['search_issues'],
+            },
+          ],
+        },
+      });
+
+      renderModal('save');
+
+      expect(screen.getByText('com.example/jira')).toBeInTheDocument();
+      expect(screen.getByText('1 tool')).toBeInTheDocument();
+      expect(screen.queryByText('No MCP servers selected')).not.toBeInTheDocument();
+    });
+
     it('should pre-fill the name from loadedProfileDisplayName', () => {
       useChatbotConfigStore.setState({
         configurations: { [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },

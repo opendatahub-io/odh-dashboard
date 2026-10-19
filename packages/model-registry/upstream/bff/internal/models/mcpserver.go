@@ -53,10 +53,12 @@ type MCPStorageMount struct {
 	Source      MCPStorageSource `json:"source" yaml:"source"`
 }
 
+// MCPStorageSource preserves free-form catalog volume options, including explicit empty objects.
 type MCPStorageSource struct {
-	Type      string                        `json:"type" yaml:"type"`
-	ConfigMap *corev1.ConfigMapVolumeSource `json:"configMap,omitempty" yaml:"configmap,omitempty"`
-	Secret    *corev1.SecretVolumeSource    `json:"secret,omitempty" yaml:"secret,omitempty"`
+	Type      string                  `json:"type" yaml:"type"`
+	ConfigMap *map[string]interface{} `json:"configMap,omitempty" yaml:"configmap,omitempty"`
+	Secret    *map[string]interface{} `json:"secret,omitempty" yaml:"secret,omitempty"`
+	EmptyDir  *map[string]interface{} `json:"emptyDir,omitempty" yaml:"emptydir,omitempty"`
 }
 
 type MCPRuntimeSpec struct {

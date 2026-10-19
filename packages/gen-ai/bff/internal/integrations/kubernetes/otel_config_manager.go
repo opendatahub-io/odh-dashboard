@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -9,7 +10,9 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -29,7 +32,8 @@ import (
 )
 
 const (
-	routingConnectorKey = "routing/traces"
+	routingConnectorKey     = "routing/traces"
+	asgiSpanFilterProcessor = "filter/drop-asgi-events"
 
 	collectorPatchTimeout = 15 * time.Second
 	crDiscoveryTimeout    = 10 * time.Second
@@ -342,13 +346,19 @@ func (m *otelConfigManager) buildBaseCollectorCR() *unstructured.Unstructured {
 					},
 					"processors": map[string]interface{}{
 						"batch": map[string]interface{}{},
+						asgiSpanFilterProcessor: map[string]interface{}{
+							"error_mode": "ignore",
+							"traces": map[string]interface{}{
+								"span": []interface{}{`IsMatch(name, ".* http (send|receive)$")`},
+							},
+						},
 					},
 					"service": map[string]interface{}{
 						"extensions": []interface{}{"bearertokenauth"},
 						"pipelines": map[string]interface{}{
 							"traces": map[string]interface{}{
 								"receivers":  []interface{}{"otlp"},
-								"processors": []interface{}{"batch"},
+								"processors": []interface{}{asgiSpanFilterProcessor, "batch"},
 								"exporters":  []interface{}{"debug"},
 							},
 						},
@@ -421,9 +431,10 @@ func (m *otelConfigManager) writeBackConfig(ctx context.Context, cr *unstructure
 const (
 	saTokenPath          = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	mlflowExperimentsAPI = "/api/2.0/mlflow/experiments"
+	mlflowExperimentName = "Gen AI studio Playground"
 )
 
-// ensureMLflowExperimentWithToken creates a "Default" experiment in the given
+// ensureMLflowExperimentWithToken creates an experiment in the given
 // workspace if one doesn't exist, and returns its experiment ID. Uses the
 // provided token (typically the user's token, since experiment creation is
 // namespace-scoped and project admins have access). Returns "" on error,
@@ -460,7 +471,8 @@ func (m *otelConfigManager) getAuthToken() string {
 }
 
 func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace string, token string) (string, error) {
-	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1&filter_string=%s", m.mlflowURL, mlflowExperimentsAPI, "name%3D'Default'")
+	filterString := url.QueryEscape(fmt.Sprintf("name='%s'", mlflowExperimentName))
+	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1&filter_string=%s", m.mlflowURL, mlflowExperimentsAPI, filterString)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -497,8 +509,11 @@ func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace stri
 func (m *otelConfigManager) createExperiment(ctx context.Context, workspace string, token string) (string, error) {
 	url := fmt.Sprintf("%s/mlflow%s/create", m.mlflowURL, mlflowExperimentsAPI)
 
-	body := strings.NewReader(`{"name":"Default"}`)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+	body, err := json.Marshal(map[string]string{"name": mlflowExperimentName})
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -578,36 +593,59 @@ func normalizeValue(v interface{}) interface{} {
 
 // --- config manipulation (all maps are map[string]interface{}) ---
 
+// ensureASGISpanFilter drops low-level ASGI send/receive spans. Streaming
+// responses otherwise create one child span per chunk, making the MLflow trace
+// breakdown noisy without adding useful user-facing information.
+func ensureASGISpanFilter(cfg map[string]interface{}) bool {
+	processors := ensureMap(cfg, "processors")
+	if _, exists := processors[asgiSpanFilterProcessor]; exists {
+		return false
+	}
+
+	processors[asgiSpanFilterProcessor] = map[string]interface{}{
+		"error_mode": "ignore",
+		"traces": map[string]interface{}{
+			"span": []interface{}{`IsMatch(name, ".* http (send|receive)$")`},
+		},
+	}
+	return true
+}
+
 // ensureRoutingConnector creates the routing/traces connector alongside the
 // operator-managed traces pipeline. The operator owns the base `traces` pipeline
 // ensureRoutingConnector adds the routing connector and rewires the base
 // traces pipeline to export through it. Since this is our own dedicated
 // collector CR, we own the full config and can restructure the pipeline:
 //
-//	traces: otlp → batch → routing/traces
+//	traces: otlp → filter/drop-asgi-events → batch → routing/traces
 //	traces/<ns>: routing/traces → otlp/http/<ns>  (added per namespace)
 //
 // Returns true if the config was modified.
 func ensureRoutingConnector(cfg map[string]interface{}) bool {
+	changed := ensureASGISpanFilter(cfg)
+
 	connectors := ensureMap(cfg, "connectors")
-	if _, exists := connectors[routingConnectorKey]; exists {
-		return false
+	if _, exists := connectors[routingConnectorKey]; !exists {
+		connectors[routingConnectorKey] = map[string]interface{}{
+			"default_pipelines": []interface{}{},
+			"table":             []interface{}{},
+		}
+		changed = true
 	}
 
-	connectors[routingConnectorKey] = map[string]interface{}{
-		"default_pipelines": []interface{}{},
-		"table":             []interface{}{},
-	}
-
-	// Rewire the base traces pipeline to export through the routing connector
-	pipelines := ensureMap(ensureMap(cfg, "service"), "pipelines")
-	pipelines["traces"] = map[string]interface{}{
+	// Rewire the base traces pipeline to export through the routing connector.
+	pipeline := map[string]interface{}{
 		"receivers":  []interface{}{"otlp"},
-		"processors": []interface{}{"batch"},
+		"processors": []interface{}{asgiSpanFilterProcessor, "batch"},
 		"exporters":  []interface{}{routingConnectorKey},
 	}
+	pipelines := ensureMap(ensureMap(cfg, "service"), "pipelines")
+	if !mapStringInterfaceEqual(pipelines["traces"], pipeline) {
+		pipelines["traces"] = pipeline
+		changed = true
+	}
 
-	return true
+	return changed
 }
 
 // addNamespaceRoute adds a routing table entry, exporter, and pipeline for the
@@ -753,4 +791,9 @@ func toSlice(v interface{}) []interface{} {
 		return s
 	}
 	return nil
+}
+
+func mapStringInterfaceEqual(a interface{}, b map[string]interface{}) bool {
+	am, ok := a.(map[string]interface{})
+	return ok && reflect.DeepEqual(am, b)
 }

@@ -19,12 +19,12 @@ import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8s
 import type { HardwareProfileKind, PodKind } from '@odh-dashboard/k8s-core';
 import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { ConfigMapModel, SecretModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
+
 import {
   ImageStreamModel,
   NotebookModel,
   PVCModel,
-  PodModel,
   ProjectModel,
   RouteModel,
   StorageClassModel,

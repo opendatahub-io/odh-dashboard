@@ -28,17 +28,21 @@ type UseAgentProfileUrlParamResult = {
  * Reads `?agentProfileId=<uuid>` from the URL, fetches the profile from the BFF,
  * and applies it to the Playground store. Runs once on mount per profile ID.
  *
- * Waits for mcpServersLoaded before fetching so that MCP tool selections from the
- * profile can always be applied immediately without a separate retry.
+ * Waits for MCP discovery and status checks before fetching so tool selections can
+ * be restored by URL and unreachable servers can be reported on the first load.
  *
  * Requires GenAiContext (namespace) and ChatbotContext (playground models) to be in scope.
  */
 const useAgentProfileUrlParam = ({
   mcpServers,
+  availableMcpServers,
   mcpServersLoaded,
+  mcpServerStatusesResolved,
 }: {
   mcpServers: MCPServerFromAPI[];
+  availableMcpServers: MCPServerFromAPI[];
   mcpServersLoaded: boolean;
+  mcpServerStatusesResolved: boolean;
 }): UseAgentProfileUrlParamResult => {
   const [searchParams] = useSearchParams();
   const agentProfileId = searchParams.get(AGENT_PROFILE_ID_PARAM);
@@ -55,6 +59,8 @@ const useAgentProfileUrlParam = ({
   aiModelsRef.current = aiModels;
   const mcpServersRef = React.useRef(mcpServers);
   mcpServersRef.current = mcpServers;
+  const availableMcpServersRef = React.useRef(availableMcpServers);
+  availableMcpServersRef.current = availableMcpServers;
   const applyAgentProfile = useChatbotConfigStore((s) => s.applyAgentProfile);
   const setLoadedProfileSpec = useChatbotConfigStore((s) => s.setLoadedProfileSpec);
   const setLoadedProfileWarnings = useChatbotConfigStore((s) => s.setLoadedProfileWarnings);
@@ -83,6 +89,7 @@ const useAgentProfileUrlParam = ({
       !namespace?.name ||
       !apiAvailable ||
       !mcpServersLoaded ||
+      !mcpServerStatusesResolved ||
       !modelsLoaded ||
       appliedProfileId.current === agentProfileId ||
       loadedProfileId === agentProfileId
@@ -123,7 +130,7 @@ const useAgentProfileUrlParam = ({
         const syncWarnings = buildValidationWarnings(profile, {
           playgroundModels: playgroundModelsRef.current,
           aiModels: aiModelsRef.current,
-          mcpServers: mcpServersRef.current,
+          mcpServers: availableMcpServersRef.current,
         });
         // Guard matches the check used for the async writes below — only commit warnings
         // if this profile is still the active one (rapid navigation / Save As can change it).
@@ -231,6 +238,7 @@ const useAgentProfileUrlParam = ({
     namespace?.name,
     apiAvailable,
     mcpServersLoaded,
+    mcpServerStatusesResolved,
     modelsLoaded,
     loadedProfileId,
     api,

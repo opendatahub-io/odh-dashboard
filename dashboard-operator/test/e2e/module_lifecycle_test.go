@@ -198,14 +198,16 @@ func TestE2EModuleOperands(t *testing.T) {
 		waitForObject(t, uid, cm, "federation-config")
 		var entries []struct {
 			Name    string `json:"name"`
-			Service *struct {
-				Name string `json:"name"`
-			} `json:"service"`
+			Backend *struct {
+				Service *struct {
+					Name string `json:"name"`
+				} `json:"service"`
+			} `json:"backend"`
 		}
 		require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
 		require.Condition(t, func() bool {
 			for _, entry := range entries {
-				if entry.Name == "agentOps" && entry.Service != nil && entry.Service.Name == "odh-dashboard-agent-ops-ui" {
+				if entry.Name == "agentOps" && entry.Backend != nil && entry.Backend.Service != nil && entry.Backend.Service.Name == "odh-dashboard-agent-ops-ui" {
 					return true
 				}
 			}
@@ -242,7 +244,7 @@ func TestE2EModuleOperands(t *testing.T) {
 	t.Run("TS6_01_core_service_matches_distribution", func(t *testing.T) {
 		uid := createManagedDashboard(t)
 		platform := requiredPlatform(t)
-		name := map[string]string{"odh": "odh-dashboard", "rhoai": "rhods-dashboard"}[platform]
+		name := map[string]string{platformODH: "odh-dashboard", platformRHOAI: "rhods-dashboard"}[platform]
 		waitForService(t, uid, name)
 	})
 	t.Run("TS6_02_module_service_uses_stable_prefix", func(t *testing.T) {
@@ -293,6 +295,8 @@ func TestE2EModuleOperands(t *testing.T) {
 
 func createManagedDashboard(t *testing.T) types.UID {
 	t.Helper()
+	requireManagedFixture(t)
+
 	dashboard := &dashboardv1alpha1.Dashboard{}
 	require.NoError(t, k8sClient.Get(
 		context.Background(),
@@ -329,6 +333,8 @@ func waitForAllModuleStatuses(t *testing.T) {
 
 func patchDashboardSpec(t *testing.T, mutate func(*dashboardv1alpha1.DashboardSpec)) {
 	t.Helper()
+	requireManagedFixture(t)
+
 	var targetGeneration int64
 	err := wait.PollUntilContextTimeout(context.Background(), e2ePollInterval, time.Minute, true, func(ctx context.Context) (bool, error) {
 		dashboard := &dashboardv1alpha1.Dashboard{}
@@ -695,11 +701,7 @@ func waitForObjectAbsent(t *testing.T, object client.Object, name string) {
 
 func requiredPlatform(t *testing.T) string {
 	t.Helper()
-	platform := os.Getenv("TEST_PLATFORM")
-	if platform != "odh" && platform != "rhoai" {
-		t.Fatalf("TEST_PLATFORM must be odh or rhoai, got %q", platform)
-	}
-	return platform
+	return testPlatform
 }
 
 func disabledModules(names ...string) map[string]dashboardv1alpha1.ModuleOverride {

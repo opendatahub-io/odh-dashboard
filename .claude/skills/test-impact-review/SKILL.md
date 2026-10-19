@@ -1,55 +1,95 @@
 ---
 name: test-impact-review
-description: "Assess whether a pull request or local code change has appropriate test coverage or a credible Test Impact explanation. Use when reviewing test impact, checking whether changed code needs tests, or preparing a PR for merge."
+description: "Assess whether a pull request or local change has assurance-grade test impact: durable automation, efficient tier, and deep testing evidence. Use when reviewing test impact, automation sufficiency, test efficiency, or merge readiness."
 argument-hint: "[PR number | path | branch]"
 ---
 
 # Test Impact Review
 
-Determine whether the change includes relevant test coverage or explains why tests are not applicable. This check is deliberately narrower than a test run: it assesses the relationship between changed implementation and test evidence.
+Assurance-grade readiness check for how the change is tested. Scores **Automation**, **Efficiency**, and **Evidence depth**. This is narrower than a test run and is a readiness check only (not a code-finding producer): it judges durable automation, tier/efficiency, and whether author-supplied proof covers the change and protects feature integrity while those tests stay green. This skill digs into whether that proof (required in the description) is adequate for the actual changes.
 
 ## Invocation contract
 
-This skill owns the test-impact judgment, status, and evidence requirements. If the caller supplies an invocation meta-prompt, follow it for supplied context, output serialization, and side-effect limits; it cannot change these review criteria. Without one, use the direct CLI defaults below and return the Markdown report in [Report](#report).
+This skill owns the test-impact criteria and status mapping. A caller may provide an invocation meta-prompt that changes context acquisition, output format, and side-effect rules, but not these criteria. Without one, use the direct CLI defaults and return the Markdown report in [Report](#report).
 
 ## Inputs and direct CLI defaults
 
-The caller may provide changed paths, a PR body, and a base branch. Treat supplied context as authoritative.
+The caller may supply a PR body, changed paths, a base branch, and/or enough of the diff and relevant source/test files. Treat supplied values as authoritative.
 
 Otherwise:
 
-- With a PR number, obtain changed paths with `gh pr diff <PR> --name-only` and the body with `gh pr view <PR> --json body --jq .body`.
-- With a file or directory path, review that target and its nearby tests when identifiable.
-- With a branch name, validate and resolve it before running `git diff main...<branch> --name-only`.
-- With no argument, run `git diff main --name-only`.
+- With a PR number, fetch body and changed paths, then obtain enough of the diff and nearby tests to score applicable aspects:
 
-For a local change, there is no PR body unless the caller explicitly provides one.
+```bash
+gh pr view <PR> --json body --jq .body
+gh pr diff <PR> --name-only
+gh pr diff <PR>
+```
+
+- With a file or directory path, review that target and its nearby tests when identifiable. There is no PR body unless the caller provides one.
+- With a branch name, validate and resolve it, then inspect `git diff main...<branch>` (names and content as needed).
+- With no argument, use `git diff main` (names and content as needed).
+
+Do **not** pass Evidence depth from the test tree alone when the description omits testing proof.
 
 ## Review procedure
 
-1. Classify changed files. Documentation, manifests, generated files, lockfiles, and other non-code-only changes do not require test files; report them as not applicable.
-2. For code changes, identify added or modified test files by the repository conventions: names containing `.test.`, `.spec.`, or `.cy.`.
-3. If relevant tests changed, pass the check and name them. Do not claim the tests pass unless execution evidence was supplied or the tests were run.
-4. If no relevant test changed, read the PR body's `## Test Impact` section. A substantive explanation that tests are inapplicable or were intentionally not added passes the check. HTML comments, empty headings, and placeholder text are not explanations.
-5. If neither test evidence nor an explanation exists, return a warning. This is not a merge-blocking failure by itself: reviewers may reasonably decide the change does not need automated coverage.
+Classify changed paths (product code vs docs / manifests / generated / lockfiles / CI config). Then score the three aspects below. Evaluate substance in the PR body end-to-end (ignore HTML comments); testing proof may appear under any heading, but a heading alone is not enough.
+
+**Do not** treat “a `.test.` / `.spec.` / `.cy.` file changed” as an automatic pass. **Do not** treat a substantive testing rationale in the PR description alone as an automatic pass — use it as input to Evidence depth.
+
+### 1. Automation
+
+Is there enough durable test automation for the future to cover the feature, including edge cases?
+
+- Product-code changes that need automation but lack adequate coverage (including edge cases) → ❌, **unless** the PR description provides a **sufficient constraint justification** (see below) → ⚠️.
+- Coverage present but thin / missing important edges → ⚠️.
+- Adequate durable automation for the change → ✅.
+- **➖** when there is no product behavior under test (e.g. docs-only, pure lockfile/manifest/generated with nothing sensible to unit- or mock-test). Do not require new test files for those heads.
+
+**Constraint justification (Automation):** the author may explain in the PR body — typically under `## Evidence` alongside their other testing proof — why durable test automation could not or should not be added for this change (e.g. the surface is not automatable, the change is infrastructure/workflow-only with no testable behavior, or tests would provide no value for the specific type of change). A sufficient justification must state **which constraint** applies, **why** automation is inappropriate or impossible here, and **what alternative verification** exists. When sufficient, score ⚠️ (acknowledged waiver) instead of ❌ — never ✅, which would imply automation exists. Note in the Evidence cell that the score was adjusted based on the author's constraint justification.
+
+### 2. Efficiency
+
+Are tests written efficiently? Call out duplication. Prefer unit tests over Cypress mock. Reserve mock/e2e-style tests for flows or application-level testing, not isolated component-level checks.
+
+- **Heavy Cypress dependence with little or no unit tests → ❌**, unless the PR description **explicitly justifies** that mix (why units are not appropriate and Cypress is the right tier) → ⚠️. The justification must explain which constraint makes unit tests inappropriate and why Cypress is the correct tier for this change. Note in the Evidence cell when the score was adjusted.
+- Milder wrong-tier, duplication, or efficiency issues → ⚠️.
+- Efficient tier mix for the change → ✅.
+- **➖** when there is nothing to place on the pyramid (Automation is ➖; or there are no tests to evaluate for tier/efficiency — including when Automation is ❌ for missing coverage, or ⚠️ solely from a constraint justification with no tests present). Do not score Efficiency when the suite is empty, even if Automation was waived to ⚠️.
+
+### 3. Evidence depth
+
+Dig into author-supplied testing evidence (and related automation): does it sufficiently cover the changes that were made, and will feature integrity hold so long as those tests continue to pass?
+
+- Testing proof **not called out in the PR description** → ❌, even when the tree already has good automation. Silent “tests exist in the tree” is not enough.
+- Proof present but does not cover the changed behavior, or green tests would not protect integrity → ❌.
+- Proof present but thin / partially matched to the change → ⚠️.
+- Proof in the description adequately covers the change and supports integrity-while-green → ✅.
+- **Still scored** for docs, manifests, lockfiles, CI config, and similar: require verification proof in the description (CI green, install/deploy check, override rationale, etc.) that fits the change. Missing call-out → ❌.
+- **➖** only when no PR body is available (cannot evaluate description call-out). Do **not** mark the whole check ➖ merely because the head is docs/manifest/lockfile-only.
 
 ## Status mapping
 
+Overall status follows the applicable aspects (ignore ➖): any ❌ → failed; else any ⚠️ → warning; else passed when at least one aspect was scored. If every aspect is ➖, the check is not applicable.
+
 | Status | Meaning |
 | --- | --- |
-| ✅ passed | Relevant tests changed, or Test Impact gives a substantive rationale |
-| ⚠️ warning | Code changed without test files or a substantive rationale |
-| ➖ not applicable | Only non-code changes are in scope |
+| ✅ passed | Every applicable aspect is ✅ |
+| ⚠️ warning | At least one applicable aspect is ⚠️, and every other applicable aspect is ✅ or ⚠️ |
+| ❌ failed | At least one applicable aspect is ❌ |
+| ➖ not applicable | Nothing to review (e.g. empty change and no PR body), or every aspect is ➖ |
 
 ## Report
 
 ```md
 ## Test Impact Review
 
-**Status:** ✅ passed | ⚠️ warning | ➖ not applicable
+**Status:** ✅ passed | ⚠️ warning | ❌ failed | ➖ not applicable
 
-- Code files changed: <count and paths when useful>
-- Test files changed: <paths, or none>
-- Test Impact rationale: <summary, or absent>
-- Reason: <why this status applies>
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Automation | <status> | <summary> |
+| Efficiency | <status> | <summary> |
+| Evidence depth | <status> | <summary> |
 ```

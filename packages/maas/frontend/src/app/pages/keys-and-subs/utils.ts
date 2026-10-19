@@ -18,3 +18,285 @@ export const formatApiKeyError = (message: string): string => {
   }
   return message.charAt(0).toUpperCase() + message.slice(1);
 };
+
+/** JS Date cannot represent arbitrarily large day offsets; cap the calendar UI. */
+export const DATE_PICKER_MAX_DAYS = 100 * 365;
+
+export const EXPIRATION_MODE_VALUES = ['onDate', 'after', 'max'] as const;
+
+export type ExpirationMode = (typeof EXPIRATION_MODE_VALUES)[number];
+
+export const isExpirationMode = (v: string | number | undefined): v is ExpirationMode =>
+  EXPIRATION_MODE_VALUES.some((mode) => mode === v);
+
+export const getExpirationModeLabel = (mode: ExpirationMode, maxDays: number): string => {
+  switch (mode) {
+    case 'max':
+      return `Use max value of ${maxDays} days`;
+    case 'onDate':
+      return 'On date';
+    case 'after':
+      return 'After';
+  }
+};
+
+export const formatDatePickerValue = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const parseDatePickerValue = (value: string): Date | undefined => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return undefined;
+  }
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+/** Calendar-day difference (end - start), local dates. */
+export const getCalendarDaysBetween = (start: Date, end: Date): number => {
+  const utcStart = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const utcEnd = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  return Math.round((utcEnd - utcStart) / (24 * 60 * 60 * 1000));
+};
+
+export const addCalendarDays = (from: Date, days: number): Date => {
+  const result = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+export const startOfLocalDay = (date: Date = new Date()): Date =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+/** Max selectable calendar date: today + min(maxDays, DATE_PICKER_MAX_DAYS). */
+export const getMaxSelectableExpirationDate = (maxDays: number, from: Date = new Date()): Date => {
+  const cappedDays = Math.min(Math.max(maxDays, 1), DATE_PICKER_MAX_DAYS);
+  return addCalendarDays(startOfLocalDay(from), cappedDays);
+};
+
+/** Min selectable date: tomorrow (at least 1 day of validity). */
+export const getMinSelectableExpirationDate = (from: Date = new Date()): Date =>
+  addCalendarDays(startOfLocalDay(from), 1);
+
+/** Default "after N days" / on-date offset: tomorrow (1 day). */
+export const DEFAULT_AFTER_DAYS = 1;
+
+/** Default expiration date for "On date" mode (tomorrow). */
+export const getDefaultExpirationDate = (from: Date = new Date()): Date =>
+  addCalendarDays(startOfLocalDay(from), DEFAULT_AFTER_DAYS);
+
+export const getExpiresInFromDays = (days: number): string => `${days}d`;
+
+export const getExpirationDateValidationMessage = (
+  maxDays: number,
+  from: Date = new Date(),
+): string => {
+  const minDate = formatDatePickerValue(getMinSelectableExpirationDate(from));
+  const effectiveMax = maxDays < 1 ? DATE_PICKER_MAX_DAYS : Math.min(maxDays, DATE_PICKER_MAX_DAYS);
+  const maxDate = formatDatePickerValue(getMaxSelectableExpirationDate(effectiveMax, from));
+  if (maxDays < 1) {
+    return `Select a date on or after tomorrow (${minDate})`;
+  }
+  if (maxDays > DATE_PICKER_MAX_DAYS) {
+    return `Select a date between tomorrow (${minDate}) and ${maxDate}, or use After / max value for longer expirations`;
+  }
+  return `Select a date between tomorrow (${minDate}) and ${maxDate}`;
+};
+
+export const getAfterDaysValidationMessage = (maxDays: number): string =>
+  maxDays < 1 ? 'Enter a value of at least 1 day' : `Enter a value between 1 and ${maxDays} days`;
+
+export const validateExpirationDate = (
+  value: string,
+  maxDays: number,
+  from: Date = new Date(),
+): string => {
+  const date = parseDatePickerValue(value);
+  if (!date) {
+    return 'Enter a valid date (YYYY-MM-DD)';
+  }
+  const days = getCalendarDaysBetween(startOfLocalDay(from), date);
+  const pickerMaxDays =
+    maxDays < 1 ? DATE_PICKER_MAX_DAYS : Math.min(maxDays, DATE_PICKER_MAX_DAYS);
+  if (days < 1 || days > pickerMaxDays) {
+    return getExpirationDateValidationMessage(maxDays, from);
+  }
+  return '';
+};
+
+export const validateAfterDays = (value: string, maxDays: number): string => {
+  const days = parseInt(value, 10);
+  if (!value || !/^\d+$/.test(value) || days < 1) {
+    return getAfterDaysValidationMessage(maxDays);
+  }
+  if (maxDays >= 1 && days > maxDays) {
+    return getAfterDaysValidationMessage(maxDays);
+  }
+  return '';
+};
+
+export const formatExpirationLabel = (days: number, mode: ExpirationMode): string => {
+  if (mode === 'max') {
+    return `${days} days (maximum)`;
+  }
+  return `${days} days`;
+};
+
+export const getModelDocumentationUrl = (
+  modelId: string,
+  gatewayUrl: string,
+): string | undefined => {
+  try {
+    const url = new URL(gatewayUrl);
+    return `${url.origin}/v1/models/${modelId}/docs`;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Resolve a MaaS catalog model from a subscription model-ref name.
+ * Catalog `id` values are often path-style (e.g. publishers/maas-models/models/maas-model)
+ * while subscription refs use the short MaaSModelRef name (e.g. maas-model).
+ */
+export const findMaaSModelBySubscriptionRef = <T extends { id: string }>(
+  models: T[],
+  refName: string,
+  refNamespace?: string,
+): T | undefined => {
+  if (!refName) {
+    return undefined;
+  }
+
+  const exact = models.find((model) => model.id === refName);
+  if (exact) {
+    return exact;
+  }
+
+  if (refNamespace) {
+    const byPublisherPath = models.find(
+      (model) =>
+        model.id === `publishers/${refNamespace}/models/${refName}` ||
+        model.id.endsWith(`/${refNamespace}/models/${refName}`),
+    );
+    if (byPublisherPath) {
+      return byPublisherPath;
+    }
+  }
+
+  return models.find(
+    (model) => model.id.endsWith(`/models/${refName}`) || model.id.split('/').pop() === refName,
+  );
+};
+
+export type ApiKeyUsageExampleKind = 'chat' | 'embedding' | 'transcription';
+
+const CAPABILITY_TEXT_GENERATION = 'text-generation';
+const CAPABILITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
+const EMBEDDING_CAPABILITIES = new Set(['text-embedding', 'embeddings', 'embedding']);
+
+/**
+ * Resolve curl example kind from MaaS modelCapabilities
+ * (opendatahub.io/model-capabilities on the model).
+ */
+export const resolveApiKeyUsageExampleKind = (capabilities?: string[]): ApiKeyUsageExampleKind => {
+  const caps = capabilities ?? [];
+  if (caps.some((cap) => EMBEDDING_CAPABILITIES.has(cap))) {
+    return 'embedding';
+  }
+  const hasAsr = caps.includes(CAPABILITY_AUDIO_TRANSCRIPTION);
+  const hasTextGen = caps.includes(CAPABILITY_TEXT_GENERATION);
+  if (hasAsr && !hasTextGen) {
+    return 'transcription';
+  }
+  return 'chat';
+};
+
+export const getApiKeyUsageExampleEndpointPath = (kind: ApiKeyUsageExampleKind): string => {
+  switch (kind) {
+    case 'embedding':
+      return '/v1/embeddings';
+    case 'transcription':
+      return '/v1/audio/transcriptions';
+    default:
+      return '/v1/chat/completions';
+  }
+};
+
+/** OpenAI-compatible curl example for the created API key (Access details). */
+export const buildApiKeyUsageExample = (
+  baseURL: string | undefined,
+  modelID: string,
+  subscriptionId: string,
+  apiKey: string,
+  kind: ApiKeyUsageExampleKind = 'chat',
+): string => {
+  if (!baseURL || !modelID || !subscriptionId || !apiKey) {
+    return '';
+  }
+
+  try {
+    const requestURL = new URL(baseURL);
+    if (requestURL.protocol !== 'http:' && requestURL.protocol !== 'https:') {
+      return '';
+    }
+
+    requestURL.search = '';
+    requestURL.hash = '';
+    const basePath = requestURL.pathname.replace(/\/$/, '');
+    const apiVersionPath = basePath.endsWith('/v1') ? basePath : `${basePath}/v1`;
+    const endpointSuffix =
+      kind === 'embedding'
+        ? 'embeddings'
+        : kind === 'transcription'
+          ? 'audio/transcriptions'
+          : 'chat/completions';
+    requestURL.pathname = `${apiVersionPath}/${endpointSuffix}`;
+
+    const escapeDoubleQuotedShell = (value: string): string =>
+      value
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"')
+        .replaceAll('$', '\\$')
+        .replaceAll('`', '\\`');
+
+    const shellSafeKey = escapeDoubleQuotedShell(apiKey);
+    const shellSafeSubscription = escapeDoubleQuotedShell(subscriptionId);
+    const shellSafeModelId = escapeDoubleQuotedShell(modelID);
+    const requestURLString = requestURL.toString();
+    const authAndSubscriptionHeaders = [
+      '  -H "Authorization: Bearer $API_KEY" \\',
+      `  -H "X-MAAS-SUBSCRIPTION: ${shellSafeSubscription}" \\`,
+    ];
+
+    if (kind === 'transcription') {
+      return [
+        `export API_KEY="${shellSafeKey}"`,
+        '',
+        `curl -X POST ${requestURLString} \\`,
+        ...authAndSubscriptionHeaders,
+        '  -F "file=@<path-to-audio-file>" \\',
+        `  -F "model=${shellSafeModelId}"`,
+      ].join('\n');
+    }
+
+    const requestBody =
+      kind === 'embedding'
+        ? { model: modelID, input: 'Hello' }
+        : { model: modelID, messages: [{ role: 'user', content: 'Hello' }] };
+    const shellSafeBody = JSON.stringify(requestBody).replaceAll("'", "'\"'\"'");
+
+    return [
+      `export API_KEY="${shellSafeKey}"`,
+      `curl -X POST ${requestURLString} \\`,
+      '  -H "Content-Type: application/json" \\',
+      ...authAndSubscriptionHeaders,
+      `  -d '${shellSafeBody}'`,
+    ].join('\n');
+  } catch {
+    return '';
+  }
+};

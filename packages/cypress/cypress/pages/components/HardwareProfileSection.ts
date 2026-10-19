@@ -40,6 +40,22 @@ export class HardwareProfileSection {
     return cy.findByTestId('hardware-profile-details-popover');
   }
 
+  findDRADetails(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDetails().findByTestId('hardware-profile-dra-details');
+  }
+
+  findDRAResourceNameButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDRADetails().findByTestId('resource-name-icon-button');
+  }
+
+  findDRAResourceDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('resource-description-text');
+  }
+
+  findDRATemplate(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDetails().findByTestId('hardware-profile-dra-template');
+  }
+
   findKueueFilteringInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('kueue-filtering-info');
   }
@@ -163,6 +179,14 @@ export class HardwareProfileSection {
         cy.findByText(errorMessage).should('exist');
       }
     });
+  }
+
+  findDRALockedMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('dra-hardware-profile-locked');
+  }
+
+  findCustomizeSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-customize');
   }
 }
 

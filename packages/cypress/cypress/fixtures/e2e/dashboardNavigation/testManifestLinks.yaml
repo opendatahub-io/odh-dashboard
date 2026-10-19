@@ -34,3 +34,5 @@ excludedSubstrings:
   - elasticstack.slack.com
   # NVIDIA API key management page requires an authenticated session (401).
   - org.ngc.nvidia.com
+  # Cluster-internal Kubernetes service, not reachable from CI agents.
+  - feast-data-registry.rhoai-data-registry.svc

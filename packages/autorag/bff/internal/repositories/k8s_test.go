@@ -134,6 +134,66 @@ func annotatedSecret(name, connType string, data map[string]string) kubernetes.S
 	}
 }
 
+func TestMatchingDatabaseProvidersRequiresNonEmptyValues(t *testing.T) {
+	tests := []struct {
+		name     string
+		provider string
+		data     map[string]string
+		want     bool
+	}{
+		{name: "valid Milvus", provider: "milvus", data: map[string]string{"MILVUS_URI": "https://milvus.example.com"}, want: true},
+		{name: "empty Milvus URI", provider: "milvus", data: map[string]string{"MILVUS_URI": ""}},
+		{name: "whitespace Milvus URI", provider: "milvus", data: map[string]string{"MILVUS_URI": "  \t"}},
+		{name: "valid PGVector", provider: "pgvector", data: map[string]string{
+			"PGVECTOR_HOST": "host", "PGVECTOR_PORT": "5432", "PGVECTOR_DB": "db", "PGVECTOR_USER": "user", "PGVECTOR_PASSWORD": "password",
+		}, want: true},
+		{name: "valid Neo4j", provider: "neo4j", data: map[string]string{"NEO4J_URI": "neo4j://example", "NEO4J_PASSWORD": "password"}, want: true},
+		{name: "empty Neo4j URI", provider: "neo4j", data: map[string]string{"NEO4J_URI": "", "NEO4J_PASSWORD": "password"}},
+		{name: "empty Neo4j password", provider: "neo4j", data: map[string]string{"NEO4J_URI": "neo4j://example", "NEO4J_PASSWORD": ""}},
+		{name: "whitespace Neo4j URI", provider: "neo4j", data: map[string]string{"NEO4J_URI": "\t", "NEO4J_PASSWORD": "password"}},
+		{name: "whitespace Neo4j password", provider: "neo4j", data: map[string]string{"NEO4J_URI": "neo4j://example", "NEO4J_PASSWORD": " \t"}},
+	}
+	pgvectorKeys := []string{"PGVECTOR_HOST", "PGVECTOR_PORT", "PGVECTOR_DB", "PGVECTOR_USER", "PGVECTOR_PASSWORD"}
+	validPGVector := map[string]string{
+		"PGVECTOR_HOST": "host", "PGVECTOR_PORT": "5432", "PGVECTOR_DB": "db", "PGVECTOR_USER": "user", "PGVECTOR_PASSWORD": "password",
+	}
+	for _, key := range pgvectorKeys {
+		for _, value := range []struct {
+			name  string
+			value string
+		}{
+			{name: "empty", value: ""},
+			{name: "whitespace", value: " \t"},
+		} {
+			data := make(map[string]string, len(validPGVector))
+			for requiredKey, requiredValue := range validPGVector {
+				data[requiredKey] = requiredValue
+			}
+			data[key] = value.value
+			tests = append(tests, struct {
+				name     string
+				provider string
+				data     map[string]string
+				want     bool
+			}{name: value.name + " PGVector " + key, provider: "pgvector", data: data})
+		}
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			providers := matchingDatabaseProviders(vectorDBSecret(tt.name, tt.data))
+			got := false
+			for _, provider := range providers {
+				if provider == tt.provider {
+					got = true
+				}
+			}
+			if got != tt.want {
+				t.Errorf("matchingDatabaseProviders() = %v, want provider %q present: %v", providers, tt.provider, tt.want)
+			}
+		})
+	}
+}
+
 // === detectType ===
 
 func TestDetectType(t *testing.T) {
@@ -279,7 +339,19 @@ func TestGetFilteredSecrets(t *testing.T) {
 			vectorDBSecret("vector-db", map[string]string{
 				"MILVUS_URI": "https://milvus.example.com",
 			}),
+			vectorDBSecret("legacy-milvus", map[string]string{
+				"MILVUS_URI":         "https://milvus.example.com",
+				"MILVUS_SERVER_CERT": "legacy-cert",
+			}),
 			mixed,
+			vectorDBSecret("pgvector-legacy-key", map[string]string{
+				"PGVECTOR_HOST":      "host",
+				"PGVECTOR_PORT":      "5432",
+				"PGVECTOR_DB":        "db",
+				"PGVECTOR_USER":      "user",
+				"PGVECTOR_PASSWORD":  "password",
+				"MILVUS_SERVER_CERT": "legacy-cert",
+			}),
 			maasSecret("maas"),
 		}
 		k8s := &mockK8sService{
@@ -291,11 +363,101 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(result) != 2 || result[0].Name != "vector-db" || result[1].Name != "mixed-vector-db" {
+		if len(result) != 3 || result[0].Name != "vector-db" || result[1].Name != "legacy-milvus" || result[2].Name != "pgvector-legacy-key" {
 			t.Fatalf("unexpected vector-db secrets: %+v", result)
 		}
 		if result[0].Data["MILVUS_URI"] != "[REDACTED]" {
 			t.Errorf("vector-db credentials were not redacted: %+v", result[0].Data)
+		}
+	})
+
+	t.Run("database filters out Neo4j URI-only secrets", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					vectorDBSecret("uri-only", map[string]string{"NEO4J_URI": "neo4j://neo4j.example.com:7687"}),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecretsByProvider(k8s, context.Background(), "ns", "database", "neo4j")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 0 {
+			t.Fatalf("expected URI-only Neo4j secret to be excluded, got %+v", result)
+		}
+	})
+
+	t.Run("database filters out Neo4j secrets with an empty password", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					vectorDBSecret("empty-password", map[string]string{
+						"NEO4J_URI":      "neo4j://neo4j.example.com:7687",
+						"NEO4J_PASSWORD": "",
+					}),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecretsByProvider(k8s, context.Background(), "ns", "database", "neo4j")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 0 {
+			t.Fatalf("expected empty-password Neo4j secret to be excluded, got %+v", result)
+		}
+	})
+
+	t.Run("database provider filters Neo4j credentials", func(t *testing.T) {
+		allSecrets := []kubernetes.SecretInfo{
+			vectorDBSecret("vector-db", map[string]string{"MILVUS_URI": "https://milvus.example.com"}),
+			vectorDBSecret("neo4j", map[string]string{
+				"NEO4J_URI":      "neo4j://neo4j.example.com:7687",
+				"NEO4J_USERNAME": "neo4j",
+				"NEO4J_PASSWORD": "password",
+			}),
+			vectorDBSecret("neo4j-legacy-key", map[string]string{
+				"NEO4J_URI":          "neo4j://neo4j.example.com:7687",
+				"NEO4J_PASSWORD":     "password",
+				"MILVUS_SERVER_CERT": "legacy-cert",
+			}),
+		}
+		k8s := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return allSecrets, nil
+			},
+		}
+		result, err := repo.GetFilteredSecretsByProvider(k8s, context.Background(), "ns", "database", "neo4j")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 2 || result[0].Name != "neo4j" || result[0].Type != "neo4j" || result[1].Name != "neo4j-legacy-key" || result[1].Type != "neo4j" {
+			t.Fatalf("unexpected Neo4j secrets: %+v", result)
+		}
+	})
+
+	t.Run("database filtering excludes mixed-provider secrets and preserves annotations", func(t *testing.T) {
+		mixed := vectorDBSecret("mixed-database", map[string]string{
+			"MILVUS_URI":     "https://milvus.example.com",
+			"NEO4J_URI":      "neo4j://neo4j.example.com:7687",
+			"NEO4J_PASSWORD": "password",
+		})
+		annotated := annotatedSecret("annotated-neo4j", "database", map[string]string{
+			"NEO4J_URI":      "neo4j://neo4j.example.com:7687",
+			"NEO4J_PASSWORD": "password",
+		})
+		k8s := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{mixed, annotated}, nil
+			},
+		}
+
+		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "database")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 1 || result[0].Name != "annotated-neo4j" || result[0].Type != "database" {
+			t.Fatalf("unexpected database secrets: %+v", result)
 		}
 	})
 

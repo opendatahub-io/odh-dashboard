@@ -1,20 +1,20 @@
-import { Alert, Spinner } from '@patternfly/react-core';
+import { Alert, Flex, FlexItem, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
-import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
+import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
+import { usePipelineServerStatus } from '@odh-dashboard/autox-core/ui/hooks';
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
-import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import PipelineServerSetup from '~/app/components/empty-states/PipelineServerSetup';
-import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import {
   shouldShowManagedPipelinesMissing,
   shouldShowNoDSPAEmptyState,
   shouldShowPipelineServerNotReady,
+  getPipelineErrorCode,
 } from '~/app/utilities/pipelineServerEmptyState';
 import { automlConfigurePathname } from '~/app/utilities/routes';
-import { parseErrorStatus } from '~/app/utilities/utils';
 
 export type AutomlExperimentsListStatus = {
   /** True once pipeline definitions and runs have finished loading without a blocking list error. */
@@ -47,11 +47,6 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   );
 
   const {
-    loaded: defsLoaded,
-    error: defsError,
-    refresh: refreshDefs,
-  } = usePipelineDefinitions(effectiveNamespace);
-  const {
     runs,
     totalSize,
     page,
@@ -63,11 +58,17 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     refresh: refreshRuns,
   } = usePipelineRuns(effectiveNamespace);
 
-  const loaded = defsLoaded && runsLoaded;
-  const loadError = defsError ?? runsError;
+  const loaded = runsLoaded;
+  const loadError = runsError;
   const hasLoadError = Boolean(loadError);
 
   const hasExperiments = totalSize > 0;
+  // Keep observing DSPA readiness even when the BFF returns cached runs. Its DSPA discovery
+  // cache can briefly report a previously-ready server while the resource is starting.
+  const pipelineServerStatus = usePipelineServerStatus(effectiveNamespace || undefined);
+  const readinessLoaded = Boolean(effectiveNamespace) && pipelineServerStatus.loaded;
+  const readinessError = Boolean(pipelineServerStatus.error);
+  const pipelineServerStarting = pipelineServerStatus.isStarting;
 
   const onListStatusRef = React.useRef(onExperimentsListStatus);
   onListStatusRef.current = onExperimentsListStatus;
@@ -77,6 +78,9 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     hasLoadError: boolean;
     loaded: boolean;
     hasExperiments: boolean;
+    readinessLoaded: boolean;
+    readinessError: boolean;
+    pipelineServerStarting: boolean;
   } | null>(null);
 
   React.useEffect(() => {
@@ -90,8 +94,11 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     if (hasLoadError) {
       nextLoaded = true;
       nextHasExperiments = false;
-    } else if (!loaded) {
+    } else if (!loaded || (!readinessLoaded && !readinessError && !hasExperiments)) {
       nextLoaded = false;
+      nextHasExperiments = false;
+    } else if (pipelineServerStarting && !readinessError) {
+      nextLoaded = true;
       nextHasExperiments = false;
     } else {
       nextLoaded = true;
@@ -104,7 +111,10 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
       prev.effectiveNamespace === effectiveNamespace &&
       prev.hasLoadError === hasLoadError &&
       prev.loaded === loaded &&
-      prev.hasExperiments === hasExperiments
+      prev.hasExperiments === hasExperiments &&
+      prev.readinessLoaded === readinessLoaded &&
+      prev.readinessError === readinessError &&
+      prev.pipelineServerStarting === pipelineServerStarting
     ) {
       return;
     }
@@ -115,18 +125,27 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
       hasLoadError,
       loaded,
       hasExperiments,
+      readinessLoaded,
+      readinessError,
+      pipelineServerStarting,
     };
-  }, [effectiveNamespace, hasLoadError, loaded, hasExperiments]);
+  }, [
+    effectiveNamespace,
+    hasLoadError,
+    loaded,
+    hasExperiments,
+    readinessLoaded,
+    readinessError,
+    pipelineServerStarting,
+  ]);
 
-  const errorCode = loadError
-    ? (getGenericErrorCode(loadError) ??
-      (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
-    : undefined;
+  const errorCode = loadError ? getPipelineErrorCode(loadError) : undefined;
 
   const handleServerReady = React.useCallback(() => {
-    void refreshDefs();
     refreshRuns();
-  }, [refreshDefs, refreshRuns]);
+  }, [refreshRuns]);
+  const handleWaitingStarted = React.useCallback(() => setServerBusy('waiting'), []);
+  const handleServerFailed = React.useCallback(() => setServerBusy(false), []);
 
   React.useEffect(() => {
     if (serverBusy && (loaded || loadError)) {
@@ -154,23 +173,57 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     return false;
   };
   const pipelineServerMode = getPipelineServerMode();
+  const handleServerStarted = React.useCallback(() => {
+    setServerBusy(pipelineServerMode || 'waiting');
+  }, [pipelineServerMode]);
+
+  if (loadError && errorCode === 403) {
+    return <UnauthorizedError accessDomain="AutoML experiments" />;
+  }
+
+  if (pipelineServerMode === 'configure' || pipelineServerMode === 'enable') {
+    return (
+      <PipelineServerSetup
+        namespace={effectiveNamespace || undefined}
+        mode={pipelineServerMode}
+        onStarted={handleServerStarted}
+        onFailed={handleServerFailed}
+        onReady={handleServerReady}
+      />
+    );
+  }
+
+  if (
+    !hasExperiments &&
+    pipelineServerStatus.isStarting &&
+    !pipelineServerStatus.error &&
+    (!loadError || pipelineServerMode === 'waiting')
+  ) {
+    return (
+      <PipelineServerSetup
+        namespace={effectiveNamespace || undefined}
+        mode="waiting"
+        isReady={false}
+        onStarted={handleWaitingStarted}
+        onFailed={handleServerFailed}
+        onReady={handleServerReady}
+      />
+    );
+  }
 
   if (pipelineServerMode) {
     return (
       <PipelineServerSetup
         namespace={effectiveNamespace || undefined}
         mode={pipelineServerMode}
-        onStarted={() => setServerBusy(pipelineServerMode)}
-        onFailed={() => setServerBusy(false)}
+        onStarted={handleServerStarted}
+        onFailed={handleServerFailed}
         onReady={handleServerReady}
       />
     );
   }
 
   if (loadError) {
-    if (errorCode === 403) {
-      return <UnauthorizedError accessDomain="AutoML experiments" />;
-    }
     return (
       <Alert variant="danger" isInline title="Failed to load experiments">
         <p>{loadError.message}</p>
@@ -178,11 +231,17 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     );
   }
 
-  if (!loaded) {
+  if (
+    !effectiveNamespace ||
+    !loaded ||
+    (!hasExperiments && !pipelineServerStatus.loaded && !readinessError)
+  ) {
     return (
-      <div className="pf-v6-u-text-align-center pf-v6-u-pt-2xl">
-        <Spinner size="xl" />
-      </div>
+      <Flex justifyContent={{ default: 'justifyContentCenter' }} className="pf-v6-u-pt-2xl">
+        <FlexItem>
+          <Spinner size="xl" />
+        </FlexItem>
+      </Flex>
     );
   }
 
@@ -190,6 +249,9 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     return (
       <EmptyExperimentsState
         createExperimentRoute={`${automlConfigurePathname}/${effectiveNamespace}`}
+        title="Create an AutoML optimization run"
+        description="Test different model configurations to find the best-performing solution for classification, regression, and time series problems."
+        iconImage={typedEmptyImage(ProjectObjectType.pipeline, 'MissingModel')}
         dataTestId="empty-experiments-state"
       />
     );

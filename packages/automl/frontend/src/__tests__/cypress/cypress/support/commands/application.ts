@@ -1,4 +1,5 @@
 import type { MatcherOptions } from '@testing-library/cypress';
+import { queryByRole } from '@testing-library/dom';
 import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
 
 /* eslint-disable @typescript-eslint/no-namespace */
@@ -36,8 +37,10 @@ declare global {
        * Finds a patternfly dropdown item by first opening the dropdown if not already opened.
        *
        * @param name the name of the item
+       * @param menuTestId the data-testid of the menu/list containing the item, used to scope
+       * the lookup so it can't match a same-named item in an unrelated menu elsewhere on the page
        */
-      findDropdownItem: (name: string | RegExp) => Cypress.Chainable<JQuery>;
+      findDropdownItem: (name: string | RegExp, menuTestId: string) => Cypress.Chainable<JQuery>;
 
       /**
        * Finds a patternfly dropdown item by data-testid, first opening the dropdown if not already opened.
@@ -173,15 +176,34 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, name) => {
-  Cypress.log({ displayName: 'findDropdownItem', message: name });
-  return cy.wrap(subject).then(($el) => {
-    if ($el.attr('aria-expanded') === 'false') {
-      cy.wrap($el).click();
-    }
-    return cy.get('body').findByRole('menuitem', { name });
-  });
-});
+Cypress.Commands.add(
+  'findDropdownItem',
+  { prevSubject: 'element' },
+  (subject, name, menuTestId) => {
+    Cypress.log({ displayName: 'findDropdownItem', message: name });
+    return cy.wrap(subject).then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+
+      // Scope to the menu's own data-testid rather than the whole document so that
+      // a same-named item in an unrelated menu elsewhere on the page can never be
+      // matched instead of this dropdown's item.
+      return cy.findByTestId(menuTestId).then(($menu) => {
+        // PatternFly's Dropdown toggle can report `aria-expanded="true"` while its
+        // Popper-rendered menu content fails to mount (a timing issue more likely to
+        // surface under CI load). When that happens, retrying the same query for
+        // longer never helps since the content genuinely never appears, so force a
+        // fresh open cycle by closing and reopening instead.
+        if (!queryByRole($menu[0], 'menuitem', { name })) {
+          cy.wrap($el).click(); // close
+          cy.wrap($el).click(); // reopen, forcing a new Popper `show()` cycle
+        }
+        return cy.findByTestId(menuTestId).findByRole('menuitem', { name });
+      });
+    });
+  },
+);
 
 Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (subject, testId) => {
   Cypress.log({ displayName: 'findDropdownItemByTestId', message: testId });

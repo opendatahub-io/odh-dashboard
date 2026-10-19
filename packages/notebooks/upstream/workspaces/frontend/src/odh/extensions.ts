@@ -24,10 +24,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | ProjectDetail
     },
     properties: {
       id: 'notebooks-kf-workspacekinds',
-      title: 'Workbench templates (Dev Preview)',
+      title: 'Workbench templates',
       href: '/notebooks/workspacekinds',
       section: 'settings-environment-setup',
       path: '/notebooks/workspacekinds/*',
+      label: 'Dev Preview',
     },
   },
   {
@@ -44,7 +45,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | ProjectDetail
     type: 'app.project-details/tab',
     properties: {
       id: 'workbenches-v2',
-      title: 'Workbenches v2 (Dev Preview)',
+      title: 'Workbenches v2',
       component: () => import('./WorkspacesProjectDetailsTab'),
     },
     flags: {

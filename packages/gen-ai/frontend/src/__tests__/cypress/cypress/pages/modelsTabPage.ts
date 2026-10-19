@@ -14,7 +14,7 @@ class ModelsTabRow {
   }
 
   findEndpointCell(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Endpoints"]');
+    return this.find().find('[data-label="Access details"]');
   }
 
   findModelTypeCell(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -123,24 +123,22 @@ class EndpointModalPage {
     return cy.findByTestId('endpoint-detail-modal');
   }
 
-  findSubscriptionSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-subscription-select');
+  findAuthenticationCopy(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('endpoint-modal-authentication-copy');
   }
 
-  findGenerateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-generate-api-key');
+  findSubscriptionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId('endpoint-modal-subscriptions-toggle')
+      .findByRole('button', { name: 'View subscriptions' });
   }
 
-  findApiKeyInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-api-key-input');
+  findSubscriptionsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('endpoint-modal-subscriptions-table');
   }
 
-  findApiKeyToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-api-key-toggle');
-  }
-
-  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('endpoint-modal-close');
+  findSubscriptionLink(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`endpoint-modal-subscription-link-${name}`);
   }
 }
 

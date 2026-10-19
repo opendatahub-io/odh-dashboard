@@ -1,31 +1,64 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ConnectionRef } from '~/app/types';
+import { Flex } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { ConnectionModel, ConnectionRef } from '~/app/types';
+import {
+  CONNECTION_UNAVAILABLE_LABEL,
+  getConnectionDisplayName,
+} from '~/app/utilities/connectionUtils';
 
 type ConnectionRefLinkProps = {
   connectionRef?: ConnectionRef | string | null;
-  linkTo?: string;
+  connections?: ConnectionModel[];
+  connectionsLoaded?: boolean;
+  connectionsError?: Error;
+  linkTo?: string | ((connectionRef: ConnectionRef) => string);
 };
 
-const getLabel = (ref: ConnectionRef | string): string => {
-  if (typeof ref === 'string') {
-    return ref;
-  }
-  return ref.type === 'rhai' ? ref.secret_name : ref.id;
-};
-
-const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({ connectionRef, linkTo }) => {
+const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({
+  connectionRef,
+  connections = [],
+  connectionsLoaded = false,
+  connectionsError,
+  linkTo,
+}) => {
   if (!connectionRef) {
     return <>-</>;
   }
 
-  const label = getLabel(connectionRef);
+  const label = getConnectionDisplayName(
+    connectionRef,
+    connections,
+    connectionsLoaded,
+    connectionsError,
+  );
 
-  if (linkTo) {
+  if (linkTo && typeof connectionRef !== 'string' && label !== CONNECTION_UNAVAILABLE_LABEL) {
+    const destination = typeof linkTo === 'string' ? linkTo : linkTo(connectionRef);
     return (
-      <Link to={linkTo} data-testid="connection-ref-link">
+      <Link to={destination} data-testid="connection-ref-link">
         {label}
       </Link>
+    );
+  }
+
+  if (label === CONNECTION_UNAVAILABLE_LABEL) {
+    return (
+      <Flex
+        component="span"
+        alignItems={{ default: 'alignItemsCenter' }}
+        spaceItems={{ default: 'spaceItemsXs' }}
+        className="pf-v6-u-display-inline-flex"
+        data-testid="connection-ref-label"
+      >
+        <ExclamationTriangleIcon
+          aria-hidden="true"
+          color="var(--pf-t--global--icon--color--status--warning--default)"
+          data-testid="connection-unavailable-icon"
+        />
+        {label}
+      </Flex>
     );
   }
 

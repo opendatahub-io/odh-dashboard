@@ -1,6 +1,12 @@
 import { checkInferenceServiceState } from './modelServing';
 import { createCleanHardwareProfile } from './hardwareProfiles';
-import { applyOpenShiftYaml, patchOpenShiftResource, pollUntilSuccess } from './baseCommands';
+import {
+  applyOpenShiftYaml,
+  patchOpenShiftResource,
+  pollUntilSuccess,
+  waitForResource,
+  type PortForwardHandle,
+} from './baseCommands';
 import { setupMcpServerDeployResources, cleanupMcpServerDeployResources } from './mcpServerDeploy';
 import { replacePlaceholdersInYaml } from '../yaml_files';
 import type { GenAiTestData } from '../../types';
@@ -56,7 +62,94 @@ export const deployGenAiModel = (projectName: string, testData: GenAiTestData): 
   );
 
   cy.step('Wait for InferenceService to be Ready');
-  checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
+  checkInferenceServiceState(inferenceServiceName, projectName, {
+    checkReady: true,
+    isLargeModel: true,
+  });
+};
+
+/**
+ * Deploy the E2E Whisper Tiny transcription model and its CPU vLLM runtime.
+ * Wait for KServe to create the predictor Service named in its status URL.
+ */
+export const deployWhisperTinyModel = (projectName: string): void => {
+  cy.step('Apply Whisper Tiny vLLM ServingRuntime to project namespace');
+  cy.fixture('resources/modelServing/singleModel/whisper_tiny_runtime.yaml', 'utf8').then(
+    (runtimeYaml: string) => {
+      const runtimeTmpFile = `/tmp/whisper-tiny-runtime-${Date.now()}.yaml`;
+      cy.writeFile(runtimeTmpFile, runtimeYaml);
+      cy.exec(`oc apply -n ${projectName} -f ${runtimeTmpFile}`).then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(`Whisper ServingRuntime apply failed: ${result.stderr}`);
+        }
+      });
+    },
+  );
+
+  cy.step('Apply Whisper Tiny InferenceService to project namespace');
+  cy.fixture('resources/genAi/whisper-tiny-inference-service.yaml', 'utf8').then(
+    (inferenceServiceYaml: string) => {
+      const inferenceServiceTmpFile = `/tmp/whisper-tiny-isvc-${Date.now()}.yaml`;
+      cy.writeFile(inferenceServiceTmpFile, inferenceServiceYaml);
+      cy.exec(`oc apply -n ${projectName} -f ${inferenceServiceTmpFile}`).then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(`Whisper InferenceService apply failed: ${result.stderr}`);
+        }
+      });
+    },
+  );
+
+  cy.step('Wait for Whisper Tiny InferenceService to be ready');
+  checkInferenceServiceState('whisper-tiny', projectName, { checkReady: true });
+
+  cy.step('Wait for KServe to create the Whisper predictor Service');
+  waitForResource('service', 'whisper-tiny-predictor', projectName);
+};
+
+/** Verify the local ASR port-forward reaches the expected predictor before uploading audio. */
+export const verifyWhisperTinyPortForward = (handle: PortForwardHandle): void => {
+  expect(handle.pid, 'Whisper port-forward PID').to.match(/^\d+$/);
+  cy.exec(`kill -0 ${handle.pid}`, { failOnNonZeroExit: false }).then((result) => {
+    expect(result.exitCode, `Whisper port-forward exited; see ${handle.logFile}`).to.equal(0);
+  });
+  cy.request('http://127.0.0.1:8790/v1/models').then((response) => {
+    const models = response.body as { data?: { id?: string }[] };
+    const modelIds = (models.data ?? []).map((model) => model.id ?? '');
+    expect(modelIds, `Models on local ASR port: ${modelIds.join(', ')}`).to.include('whisper-tiny');
+  });
+};
+
+/**
+ * Collect the KServe resources that determine whether the predictor hostname
+ * can resolve. Used only to enrich a failed ASR request with cluster evidence.
+ */
+export const getWhisperTinyPredictorDiagnostics = (
+  projectName: string,
+): Cypress.Chainable<string> =>
+  cy
+    .exec(`oc get service whisper-tiny-predictor -n ${projectName} -o json`, {
+      failOnNonZeroExit: false,
+    })
+    .then((serviceResult) =>
+      cy
+        .exec(
+          `oc get endpointslice -n ${projectName} -l kubernetes.io/service-name=whisper-tiny-predictor -o json`,
+          { failOnNonZeroExit: false },
+        )
+        .then(
+          (endpointSliceResult) =>
+            `predictor Service: ${serviceResult.stdout || serviceResult.stderr}\n` +
+            `predictor EndpointSlices: ${endpointSliceResult.stdout || endpointSliceResult.stderr}`,
+        ),
+    );
+
+export const getExternalProviders = (): Cypress.Chainable<boolean> => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  return cy
+    .exec(
+      `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -r '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders // false'`,
+    )
+    .then((result) => result.stdout.trim() === 'true');
 };
 
 /**
@@ -79,7 +172,7 @@ export const enableExternalProviders = (): void => {
 
   // Allow the backend ResourceWatcher cycle to propagate the change to the UI.
   // eslint-disable-next-line cypress/no-unnecessary-waiting
-  cy.wait(30000);
+  cy.wait(20000);
 };
 
 /**
@@ -97,20 +190,86 @@ export const forceDashboardConfigRefresh = (): void => {
     .should('eq', 200);
 };
 
+const waitForExternalProvidersViaAPI = (
+  expectedValue: boolean,
+  maxAttempts = 10,
+  pollIntervalMs = 2000,
+): void => {
+  const check = (attempt: number): void => {
+    cy.request({
+      url: '/api/config',
+      headers: { 'Cache-Control': 'no-cache' },
+    }).then((response) => {
+      expect(response.status).to.eq(200);
+
+      const externalProviders =
+        response.body?.spec?.genAiStudioConfig?.aiAssetCustomEndpoints?.externalProviders;
+      if (externalProviders === expectedValue) {
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Dashboard config externalProviders was not ${String(
+            expectedValue,
+          )} after ${maxAttempts} attempts; last value: ${String(externalProviders)}`,
+        );
+      }
+
+      // Poll the backend cache after forcing a no-cache config refresh.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+    });
+  };
+
+  check(1);
+};
+
 /**
- * Disable externalProviders in OdhDashboardConfig (revert to default).
+ * Set externalProviders through the dashboard API and wait for the backend-served
+ * config to reflect it. This targets the same OdhDashboardConfig instance the
+ * backend reads and refreshes the ResourceWatcher immediately.
+ */
+export const setExternalProvidersViaAPI = (enabled: boolean): void => {
+  cy.request({
+    method: 'PATCH',
+    url: '/api/config',
+    body: {
+      spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: enabled } } },
+    },
+  })
+    .its('status')
+    .should('eq', 200);
+
+  waitForExternalProvidersViaAPI(enabled);
+};
+
+/**
+ * Force-refresh the dashboard config and wait until the backend serves
+ * genAiStudioConfig.aiAssetCustomEndpoints.externalProviders=true.
+ *
+ * Use this before loading Gen AI pages that validate custom endpoint URLs, because
+ * refreshing the backend cache after the page is already loaded does not update the
+ * frontend DashboardConfigContext for that page instance.
+ */
+export const waitForExternalProvidersEnabledViaAPI = (): void => {
+  waitForExternalProvidersViaAPI(true);
+};
+
+/**
+ * Restore externalProviders in OdhDashboardConfig.
  * Polls until the change is confirmed so later specs don't race on the stale flag.
  */
-export const disableExternalProviders = (): void => {
+export const disableExternalProviders = (externalProviders = false): void => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const patchContent = JSON.stringify({
-    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: false } } },
+    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders } } },
   });
   patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
 
   pollUntilSuccess(
-    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == false'`,
-    'externalProviders to be false',
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == ${externalProviders}'`,
+    `externalProviders to be ${externalProviders}`,
     { maxAttempts: 15, pollIntervalMs: 2000 },
   );
 };
@@ -159,9 +318,11 @@ export const verifyEndpointResourcesCleanedUp = (
 };
 
 /**
- * Poll the LSD service's /v1/models endpoint until the specified model
- * appears in the response. This ensures the model is fully registered
- * and available for inference, not just that the pod is running.
+ * Poll the Gen AI BFF's LSD models endpoint until the specified model appears.
+ *
+ * Non-embedding inference models are resolved through the genai-bff-proxy passthrough
+ * provider and are not present in the raw in-cluster `/v1/models` response without
+ * request provider data. Querying the BFF mirrors the UI model selector path.
  */
 export const waitForModelInLSD = (
   serviceName: string,
@@ -174,7 +335,7 @@ export const waitForModelInLSD = (
 
   const check = (attempt: number): void => {
     cy.exec(
-      `oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
+      `token=$(oc whoami -t) && provider_data=$(jq -cn --arg token "$token" '{passthrough_api_key: $token}') && oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s -H "Authorization: Bearer $token" -H "X-OGX-Provider-Data: $provider_data" ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
       { failOnNonZeroExit: false, timeout: 30000 },
     ).then((result) => {
       if (result.exitCode === 0 && result.stdout.trim().length > 0) {
@@ -194,6 +355,19 @@ export const waitForModelInLSD = (
 
   check(1);
 };
+
+/**
+ * Wait for the namespace's NemoGuardrails instance, deployment, and service endpoint to become ready.
+ * The custom resource can report Ready before the separately provisioned workload is available.
+ *
+ * @param namespace - Namespace containing the NemoGuardrails custom resource.
+ */
+export const waitForNemoGuardrailsReady = (namespace: string): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get nemoguardrails nemoguardrails -n ${namespace} -o json | jq -e '.status.phase == "Ready"' && oc get deployment nemoguardrails -n ${namespace} -o json | jq -e '.status.availableReplicas != null and .status.availableReplicas == .spec.replicas' && oc get endpoints nemoguardrails -n ${namespace} -o json | jq -e '[.subsets[]?.addresses[]?] | length > 0'`,
+    `NemoGuardrails to be Ready in namespace ${namespace}`,
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  );
 
 /**
  * Create a prompt via the Gen AI BFF MLflow prompts API.
@@ -245,6 +419,49 @@ export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void =
     )}`,
     failOnStatusCode: false,
   });
+};
+
+export const waitForDsciCondition = (
+  conditionType: string,
+  expectedStatus = 'True',
+  maxAttempts = 30,
+  pollIntervalMs = 5000,
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get dscinitializations.dscinitialization.opendatahub.io -o json | jq -e '.items[]?.status.conditions[]? | select(.type=="${conditionType}" and .status=="${expectedStatus}")'`,
+    `DSCI condition ${conditionType}=${expectedStatus}`,
+    { maxAttempts, pollIntervalMs },
+  );
+
+export const verifyPlaygroundTracingEnabledViaAPI = (
+  namespace: string,
+  maxAttempts = 10,
+  pollIntervalMs = 3000,
+): void => {
+  const check = (attempt: number): void => {
+    cy.request({
+      url: `/gen-ai/api/v1/lsd/status?namespace=${encodeURIComponent(namespace)}`,
+      failOnStatusCode: false,
+    }).then((response) => {
+      const tracingEnabled = response.body?.data?.tracingEnabled ?? response.body?.tracingEnabled;
+      if (response.status === 200 && tracingEnabled === true) {
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Playground tracing was not enabled after ${maxAttempts} attempts. ` +
+            `Last status: ${response.status}. Last value: ${String(tracingEnabled)}`,
+        );
+      }
+
+      // Poll until the BFF status endpoint reflects the installed OGXServer state.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+    });
+  };
+
+  check(1);
 };
 
 type ConfigInstance = { namespace: string; name: string };
@@ -436,6 +653,7 @@ export const waitForGlobalPromptsInBFF = (
  * @param endpointUrl - Base URL of the external model provider.
  * @param apiKey      - API key / token for the provider.
  * @param modelType   - Model type: 'llm' | 'embedding' | 'transcription'. Defaults to 'llm'.
+ * @param capabilities - Model capabilities exposed to the playground.
  */
 export const createExternalModelViaAPI = (
   namespace: string,
@@ -444,11 +662,13 @@ export const createExternalModelViaAPI = (
   endpointUrl: string,
   apiKey: string,
   modelType = 'llm',
+  capabilities?: string[],
 ): Cypress.Chainable<Cypress.Response<unknown>> =>
   cy.request({
     method: 'POST',
     url: `/gen-ai/api/v1/models/external?namespace=${encodeURIComponent(namespace)}`,
     log: false,
+    failOnStatusCode: false,
     body: {
       /* eslint-disable camelcase */
       model_id: modelId,
@@ -456,6 +676,7 @@ export const createExternalModelViaAPI = (
       base_url: endpointUrl,
       secret_value: apiKey,
       model_type: modelType,
+      capabilities,
       /* eslint-enable camelcase */
     },
   });
@@ -521,10 +742,10 @@ export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: 
  * and adds the Deployment, Service, and Route on top.
  * Idempotent — skips resources that already exist.
  *
- * Returns the in-cluster Service URL with `/mcp` suffix. The Route is still
- * created (for manual debugging) but the Service URL is used for the test
- * to avoid TLS failures on clusters where the ingress CA is not in the
- * BFF's trusted CA bundle.
+ * Returns an endpoint that the Gen AI BFF can resolve in its execution environment:
+ * the external Route when the BFF is running locally, otherwise the in-cluster Service URL.
+ * Keeping the Service URL for non-local runs avoids TLS failures on clusters where the
+ * ingress CA is not in the BFF's trusted CA bundle.
  */
 export const deployMCPServer = (
   mcpNamespace: string,
@@ -563,9 +784,26 @@ export const deployMCPServer = (
     timeout: 130000,
   });
 
-  const url = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
-  cy.log(`MCP server URL: ${url}`);
-  return cy.wrap(url);
+  const serviceUrl = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
+  const isLocalRun = Cypress.config('baseUrl')?.includes('localhost');
+  if (!isLocalRun) {
+    cy.log(`MCP server URL (cluster Service): ${serviceUrl}`);
+    return cy.wrap(serviceUrl);
+  }
+
+  return cy
+    .exec(`oc get route/${name} -n ${mcpNamespace} -o jsonpath='{.spec.host}'`)
+    .then((result) => {
+      const routeHost = result.stdout.trim();
+      if (!routeHost) {
+        throw new Error(`MCP server Route ${mcpNamespace}/${name} has no host`);
+      }
+
+      const routeUrl = `https://${routeHost}/mcp`;
+      return cy
+        .log(`MCP server URL (external Route for local BFF): ${routeUrl}`)
+        .then(() => routeUrl);
+    });
 };
 
 /**

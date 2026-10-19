@@ -1,0 +1,1546 @@
+package controller_test
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	routev1 "github.com/openshift/api/route/v1"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
+
+	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
+)
+
+const testNamespace = "test-ns"
+
+func testScheme(t *testing.T) *runtime.Scheme {
+	t.Helper()
+
+	s := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(s))
+	require.NoError(t, v1alpha1.AddToScheme(s))
+	require.NoError(t, routev1.AddToScheme(s))
+
+	return s
+}
+
+func createMinimalManifests(t *testing.T) string {
+	t.Helper()
+
+	base := t.TempDir()
+	overlay := filepath.Join(base, "odh")
+	require.NoError(t, os.MkdirAll(overlay, 0755))
+
+	kustomization := `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+`
+	configmap := `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config
+data:
+  key: value
+`
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(kustomization), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
+
+	return base
+}
+
+func admittedRoute(namespace string) *routev1.Route {
+	return &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dashboard",
+			Namespace: namespace,
+			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
+				{
+					Host: "dashboard.apps.example.com",
+					Conditions: []routev1.RouteIngressCondition{
+						{Type: routev1.RouteAdmitted, Status: "True"},
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestReconcile_NotFound(t *testing.T) {
+	s := testScheme(t)
+	cli := fake.NewClientBuilder().WithScheme(s).Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: "nonexistent"},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+}
+
+func TestReconcile_DisabledObservabilityCleanupFailureDoesNotBlockCore(t *testing.T) {
+	for _, explicit := range []bool{false, true} {
+		for _, operation := range []string{"list", "delete"} {
+			name := "auto-detection/" + operation
+			if explicit {
+				name = "explicit-disable/" + operation
+			}
+			t.Run(name, func(t *testing.T) {
+				scheme := testScheme(t)
+				dashboard := &v1alpha1.Dashboard{
+					ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{"components.platform.opendatahub.io/cleanup"}},
+					Spec: v1alpha1.DashboardSpec{
+						ManagementSpec: common.ManagementSpec{ManagementState: "Managed"},
+						Gateway:        &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+					},
+				}
+				if explicit {
+					dashboard.Spec.Observability = &v1alpha1.ObservabilitySpec{Enabled: false}
+				}
+				stale := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+					Name: "perses-dashboard-config", Namespace: testNamespace,
+					Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "observability"},
+				}}
+				failCleanup := true
+				cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dashboard, stale).
+					WithStatusSubresource(dashboard).WithInterceptorFuncs(interceptor.Funcs{
+					List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+						if failCleanup && operation == "list" && list.GetObjectKind().GroupVersionKind().Kind == "PersesDashboardList" {
+							return k8serrors.NewServiceUnavailable("Perses API temporarily unavailable")
+						}
+						return delegate.List(ctx, list, opts...)
+					},
+					Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+						if failCleanup && operation == "delete" && client.ObjectKeyFromObject(obj) == client.ObjectKeyFromObject(stale) {
+							return assert.AnError
+						}
+						return delegate.Delete(ctx, obj, opts...)
+					},
+				}).Build()
+				r := &ctrlpkg.DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: createMinimalManifests(t),
+					Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace}
+				ctx := context.Background()
+				req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)}
+				result, err := r.Reconcile(ctx, req)
+				require.NoError(t, err)
+				assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
+				updated := &v1alpha1.Dashboard{}
+				require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+				condition := conditions.FindStatusCondition(updated, "ObservabilityAvailable")
+				require.NotNil(t, condition)
+				assert.Equal(t, "CleanupFailed", condition.Reason)
+				assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+				assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+				core := &corev1.ConfigMap{}
+				require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: testNamespace}, core))
+				assert.Equal(t, "value", core.Data["key"])
+
+				failCleanup = false
+				_, err = r.Reconcile(ctx, req)
+				require.NoError(t, err)
+				require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+				assert.Equal(t, "Disabled", conditions.FindStatusCondition(updated, "ObservabilityAvailable").Reason)
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+				assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+				assert.True(t, k8serrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(stale), &corev1.ConfigMap{})))
+				require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(core), core))
+				assert.Equal(t, "value", core.Data["key"])
+			})
+		}
+	}
+}
+
+func TestReconcile_ObservabilityDetectionFailureDoesNotBlockCore(t *testing.T) {
+	scheme := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{"components.platform.opendatahub.io/cleanup"}},
+		Spec:       v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Managed"}},
+	}
+	observability := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "perses-dashboard-config", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "observability"},
+	}, Data: map[string]string{"config": "existing observability"}}
+	federation := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "federation-config", Namespace: testNamespace},
+		Data: map[string]string{"module-federation-config.json": `[{"name":"perses","extra":"preserved"},{"name":"obsolete"}]`}}
+	lookupFails := true
+	cli := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(dashboard, admittedRoute(testNamespace), observability, federation).WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				if _, isService := obj.(*corev1.Service); lookupFails && isService && key.Name == "data-science-perses" {
+					return assert.AnError
+				}
+				return delegate.Get(ctx, key, obj, opts...)
+			},
+		}).Build()
+	r := &ctrlpkg.DashboardReconciler{Client: cli, Scheme: scheme, ManifestsBasePath: createMinimalManifests(t),
+		Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace}
+	ctx := context.Background()
+	req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)}
+	result, err := r.Reconcile(ctx, req)
+	require.NoError(t, err)
+	assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+	condition := conditions.FindStatusCondition(updated, "ObservabilityAvailable")
+	require.NotNil(t, condition)
+	assert.Equal(t, "DetectionFailed", condition.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
+	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)), "optional Perses detection must not block core readiness")
+	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
+	require.NoError(t, cli.Get(ctx, client.ObjectKey{Name: "test-config", Namespace: testNamespace}, &corev1.ConfigMap{}), "core resources must be applied")
+	retained := &corev1.ConfigMap{}
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(observability), retained))
+	assert.Equal(t, observability.Data, retained.Data)
+	require.NoError(t, cli.Get(ctx, client.ObjectKeyFromObject(federation), retained))
+	assert.Contains(t, retained.Data["module-federation-config.json"], `"name": "perses"`)
+	assert.Contains(t, retained.Data["module-federation-config.json"], `"extra": "preserved"`)
+	assert.Contains(t, retained.Data["module-federation-config.json"], `"name": "coreBff"`)
+	assert.NotContains(t, retained.Data["module-federation-config.json"], "obsolete")
+
+	// A successful lookup that finds no Perses service must resume normal cleanup
+	// and replace the previous DetectionFailed condition.
+	lookupFails = false
+	_, err = r.Reconcile(ctx, req)
+	require.NoError(t, err)
+	require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+	assert.Equal(t, "Disabled", conditions.FindStatusCondition(updated, "ObservabilityAvailable").Reason)
+	assert.True(t, k8serrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(observability), retained)))
+}
+
+func TestReconcile(t *testing.T) {
+	registrySize := len(ctrlpkg.ModuleNames())
+
+	tests := []struct {
+		name             string
+		generation       int64
+		dashboardSpec    *v1alpha1.DashboardSpec
+		manifestsBase    func(t *testing.T) string
+		extraObjects     func(t *testing.T) []client.Object
+		wantErr          bool
+		wantRequeue      time.Duration
+		wantPhase        common.Phase
+		wantReady        *bool
+		wantProvisioned  *bool
+		wantURL          string
+		wantGeneration   int64
+		wantModuleCount  int
+		wantModulePhases map[string]v1alpha1.ModulePhase
+	}{
+		{
+			name:       "success with admitted route",
+			generation: 3,
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			extraObjects: func(t *testing.T) []client.Object {
+				return []client.Object{admittedRoute(testNamespace)}
+			},
+			wantPhase:       common.PhaseReady,
+			wantReady:       boolPtr(true),
+			wantProvisioned: boolPtr(true),
+			wantURL:         "https://dashboard.apps.example.com",
+			wantGeneration:  3,
+			wantRequeue:     ctrlpkg.ObservabilityRetryInterval,
+		},
+		{
+			name:       "kustomize failure",
+			generation: 1,
+			manifestsBase: func(t *testing.T) string {
+				return "/nonexistent/path"
+			},
+			wantErr:         true,
+			wantPhase:       common.PhaseNotReady,
+			wantProvisioned: boolPtr(false),
+			wantGeneration:  1,
+		},
+		{
+			name:       "route not ready requeues",
+			generation: 2,
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			wantRequeue:     10 * time.Second,
+			wantPhase:       common.PhaseNotReady,
+			wantReady:       boolPtr(false),
+			wantProvisioned: boolPtr(true),
+			wantGeneration:  2,
+			wantModuleCount: registrySize,
+		},
+		{
+			name:       "observed generation matches CR",
+			generation: 42,
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			wantRequeue:     10 * time.Second,
+			wantPhase:       common.PhaseNotReady,
+			wantReady:       boolPtr(false),
+			wantProvisioned: boolPtr(true),
+			wantGeneration:  42,
+			wantModuleCount: registrySize,
+		},
+		{
+			name:       "module statuses populated — all modules not deployed when no manifests present",
+			generation: 1,
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			extraObjects: func(t *testing.T) []client.Object {
+				return []client.Object{admittedRoute(testNamespace)}
+			},
+			wantPhase:       common.PhaseReady,
+			wantReady:       boolPtr(true),
+			wantProvisioned: boolPtr(true),
+			wantURL:         "https://dashboard.apps.example.com",
+			wantGeneration:  1,
+			wantRequeue:     ctrlpkg.ObservabilityRetryInterval,
+			wantModuleCount: registrySize,
+			wantModulePhases: map[string]v1alpha1.ModulePhase{
+				"modelRegistry": v1alpha1.ModulePhaseNotDeployed,
+				"genAi":         v1alpha1.ModulePhaseNotDeployed,
+				"mlflow":        v1alpha1.ModulePhaseNotDeployed,
+				"maas":          v1alpha1.ModulePhaseNotDeployed,
+				"evalHub":       v1alpha1.ModulePhaseNotDeployed,
+				"automl":        v1alpha1.ModulePhaseNotDeployed,
+				"autorag":       v1alpha1.ModulePhaseNotDeployed,
+				"agentOps":      v1alpha1.ModulePhaseNotDeployed,
+				"notebooks":     v1alpha1.ModulePhaseNotDeployed,
+			},
+		},
+		{
+			name:       "operator config reconcile interval applied",
+			generation: 1,
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			extraObjects: func(t *testing.T) []client.Object {
+				return []client.Object{
+					admittedRoute(testNamespace),
+					&corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "dashboard-operator-config",
+							Namespace: testNamespace,
+						},
+						Data: map[string]string{
+							"reconcileInterval": "30s",
+						},
+					},
+				}
+			},
+			wantRequeue:     30 * time.Second,
+			wantPhase:       common.PhaseReady,
+			wantReady:       boolPtr(true),
+			wantProvisioned: boolPtr(true),
+			wantURL:         "https://dashboard.apps.example.com",
+			wantGeneration:  1,
+			wantModuleCount: registrySize,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testScheme(t)
+
+			dashboard := &v1alpha1.Dashboard{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       v1alpha1.DashboardInstanceName,
+					Generation: tt.generation,
+					Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+				},
+			}
+			if tt.dashboardSpec != nil {
+				dashboard.Spec = *tt.dashboardSpec
+			}
+
+			builder := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(dashboard).
+				WithStatusSubresource(dashboard)
+
+			if tt.extraObjects != nil {
+				builder = builder.WithObjects(tt.extraObjects(t)...)
+			}
+
+			cli := builder.Build()
+
+			r := &ctrlpkg.DashboardReconciler{
+				Client:                cli,
+				Scheme:                s,
+				ManifestsBasePath:     tt.manifestsBase(t),
+				Platform:              cluster.OpenDataHub,
+				Namespace:             testNamespace,
+				ApplicationsNamespace: testNamespace,
+			}
+
+			result, err := r.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+			})
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, tt.wantRequeue, result.RequeueAfter)
+
+			updated := &v1alpha1.Dashboard{}
+			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+
+			assert.Equal(t, tt.wantGeneration, updated.Status.ObservedGeneration)
+
+			if tt.wantPhase != "" {
+				assert.Equal(t, tt.wantPhase, updated.Status.Phase)
+			}
+			if tt.wantReady != nil {
+				if *tt.wantReady {
+					assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+				} else {
+					assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
+				}
+			}
+			if tt.wantProvisioned != nil {
+				if *tt.wantProvisioned {
+					assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+				} else {
+					assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeProvisioningSucceeded)))
+				}
+			}
+			if tt.wantURL != "" {
+				assert.Equal(t, tt.wantURL, updated.Status.URL)
+			} else {
+				assert.Empty(t, updated.Status.URL)
+			}
+
+			require.NotEmpty(t, updated.GetReleaseStatus().Releases)
+			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
+
+			if tt.wantModuleCount > 0 {
+				assert.Len(t, updated.Status.ModuleStatuses, tt.wantModuleCount, "module status count")
+			}
+			for name, wantPhase := range tt.wantModulePhases {
+				ms, ok := updated.Status.ModuleStatuses[name]
+				require.True(t, ok, "module %q should be in status", name)
+				assert.Equal(t, wantPhase, ms.Phase, "module %q phase", name)
+			}
+		})
+	}
+}
+
+func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
+	scheme := testScheme(t)
+	manifests := t.TempDir()
+	maasModulePath := filepath.Join(manifests, "modules", "maas")
+	require.NoError(t, os.MkdirAll(maasModulePath, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(maasModulePath, "kustomization.yaml"), []byte("invalid: ["), 0644))
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+		},
+		Status: v1alpha1.DashboardStatus{
+			// Seed legacy status to verify the old condition is removed even when
+			// module-demand reconciliation fails before reaching the portal step.
+			Status: common.Status{Conditions: []common.Condition{{
+				Type: ctrlpkg.LegacyConditionMaaSConsumerPortalAvailable, Status: metav1.ConditionTrue,
+				Reason: "Deployed", LastTransitionTime: metav1.Now(),
+			}}},
+			MaaSPortalURL:         "https://previous.example.com/",
+			MaaSConsumerPortalURL: "https://previous.example.com/",
+		},
+	}
+	cli := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                scheme,
+		ManifestsBasePath:     manifests,
+		Platform:              cluster.SelfManagedRhoai,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+	require.Error(t, err)
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+	condition := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, condition)
+	assert.Equal(t, metav1.ConditionFalse, condition.Status)
+	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
+	assert.Nil(t, conditions.FindStatusCondition(updated, ctrlpkg.LegacyConditionMaaSConsumerPortalAvailable), "early failure status must discard legacy portal availability")
+	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSPortalURL)
+	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSConsumerPortalURL)
+}
+
+func TestReconcile_Deletion(t *testing.T) {
+	s := testScheme(t)
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{
+				Time: time.Now(),
+			},
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	updated := &v1alpha1.Dashboard{}
+	err = cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated)
+	if err == nil {
+		assert.Empty(t, updated.Finalizers, "finalizer should be removed after deletion")
+	}
+}
+
+func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
+	s := testScheme(t)
+
+	obsNS := "observability-ns"
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{
+				Time: time.Now(),
+			},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			Observability: &v1alpha1.ObservabilitySpec{
+				Enabled: true,
+				PersesService: &v1alpha1.ServiceTarget{
+					Name:      "perses",
+					Namespace: obsNS,
+					Port:      8080,
+				},
+			},
+		},
+	}
+
+	crossNSSvc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "data-science-perses",
+			Namespace: obsNS,
+			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		},
+	}
+	crossNSCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "perses-dashboard-config",
+			Namespace: obsNS,
+			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, crossNSSvc, crossNSCM).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	var svcs corev1.ServiceList
+	require.NoError(t, cli.List(context.Background(), &svcs, client.InNamespace(obsNS)))
+	assert.Empty(t, svcs.Items, "cross-namespace services should be deleted")
+
+	var cms corev1.ConfigMapList
+	require.NoError(t, cli.List(context.Background(), &cms, client.InNamespace(obsNS)))
+	assert.Empty(t, cms.Items, "cross-namespace configmaps should be deleted")
+}
+
+func TestReconcile_Deletion_CleansGatewayRBAC(t *testing.T) {
+	s := testScheme(t)
+
+	const gatewayNS = "openshift-ingress"
+	const gatewayRBACName = "fetch-ray-data-science-gateway"
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{
+				Time: time.Now(),
+			},
+		},
+		Spec: v1alpha1.DashboardSpec{},
+	}
+
+	gatewayRole := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gatewayRBACName,
+			Namespace: gatewayNS,
+		},
+	}
+	gatewayRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gatewayRBACName,
+			Namespace: gatewayNS,
+		},
+	}
+	dchResources := []client.Object{
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-rhoai-gateway-discovery", Namespace: "openshift-ingress"}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-data-connect-hub-odh-gateway-discovery", Namespace: "opendatahub"}},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(append([]client.Object{dashboard, gatewayRole, gatewayRoleBinding}, dchResources...)...).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	err = cli.Get(context.Background(), types.NamespacedName{Name: gatewayRBACName, Namespace: gatewayNS}, &rbacv1.Role{})
+	assert.True(t, k8serrors.IsNotFound(err), "gateway Role should be deleted")
+
+	err = cli.Get(context.Background(), types.NamespacedName{Name: gatewayRBACName, Namespace: gatewayNS}, &rbacv1.RoleBinding{})
+	assert.True(t, k8serrors.IsNotFound(err), "gateway RoleBinding should be deleted")
+
+	for _, resource := range dchResources {
+		err = cli.Get(context.Background(), client.ObjectKeyFromObject(resource), resource)
+		assert.True(t, k8serrors.IsNotFound(err), "DCH %T should be deleted", resource)
+	}
+}
+
+func TestReconcile_Deletion_SameNamespaceObservability(t *testing.T) {
+	s := testScheme(t)
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{
+				Time: time.Now(),
+			},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			Observability: &v1alpha1.ObservabilitySpec{
+				Enabled: true,
+				PersesService: &v1alpha1.ServiceTarget{
+					Name:      "perses",
+					Namespace: testNamespace,
+					Port:      8080,
+				},
+			},
+		},
+	}
+
+	sameNSSvc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "perses-proxy",
+			Namespace: testNamespace,
+			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, sameNSSvc).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	var svcs corev1.ServiceList
+	require.NoError(t, cli.List(context.Background(), &svcs, client.InNamespace(testNamespace)))
+	assert.Len(t, svcs.Items, 1, "same-namespace resources are left for ownerReference GC")
+}
+
+func TestReconcile_Deletion_NoObservability(t *testing.T) {
+	s := testScheme(t)
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{
+				Time: time.Now(),
+			},
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	updated := &v1alpha1.Dashboard{}
+	err = cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated)
+	if err == nil {
+		assert.Empty(t, updated.Finalizers, "finalizer should be removed")
+	}
+}
+
+func TestReconcile_AdoptionIdempotency(t *testing.T) {
+	s := testScheme(t)
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Generation: 1,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+	}
+
+	base := createMinimalManifests(t)
+	route := admittedRoute(testNamespace)
+
+	statusWrites := 0
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, route).
+		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			SubResourceUpdate: func(ctx context.Context, c client.Client, subResource string, obj client.Object, opts ...client.SubResourceUpdateOption) error {
+				if subResource == "status" {
+					statusWrites++
+				}
+				return c.SubResource(subResource).Update(ctx, obj, opts...)
+			},
+		}).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     base,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	ctx := context.Background()
+
+	result1, err := r.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+	require.NoError(t, err)
+
+	first := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(ctx, types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, first))
+	// Use an old timestamp so a reset is detectable without sleeping.
+	for i := range first.Status.Conditions {
+		first.Status.Conditions[i].LastTransitionTime = metav1.NewTime(time.Unix(1, 0))
+	}
+	require.NoError(t, cli.Status().Update(ctx, first))
+	statusWrites = 0
+
+	result2, err := r.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+	require.NoError(t, err)
+
+	second := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(ctx, types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, second))
+
+	assert.Equal(t, result1.RequeueAfter, result2.RequeueAfter, "requeue should be consistent")
+	assert.Equal(t, first.Status.Phase, second.Status.Phase, "phase should be stable")
+	assert.Equal(t, first.Status.URL, second.Status.URL, "URL should be stable")
+	assert.Len(t, second.Status.Conditions, len(first.Status.Conditions), "condition count should be stable")
+	assert.Equal(t, first.Status, second.Status, "unchanged conditions must retain their transition timestamps")
+	assert.Zero(t, statusWrites, "an unchanged status must not be written")
+}
+
+func TestReconcile_StatusContract(t *testing.T) {
+	tests := []struct {
+		name            string
+		manifestsBase   func(t *testing.T) string
+		extraObjects    func(t *testing.T) []client.Object
+		wantErr         bool
+		wantReady       bool
+		wantProvisioned bool
+		wantPhase       common.Phase
+	}{
+		{
+			name: "all conditions present on success",
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			extraObjects: func(t *testing.T) []client.Object {
+				return []client.Object{admittedRoute(testNamespace)}
+			},
+			wantReady:       true,
+			wantProvisioned: true,
+			wantPhase:       common.PhaseReady,
+		},
+		{
+			name: "conditions reflect render failure",
+			manifestsBase: func(t *testing.T) string {
+				return "/nonexistent/path"
+			},
+			wantErr:         true,
+			wantReady:       false,
+			wantProvisioned: false,
+			wantPhase:       common.PhaseNotReady,
+		},
+		{
+			name: "phase tracks condition happiness — route not ready",
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			wantReady:       false,
+			wantProvisioned: true,
+			wantPhase:       common.PhaseNotReady,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testScheme(t)
+
+			dashboard := &v1alpha1.Dashboard{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       v1alpha1.DashboardInstanceName,
+					Generation: 1,
+					Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+				},
+			}
+
+			builder := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(dashboard).
+				WithStatusSubresource(dashboard)
+
+			if tt.extraObjects != nil {
+				builder = builder.WithObjects(tt.extraObjects(t)...)
+			}
+
+			cli := builder.Build()
+
+			r := &ctrlpkg.DashboardReconciler{
+				Client:                cli,
+				Scheme:                s,
+				ManifestsBasePath:     tt.manifestsBase(t),
+				Platform:              cluster.OpenDataHub,
+				Namespace:             testNamespace,
+				ApplicationsNamespace: testNamespace,
+			}
+
+			_, err := r.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+			})
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			updated := &v1alpha1.Dashboard{}
+			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+
+			assert.Equal(t, tt.wantPhase, updated.Status.Phase, "phase")
+			assert.Equal(t, int64(1), updated.Status.ObservedGeneration, "observedGeneration")
+
+			if tt.wantReady {
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)), "Ready should be True")
+			}
+			if tt.wantProvisioned {
+				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)), "ProvisioningSucceeded should be True")
+			} else {
+				cond := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+				if cond != nil {
+					assert.Equal(t, metav1.ConditionFalse, cond.Status, "ProvisioningSucceeded should be False")
+					assert.NotEmpty(t, cond.Reason, "ProvisioningSucceeded reason should be set on failure")
+				}
+			}
+
+			require.NotEmpty(t, updated.GetReleaseStatus().Releases, "release status must be set")
+			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
+		})
+	}
+}
+
+func TestReconcileDegradedCondition(t *testing.T) {
+	dashboard := &v1alpha1.Dashboard{}
+	cm := conditions.NewManager(
+		dashboard,
+		string(common.ConditionTypeReady),
+		string(common.ConditionTypeDegraded),
+	)
+	r := &ctrlpkg.DashboardReconciler{}
+
+	r.ReconcileDegradedCondition(cm, map[string]v1alpha1.ModuleStatus{
+		"modelRegistry": {Phase: v1alpha1.ModulePhaseDegraded},
+		"genAi":         {Phase: v1alpha1.ModulePhaseDegraded},
+		"mlflow":        {Phase: v1alpha1.ModulePhaseDeployed},
+	})
+
+	degraded := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
+	assert.Equal(t, "ModulesDegraded", degraded.Reason)
+	assert.Equal(t, "2 module(s) degraded", degraded.Message)
+	assert.Equal(t, common.ConditionSeverityError, degraded.Severity)
+	ready := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeReady))
+	require.NotNil(t, ready)
+	assert.Equal(t, metav1.ConditionFalse, ready.Status)
+	assert.Equal(t, "ModulesDegraded", ready.Reason)
+	assert.Equal(t, "2 module(s) degraded", ready.Message)
+	assert.False(t, cm.IsHappy())
+}
+
+func TestReconcile_DistinctNamespaces(t *testing.T) {
+	s := testScheme(t)
+
+	operatorNS := "operator-ns"
+	appNS := "application-ns"
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Generation: 1,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+	}
+
+	builder := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		WithObjects(admittedRoute(appNS))
+
+	cli := builder.Build()
+
+	base := t.TempDir()
+	overlay := filepath.Join(base, "odh")
+	require.NoError(t, os.MkdirAll(overlay, 0755))
+
+	kustomization := `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+`
+	configmap := `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config
+data:
+  key: value
+`
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(kustomization), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     base,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             operatorNS,
+		ApplicationsNamespace: appNS,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+	assert.Equal(t, "https://dashboard.apps.example.com", updated.Status.URL)
+}
+
+func TestReconcile_PlatformVersionHandshake(t *testing.T) {
+	tests := []struct {
+		name                string
+		platformConfigMap   *corev1.ConfigMap
+		wantPlatformVersion string
+	}{
+		{
+			name:                "no platform config — no platform release entry",
+			platformConfigMap:   nil,
+			wantPlatformVersion: "",
+		},
+		{
+			name: "platformVersion present — echoed to status",
+			platformConfigMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "odh-dashboard-config",
+					Namespace: testNamespace,
+				},
+				Data: map[string]string{
+					"platformVersion": "2.20.0",
+				},
+			},
+			wantPlatformVersion: "2.20.0",
+		},
+		{
+			name: "platformVersion key absent — no platform release entry",
+			platformConfigMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "odh-dashboard-config",
+					Namespace: testNamespace,
+				},
+				Data: map[string]string{
+					"distribution.name": "SelfManagedRHOAI",
+				},
+			},
+			wantPlatformVersion: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testScheme(t)
+
+			dashboard := &v1alpha1.Dashboard{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       v1alpha1.DashboardInstanceName,
+					Generation: 1,
+					Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+				},
+			}
+
+			builder := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(dashboard).
+				WithStatusSubresource(dashboard).
+				WithObjects(admittedRoute(testNamespace))
+
+			if tt.platformConfigMap != nil {
+				builder = builder.WithObjects(tt.platformConfigMap)
+			}
+
+			cli := builder.Build()
+
+			r := &ctrlpkg.DashboardReconciler{
+				Client:                cli,
+				Scheme:                s,
+				ManifestsBasePath:     createMinimalManifests(t),
+				Platform:              cluster.OpenDataHub,
+				Namespace:             testNamespace,
+				ApplicationsNamespace: testNamespace,
+			}
+
+			_, err := r.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+			})
+			require.NoError(t, err)
+
+			updated := &v1alpha1.Dashboard{}
+			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+
+			releases := updated.GetReleaseStatus().Releases
+			wantReleaseCount := 1
+			if tt.wantPlatformVersion != "" {
+				wantReleaseCount = 2
+			}
+			require.Len(t, releases, wantReleaseCount)
+
+			releasesByName := make(map[string]common.ComponentRelease, len(releases))
+			for _, release := range releases {
+				_, duplicate := releasesByName[release.Name]
+				require.False(t, duplicate, "release %q must appear only once", release.Name)
+				releasesByName[release.Name] = release
+			}
+
+			dashboardRelease, found := releasesByName[v1alpha1.DashboardComponentName]
+			require.True(t, found, "dashboard release must be reported")
+			assert.Equal(t, ctrlpkg.Version, dashboardRelease.Version)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", dashboardRelease.RepoURL)
+
+			platformRelease, found := releasesByName[common.ReleasePlatform]
+			if tt.wantPlatformVersion == "" {
+				assert.False(t, found, "platform release must be omitted without platformVersion")
+			} else {
+				require.True(t, found, "platform release must be reported")
+				assert.Equal(t, tt.wantPlatformVersion, platformRelease.Version)
+			}
+		})
+	}
+}
+
+func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
+	tests := []struct {
+		name        string
+		deployName  string
+		operatorDep string
+		operatorSA  string
+		operatorCR  string
+		operatorCRB string
+		deletedDep  string
+		deletedSA   string
+		deletedCR   string
+		deletedCRB  string
+	}{
+		{
+			name:        "default (kustomize)",
+			deployName:  "dashboard-operator",
+			operatorDep: "dashboard-operator", operatorSA: "dashboard-operator",
+			operatorCR: "dashboard-operator-role", operatorCRB: "dashboard-operator-rolebinding",
+			deletedDep: "odh-dashboard", deletedSA: "odh-dashboard-sa",
+			deletedCR: "odh-dashboard-role", deletedCRB: "odh-dashboard-rolebinding",
+		},
+		{
+			name:        "helm prefix (production)",
+			deployName:  "odh-dashboard-operator",
+			operatorDep: "odh-dashboard-operator", operatorSA: "odh-dashboard-operator",
+			operatorCR: "odh-dashboard-operator-role", operatorCRB: "odh-dashboard-operator-rolebinding",
+			deletedDep: "odh-dashboard", deletedSA: "odh-dashboard-sa",
+			deletedCR: "odh-dashboard-role", deletedCRB: "odh-dashboard-rolebinding",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			restore := ctrlpkg.SetOperatorDeploymentName(tt.deployName)
+			t.Cleanup(restore)
+
+			runPreservesOperatorResourcesTest(t, tt.operatorDep, tt.operatorSA, tt.operatorCR, tt.operatorCRB,
+				tt.deletedDep, tt.deletedSA, tt.deletedCR, tt.deletedCRB)
+		})
+	}
+}
+
+func TestReconcile_Removed_WithoutHTTPRouteRESTMapping(t *testing.T) {
+	s := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
+		},
+	}
+	managedConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name:      "dashboard-core-config",
+		Namespace: testNamespace,
+		Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+	}}
+
+	httpRouteListAttempts := 0
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, managedConfigMap).
+		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+				if list.GetObjectKind().GroupVersionKind() == gatewayv1.SchemeGroupVersion.WithKind("HTTPRouteList") {
+					httpRouteListAttempts++
+					return &meta.NoKindMatchError{GroupKind: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute").GroupKind()}
+				}
+				return delegate.List(ctx, list, opts...)
+			},
+		}).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: client.ObjectKeyFromObject(dashboard),
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+	assert.Positive(t, httpRouteListAttempts)
+	assert.True(t, k8serrors.IsNotFound(cli.Get(
+		context.Background(),
+		client.ObjectKeyFromObject(managedConfigMap),
+		&corev1.ConfigMap{},
+	)), "teardown should continue when the HTTPRoute REST mapping is unavailable")
+}
+
+func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, delDep, delSA, delCR, delCRB string) {
+	t.Helper()
+	s := testScheme(t)
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{},
+	}
+	dashboard.Spec.ManagementState = "Removed"
+
+	dashboardLabel := map[string]string{labels.PlatformPartOf: "dashboard"}
+
+	operatorDep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opDep,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardDep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      delDep,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	operatorSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opSA,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      delSA,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	operatorCR := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   opCR,
+			Labels: dashboardLabel,
+		},
+	}
+
+	dashboardCR := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   delCR,
+			Labels: dashboardLabel,
+		},
+	}
+
+	operatorCRB := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   opCRB,
+			Labels: dashboardLabel,
+		},
+	}
+
+	dashboardCRB := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   delCRB,
+			Labels: dashboardLabel,
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA, operatorCR, dashboardCR, operatorCRB, dashboardCRB).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	ctx := context.Background()
+
+	var deps appsv1.DeploymentList
+	require.NoError(t, cli.List(ctx, &deps, client.InNamespace(testNamespace)))
+	var depNames []string
+	for i := range deps.Items {
+		depNames = append(depNames, deps.Items[i].Name)
+	}
+	assert.Contains(t, depNames, opDep, "operator deployment must survive teardown")
+	assert.NotContains(t, depNames, delDep, "non-operator deployments must be deleted")
+
+	var sas corev1.ServiceAccountList
+	require.NoError(t, cli.List(ctx, &sas, client.InNamespace(testNamespace)))
+	var saNames []string
+	for i := range sas.Items {
+		saNames = append(saNames, sas.Items[i].Name)
+	}
+	assert.Contains(t, saNames, opSA, "operator SA must survive teardown")
+	assert.NotContains(t, saNames, delSA, "non-operator SAs must be deleted")
+
+	var crs rbacv1.ClusterRoleList
+	require.NoError(t, cli.List(ctx, &crs))
+	var crNames []string
+	for i := range crs.Items {
+		crNames = append(crNames, crs.Items[i].Name)
+	}
+	assert.Contains(t, crNames, opCR, "operator ClusterRole must survive teardown")
+	assert.NotContains(t, crNames, delCR, "non-operator ClusterRoles must be deleted")
+
+	var crbs rbacv1.ClusterRoleBindingList
+	require.NoError(t, cli.List(ctx, &crbs))
+	var crbNames []string
+	for i := range crbs.Items {
+		crbNames = append(crbNames, crbs.Items[i].Name)
+	}
+	assert.Contains(t, crbNames, opCRB, "operator ClusterRoleBinding must survive teardown")
+	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
+}
+
+func TestCleanupLegacyResources(t *testing.T) {
+	t.Run("deletes all legacy resources", func(t *testing.T) {
+		s := testScheme(t)
+		ctx := context.Background()
+
+		sidecarSA := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules", Namespace: testNamespace},
+		}
+		sidecarSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules-token", Namespace: testNamespace},
+		}
+		sidecarNetpol := &networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-allow-ports", Namespace: testNamespace},
+		}
+		sidecarCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "sidecar-params", Namespace: testNamespace},
+		}
+		sidecarCR := &rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules"},
+		}
+		sidecarCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules"},
+		}
+		odhMonitoringCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-monitoring"},
+		}
+		rhoaiMonitoringCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "rhods-dashboard-monitoring"},
+		}
+
+		unrelatedCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "unrelated-config", Namespace: testNamespace},
+		}
+		unrelatedCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "unrelated-binding"},
+		}
+
+		cli := fake.NewClientBuilder().
+			WithScheme(s).
+			WithObjects(sidecarSA, sidecarSecret, sidecarNetpol, sidecarCM, sidecarCR, sidecarCRB, odhMonitoringCRB, rhoaiMonitoringCRB, unrelatedCM, unrelatedCRB).
+			Build()
+
+		r := &ctrlpkg.DashboardReconciler{
+			Client:                cli,
+			Scheme:                s,
+			ApplicationsNamespace: testNamespace,
+		}
+
+		err := r.CleanupLegacyResources(ctx)
+		require.NoError(t, err)
+
+		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ServiceAccount{}, testNamespace, "odh-dashboard-modules"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.Secret{}, testNamespace, "odh-dashboard-modules-token"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &networkingv1.NetworkPolicy{}, testNamespace, "odh-dashboard-allow-ports"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "sidecar-params"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRole{}, "", "odh-dashboard-modules"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "odh-dashboard-modules"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "odh-dashboard-monitoring"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "rhods-dashboard-monitoring"))
+
+		assert.False(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "unrelated-config"),
+			"unrelated resources must not be deleted")
+		assert.False(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "unrelated-binding"),
+			"unrelated bindings must not be deleted")
+	})
+
+	t.Run("succeeds when resources already absent", func(t *testing.T) {
+		s := testScheme(t)
+		cli := fake.NewClientBuilder().WithScheme(s).Build()
+
+		r := &ctrlpkg.DashboardReconciler{
+			Client:                cli,
+			Scheme:                s,
+			ApplicationsNamespace: testNamespace,
+		}
+
+		err := r.CleanupLegacyResources(context.Background())
+		require.NoError(t, err)
+	})
+
+	t.Run("returns deletion errors", func(t *testing.T) {
+		s := testScheme(t)
+		cli := fake.NewClientBuilder().
+			WithScheme(s).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Delete: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+					if obj.GetName() == "odh-dashboard-monitoring" {
+						return assert.AnError
+					}
+					return client.Delete(ctx, obj, opts...)
+				},
+			}).
+			Build()
+
+		r := &ctrlpkg.DashboardReconciler{
+			Client:                cli,
+			Scheme:                s,
+			ApplicationsNamespace: testNamespace,
+		}
+
+		err := r.CleanupLegacyResources(context.Background())
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Contains(t, err.Error(), "odh-dashboard-monitoring")
+	})
+}
+
+func k8sNotFound(t *testing.T, cli client.Client, ctx context.Context, obj client.Object, ns, name string) bool {
+	t.Helper()
+	key := types.NamespacedName{Namespace: ns, Name: name}
+	err := cli.Get(ctx, key, obj)
+	if err == nil {
+		return false
+	}
+	require.True(t, k8serrors.IsNotFound(err), "unexpected error fetching %s/%s: %v", ns, name, err)
+	return true
+}
+
+func boolPtr(b bool) *bool {
+	return &b
+}

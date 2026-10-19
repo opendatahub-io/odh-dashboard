@@ -86,6 +86,9 @@ func (m *mockPipelinesService) DiscoverReadyDSPA(context.Context, string) (*pipe
 func (m *mockPipelinesService) EnableManagedPipelines(context.Context, string) (*pipelines.EnableManagedPipelinesResult, error) {
 	return nil, nil
 }
+func (m *mockPipelinesService) GetDSPAStatus(context.Context, string) (*pipelines.DSPAStatus, error) {
+	return nil, nil
+}
 
 // --- Test helpers ---
 
@@ -161,6 +164,22 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		err := ValidateCreateAutoMLRunRequest(validTabularRequest(), constants.PipelineTypeTabular)
 		if err != nil {
 			t.Fatal(err)
+		}
+	})
+
+	t.Run("quality preset is valid for tabular", func(t *testing.T) {
+		req := validTabularRequest()
+		req.Preset = ptr("quality")
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("quality preset is invalid for timeseries", func(t *testing.T) {
+		req := validTimeSeriesRequest()
+		req.Preset = ptr("quality")
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries); err == nil {
+			t.Fatal("expected quality preset to be rejected for timeseries")
 		}
 	})
 
@@ -461,6 +480,15 @@ func TestNormalizeCreateAutoMLRunRequest(t *testing.T) {
 }
 
 func TestBuildPipelineRunInput(t *testing.T) {
+	t.Run("tabular quality preset is passed to pipeline parameters", func(t *testing.T) {
+		req := validTabularRequest()
+		req.Preset = ptr("quality")
+		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTabular)
+		if got := kfp.RuntimeConfig.Parameters["preset"]; got != "quality" {
+			t.Errorf("preset = %v, want quality", got)
+		}
+	})
+
 	t.Run("tabular with defaults", func(t *testing.T) {
 		req := validTabularRequest()
 		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTabular)

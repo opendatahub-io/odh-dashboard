@@ -1,8 +1,8 @@
 import { DEFAULT_CONFIGURATION, ChatbotConfiguration } from '~/app/Chatbot/store/types';
 import { LlamaModel } from '~/app/types';
 import { MCPServerFromAPI } from '~/app/types/mcp';
-import { isMaasLlamaModelId } from '~/app/utilities/utils';
-import { AgentProfile } from './types';
+import { getAIAssetModelIDFromPlaygroundModel, isMaasLlamaModelId } from '~/app/utilities/utils';
+import { AgentProfile, AgentProfileMcpServer } from './types';
 
 export type AgentProfileDeserializationContext = {
   /**
@@ -44,6 +44,29 @@ export type AgentProfileDeserializeResult = {
   mcpToolsPending?: Record<string, string[]>;
 };
 
+const getMcpServerName = (server: AgentProfileMcpServer): string =>
+  'serverRef' in server ? (server.serverRef.key ?? server.serverRef.name) : server.name;
+
+const resolveMcpServer = (
+  server: AgentProfileMcpServer,
+  mcpServers: MCPServerFromAPI[],
+): MCPServerFromAPI | undefined => {
+  const name = getMcpServerName(server);
+  if ('source' in server) {
+    return mcpServers.find(
+      (candidate) => candidate.name === name && candidate.source === 'registry',
+    );
+  }
+  // ConfigMap references are source-specific. Older MCPServer CR references predate the
+  // source field and are resolved by name to preserve saved-profile compatibility.
+  if (server.serverRef.kind === 'ConfigMap') {
+    return mcpServers.find(
+      (candidate) => candidate.name === name && candidate.source === 'configmap',
+    );
+  }
+  return mcpServers.find((candidate) => candidate.name === name);
+};
+
 /**
  * Converts an AgentProfile API response into Playground store configuration.
  *
@@ -61,10 +84,13 @@ export const deserializeAgentProfile = (
   // LlamaModel.modelId is the prefix-stripped form of the Llama Stack ID, which matches
   // the AI Asset model_id stored in spec.model.id.
   const matchingPlaygroundModel = playgroundModels.find((m) => {
-    if (m.modelId !== spec.model.id) {
+    if (getAIAssetModelIDFromPlaygroundModel(m) !== spec.model.id) {
       return false;
     }
-    return spec.model.sourceType === 'maas' ? isMaasLlamaModelId(m.id) : !isMaasLlamaModelId(m.id);
+    // Recent OGX versions expose MaaS models through genai-bff-proxy without a
+    // maas- prefix. Model IDs are unique across sources, so the profile's MaaS
+    // source type is sufficient once the normalized catalog ID matches.
+    return spec.model.sourceType === 'maas' || !isMaasLlamaModelId(m.id);
   });
   const selectedModel = matchingPlaygroundModel?.id ?? spec.model.id;
 
@@ -105,8 +131,8 @@ export const deserializeAgentProfile = (
   if (spec.mcpServers?.length) {
     config.selectedMcpServerIds = spec.mcpServers
       .map((s) => {
-        const key = s.serverRef.key ?? s.serverRef.name;
-        const match = mcpServers.find((ms) => ms.name === key);
+        const key = getMcpServerName(s);
+        const match = resolveMcpServer(s, mcpServers);
         return match?.url ?? key;
       })
       .filter(Boolean);
@@ -159,8 +185,8 @@ export const deserializeAgentProfile = (
         spec.mcpServers
           .filter((s) => s.allowedTools !== undefined)
           .map((s) => {
-            const key = s.serverRef.key ?? s.serverRef.name;
-            const match = mcpServers.find((ms) => ms.name === key);
+            const key = getMcpServerName(s);
+            const match = resolveMcpServer(s, mcpServers);
             return [match?.url ?? key, s.allowedTools ?? []];
           }),
       )

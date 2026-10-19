@@ -1,10 +1,13 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { MLflowPromptVersion } from '~/app/types';
 import * as chatbotStore from '~/app/Chatbot/store';
 import * as usePlaygroundStore from '~/app/Chatbot/store/usePlaygroundStore';
+import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
+import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -84,17 +87,6 @@ const mockGlobalPrompt: MLflowPromptVersion = {
   scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
 };
 
-const mockGlobalEditablePrompt: MLflowPromptVersion = {
-  name: 'global-editable-prompt',
-  version: 1,
-  template: 'You are an editable global template.',
-  commit_message: 'Editable template',
-  tags: {},
-  created_at: '2024-01-20T12:00:00Z',
-  updated_at: '2024-01-20T12:00:00Z',
-  scope: { type: 'global', namespace: 'shared-team-prompts', read_only: false },
-};
-
 const mockPromptWithoutScope: MLflowPromptVersion = {
   name: 'legacy-prompt',
   version: 1,
@@ -113,6 +105,8 @@ describe('PromptAssistantFormGroup', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(usePromptEdited).mockReturnValue(false);
+    jest.mocked(useConfirmation).mockReturnValue({ confirm: jest.fn(), modal: null });
 
     const useChatbotConfigStoreMock = jest.mocked(chatbotStore.useChatbotConfigStore);
     const selectActivePromptMock = jest.mocked(chatbotStore.selectActivePrompt);
@@ -255,18 +249,15 @@ describe('PromptAssistantFormGroup', () => {
 
         render(<PromptAssistantFormGroup {...defaultProps} />);
 
-        const promptName = screen.getByTestId('prompt-name-title');
         const scopeLabel = screen.getByTestId('prompt-scope-label');
         const versionToggle = screen.getByTestId('prompt-version-toggle');
 
-        const flexContainer = promptName.parentElement;
+        const flexContainer = versionToggle.parentElement;
         const children = Array.from(flexContainer?.children || []);
 
-        const nameIndex = children.indexOf(promptName);
         const scopeIndex = children.indexOf(scopeLabel);
         const versionIndex = children.indexOf(versionToggle);
 
-        expect(scopeIndex).toBeGreaterThan(nameIndex);
         expect(scopeIndex).toBeLessThan(versionIndex);
       });
 
@@ -294,22 +285,14 @@ describe('PromptAssistantFormGroup', () => {
       selectDirtyPrompt.mockReturnValue(() => activePrompt);
 
       render(<PromptAssistantFormGroup {...defaultProps} />);
-
-      // Activate edit mode by clicking the Edit button
-      act(() => {
-        screen.getByTestId('prompt-edit-button').click();
-      });
     }
 
-    it('should show disabled Save and enabled Save As for global prompts', () => {
+    it('should show enabled Add to prompt registry for global prompts', () => {
       renderInEditMode(mockGlobalPrompt);
 
       const saveButton = screen.getByTestId('prompt-save-to-registry-button');
-      expect(saveButton).toBeDisabled();
-
-      const saveAsButton = screen.getByTestId('prompt-save-as-button');
-      expect(saveAsButton).toBeInTheDocument();
-      expect(saveAsButton).not.toBeDisabled();
+      expect(saveButton).not.toBeDisabled();
+      expect(screen.queryByTestId('prompt-save-as-button')).not.toBeInTheDocument();
     });
 
     it('should show enabled Save and no Save As for project prompts', () => {
@@ -321,7 +304,7 @@ describe('PromptAssistantFormGroup', () => {
       expect(screen.queryByTestId('prompt-save-as-button')).not.toBeInTheDocument();
     });
 
-    it('should open modal in save-as mode with "Copy of" name when Save As is clicked', () => {
+    it('should open modal in save-as mode with "Copy of" name when registry button is clicked', () => {
       const mockOpenModal = jest.fn();
       const usePlaygroundStoreMock = jest.mocked(usePlaygroundStore.usePlaygroundStore);
       usePlaygroundStoreMock.mockReturnValue({
@@ -330,8 +313,7 @@ describe('PromptAssistantFormGroup', () => {
 
       renderInEditMode(mockGlobalPrompt);
 
-      const saveAsButton = screen.getByTestId('prompt-save-as-button');
-      saveAsButton.click();
+      screen.getByTestId('prompt-save-to-registry-button').click();
 
       expect(mockOpenModal).toHaveBeenCalledWith(
         'save-as',
@@ -343,32 +325,111 @@ describe('PromptAssistantFormGroup', () => {
     });
   });
 
-  describe('Read-only prompt controls', () => {
-    it('should keep Edit button enabled for read-only prompts so Save As is accessible', () => {
-      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
-      selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
+  describe('Prompt editing controls', () => {
+    it('should show Revert for an unsaved new prompt and restore default instructions', () => {
+      jest.mocked(usePromptEdited).mockReturnValue(true);
+      const confirm = jest.fn();
+      jest.mocked(useConfirmation).mockReturnValue({ confirm, modal: null });
+      const onSystemInstructionChange = jest.fn();
 
-      render(<PromptAssistantFormGroup {...defaultProps} />);
+      render(
+        <PromptAssistantFormGroup
+          {...defaultProps}
+          systemInstruction="Unsaved draft instructions"
+          onSystemInstructionChange={onSystemInstructionChange}
+        />,
+      );
 
-      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
+      screen.getByTestId('prompt-revert-button').click();
+
+      expect(confirm).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          title: 'Revert changes?',
+          confirmLabel: 'Revert',
+        }),
+      );
+      confirm.mock.calls[0][0]();
+      expect(onSystemInstructionChange).toHaveBeenCalledWith(DEFAULT_SYSTEM_INSTRUCTIONS);
     });
 
-    it('should enable Edit button when prompt is not read-only', () => {
-      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
-      selectActivePrompt.mockReturnValue(() => mockGlobalEditablePrompt);
-
+    it('should hide Revert for an unchanged new prompt', () => {
       render(<PromptAssistantFormGroup {...defaultProps} />);
 
-      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
+      expect(screen.queryByTestId('prompt-revert-button')).not.toBeInTheDocument();
     });
 
-    it('should enable Edit button for project prompts', () => {
+    it('should make loaded prompt instructions directly editable', () => {
       const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
 
       render(<PromptAssistantFormGroup {...defaultProps} />);
 
-      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
+      expect(screen.getByTestId('system-instructions-input')).not.toHaveAttribute('readonly');
+    });
+  });
+
+  describe('Prompt instructions resizing', () => {
+    it('should resize a loaded prompt when its hidden tab becomes visible without replacing the observer on edits', () => {
+      jest.mocked(chatbotStore.selectActivePrompt).mockReturnValue(() => mockProjectPrompt);
+      const observe = jest.fn();
+      const disconnect = jest.fn();
+      let onIntersect!: IntersectionObserverCallback;
+      const observerConstructor = jest.fn((callback: IntersectionObserverCallback) => {
+        onIntersect = callback;
+        return { observe, disconnect };
+      });
+      const originalObserver = window.IntersectionObserver;
+      Object.defineProperty(window, 'IntersectionObserver', {
+        configurable: true,
+        value: observerConstructor,
+      });
+
+      try {
+        const { rerender, unmount } = render(
+          <div role="tabpanel" style={{ display: 'none' }}>
+            <PromptAssistantFormGroup
+              {...defaultProps}
+              systemInstruction={mockProjectPrompt.template ?? ''}
+            />
+          </div>,
+        );
+        const field = screen.getByTestId('system-instructions-input') as HTMLTextAreaElement;
+        let measuredHeight = 0;
+        Object.defineProperty(field, 'scrollHeight', { get: () => measuredHeight });
+        expect(field).toHaveValue(mockProjectPrompt.template);
+        expect(observe).toHaveBeenCalledWith(field.closest('[role="tabpanel"]'));
+
+        measuredHeight = 80;
+        act(() =>
+          onIntersect(
+            [{ isIntersecting: true } as IntersectionObserverEntry],
+            {} as IntersectionObserver,
+          ),
+        );
+        expect(parseFloat(field.parentElement?.style.height ?? '0')).toBeGreaterThanOrEqual(80);
+
+        measuredHeight = 120;
+        rerender(
+          <div role="tabpanel">
+            <PromptAssistantFormGroup
+              {...defaultProps}
+              systemInstruction="Edited prompt instructions"
+            />
+          </div>,
+        );
+        expect(parseFloat(field.parentElement?.style.height ?? '0')).toBeGreaterThanOrEqual(120);
+        expect(observerConstructor).toHaveBeenCalledTimes(1);
+        expect(disconnect).not.toHaveBeenCalled();
+
+        unmount();
+        expect(disconnect).toHaveBeenCalledTimes(1);
+      } finally {
+        Object.defineProperty(window, 'IntersectionObserver', {
+          configurable: true,
+          value: originalObserver,
+        });
+      }
     });
   });
 });

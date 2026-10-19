@@ -1,3 +1,4 @@
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import extensions from '../../extensions';
 import { SERVING_RUNTIME_TEMPLATES_TAB_PATH } from '../../src/settings/servingRuntimeTemplates/paths';
 
@@ -16,6 +17,26 @@ const formPaths = [
 ];
 
 describe('serving runtime templates extensions', () => {
+  it('should register one gated Serving runtime install target with Step 1 metadata', () => {
+    const targets = extensions.filter(
+      (extension) => extension.type === 'model-serving.runtime-image/install-target',
+    );
+    expect(targets).toHaveLength(1);
+    expect(targets[0].flags?.required).toEqual([
+      SupportedArea.CUSTOM_RUNTIMES,
+      SupportedArea.K_SERVE,
+      'ADMIN_USER',
+    ]);
+    expect(targets[0].properties).toEqual(
+      expect.objectContaining({
+        id: 'servingRuntimeTemplate',
+        label: 'Serving runtime template',
+        description: expect.any(String),
+        selectedState: expect.objectContaining({ listName: 'Serving runtime templates' }),
+        configureStepLabel: 'Configure template',
+      }),
+    );
+  });
   it('should register the serving runtime templates tab on the model deployment settings page', () => {
     expect(servingRuntimeTemplatesTab).toBeDefined();
     expect(servingRuntimeTemplatesTab?.properties).toEqual(

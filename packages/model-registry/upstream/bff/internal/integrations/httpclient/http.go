@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -61,11 +62,15 @@ func NewHTTPClient(logger *slog.Logger, baseURL string, headers http.Header, ins
 	if rootCAs != nil {
 		tlsCfg.RootCAs = rootCAs
 	}
+	transport := &http.Transport{
+		ForceAttemptHTTP2: true,
+		TLSClientConfig:   tlsCfg,
+	}
+	if os.Getenv("E2E_USE_PROXY_FROM_ENV") == "true" {
+		transport.Proxy = http.ProxyFromEnvironment
+	}
 	return &HTTPClient{
-		client: &http.Client{Transport: &http.Transport{
-			ForceAttemptHTTP2: true,
-			TLSClientConfig:   tlsCfg,
-		}},
+		client:  &http.Client{Transport: transport},
 		baseURL: baseURL,
 		logger:  logger,
 		Headers: headers,

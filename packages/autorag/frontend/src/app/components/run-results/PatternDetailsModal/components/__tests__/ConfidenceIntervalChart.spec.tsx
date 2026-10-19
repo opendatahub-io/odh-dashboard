@@ -39,17 +39,17 @@ describe('ConfidenceIntervalChart', () => {
 
       expect(screen.getByTestId('ci-track-faithfulness-unitxt')).toBeInTheDocument();
       expect(screen.getByTestId('ci-track-faithfulness-ragas')).toBeInTheDocument();
-      expect(screen.getByText('Answer faithfulness (unitxt)')).toBeInTheDocument();
-      expect(screen.getByText('Answer faithfulness (ragas)')).toBeInTheDocument();
+      expect(screen.getByText('Faithfulness (Unitxt)')).toBeInTheDocument();
+      expect(screen.getByText('Faithfulness (RAGAS)')).toBeInTheDocument();
       expect(
         Array.from(container.querySelectorAll('.autorag-ci-track__label')).map((label) =>
           label.textContent.trim(),
         ),
       ).toEqual([
         'Answer correctness (unitxt)',
-        'Answer faithfulness (ragas)',
-        'Answer faithfulness (unitxt)',
         'Context recall (ragas)',
+        'Faithfulness (RAGAS)',
+        'Faithfulness (Unitxt)',
       ]);
     });
 
@@ -130,6 +130,19 @@ describe('ConfidenceIntervalChart', () => {
       expect(
         screen.getByText(/Each optimization metric is plotted on a shared 0–1 x-axis/),
       ).toBeInTheDocument();
+    });
+
+    it('should provide definition hover help for metrics and CI legend items', () => {
+      render(<ConfidenceIntervalChart scores={fullScores} />);
+
+      expect(screen.getByTestId('ci-scores-info')).toHaveAccessibleName(
+        'Confidence interval scores info',
+      );
+      expect(screen.getByTestId('ci-metric-help-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-legend-interval-help')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-legend-low-help')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-legend-mean-help')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-legend-high-help')).toBeInTheDocument();
     });
   });
 

@@ -1,6 +1,8 @@
 import * as yaml from 'js-yaml';
 import {
+  clearEvalHubEvaluationJobs,
   cleanupEvalHubTestResources,
+  getEvalHubExperimentSuffix,
   navigateToEvaluationsPage,
   submitSingleBenchmarkEvaluation,
   stopAndReconfigureEvaluation,
@@ -12,7 +14,10 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
-import { ensureEvalHubCrReady } from '../../../utils/oc_commands/evalHubInstance';
+import {
+  ensureEvalHubCrReady,
+  type EvalHubInstance,
+} from '../../../utils/oc_commands/evalHubInstance';
 import {
   ensureMlflowCrReady,
   findAvailableExperimentSuffix,
@@ -46,6 +51,7 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
   let mlflowExperimentName = '';
   let additionalBenchmarkParams = '';
   let projectNamePrefix = '';
+  let evalHubInstance: EvalHubInstance | undefined;
 
   retryableBefore(() => {
     ensureAdminOcSession();
@@ -69,8 +75,10 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
     });
 
     cy.then(() => {
-      cy.step('[Setup] Provision EvalHub instance');
-      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath);
+      cy.step('[Setup] Resolve EvalHub instance');
+      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath).then((instance) => {
+        evalHubInstance = instance;
+      });
     });
 
     cy.then(() => {
@@ -82,8 +90,16 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
 
     cy.then(() => {
       cy.step('[Setup] Deploy vLLM model and configure tenant access');
+      if (!evalHubInstance) {
+        throw new Error('EvalHub instance was not resolved during setup.');
+      }
       addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
-      setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
+      setupTenantAndDeployModel(
+        evaluationTenantProject,
+        testData,
+        hardwareProfileName,
+        evalHubInstance,
+      );
       grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
       inferenceServiceName = testData.inferenceServiceName;
       cy.log(`InferenceService: ${inferenceServiceName}`);
@@ -91,14 +107,22 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
 
     cy.then(() => {
       cy.step('[Setup] Select an available MLflow experiment name');
-      return findAvailableExperimentSuffix(
-        evaluationTenantProject,
-        [testData.mlflowExperimentName],
-        uuid,
-      ).then((suffix) => {
-        mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
-        cy.log(`MLflow experiment: ${mlflowExperimentName}`);
-      });
+      return getEvalHubExperimentSuffix(uuid).then((experimentSuffix) =>
+        findAvailableExperimentSuffix(
+          evaluationTenantProject,
+          [testData.mlflowExperimentName],
+          experimentSuffix,
+        ).then((suffix) => {
+          mlflowExperimentName = `${testData.mlflowExperimentName}-${suffix}`;
+          cy.log(`MLflow experiment: ${mlflowExperimentName}`);
+        }),
+      );
+    });
+
+    cy.then(() => {
+      cy.step('[Setup] Open EvalHub and remove stale evaluation runs');
+      navigateToEvaluationsPage(evaluationTenantProject);
+      clearEvalHubEvaluationJobs(evaluationTenantProject);
     });
   });
 
@@ -123,7 +147,6 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
       )}`;
       const reconfiguredRunName = `${evaluationRunName}-v2`;
 
-      navigateToEvaluationsPage(evaluationTenantProject);
       submitSingleBenchmarkEvaluation({
         benchmarkCardTitle,
         evaluationRunName,
@@ -131,7 +154,7 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
         mlflowExperimentName,
         additionalBenchmarkParams,
       });
-      stopAndReconfigureEvaluation(evaluationRunName, reconfiguredRunName);
+      stopAndReconfigureEvaluation(evaluationRunName, reconfiguredRunName, evaluationTenantProject);
     },
   );
 });

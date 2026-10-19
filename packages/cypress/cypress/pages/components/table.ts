@@ -2,7 +2,7 @@ import { Contextual } from './Contextual';
 
 export class TableRow extends Contextual<HTMLTableRowElement> {
   findExpandButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: 'Details' });
+    return this.find().find('button[aria-label="Details"]');
   }
 
   findRowCheckbox(): Cypress.Chainable<JQuery<HTMLInputElement>> {

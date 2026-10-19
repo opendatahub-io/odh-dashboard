@@ -125,6 +125,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | Skill                              | Directory                              | Use when                                                                       |
 | ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
 | **Dev Workflow**                   | `skills/dev-workflow/`                 | Implementing a feature, fix, or refactor — runs lint, type-check, tests, and optional browser verification |
+| **DSC Outage Workaround**         | `skills/dsc-outage-workaround/`        | Diagnosing and safely remediating DSC infrastructure outages that block merges |
 | **Docs Create**                    | `skills/docs-create/`                  | Creating a new documentation file from a description                           |
 | **Docs Create Package**            | `skills/docs-create-package/`          | Scaffolding a package doc and registering it in BOOKMARKS.md                   |
 | **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |
@@ -141,9 +142,11 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
 | **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
 | **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
-| **Jira PR Review**                 | `skills/jira-pr-review/`               | Reviewing a PR against its Jira product ask and explicit acceptance criteria — used by `/preflight` and by the Fullsend review harness |
-| **Test Impact Review**             | `skills/test-impact-review/`           | Judging whether changed behavior has proportionate test coverage or a substantive rationale |
-| **PR Description Review**          | `skills/pr-description-review/`        | Checking a PR body against `.github/pull_request_template.md` — description, testing, Test Impact, Jira linkage, UI evidence |
+| **Jira PR Review**                 | `skills/jira-pr-review/`               | Reviewing a PR against its Jira product ask and explicit acceptance criteria — used by `/preflight` |
+| **Product Ask Review**             | `skills/product-ask-review/`           | Evaluating whether a PR's stated work fulfills the current Jira product ask |
+| **Test Impact Review**             | `skills/test-impact-review/`           | Assurance-grade test impact: Automation, Efficiency, and Evidence depth |
+| **PR Description Review**          | `skills/pr-description-review/`        | Scoring a PR body for substance readiness: Problem, Solution, and Evidence |
+| **Fullsend Findings**              | `skills/fullsend-findings/`            | Author helper for Fullsend sticky findings — interactive (one-by-one / number / accept-all) or yolo (validate → fix → polish: final review if multi-fix + always code-simplifier → commit → push → description) |
 | **CI Status Review**               | `skills/ci-status-review/`             | Interpreting PR CI state and applicability, delegating failed-test classification to `/ci-flake-classifier` |
 | **Module Onboarding**              | `skills/module-onboarding/`            | Scaffolding a new federated module under `packages/` — handles installer, port allocation, host registration, and build verification. Standalone manifests and operator registration are deferred to `/konflux-onboarding` (pass module name as argument) |
 | **Konflux Onboarding**             | `skills/konflux-onboarding/`           | Onboarding a component to Konflux CI/CD — Dockerfiles, standalone manifests, OpenShift CI, operator registration, DevOps coordination, RHOAI downstream setup |

@@ -27,6 +27,9 @@
     "@MaaSCI"
   ],
   "scripts": {
+    "cypress:mock:build": "pnpm run cypress:server:build",
+    "cypress:mock:build:coverage": "pnpm run cypress:server:build:coverage",
+    "cypress:mock:dev": "pnpm run cypress:server:dev",
     "cypress:server:build": "cd frontend && cross-env DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated pnpm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true pnpm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9104 -s -L",

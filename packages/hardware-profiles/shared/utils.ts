@@ -8,6 +8,7 @@ import {
   type Toleration,
   type NodeSelector,
   type ContainerResources,
+  type PodSpec,
 } from '@odh-dashboard/k8s-core';
 import {
   splitValueUnit,
@@ -19,11 +20,13 @@ import type {
   HardwarePodSpecOptions,
   CrPathConfig,
   ResourceType,
+  DRAHardwareProfileDetails,
 } from './types';
 import type {
   HardwareProfileConfig,
   UseHardwareProfileConfigResult,
 } from './useHardwareProfileConfig';
+import { DRA_CLAIM_NAME } from './const';
 
 /**
  * changed order of arguments so that the deprecated accelerator profile is last;
@@ -249,6 +252,28 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   const result = structuredClone(cr);
   const { selectedProfile, resources, useExistingSettings } = config;
 
+  if (selectedProfile && isDRAHardwareProfile(selectedProfile)) {
+    if (!result.metadata) {
+      result.metadata = {};
+    }
+    result.metadata.annotations = {
+      ...result.metadata.annotations,
+      'opendatahub.io/hardware-profile-name': selectedProfile.metadata.name,
+      'opendatahub.io/hardware-profile-namespace': selectedProfile.metadata.namespace,
+    };
+    // Empty resources mean the workload had none. Writing them could create a container that
+    // does not exist, for example on an LLMInferenceService whose container comes from baseRef.
+    const hasResources =
+      !!resources &&
+      (Object.keys(resources.requests ?? {}).length > 0 ||
+        Object.keys(resources.limits ?? {}).length > 0 ||
+        !!resources.claims?.length);
+    if (resources && hasResources && paths?.containerResourcesPath) {
+      set(result, paths.containerResourcesPath, resources);
+    }
+    return result;
+  }
+
   if (!result.metadata) {
     result.metadata = {};
   }
@@ -282,3 +307,30 @@ export const getHardwareProfileDisplayName = (hardwareProfile: HardwareProfileKi
   hardwareProfile.metadata.name;
 
 export const getLocalQueueLabel = (): string => 'Local queue';
+
+export const isDRAHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
+  !!hardwareProfile.spec.dra;
+
+export const getDRAHardwareProfileDetails = (
+  hardwareProfile: HardwareProfileKind,
+  podSpec?: PodSpec,
+): DRAHardwareProfileDetails | undefined => {
+  const profileTemplateName = hardwareProfile.spec.dra?.resourceClaimTemplateName;
+  const workloadTemplateName = podSpec?.resourceClaims?.find(
+    (claim) => claim.name === DRA_CLAIM_NAME,
+  )?.resourceClaimTemplateName;
+  const resourceClaimTemplateName = workloadTemplateName ?? profileTemplateName;
+  if (!resourceClaimTemplateName) {
+    return undefined;
+  }
+  const description =
+    resourceClaimTemplateName === profileTemplateName
+      ? hardwareProfile.metadata.annotations?.['opendatahub.io/resource-claim-description']
+          ?.replace(/\s+/g, ' ')
+          .trim()
+      : undefined;
+  return {
+    resourceClaimTemplateName,
+    ...(description && { description }),
+  };
+};

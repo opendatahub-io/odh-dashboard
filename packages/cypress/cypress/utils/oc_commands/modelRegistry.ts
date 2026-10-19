@@ -701,6 +701,46 @@ export const deleteModelRegistry = (registryName: string): Cypress.Chainable<Com
 };
 
 /**
+ * Force-delete a model registry by stripping finalizers first. Handles CRs stuck
+ * in Terminating state where the operator hasn't processed the finalizer yet.
+ * @param registryName Name of the model registry to delete
+ * @returns Cypress.Chainable<boolean> true when the CR no longer exists
+ */
+export const forceDeleteModelRegistry = (registryName: string): Cypress.Chainable<boolean> => {
+  const targetNamespace = getModelRegistryNamespace();
+  const resource = `modelregistry.modelregistry.opendatahub.io/${registryName}`;
+
+  return cy
+    .exec(`oc get ${resource} -n ${targetNamespace} -o name`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
+        return cy.wrap(true);
+      }
+
+      cy.log(`Force-deleting ${registryName}: stripping finalizers`);
+      return cy
+        .exec(
+          `oc patch ${resource} -n ${targetNamespace} --type=merge -p '{"metadata":{"finalizers":null}}'`,
+          { failOnNonZeroExit: false },
+        )
+        .then(() =>
+          cy.exec(
+            `oc delete ${resource} -n ${targetNamespace} --ignore-not-found=true --timeout=60s`,
+            { failOnNonZeroExit: false, timeout: 120000 },
+          ),
+        )
+        .then((deleteResult: CommandLineResult) => {
+          cy.log(
+            `${registryName} ${deleteResult.exitCode === 0 ? 'fully removed' : 'delete failed'}`,
+          );
+          return cy.wrap(deleteResult.exitCode === 0);
+        });
+    });
+};
+
+/**
  * Clean up registered models from the database
  * @param modelNames Array of model names to delete from the database
  * @param databaseName Name of the database deployment (defaults to 'model-registry-db' for backwards compatibility)
@@ -781,11 +821,11 @@ export const cleanupRegisteredModelsFromPostgresDatabase = (
       const escapeSql = (name: string) => name.replace(/'/g, "''");
       const modelNamesStr = modelNames.map((name) => `'${escapeSql(name)}'`).join(', ');
       const sqlCommands = [
-        `DELETE FROM contextproperty WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
-        `DELETE FROM parentcontext WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr})) OR parent_context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
-        `DELETE FROM association WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
-        `DELETE FROM attribution WHERE context_id IN (SELECT id FROM context WHERE name IN (${modelNamesStr}));`,
-        `DELETE FROM context WHERE name IN (${modelNamesStr});`,
+        `DELETE FROM "ContextProperty" WHERE context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM "ParentContext" WHERE context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr})) OR parent_context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM "Association" WHERE context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM "Attribution" WHERE context_id IN (SELECT id FROM "Context" WHERE name IN (${modelNamesStr}));`,
+        `DELETE FROM "Context" WHERE name IN (${modelNamesStr});`,
       ].join(' ');
 
       const escapeShellDoubleQuotes = (s: string) => s.replace(/["$`\\]/g, '\\$&');

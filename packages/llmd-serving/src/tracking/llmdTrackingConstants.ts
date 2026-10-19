@@ -41,8 +41,8 @@ export enum LlmAcceleratorConfigTrackingEvent {
 }
 
 export type LlmAcceleratorConfigCreatedProperties = FormTrackingEventProperties & {
-  /** Whether the config was created from scratch or duplicated from an existing one. */
-  mode: 'create' | 'duplicate';
+  /** Form mode; 'create' is also accepted for callers without an Add form. */
+  mode: 'add' | 'create' | 'duplicate' | 'install';
 };
 
 export type LlmAcceleratorConfigEnablementChangedProperties = FormTrackingEventProperties & {
@@ -53,7 +53,12 @@ export type LlmAcceleratorConfigEnablementChangedProperties = FormTrackingEventP
 export const fireLlmAcceleratorConfigCreated = (
   properties: LlmAcceleratorConfigCreatedProperties,
 ): void => {
-  fireFormTrackingEvent(LlmAcceleratorConfigTrackingEvent.CREATED, properties);
+  const { mode, ...outcomeProperties } = properties;
+  fireFormTrackingEvent(LlmAcceleratorConfigTrackingEvent.CREATED, {
+    ...outcomeProperties,
+    mode: mode === 'duplicate' ? 'duplicate' : 'create',
+    ...(mode === 'install' && { source: 'install' }),
+  });
 };
 
 export const fireLlmAcceleratorConfigUpdated = (properties: FormTrackingEventProperties): void => {

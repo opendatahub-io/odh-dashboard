@@ -61,6 +61,7 @@ export type HardwareProfileBindingConfig = {
     resourceType: ResourceType;
     isRunning: boolean;
     name?: string;
+    isDRA?: boolean;
   }) => string;
 };
 
@@ -68,6 +69,11 @@ export type CrPathConfig = {
   containerResourcesPath: string;
   tolerationsPath: string;
   nodeSelectorPath: string;
+};
+
+export type DRAHardwareProfileDetails = {
+  resourceClaimTemplateName: string;
+  description?: string;
 };
 
 export type HardwareProfileOptions = {

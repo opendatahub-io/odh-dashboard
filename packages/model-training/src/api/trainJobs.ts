@@ -1,9 +1,9 @@
 import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions, K8sAPIOptions } from '@odh-dashboard/k8s-core';
-import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import { TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 
 import { TrainJobKind } from '../k8sTypes';
 

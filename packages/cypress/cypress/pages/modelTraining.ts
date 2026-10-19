@@ -1,13 +1,15 @@
 import { TableRow } from './components/table';
 import { Modal } from './components/Modal';
 import { appChrome } from './appChrome';
+import { modelTrainingTestIds } from '../tests/mocked/modelTraining/modelTrainingTestUtils';
 
 class ModelTrainingGlobal {
-  visit(projectName?: string, wait = true) {
+  visit(projectName?: string, wait = true, featureFlags?: string[]) {
     const url = projectName
       ? `/develop-train/training-jobs/${projectName}`
       : '/develop-train/training-jobs';
-    cy.visitWithLogin(url);
+    const query = featureFlags?.length ? `?devFeatureFlags=${featureFlags.join(',')}` : '';
+    cy.visitWithLogin(`${url}${query}`);
     if (wait) {
       this.wait();
     }
@@ -59,7 +61,10 @@ class ModelTrainingGlobal {
   }
 
   findProjectMenuItem(projectName: string) {
-    return cy.findByRole('menuitem', { name: projectName });
+    return cy
+      .findByTestId('project-selector-menuList')
+      .should('be.visible')
+      .findByRole('menuitem', { name: projectName });
   }
 
   findEmptyState() {
@@ -76,6 +81,18 @@ class ModelTrainingGlobal {
 
   findLoadingContent() {
     return cy.findByText('Loading');
+  }
+
+  findViewAcrossAllProjectsLink() {
+    return cy.findByTestId(modelTrainingTestIds.viewAcrossAllProjects);
+  }
+
+  findAllProjectsBanner() {
+    return cy.findByTestId(modelTrainingTestIds.allProjectsBanner);
+  }
+
+  findExitAllProjectsLink() {
+    return cy.findByTestId(modelTrainingTestIds.exitAllProjectsView);
   }
 
   findCancelLoadingButton() {

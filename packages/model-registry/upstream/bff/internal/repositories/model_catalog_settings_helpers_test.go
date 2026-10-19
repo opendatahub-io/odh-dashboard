@@ -1,14 +1,112 @@
 package repositories
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
+
+func TestConfiguredApiKeyParsingAndMerging(t *testing.T) {
+	defaultYAML := `catalogs:
+  - id: hf_source
+    name: Hugging Face
+    type: hf
+    properties:
+      apiKey: catalog-hf-source-apikey
+  - id: yaml_source
+    name: YAML
+    type: yaml
+    properties:
+      yamlCatalogPath: models.yaml
+`
+	defaultList, err := ParseCatalogYaml(defaultYAML, true)
+	require.NoError(t, err)
+	require.True(t, *defaultList[0].HasConfiguredApiKey)
+	require.Nil(t, defaultList[1].HasConfiguredApiKey)
+	require.True(t, *FindCatalogSourceById(defaultYAML, "hf_source", true).HasConfiguredApiKey)
+
+	for _, tc := range []struct {
+		name       string
+		properties string
+		wantParsed *bool
+		wantMerged bool
+	}{
+		{"sparse override inherits default", "", nil, true},
+		{"empty override clears default", "    properties:\n      apiKey: ''\n", boolPtr(false), false},
+		{"nonempty override replaces default", "    properties:\n      apiKey: other-secret\n", boolPtr(true), true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			userYAML := "catalogs:\n  - id: hf_source\n    enabled: false\n" + tc.properties
+			userList, err := ParseCatalogYaml(userYAML, false)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantParsed, userList[0].HasConfiguredApiKey)
+			userSingle := FindCatalogSourceById(userYAML, "hf_source", false)
+			require.NotNil(t, userSingle)
+			assert.Equal(t, tc.wantParsed, userSingle.HasConfiguredApiKey)
+
+			for _, merged := range []models.CatalogSourceConfig{
+				mergeCatalogSourceConfigs(defaultList[0], userList[0]),
+				mergeCatalogSourceConfigs(*FindCatalogSourceById(defaultYAML, "hf_source", true), *userSingle),
+			} {
+				stripHuggingFaceApiKeyForAPI(&merged)
+				require.NotNil(t, merged.HasConfiguredApiKey)
+				assert.Equal(t, tc.wantMerged, *merged.HasConfiguredApiKey)
+				assert.Nil(t, merged.ApiKey)
+				encoded, err := json.Marshal(merged)
+				require.NoError(t, err)
+				assert.NotContains(t, string(encoded), "catalog-hf-source-apikey")
+				assert.NotContains(t, string(encoded), "other-secret")
+				assert.NotContains(t, string(encoded), `"apiKey"`)
+			}
+		})
+	}
+
+	for _, yamlText := range []string{
+		"catalogs:\n  - id: hf_source\n    type: hf\n",
+		"catalogs:\n  - id: hf_source\n    type: hf\n    properties:\n      apiKey: ''\n",
+	} {
+		list, err := ParseCatalogYaml(yamlText, false)
+		require.NoError(t, err)
+		stripHuggingFaceApiKeyForAPI(&list[0])
+		require.NotNil(t, list[0].HasConfiguredApiKey)
+		assert.False(t, *list[0].HasConfiguredApiKey)
+		individual := FindCatalogSourceById(yamlText, "hf_source", false)
+		stripHuggingFaceApiKeyForAPI(individual)
+		require.NotNil(t, individual.HasConfiguredApiKey)
+		assert.False(t, *individual.HasConfiguredApiKey)
+	}
+
+	yamlSource := defaultList[1]
+	stripHuggingFaceApiKeyForAPI(&yamlSource)
+	encoded, err := json.Marshal(yamlSource)
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "hasConfiguredApiKey")
+}
+
+func TestConfiguredApiKeyMetadataIsNotPersisted(t *testing.T) {
+	payload := models.CatalogSourceConfigPayload{
+		Id: "hf_source", Name: "Hugging Face", Type: CatalogTypeHuggingFace,
+		HasConfiguredApiKey: boolPtr(true),
+	}
+	entry := ConvertSourceConfigToYamlEntry(payload, "", "")
+	encoded, err := yaml.Marshal(entry)
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "hasConfiguredApiKey")
+
+	updated, err := UpdateCatalogSourceInYAML(
+		"catalogs:\n  - id: hf_source\n    name: Hugging Face\n    type: hf\n",
+		"hf_source", payload, "", "", false,
+	)
+	require.NoError(t, err)
+	assert.NotContains(t, updated, "hasConfiguredApiKey")
+}
 
 func TestIsHuggingFaceApiKeySecretName(t *testing.T) {
 	assert.True(t, isHuggingFaceApiKeySecretName("catalog-my-source-apikey"))

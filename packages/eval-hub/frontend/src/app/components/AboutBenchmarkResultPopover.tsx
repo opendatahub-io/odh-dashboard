@@ -4,10 +4,11 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob, Provider } from '~/app/types';
 import {
   formatBenchmarkScore,
+  formatThresholdValue,
   getBenchmarkDisplayName,
   getJobBenchmarks,
-  normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
+import { getMetricDisplayName } from '~/app/components/benchmarkUtils';
 
 type AboutBenchmarkResultPopoverProps = {
   benchmarkId: string;
@@ -15,8 +16,6 @@ type AboutBenchmarkResultPopoverProps = {
   job: EvaluationJob;
   provider?: Provider;
 };
-
-const formatThreshold = (threshold: number): string => `${normalizeThreshold(threshold)}%`;
 
 const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = ({
   benchmarkId,
@@ -52,6 +51,7 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   const directionLabel = lowerIsBetter ? 'Lower is better' : 'Higher is better';
   const benchmarkInterpretation = providerBenchmark?.agent?.result_interpretation;
   const providerInterpretation = provider?.agent?.result_interpretation;
+  const primaryMetricDisplayName = getMetricDisplayName(primaryMetricName);
 
   let bodyText: string;
   if (benchmarkInterpretation) {
@@ -59,10 +59,10 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   } else if (providerInterpretation?.length) {
     bodyText = providerInterpretation.join(' ');
   } else {
-    bodyText = `${getBenchmarkDisplayName(primaryMetricName)}; ${lowerIsBetter ? 'lower' : 'higher'} is better.`;
+    bodyText = `${primaryMetricDisplayName}; ${lowerIsBetter ? 'lower' : 'higher'} is better.`;
   }
 
-  const score = result ? formatBenchmarkScore(result) : undefined;
+  const score = result ? formatBenchmarkScore(result, primaryMetricName) : undefined;
   const threshold =
     benchmarkConfig?.pass_criteria?.threshold ??
     job.pass_criteria?.threshold ??
@@ -77,7 +77,7 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
         <>
           <Content component="p">
             <strong>
-              {getBenchmarkDisplayName(primaryMetricName)} · {directionLabel}
+              {primaryMetricDisplayName} · {directionLabel}
             </strong>
           </Content>
           <Content component="p" className="pf-v6-u-mt-sm">
@@ -85,7 +85,8 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
           </Content>
           {score != null && threshold != null && (
             <Content component="p" className="pf-v6-u-mt-sm">
-              This benchmark scored {score} against a threshold of {formatThreshold(threshold)}.
+              This benchmark scored {score} against a threshold of{' '}
+              {formatThresholdValue(threshold, primaryMetricName)}.
             </Content>
           )}
         </>

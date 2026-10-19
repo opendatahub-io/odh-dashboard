@@ -23,6 +23,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: 'minio-connection',
     labels: ['production', 'shared-label'],
     collection: 'analytics',
+    properties: {},
   },
   {
     name: 'raw-documents',
@@ -33,6 +34,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: ['source-docs', 'shared-label'],
     collection: 'guidelines',
+    properties: {},
   },
   {
     name: 'embeddings',
@@ -43,6 +45,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: ['production'],
     collection: 'analytics',
+    properties: {},
   },
 ];
 
@@ -70,14 +73,15 @@ describe('ManageLabelsModal', () => {
     expect(screen.getByText('Manage labels')).toBeTruthy();
     expect(
       screen.getByText(
-        'Create and delete labels to manage how assets are organized across this project.',
+        'View and manage this project’s labels. Optionally use labels to organize and filter your data assets.',
       ),
     ).toBeTruthy();
   });
 
-  it('should render info alert', () => {
+  it('should not show an informational warning for label deletion', () => {
     renderModal();
-    expect(screen.getByText('Changes affect all project assets')).toBeTruthy();
+
+    expect(screen.queryByTestId('manage-labels-delete-warning')).not.toBeInTheDocument();
   });
 
   it('should render all labels with outline variant', () => {
@@ -116,6 +120,52 @@ describe('ManageLabelsModal', () => {
     expect(screen.getByTestId('label-row-production')).toBeTruthy();
     expect(screen.queryByTestId('label-row-source-docs')).toBeNull();
     expect(screen.queryByTestId('label-row-shared-label')).toBeNull();
+  });
+
+  it('should show the creation empty state when there are no labels', () => {
+    renderModal({ labels: [], assets: [] });
+
+    expect(screen.getByTestId('labels-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No labels yet')).toBeInTheDocument();
+    expect(screen.queryByTestId('label-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('labels-table')).not.toBeInTheDocument();
+  });
+
+  it('should keep the create flow available from the creation empty state', () => {
+    renderModal({ labels: [], assets: [] });
+
+    fireEvent.click(screen.getByTestId('create-label-button'));
+
+    expect(screen.queryByTestId('labels-empty-state')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('label-filter')).not.toBeInTheDocument();
+    expect(screen.getByTestId('labels-table')).toBeInTheDocument();
+    expect(screen.getByTestId('create-label-row')).toBeInTheDocument();
+  });
+
+  it('should clear a stale filter before creating the first label', () => {
+    const { rerender } = renderModal({ labels: ['old'], assets: [] });
+    const filter = screen.getByTestId('label-filter');
+    fireEvent.change(filter.querySelector('input')!, { target: { value: 'old' } });
+
+    rerender(<ManageLabelsModal {...defaultProps} labels={[]} assets={[]} />);
+    fireEvent.click(screen.getByTestId('create-label-button'));
+    rerender(<ManageLabelsModal {...defaultProps} labels={['new-label']} assets={[]} />);
+
+    expect(screen.getByTestId('label-row-new-label')).toBeInTheDocument();
+  });
+
+  it('should show a table no-results empty state when filtering finds no labels', () => {
+    renderModal();
+    const filter = screen.getByTestId('label-filter');
+    fireEvent.change(filter.querySelector('input')!, { target: { value: 'missing' } });
+
+    expect(screen.getByTestId('labels-no-results-state')).toBeInTheDocument();
+    expect(screen.getByText('No results found')).toBeInTheDocument();
+    expect(screen.getByTestId('label-filter')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Label' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('clear-label-filters'));
+    expect(screen.getByTestId('label-row-production')).toBeInTheDocument();
   });
 
   it('should show create label row when create button is clicked', () => {

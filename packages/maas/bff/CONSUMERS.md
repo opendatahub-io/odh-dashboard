@@ -14,6 +14,7 @@ These paths represent the **standardized inter-BFF API** for all odh-dashboard p
 | :----- | :----------------- | :-------------------------------------------------- |
 | `POST` | `/api/v1/api-keys` | Create API key (including ephemeral keys)           |
 | `GET`  | `/api/v1/models`   | List models, optional headers forwarded to maas-api |
+| `GET`  | `/api/v1/gateway-url` | Get the externally reachable MaaS API base URL   |
 
 ---
 
@@ -34,6 +35,22 @@ Keep this list current: **add a row in the same PR** that introduces or changes 
 - **List models:** Outbound **`X-MaaS-Return-All-Models`** (or other custom headers) may be set by the **caller** or its middleware so responses include richer subscription aggregation. Note: headers are forwarded to the MaaS API **except** `Content-Type` and `Authorization`, which the MaaS BFF manages itself on the upstream call.
 - **Auth:** Each consumer must send credentials the MaaS BFF expects (e.g. token header for `user_token` mode, or Kubeflow identity headers for `internal` mode).
 - **Availability:** Contract routes may return **`503 Service Unavailable`** while the upstream `maas-api` is not yet discoverable (for example MaaS is not installed on the cluster). The BFF process itself stays up and retries discovery in the background.
+
+### `GET /api/v1/gateway-url`
+
+Returns the externally reachable MaaS API base URL discovered from the `maas-default-gateway` tenant. The URL includes the `/maas-api` path and is appropriate for workload-to-MaaS calls such as `/v1/api-keys`.
+
+**Success `200 OK`**
+
+```json
+{
+  "data": {
+    "url": "https://maas.apps.example.com/maas-api"
+  }
+}
+```
+
+Returns **`503 Service Unavailable`** while MaaS gateway discovery has not completed.
 
 ---
 

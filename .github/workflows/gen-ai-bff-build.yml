@@ -1,6 +1,7 @@
 name: Test / Gen AI BFF Tests
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'packages/gen-ai/**'
       - '!LICENSE*'

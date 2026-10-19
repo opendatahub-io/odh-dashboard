@@ -3,7 +3,7 @@
 ## Overview
 
 - Automates ML pipeline optimization for OpenShift AI using Kubeflow Pipelines and AutoGluon; evaluates configurations toward deployable model artifacts.
-- Early-stage package: functional BFF infrastructure; frontend UI is largely placeholder.
+- Generally available in Red Hat OpenShift AI 3.6, with a federated React UI and Go BFF for pipeline and model-registry workflows.
 
 ## Design Intent
 
@@ -13,7 +13,21 @@
   - Federated: BFF exposes API routes only; main ODH Dashboard hosts the UI.
 - **Data flow**: React → BFF (`/api/v1/...`) → Kubeflow Pipelines and/or Kubernetes → JSON to the UI.
 - **Local dev**: Without live endpoints, `cmd/main.go` can use in-memory mocks for Kubernetes and HTTP (KFP) clients.
-- **Module Federation**: Remote name `automl`; host loads `./AutoMLApp`. Main-dashboard extension wiring is still evolving as the feature matures.
+- **Module Federation**: Remote name `automl`; the dashboard exposes AutoML navigation and routes only when the dashboard flag and Data Science Pipelines area are available.
+
+## GA Enablement And Compatibility
+
+AutoML enablement uses independent dashboard UI, module deployment, and pipeline-server gates. The dashboard flag defaults to enabled in 3.6. Existing explicit values are preserved, so a Tech Preview cluster with `automl: true` remains enabled and `automl: false` remains an opt-out.
+
+| Gate | Behavior |
+| --- | --- |
+| `OdhDashboardConfig.spec.dashboardConfig.automl` | Defaults to `true`. An explicit `false` hides AutoML navigation and routes and prevents AutoML API requests from the UI. |
+| AutoML area extension | Requires the `automl` flag and `DataScienceStackComponent.DS_PIPELINES`; both the navigation item and route are gated by this area. |
+| `Dashboard.spec.modules.automl.state` | When the Dashboard is not `Removed`, the operator deploys `automl-ui` if there is no explicit `Disabled` override and `aipipelines` is `Managed` or `Unmanaged`. An explicit module disable takes precedence. |
+| Managed pipeline definitions | AutoML pipeline-server setup enables managed pipelines by default for newly configured servers. A dashboard upgrade does not modify existing DSPAs; an administrator must enable managed pipelines on an existing server if AutoML pipeline definitions are missing. |
+| Module sidecar | Sidecar deployment follows the operator module registry and `aipipelines` availability, independently of the dashboard `automl` UI flag. The UI opt-out suppresses AutoML UI/API requests while the sidecar may remain deployed. |
+
+AutoML GA does not migrate or rewrite existing AutoML configurations or AutoGluon InferenceService resources. The `automl` flag controls dashboard UI availability; Data Science Pipelines and managed pipeline definitions remain service prerequisites. This promotion does not change the shared `autox-core/services` library.
 
 ## Key Concepts
 
@@ -35,11 +49,11 @@
 
 ## Known Issues / Gotchas
 
-- Frontend is largely placeholder; BFF and OpenAPI contract are ahead of UI.
+- Existing DSPAs are not automatically patched during a dashboard upgrade; enable managed AutoML pipelines if an existing server is missing their definitions.
 - Kubeflow mode uses Material UI, not PatternFly v6 — guard PF imports if you share code across modes.
 - Without a live Kubeflow Pipelines endpoint, enable the HTTP client mock or the BFF may fail at startup when mocks are off.
 - Docker deployment is not documented here; use the package `Makefile` targets for local workflows.
-- Contract tests expect `GET /healthcheck` on the BFF.
+- The BFF exposes `/healthcheck` for probes; contract tests expect it on that path.
 
 ## Time Series Dataset Guidance
 

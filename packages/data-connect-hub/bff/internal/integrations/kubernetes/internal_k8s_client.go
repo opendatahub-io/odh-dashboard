@@ -17,6 +17,21 @@ type InternalKubernetesClient struct {
 	SharedClientLogic
 }
 
+func (kc *InternalKubernetesClient) CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User: identity.UserID, Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{Verb: verb, Group: group, Resource: resource, Namespace: namespace},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to check resource access: %w", err)
+	}
+	return response.Status.Allowed, nil
+}
+
 // newInternalKubernetesClient creates a Kubernetes client
 // using the credentials of the running backend to create a single instance of the client
 // If running inside the cluster, it uses the pod's service account.

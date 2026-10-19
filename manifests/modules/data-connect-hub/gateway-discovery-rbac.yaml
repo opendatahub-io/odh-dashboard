@@ -1,0 +1,51 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: odh-dashboard-data-connect-hub-rhoai-gateway-discovery
+rules:
+  - apiGroups: [route.openshift.io]
+    resources: [routes]
+    verbs: [get]
+    resourceNames: [data-science-gateway]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [gateways]
+    verbs: [get]
+    resourceNames: [data-science-gateway]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: odh-dashboard-data-connect-hub-rhoai-gateway-discovery
+subjects:
+  - kind: ServiceAccount
+    name: odh-dashboard-data-connect-hub-ui
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: odh-dashboard-data-connect-hub-rhoai-gateway-discovery
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: odh-dashboard-data-connect-hub-odh-gateway-discovery
+rules:
+  - apiGroups: [route.openshift.io]
+    resources: [routes]
+    verbs: [get]
+    resourceNames: [odh-gateway]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [gateways]
+    verbs: [get]
+    resourceNames: [odh-gateway]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: odh-dashboard-data-connect-hub-odh-gateway-discovery
+subjects:
+  - kind: ServiceAccount
+    name: odh-dashboard-data-connect-hub-ui
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: odh-dashboard-data-connect-hub-odh-gateway-discovery

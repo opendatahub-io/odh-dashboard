@@ -13,7 +13,7 @@ import {
 import type { AutoRAGEvaluationMetricResult, MetricReference } from '~/app/types/autoragPattern';
 import { getCSSVar } from '~/app/utilities/utils';
 import { metricLabel } from '~/app/utilities/metricUtils';
-import { formatRadarLabel, metricValues } from './radarChartUtils';
+import { formatRadarLabel, metricValues, radarAxisNameStyle } from './radarChartUtils';
 import { getRadarChartTheme } from './radarChartTheme';
 
 let echartsRegistered = false;
@@ -61,9 +61,10 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
           name: formatRadarLabel(metricLabel(metric)),
           max: 1,
         })),
-        radius: 70,
-        center: ['50%', '45%'],
-        axisName: { color: labelColor, lineHeight: 20 },
+        radius: 56,
+        center: ['50%', '46%'],
+        axisName: radarAxisNameStyle(labelColor),
+        axisNameGap: 8,
         splitLine: { lineStyle: { color: splitLineColor } },
         splitArea: { show: false },
         axisLine: { lineStyle: { color: splitLineColor } },
@@ -117,8 +118,8 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
     <Charts
       theme={theme}
       nodeSelector="html"
-      height={320}
-      width={600}
+      height={360}
+      width={640}
       option={option}
       data-testid="comparison-radar-chart"
     />

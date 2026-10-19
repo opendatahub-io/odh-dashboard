@@ -6,6 +6,7 @@ export type ManageSourceFormData = {
     sourceType: CatalogSourceType;
     accessToken: string;
     organization: string;
+    tokenModified: boolean;
     yamlContent: string;
     allowedModels: string;
     excludedModels: string;

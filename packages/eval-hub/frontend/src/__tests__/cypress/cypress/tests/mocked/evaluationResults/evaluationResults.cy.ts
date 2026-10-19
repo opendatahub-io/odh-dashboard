@@ -3,6 +3,7 @@ import type { Namespace } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import {
+  mockEvaluationJob,
   mockSingleEvaluationJob,
   mockCollectionEvaluationJob,
 } from '~/__mocks__/mockEvaluationJob';
@@ -111,7 +112,7 @@ describe('Evaluation Results Page - Single Benchmark', () => {
 
 describe('Evaluation Results Page - Collection', () => {
   const collectionJob = mockCollectionEvaluationJob();
-  collectionJob.status.benchmarks = collectionJob.benchmarks.map((benchmark, index) => ({
+  collectionJob.status.benchmarks = collectionJob.benchmarks!.map((benchmark, index) => ({
     id: benchmark.id,
     // eslint-disable-next-line camelcase
     benchmark_index: index,
@@ -189,5 +190,38 @@ describe('Evaluation Results Page - Collection', () => {
     evaluationResultsPage.findDownloadLogsButton().click();
     cy.wait('@benchmarkLogs').its('request.query.tail_lines').should('eq', '-1');
     cy.findByText('Log download truncated').should('be.visible');
+  });
+});
+
+describe('Evaluation Results Page - Non-percentage primary metric', () => {
+  const guidellmJob = mockEvaluationJob({
+    id: 'guidellm-constant-job',
+    name: 'GuideLLM constant',
+    benchmarkIds: ['constant'],
+    providerId: 'guidellm',
+    score: 41.377,
+    threshold: 10,
+    benchmarkResults: [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        metrics: { output_tokens_per_second: 41.377 },
+        test: { primary_score: 41.377, threshold: 10, pass: true },
+      },
+    ],
+  });
+  guidellmJob.benchmarks![0].primary_score = {
+    metric: 'output_tokens_per_second',
+    lower_is_better: false,
+  };
+
+  beforeEach(() => {
+    initIntercepts({ job: guidellmJob });
+  });
+
+  it('should display the result and threshold with the metric unit', () => {
+    evaluationResultsPage.visit(NAMESPACE, guidellmJob.resource.id);
+    evaluationResultsPage.findScoreValue().should('have.text', '41.38 output tokens/s');
+    evaluationResultsPage.findBenchmarkDetailsInfo().should('contain.text', '10 output tokens/s');
   });
 });

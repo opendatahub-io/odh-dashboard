@@ -1,27 +1,7 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { clusterSettings, telemetrySettings } from '../../../../pages/clusterSettings';
-import { isRHOAI } from '../../../../utils/oc_commands/applications';
-import { retryableBefore } from '../../../../utils/retryableHooks';
 
 describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () => {
-  let skipTest = false;
-
-  retryableBefore(() => {
-    cy.step('Check if the operator is RHOAI');
-    isRHOAI().then((rhoai) => {
-      if (!rhoai) {
-        cy.log('ODH detected, skipping RHOAI-specific test.');
-        skipTest = true;
-      }
-    });
-  });
-
-  beforeEach(function skipIfNotRHOAI() {
-    if (skipTest) {
-      this.skip();
-    }
-  });
-
   it(
     'Verify Usage Data Collection can be Enabled/Disabled',
     {

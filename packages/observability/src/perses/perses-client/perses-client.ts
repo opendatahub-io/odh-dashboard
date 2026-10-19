@@ -23,16 +23,19 @@ export const PERSES_PROXY_BASE_PATH = '/perses/api';
 
 export const fetchPersesDashboardsMetadata = (
   signal?: AbortSignal,
+  basePath: string = PERSES_PROXY_BASE_PATH,
 ): Promise<DashboardResource[]> => {
   const listDashboardsMetadata = '/api/v1/dashboards';
-  const persesURL = `${PERSES_PROXY_BASE_PATH}${listDashboardsMetadata}`;
+  const persesURL = `${basePath}${listDashboardsMetadata}`;
 
   return odhPersesFetchJson<DashboardResource[]>(persesURL, signal);
 };
 
-export const fetchPersesProjects = (): Promise<ProjectResource[]> => {
+export const fetchPersesProjects = (
+  basePath: string = PERSES_PROXY_BASE_PATH,
+): Promise<ProjectResource[]> => {
   const listProjectURL = '/api/v1/projects';
-  const persesURL = `${PERSES_PROXY_BASE_PATH}${listProjectURL}`;
+  const persesURL = `${basePath}${listProjectURL}`;
 
   return odhPersesFetchJson<ProjectResource[]>(persesURL);
 };
@@ -50,11 +53,12 @@ export const fetchPersesDashboard = async (
   project: string,
   dashboardName: string,
   signal?: AbortSignal,
+  basePath: string = PERSES_PROXY_BASE_PATH,
 ): Promise<DashboardResource> => {
   const getDashboardURL = `/api/v1/projects/${encodeURIComponent(
     project,
   )}/dashboards/${encodeURIComponent(dashboardName)}`;
-  const persesURL = `${PERSES_PROXY_BASE_PATH}${getDashboardURL}`;
+  const persesURL = `${basePath}${getDashboardURL}`;
 
   return odhPersesFetchJson<DashboardResource>(persesURL, signal);
 };

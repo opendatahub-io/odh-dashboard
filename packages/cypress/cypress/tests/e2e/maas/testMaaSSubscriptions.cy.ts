@@ -219,12 +219,12 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 3: Advanced settings');
-      // Verify MaaS checkbox is unchecked by default
-      maasWizardField.findSaveAsMaaSCheckbox().should('exist').should('not.be.checked');
+      // Project members is the default audience.
+      maasWizardField.findProjectMembersRadio().should('exist').should('be.checked');
 
-      // Check the MaaS checkbox
-      maasWizardField.findSaveAsMaaSCheckbox().click();
-      maasWizardField.findSaveAsMaaSCheckbox().should('be.checked');
+      // Select subscribed users.
+      maasWizardField.findSubscribedUsersRadio().click();
+      maasWizardField.findSubscribedUsersRadio().should('be.checked');
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 4: Review and submit');
@@ -451,10 +451,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .type(`Cypress test: API key for ${subscriptionName}`);
       createApiKeyModal.findSubscriptionToggle().click();
       createApiKeyModal.findSubscriptionOption(subscriptionName).click();
-      createApiKeyModal.findExpirationToggle().click();
-      createApiKeyModal.findExpirationOption('custom').click();
-      createApiKeyModal.findCustomDaysInput().should('exist');
-      createApiKeyModal.findCustomDaysInput().type('1');
+      createApiKeyModal.setAfterDays(1);
       createApiKeyModal.findSubmitButton().should('be.enabled');
       createApiKeyModal.findSubmitButton().click();
 
@@ -464,6 +461,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
       getClipboardContent(CLIPBOARD_WRITE_TEXT_STUB_ALIAS).then((apiKeys: string[]) => {
         expect(apiKeys).to.have.length.at.least(1);
+        copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
         copyApiKeyModal.findCloseButton().click();
 
         cy.step('Verify the model is accessible to the user');

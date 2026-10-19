@@ -5,6 +5,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  ExpandableSection,
   Flex,
   FlexItem,
   Popover,
@@ -20,6 +21,9 @@ type ResourceNameTooltipProps = {
   children: React.ReactNode;
   wrap?: boolean;
   onShowPopover?: () => void;
+  description?: string;
+  descriptionMaxLines?: number;
+  withFocusTrap?: boolean;
 };
 
 const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
@@ -27,6 +31,9 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
   resource,
   wrap = true,
   onShowPopover,
+  description,
+  descriptionMaxLines = 3,
+  withFocusTrap,
 }) => (
   <div style={{ display: wrap ? 'block' : 'inline-flex' }}>
     <Flex
@@ -38,6 +45,9 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
       {resource.metadata?.name && (
         <Popover
           position="right"
+          aria-label="Resource name and type"
+          data-resource-name-popover
+          withFocusTrap={withFocusTrap}
           onShow={(): void => {
             if (onShowPopover) {
               onShowPopover();
@@ -69,6 +79,21 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
                       {resource.kind}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+                  {description && (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Resource description</DescriptionListTerm>
+                      <DescriptionListDescription data-testid="resource-description-text">
+                        <ExpandableSection
+                          variant="truncate"
+                          truncateMaxLines={descriptionMaxLines}
+                          toggleTextCollapsed="Show more"
+                          toggleTextExpanded="Show less"
+                        >
+                          {description}
+                        </ExpandableSection>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  )}
                 </DescriptionList>
               </StackItem>
             </Stack>

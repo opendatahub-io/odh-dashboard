@@ -1,9 +1,9 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import { EventKind } from '#~/k8sTypes';
 import { EventModel } from '#~/api/models';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '#~/types';
-import { groupVersionKind } from '#~/api/k8sUtils';
 
 export const getNotebookEvents = async (
   namespace: string,

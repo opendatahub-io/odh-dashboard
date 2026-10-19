@@ -1,24 +1,22 @@
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { useFetchS3File } from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
-import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/mutations';
+import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/useCreateIndexingPipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
-import { fetchS3File, useManagedPipelinesQuery } from '~/app/hooks/queries';
+import { useManagedPipelinesQuery } from '~/app/hooks/useManagedPipelinesQuery';
 import { useTreeViewData } from '~/app/topology/tree-view';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import {
-  downloadBlob,
-  isRunInTerminalState,
-  normalizePipelineRunState,
-  sanitizeFilename,
-} from '~/app/utilities/utils';
+import { downloadBlob, normalizePipelineRunState, sanitizeFilename } from '~/app/utilities/utils';
 import { computePatternRankMap } from '~/app/utilities/metricUtils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
+import { resolveDatabaseSecretName, resolveMaaSSecretName } from '~/app/utilities/responses';
 import {
   fireAutoragNotebookDownloaded,
   fireAutoragPatternDetailsViewed,
@@ -36,13 +34,17 @@ import './AutoragResults.scss';
 
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
 
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === 'AbortError';
+
 type AutoragResultsProps = {
   onTryPattern?: (patternName: string, source: PlaygroundOpenedSource) => void;
   onViewCode?: (patternName: string, source: ViewCodeEntrySource) => void;
 };
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
-  const { namespace } = useParams<{ namespace: string }>();
+  const { namespace, runId: routeRunId } = useParams<{ namespace: string; runId: string }>();
+  const fetchS3File = useFetchS3File();
   const navigate = useNavigate();
   const notification = useNotification();
   const {
@@ -132,7 +134,13 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     return transformResult.status === 'ok' ? stageMapNodes : fallbackNodes;
   }, [useStageMap, stageMapNodes, fallbackNodes]);
 
-  const treeViewData = useTreeViewData(patterns, treeSourceNodes, bestPatternKey);
+  const treeViewData = useTreeViewData(
+    patterns,
+    treeSourceNodes,
+    bestPatternKey,
+    undefined,
+    optimizationMetric,
+  );
 
   const runIsTerminal = isRunInTerminalState(runState);
   const stageMapPublished = isTaskSucceeded(pipelineRun);
@@ -218,6 +226,22 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     patternName: string;
     message: string;
   } | null>(null);
+  const downloadGeneration = React.useRef(0);
+  const activeDownloadControllers = React.useRef(new Set<AbortController>());
+
+  React.useLayoutEffect(() => {
+    const controllers = activeDownloadControllers.current;
+    downloadGeneration.current += 1;
+    controllers.forEach((controller) => controller.abort());
+    controllers.clear();
+    setDownloadError(null);
+
+    return () => {
+      downloadGeneration.current += 1;
+      controllers.forEach((controller) => controller.abort());
+      controllers.clear();
+    };
+  }, [namespace, routeRunId]);
 
   const handleViewDetails = React.useCallback((patternKey: string) => {
     setSelectedPatternKey(patternKey);
@@ -302,30 +326,47 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         inference: 'inference.ipynb',
       };
       const notebookKey = `${ragPatternsBasePath}/${patternName}/${notebookFilenames[notebookType]}`;
+      const controller = new AbortController();
+      const requestGeneration = downloadGeneration.current;
+      activeDownloadControllers.current.add(controller);
 
       try {
-        const notebook = await fetchS3File(namespace, notebookKey);
+        const notebook = await fetchS3File(namespace, notebookKey, {
+          signal: controller.signal,
+        });
+        if (requestGeneration !== downloadGeneration.current || controller.signal.aborted) {
+          return;
+        }
         const displayName = sanitizeFilename(pipelineRun?.display_name || 'pipeline');
         const safePatternName = sanitizeFilename(patternName);
         const filename = `${displayName}_${safePatternName}_${notebookType}_notebook.ipynb`;
         downloadBlob(notebook, filename);
         fireAutoragNotebookDownloaded(notebookType);
       } catch (error) {
+        if (
+          isAbortError(error) ||
+          requestGeneration !== downloadGeneration.current ||
+          controller.signal.aborted
+        ) {
+          return;
+        }
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         setDownloadError({
           patternName,
           message: `Failed to download ${notebookType} notebook: ${errorMessage}`,
         });
+      } finally {
+        activeDownloadControllers.current.delete(controller);
       }
     },
-    [namespace, ragPatternsBasePath, pipelineRun?.display_name],
+    [fetchS3File, namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
   const runIndexingHandler = indexingPipelineAvailable ? handleOpenRunIndexing : undefined;
 
   return (
     <>
-      <Stack hasGutter>
+      <Stack hasGutter className="autorag-results">
         {downloadError && (
           <StackItem>
             <Alert
@@ -384,6 +425,8 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             onPatternChange={(index) => setSelectedPatternKey(patternKeys[index] ?? null)}
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}
+            databaseSecretName={resolveDatabaseSecretName(parameters)}
+            maasSecretName={resolveMaaSSecretName(parameters)}
             onSaveNotebook={handleSaveNotebook}
             onTryPattern={
               onTryPattern

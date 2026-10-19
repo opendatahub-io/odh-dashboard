@@ -14,6 +14,7 @@ import type {
   ModelOverviewItem,
 } from '~/app/types/subscriptions';
 import { buildOverviewRows } from '~/app/utilities/buildOverviewRows';
+import { SYSTEM_AUTHENTICATED_GROUP } from '~/app/types/subscriptions';
 
 type MaaSGovernanceContextType = {
   subscriptions: MaaSSubscription[];
@@ -78,9 +79,17 @@ export const MaaSGovernanceProvider: React.FC<MaaSGovernanceProviderProps> = ({ 
     [],
     { refreshRate: POLL_INTERVAL },
   );
-  const [groups, groupsLoaded, groupsError, refreshGroups] = useFetchState(groupsCallback, [], {
+  const [baseGroups, groupsLoaded, groupsError, refreshGroups] = useFetchState(groupsCallback, [], {
     refreshRate: POLL_INTERVAL,
   });
+
+  const groups = React.useMemo(
+    () =>
+      baseGroups.includes(SYSTEM_AUTHENTICATED_GROUP)
+        ? baseGroups
+        : [SYSTEM_AUTHENTICATED_GROUP, ...baseGroups],
+    [baseGroups],
+  );
 
   const overviewLoaded = modelRefsLoaded && subscriptionsLoaded && policiesLoaded;
   const loaded = overviewLoaded && groupsLoaded;

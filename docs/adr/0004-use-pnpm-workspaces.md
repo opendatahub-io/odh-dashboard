@@ -24,16 +24,21 @@ Use **pnpm 11.22.0** for the first-party monorepo workspace.
 - Run local development, tests, builds, CI, release automation, and first-party container builds with pnpm.
 - Keep Turbo as the task orchestrator; pnpm replaces npm as the package manager, not Turbo.
 - Do not depend on Corepack being available. Developer and CI setup must install the repository-pinned pnpm version explicitly before running `pnpm install`.
-- Do not create package-local `package-lock.json` files in first-party workspace packages.
+- Do not create package-local `package-lock.json` files in first-party workspace packages. CI rejects npm lockfiles outside the allowlist below.
 
 ### Upstream subtree exceptions
 
-The following independently maintained upstream frontends are outside the pnpm workspace and intentionally continue to use npm and their checked-in upstream lockfiles:
+These independently maintained upstream subtrees are outside the pnpm workspace and intentionally retain checked-in npm lockfiles. Their lockfiles are allowlisted by the CI policy:
 
-- `packages/model-registry/upstream/frontend`
-- `packages/notebooks/upstream/frontend`
+- `packages/model-registry/upstream/package-lock.json`
+- `packages/model-registry/upstream/frontend/package-lock.json`
+- `packages/notebooks/upstream/workspaces/frontend/package-lock.json`
 
 Commands that execute inside those directories must follow the upstream project. Wrapper scripts and automation owned by this repository use pnpm until they enter an upstream subtree.
+
+### Hermetic pnpm bootstrap exception
+
+`prefetch/pnpm/package-lock.json` is a separate CI-allowlisted npm lockfile, not an upstream subtree exception. It pins the pnpm CLI as an npm dependency so Hermeto can prefetch it for hermetic container builds. This bootstrap package is outside the pnpm workspace; it does not introduce npm lockfiles into first-party workspace packages. See [Workspace Dockerfiles](../workspace-dockerfiles.md) for the bootstrap and prefetch configuration.
 
 ### Temporary hoisting compatibility
 
@@ -82,7 +87,7 @@ Rejected because pnpm met the workspace, performance, lockfile, CI, and containe
 
 ### Mixed package managers in the first-party workspace
 
-Rejected because multiple first-party lockfiles and install paths would reduce reproducibility and make CI and local behavior diverge. The only exceptions are vendored upstream frontends that remain outside the workspace.
+Rejected because multiple first-party lockfiles and install paths would reduce reproducibility and make CI and local behavior diverge. The exceptions are vendored upstream subtrees and the hermetic pnpm bootstrap package, all outside the workspace.
 
 ## References
 

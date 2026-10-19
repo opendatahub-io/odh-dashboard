@@ -1,13 +1,15 @@
-import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
+import {
+  applyK8sAPIOptions,
+  type K8sAPIOptions,
+  type K8sWatchResult,
+} from '@odh-dashboard/k8s-core';
+import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import {
   k8sCreateResource,
   k8sPatchResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
-import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
-import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
 
 export const createLLMInferenceService = (
@@ -82,7 +84,7 @@ export const useWatchLLMInferenceService = (
   namespace: string,
   opts?: K8sAPIOptions,
   labelSelectors?: { [key: string]: string },
-): CustomWatchK8sResult<LLMInferenceServiceKind[]> => {
+): K8sWatchResult<LLMInferenceServiceKind[]> => {
   return useK8sWatchResourceList<LLMInferenceServiceKind[]>(
     {
       isList: true,

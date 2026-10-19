@@ -1,14 +1,9 @@
 /**
- * Temporary adapter for dashboard Cypress mock module-federation servers.
+ * Static server orchestration for dashboard Cypress mock module federation.
  *
- * The pnpm workspace includes nested module frontends and distributions that were not all part
- * of the previous Turbo workspace graph. Running the generic cypress:server tasks across that
- * expanded graph invokes scripts with different contracts, including standalone servers and BFF
- * health checks. Dashboard mock CI only needs the prebuilt public-cypress assets served on each
- * module's configured federation port.
- *
- * Remove this helper after the Cypress build, static-server, and readiness tasks have distinct
- * names and the root Turbo command can target only packages applicable to dashboard mock CI.
+ * Start one server per participating remote from prebuilt public-cypress assets.
+ * Standalone UI and BFF workspaces expose similarly named Cypress scripts but are not
+ * dashboard remotes. Build/dev selection uses the same discovery in run-mock-federation-task.js.
  *
  * Usage (from frontend/):
  *   node ../scripts/cypress/mock-federation-servers.js start
@@ -168,7 +163,15 @@ const runStart = (servers, root) => {
     );
     const child = spawn(
       serve.command,
-      [...serve.argsPrefix, server.publicCypressDir, '-p', String(server.port), '-s', '-L'],
+      [
+        ...serve.argsPrefix,
+        server.publicCypressDir,
+        '-p',
+        String(server.port),
+        '-s',
+        '-L',
+        '--no-port-switching',
+      ],
       { stdio: ['ignore', 'pipe', 'pipe'] },
     );
     child.on('error', (error) => {

@@ -414,6 +414,15 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "invalid_request_body",
 		},
 		{
+			name:           "legacy database secret field in body",
+			namespace:      ns,
+			body:           `{"display_name":"x","vector_db_secret_name":"vector-db"}`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
 			name:           "oversized body",
 			namespace:      ns,
 			body:           `{"display_name":"` + strings.Repeat("x", 10<<20) + `"}`,
@@ -496,7 +505,7 @@ func TestCreatePipelineRunHandlerReturnsModelOverlapValidationError(t *testing.T
 	repo.On("CreateRun", mock.Anything, "test-ns", mock.AnythingOfType("models.CreateAutoRAGRunRequest")).
 		Return(nil, repositories.NewValidationError(`model "shared-model" cannot be selected in both embedding_models and generation_models`))
 
-	body := `{"display_name":"overlapping-model-run","test_data_secret_name":"secret","test_data_bucket_name":"bucket","test_data_key":"eval.json","input_data_secret_name":"secret","input_data_bucket_name":"bucket","input_data_keys":["docs"],"maas_secret_name":"maas","vector_db_secret_name":"vector-db","embedding_models":["shared-model"],"generation_models":["shared-model"]}`
+	body := `{"display_name":"overlapping-model-run","test_data_secret_name":"secret","test_data_bucket_name":"bucket","test_data_key":"eval.json","input_data_secret_name":"secret","input_data_bucket_name":"bucket","input_data_keys":["docs"],"maas_secret_name":"maas","db_secret_name":"vector-db","embedding_models":["shared-model"],"generation_models":["shared-model"]}`
 	req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", "test-ns", body)
 	rr := httptest.NewRecorder()
 
@@ -825,12 +834,108 @@ func TestEnableManagedPipelinesHandler(t *testing.T) {
 	}
 }
 
+// ---------- PipelineServerStatusHandler ----------
+
+func TestPipelineServerStatusHandler(t *testing.T) {
+	ns := "test-ns"
+
+	tests := []struct {
+		name           string
+		namespace      string
+		repoResult     *pipelines.DSPAStatus
+		repoErr        error
+		wantStatusCode int
+		wantBodySubstr string
+	}{
+		{
+			name:      "ready",
+			namespace: ns,
+			repoResult: &pipelines.DSPAStatus{
+				Status:   pipelines.DSPAStatusReady,
+				DSPAName: "dspa",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"status": "ready"`,
+		},
+		{
+			name:      "starting",
+			namespace: ns,
+			repoResult: &pipelines.DSPAStatus{
+				Status:   pipelines.DSPAStatusStarting,
+				DSPAName: "dspa",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"status": "starting"`,
+		},
+		{
+			name:           "not-found",
+			namespace:      ns,
+			repoResult:     &pipelines.DSPAStatus{Status: pipelines.DSPAStatusNotFound},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"status": "not-found"`,
+		},
+		{
+			name:           "invalid DSPA conditions",
+			namespace:      ns,
+			repoErr:        pipelines.ErrInvalidDSPAConditions,
+			wantStatusCode: http.StatusInternalServerError,
+			wantBodySubstr: `"code": "500"`,
+		},
+		{
+			name:           "forbidden",
+			namespace:      ns,
+			repoErr:        kubernetes.ErrForbidden,
+			wantStatusCode: http.StatusForbidden,
+			wantBodySubstr: `"code": "403"`,
+		},
+		{
+			name:           "server error",
+			namespace:      ns,
+			repoErr:        errors.New("k8s list failed"),
+			wantStatusCode: http.StatusInternalServerError,
+			wantBodySubstr: `"code": "500"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, repo := newTestPipelinesHandler()
+
+			repo.On("GetPipelineServerStatus", mock.Anything, tt.namespace).
+				Return(tt.repoResult, tt.repoErr)
+
+			req := pipelineRequestWithNamespace(http.MethodGet, "/api/v1/pipeline-server/status", tt.namespace, "")
+			rr := httptest.NewRecorder()
+
+			h.PipelineServerStatusHandler(rr, req, nil)
+
+			assert.Equal(t, tt.wantStatusCode, rr.Code)
+			if tt.wantBodySubstr != "" {
+				assert.Contains(t, rr.Body.String(), tt.wantBodySubstr)
+			}
+			repo.AssertExpectations(t)
+		})
+	}
+
+	t.Run("missing namespace", func(t *testing.T) {
+		h, repo := newTestPipelinesHandler()
+
+		req := pipelineRequestWithNamespace(http.MethodGet, "/api/v1/pipeline-server/status", "", "")
+		rr := httptest.NewRecorder()
+
+		h.PipelineServerStatusHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		repo.AssertNotCalled(t, "GetPipelineServerStatus", mock.Anything, mock.Anything)
+	})
+}
+
 // ---------- CreateIndexingPipelineRunHandler ----------
 
 func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 	ns := "test-ns"
 
-	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","vector_db_secret_name":"vector-db"}}`
+	validBody := `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","db_secret_name":"vector-db"}}`
 
 	tests := []struct {
 		name           string

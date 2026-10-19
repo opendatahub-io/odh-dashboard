@@ -4,6 +4,7 @@ import type {
   ModelServingDeleteModal,
   ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
+import type { RuntimeImageInstallTargetExtension } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
 import type {
   WizardFieldExtension,
   WizardFieldApplyExtension,
@@ -14,6 +15,7 @@ import type {
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploymentTransformExtension,
   WizardFieldDeploymentFunctionsExtension,
+  WizardTrackingPropertiesExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
@@ -157,6 +159,18 @@ const gatewaySelectExtractorExtension: WizardFieldExtractorExtension<
       import('../src/wizardFields/gateway/gatewaySelectApplyExtract').then(
         (m) => m.extractGatewaySelectData,
       ),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
+  },
+};
+
+const llmdTrackingPropertiesExtension: WizardTrackingPropertiesExtension<LLMdDeployment> = {
+  type: 'model-serving.deployment/tracking-properties',
+  properties: {
+    platform: LLMD_SERVING_ID,
+    getProperties: () =>
+      import('../src/tracking/llmdWizardTracking').then((m) => m.getLlmdWizardTrackingProperties),
   },
   flags: {
     required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
@@ -408,10 +422,12 @@ const extensions: (
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
+  | WizardTrackingPropertiesExtension<LLMdDeployment>
   | TopologyConfigsExtensionsType
   | HrefNavItemExtension
   | RouteExtension
   | TabRouteTabExtension
+  | RuntimeImageInstallTargetExtension
 )[] = [
   {
     type: 'app.area',
@@ -465,7 +481,7 @@ const extensions: (
         import('../src/deployments/model').then((m) => m.extractEnvironmentVariables),
       extractHuggingFaceApiKey: () =>
         import('../src/hfTokenSecret').then(
-          (m) => (deployment) => m.extractHuggingFaceApiKeyFromEnv(deployment.model),
+          (m) => (deployment) => m.extractHuggingFaceApiKey(deployment.model),
         ),
       extractModelAvailabilityData: () =>
         import('../src/wizardFields/modelAvailability').then((m) => m.extractModelAvailabilityData),
@@ -608,6 +624,7 @@ const extensions: (
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,
+  llmdTrackingPropertiesExtension,
   deploymentMethodExtractorExtensionLllmdOnly,
   deploymentMethodExtractorExtensionvLLMOnMaaS,
   {
@@ -658,6 +675,25 @@ const extensions: (
         from: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
         to: `${ROUTING_CONFIGS_TAB_PATH}/*`,
       }),
+    },
+  },
+  {
+    type: 'model-serving.runtime-image/install-target',
+    flags: {
+      required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
+    },
+    properties: {
+      id: 'llmInferenceServiceConfig',
+      label: 'LLM accelerator configuration',
+      description:
+        'Install as an LLMInferenceServiceConfig for LLM inference service deployments. Compatible with Models as a Service.',
+      selectedState: {
+        listName: 'LLM accelerator configurations',
+        description: 'and the LLM inference service deployment wizard.',
+      },
+      installTargetName: 'LLM accelerator configuration',
+      configureStepLabel: 'Configure accelerator',
+      component: () => import('../src/runtimeImageInstall/LlmAcceleratorInstallTarget'),
     },
   },
   {

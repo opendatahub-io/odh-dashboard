@@ -1,4 +1,34 @@
-import { QUOTA_USAGE_BORROWING } from '../const';
+import {
+  ADMIN_INFRASTRUCTURE_TABS,
+  getDefaultInfrastructureTab,
+  getVisibleInfrastructureTabs,
+  QUOTA_USAGE_BORROWING,
+  USER_INFRASTRUCTURE_TABS,
+} from '../const';
+
+describe('getDefaultInfrastructureTab', () => {
+  it('should default admin users to Accelerator utilization', () => {
+    expect(getDefaultInfrastructureTab(ADMIN_INFRASTRUCTURE_TABS)).toBe('utilization');
+  });
+
+  it('should default non-admin users to Workloads', () => {
+    expect(getDefaultInfrastructureTab(USER_INFRASTRUCTURE_TABS)).toBe('workloads');
+  });
+});
+
+describe('getVisibleInfrastructureTabs', () => {
+  it('should return all Infrastructure tabs for users with admin tab access', () => {
+    expect(getVisibleInfrastructureTabs(true).map((tab) => tab.id)).toEqual([
+      'utilization',
+      'quota-usage',
+      'workloads',
+    ]);
+  });
+
+  it('should return only the Workloads tab for users without admin tab access', () => {
+    expect(getVisibleInfrastructureTabs(false).map((tab) => tab.id)).toEqual(['workloads']);
+  });
+});
 
 describe('QUOTA_USAGE_BORROWING', () => {
   describe('cohortCalloutPrefix', () => {

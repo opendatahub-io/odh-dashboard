@@ -4,10 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { useNamespaceSelector } from 'mod-arch-core';
-import MainPage from '~/app/pages/MainPage';
+import AppRoutes from '~/app/AppRoutes';
 
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn(),
+  asEnumMember: (value: string | undefined) => value,
+  DeploymentMode: { Federated: 'federated' },
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
@@ -71,6 +73,29 @@ jest.mock('~/app/components/ApplicationsPage', () => {
   return { __esModule: true, default: ApplicationsPage };
 });
 
+const mockConnectionsTab = jest.fn(({ namespace }: { namespace: string }) => (
+  <div data-testid="connections-tab">{namespace}</div>
+));
+
+jest.mock('~/app/pages/ConnectionsTab', () => ({
+  __esModule: true,
+  default: (props: { namespace: string; isActive?: boolean }) => mockConnectionsTab(props),
+}));
+
+const mockConnectionTypesTab = jest.fn(({ namespace }: { namespace: string }) => (
+  <div data-testid="connection-types-tab">{namespace}</div>
+));
+
+jest.mock('~/app/pages/ConnectionTypesTab', () => ({
+  __esModule: true,
+  default: (props: { namespace: string }) => mockConnectionTypesTab(props),
+}));
+
+jest.mock('~/app/pages/ConnectionTypeDetails', () => ({
+  __esModule: true,
+  default: () => <div data-testid="connection-type-details" />,
+}));
+
 const mockUseNamespaceSelector = jest.mocked(useNamespaceSelector);
 const projects = [
   { name: 'project-1', displayName: 'Project 1' },
@@ -86,7 +111,7 @@ const renderPage = (initialEntry: string) =>
   render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route path="/ai-hub/connections/*" element={<MainPage basePath="/ai-hub/connections" />} />
+        <Route path="/ai-hub/connections/*" element={<AppRoutes />} />
       </Routes>
       <LocationDisplay />
     </MemoryRouter>,
@@ -127,6 +152,62 @@ describe('MainPage', () => {
     expect(screen.getByTestId('location').textContent).toBe(
       '/ai-hub/connections/connections?project=project-1',
     );
+  });
+
+  it('should render connection type details from the detail route', () => {
+    renderPage('/ai-hub/connections/connection-types/s3?project=project-1');
+
+    expect(screen.getByTestId('connection-type-details')).toBeTruthy();
+  });
+
+  it('should pass the query-selected project to ConnectionsTab', async () => {
+    renderPage('/ai-hub/connections/connections?project=project-2');
+
+    await waitFor(() => {
+      expect(mockConnectionsTab).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: 'project-2', isActive: true }),
+      );
+    });
+  });
+
+  it('should pass the preferred project to ConnectionsTab when no project is queried', async () => {
+    mockUseNamespaceSelector.mockReturnValue({
+      namespaces: projects,
+      preferredNamespace: projects[1],
+      updatePreferredNamespace,
+      namespacesLoaded: true,
+      namespacesLoadError: undefined,
+      initializationError: undefined,
+      clearStoredNamespace: jest.fn(),
+    });
+
+    renderPage('/ai-hub/connections/connections');
+
+    await waitFor(() => {
+      expect(mockConnectionsTab).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: 'project-2', isActive: true }),
+      );
+    });
+  });
+
+  it('should pass the first project to ConnectionsTab when no project is queried or preferred', async () => {
+    mockUseNamespaceSelector.mockReturnValue({
+      namespaces: projects,
+      preferredNamespace: undefined,
+      updatePreferredNamespace,
+      namespacesLoaded: true,
+      namespacesLoadError: undefined,
+      initializationError: undefined,
+      clearStoredNamespace: jest.fn(),
+    });
+
+    renderPage('/ai-hub/connections/connections');
+
+    await waitFor(() => {
+      expect(mockConnectionsTab).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: 'project-1', isActive: true }),
+      );
+    });
   });
 
   it('should update the project query parameter when a project is selected', async () => {

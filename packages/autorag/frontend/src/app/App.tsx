@@ -1,7 +1,6 @@
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Alert,
   Bullseye,
@@ -14,24 +13,13 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-arch-core';
+import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AppRoutes from '~/app/AppRoutes';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { AppContext } from '~/app/context/AppContext';
-import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import { autoragUIErrorMappings } from '~/app/utilities/autorag.uiErrorMappings';
 
 const App: React.FC = () => {
-  const [queryClient] = React.useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          mutations: {
-            gcTime: Infinity,
-          },
-        },
-      }),
-  );
-
   const {
     configSettings,
     userSettings,
@@ -114,10 +102,6 @@ const App: React.FC = () => {
       </UIErrorHandler>
     </AppContext.Provider>
   );
-
-  if (isStandalone) {
-    return <QueryClientProvider client={queryClient}>{page}</QueryClientProvider>;
-  }
 
   return page;
 };

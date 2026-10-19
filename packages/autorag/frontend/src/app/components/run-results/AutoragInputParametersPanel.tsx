@@ -26,6 +26,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { Link, useParams } from 'react-router';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import type { AutoragRuntimeParameters } from '~/app/types';
 import type { MetricReference } from '~/app/types/autoragPattern';
@@ -39,8 +40,9 @@ import {
   getDetectedLanguageFromPatterns,
   isDetectedLanguageMetadata,
 } from '~/app/utilities/detectedLanguageFromPatterns';
-import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+import { isRunCompleted } from '~/app/utilities/utils';
 import { metricLabel } from '~/app/utilities/metricUtils';
+import { resolveDatabaseSecretName } from '~/app/utilities/responses';
 import './AutoragInputParametersPanel.scss';
 
 /** Keys that are handled by the special "Model configuration" entry. */
@@ -72,7 +74,8 @@ const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'input_data_key', label: 'Selected files and folders' },
   { key: 'input_data_keys', label: 'Selected files and folders' },
   { key: 'vector_io_provider_id', label: 'Vector I/O provider' },
-  { key: 'vector_db_secret_name', label: 'Vector database connection' },
+  { key: 'db_secret_name', label: 'Database connection' },
+  { key: 'vector_db_secret_name', label: 'Database connection' },
   { key: 'test_data_key', label: 'Evaluation dataset' },
   { key: 'detected_language', label: 'Detected languages' },
   { key: 'optimization_metric', label: 'Optimization metric' },
@@ -246,6 +249,11 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
 
   const displayParameters = React.useMemo((): DisplayParameters => {
     const merged: DisplayParameters = { ...parameters };
+    const databaseSecretName = resolveDatabaseSecretName(parameters);
+    if (databaseSecretName) {
+      merged.db_secret_name = databaseSecretName;
+      delete merged.vector_db_secret_name;
+    }
     if (isEmptyValue(merged.detected_language)) {
       const fromPatterns = getDetectedLanguageFromPatterns(patterns);
       if (fromPatterns) {

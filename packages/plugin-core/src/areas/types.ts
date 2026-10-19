@@ -86,6 +86,8 @@ export enum SupportedArea {
   /* Plugins */
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
   PLUGIN_GEN_AI = 'plugin-gen-ai',
+  PLUGIN_AUTOML = 'plugin-automl',
+  PLUGIN_AUTORAG = 'plugin-autorag',
   PLUGIN_NOTEBOOKS = 'plugin-notebooks',
   PLUGIN_DATA_REGISTRY = 'plugin-data-registry',
   PLUGIN_DATA_CONNECT_HUB = 'plugin-data-connect-hub',
@@ -115,6 +117,9 @@ export enum SupportedArea {
   /* MCP Registry */
   MCP_REGISTRY = 'mcp-registry',
 
+  /* Skill Registry */
+  SKILL_REGISTRY = 'skill-registry',
+
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
 
@@ -124,17 +129,14 @@ export enum SupportedArea {
   /* Role Management */
   ROLE_MANAGEMENT = 'role-management',
 
-  /* Connection Test */
-  CONNECTION_TEST = 'connection-test',
-
   /* Model Capabilities */
   MODEL_CAPABILITIES = 'model-capabilities',
 
   /* Guided tour (What's New) — hidden until tour content matches the installed version */
   GUIDED_TOUR = 'guided-tour',
 
-  /* Runtime Catalog */
-  RUNTIME_CATALOG = 'runtime-catalog',
+  /* Unified Project Selector — development-only gate for the shared project-selection foundation */
+  UNIFIED_PROJECT_SELECTOR = 'unified-project-selector',
 }
 
 export type SupportedAreaType = SupportedArea | string;

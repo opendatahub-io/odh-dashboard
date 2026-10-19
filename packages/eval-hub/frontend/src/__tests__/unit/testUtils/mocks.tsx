@@ -1,18 +1,24 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import * as React from 'react';
 
-export const mockApplicationsPageModule = () => ({
+export const mockApplicationsPageModule = ({
+  includeBreadcrumb = false,
+}: { includeBreadcrumb?: boolean } = {}) => ({
   ApplicationsPage: ({
     title,
     description,
+    headerAction,
     headerContent,
+    breadcrumb,
     empty,
     emptyStatePage,
     children,
   }: {
     title: React.ReactNode;
     description: string;
+    headerAction?: React.ReactNode;
     headerContent?: React.ReactNode;
+    breadcrumb?: React.ReactNode;
     empty?: boolean;
     emptyStatePage?: React.ReactNode;
     children?: React.ReactNode;
@@ -20,7 +26,9 @@ export const mockApplicationsPageModule = () => ({
     <div data-testid="applications-page">
       <div data-testid="page-title">{title}</div>
       <div data-testid="page-description">{description}</div>
+      {headerAction && <div data-testid="header-action">{headerAction}</div>}
       {headerContent && <div data-testid="header-content">{headerContent}</div>}
+      {includeBreadcrumb && breadcrumb}
       {empty && emptyStatePage ? <div data-testid="empty-state">{emptyStatePage}</div> : children}
     </div>
   ),

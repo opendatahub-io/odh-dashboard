@@ -112,6 +112,25 @@ export type CreateResponseRequest = {
   guardrail_config?: GuardrailInlineConfig;
   model_source_type?: string;
   subscription?: string;
+  attachments?: DocumentAttachmentPayload[];
+};
+
+export type DocumentAttachmentPayload = {
+  file_id: string;
+  filename: string;
+  text: string;
+};
+
+export type DocumentAttachment = DocumentAttachmentPayload & {
+  content_type: string;
+  size: number;
+};
+
+export type DocumentUploadResponse = {
+  id: string;
+  filename: string;
+  content_type: string;
+  text: string;
 };
 
 export type SimplifiedUsage = {
@@ -407,6 +426,7 @@ export type LlamaStackDistributionModel = {
 
 export type BFFConfig = {
   isCustomLSD: boolean;
+  sandboxesAvailable: boolean;
 };
 
 /** Status of the NemoGuardrails CR */
@@ -619,6 +639,7 @@ export type GenAiAPIs = {
   deleteVectorStoreFile: DeleteVectorStoreFile;
   createVectorStore: CreateVectorStore;
   uploadSource: UploadSource;
+  uploadDocument: UploadDocument;
   getFileUploadStatus: GetFileUploadStatus;
   createResponse: CreateResponse;
   getLSDModels: GetLSDModels;
@@ -647,6 +668,10 @@ export type GenAiAPIs = {
   updateAgentProfile: UpdateAgentProfile;
   deleteAgentProfile: DeleteAgentProfile;
   createAgentProfile: CreateAgentProfile;
+  listAgentDeployments: ListAgentDeployments;
+  createAgentDeployment: CreateAgentDeployment;
+  getAgentDeployment: GetAgentDeployment;
+  deleteAgentDeployment: DeleteAgentDeployment;
 };
 
 export interface SubscriptionInfo {
@@ -702,6 +727,7 @@ type CreateVectorStore = ModArchRestCREATE<VectorStore, CreateVectorStoreRequest
 type DeleteVectorStoreFile = ModArchRestDELETE<string, Record<string, never>>;
 type GetLSDModels = ModArchRestGET<LlamaModel[]>;
 type UploadSource = ModArchRestCREATE<FileUploadJobResponse, FormData>;
+type UploadDocument = ModArchRestCREATE<DocumentUploadResponse, FormData>;
 type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
@@ -748,6 +774,15 @@ type CreateAgentProfile = ModArchRestCREATE<
   import('./agentProfile/types').AgentProfileCreateResponse,
   import('./agentProfile/types').AgentProfileCreateRequest
 >;
+type ListAgentDeployments = ModArchRestGET<
+  import('./agentProfile/types').AgentDeploymentListResponse
+>;
+type CreateAgentDeployment = ModArchRestCREATE<
+  import('./agentProfile/types').AgentDeploymentCreateResponse,
+  import('./agentProfile/types').AgentDeploymentCreateRequest
+>;
+type GetAgentDeployment = ModArchRestGET<import('./agentProfile/types').AgentDeploymentSummary>;
+type DeleteAgentDeployment = ModArchRestDELETE<void, { id: string }>;
 
 export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
 export type ErrorVariant = 'danger' | 'warning';

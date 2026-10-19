@@ -14,6 +14,11 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateVariant,
   Gallery,
   Label,
   MenuToggle,
@@ -31,7 +36,7 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
-import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -41,9 +46,20 @@ import { Collection } from '~/app/types';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
-import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import {
+  evaluationCopySuiteRoute,
+  evaluationCollectionSelectionNavigationState,
+  evaluationCreateRoute,
+  evaluationStartRoute,
+  evaluationsBaseRoute,
+} from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { formatCategory, getCategoryColor } from '~/app/components/benchmarkUtils';
+import { CURATED_COLLECTION_PREREQUISITES } from '~/app/curatedSuiteConfig';
+import {
+  formatCategory,
+  getCategoryColor,
+  getCollectionCategoryValues,
+} from '~/app/components/benchmarkUtils';
 import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
 import { BenchmarkSortOption, benchmarkSortLabels } from '~/app/pages/const';
 
@@ -76,6 +92,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     sortOption,
     setSortOption,
     availableCategories,
+    refresh,
   } = useCollections(namespace ?? '');
 
   const { providers } = useProviders(namespace ?? '');
@@ -113,6 +130,15 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     [navigate, namespace],
   );
 
+  const handleCustomizeCollection = React.useCallback(
+    (collection: Collection) => {
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
+        state: evaluationCollectionSelectionNavigationState,
+      });
+    },
+    [navigate, namespace],
+  );
+
   return (
     <Drawer isExpanded={!!selectedCollection}>
       <DrawerContent
@@ -122,13 +148,19 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             benchmarkDetailsMap={benchmarkDetailsMap}
             onClose={() => setSelectedCollection(undefined)}
             onRunCollection={handleRunCollection}
+            onCustomizeCollection={handleCustomizeCollection}
+            prerequisites={
+              selectedCollection && !selectedCollection.resource.tenant
+                ? CURATED_COLLECTION_PREREQUISITES
+                : undefined
+            }
           />
         }
       >
         <DrawerContentBody>
           <ApplicationsPage
-            title="Select benchmark suite"
-            description="Select a benchmark suite to evaluate your model, agent, or dataset."
+            title="Select collection"
+            description="Select a collection to evaluate your model, agent, or dataset."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -139,11 +171,34 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                     <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
-                <BreadcrumbItem isActive>Select benchmark suite</BreadcrumbItem>
+                <BreadcrumbItem isActive>Select collection</BreadcrumbItem>
               </Breadcrumb>
             }
             loaded={loaded}
             loadError={loadError}
+            loadErrorPage={
+              <PageSection hasBodyWrapper={false} isFilled>
+                <EmptyState
+                  headingLevel="h2"
+                  icon={ExclamationCircleIcon}
+                  status="danger"
+                  titleText="Collections unavailable"
+                  variant={EmptyStateVariant.lg}
+                  data-testid="benchmark-suites-load-error"
+                >
+                  <EmptyStateBody>
+                    We could not load the collections right now. Please try again later.
+                  </EmptyStateBody>
+                  <EmptyStateFooter>
+                    <EmptyStateActions>
+                      <Button variant="primary" onClick={refresh}>
+                        Try again
+                      </Button>
+                    </EmptyStateActions>
+                  </EmptyStateFooter>
+                </EmptyState>
+              </PageSection>
+            }
             empty={false}
           >
             <PageSection hasBodyWrapper={false} isFilled>
@@ -155,7 +210,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                   data-testid="collections-truncation-alert"
                   style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
                 >
-                  This namespace has more benchmark suites than the display limit. Contact your
+                  This namespace has more collections than the display limit. Contact your
                   administrator or use the API directly to access the full list.
                 </Alert>
               )}
@@ -277,16 +332,20 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                   {collections.map((collection) => {
                     const benchmarkCount = collection.benchmarks?.length ?? 0;
                     const isSelected = selectedCollection?.resource.id === collection.resource.id;
+                    const collectionCategory = getCollectionCategoryValues(collection)[0];
+                    const prerequisite = collection.resource.tenant
+                      ? undefined
+                      : CURATED_COLLECTION_PREREQUISITES[collection.resource.id];
                     return (
                       <Card
                         key={collection.resource.id}
                         isSelected={isSelected}
                         data-testid={`collection-card-${collection.resource.id}`}
                       >
-                        {collection.category && (
+                        {collectionCategory && (
                           <CardHeader>
-                            <Label color={getCategoryColor(collection.category)} isCompact>
-                              {formatCategory(collection.category)}
+                            <Label color={getCategoryColor(collectionCategory)} isCompact>
+                              {formatCategory(collectionCategory)}
                             </Label>
                           </CardHeader>
                         )}
@@ -334,10 +393,18 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           <Button
                             variant="secondary"
                             isInline
-                            data-testid="use-benchmark-suite-button"
-                            onClick={() => handleRunCollection(collection)}
+                            data-testid={
+                              prerequisite
+                                ? 'customize-benchmark-suite-button'
+                                : 'use-benchmark-suite-button'
+                            }
+                            onClick={() =>
+                              prerequisite
+                                ? handleCustomizeCollection(collection)
+                                : handleRunCollection(collection)
+                            }
                           >
-                            Select benchmark suite
+                            {prerequisite ? 'Customize' : 'Select collection'}
                           </Button>
                         </CardFooter>
                       </Card>

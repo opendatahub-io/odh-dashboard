@@ -17,6 +17,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: [],
     collection: 'analytics',
+    properties: {},
   },
   {
     name: 'volume1',
@@ -27,6 +28,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: [],
     collection: 'analytics',
+    properties: {},
   },
   {
     name: 'table2',
@@ -37,6 +39,7 @@ const mockAssets: RegistryAsset[] = [
     connectionRef: '',
     labels: [],
     collection: 'default',
+    properties: {},
   },
 ];
 

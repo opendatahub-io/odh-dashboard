@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
-import { Button, Flex, Label } from '@patternfly/react-core';
+import { Button, Flex, Icon, Label } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -8,6 +9,7 @@ import { ExternalModel, ProviderRef } from '~/app/types/external-models';
 import {
   mapAuthMechanismToHumanReadable,
   getProviderRefResource,
+  isProviderRefMissing,
 } from '~/app/pages/external-models/utils';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
@@ -96,10 +98,10 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
             </Button>
           </Td>
           <Td data-testid={`expanded-table-row-auth-mechanism-${row.providerName}`}>
-            {row.provider && mapAuthMechanismToHumanReadable(row.provider.authMechanism)}
+            {row.provider ? mapAuthMechanismToHumanReadable(row.provider.authMechanism) : '-'}
           </Td>
           <Td data-testid={`expanded-table-row-credential-secret-ref-${row.providerName}`}>
-            {row.provider?.credentialSecretRef}
+            {row.provider?.credentialSecretRef ?? '-'}
           </Td>
           <Td>
             <Label
@@ -121,17 +123,26 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
             </Flex>
           </Td>
           <Td data-testid={`expanded-table-row-provider-status-${row.providerName}`}>
-            {row.provider?.phase && (
-              <PhaseLabel
-                phase={row.provider.phase}
-                resourceType={PhaseResourceType.EXTERNAL_PROVIDER}
-                resourceName={row.provider.displayName ?? row.providerName}
-                statusMessage={row.provider.statusMessage}
-                status={row.provider.phase}
-                conditionType={row.provider.conditionType}
-                lastTransitionTime={row.provider.lastTransitionTime}
-                reason={row.provider.reason}
-              />
+            {isProviderRefMissing(row) ? (
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <Icon status="danger">
+                  <ExclamationCircleIcon />
+                </Icon>
+                <span>No provider resource</span>
+              </Flex>
+            ) : (
+              row.provider?.phase && (
+                <PhaseLabel
+                  phase={row.provider.phase}
+                  resourceType={PhaseResourceType.EXTERNAL_PROVIDER}
+                  resourceName={row.provider.displayName ?? row.providerName}
+                  statusMessage={row.provider.statusMessage}
+                  status={row.provider.phase}
+                  conditionType={row.provider.conditionType}
+                  lastTransitionTime={row.provider.lastTransitionTime}
+                  reason={row.provider.reason}
+                />
+              )
             )}
           </Td>
         </Tr>

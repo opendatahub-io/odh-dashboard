@@ -18,6 +18,7 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.POST(constants.APIKeyCreatePath, handlerWithMaasApi(app, CreateAPIKeyHandler))
 	apiRouter.POST(constants.APIKeySearchPath, handlerWithMaasApi(app, SearchAPIKeysHandler))
 	apiRouter.POST(constants.APIKeyBulkRevokePath, handlerWithMaasApi(app, BulkRevokeAPIKeysHandler))
+	apiRouter.GET(constants.APIKeyConfigPath, handlerWithMaasApi(app, GetAPIKeyConfigHandler))
 	apiRouter.GET(constants.APIKeyByIDPath, handlerWithMaasApi(app, GetAPIKeyHandler))
 	apiRouter.DELETE(constants.APIKeyByIDPath, handlerWithMaasApi(app, RevokeAPIKeyHandler))
 	apiRouter.GET(constants.SubscriptionsPassthroughPath, handlerWithMaasApi(app, ListSubscriptionsPassthroughHandler))
@@ -28,6 +29,9 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 // when computing key counts. Counts at or above this value all display as this cap,
 // which is enough signal ("a lot of keys") without fetching unbounded data.
 const subscriptionKeyCountCap = 10
+
+// isMaasAdminCheck is the admin probe used during API key subscription enrichment.
+var isMaasAdminCheck = checkIsMaasAdmin
 
 // ListSubscriptionsPassthroughHandler handles GET /api/v1/subscriptions
 // Proxies to the maas-api /v1/subscriptions endpoint and returns a sanitised list of subscriptions accessible to the authenticated user.
@@ -91,6 +95,24 @@ func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.
 
 	response := Envelope[*models.SubscriptionListItem, None]{
 		Data: item,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// GetAPIKeyConfigHandler handles GET /api/v1/api-keys-config
+// Proxies to maas-api GET /v1/api-keys/config so clients can read max expiration without Tenant CR access.
+func GetAPIKeyConfigHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	config, err := app.repositories.APIKeys.GetAPIKeyConfig(r.Context())
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	response := Envelope[*models.APIKeyConfig, None]{
+		Data: config,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -164,8 +186,12 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 	}
 }
 
-// enrichAPIKeysWithSubscriptionDetails fetches subscription data from the MaaS API
-// and populates SubscriptionDetails on the response with model names per subscription.
+// enrichAPIKeysWithSubscriptionDetails populates SubscriptionDetails for inactive
+// status and row enrichment.
+//
+// Admins: list all MaaSSubscription CRs from Kubernetes so keys on subscriptions
+// the admin cannot open in My Subscriptions still resolve when the CR exists.
+// Non-admins: caller-scoped MaaS API /subscriptions list.
 func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *models.APIKeyListResponse) {
 	subNames := make(map[string]struct{})
 	for _, key := range response.Data {
@@ -178,6 +204,59 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		return
 	}
 
+	isAdmin, err := isMaasAdminCheck(app, r)
+	if err != nil {
+		app.logger.Warn("Failed to check MaaS admin for API key enrichment; skipping subscriptionDetails", "error", err)
+		return
+	}
+
+	if isAdmin {
+		enrichAPIKeysFromK8sSubscriptions(app, r, response, subNames)
+		return
+	}
+	enrichAPIKeysFromMaasSubscriptions(app, r, response, subNames)
+}
+
+func enrichAPIKeysFromK8sSubscriptions(
+	app *App,
+	r *http.Request,
+	response *models.APIKeyListResponse,
+	subNames map[string]struct{},
+) {
+	subscriptions, err := app.repositories.Subscriptions.ListSubscriptions(r.Context())
+	if err != nil {
+		app.logger.Warn("Failed to list K8s subscriptions for API key enrichment", "error", err)
+		return
+	}
+
+	details := make(map[string]models.SubscriptionDetail, len(subNames))
+	for _, sub := range subscriptions {
+		if _, needed := subNames[sub.Name]; !needed {
+			continue
+		}
+		modelNames := make([]string, len(sub.ModelRefs))
+		for i, ref := range sub.ModelRefs {
+			if ref.DisplayName != "" {
+				modelNames[i] = ref.DisplayName
+			} else {
+				modelNames[i] = ref.Name
+			}
+		}
+		displayName := sub.DisplayName
+		if displayName == "" {
+			displayName = sub.Name
+		}
+		details[sub.Name] = models.SubscriptionDetail{DisplayName: displayName, Models: modelNames}
+	}
+	response.SubscriptionDetails = details
+}
+
+func enrichAPIKeysFromMaasSubscriptions(
+	app *App,
+	r *http.Request,
+	response *models.APIKeyListResponse,
+	subNames map[string]struct{},
+) {
 	subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
 	if err != nil {
 		app.logger.Warn("Failed to fetch subscriptions for API key enrichment", "error", err)

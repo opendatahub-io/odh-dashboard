@@ -4,7 +4,6 @@ import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_comm
 import { createCleanProject } from '../../../utils/projectChecker';
 import { retryableBefore, wasSetupPerformed } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { isRHOAI } from '../../../utils/oc_commands/applications';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import {
   waitForFeatureStoreDeleted,
@@ -21,45 +20,22 @@ describe('Feature Store Admin Lifecycle (Create → Verify Ready → Delete)', (
   const uuid = generateTestUUID();
   const projectName = `fs-admin-e2e-${uuid}`;
   let testData: FeatureStoreAdminLifecycleTestData;
-  let skipTest = false;
-
-  const shouldSkip = () => {
-    if (skipTest) {
-      cy.log('Skipping — Feature Store is RHOAI-specific and not available on ODH.');
-      return true;
-    }
-    return false;
-  };
-
   retryableBefore(() => {
     ensureAdminOcSession();
 
-    cy.step('Check if the operator is RHOAI');
-    isRHOAI().then((rhoai) => {
-      if (!rhoai) {
-        skipTest = true;
-      }
-    });
-
-    cy.then(() => {
-      if (skipTest) {
-        return;
-      }
-
-      cy.fixture('e2e/featureStoreResources/testFeatureStoreAdminLifecycle.yaml', 'utf8')
-        .then((yamlContent: string) => {
-          testData = yaml.load(yamlContent) as FeatureStoreAdminLifecycleTestData;
-        })
-        .then(() => {
-          cy.step(`Create namespace: ${projectName}`);
-          createCleanProject(projectName);
-          return addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin');
-        });
-    });
+    cy.fixture('e2e/featureStoreResources/testFeatureStoreAdminLifecycle.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as FeatureStoreAdminLifecycleTestData;
+      })
+      .then(() => {
+        cy.step(`Create namespace: ${projectName}`);
+        createCleanProject(projectName);
+        return addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin');
+      });
   });
 
   after(() => {
-    if (!wasSetupPerformed() || shouldSkip()) {
+    if (!wasSetupPerformed()) {
       cy.log('Skipping cleanup');
       return;
     }
@@ -77,10 +53,6 @@ describe('Feature Store Admin Lifecycle (Create → Verify Ready → Delete)', (
       retries: { runMode: 1, openMode: 0 },
     },
     () => {
-      if (shouldSkip()) {
-        return;
-      }
-
       const storeName = `e2estore${generateTestUUID()}`;
 
       cy.step('Navigate to the create page');

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { Extension, ExtensionPredicate, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import type { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 /**
  * Type for ODH dev feature flag overrides.
@@ -32,4 +32,4 @@ export type OdhDevFeatureFlagOverridesProviderExtension = Extension<'model-regis
         children: React.ReactNode;
     }>>;
 }>;
-export declare const isOdhDevFeatureFlagOverridesProviderExtension: ExtensionPredicate<OdhDevFeatureFlagOverridesProviderExtension>;
+export declare const isOdhDevFeatureFlagOverridesProviderExtension: import("@openshift/dynamic-plugin-sdk").ExtensionPredicate<OdhDevFeatureFlagOverridesProviderExtension>;

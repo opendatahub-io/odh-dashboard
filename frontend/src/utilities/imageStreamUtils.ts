@@ -143,9 +143,13 @@ export const mapImageStreamToBYONImage = (image: ImageStreamKind): BYONImage => 
     recommendedAcceleratorIdentifiers: safeJSONParse<string>(
       annotations[ImageStreamAnnotation.RECOMMENDED_ACCELERATORS],
     ),
+    tier: annotations[ImageStreamAnnotation.NOTEBOOK_TIER] || 'custom',
     isOOTB: isOOTBImage,
   };
 };
+
+export const isImageStreamDeprecated = (image: ImageStreamKind): boolean =>
+  image.metadata.annotations?.[ImageStreamAnnotation.DEPRECATED] === 'true';
 
 export const mapImageStreamToImageInfo = (image: ImageStreamKind): ImageInfo => {
   const { metadata, status } = image;
@@ -153,6 +157,7 @@ export const mapImageStreamToImageInfo = (image: ImageStreamKind): ImageInfo => 
 
   return {
     name: metadata.name,
+    deprecated: isImageStreamDeprecated(image),
     description: annotations[ImageStreamAnnotation.DESC] || '',
     url: annotations[ImageStreamAnnotation.URL] || '',
     // eslint-disable-next-line camelcase

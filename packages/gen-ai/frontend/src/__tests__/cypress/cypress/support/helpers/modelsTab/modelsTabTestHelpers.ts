@@ -52,7 +52,9 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
 
   cy.interceptGenAi('GET /api/v1/lsd/models', mockEmptyList());
 
-  cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } });
+  cy.interceptGenAi('GET /api/v1/config', {
+    data: { isCustomLSD: false, sandboxesAvailable: true },
+  });
 };
 
 export const setupTokenIntercept = (

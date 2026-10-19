@@ -1,12 +1,15 @@
 /* eslint-disable camelcase */
+import type { PipelineRun } from '~/app/types';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import {
   isRunCompleted,
-  isRunInTerminalState,
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
   isRunDeletable,
+  getOptimizedMetricForRAG,
   parseErrorStatus,
   formatPatternName,
   generateReconfigureName,
@@ -17,6 +20,11 @@ import {
   isComponentTaskDirName,
   findComponentTaskPrefix,
 } from '~/app/utilities/utils';
+import {
+  formatMetricName,
+  formatMetricValue,
+  getOptimizedScore,
+} from '~/app/utilities/metricUtils';
 
 describe('isRunCompleted', () => {
   it('should return true for SUCCEEDED', () => {
@@ -43,34 +51,6 @@ describe('isRunCompleted', () => {
   it('should return false for undefined or empty state', () => {
     expect(isRunCompleted(undefined)).toBe(false);
     expect(isRunCompleted('')).toBe(false);
-  });
-});
-
-describe('isRunInTerminalState', () => {
-  it('should return true for all terminal states', () => {
-    expect(isRunInTerminalState('SUCCEEDED')).toBe(true);
-    expect(isRunInTerminalState('FAILED')).toBe(true);
-    expect(isRunInTerminalState('CANCELED')).toBe(true);
-    expect(isRunInTerminalState('SKIPPED')).toBe(true);
-    expect(isRunInTerminalState('CACHED')).toBe(true);
-  });
-
-  it('should be case-insensitive', () => {
-    expect(isRunInTerminalState('succeeded')).toBe(true);
-    expect(isRunInTerminalState('Failed')).toBe(true);
-    expect(isRunInTerminalState('canceled')).toBe(true);
-  });
-
-  it('should return false for active states', () => {
-    expect(isRunInTerminalState('RUNNING')).toBe(false);
-    expect(isRunInTerminalState('PENDING')).toBe(false);
-    expect(isRunInTerminalState('PAUSED')).toBe(false);
-    expect(isRunInTerminalState('CANCELING')).toBe(false);
-  });
-
-  it('should return false for undefined or empty state', () => {
-    expect(isRunInTerminalState(undefined)).toBe(false);
-    expect(isRunInTerminalState('')).toBe(false);
   });
 });
 
@@ -173,6 +153,177 @@ describe('isRunDeletable', () => {
   it('should return false for undefined or empty state', () => {
     expect(isRunDeletable(undefined)).toBe(false);
     expect(isRunDeletable('')).toBe(false);
+  });
+});
+
+describe('getOptimizedMetricForRAG', () => {
+  const createMockPipelineRun = (optimizationMetric?: string): PipelineRun => ({
+    run_id: 'test-run-123',
+    display_name: 'Test RAG Run',
+    state: RuntimeStateKF.SUCCEEDED,
+    created_at: '2025-01-17T00:00:00Z',
+    runtime_config: optimizationMetric
+      ? {
+          parameters: {
+            optimization_metric: optimizationMetric,
+          },
+        }
+      : undefined,
+  });
+
+  it('should return optimization_metric from pipeline parameters', () => {
+    const pipelineRun = createMockPipelineRun('answer_correctness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('answer_correctness');
+  });
+
+  it('should return the default optimization metric when optimization_metric is not provided', () => {
+    const pipelineRun = createMockPipelineRun();
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
+  });
+
+  it('should return the default optimization metric when pipelineRun is undefined', () => {
+    expect(getOptimizedMetricForRAG(undefined)).toBe(DEFAULT_OPTIMIZATION_METRIC);
+  });
+
+  it('should return the default optimization metric when runtime_config is missing', () => {
+    const pipelineRun: PipelineRun = {
+      run_id: 'test-run-123',
+      display_name: 'Test RAG Run',
+      state: RuntimeStateKF.SUCCEEDED,
+      created_at: '2025-01-17T00:00:00Z',
+    };
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
+  });
+
+  it('should return the default optimization metric when parameters is missing', () => {
+    const pipelineRun: PipelineRun = {
+      run_id: 'test-run-123',
+      display_name: 'Test RAG Run',
+      state: RuntimeStateKF.SUCCEEDED,
+      created_at: '2025-01-17T00:00:00Z',
+      runtime_config: {},
+    };
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
+  });
+
+  it('should return the default optimization metric when optimization_metric is not a string', () => {
+    const pipelineRun: PipelineRun = {
+      run_id: 'test-run-123',
+      display_name: 'Test RAG Run',
+      state: RuntimeStateKF.SUCCEEDED,
+      created_at: '2025-01-17T00:00:00Z',
+      runtime_config: {
+        parameters: {
+          optimization_metric: 123 as unknown as string,
+        },
+      },
+    };
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
+  });
+
+  it('should handle context_correctness metric', () => {
+    const pipelineRun = createMockPipelineRun('context_correctness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('context_correctness');
+  });
+
+  it('should handle faithfulness metric explicitly', () => {
+    const pipelineRun = createMockPipelineRun('faithfulness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('faithfulness');
+  });
+
+  it('should handle custom metric values', () => {
+    const pipelineRun = createMockPipelineRun('custom_rag_metric');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('custom_rag_metric');
+  });
+});
+
+describe('getOptimizedScore', () => {
+  const makePattern = (mean: number | null): AutoragPattern => ({
+    name: 'Pattern1',
+    iteration: 1,
+    max_combinations: 10,
+    duration_seconds: 5,
+    settings: {
+      chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
+      embedding: {
+        model_id: 'embed-model',
+        embedding_params: { embedding_dimension: 768 },
+      },
+      retrieval: { method: 'simple', number_of_chunks: 5 },
+      generation: { model_id: 'gen-model' },
+    },
+    evaluation: {
+      metrics: [
+        {
+          evaluator: 'custom',
+          name: 'overall_score',
+          scores: { mean, ci_low: null, ci_high: null },
+          optimization_metric: true,
+        },
+      ],
+    },
+  });
+
+  it('should return the optimization metric mean', () => {
+    expect(getOptimizedScore(makePattern(0.85))).toBe(0.85);
+  });
+
+  it('should return 0 when the optimization metric mean is null', () => {
+    expect(getOptimizedScore(makePattern(null))).toBe(0);
+  });
+});
+
+describe('formatMetricValue', () => {
+  it('should format normal values with 3 decimal places', () => {
+    expect(formatMetricValue(0.12345)).toBe('0.123');
+    expect(formatMetricValue(0.8)).toBe('0.800');
+    expect(formatMetricValue(1.5678)).toBe('1.568');
+  });
+
+  it('should use scientific notation for non-zero values that round to 0.000', () => {
+    expect(formatMetricValue(0.0001)).toBe('1.000e-4');
+    expect(formatMetricValue(0.00001234)).toBe('1.234e-5');
+    expect(formatMetricValue(0.0000001)).toBe('1.000e-7');
+  });
+
+  it('should display zero as 0.000 (not scientific notation)', () => {
+    expect(formatMetricValue(0)).toBe('0.000');
+  });
+
+  it('should use scientific notation for negative non-zero values that round to -0.000', () => {
+    expect(formatMetricValue(-0.0001)).toBe('-1.000e-4');
+    expect(formatMetricValue(-0.00001234)).toBe('-1.234e-5');
+  });
+
+  it('should format negative values normally if they do not round to -0.000', () => {
+    expect(formatMetricValue(-0.123)).toBe('-0.123');
+    expect(formatMetricValue(-1.5678)).toBe('-1.568');
+  });
+
+  it('should return string values as-is', () => {
+    expect(formatMetricValue('N/A')).toBe('N/A');
+    expect(formatMetricValue('invalid')).toBe('invalid');
+  });
+});
+
+describe('formatMetricName', () => {
+  it('should format known metric keys with special casing', () => {
+    expect(formatMetricName('faithfulness')).toBe('Answer faithfulness');
+    expect(formatMetricName('answer_correctness')).toBe('Answer correctness');
+    expect(formatMetricName('context_correctness')).toBe('Context correctness');
+    expect(formatMetricName('answer_relevancy')).toBe('Answer relevancy');
+    expect(formatMetricName('context_precision')).toBe('Context precision');
+    expect(formatMetricName('context_recall')).toBe('Context recall');
+    expect(formatMetricName('overall_score')).toBe('Overall score');
+  });
+
+  it('should title-case unknown metric keys', () => {
+    expect(formatMetricName('custom_metric')).toBe('Custom Metric');
+    expect(formatMetricName('my_special_score')).toBe('My Special Score');
+  });
+
+  it('should handle single word keys', () => {
+    expect(formatMetricName('bleu')).toBe('Bleu');
   });
 });
 

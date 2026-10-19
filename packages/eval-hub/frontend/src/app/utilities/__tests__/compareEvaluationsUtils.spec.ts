@@ -176,6 +176,28 @@ describe('getCompareParentResultScore', () => {
     expect(getCompareParentResultScore(job)).toBe('85%');
   });
 
+  it('should use the benchmark-level score for a single benchmark run', () => {
+    const job = mockEvaluationJob({ score: 0.42, benchmarkId: 'constant' });
+    /* eslint-disable camelcase */
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+    job.results.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        test: { primary_score: 86.2117, threshold: 10, pass: false },
+      },
+    ];
+    /* eslint-enable camelcase */
+
+    expect(getCompareParentResultScore(job)).toBe('86.21 output tokens/s');
+  });
+
   /* eslint-disable camelcase */
   it('should return the score for a benchmark suite run', () => {
     const job = mockEvaluationJob({ score: 0.72, collectionId: 'my-suite' });
@@ -190,6 +212,33 @@ describe('getCompareParentResultScore', () => {
       { id: 'bench-a', benchmark_index: 0, test: { primary_score: 0.8 } },
       { id: 'bench-b', benchmark_index: 1, test: { primary_score: 0.6 } },
     ];
+    expect(getCompareParentResultScore(job)).toBe('72%');
+  });
+
+  it('should use the aggregate score for a benchmark suite without collection metadata', () => {
+    const job = mockEvaluationJob({ score: 0.72, benchmarkId: 'bench-a' });
+    job.benchmarks = [
+      { id: 'bench-a', provider_id: 'lm', benchmark_index: 0 },
+      { id: 'bench-b', provider_id: 'lm', benchmark_index: 1 },
+    ];
+    job.results.benchmarks = [
+      { id: 'bench-a', benchmark_index: 0, test: { primary_score: 0.8 } },
+      { id: 'bench-b', benchmark_index: 1, test: { primary_score: 0.6 } },
+    ];
+
+    expect(getCompareParentResultScore(job)).toBe('72%');
+  });
+
+  it('should keep a benchmark suite score normalized when its first benchmark is raw', () => {
+    const job = mockEvaluationJob({ score: 0.72, collectionId: 'mixed-metric-suite' });
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+      },
+    ];
+
     expect(getCompareParentResultScore(job)).toBe('72%');
   });
   /* eslint-enable camelcase */
@@ -222,12 +271,14 @@ describe('getCompareParentResultScore', () => {
   it('should return dash when score is NaN', () => {
     const job = mockEvaluationJob({ score: 0.5 });
     job.results.test = { score: NaN };
+    job.results.benchmarks = [];
     expect(getCompareParentResultScore(job)).toBe('-');
   });
 
   it('should return dash when score is Infinity', () => {
     const job = mockEvaluationJob({ score: 0.5 });
     job.results.test = { score: Infinity };
+    job.results.benchmarks = [];
     expect(getCompareParentResultScore(job)).toBe('-');
   });
 });

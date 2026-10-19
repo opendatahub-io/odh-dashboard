@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React from 'react';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
@@ -11,25 +12,30 @@ import {
 } from '@patternfly/react-core';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useSettings } from 'mod-arch-core';
 import {
   createVolume,
   createGenericTable,
   createLabel,
   isConflictError,
 } from '~/app/api/dataRegistry';
-import { CreateVolumeRequest, CreateGenericTableRequest, ConnectionModel } from '~/app/types';
+import { CreateVolumeRequest, CreateGenericTableRequest, ConnectionRef } from '~/app/types';
 import { useConnections } from '~/app/hooks/useConnections';
+import { confirmConnection } from '~/app/utilities/connectionUtils';
+import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
 import {
   registerDataSchema,
   registerDataDefaults,
   RegisterDataFormData,
 } from '~/app/schemas/registerData.schema';
-import AssetDetailsSection from './register-data/AssetDetailsSection';
 import DataLocationSection from './register-data/DataLocationSection';
 import PropertiesSection from './register-data/PropertiesSection';
-import CustomPropertiesSection from './register-data/CustomPropertiesSection';
 import SchemaSection from './register-data/SchemaSection';
+import {
+  RegistrationAssetFormatSection,
+  RegistrationIdentitySection,
+  RegistrationOrganizationSection,
+} from './register-data/RegistrationAssetSections';
+import './register-data/RegistrationForm.scss';
 
 type RegisterDataModalProps = {
   isOpen: boolean;
@@ -38,55 +44,53 @@ type RegisterDataModalProps = {
   collections: string[];
   onCreated: () => void;
   onManageCollections: () => void;
+  onManageLabels?: () => void;
+  hasExistingDchConnectionReferences?: boolean;
+  hasExistingRhaiConnectionReferences?: boolean;
 };
 
-const buildVolumeRequest = (
+type SharedCreateAssetRequest = Omit<CreateVolumeRequest, 'format'> & { format: string };
+
+const getValidLabels = (labels: string[]): string[] => [
+  ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
+];
+
+const buildSharedAssetRequest = (
   data: RegisterDataFormData,
-  connections: ConnectionModel[],
-): CreateVolumeRequest => {
-  const request: CreateVolumeRequest = {
+  connectionRef?: ConnectionRef,
+): SharedCreateAssetRequest => {
+  const request: SharedCreateAssetRequest = {
     name: data.name.trim(),
-    // eslint-disable-next-line camelcase
-    content_type: data.format,
+    format: data.format,
   };
   if (data.description) {
     request.description = data.description;
   }
-  if (data.owner) {
-    request.owner = data.owner;
-  }
   if (data.path && data.path !== '/') {
-    request.location = data.path;
+    request.storage_location = data.path;
   }
-  if (data.connection) {
-    const selectedConnection = connections.find((c) => c.name === data.connection);
-    // Determine connection type - DCH connections have connectionType 'dch', others are RHAI
-    const isDch = selectedConnection?.connectionType?.toLowerCase() === 'dch';
-    // eslint-disable-next-line camelcase
-    request.connection_ref = isDch
-      ? { type: 'dch', id: data.connection }
-      : // eslint-disable-next-line camelcase
-        { type: 'rhai', secret_name: data.connection };
+  if (connectionRef) {
+    request.connection_ref = connectionRef;
   }
-  if (data.labels.length > 0) {
-    request.labels = data.labels;
+  const labels = getValidLabels(data.labels);
+  if (labels.length > 0) {
+    request.labels = labels;
   }
   const properties: Record<string, string> = {};
   if (data.purpose) {
-    // eslint-disable-next-line camelcase
-    properties.volume_purpose = data.purpose;
+    request.purpose = data.purpose;
   }
   if (data.license) {
-    // eslint-disable-next-line camelcase
-    properties.volume_license = data.license;
+    request.license = data.license;
   }
   if (data.maturity) {
-    // eslint-disable-next-line camelcase
-    properties.volume_maturity = data.maturity;
+    request.maturity = data.maturity;
+  }
+  if (data.domain) {
+    request.domain = data.domain;
   }
   if (data.piiStatus) {
-    // eslint-disable-next-line camelcase
-    properties.pii_status = data.piiStatus;
+    request.pii = data.piiStatus;
   }
   data.customProperties.forEach((prop) => {
     if (prop.key && prop.value) {
@@ -99,48 +103,23 @@ const buildVolumeRequest = (
   return request;
 };
 
+const buildVolumeRequest = (
+  data: RegisterDataFormData,
+  connectionRef?: ConnectionRef,
+): CreateVolumeRequest => {
+  const format = isUnstructuredFormat(data.format) ? data.format : 'other';
+  return { ...buildSharedAssetRequest(data, connectionRef), format };
+};
+
 const buildTableRequest = (
   data: RegisterDataFormData,
-  connections: ConnectionModel[],
+  connectionRef?: ConnectionRef,
 ): CreateGenericTableRequest => {
   const request: CreateGenericTableRequest = {
-    name: data.name.trim(),
-    format: data.format,
+    ...buildSharedAssetRequest(data, connectionRef),
+    format: isStructuredFormat(data.format) ? data.format : 'other',
   };
-  if (data.description) {
-    request.description = data.description;
-  }
-  if (data.owner) {
-    request.owner = data.owner;
-  }
-  if (data.path && data.path !== '/') {
-    request.location = data.path;
-  }
-  if (data.connection) {
-    const selectedConnection = connections.find((c) => c.name === data.connection);
-    // Determine connection type - DCH connections have connectionType 'dch', others are RHAI
-    const isDch = selectedConnection?.connectionType?.toLowerCase() === 'dch';
-    // eslint-disable-next-line camelcase
-    request.connection_ref = isDch
-      ? { type: 'dch', id: data.connection }
-      : // eslint-disable-next-line camelcase
-        { type: 'rhai', secret_name: data.connection };
-  }
-  if (data.labels.length > 0) {
-    request.labels = data.labels;
-  }
-  if (data.purpose) {
-    request.purpose = data.purpose;
-  }
-  if (data.license) {
-    request.license = data.license;
-  }
-  if (data.maturity) {
-    request.maturity = data.maturity;
-  }
-  if (data.piiStatus) {
-    request.pii = data.piiStatus;
-  }
+
   const filteredFields = data.schemaFields
     .filter((col) => col.name && col.type)
     .map((col) => ({
@@ -150,17 +129,7 @@ const buildTableRequest = (
       nullable: col.nullable,
     }));
   if (filteredFields.length > 0) {
-    // eslint-disable-next-line camelcase
     request.schema_fields = filteredFields;
-  }
-  const properties: Record<string, string> = {};
-  data.customProperties.forEach((prop) => {
-    if (prop.key && prop.value) {
-      properties[prop.key] = prop.value;
-    }
-  });
-  if (Object.keys(properties).length > 0) {
-    request.properties = properties;
   }
   return request;
 };
@@ -172,40 +141,51 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   collections,
   onCreated,
   onManageCollections,
+  onManageLabels,
+  hasExistingDchConnectionReferences = false,
+  hasExistingRhaiConnectionReferences = false,
 }) => {
-  const { userSettings } = useSettings();
-  const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
-  const [connections, connectionsLoaded, connectionsError] = useConnections(project);
+  const [
+    connections,
+    connectionsLoaded,
+    connectionsError,
+    refreshConnections,
+    connectionWarnings,
+    fetchedConnectionDisplayData,
+  ] = useConnections(project, isOpen);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
   const form = useForm<RegisterDataFormData>({
     resolver: zodResolver(registerDataSchema),
-    defaultValues: { ...registerDataDefaults, owner: '' },
+    defaultValues: registerDataDefaults,
     mode: 'onBlur',
   });
 
-  React.useEffect(() => {
-    if (userId && !form.getValues('owner')) {
-      form.setValue('owner', userId);
-    }
-  }, [userId, form]);
-
-  const handleClose = React.useCallback(() => {
-    form.reset({ ...registerDataDefaults, owner: userId });
+  const resetAndClose = React.useCallback(() => {
+    form.reset(registerDataDefaults);
     setIsSubmitting(false);
     setError('');
     onClose();
-  }, [form, onClose, userId]);
+  }, [form, onClose]);
+
+  const handleClose = React.useCallback(() => {
+    resetAndClose();
+  }, [resetAndClose]);
 
   const handleSubmit = React.useCallback(
     async (data: RegisterDataFormData) => {
       setIsSubmitting(true);
       setError('');
       try {
-        if (data.labels.length > 0) {
+        const connectionRef = data.connection
+          ? await confirmConnection(data.connection, refreshConnections)
+          : undefined;
+        const labels = getValidLabels(data.labels);
+        if (labels.length > 0) {
           await Promise.all(
-            data.labels.map((label) =>
+            labels.map((label) =>
               createLabel(project, { name: label }).catch((err) => {
                 if (isConflictError(err)) {
                   return;
@@ -216,11 +196,15 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           );
         }
         if (data.assetType === 'unstructured') {
-          await createVolume(project, data.collection, buildVolumeRequest(data, connections));
+          await createVolume(project, data.collection, buildVolumeRequest(data, connectionRef));
         } else {
-          await createGenericTable(project, data.collection, buildTableRequest(data, connections));
+          await createGenericTable(
+            project,
+            data.collection,
+            buildTableRequest(data, connectionRef),
+          );
         }
-        form.reset({ ...registerDataDefaults, owner: userId });
+        form.reset(registerDataDefaults);
         onCreated();
         onClose();
       } catch (err) {
@@ -229,7 +213,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         setIsSubmitting(false);
       }
     },
-    [project, form, onCreated, onClose, userId, connections],
+    [project, form, onCreated, onClose, refreshConnections],
   );
 
   const assetType = form.watch('assetType');
@@ -237,10 +221,11 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} variant="medium" data-testid="register-data-modal">
       <ModalHeader
-        title="Register data"
+        title="Create data asset"
         description={
           <Content component="p">
-            Create a new data asset and configure its source location, metadata, and schema.
+            A data asset is a metadata record that helps users discover and understand external
+            data. It stores information like location, format, and schema, but not the data itself.
           </Content>
         }
       />
@@ -251,19 +236,27 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           </Alert>
         ) : null}
         <FormProvider {...form}>
-          <Form>
-            <AssetDetailsSection
-              collections={collections}
-              onManageCollections={onManageCollections}
-            />
+          <Form className="odh-data-registry-registration-form">
+            <RegistrationIdentitySection />
             <DataLocationSection
               connections={connections}
+              connectionDisplayData={connectionDisplayData}
               connectionsLoaded={connectionsLoaded}
               connectionsError={connectionsError}
+              connectionWarnings={connectionWarnings}
+              showDchFallbackWarning={hasExistingDchConnectionReferences}
+              showRhaiLookupWarning={hasExistingRhaiConnectionReferences}
+              isConnectionDisabled={isSubmitting}
+            />
+            <RegistrationAssetFormatSection />
+            {assetType === 'structured' ? <SchemaSection /> : null}
+            <RegistrationOrganizationSection
+              project={project}
+              collections={collections}
+              onManageCollections={onManageCollections}
+              onManageLabels={onManageLabels}
             />
             <PropertiesSection />
-            <CustomPropertiesSection />
-            {assetType === 'structured' ? <SchemaSection /> : null}
           </Form>
         </FormProvider>
       </ModalBody>

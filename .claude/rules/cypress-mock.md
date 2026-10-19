@@ -929,31 +929,28 @@ pnpm run test:cypress-ci --spec "**/featureName.cy.ts"
 **Development workflow** (requires separate terminals):
 
 ```bash
-cd frontend
-
-# Terminal 1: Start dev server (auto-rebuilds on changes)
+# Terminal 1, from repository root: start dashboard host and federated remotes
 pnpm run cypress:server:dev
 
-# Terminal 2: Open Cypress GUI for interactive testing
+# Terminal 2, from frontend/: open Cypress against the host on :9001
+cd frontend
 pnpm run cypress:open:mock
 
-# OR run tests headless
-pnpm run cypress:run:mock
-
-# Run specific test
-pnpm run cypress:run:mock --spec "**/featureName.cy.ts"
+# Or run a specific mock test headlessly
+pnpm run cypress:run:mock --spec "../packages/cypress/cypress/tests/mocked/applications/externalRedirects.cy.ts"
 ```
+
+Cypress resolves `--spec` from `frontend/`, not from the Cypress project directory. Running `cypress:server:dev` inside `frontend/` starts only the host, not the federation remotes. For standalone module tests, use that module's own scripts instead. See [docs/testing.md](../../docs/testing.md#mocked-tests) for the root dashboard workflow.
 
 **Production-like testing**:
 
 ```bash
-# Build frontend once
+# From repository root: build host and remotes once, then start static servers
 pnpm run cypress:server:build
-
-# Start HTTP server
 pnpm run cypress:server
 
-# Run tests (in another terminal)
+# In another terminal, from frontend/
+cd frontend
 pnpm run cypress:run:mock
 ```
 

@@ -18,7 +18,6 @@ import {
   getMetricsResourceCounts,
 } from '../../../utils/api/featureStoreRest';
 import { featureMetricsOverview } from '../../../pages/featureStore/featureMetrics';
-import { isRHOAI } from '../../../utils/oc_commands/applications';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { createRegistryStep, deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
@@ -38,112 +37,83 @@ describe('Feature Store Page Validation', () => {
   let metricsDataSourceCount: number;
   let metricsFeatureViewCount: number;
   let metricsFeatureServiceCount: number;
-  let skipTest = false;
   const uuid = generateTestUUID();
-
-  const shouldSkip = () => {
-    if (skipTest) {
-      cy.log('Skipping test - Feature Store is RHOAI-specific and not available on ODH.');
-      return true;
-    }
-    return false;
-  };
 
   retryableBefore(() => {
     cy.step('Ensure admin oc session for setup');
     ensureAdminOcSession();
 
-    // Skip on ODH (test is RHOAI-specific)
-    cy.step('Check if the operator is RHOAI');
-    isRHOAI().then((rhoai) => {
-      if (!rhoai) {
-        cy.log('RHOAI operator not found, skipping the test (Feature Store is RHOAI-specific).');
-        skipTest = true;
-      }
-    });
+    cy.fixture('e2e/featureStoreResources/testFeatureStoreResources.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as FeatureStoreTestData;
+        projectName = `${testData.projectName}-${uuid}`;
+      })
+      .then(() => {
+        cy.log(`Creating Namespace: ${projectName}`);
+        createCleanProject(projectName);
 
-    cy.then(() => {
-      if (skipTest) {
-        return;
-      }
+        // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
+        // in the permitted namespace. The oc CLI user (REST count calls) and the
+        // dashboard login user (UI) are the same account here, so one grant covers both.
+        return addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin');
+      })
+      .then(() => {
+        createRegistryStep(projectName);
+        createFeatureStoreCR(projectName, testData.feastInstanceName);
+      })
+      .then(() => {
+        return createRouteAndGetUrl(projectName, testData.feastInstanceName).then((routeUrl) => {
+          const buckets =
+            (Cypress.env('AWS_PIPELINES') as typeof AWS_BUCKETS | undefined) ?? AWS_BUCKETS;
+          const { NAME: awsBucketName } = buckets.BUCKET_1;
+          if (!awsBucketName) {
+            throw new Error(
+              'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml before running E2E.',
+            );
+          }
 
-      cy.fixture('e2e/featureStoreResources/testFeatureStoreResources.yaml', 'utf8')
-        .then((yamlContent: string) => {
-          testData = yaml.load(yamlContent) as FeatureStoreTestData;
-          projectName = `${testData.projectName}-${uuid}`;
-        })
-        .then(() => {
-          cy.log(`Creating Namespace: ${projectName}`);
-          createCleanProject(projectName);
-
-          // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
-          // in the permitted namespace. The oc CLI user (REST count calls) and the
-          // dashboard login user (UI) are the same account here, so one grant covers both.
-          return addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin');
-        })
-        .then(() => {
-          createRegistryStep(projectName);
-          createFeatureStoreCR(projectName, testData.feastInstanceName);
-        })
-        .then(() => {
-          return createRouteAndGetUrl(projectName, testData.feastInstanceName).then((routeUrl) => {
-            const buckets =
-              (Cypress.env('AWS_PIPELINES') as typeof AWS_BUCKETS | undefined) ?? AWS_BUCKETS;
-            const { NAME: awsBucketName } = buckets.BUCKET_1;
-            if (!awsBucketName) {
-              throw new Error(
-                'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml before running E2E.',
-              );
-            }
-
-            return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
-              namespaces: [projectName],
+          return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
+            namespaces: [projectName],
+          }).then(() => {
+            return createSavedDatasetViaSdk(projectName, testData.feastInstanceName, {
+              name: testData.datasetName,
+              project: testData.feastCreditScoringProject,
+              storagePath: `s3://${awsBucketName}/feast-test/${projectName}/credit_scoring_local/datasets/${testData.datasetName}.parquet`,
+              featureServiceName: testData.featureServiceName,
             }).then(() => {
-              return createSavedDatasetViaSdk(projectName, testData.feastInstanceName, {
-                name: testData.datasetName,
-                project: testData.feastCreditScoringProject,
-                storagePath: `s3://${awsBucketName}/feast-test/${projectName}/credit_scoring_local/datasets/${testData.datasetName}.parquet`,
-                featureServiceName: testData.featureServiceName,
-              }).then(() => {
-                return getMetricsResourceCounts(routeUrl, testData.feastCreditScoringProject).then(
-                  (metricsCounts) => {
-                    metricsFeatureCount = metricsCounts.featureCount;
-                    metricsEntityCount = metricsCounts.entityCount;
-                    metricsDatasetCount = metricsCounts.datasetCount;
-                    metricsDataSourceCount = metricsCounts.dataSourceCount;
-                    metricsFeatureViewCount = metricsCounts.featureViewCount;
-                    metricsFeatureServiceCount = metricsCounts.featureServiceCount;
+              return getMetricsResourceCounts(routeUrl, testData.feastCreditScoringProject).then(
+                (metricsCounts) => {
+                  metricsFeatureCount = metricsCounts.featureCount;
+                  metricsEntityCount = metricsCounts.entityCount;
+                  metricsDatasetCount = metricsCounts.datasetCount;
+                  metricsDataSourceCount = metricsCounts.dataSourceCount;
+                  metricsFeatureViewCount = metricsCounts.featureViewCount;
+                  metricsFeatureServiceCount = metricsCounts.featureServiceCount;
 
-                    return getAllFeatureStoreCounts(
-                      routeUrl,
-                      testData.feastCreditScoringProject,
-                    ).then((listCounts) => {
-                      featureCount = listCounts.featureCount;
-                      entityCount = listCounts.entityCount;
-                      datasetCount = listCounts.datasetCount;
-                      dataSourceCount = listCounts.dataSourceCount;
-                      featureViewCount = listCounts.featureViewCount;
-                      featureServiceCount = listCounts.featureServiceCount;
+                  return getAllFeatureStoreCounts(
+                    routeUrl,
+                    testData.feastCreditScoringProject,
+                  ).then((listCounts) => {
+                    featureCount = listCounts.featureCount;
+                    entityCount = listCounts.entityCount;
+                    datasetCount = listCounts.datasetCount;
+                    dataSourceCount = listCounts.dataSourceCount;
+                    featureViewCount = listCounts.featureViewCount;
+                    featureServiceCount = listCounts.featureServiceCount;
 
-                      cy.log(`Metrics counts: ${JSON.stringify(metricsCounts)}`);
-                      cy.log(`List counts: ${JSON.stringify(listCounts)}`);
-                      return cy.wrap({ metricsCounts, listCounts });
-                    });
-                  },
-                );
-              });
+                    cy.log(`Metrics counts: ${JSON.stringify(metricsCounts)}`);
+                    cy.log(`List counts: ${JSON.stringify(listCounts)}`);
+                    return cy.wrap({ metricsCounts, listCounts });
+                  });
+                },
+              );
             });
           });
         });
-    });
+      });
   });
 
   after(() => {
-    if (shouldSkip()) {
-      cy.log('Skipping cleanup: Tests were skipped');
-      return;
-    }
-
     cy.log(`Removing S3 registry files for: ${projectName}`);
     deleteFeastRegistryFiles(projectName);
 
@@ -155,10 +125,6 @@ describe('Feature Store Page Validation', () => {
     'Navigates through Feature Store pages and verifies that the data count is displayed correctly',
     { tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Sanity', '@SanitySet1'] },
     () => {
-      if (shouldSkip()) {
-        return;
-      }
-
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step(`Navigate to the Feature Store Overview page`);

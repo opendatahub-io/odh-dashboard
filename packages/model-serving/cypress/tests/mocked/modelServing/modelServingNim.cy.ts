@@ -271,10 +271,11 @@ describe('NIM Models Deployments', () => {
       .findDescriptionListItem('Hardware profile')
       .next('dd')
       .should('have.text', 'default-profile');
+    row.findDescriptionListItem('Users').next('dd').should('have.text', 'Project members');
     row
-      .findDescriptionListItem('Model availability')
+      .findDescriptionListItem('Availability')
       .next('dd')
-      .should('have.text', 'No model availability');
+      .should('have.text', 'Not available in Gen AI Studio');
     row
       .findDescriptionListItem('Token authentication')
       .next('dd')
@@ -633,7 +634,7 @@ describe('NIM Models Deployments', () => {
     // the mounted PVC preselected, and its subpath loaded from the volumeMount
     modelServingWizardEdit.nim
       .findStorageModeSelect()
-      .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
+      .should('contain.text', 'Use existing cluster storage');
     modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
     modelServingWizardEdit.nim.selectExistingPVC('updated-nim-wizard-pvc');

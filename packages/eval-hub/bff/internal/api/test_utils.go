@@ -79,22 +79,7 @@ func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Fact
 		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
 	}
 
-	if k8Factory == nil {
-		k8Factory = &testK8sFactory{}
-	}
-
-	mockFactory := ehmocks.NewMockClientFactory()
-	if ehClient != nil {
-		mockFactory.SetMockClient(ehClient)
-	}
-
-	app := &App{
-		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockEvalHubClient: true},
-		logger:                  testLogger,
-		kubernetesClientFactory: k8Factory,
-		evalHubClientFactory:    mockFactory,
-		repositories:            repositories.NewRepositories(),
-	}
+	app := newTestAppWithEvalHub(k8Factory, ehClient)
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)
@@ -115,6 +100,26 @@ func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Fact
 		return empty, nil, err
 	}
 	return out, res, nil
+}
+
+func newTestAppWithEvalHub(k8Factory kubernetes.KubernetesClientFactory, ehClient evalhub.EvalHubClientInterface) *App {
+	if k8Factory == nil {
+		k8Factory = &testK8sFactory{}
+	}
+
+	mockFactory := ehmocks.NewMockClientFactory()
+	if ehClient != nil {
+		mockFactory.SetMockClient(ehClient)
+	}
+
+	return &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockEvalHubClient: true},
+		logger:                  testLogger,
+		kubernetesClientFactory: k8Factory,
+		evalHubClientFactory:    mockFactory,
+		repositories:            repositories.NewRepositories(),
+		dashboardNamespace:      "test-dashboard-ns",
+	}
 }
 
 // testK8sFactory is a minimal K8s factory for unit tests that extracts identity from kubeflow headers.
@@ -177,6 +182,22 @@ func (c *testK8sClient) GetEvalHubCRStatus(_ context.Context, _ *kubernetes.Requ
 	}, nil
 }
 
+func (c *testK8sClient) GetKueueAvailability(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (*models.KueueAvailability, error) {
+	return &models.KueueAvailability{}, nil
+}
+
+func (c *testK8sClient) GetKueueWorkloadStatuses(_ context.Context, _ *kubernetes.RequestIdentity, _ string, _ []string) (*models.KueueWorkloadStatusesResponse, error) {
+	return &models.KueueWorkloadStatusesResponse{}, nil
+}
+
+func (c *testK8sClient) ListHardwareProfiles(_ context.Context, _ *kubernetes.RequestIdentity, _, _ string) (*models.HardwareProfilesResponse, error) {
+	return &models.HardwareProfilesResponse{}, nil
+}
+
+func (c *testK8sClient) GetMissingHardwareProfileLocalQueueName(_ context.Context, _ *kubernetes.RequestIdentity, _, _, _ string) (string, bool, error) {
+	return "", false, nil
+}
+
 // erroringEHClient is a minimal EvalHub client whose HealthCheck always returns an error.
 // Used in health handler tests to simulate "service-unreachable".
 type erroringEHClient struct{}
@@ -199,8 +220,20 @@ func (e *erroringEHClient) CancelEvaluationJob(_ context.Context, _ string, _ st
 func (e *erroringEHClient) GetCollection(_ context.Context, _ string, _ string) (*evalhub.Collection, error) {
 	return nil, fmt.Errorf("erroring client")
 }
+func (e *erroringEHClient) PatchCollection(_ context.Context, _ string, _ string, _ []evalhub.CollectionPatchOperation) (*evalhub.Collection, error) {
+	return nil, fmt.Errorf("erroring client")
+}
+func (e *erroringEHClient) DeleteCollection(_ context.Context, _ string, _ string) error {
+	return fmt.Errorf("erroring client")
+}
+func (e *erroringEHClient) CloneCollection(_ context.Context, _ string, _ string, _ evalhub.CloneCollectionRequest) (*evalhub.Collection, error) {
+	return nil, fmt.Errorf("erroring client")
+}
 func (e *erroringEHClient) ListCollections(_ context.Context, _ evalhub.ListCollectionsParams) (evalhub.CollectionsResponse, error) {
 	return evalhub.CollectionsResponse{}, nil
+}
+func (e *erroringEHClient) CreateCollection(_ context.Context, _ string, _ evalhub.CreateCollectionRequest) (*evalhub.Collection, error) {
+	return nil, fmt.Errorf("erroring client")
 }
 func (e *erroringEHClient) ListProviders(_ context.Context, _ string, _, _ int) (evalhub.ProvidersResponse, error) {
 	return evalhub.ProvidersResponse{}, nil

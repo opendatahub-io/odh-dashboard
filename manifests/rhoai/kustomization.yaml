@@ -63,12 +63,6 @@ patchesJson6902:
       version: v1
       kind: ClusterRoleBinding
       name: odh-dashboard-auth-delegator
-  - path: cluster-monitoring-role-binding.yaml
-    target:
-      group: rbac.authorization.k8s.io
-      version: v1
-      kind: ClusterRoleBinding
-      name: odh-dashboard-monitoring
   - path: service.yaml
     target:
       version: v1
@@ -80,7 +74,13 @@ patchesJson6902:
       version: v1
       kind: HTTPRoute
       name: odh-dashboard
-  # No NetworkPolicy patch needed (each module has its own NetworkPolicy).
+  # Rename the main dashboard operand NetworkPolicy podSelector to rhods-dashboard.
+  - path: networkpolicy.yaml
+    target:
+      group: networking.k8s.io
+      version: v1
+      kind: NetworkPolicy
+      name: dashboard-allow-ports
   - path: pdb.yaml
     target:
       group: policy
