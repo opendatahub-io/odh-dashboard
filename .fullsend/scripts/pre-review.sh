@@ -110,9 +110,29 @@ validate_dimension_registry() {
   "${_SCRIPT_DIR}/validate-dimensions.sh"
 }
 
+# Credential variable names a cli-adapter row may not claim. Capture unsets
+# every claimed name, and run_adapter forwards its value as
+# FULLSEND_ADAPTER_*, so a row naming one of these would remove a variable
+# this script or the runner needs (REVIEW_TOKEN, PATH, ...) or hand an
+# adapter a token it must not see (GH_TOKEN, GITHUB_TOKEN, ...).
+adapter_credential_name_reserved() {
+  [[ "$1" =~ ^(PATH|HOME|TMPDIR|LANG|LC_ALL|CI|REPO|GH_TOKEN|JIRA_TOKEN|JIRA_USER_EMAIL|JIRA_BASE_URL|PR_.*|REVIEW_.*|GITHUB_.*|FULLSEND_.*|RUNNER_.*|ACTIONS_.*|OTEL_.*|GOOGLE_.*|CLOUDSDK_.*|LD_.*)$ ]]
+}
+
+adapter_credential_names() {
+  jq -r '
+    [.dimensions[]
+      | select(.kind == "cli-adapter")
+      | .host.credentials // {}
+      | .url_env, .username_env, .token_env
+      | select(type == "string" and . != "")]
+    | unique[]
+  ' "${_SCRIPT_DIR}/../dimensions.json"
+}
+
 validate_adapter_registry() {
   local registry="${_SCRIPT_DIR}/../dimensions.json"
-  local runner setup_runner
+  local runner setup_runner name
   if ! jq -e '
     (.dimensions | type == "array") and
     (([.dimensions[] | select(.kind == "cli-adapter") | .id] | unique | length) ==
@@ -136,6 +156,13 @@ validate_adapter_registry() {
   ' "${registry}" >/dev/null; then
     return 1
   fi
+
+  while IFS= read -r name; do
+    if adapter_credential_name_reserved "${name}"; then
+      echo "::error::cli-adapter credential name ${name} is reserved" >&2
+      return 1
+    fi
+  done < <(adapter_credential_names)
 
   while IFS=$'\t' read -r runner setup_runner; do
     [[ -f "${_SCRIPT_DIR}/../${runner}" ]] || return 1
@@ -187,20 +214,23 @@ aggregate_cli_adapters() {
 # shell variable and unset it; only the jq that reads the registry runs
 # first. run_adapter then hands an adapter only its own row's values. Bash 3.2 has no associative arrays,
 # hence the _ADAPTER_CRED_<NAME> variables.
+# A reserved or malformed name fails the review here, before anything is
+# unset, rather than leaving the run without a variable it needs.
 capture_adapter_credentials() {
-  local name
+  local name names
+  names="$(adapter_credential_names)" || return 1
   while IFS= read -r name; do
-    [[ "${name}" =~ ^[A-Z][A-Z0-9_]*$ ]] || continue
+    [[ -n "${name}" ]] || continue
+    if [[ ! "${name}" =~ ^[A-Z][A-Z0-9_]*$ ]] || adapter_credential_name_reserved "${name}"; then
+      echo "::error::cli-adapter credential name ${name} is reserved or invalid" >&2
+      return 1
+    fi
+  done <<< "${names}"
+  while IFS= read -r name; do
+    [[ -n "${name}" ]] || continue
     printf -v "_ADAPTER_CRED_${name}" '%s' "${!name:-}"
     unset "${name}"
-  done < <(jq -r '
-    [.dimensions[]
-      | select(.kind == "cli-adapter")
-      | .host.credentials // {}
-      | .url_env, .username_env, .token_env
-      | select(type == "string" and . != "")]
-    | unique[]
-  ' "${_SCRIPT_DIR}/../dimensions.json" 2>/dev/null)
+  done <<< "${names}"
 }
 
 adapter_credential() {
@@ -496,22 +526,44 @@ run_self_test() {
     export ALPHA_URL="https://alpha.example.test" ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
     export REVIEW_TOKEN="review-token-value" GH_TOKEN="gh-token-value"
     unset GAMMA_TOKEN
-    capture_adapter_credentials
+    capture_adapter_credentials || exit 1
     [[ -z "${ALPHA_URL:-}" && -z "${ALPHA_TOKEN:-}" && -z "${BETA_TOKEN:-}" ]] || exit 1
     REPO=o/r PR_BASE_REF=main PR_BASE_SHA="$(printf 'b%.0s' {1..40})" PR_HEAD_SHA="$(printf 'a%.0s' {1..40})" \
       run_pre_review_adapters > /dev/null
-    grep -qx 'FULLSEND_ADAPTER_TOKEN=alpha-token-value' "${_SCRIPT_DIR}/a.env"
-    grep -qx 'FULLSEND_ADAPTER_URL=https://alpha.example.test' "${_SCRIPT_DIR}/a.env"
-    grep -qx 'FULLSEND_ADAPTER_BIN=/opt/tool' "${_SCRIPT_DIR}/a.env"
-    grep -qx 'FULLSEND_ADAPTER_REPO=o/r' "${_SCRIPT_DIR}/a.env"
-    grep -qx 'FULLSEND_ADAPTER_BASE_REF=main' "${_SCRIPT_DIR}/a.env"
-    grep -qx 'FULLSEND_ADAPTER_TOKEN=beta-token-value' "${_SCRIPT_DIR}/b.env"
-    grep -qx 'FULLSEND_ADAPTER_BIN=' "${_SCRIPT_DIR}/b.env"
-    ! grep -q 'alpha-token-value' "${_SCRIPT_DIR}/b.env"
-    ! grep -q 'beta-token-value' "${_SCRIPT_DIR}/a.env"
-    ! grep -qE '^(ALPHA_|BETA_|REVIEW_TOKEN|GH_)' "${_SCRIPT_DIR}/a.env" "${_SCRIPT_DIR}/b.env" "${_SCRIPT_DIR}/setup.env"
-    grep -qx 'FULLSEND_ADAPTER_TOKEN=' "${_SCRIPT_DIR}/c.env"
-    [[ ! -e "${_SCRIPT_DIR}/setup-c.env" ]]
+    # errexit does not apply inside an `if` condition, so every check exits.
+    expect_line() { grep -qx -- "$1" "${_SCRIPT_DIR}/$2" || exit 1; }
+    refuse_text() { if grep -qE -- "$1" "${@:2}"; then exit 1; fi; }
+    for f in a.env b.env c.env setup.env; do
+      [[ -f "${_SCRIPT_DIR}/${f}" ]] || exit 1
+    done
+    expect_line 'FULLSEND_ADAPTER_TOKEN=alpha-token-value' a.env
+    expect_line 'FULLSEND_ADAPTER_URL=https://alpha.example.test' a.env
+    expect_line 'FULLSEND_ADAPTER_BIN=/opt/tool' a.env
+    expect_line 'FULLSEND_ADAPTER_REPO=o/r' a.env
+    expect_line 'FULLSEND_ADAPTER_BASE_REF=main' a.env
+    expect_line 'FULLSEND_ADAPTER_TOKEN=beta-token-value' b.env
+    expect_line 'FULLSEND_ADAPTER_BIN=' b.env
+    expect_line 'FULLSEND_ADAPTER_TOKEN=' c.env
+    refuse_text 'alpha-token-value' "${_SCRIPT_DIR}/b.env"
+    refuse_text 'beta-token-value' "${_SCRIPT_DIR}/a.env"
+    refuse_text '^(ALPHA_|BETA_|REVIEW_TOKEN|GH_)' "${_SCRIPT_DIR}/a.env" "${_SCRIPT_DIR}/b.env" "${_SCRIPT_DIR}/c.env" "${_SCRIPT_DIR}/setup.env"
+    [[ ! -e "${_SCRIPT_DIR}/setup-c.env" ]] || exit 1
+    # A row that claims a reserved name fails capture and validation, and
+    # capture unsets nothing first. The fixture itself validates.
+    validate_adapter_registry || exit 1
+    for reserved in REVIEW_TOKEN GH_TOKEN PATH GITHUB_TOKEN FULLSEND_X JIRA_TOKEN; do
+      jq --arg n "${reserved}" '.dimensions[1].host.credentials.token_env = $n' \
+        "${temp_dir}/dimensions.json" > "${temp_dir}/reserved.json"
+      cp "${temp_dir}/dimensions.json" "${temp_dir}/good.json"
+      mv "${temp_dir}/reserved.json" "${temp_dir}/dimensions.json"
+      export ALPHA_TOKEN="alpha-token-value" REVIEW_TOKEN="review-token-value"
+      if (capture_adapter_credentials) 2>/dev/null; then exit 1; fi
+      if validate_adapter_registry 2>/dev/null; then exit 1; fi
+      capture_adapter_credentials 2>/dev/null && exit 1
+      [[ "${ALPHA_TOKEN:-}" == "alpha-token-value" && "${REVIEW_TOKEN:-}" == "review-token-value" ]] || exit 1
+      mv "${temp_dir}/good.json" "${temp_dir}/dimensions.json"
+    done
+    true
   ); then
     echo "PASS adapter credential isolation"
   else
@@ -574,7 +626,7 @@ fi
 
 # Main flow. Take adapter credentials out of the environment before any child
 # process starts, then normalize: upstream's checks below require PR_URL.
-capture_adapter_credentials
+capture_adapter_credentials || exit 1
 normalize_dispatch_context
 
 # Fail before sandbox packaging when a repository-relative skill link cannot

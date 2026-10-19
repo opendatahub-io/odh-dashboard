@@ -318,8 +318,8 @@ skip-author checks:
   starting any child. Each adapter runs with an allowlisted environment (no
   review or GitHub token) and only the credentials its row names in
   `host.credentials`, under the generic `FULLSEND_ADAPTER_*` names. None of
-  them reaches the sandbox. `env.runner` also reaches `post-review.sh` and the
-  validation loop, which do not read them.
+  them reaches the sandbox. `env.runner` also reaches `post-review.sh`, which
+  unsets them first, and the validation loop, which does not read them.
 - **Order and cost.** `fullsend run` posts the review start-status comment
   before it runs the pre-script, so it is up before any adapter work. A closed PR or a
   skipped author exits before the adapters, so it buys no CodeRabbit run.
@@ -338,7 +338,10 @@ skip-author checks:
   expression, reference it in `env.runner`, and name it in the row's
   `host.credentials`. A name the reusable workflow sets itself (`JIRA_TOKEN`,
   `JIRA_USER_EMAIL`, `JIRA_BASE_URL`, any `FULLSEND_*` or `GITHUB_*`) is
-  refused.
+  refused by `fullsend run`. `pre-review.sh` also refuses rows that name a
+  variable the review needs or must not forward (`REVIEW_*`, `GH_TOKEN`,
+  `PATH`, `PR_*`, …), and `post-review.sh` unsets the four names it never
+  uses.
 
 **Pipeline mode:** `FULLSEND_OUTPUT_DIR` is set. Orchestrator writes
 `$FULLSEND_OUTPUT_DIR/agent-result.json` (omit `action` / `body` on success;

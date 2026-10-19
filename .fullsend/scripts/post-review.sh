@@ -27,6 +27,8 @@
 #   7. Absolutize FULLSEND_CONFIG_DIR when FULLSEND_DIR is relative — post_script
 #      CWD is runDir, so a bare ".fullsend" would miss dimensions.json
 #      (labels → ids, Type/Result → —).
+#   8. Unset the host-adapter credentials that env.runner hands every host
+#      script; this script never reads them.
 
 #
 # Harness may fetch this script with sibling files in scripts/.
@@ -60,6 +62,11 @@
 #       action was "failure": the notice is published but the review did
 #       not complete)
 set -euo pipefail
+
+# env.runner in harness/review.yaml gives every host-side script the
+# host-adapter credentials. Only pre-review.sh uses them, so drop them before
+# this script starts any child. Keep the list in step with env.runner.
+unset CODERABBIT_API_KEY JIRA_URL JIRA_USERNAME JIRA_API_TOKEN
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
 
