@@ -9,7 +9,7 @@ describe('BenchmarkSuiteCard', () => {
     const collection = mockCollection({
       id: 'model-suite',
       name: 'Model suite',
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       benchmarkIds: ['benchmark-2', 'benchmark-1'],
       benchmarkMetrics: ['toxicity_score', 'mc1_acc'],
     });
@@ -689,7 +689,7 @@ describe('BenchmarkSuiteCard', () => {
             'trustworthiness',
             'multimodal',
             'knowledge_and_reasoning',
-            'safety',
+            'grounded_document_understanding',
           ],
         })}
         primaryAction={{ label: 'Run', onClick: jest.fn() }}

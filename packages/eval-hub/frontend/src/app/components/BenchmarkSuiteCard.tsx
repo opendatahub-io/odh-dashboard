@@ -40,6 +40,7 @@ import {
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import type { Collection } from '~/app/types';
+import { isCollectionCategory, type CollectionCategory } from '~/app/pages/const';
 import {
   formatCategory,
   getBenchmarkDisplayName,
@@ -61,7 +62,7 @@ type DomainIcon = React.ComponentType<React.ComponentProps<typeof RhStandardBrai
 type DomainIconConfig = { icon: DomainIcon };
 
 /* eslint-disable camelcase */
-const DOMAIN_ICON_CONFIG: Partial<Record<string, DomainIconConfig>> = {
+const DOMAIN_ICON_CONFIG: Record<CollectionCategory, DomainIconConfig> = {
   knowledge_and_reasoning: { icon: RhStandardBrainIcon },
   grounded_document_understanding: { icon: RhUiDocumentIcon },
   instruction_and_output_reliability: { icon: RhUiCheckClipboardIcon },
@@ -109,7 +110,9 @@ const DomainIconStack: React.FC<DomainIconStackProps> = ({ collectionId, domains
         data-testid={`benchmark-suite-card-domain-icons-${collectionId}`}
       >
         {domains.map((domain, index) => {
-          const DomainIcon = DOMAIN_ICON_CONFIG[domain]?.icon ?? RhUiAssessmentIcon;
+          const DomainIcon = isCollectionCategory(domain)
+            ? DOMAIN_ICON_CONFIG[domain].icon
+            : RhUiAssessmentIcon;
           const iconColor = getCategoryTileColor(domain);
           const iconStyle: DomainIconStyle = {
             '--evalhub-benchmark-suite-card-domain-index': index,
