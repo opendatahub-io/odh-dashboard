@@ -519,7 +519,7 @@ describe('GPUaaS Infrastructure Workloads', () => {
 
   it('should use time labels when admissions data is on one calendar day', () => {
     visitAdmissions({ admissionDataSpan: 'same-day' }, true);
-    infrastructurePage.selectAdmissionTimeWindow('7d');
+    infrastructurePage.selectAdmissionTimeWindow('24h');
     infrastructurePage.findAdmissionMetricCharts().should('be.visible');
 
     infrastructurePage
