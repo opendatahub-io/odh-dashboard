@@ -180,11 +180,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       if (storageClassName !== pvc.spec.storageClassName) {
         setStorageClassName(pvc.spec.storageClassName);
       }
-    } else if (defaultStorageClassName && storageClassName === '') {
-      // Otherwise, if the default storage class is available and state is empty, use it.
+    } else if (defaultStorageClassName && !deployedStorageClassName) {
+      // No deployed PVC — sync to the resolved default storage class.
       setStorageClassName(defaultStorageClassName);
     }
-  }, [pvc, defaultStorageClassName, storageClassName]);
+  }, [pvc, defaultStorageClassName, storageClassName, deployedStorageClassName]);
 
   React.useEffect(() => {
     if (currentProjectName) {
