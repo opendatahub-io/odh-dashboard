@@ -109,7 +109,6 @@ export enum MetricsType {
   performanceMetrics = 'performance-metrics',
   coldStartMetrics = 'cold-start-metrics',
   securityMetrics = 'security-metrics',
-  evaluationMetrics = 'evaluation-metrics',
 }
 
 export enum CategoryName {
@@ -200,28 +199,6 @@ export type SecurityMetricsCustomProperties = {
   threshold?: ModelRegistryCustomPropertyDouble;
 };
 
-export type EvaluationMetricsCustomProperties = {
-  id?: ModelRegistryCustomPropertyString;
-  model_id?: ModelRegistryCustomPropertyString;
-  run_id?: ModelRegistryCustomPropertyString;
-  evaluation?: ModelRegistryCustomPropertyString;
-  category?: ModelRegistryCustomPropertyString;
-  benchmark?: ModelRegistryCustomPropertyString;
-  description?: ModelRegistryCustomPropertyString;
-  result?: ModelRegistryCustomPropertyDouble;
-  result_metric?: ModelRegistryCustomPropertyString;
-  created_at?: ModelRegistryCustomPropertyString;
-  updated_at?: ModelRegistryCustomPropertyString;
-  provider_id?: ModelRegistryCustomPropertyString;
-  collection_id?: ModelRegistryCustomPropertyString;
-  benchmark_status?: ModelRegistryCustomPropertyString;
-  job_status?: ModelRegistryCustomPropertyString;
-  rhoai_version?: ModelRegistryCustomPropertyString;
-  source_run_ids?: ModelRegistryCustomPropertyString;
-  execution_context?: ModelRegistryCustomPropertyString;
-  benchmark_index?: ModelRegistryCustomPropertyDouble;
-};
-
 export type CatalogPerformanceMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
   artifactType: CatalogArtifactType.metricsArtifact;
   metricsType: MetricsType.performanceMetrics;
@@ -253,18 +230,11 @@ export type CatalogSecurityMetricsArtifact = Omit<CatalogArtifactBase, 'customPr
   customProperties?: SecurityMetricsCustomProperties;
 };
 
-export type CatalogEvaluationMetricsArtifact = Omit<CatalogArtifactBase, 'customProperties'> & {
-  artifactType: CatalogArtifactType.metricsArtifact;
-  metricsType: MetricsType.evaluationMetrics;
-  customProperties?: EvaluationMetricsCustomProperties;
-};
-
 export type CatalogMetricsArtifact =
   | CatalogPerformanceMetricsArtifact
   | CatalogAccuracyMetricsArtifact
   | CatalogColdStartMetricsArtifact
-  | CatalogSecurityMetricsArtifact
-  | CatalogEvaluationMetricsArtifact;
+  | CatalogSecurityMetricsArtifact;
 
 export type CatalogArtifacts = CatalogModelArtifact | CatalogMetricsArtifact;
 
@@ -272,10 +242,6 @@ export type CatalogArtifactList = PaginationParams & { items: CatalogArtifacts[]
 
 export type CatalogPerformanceArtifactList = PaginationParams & {
   items: CatalogPerformanceMetricsArtifact[];
-};
-
-export type CatalogEvaluationArtifactList = PaginationParams & {
-  items: CatalogEvaluationMetricsArtifact[];
 };
 
 export type { CatalogFilterStringOption, CatalogFilterNumberOption };
@@ -328,16 +294,6 @@ export type GetPerformanceArtifacts = (
   filterOptions?: CatalogFilterOptionsList | null,
 ) => Promise<CatalogPerformanceArtifactList>;
 
-export type GetEvaluationArtifacts = (
-  opts: APIOptions,
-  sourceId: string,
-  modelName: string,
-  params?: {
-    pageSize?: number;
-    nextPageToken?: string;
-  },
-) => Promise<CatalogEvaluationArtifactList>;
-
 export type GetArtifactFilterOptions = (
   opts: APIOptions,
   sourceId: string,
@@ -373,7 +329,6 @@ export type ModelCatalogAPIs = {
   getListCatalogModelArtifacts: GetListCatalogModelArtifacts;
   getCatalogFilterOptionList: GetCatalogFilterOptionList;
   getPerformanceArtifacts: GetPerformanceArtifacts;
-  getEvaluationArtifacts: GetEvaluationArtifacts;
   getCatalogLabels: GetCatalogLabels;
   getMcpServerList: GetMcpServerList;
   getMcpServerFilterOptionList: GetMcpServerFilterOptionList;

@@ -6,7 +6,6 @@ import {
   CatalogModel,
   CatalogModelList,
   CatalogPerformanceArtifactList,
-  CatalogEvaluationArtifactList,
   CatalogSourceList,
   CatalogSourceListParams,
   CatalogLabelListParams,
@@ -144,31 +143,6 @@ export const getPerformanceArtifacts =
       restGET(hostPath, `/sources/${sourceId}/performance_artifacts/${modelName}`, allParams, opts),
     ).then((response) => {
       if (isModArchResponse<CatalogPerformanceArtifactList>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-  };
-
-export const getEvaluationArtifacts =
-  (hostPath: string, queryParams: Record<string, unknown> = {}) =>
-  (
-    opts: APIOptions,
-    sourceId: string,
-    modelName: string,
-    params?: { pageSize?: number; nextPageToken?: string },
-  ): Promise<CatalogEvaluationArtifactList> => {
-    const allParams = {
-      ...queryParams,
-      artifactType: 'metrics-artifact',
-      filterQuery: 'metricsType.string_value="evaluation-metrics"',
-      ...(params?.pageSize !== undefined && { pageSize: params.pageSize }),
-      ...(params?.nextPageToken && { nextPageToken: params.nextPageToken }),
-    };
-    return handleRestFailures(
-      restGET(hostPath, `/sources/${sourceId}/artifacts/${modelName}`, allParams, opts),
-    ).then((response) => {
-      if (isModArchResponse<CatalogEvaluationArtifactList>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

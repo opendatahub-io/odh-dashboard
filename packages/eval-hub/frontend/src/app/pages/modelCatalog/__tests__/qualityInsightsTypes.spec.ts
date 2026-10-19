@@ -53,6 +53,35 @@ describe('mapArtifactToQualityInsight', () => {
     });
   });
 
+  it('maps the run timestamp from created_at', () => {
+    expect(
+      mapArtifactToQualityInsight({
+        artifactType: 'metrics-artifact',
+        customProperties: {
+          created_at: {
+            metadataType: 'MetadataStringValue',
+            string_value: '2026-03-02T10:00:00Z',
+          },
+        },
+      }),
+    ).toMatchObject({ createdAt: '2026-03-02T10:00:00Z' });
+  });
+
+  it('maps the run timestamp from the artifact creation epoch when created_at is absent', () => {
+    expect(
+      mapArtifactToQualityInsight({
+        artifactType: 'metrics-artifact',
+        createTimeSinceEpoch: '1791300634000',
+      }).createdAt,
+    ).toBe('2026-10-06T15:30:34.000Z');
+  });
+
+  it('omits createdAt when the artifact has no created_at property', () => {
+    expect(
+      mapArtifactToQualityInsight({ artifactType: 'metrics-artifact' }).createdAt,
+    ).toBeUndefined();
+  });
+
   it('handles values already expressed as percentages', () => {
     expect(
       mapArtifactToQualityInsight({

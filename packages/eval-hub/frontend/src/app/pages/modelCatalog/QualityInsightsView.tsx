@@ -29,6 +29,7 @@ import {
   TABLE_PER_PAGE_OPTIONS,
 } from '~/app/utilities/tablePaginationConstants';
 import { capitalizeFirst, getCategoryColor } from '~/app/components/benchmarkUtils';
+import { formatDate } from '~/app/utilities/evaluationUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import QualityInsightsEmptyState from './QualityInsightsEmptyState';
 import { type QualityInsight, type QualityInsightsViewProps } from './qualityInsightsTypes';
@@ -48,6 +49,7 @@ const QUALITY_COLUMNS: SortableData<QualityInsight>[] = [
   { field: 'evaluation', label: 'Evaluation', sortable: true, modifier: 'nowrap' },
   { field: 'category', label: 'Category', sortable: true, modifier: 'nowrap' },
   { field: 'benchmarkName', label: 'Benchmark', sortable: true },
+  { field: 'createdAt', label: 'Last run', sortable: true, modifier: 'nowrap' },
   { field: 'score', label: 'Evaluation score', sortable: true, modifier: 'nowrap' },
 ];
 
@@ -70,8 +72,8 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
   const [isFilterSelectOpen, setIsFilterSelectOpen] = React.useState(false);
   const [filterValue, setFilterValue] = React.useState('');
   const [sortConfig, setSortConfig] = React.useState<QualitySortConfig>({
-    index: 1,
-    direction: 'asc',
+    index: 3,
+    direction: 'desc',
   });
   const [page, setPage] = React.useState(1);
   const viewTrackedRef = React.useRef(false);
@@ -304,7 +306,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
                 insight.id ??
                 `${insight.benchmarkName}-${insight.evaluation}-${insight.category}-${
                   insight.score ?? insight.result
-                }`
+                }-${insight.createdAt ?? ''}`
               }
               data-testid="quality-insight-row"
             >
@@ -323,6 +325,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
                   truncateDescriptionLines={2}
                 />
               </Td>
+              <Td dataLabel="Last run">{formatDate(insight.createdAt)}</Td>
               <Td dataLabel="Evaluation score">{insight.result}</Td>
             </Tr>
           )}

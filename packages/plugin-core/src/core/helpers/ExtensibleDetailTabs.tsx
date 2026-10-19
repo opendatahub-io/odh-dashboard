@@ -187,8 +187,12 @@ type StaticTab = {
 type ExtensibleDetailTabsProps<TExtension extends Extension<string, DetailTabProperties>> = {
   /** The currently active tab key (typically from URL params). */
   activeKey: string;
-  /** Callback fired when a tab is selected. Receives the new tab key. */
-  onSelect: (tabKey: string) => void;
+  /**
+   * Callback fired when a tab is selected. Receives the new tab key and, for
+   * redirects away from an unavailable tab, `replace: true` so callers can
+   * replace the history entry instead of pushing a new one.
+   */
+  onSelect: (tabKey: string, options?: { replace?: boolean }) => void;
   /** Static (built-in) tabs rendered before extension tabs. */
   staticTabs?: StaticTab[];
   /** Loaded extension tabs (from `useExtensions`). */
@@ -366,7 +370,9 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
 
   React.useEffect(() => {
     if (effectiveActiveKey !== activeKey) {
-      onSelect(effectiveActiveKey);
+      // Replace rather than push so redirecting away from an unavailable tab
+      // (e.g. a deep link to a tab with no data) does not trap the Back button.
+      onSelect(effectiveActiveKey, { replace: true });
     }
   }, [effectiveActiveKey, activeKey, onSelect]);
 

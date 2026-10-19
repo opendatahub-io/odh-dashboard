@@ -103,6 +103,40 @@ describe('QualityInsightsView', () => {
     expect(screen.getByTestId('quality-table-row-title')).toHaveTextContent('HumanEval');
   });
 
+  it('distinguishes repeated runs with a Last run column sorted newest first', async () => {
+    mockInsightsData = [
+      {
+        evaluation: 'Python function generation',
+        category: 'code',
+        benchmarkName: 'HumanEval',
+        benchmarkDescription: 'Writes correct Python functions.',
+        score: 0.628,
+        result: '62.8%',
+        createdAt: '2026-01-15T10:00:00',
+      },
+      {
+        evaluation: 'Python function generation',
+        category: 'code',
+        benchmarkName: 'HumanEval',
+        benchmarkDescription: 'Writes correct Python functions.',
+        score: 0.701,
+        result: '70.1%',
+        createdAt: '2026-03-02T10:00:00',
+      },
+    ];
+
+    await renderView();
+    expect(screen.getAllByRole('columnheader').map((column) => column.textContent!.trim())).toEqual(
+      ['Evaluation', 'Category', 'Benchmark', 'Last run', 'Evaluation score'],
+    );
+    const rows = screen.getAllByTestId('quality-insight-row');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('70.1%');
+    expect(rows[1]).toHaveTextContent('62.8%');
+    expect(screen.getByText('03/02/2026, 10:00:00 AM')).toBeInTheDocument();
+    expect(screen.getByText('01/15/2026, 10:00:00 AM')).toBeInTheDocument();
+  });
+
   it('sorts rows and paginates the result set', async () => {
     mockInsightsData = Array.from({ length: 21 }, (_, index) => ({
       evaluation: `Evaluation ${20 - index}`,

@@ -105,7 +105,9 @@ const ModelDetailsTabs = ({
   return (
     <ExtensibleDetailTabs
       activeKey={tab}
-      onSelect={(tabKey) => navigate(`../${tabKey}`, { relative: 'path' })}
+      onSelect={(tabKey, options) =>
+        navigate(`../${tabKey}`, { relative: 'path', replace: options?.replace })
+      }
       staticTabs={staticTabs}
       extensionTabs={tabExtensions}
       group={MODEL_CATALOG_DETAILS_GROUP}

@@ -158,6 +158,35 @@ describe('ExtensibleDetailTabs', () => {
     expect(defaultOnSelect).toHaveBeenCalledWith('versions');
   });
 
+  it('should not request history replacement when a tab is selected by the user', () => {
+    render(
+      <ExtensibleDetailTabs
+        activeKey="overview"
+        onSelect={defaultOnSelect}
+        staticTabs={[
+          {
+            id: 'overview',
+            title: 'Overview',
+            content: <div data-testid="overview-inner">Overview content</div>,
+          },
+          {
+            id: 'versions',
+            title: 'Versions',
+            content: <div data-testid="versions-inner">Versions content</div>,
+          },
+        ]}
+        extensionTabs={[]}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('versions-tab'));
+    expect(defaultOnSelect).toHaveBeenCalledWith('versions');
+    expect(defaultOnSelect).not.toHaveBeenCalledWith(
+      'versions',
+      expect.objectContaining({ replace: true }),
+    );
+  });
+
   it('should filter extension tabs using filterExtension callback', () => {
     const extensionTabs = [
       createMockTabExtension('deployments', 'Deployments'),
@@ -394,7 +423,21 @@ describe('ExtensibleDetailTabs', () => {
         />,
       );
 
-      await waitFor(() => expect(onSelect).toHaveBeenCalledWith('overview'));
+      await waitFor(() => expect(onSelect).toHaveBeenCalledWith('overview', { replace: true }));
+    });
+
+    it('should redirect with history replacement when the active tab does not exist', async () => {
+      const onSelect = jest.fn();
+      render(
+        <ExtensibleDetailTabs
+          activeKey="quality-insights"
+          onSelect={onSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={[]}
+        />,
+      );
+
+      await waitFor(() => expect(onSelect).toHaveBeenCalledWith('overview', { replace: true }));
     });
 
     it('should hide a tab when shouldShow throws', async () => {
@@ -413,7 +456,7 @@ describe('ExtensibleDetailTabs', () => {
       );
 
       await waitFor(() => expect(screen.queryByTestId('throwing-tab')).not.toBeInTheDocument());
-      expect(onSelect).toHaveBeenCalledWith('overview');
+      expect(onSelect).toHaveBeenCalledWith('overview', { replace: true });
     });
 
     it('should show a visibility error alert when shouldShow rejects', async () => {
