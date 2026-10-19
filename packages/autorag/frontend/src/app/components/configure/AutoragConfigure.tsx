@@ -78,7 +78,6 @@ import {
 import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
-import InlineTooltip from '~/app/components/InlineTooltip';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -123,7 +122,6 @@ import {
   isAllowedInputDataUploadFile,
   SUPPORTED_FORMAT_EXTENSIONS,
   SUPPORTED_FORMAT_HINT,
-  SUPPORTED_FORMAT_NAMES_STRING_SIMPLE,
   INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
 } from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
@@ -768,15 +766,7 @@ function AutoragConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText={
-                                    <>
-                                      <InlineTooltip
-                                        text="Accepted file types"
-                                        tooltip={SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}
-                                      />
-                                      . Maximum file size: {AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB
-                                    </>
-                                  }
+                                  infoText={`Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
