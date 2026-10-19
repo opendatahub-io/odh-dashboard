@@ -28,10 +28,10 @@ spec:
         metrics_state = {
             "progressPercentage": 0,
             "currentStep": 0,
-            "totalSteps": 100,
+            "totalSteps": 150,
             "currentEpoch": 0,
             "totalEpochs": 5,
-            "estimatedRemainingSeconds": 100,
+            "estimatedRemainingSeconds": 150,
             "trainMetrics": {"train_loss": 5.0},
             "lastUpdatedTime": datetime.utcnow().isoformat() + "Z"
         }
@@ -59,7 +59,7 @@ spec:
 
         # Training simulation with progression tracking
         num_epochs = 5
-        steps_per_epoch = 20
+        steps_per_epoch = 30
         total_steps = num_epochs * steps_per_epoch
         initial_loss = 5.0
 
