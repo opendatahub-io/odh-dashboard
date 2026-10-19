@@ -121,11 +121,14 @@ var _ = Describe("GenAIProxyNSEmbeddingsHandler", func() {
 
 		ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-ns")
-		baseURL, token, err := app.resolveModelEndpoint(ctx, constants.MaaSProviderPrefix+modelID, "test-ns", "")
+		baseURL, token, resolvedModel, err := app.resolveModelEndpoint(ctx, constants.MaaSProviderPrefix+modelID, "test-ns", "")
 
 		require.NoError(t, err)
 		assert.Equal(t, "https://models.example.com/v1", baseURL)
 		assert.Equal(t, "maas-token", token)
+		// The resolved model ID strips only the "maas-" routing prefix and preserves
+		// the full catalog path (the first-slash chop would have dropped "publishers/").
+		assert.Equal(t, modelID, resolvedModel)
 		_, found := app.memoryStore.Get("test-ns", "mockUser", constants.CacheAccessTokensCategory, maasTokenCacheKey(modelID, ""))
 		assert.True(t, found, "the MaaS token cache key should use the unprefixed model ID")
 	})
@@ -151,6 +154,112 @@ var _ = Describe("GenAIProxyNSEmbeddingsHandler", func() {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.Equal(t, "Bearer custom-api-key", authorization)
+	})
+
+	It("should forward namespaced custom-endpoint model IDs verbatim", func() {
+		t := GinkgoT()
+		var upstreamModel string
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var upstreamBody struct {
+				Model string `json:"model"`
+			}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&upstreamBody))
+			upstreamModel = upstreamBody.Model
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer upstream.Close()
+
+		app.kubernetesClientFactory = &proxyCredentialsK8sFactory{client: &proxyCredentialsK8sClient{
+			externalModelsConfig: customEndpointConfig(upstream.URL, "granite-embed-provider", "RedHatAI/granite-embedding-english-r2", "", ""),
+		}}
+		app.httpClient = upstream.Client()
+
+		// OGX forwards the model's provider_resource_id — the ConfigMap model_id, which
+		// for namespaced (HF-style) IDs contains slashes. The upstream (e.g. vLLM) serves
+		// the model under its full namespaced name, so the ID must survive verbatim.
+		req := embeddingProxyRequest(`{"model":"RedHatAI/granite-embedding-english-r2","input":"test"}`, "test-token")
+		rr := httptest.NewRecorder()
+		app.GenAIProxyNSEmbeddingsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "RedHatAI/granite-embedding-english-r2", upstreamModel)
+	})
+
+	It("should strip the passthrough routing prefix but preserve namespaced model IDs", func() {
+		t := GinkgoT()
+		var upstreamModel string
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var upstreamBody struct {
+				Model string `json:"model"`
+			}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&upstreamBody))
+			upstreamModel = upstreamBody.Model
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer upstream.Close()
+
+		app.kubernetesClientFactory = &proxyCredentialsK8sFactory{client: &proxyCredentialsK8sClient{
+			externalModelsConfig: customEndpointConfig(upstream.URL, "granite-embed-provider", "RedHatAI/granite-embedding-english-r2", "", ""),
+		}}
+		app.httpClient = upstream.Client()
+
+		req := embeddingProxyRequest(`{"model":"genai-bff-proxy/RedHatAI/granite-embedding-english-r2","input":"test"}`, "test-token")
+		rr := httptest.NewRecorder()
+		app.GenAIProxyNSEmbeddingsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "RedHatAI/granite-embedding-english-r2", upstreamModel)
+	})
+
+	It("should strip the custom-endpoint provider prefix from the proxied model", func() {
+		t := GinkgoT()
+		var upstreamModel string
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var upstreamBody struct {
+				Model string `json:"model"`
+			}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&upstreamBody))
+			upstreamModel = upstreamBody.Model
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer upstream.Close()
+
+		app.kubernetesClientFactory = &proxyCredentialsK8sFactory{client: &proxyCredentialsK8sClient{
+			externalModelsConfig: customEndpointConfig(upstream.URL, "custom-provider", "embedding-model", "", ""),
+		}}
+		app.httpClient = upstream.Client()
+
+		req := embeddingProxyRequest(`{"model":"custom-provider/embedding-model","input":"test"}`, "test-token")
+		rr := httptest.NewRecorder()
+		app.GenAIProxyNSEmbeddingsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "embedding-model", upstreamModel)
+	})
+
+	It("should append /v1 to base URLs that do not already end in /v1", func() {
+		t := GinkgoT()
+		var upstreamPath string
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			upstreamPath = r.URL.Path
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer upstream.Close()
+
+		// Gemini's OpenAI-compatible base URL uses the /v1beta/openai path. The handler
+		// appends /v1 per the spike findings — Google's endpoint accepts the resulting
+		// /v1beta/openai/v1/embeddings path.
+		app.kubernetesClientFactory = &proxyCredentialsK8sFactory{client: &proxyCredentialsK8sClient{
+			externalModelsConfig: customEndpointConfig(upstream.URL+"/v1beta/openai", "gemini-embedding-provider", "gemini-embedding-001", "", ""),
+		}}
+		app.httpClient = upstream.Client()
+
+		req := embeddingProxyRequest(`{"model":"gemini-embedding-001","input":"test"}`, "test-token")
+		rr := httptest.NewRecorder()
+		app.GenAIProxyNSEmbeddingsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "/v1beta/openai/v1/embeddings", upstreamPath)
 	})
 
 	It("should use the fake fallback key when a custom endpoint has no Secret", func() {
