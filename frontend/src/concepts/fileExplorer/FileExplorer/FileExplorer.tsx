@@ -79,12 +79,21 @@ import {
 } from '@patternfly/react-table';
 import {
   EllipsisVIcon,
+  FileAudioIcon,
+  FileAltIcon,
+  FileCodeIcon,
+  FileCsvIcon,
+  FileIcon,
+  FileImageIcon,
+  FilePdfIcon,
+  FilePowerpointIcon,
+  FileWordIcon,
+  FolderIcon,
   InfoCircleIcon,
   OutlinedEyeIcon,
   TimesIcon,
   TrashIcon,
   RhUiInformationFillIcon,
-  VolumeUpIcon,
 } from '@patternfly/react-icons';
 import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 import type {
@@ -135,12 +144,48 @@ const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue
   typeof value === 'boolean' ||
   React.isValidElement(value);
 
-// Keep global icon coverage broader than AutoRAG's current selectable-format list.
-const AUDIO_FILE_EXTENSIONS = new Set(['flac', 'm4a', 'mp3', 'ogg', 'wav']);
-
-const isAudioFile = (fileName: string): boolean => {
+const getFileIcon = (fileName: string, testId: string): ReactNode => {
   const extension = fileName.split('.').pop()?.toLowerCase();
-  return extension ? AUDIO_FILE_EXTENSIONS.has(extension) : false;
+  const props = { 'aria-hidden': true, 'data-testid': testId };
+
+  switch (extension) {
+    case 'json':
+    case 'html':
+    case 'htm':
+    case 'xhtml':
+      return <FileCodeIcon {...props} data-testid="file-explorer-code-icon" />;
+    case 'md':
+    case 'markdown':
+    case 'txt':
+    case 'adoc':
+    case 'tex':
+    case 'qmd':
+    case 'rmd':
+    case 'eml':
+      return <FileAltIcon {...props} data-testid="file-explorer-file-alt-icon" />;
+    case 'csv':
+      return <FileCsvIcon {...props} data-testid="file-explorer-csv-icon" />;
+    case 'pdf':
+      return <FilePdfIcon {...props} data-testid="file-explorer-pdf-icon" />;
+    case 'docx':
+      return <FileWordIcon {...props} data-testid="file-explorer-word-icon" />;
+    case 'pptx':
+      return <FilePowerpointIcon {...props} data-testid="file-explorer-powerpoint-icon" />;
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'tif':
+    case 'tiff':
+      return <FileImageIcon {...props} data-testid="file-explorer-image-icon" />;
+    case 'm4a':
+    case 'mp3':
+    case 'flac':
+    case 'ogg':
+    case 'wav':
+      return <FileAudioIcon {...props} data-testid="file-explorer-audio-icon" />;
+    default:
+      return <FileIcon {...props} />;
+  }
 };
 
 // Globals -------------------------------------------------------------------->
@@ -529,11 +574,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         alignItems={{ default: 'alignItemsCenter' }}
                         flexWrap={{ default: 'nowrap' }}
                       >
-                        {!isFolder(file) && isAudioFile(file.name) && (
-                          <FlexItem>
-                            <VolumeUpIcon aria-hidden data-testid="file-explorer-audio-icon" />
-                          </FlexItem>
-                        )}
+                        <FlexItem>
+                          {isFolder(file) ? (
+                            <FolderIcon aria-hidden data-testid="file-explorer-folder-icon" />
+                          ) : (
+                            getFileIcon(file.name, 'file-explorer-file-icon')
+                          )}
+                        </FlexItem>
                         <FlexItem>
                           {isFolder(file) && !file.disabled ? (
                             <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>

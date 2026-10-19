@@ -72,19 +72,88 @@ describe('FileExplorer', () => {
     });
   });
   describe('file table', () => {
-    it('should render the global audio icon for configured audio extensions case-insensitively', () => {
+    it('should render format-specific icons for supported file extensions', () => {
       const files = [
         mockFile({ name: 'recording.MP3', path: '/recording.MP3' }),
+        mockFile({ name: 'interview.m4a', path: '/interview.m4a' }),
         mockFile({ name: 'meeting.flac', path: '/meeting.flac' }),
+        mockFile({ name: 'podcast.ogg', path: '/podcast.ogg' }),
+        mockFile({ name: 'voice.wav', path: '/voice.wav' }),
+        mockFile({ name: 'paper.pdf', path: '/paper.pdf' }),
+        mockFile({ name: 'report.docx', path: '/report.docx' }),
+        mockFile({ name: 'slides.pptx', path: '/slides.pptx' }),
+        mockFile({ name: 'evaluation.json', path: '/evaluation.json' }),
+        mockFile({ name: 'training.csv', path: '/training.csv' }),
+        mockFile({ name: 'page.html', path: '/page.html' }),
+        mockFile({ name: 'legacy.htm', path: '/legacy.htm' }),
+        mockFile({ name: 'document.xhtml', path: '/document.xhtml' }),
+        mockFile({ name: 'photo.jpg', path: '/photo.jpg' }),
+        mockFile({ name: 'photo.jpeg', path: '/photo.jpeg' }),
+        mockFile({ name: 'photo.png', path: '/photo.png' }),
+        mockFile({ name: 'photo.tif', path: '/photo.tif' }),
+        mockFile({ name: 'photo.tiff', path: '/photo.tiff' }),
         mockFile({ name: 'notes.txt', path: '/notes.txt' }),
+        mockFile({ name: 'archive.bin', path: '/archive.bin' }),
       ];
 
       render(<FileExplorer {...defaultProps} files={files} />);
 
-      expect(screen.getAllByTestId('file-explorer-audio-icon')).toHaveLength(2);
+      expect(screen.getAllByTestId('file-explorer-audio-icon')).toHaveLength(5);
+      expect(screen.getAllByTestId('file-explorer-image-icon')).toHaveLength(5);
+      expect(
+        within(screen.getByTestId('file-explorer-row--paper-pdf')).getByTestId(
+          'file-explorer-pdf-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--report-docx')).getByTestId(
+          'file-explorer-word-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--slides-pptx')).getByTestId(
+          'file-explorer-powerpoint-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--evaluation-json')).getByTestId(
+          'file-explorer-code-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--training-csv')).getByTestId(
+          'file-explorer-csv-icon',
+        ),
+      ).toBeInTheDocument();
+      for (const codeFileName of ['page-html', 'legacy-htm', 'document-xhtml']) {
+        expect(
+          within(screen.getByTestId(`file-explorer-row--${codeFileName}`)).getByTestId(
+            'file-explorer-code-icon',
+          ),
+        ).toBeInTheDocument();
+      }
+      for (const imageName of ['photo-jpg', 'photo-jpeg', 'photo-png', 'photo-tif', 'photo-tiff']) {
+        expect(
+          within(screen.getByTestId(`file-explorer-row--${imageName}`)).getByTestId(
+            'file-explorer-image-icon',
+          ),
+        ).toBeInTheDocument();
+      }
+      expect(screen.getAllByTestId('file-explorer-file-alt-icon')).toHaveLength(1);
+      expect(screen.getAllByTestId('file-explorer-file-icon')).toHaveLength(1);
       expect(
         within(screen.getByTestId('file-explorer-row--notes-txt')).queryByTestId(
           'file-explorer-audio-icon',
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--archive-bin')).getByTestId(
+          'file-explorer-file-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--recording-MP3')).queryByTestId(
+          'file-explorer-file-icon',
         ),
       ).not.toBeInTheDocument();
     });
@@ -98,13 +167,17 @@ describe('FileExplorer', () => {
       expect(screen.getByText('file-3.json')).toBeInTheDocument();
     });
     it('should render folder rows with clickable links', () => {
-      const folder = mockFolder({ name: 'my-folder' });
+      const folder = mockFolder({ name: 'recordings.mp3' });
       const onFolderClick = jest.fn();
       render(<FileExplorer {...defaultProps} files={[folder]} onFolderClick={onFolderClick} />);
 
-      const folderLink = screen.getByText('my-folder');
+      const folderLink = screen.getByText('recordings.mp3');
       expect(folderLink).toBeInTheDocument();
       expect(screen.getByText('Folder')).toBeInTheDocument();
+      const folderRow = screen.getByTestId('file-explorer-row--test-folder');
+      expect(within(folderRow).getByTestId('file-explorer-folder-icon')).toBeInTheDocument();
+      expect(within(folderRow).queryByTestId('file-explorer-file-icon')).not.toBeInTheDocument();
+      expect(within(folderRow).queryByTestId('file-explorer-audio-icon')).not.toBeInTheDocument();
 
       fireEvent.click(folderLink);
       expect(onFolderClick).toHaveBeenCalledWith(folder);
