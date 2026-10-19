@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -31,6 +33,99 @@ import (
 
 var odhDashboardConfigGVK = schema.GroupVersionKind{
 	Group: "opendatahub.io", Version: "v1alpha", Kind: "OdhDashboardConfig",
+}
+
+var odhDashboardConfigListGVK = schema.GroupVersionKind{
+	Group: "opendatahub.io", Version: "v1alpha", Kind: "OdhDashboardConfigList",
+}
+
+func newUnstructuredOdhDashboardConfig(namespace, name string) *unstructured.Unstructured {
+	config := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "opendatahub.io/v1alpha",
+		"kind":       "OdhDashboardConfig",
+		"metadata": map[string]interface{}{
+			"name":      name,
+			"namespace": namespace,
+		},
+		"spec": map[string]interface{}{},
+	}}
+	config.SetGroupVersionKind(odhDashboardConfigGVK)
+	return config
+}
+
+// TestIntegration_OdhDashboardConfigCacheIsScopedToTarget proves the dedicated
+// cache only lists/watches the single target OdhDashboardConfig (applications
+// namespace, name odh-dashboard-config). Objects in other namespaces or with
+// other names must never enter the local store, so operator memory does not
+// scale with the cluster-wide OdhDashboardConfig count.
+func TestIntegration_OdhDashboardConfigCacheIsScopedToTarget(t *testing.T) {
+	ctx := context.Background()
+
+	target := newUnstructuredOdhDashboardConfig(integrationNamespace, ctrlpkg.OdhDashboardConfigName)
+	require.NoError(t, k8sClient.Create(ctx, target))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, target) })
+
+	// Decoy in a different namespace (same name) — out of the namespace scope.
+	const decoyNamespace = "odh-dashboard-config-decoy"
+	require.NoError(t, k8sClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: decoyNamespace}}))
+	t.Cleanup(func() {
+		_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: decoyNamespace}})
+	})
+	decoyOtherNamespace := newUnstructuredOdhDashboardConfig(decoyNamespace, ctrlpkg.OdhDashboardConfigName)
+	require.NoError(t, k8sClient.Create(ctx, decoyOtherNamespace))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, decoyOtherNamespace) })
+
+	// Decoy in the target namespace with a different name — out of the name scope.
+	decoyOtherName := newUnstructuredOdhDashboardConfig(integrationNamespace, "some-other-config")
+	require.NoError(t, k8sClient.Create(ctx, decoyOtherName))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, decoyOtherName) })
+
+	scopedCache, err := cache.New(restCfg, cache.Options{
+		Scheme:                      k8sClient.Scheme(),
+		ReaderFailOnMissingInformer: true,
+		ByObject:                    ctrlpkg.ScopedOdhDashboardConfigByObject(integrationNamespace),
+	})
+	require.NoError(t, err)
+
+	cacheCtx, cancel := context.WithCancel(ctx)
+	t.Cleanup(cancel)
+	// Request the informer before starting (ReaderFailOnMissingInformer is on, so
+	// the cache will not create it lazily) — mirrors the production watch wiring.
+	_, err = scopedCache.GetInformer(cacheCtx, newUnstructuredOdhDashboardConfig(integrationNamespace, ctrlpkg.OdhDashboardConfigName))
+	require.NoError(t, err)
+	go func() { _ = scopedCache.Start(cacheCtx) }()
+	require.True(t, scopedCache.WaitForCacheSync(cacheCtx), "scoped cache did not sync")
+
+	// The target object is visible through the scoped cache.
+	got := &unstructured.Unstructured{}
+	got.SetGroupVersionKind(odhDashboardConfigGVK)
+	require.NoError(t, scopedCache.Get(cacheCtx, types.NamespacedName{
+		Namespace: integrationNamespace, Name: ctrlpkg.OdhDashboardConfigName,
+	}, got))
+
+	// A same-namespace object with a different name is excluded by the field selector.
+	otherName := &unstructured.Unstructured{}
+	otherName.SetGroupVersionKind(odhDashboardConfigGVK)
+	err = scopedCache.Get(cacheCtx, types.NamespacedName{
+		Namespace: integrationNamespace, Name: "some-other-config",
+	}, otherName)
+	assert.True(t, apierrors.IsNotFound(err), "differently-named config must not be cached, got: %v", err)
+
+	// An object in a different namespace is excluded by the namespace scope.
+	otherNamespace := &unstructured.Unstructured{}
+	otherNamespace.SetGroupVersionKind(odhDashboardConfigGVK)
+	err = scopedCache.Get(cacheCtx, types.NamespacedName{
+		Namespace: decoyNamespace, Name: ctrlpkg.OdhDashboardConfigName,
+	}, otherNamespace)
+	assert.Error(t, err, "config in an unscoped namespace must not be cached")
+
+	// A cache-wide list returns only the single target object.
+	list := &unstructured.UnstructuredList{}
+	list.SetGroupVersionKind(odhDashboardConfigListGVK)
+	require.NoError(t, scopedCache.List(cacheCtx, list))
+	require.Len(t, list.Items, 1, "scoped cache must only contain the target OdhDashboardConfig")
+	assert.Equal(t, integrationNamespace, list.Items[0].GetNamespace())
+	assert.Equal(t, ctrlpkg.OdhDashboardConfigName, list.Items[0].GetName())
 }
 
 // TestIntegration_RHOAIControllerStartsWithoutOdhDashboardConfigCRD guards the
