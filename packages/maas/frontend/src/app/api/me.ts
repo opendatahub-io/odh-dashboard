@@ -1,6 +1,7 @@
+/* eslint-disable no-relative-import-paths/no-relative-import-paths -- Portal TS checks this exported API across package boundaries. */
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
-import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
-import { MAAS_ORGS_CLAIM, type MaaSMe } from '~/app/types/me';
+import { BFF_API_VERSION, API_URL_PREFIX } from '../utilities/const';
+import { MAAS_ORGS_CLAIM, type MaaSMe } from '../types/me';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 
