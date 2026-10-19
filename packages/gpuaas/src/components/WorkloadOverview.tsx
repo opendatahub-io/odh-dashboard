@@ -11,6 +11,7 @@ import {
   Flex,
   FlexItem,
   Popover,
+  Skeleton,
   Spinner,
   Stack,
   Tab,
@@ -34,8 +35,6 @@ import {
 } from '../utils/workloadOverview';
 import './InfrastructureWorkloadsSection.scss';
 
-const WorkloadAdmissionsTab = React.lazy(() => import('./WorkloadAdmissionsTab'));
-
 type WorkloadOverviewProps = {
   workloads: WorkloadOverviewRow[];
   loaded: boolean;
@@ -48,6 +47,32 @@ type WorkloadOverviewProps = {
   refreshTrigger?: number;
   onViewInTable?: (bucket: OverviewBucket) => void;
 };
+
+const WorkloadAdmissionsTab = React.lazy(() => import('./WorkloadAdmissionsTab'));
+
+const admissionMetricLabels = [
+  'Admission rate',
+  'Admission lead time',
+  'Waiting workloads',
+  'Active workloads',
+];
+
+const AdmissionMetricsLoading: React.FC = () => (
+  <div
+    className="gpuaas-workload-overview__admission-metrics"
+    data-testid="admission-metric-charts-loading"
+  >
+    {admissionMetricLabels.map((label) => (
+      <div className="gpuaas-workload-overview__admission-metric" key={label}>
+        <div className="gpuaas-workload-overview__admission-header-loading">
+          <Skeleton width="80px" height="24px" screenreaderText={`Loading ${label} value`} />
+          <Skeleton width="120px" height="16px" screenreaderText={`Loading ${label} label`} />
+        </div>
+        <Skeleton width="100%" height="140px" screenreaderText={`Loading ${label} chart`} />
+      </div>
+    ))}
+  </div>
+);
 
 type WorkloadStatusPopoverProps = {
   bucket: OverviewBucket;
@@ -397,7 +422,7 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                     }
                   >
                     {activeTab === 'admissions' && (
-                      <React.Suspense fallback={<Spinner aria-label="Loading admission metrics" />}>
+                      <React.Suspense fallback={<AdmissionMetricsLoading />}>
                         <WorkloadAdmissionsTab
                           metrics={admissionMetrics}
                           timeWindow={timeWindow}

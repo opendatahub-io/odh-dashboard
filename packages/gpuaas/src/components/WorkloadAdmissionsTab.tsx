@@ -234,6 +234,15 @@ const AdmissionMetricChartLoading: React.FC<{ label: string }> = ({ label }) => 
   </div>
 );
 
+const AdmissionMetricHeaderLoading: React.FC<{ label: string }> = ({ label }) => (
+  <div className="gpuaas-workload-overview__admission-header-loading">
+    <div data-testid={`admission-metric-value-loading-${label.toLowerCase().replaceAll(' ', '-')}`}>
+      <Skeleton width="80px" height="24px" screenreaderText={`Loading ${label} value`} />
+    </div>
+    <Skeleton width="120px" height="16px" screenreaderText={`Loading ${label} label`} />
+  </div>
+);
+
 const AdmissionMetricCard: React.FC<{
   metric: AdmissionMetric;
   xDomain: [number, number];
@@ -252,7 +261,10 @@ const AdmissionMetricCard: React.FC<{
       data-testid={`admission-metric-card-${metric.id}`}
     >
       {isLoading ? (
-        <AdmissionMetricChartLoading label={metric.label} />
+        <>
+          <AdmissionMetricHeaderLoading label={metric.label} />
+          <AdmissionMetricChartLoading label={metric.label} />
+        </>
       ) : (
         <>
           <div data-testid={`admission-metric-value-${metric.id}`}>
