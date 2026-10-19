@@ -101,9 +101,7 @@ describe('ChooseCompareBenchmarksPage', () => {
     expect(screen.getByTestId('compare-selected-benchmarks-button')).toBeInTheDocument();
     expect(screen.getByTestId('choose-compare-benchmarks-table')).toBeInTheDocument();
     expect(screen.getByTestId('compare-select-all-checkbox')).toBeInTheDocument();
-    expect(screen.getByTestId('compare-run-row-job-collection')).toHaveTextContent(
-      'Benchmark suite',
-    );
+    expect(screen.getByTestId('compare-run-row-job-collection')).toHaveTextContent('Collection');
     expect(screen.getByTestId('compare-run-row-job-collection')).toHaveTextContent(
       'Safety and fairness',
     );

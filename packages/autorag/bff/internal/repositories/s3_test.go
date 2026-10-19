@@ -158,6 +158,9 @@ func (m *mockPipelinesServiceForS3) GetPipelineRunWithSpec(context.Context, stri
 func (m *mockPipelinesServiceForS3) EnableManagedPipelines(_ context.Context, _ string) (*pipelines.EnableManagedPipelinesResult, error) {
 	return nil, nil
 }
+func (m *mockPipelinesServiceForS3) GetDSPAStatus(_ context.Context, _ string) (*pipelines.DSPAStatus, error) {
+	return nil, nil
+}
 
 // --- Helpers ---
 

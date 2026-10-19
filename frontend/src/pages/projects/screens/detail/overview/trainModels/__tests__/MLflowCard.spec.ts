@@ -66,6 +66,16 @@ describe('mlflowLaunchRoute', () => {
   it('should URL-encode ampersands in namespace', () => {
     expect(mlflowLaunchRoute('a&b')).toBe('/mlflow/#/?workspace=a%26b');
   });
+
+  it('should open the given hash path with the workspace', () => {
+    expect(mlflowLaunchRoute('my-project', '/skills')).toBe(
+      '/mlflow/#/skills?workspace=my-project',
+    );
+  });
+
+  it('should open the given hash path when no namespace is provided', () => {
+    expect(mlflowLaunchRoute(undefined, '/skills')).toBe('/mlflow/#/skills');
+  });
 });
 
 describe('buildMLflowExperimentsWorkspaceHref', () => {

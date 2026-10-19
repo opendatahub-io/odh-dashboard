@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"os"
 	"strings"
 	"time"
@@ -12,31 +11,24 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/deploy"
-	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/annotations"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
@@ -152,6 +144,16 @@ type DashboardReconciler struct {
 	ApplicationsNamespace string
 }
 
+// apiReader makes direct-read semantics explicit while retaining a fake-client
+// fallback for unit tests that construct a reconciler directly. Production
+// setup always supplies mgr.GetAPIReader().
+func (r *DashboardReconciler) apiReader() client.Reader {
+	if r.APIReader != nil {
+		return r.APIReader
+	}
+	return r.Client
+}
+
 func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -197,6 +199,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	previousStatus := dashboard.Status.DeepCopy()
 	migrateMaaSPortalStatus(dashboard)
 
 	// Ready is the rollup condition — auto-derived by the Manager from
@@ -243,7 +246,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// demand before the core teardown so MaaS Portal-only operation retains them.
 		nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
 		if err != nil {
-			r.persistRemovedFailureStatus(ctx, dashboard, cm, "ModuleDeployFailed", err)
+			r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "ModuleDeployFailed", err)
 			return ctrl.Result{}, fmt.Errorf("failed to reconcile MaaS Portal-required modules: %w", err)
 		}
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
@@ -261,7 +264,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		preserveObservability := maasPortalManaged && (observabilityDetectionErr != nil ||
 			(dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled))
 		if err := r.teardownManagedResources(ctx, dashboard, nextStatuses, preserveObservability); err != nil {
-			r.persistRemovedFailureStatus(ctx, dashboard, cm, "TeardownFailed", err)
+			r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "TeardownFailed", err)
 			return ctrl.Result{}, fmt.Errorf("failed to tear down resources: %w", err)
 		}
 
@@ -305,7 +308,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if maasPortalManaged && dashboard.Spec.Observability == nil && portalRetryAfter == 0 {
 			portalRetryAfter = observabilityRetryInterval
 		}
-		if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+		if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after removal")
 
 			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
@@ -316,18 +319,15 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
 
-	cfg := readOperatorConfig(ctx, r.Client, r.Namespace)
+	cfg := readOperatorConfig(ctx, r.apiReader(), r.Namespace)
 
-	if dist, distErr := readDistributionConfig(ctx, r.Client, r.Namespace); distErr != nil {
-		logger.Error(distErr, "Failed to read distribution config, preserving last-known-good value")
+	distributionConfig, distErr := readDistributionConfig(ctx, r.apiReader(), r.Namespace)
+	if distErr != nil {
+		logger.Error(distErr, "Failed to read distribution config, preserving last-known-good value and skipping handshake")
 	} else {
-		dashboard.Status.Distribution = dist
+		dashboard.Status.Distribution = distributionConfig.Distribution
 	}
-
-	platformVersion, pvErr := readPlatformVersion(ctx, r.Client, r.Namespace)
-	if pvErr != nil {
-		logger.Error(pvErr, "Failed to read platform version, skipping handshake")
-	}
+	platformVersion := distributionConfig.PlatformVersion
 
 	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil)
 
@@ -354,11 +354,45 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	cm.Sort()
 
-	if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+	if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
 		logger.Error(statusErr, "Failed to update status")
 	}
 
 	return result, err
+}
+
+// updateStatusIfChanged compares the final conditions with persisted state so
+// temporary resets and rollup transitions within a reconcile do not cause churn.
+func (r *DashboardReconciler) updateStatusIfChanged(ctx context.Context, dashboard *v1alpha1.Dashboard, previous *v1alpha1.DashboardStatus) error {
+	type conditionKey struct {
+		Type   string
+		Status metav1.ConditionStatus
+	}
+	previousCount := make(map[conditionKey]int, len(previous.Conditions))
+	currentCount := make(map[conditionKey]int, len(dashboard.Status.Conditions))
+	previousTimes := make(map[conditionKey]metav1.Time, len(previous.Conditions))
+	for _, old := range previous.Conditions {
+		key := conditionKey{Type: old.Type, Status: old.Status}
+		previousCount[key]++
+		previousTimes[key] = old.LastTransitionTime
+	}
+	for _, condition := range dashboard.Status.Conditions {
+		key := conditionKey{Type: condition.Type, Status: condition.Status}
+		currentCount[key]++
+	}
+
+	for i := range dashboard.Status.Conditions {
+		condition := &dashboard.Status.Conditions[i]
+		key := conditionKey{Type: condition.Type, Status: condition.Status}
+		// Duplicate pairs are ambiguous; retain each entry's own timestamp.
+		if previousCount[key] == 1 && currentCount[key] == 1 {
+			condition.LastTransitionTime = previousTimes[key]
+		}
+	}
+	if equality.Semantic.DeepEqual(previous, &dashboard.Status) {
+		return nil
+	}
+	return r.Status().Update(ctx, dashboard)
 }
 
 // persistRemovedFailureStatus records a retryable failure that occurs before
@@ -367,6 +401,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *DashboardReconciler) persistRemovedFailureStatus(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
+	previousStatus *v1alpha1.DashboardStatus,
 	cm *conditions.Manager,
 	reason string,
 	failure error,
@@ -376,7 +411,7 @@ func (r *DashboardReconciler) persistRemovedFailureStatus(
 		conditions.WithMessage("Dashboard removal reconciliation failed: %s", failure))
 	dashboard.Status.Phase = common.PhaseNotReady
 	cm.Sort()
-	if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+	if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
 		log.FromContext(ctx).Error(statusErr, "Failed to update status after removal failure")
 	}
 }
@@ -539,7 +574,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 		conditions.WithMessage("Dashboard and module manifests applied successfully"))
 
 	// Persist module statuses now so early returns from steps 6-9 don't leave
-	// stale status on the CR (the outer Reconcile always calls Status().Update).
+	// stale status on the CR (the outer Reconcile persists any status changes).
 	preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 	dashboard.Status.ModuleStatuses = nextStatuses
 	r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
@@ -1110,6 +1145,12 @@ func extractItems(list client.ObjectList) []client.Object {
 			items[i] = &l.Items[i]
 		}
 		return items
+	case *gatewayv1.HTTPRouteList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
 	case *appsv1.DeploymentList:
 		items := make([]client.Object, len(l.Items))
 		for i := range l.Items {
@@ -1172,191 +1213,5 @@ func extractItems(list client.ObjectList) []client.Object {
 		return items
 	default:
 		return nil
-	}
-}
-
-// SetupWithManager registers the dashboard controller with the manager.
-func SetupWithManager(mgr ctrl.Manager, opts Options) error {
-	r := &DashboardReconciler{
-		Client:                mgr.GetClient(),
-		APIReader:             mgr.GetAPIReader(),
-		Scheme:                mgr.GetScheme(),
-		ManifestsBasePath:     opts.ManifestsBasePath,
-		Platform:              opts.Platform,
-		Namespace:             opts.Namespace,
-		ApplicationsNamespace: opts.ApplicationsNamespace,
-	}
-
-	// Owns() watches ensure external modifications or deletions of managed
-	// resources trigger re-reconciliation. During Removed state the extra
-	// reconcile is harmless — teardown is idempotent and bounded by the
-	// number of owned resources.
-	//
-	// Watches() on ConfigMap tracks the platform config ConfigMaps that feed
-	// reconcile inputs but are not owned by the Dashboard CR (they are managed
-	// by the platform operator). Without this, a platform-driven change such as
-	// a platformVersion bump in odh-dashboard-config would not trigger a
-	// reconcile, leaving status.releases[platform].version stale until an
-	// unrelated event fired (RHOAIENG-81919).
-	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.Dashboard{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Service{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.ServiceAccount{}).
-		Owns(&corev1.Secret{}).
-		Owns(&networkingv1.NetworkPolicy{}).
-		Owns(&rbacv1.ClusterRole{}).
-		Owns(&rbacv1.ClusterRoleBinding{}).
-		Owns(&rbacv1.Role{}).
-		Owns(&rbacv1.RoleBinding{}).
-		Owns(&policyv1.PodDisruptionBudget{}).
-		Watches(
-			&corev1.ConfigMap{},
-			handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToDashboard),
-			builder.WithPredicates(r.configMapPredicate()),
-		).
-		Watches(
-			&corev1.Namespace{},
-			handler.EnqueueRequestsFromMapFunc(r.mapMaaSPortalOperatorNamespaceToDashboard),
-			builder.WithPredicates(r.maasPortalOperatorNamespacePredicate()),
-		)
-
-	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
-		return err
-	}
-	dashboardController, err := controllerBuilder.Build(r)
-	if err != nil {
-		return err
-	}
-
-	return addOdhDashboardConfigWatch(mgr, dashboardController, r)
-}
-
-// addOptionalOwnedResourceWatches adds watches for APIs used only by the MaaS
-// Portal. The Dashboard controller also runs on clusters where those
-// APIs are not installed, so absent APIs must not prevent manager startup.
-func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *builder.Builder) error {
-	resources, err := optionalOwnedResources(mapper)
-	if err != nil {
-		return err
-	}
-	for _, resource := range resources {
-		controllerBuilder.Owns(resource)
-	}
-	return nil
-}
-
-func optionalOwnedResources(mapper meta.RESTMapper) ([]client.Object, error) {
-	var resources []client.Object
-	for _, resource := range []struct {
-		gvk    schema.GroupVersionKind
-		object client.Object
-	}{
-		{gvk: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute"), object: &gatewayv1.HTTPRoute{}},
-		{gvk: consoleLinkGVK, object: newConsoleLinkObject()},
-	} {
-		available, err := apiResourceAvailable(mapper, resource.gvk)
-		if err != nil {
-			return nil, fmt.Errorf("discovering %s API: %w", resource.gvk, err)
-		}
-		if !available {
-			ctrl.Log.Info("Optional API is unavailable; skipping owned-resource watch", "groupVersionKind", resource.gvk.String())
-			continue
-		}
-		resources = append(resources, resource.object)
-	}
-	return resources, nil
-}
-
-func newConsoleLinkObject() *unstructured.Unstructured {
-	consoleLink := &unstructured.Unstructured{}
-	consoleLink.SetGroupVersionKind(consoleLinkGVK)
-	return consoleLink
-}
-
-func apiResourceAvailable(mapper meta.RESTMapper, gvk schema.GroupVersionKind) (bool, error) {
-	_, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-	if meta.IsNoMatchError(err) {
-		return false, nil
-	}
-	return err == nil, err
-}
-
-// isWatchedConfigMap reports whether obj is one of the config ConfigMaps in the
-// operator namespace whose contents feed reconcile inputs: platform version and
-// distribution identity (the distribution config, odh-dashboard-config by
-// default) and the reconcile interval (dashboard-operator-config). Changes to
-// these must trigger a reconcile so the Dashboard status stays fresh even when
-// nothing else touches the CR (RHOAIENG-81919).
-//
-// The distribution config name is user-settable (chart value config.name, plumbed
-// in via OPERATOR_CONFIGMAP_NAME), so it is resolved through the same helper the
-// readers use rather than compared against the hardcoded default — otherwise a
-// non-default install would watch the wrong ConfigMap and status would go stale.
-//
-// Both the predicate and the map func route through this single helper so their
-// nil handling and scoping cannot drift.
-func (r *DashboardReconciler) isWatchedConfigMap(obj client.Object) bool {
-	if obj == nil || obj.GetNamespace() != r.Namespace {
-		return false
-	}
-
-	name := obj.GetName()
-
-	return name == resolveDistributionConfigMapName() || name == operatorConfigMapName
-}
-
-// mapConfigMapToDashboard enqueues a reconcile for the singleton Dashboard when
-// one of the watched config ConfigMaps in the operator namespace changes.
-func (r *DashboardReconciler) mapConfigMapToDashboard(_ context.Context, obj client.Object) []reconcile.Request {
-	if !r.isWatchedConfigMap(obj) {
-		return nil
-	}
-
-	return []reconcile.Request{{
-		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
-	}}
-}
-
-// configMapPredicate limits ConfigMap events to the watched config ConfigMaps in
-// the operator namespace. For updates it fires only when Data or a consumed
-// annotation (PlatformType / PlatformVersion — the distribution identity read by
-// readDistributionConfig) actually changed. Only those two annotation keys are
-// compared, not the whole map, so unrelated metadata churn — resourceVersion
-// bumps, managed-field rewrites, GitOps/Helm bookkeeping annotations such as
-// last-applied-configuration or meta.helm.sh/* — does not enqueue a no-op
-// reconcile. The annotation comparison is scoped to the distribution config, the
-// only ConfigMap those annotations are consumed from (resolved via the same helper
-// the readers use, so a chart-customized name is honored); dashboard-operator-config
-// contributes reconcile inputs through Data alone.
-func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
-	return predicate.Funcs{
-		CreateFunc:  func(e event.CreateEvent) bool { return r.isWatchedConfigMap(e.Object) },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return r.isWatchedConfigMap(e.Object) },
-		GenericFunc: func(e event.GenericEvent) bool { return r.isWatchedConfigMap(e.Object) },
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			if !r.isWatchedConfigMap(e.ObjectNew) {
-				return false
-			}
-
-			oldCM, oldOK := e.ObjectOld.(*corev1.ConfigMap)
-			newCM, newOK := e.ObjectNew.(*corev1.ConfigMap)
-			if !oldOK || !newOK {
-				return true
-			}
-
-			// PlatformType / PlatformVersion annotations are read only from the
-			// distribution config (readDistributionConfig). Restrict the annotation
-			// comparison to that ConfigMap — resolved via the same helper the readers
-			// use, so a chart-customized name is honored — so annotation churn on
-			// dashboard-operator-config, which contributes only via Data, does not
-			// enqueue a no-op reconcile.
-			annotationChanged := newCM.Name == resolveDistributionConfigMapName() &&
-				(oldCM.Annotations[annotations.PlatformType] != newCM.Annotations[annotations.PlatformType] ||
-					oldCM.Annotations[annotations.PlatformVersion] != newCM.Annotations[annotations.PlatformVersion])
-
-			return !maps.Equal(oldCM.Data, newCM.Data) || annotationChanged
-		},
 	}
 }

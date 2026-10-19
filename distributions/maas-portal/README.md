@@ -145,3 +145,20 @@ The local Rspack dev proxy sends portal Perses API requests directly to `PERSES_
 | `src/MaaSAuthzProvider.tsx` | Publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility |
 | `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
 | `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package |
+
+## Grid migration flag
+
+The temporary `grid` feature flag controls all Grid-aware MaaS Consumer Portal behavior in the
+`@odh-dashboard/maas` and `@odh-dashboard/gen-ai` packages. It defaults to `false`, preserving the
+existing Kubernetes-backed behavior while the MaaS Gateway API integration is developed.
+
+For local testing, enable it on the portal URL:
+
+```text
+http://localhost:4020/maas-portal/?devFeatureFlags=grid=true
+```
+
+The value is persisted in session storage and is sent to the existing dashboard configuration
+endpoint as a feature-flag override. Use `?devFeatureFlags=grid=false` to disable it again. The
+flag and the legacy Kubernetes paths are temporary and should be removed after the migration is
+complete.

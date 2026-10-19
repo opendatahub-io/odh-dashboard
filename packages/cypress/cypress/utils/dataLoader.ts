@@ -32,6 +32,8 @@ import type {
   ExternalModelTestData,
   MlflowPipelineIntegrationTestData,
   NIMProjectScopedTestData,
+  RuntimeLibraryTemplateTestData,
+  RuntimeLibraryAcceleratorTestData,
 } from '../types';
 
 export const resolveFixture = (fixturePath: string): Cypress.Chainable<string> => {
@@ -47,6 +49,20 @@ export const resolveFixture = (fixturePath: string): Cypress.Chainable<string> =
 
 export const loadYamlFixture = (fixturePath: string): Cypress.Chainable<string> =>
   resolveFixture(fixturePath).then((resolvedPath) => cy.fixture(resolvedPath, 'utf8'));
+
+export const loadRuntimeLibraryTemplateFixture = (
+  fixturePath: string,
+): Cypress.Chainable<RuntimeLibraryTemplateTestData> =>
+  loadYamlFixture(fixturePath).then(
+    (content) => yaml.load(content) as RuntimeLibraryTemplateTestData,
+  );
+
+export const loadRuntimeLibraryAcceleratorFixture = (
+  fixturePath: string,
+): Cypress.Chainable<RuntimeLibraryAcceleratorTestData> =>
+  loadYamlFixture(fixturePath).then(
+    (content) => yaml.load(content) as RuntimeLibraryAcceleratorTestData,
+  );
 
 // Load fixture function that returns DataScienceProjectData
 export const loadDSPFixture = (fixturePath: string): Cypress.Chainable<DataScienceProjectData> =>

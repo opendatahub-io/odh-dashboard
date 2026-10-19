@@ -2,11 +2,11 @@ import React from 'react';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import type { NotebookKind } from '@odh-dashboard/k8s-core';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
-import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
-import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
+import { isHardwareProfileEnabled } from './utils';
 import { HardwareProfileBindingStateInfo } from './types';
 import type { HardwareProfileResource } from './types';
 import { HardwareProfileBindingState } from './const';
+import { useHardwareProfilesByFeatureVisibility } from '../src/pages/useHardwareProfilesByFeatureVisibility';
 
 /**
  * Hook to get hardware profile binding state for a resource.

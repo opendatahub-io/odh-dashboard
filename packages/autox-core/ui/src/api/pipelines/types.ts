@@ -92,3 +92,13 @@ export type GetPipelineRunsFromBFFParams = {
   pageSize?: number;
   page?: number;
 };
+
+/**
+ * Response shape from the BFF pipeline-server status API. `status` reflects a
+ * fresh (uncached) read of the DSPipelineApplication, so a restarting server
+ * is never reported with stale readiness.
+ */
+export type PipelineServerStatusResponse = {
+  status: 'ready' | 'starting' | 'not-found';
+  dspa_name?: string;
+};

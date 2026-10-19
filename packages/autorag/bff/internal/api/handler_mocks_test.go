@@ -238,6 +238,14 @@ func (m *mockPipelinesRepo) EnableManagedPipelines(ctx context.Context, namespac
 	return args.Get(0).(*pipelines.EnableManagedPipelinesResult), args.Error(1)
 }
 
+func (m *mockPipelinesRepo) GetPipelineServerStatus(ctx context.Context, namespace string) (*pipelines.DSPAStatus, error) {
+	args := m.Called(ctx, namespace)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pipelines.DSPAStatus), args.Error(1)
+}
+
 // --- Mock Responses Repository ---
 
 type mockResponsesRepo struct {
