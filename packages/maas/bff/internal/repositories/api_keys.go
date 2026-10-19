@@ -45,6 +45,12 @@ func (r *APIKeysRepository) GetAPIKeyConfig(ctx context.Context) (*models.APIKey
 	return r.maasClient.GetAPIKeyConfig(ctx)
 }
 
+func (r *APIKeysRepository) GetMe(ctx context.Context) (*models.MaasMe, error) {
+	r.logger.Debug("Getting MaaS caller identity")
+
+	return r.maasClient.GetMe(ctx)
+}
+
 // CreateAPIKey creates a new API key
 func (r *APIKeysRepository) CreateAPIKey(ctx context.Context, request models.APIKeyCreateRequest) (*models.APIKeyCreateResponse, error) {
 	r.logger.Debug("Creating API key", slog.String("name", request.Name))

@@ -142,6 +142,30 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].DisplayName).To(Equal("Basic Team Subscription"))
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].Models).To(ConsistOf("Flan T5 Small"))
 		})
+		It("tenant search uses MaaS subscriptions without checking K8s admin status", func() {
+			originalCheck := isMaasAdminCheck
+			isMaasAdminCheck = func(_ *App, _ *http.Request) (bool, error) {
+				Fail("tenant search must not check K8s admin status")
+				return false, nil
+			}
+			DeferCleanup(func() { isMaasAdminCheck = originalCheck })
+
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[Envelope[*models.APIKeyListResponse, None]](
+				http.MethodPost,
+				"/api/v1/api-keys/search/tenant",
+				Envelope[models.APIKeySearchRequest, None]{
+					Data: models.APIKeySearchRequest{},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data).NotTo(BeNil())
+			Expect(actual.Data.SubscriptionDetails).To(HaveKey("premium-team-sub"))
+			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].DisplayName).To(Equal("Premium Team"))
+		})
 		It("for admins includes K8s subscriptions that are absent from the MaaS API My Subscriptions list", func() {
 			originalCheck := isMaasAdminCheck
 			isMaasAdminCheck = func(_ *App, _ *http.Request) (bool, error) { return true, nil }
