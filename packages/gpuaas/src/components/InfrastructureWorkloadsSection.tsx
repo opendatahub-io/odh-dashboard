@@ -29,7 +29,6 @@ import { isKueueManagedDataScienceProject } from '../utils/kueueProjects';
 import {
   INFRASTRUCTURE_WORKLOADS_EMPTY_BODY,
   INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE,
-  INFRASTRUCTURE_WORKLOADS_REFRESH_INTERVAL,
 } from '../const';
 import './InfrastructureWorkloadsSection.scss';
 
@@ -303,14 +302,10 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
   }, []);
 
   React.useEffect(() => {
-    const interval = window.setInterval(() => {
-      const now = Date.now();
-      setCurrentTime(now);
-      setLastRefreshed(new Date(now));
-      void refresh();
-    }, INFRASTRUCTURE_WORKLOADS_REFRESH_INTERVAL);
-    return () => window.clearInterval(interval);
-  }, [refresh]);
+    if (loaded) {
+      setLastRefreshed(new Date());
+    }
+  }, [loaded, workloads]);
 
   React.useEffect(() => {
     if (refreshTrigger > 0) {
@@ -319,7 +314,6 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
   }, [refresh, refreshTrigger]);
 
   const handleRefresh = React.useCallback(() => {
-    setLastRefreshed(new Date());
     setRefreshTrigger((current) => current + 1);
     void refreshNotebooks();
   }, [refreshNotebooks]);
@@ -329,7 +323,6 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
       updatePreferredProject(
         projects.find((project) => project.metadata.name === projectName) ?? null,
       );
-      setLastRefreshed(new Date());
     },
     [projects, updatePreferredProject],
   );

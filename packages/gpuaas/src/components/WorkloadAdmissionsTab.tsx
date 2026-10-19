@@ -25,6 +25,7 @@ import {
   getAdmissionMetricsXDomain,
   getAdmissionMetricYBounds,
   getAdmissionMetricYInterval,
+  getAdmissionTickInterval,
   getValidAdmissionMetricPoints,
   type AdmissionMetric,
 } from '../utils/workloadAdmissions';
@@ -57,8 +58,6 @@ type WorkloadAdmissionsTabProps = {
   canAccessAdminMetrics: boolean;
 };
 
-const ADMISSION_DAY_MS = 24 * 60 * 60 * 1000;
-
 const AdmissionMetricChartComponent: React.FC<{
   metric: AdmissionMetric;
   xDomain: [number, number];
@@ -77,30 +76,28 @@ const AdmissionMetricChartComponent: React.FC<{
   const { yMin, yMax, yPadding } = getAdmissionMetricYBounds(data);
   const option = React.useMemo(() => {
     const yDomain: [number, number] = [Math.max(0, yMin - yPadding), yMax + yPadding];
-    const dataDomain: [number, number] | undefined =
-      data.length > 0 ? [data[0].x, data[data.length - 1].x] : undefined;
-    const spansMultipleCalendarDays =
-      dataDomain !== undefined &&
-      new Date(dataDomain[0]).toDateString() !== new Date(dataDomain[1]).toDateString();
     return {
       animation: animateOnMount,
       animationDuration: animateOnMount ? 1200 : 0,
       animationEasing: animateOnMount ? ('cubicOut' as const) : undefined,
       animationDurationUpdate: 0,
-      grid: { left: 48, right: 8, top: 8, bottom: 28 },
+      grid: { left: 48, right: 20, top: 8, bottom: 28, containLabel: true },
       xAxis: {
-        type: 'time' as const,
+        type: 'value' as const,
         min: xDomain[0],
         max: xDomain[1],
-        ...(spansMultipleCalendarDays && { minInterval: ADMISSION_DAY_MS }),
+        interval: getAdmissionTickInterval(timeWindow),
         axisLine: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
         axisTick: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
         axisLabel: {
           color: 'var(--pf-t--global--text--color--subtle)',
           fontSize: 9,
           hideOverlap: true,
+          showMinLabel: true,
+          showMaxLabel: false,
+          margin: 8,
           formatter: (timestamp: number) =>
-            formatAdmissionTimestamp(timestamp, timeWindow, dataDomain),
+            formatAdmissionTimestamp(timestamp, timeWindow, xDomain),
         },
         splitLine: {
           show: false,
@@ -325,7 +322,7 @@ const WorkloadAdmissionsTab: React.FC<WorkloadAdmissionsTabProps> = ({
     { blue: chartBlue.var, orange: chartOrange.var },
     canAccessAdminMetrics,
   );
-  const xDomain = getAdmissionMetricsXDomain(getWindowConfig(timeWindow).span);
+  const xDomain = getAdmissionMetricsXDomain(getWindowConfig(timeWindow).span, metrics.endInMs);
 
   return (
     <div

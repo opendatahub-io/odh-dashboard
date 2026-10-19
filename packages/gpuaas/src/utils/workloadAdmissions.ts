@@ -18,8 +18,18 @@ export const ADMISSION_TIME_WINDOW_OPTIONS: SimpleSelectOption[] = [
   { key: '30d', label: 'Last 30 days' },
 ];
 
-const MULTI_DAY_ADMISSION_TIME_WINDOWS = new Set(['7d', '30d']);
 const ADMISSION_TOOLTIP_DATE_TIME_WINDOWS = new Set(['7d', '30d']);
+const ADMISSION_DATE_ONLY_WINDOWS = new Set(['7d', '30d']);
+const ADMISSION_TIME_ONLY_WINDOWS = new Set(['24h']);
+const ADMISSION_TICK_INTERVALS: Record<string, number> = {
+  '1h': 15 * 60 * 1000,
+  '24h': 5 * 60 * 60 * 1000,
+  '7d': 2 * 24 * 60 * 60 * 1000,
+  '30d': 6 * 24 * 60 * 60 * 1000,
+};
+
+export const getAdmissionTickInterval = (timeWindow: string): number | undefined =>
+  ADMISSION_TICK_INTERVALS[timeWindow];
 
 export const formatAdmissionTimestamp = (
   timestamp: number,
@@ -28,14 +38,37 @@ export const formatAdmissionTimestamp = (
 ): string => {
   const date = new Date(timestamp);
   const spansMultipleCalendarDays =
-    domain && new Date(domain[0]).toDateString() !== new Date(domain[1]).toDateString();
-  const shouldUseDateLabels =
-    MULTI_DAY_ADMISSION_TIME_WINDOWS.has(timeWindow) &&
-    (spansMultipleCalendarDays || domain === undefined);
+    domain !== undefined &&
+    new Date(domain[0]).toDateString() !== new Date(domain[1]).toDateString();
 
-  return shouldUseDateLabels
-    ? date.toLocaleDateString([], { month: 'short', day: 'numeric' })
-    : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (ADMISSION_DATE_ONLY_WINDOWS.has(timeWindow)) {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  if (ADMISSION_TIME_ONLY_WINDOWS.has(timeWindow)) {
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+
+  return spansMultipleCalendarDays || domain === undefined
+    ? date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
 };
 
 export const formatAdmissionTooltipTimestamp = (timestamp: number, timeWindow = '1h'): string => {
