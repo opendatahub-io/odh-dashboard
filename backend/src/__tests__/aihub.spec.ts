@@ -48,17 +48,17 @@ describe('fetchAIHub', () => {
       metadata: { name: 'default-aihub' },
       spec: { instancesNamespace: 'odh-model-registries' },
     };
-    mockGetClusterCustomObject.mockResolvedValue({ body: aihub });
+    mockGetClusterCustomObject.mockResolvedValue(aihub);
 
     const result = await fetchAIHub(mockFastify);
 
     expect(result).toEqual(aihub);
-    expect(mockGetClusterCustomObject).toHaveBeenCalledWith(
-      'components.platform.opendatahub.io',
-      'v1alpha1',
-      'aihubs',
-      'default-aihub',
-    );
+    expect(mockGetClusterCustomObject).toHaveBeenCalledWith({
+      group: 'components.platform.opendatahub.io',
+      version: 'v1alpha1',
+      plural: 'aihubs',
+      name: 'default-aihub',
+    });
   });
 
   it('should preserve a Kubernetes API failure for the watcher to handle', async () => {

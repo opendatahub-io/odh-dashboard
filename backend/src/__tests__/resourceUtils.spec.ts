@@ -1,3 +1,5 @@
+import { ApiException } from '@kubernetes/client-node';
+import { K8sApiError } from '../utils/k8sApiError';
 import {
   getAIHub,
   isRHOAI,
@@ -273,18 +275,62 @@ describe('resourceUtils', () => {
         },
       ]);
       getNamespacedCustomObject.mockResolvedValue({
-        body: { metadata: { name: 'rhods-operator.v2.19.0' }, status: { phase: 'Succeeded' } },
+        metadata: { name: 'rhods-operator.v2.19.0' },
+        status: { phase: 'Succeeded' },
       });
       await expect(getCSVForApp(mockFastify, appDef)).resolves.toEqual(
         expect.objectContaining({ status: { phase: 'Succeeded' } }),
       );
-      expect(getNamespacedCustomObject).toHaveBeenCalledWith(
-        'operators.coreos.com',
-        'v1alpha1',
-        'redhat-ods-operator',
-        'clusterserviceversions',
-        'rhods-operator.v2.19.0',
+      expect(getNamespacedCustomObject).toHaveBeenCalledWith({
+        group: 'operators.coreos.com',
+        version: 'v1alpha1',
+        namespace: 'redhat-ods-operator',
+        plural: 'clusterserviceversions',
+        name: 'rhods-operator.v2.19.0',
+      });
+    });
+    it('should resolve undefined when the ClusterServiceVersion is not found', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      mockSubscriptions([
+        {
+          installedCSV: 'rhods-operator.v2.19.0',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv0',
+        },
+      ]);
+      getNamespacedCustomObject.mockRejectedValue(
+        new K8sApiError(
+          new ApiException(
+            404,
+            'Unknown API Status Code!',
+            JSON.stringify({ kind: 'Status', reason: 'NotFound', code: 404 }),
+            {},
+          ),
+          true,
+        ),
       );
+      await expect(getCSVForApp(mockFastify, appDef)).resolves.toBeUndefined();
+    });
+
+    it('should rethrow non-404 errors when reading the ClusterServiceVersion', async () => {
+      mockSubscriptions([
+        {
+          installedCSV: 'rhods-operator.v2.19.0',
+          installPlanRefNamespace: 'redhat-ods-operator',
+          source: 'OLMv0',
+        },
+      ]);
+      const forbidden = new K8sApiError(
+        new ApiException(
+          403,
+          'Unknown API Status Code!',
+          JSON.stringify({ kind: 'Status', reason: 'Forbidden', code: 403 }),
+          {},
+        ),
+        true,
+      );
+      getNamespacedCustomObject.mockRejectedValue(forbidden);
+      await expect(getCSVForApp(mockFastify, appDef)).rejects.toBe(forbidden);
     });
   });
 
