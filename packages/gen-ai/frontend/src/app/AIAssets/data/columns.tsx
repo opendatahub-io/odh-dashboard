@@ -46,7 +46,7 @@ export const aiModelColumns: SortableData<AIModel>[] = [
   },
   {
     field: 'endpoints',
-    label: 'Endpoints',
+    label: 'Access details',
     sortable: false,
     width: 15,
   },

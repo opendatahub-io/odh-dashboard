@@ -68,11 +68,52 @@ describe('buildRuntimeImageInstallActionData', () => {
       runtimeImageName: 'vLLM',
       cancelReturnRoute: '/catalog/1',
       libraryReturnRoute: '/catalog',
+      version: '0.6.0',
+      hardware: undefined,
       deploymentResources: {
         servingRuntimeTemplate: '{"kind":"ServingRuntime"}',
         llmInferenceServiceConfig: '{"kind":"LLMInferenceServiceConfig"}',
       },
     });
+  });
+
+  it('should populate hardware from runtime capabilities', () => {
+    const payload = buildRuntimeImageInstallActionData({
+      runtime: {
+        id: '2',
+        name: 'gpu-runtime',
+        displayName: 'GPU Runtime',
+        capabilities: { supportedAccelerators: ['nvidia.com/gpu', 'amd.com/gpu'] },
+      },
+      version: {
+        artifactType: 'serving-runtime-version',
+        version: '1.0.0',
+        image: 'registry.example.com/mock/gpu:1.0.0',
+      },
+      ...routes,
+    });
+
+    expect(payload.version).toBe('1.0.0');
+    expect(payload.hardware).toBe('nvidia.com/gpu, amd.com/gpu');
+  });
+
+  it('should populate hardware from cpu tags when no accelerators', () => {
+    const payload = buildRuntimeImageInstallActionData({
+      runtime: {
+        id: '3',
+        name: 'ovms',
+        displayName: 'OpenVINO Model Server',
+        tags: ['cpu'],
+      },
+      version: {
+        artifactType: 'serving-runtime-version',
+        version: '2024.5',
+        image: 'registry.example.com/mock/ovms:2024.5',
+      },
+      ...routes,
+    });
+
+    expect(payload.hardware).toBe('cpu');
   });
 
   it('should omit blank templates', () => {

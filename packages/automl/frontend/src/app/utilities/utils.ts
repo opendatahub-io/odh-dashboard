@@ -644,6 +644,23 @@ export function resolveTrainingTaskPrefix(
   return uniqueMatches.length === 1 ? uniqueMatches[0] : undefined;
 }
 
+/** Resolve the only task directory matching the base name or a numeric suffix variant. */
+export function resolveUniqueTrainingTaskPrefix(
+  commonPrefixes: { prefix: string }[],
+  baseTaskName: string,
+): string | undefined {
+  const matches = commonPrefixes
+    .filter((prefix) => {
+      const segments = prefix.prefix.split('/').filter(Boolean);
+      const directoryName = segments[segments.length - 1] ?? '';
+      return isTrainingTaskDirName(directoryName, baseTaskName);
+    })
+    .map(({ prefix }) => prefix.replace(/\/$/, ''));
+  const uniqueMatches = [...new Set(matches)];
+
+  return uniqueMatches.length === 1 ? uniqueMatches[0] : undefined;
+}
+
 /** Resolve a UUID child directory only when exactly one matching child is present. */
 export function resolveUniqueUuidPrefix(
   commonPrefixes: { prefix: string }[],

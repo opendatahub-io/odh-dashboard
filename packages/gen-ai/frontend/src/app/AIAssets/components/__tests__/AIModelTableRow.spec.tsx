@@ -134,7 +134,7 @@ describe('AIModelTableRow', () => {
     expect(screen.getByTestId('truncated-text')).toHaveTextContent('llm');
   });
 
-  it('should render View button in endpoints cell', () => {
+  it('should render View button in Access details cell', () => {
     const model = createMockAIModel();
     render(
       <TestWrapper>
@@ -144,6 +144,10 @@ describe('AIModelTableRow', () => {
 
     expect(screen.getByTestId('endpoint-view-button')).toBeInTheDocument();
     expect(screen.getByTestId('endpoint-view-button')).toHaveTextContent('View');
+    expect(screen.getByTestId('endpoint-view-button').closest('td')).toHaveAttribute(
+      'data-label',
+      'Access details',
+    );
   });
 
   it('should open endpoint detail modal when View button is clicked', () => {

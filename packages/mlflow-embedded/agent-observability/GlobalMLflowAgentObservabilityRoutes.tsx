@@ -20,7 +20,7 @@ const GlobalMLflowAgentObservabilityRoutes: React.FC = () => (
           title={
             <TitleWithIcon
               title={AGENT_OBSERVABILITY_PAGE_TITLE}
-              objectType={ProjectObjectType.mlflow}
+              objectType={ProjectObjectType.agentObservability}
             />
           }
           getRedirectPath={agentObservabilityBaseRoute}
