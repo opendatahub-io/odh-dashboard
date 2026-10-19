@@ -667,17 +667,13 @@ describe('AutoragConfigure', () => {
       ).toBeInTheDocument();
     });
 
-    it('should open and close the supported file types modal from the knowledge guidance', () => {
+    it('should expose supported file types from the knowledge setup heading', () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
-      fireEvent.click(screen.getByRole('button', { name: 'View supported file types' }));
-      expect(screen.getByRole('heading', { name: 'Supported file types' })).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-      expect(
-        screen.queryByRole('heading', { name: 'Supported file types' }),
-      ).not.toBeInTheDocument();
+      const helpButton = screen.getByRole('button', { name: 'View supported file types' });
+      fireEvent.click(helpButton);
+      expect(screen.getByText('Supported file types')).toBeInTheDocument();
     });
 
     it('should NOT show document input toggle when no secret is selected', () => {
@@ -738,10 +734,10 @@ describe('AutoragConfigure', () => {
       // Verify the "Select file or folder" section is displayed
       expect(screen.getByRole('heading', { name: 'Select file or folder' })).toBeInTheDocument();
       expect(
-        screen.getByText(
+        screen.getAllByText(
           'Audio upload and automatic transcription are supported. Select a file or folder from this bucket to use as the knowledge for your experiment.',
-        ),
-      ).toBeInTheDocument();
+        ).length,
+      ).toBeGreaterThan(0);
     });
 
     it('should display the "Browse bucket" button when a secret is selected', () => {
@@ -776,6 +772,16 @@ describe('AutoragConfigure', () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
       expect(screen.getByText(/Drop a file here or browse to select a file/)).toBeInTheDocument();
+    });
+
+    it('should expose supported file types from both knowledge setup headings', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      expect(screen.getAllByRole('button', { name: 'View supported file types' })).toHaveLength(1);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+      expect(screen.getAllByRole('button', { name: 'View supported file types' })).toHaveLength(1);
     });
 
     it('should not upload an oversized file and should show a notification', () => {

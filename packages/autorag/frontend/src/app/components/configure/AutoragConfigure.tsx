@@ -99,9 +99,10 @@ import { metricDomId, parseMetricReference } from '~/app/utilities/metricUtils';
 import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMetricDescription } from '~/app/utilities/metricDisplay';
-import SupportedFileTypesModal, {
+import {
+  SupportedFileTypesHelpButton,
   SupportedFileTypesLink,
-} from '~/app/components/common/SupportedFileTypesModal';
+} from '~/app/components/common/SupportedFileTypesPopover';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_MAX_FILES,
@@ -205,7 +206,6 @@ function AutoragConfigure({
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const [isSupportedFileTypesModalOpen, setIsSupportedFileTypesModalOpen] = useState(false);
   const initialInputDataKey = initialValues?.input_data_keys?.[0];
 
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
@@ -233,10 +233,6 @@ function AutoragConfigure({
   const notification = useNotification();
   const { showUIError } = useUIErrorHandler();
   const { onKnowledgeSourceConfigured } = useRunTriggeredTracking();
-  const openSupportedFileTypesModal = useCallback(() => {
-    setFileExplorerMode(false);
-    setIsSupportedFileTypesModalOpen(true);
-  }, []);
 
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
@@ -645,7 +641,14 @@ function AutoragConfigure({
                       {inputDataSourceMode === 'select' && (
                         <>
                           <StackItem>
-                            <Content component="h4">Select file or folder</Content>
+                            <Flex gap={{ default: 'gapXs' }}>
+                              <FlexItem>
+                                <Content component="h4">Select file or folder</Content>
+                              </FlexItem>
+                              <FlexItem>
+                                <SupportedFileTypesHelpButton />
+                              </FlexItem>
+                            </Flex>
                           </StackItem>
                           <StackItem>
                             <Content component="small">
@@ -713,7 +716,14 @@ function AutoragConfigure({
                       {inputDataSourceMode === 'upload' && (
                         <>
                           <StackItem>
-                            <Content component="h4">Upload file</Content>
+                            <Flex gap={{ default: 'gapXs' }}>
+                              <FlexItem>
+                                <Content component="h4">Upload file</Content>
+                              </FlexItem>
+                              <FlexItem>
+                                <SupportedFileTypesHelpButton />
+                              </FlexItem>
+                            </Flex>
                           </StackItem>
                           <StackItem>
                             <Content component="small" id="input-data-upload-description">
@@ -1399,18 +1409,13 @@ function AutoragConfigure({
           <>
             Select a file or folder from this bucket to use as a knowledge source. When you select a
             folder, only supported files directly inside that folder are processed. Nested folders
-            are not scanned. Unsupported file types are skipped.{' '}
-            <SupportedFileTypesLink onClick={openSupportedFileTypesModal} />
+            are not scanned. Unsupported file types are skipped. <SupportedFileTypesLink />
           </>
         }
         disabledPaths={{
           '/autogluon-tabular-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
           '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
         }}
-      />
-      <SupportedFileTypesModal
-        isOpen={isSupportedFileTypesModalOpen}
-        onClose={() => setIsSupportedFileTypesModalOpen(false)}
       />
       {isTemplateModalOpen && (
         <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />
