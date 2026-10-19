@@ -20,6 +20,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { useNotification } from '~/app/hooks/useNotification';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useChatbotConfigStore, selectDirtyPrompt } from '~/app/Chatbot/store';
@@ -103,7 +104,7 @@ export default function CreatePrompt({
       fireMiscTrackingEvent(trackingEvent, {
         outcome: 'submit',
         success: false,
-        error: errorMessage,
+        error: errorCategory(error),
         ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
         ...(isEditMode && editedFromLatest != null ? { editedFromLatest } : {}),
       });

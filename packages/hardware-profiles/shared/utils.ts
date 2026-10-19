@@ -8,6 +8,7 @@ import {
   type Toleration,
   type NodeSelector,
   type ContainerResources,
+  type PodSpec,
 } from '@odh-dashboard/k8s-core';
 import {
   splitValueUnit,
@@ -19,11 +20,13 @@ import type {
   HardwarePodSpecOptions,
   CrPathConfig,
   ResourceType,
+  DRAHardwareProfileDetails,
 } from './types';
 import type {
   HardwareProfileConfig,
   UseHardwareProfileConfigResult,
 } from './useHardwareProfileConfig';
+import { DRA_CLAIM_NAME } from './const';
 
 /**
  * changed order of arguments so that the deprecated accelerator profile is last;
@@ -307,3 +310,27 @@ export const getLocalQueueLabel = (): string => 'Local queue';
 
 export const isDRAHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
   !!hardwareProfile.spec.dra;
+
+export const getDRAHardwareProfileDetails = (
+  hardwareProfile: HardwareProfileKind,
+  podSpec?: PodSpec,
+): DRAHardwareProfileDetails | undefined => {
+  const profileTemplateName = hardwareProfile.spec.dra?.resourceClaimTemplateName;
+  const workloadTemplateName = podSpec?.resourceClaims?.find(
+    (claim) => claim.name === DRA_CLAIM_NAME,
+  )?.resourceClaimTemplateName;
+  const resourceClaimTemplateName = workloadTemplateName ?? profileTemplateName;
+  if (!resourceClaimTemplateName) {
+    return undefined;
+  }
+  const description =
+    resourceClaimTemplateName === profileTemplateName
+      ? hardwareProfile.metadata.annotations?.['opendatahub.io/resource-claim-description']
+          ?.replace(/\s+/g, ' ')
+          .trim()
+      : undefined;
+  return {
+    resourceClaimTemplateName,
+    ...(description && { description }),
+  };
+};

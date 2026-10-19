@@ -117,6 +117,9 @@ export enum SupportedArea {
   /* MCP Registry */
   MCP_REGISTRY = 'mcp-registry',
 
+  /* Skill Registry */
+  SKILL_REGISTRY = 'skill-registry',
+
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
 

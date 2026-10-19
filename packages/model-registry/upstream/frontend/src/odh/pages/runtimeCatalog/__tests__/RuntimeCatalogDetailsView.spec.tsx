@@ -253,6 +253,8 @@ describe('RuntimeCatalogDetailsView', () => {
       runtimeImageName: 'vLLM',
       cancelReturnRoute: getRuntimeCatalogDetailsRoute('1'),
       libraryReturnRoute: RUNTIME_CATALOG_TAB_PATH,
+      version: '0.6.0',
+      hardware: 'nvidia.com/gpu',
       deploymentResources: {
         servingRuntimeTemplate: '{"kind":"ServingRuntime"}',
         llmInferenceServiceConfig: '{"kind":"LLMInferenceServiceConfig"}',

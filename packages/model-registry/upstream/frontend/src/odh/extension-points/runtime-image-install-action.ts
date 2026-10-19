@@ -5,6 +5,10 @@ export type RuntimeImageInstallActionData = {
   runtimeImageName: string;
   cancelReturnRoute: string;
   libraryReturnRoute: string;
+  /** Selected version string for tracking; undefined when no version is resolved. */
+  version?: string;
+  /** Hardware / accelerator label for tracking; undefined when not available. */
+  hardware?: string;
   deploymentResources: {
     servingRuntimeTemplate?: string;
     /** Catalog field is `ServingRuntimeVersion.llmInferenceServiceConfig`. */

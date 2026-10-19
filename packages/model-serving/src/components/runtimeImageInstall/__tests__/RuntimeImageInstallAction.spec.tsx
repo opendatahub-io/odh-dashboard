@@ -15,6 +15,10 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core'),
   useExtensions: () => mockExtensions,
 }));
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
+  useTrackEvent: () => jest.fn(),
+}));
 
 const createTarget = (id: RuntimeImageInstallTargetId): RuntimeImageInstallTargetExtension => ({
   type: 'model-serving.runtime-image/install-target',

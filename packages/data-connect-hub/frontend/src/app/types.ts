@@ -99,6 +99,7 @@ export type ConnectionType = {
     provider: string;
     description?: string | null;
     credentials_fields: ConnectionTypeCredentialField[];
+    tags?: string[] | null;
   };
   status?: {
     flight_ready: boolean;

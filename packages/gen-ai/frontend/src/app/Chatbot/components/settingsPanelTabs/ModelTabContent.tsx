@@ -6,6 +6,7 @@ import ModelParameterFormGroup from '~/app/Chatbot/components/ModelParameterForm
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
 import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
 import TranscriptionModelSection from '~/app/Chatbot/components/settingsPanelTabs/TranscriptionModelSection';
+import useGenAiAudioUploadEnabled from '~/app/hooks/useGenAiAudioUploadEnabled';
 
 interface ModelTabContentProps {
   temperature: number;
@@ -33,6 +34,8 @@ function ModelTabContent({
   onSubscriptionChange,
   configId,
 }: ModelTabContentProps): React.ReactElement {
+  const audioUploadEnabled = useGenAiAudioUploadEnabled();
+
   return (
     <TabContentWrapper title={title}>
       <Form>
@@ -79,7 +82,7 @@ function ModelTabContent({
             isDisabled={false}
           />
         </FormGroup>
-        <TranscriptionModelSection configId={configId} />
+        {audioUploadEnabled && <TranscriptionModelSection configId={configId} />}
       </Form>
     </TabContentWrapper>
   );
