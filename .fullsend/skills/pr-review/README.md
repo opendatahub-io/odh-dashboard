@@ -325,6 +325,10 @@ skip-author checks:
   skipped author exits before the adapters, so it buys no CodeRabbit run.
   Jira and CodeRabbit run at once; the review waits for the slower one
   (CodeRabbit, 20 minutes at most).
+- **Failures.** An adapter that exits non-zero gets an `error` envelope
+  (`reason: adapter-exited-<code>`), so the Producers table shows it as
+  errored. The review carries on without it; both adapter rows are
+  `failure_severity: info`.
 - **Cancellation.** The adapters share the review job's
   `cancel-in-progress` group, so a newer push cancels them with the review.
 - **Stale context.** Head-dependent context is read from the forge when the

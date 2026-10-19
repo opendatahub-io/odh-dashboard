@@ -292,35 +292,54 @@ run_adapter() {
 
 # Adapters are independent, so they run at once and the review waits only for
 # the slowest (CodeRabbit, up to 20 minutes). Each one's output is buffered and
-# printed whole, in registry order. An adapter that exits non-zero leaves no
-# envelope, which the orchestrator reads as a missing producer.
+# printed whole, in registry order. An adapter that exits non-zero gets an
+# `error` envelope in place of whatever it left, so the review reports it as
+# errored instead of missing. The review itself carries on, as it did when the
+# adapters were separate jobs: every adapter row is failure_severity "info".
+write_adapter_failure_envelope() {
+  local id="$1" output="$2" producer_file="$3" code="$4" destination
+  destination="${_SCRIPT_DIR}/../${producer_file}"
+  mkdir -p "$(dirname "${destination}")"
+  jq -n --arg id "${id}" --arg output "${output}" --arg reason "adapter-exited-${code}" '
+    {id: $id, dimension: $id, kind: "cli-adapter", output: $output,
+     status: "error", reason: $reason}
+    + (if $output == "findings" then {findings: []} else {} end)
+  ' > "${destination}"
+}
+
 run_pre_review_adapters() {
   local registry="${_SCRIPT_DIR}/../dimensions.json"
-  local id runner setup_runner url_env username_env token_env i log_dir
-  local ids=() pids=()
+  local id runner setup_runner url_env username_env token_env output producer_file i log_dir code
+  local ids=() pids=() outputs=() producer_files=()
   log_dir="$(mktemp -d)"
   # Fields are joined with "|", not @tsv: tab is IFS whitespace, so `read`
   # would merge the empty credential fields and shift the columns. The registry
   # check allows no "|" in any of these values.
-  while IFS='|' read -r id runner setup_runner url_env username_env token_env; do
+  while IFS='|' read -r id output producer_file runner setup_runner url_env username_env token_env; do
     [[ -n "${id}" ]] || continue
+    rm -f "${_SCRIPT_DIR}/../${producer_file}"
     run_adapter "${id}" "${runner}" "${setup_runner}" "${url_env}" "${username_env}" "${token_env}" \
       > "${log_dir}/${id}.log" 2>&1 &
     ids+=("${id}")
+    outputs+=("${output}")
+    producer_files+=("${producer_file}")
     pids+=("$!")
   done < <(jq -r '
     .dimensions[]
     | select(.kind == "cli-adapter" and .host.execution == "pre_review")
-    | [.id, .runner, (.host.setup_runner // ""),
+    | [.id, .output, .producer_file, .runner, (.host.setup_runner // ""),
        (.host.credentials.url_env // ""), (.host.credentials.username_env // ""),
        (.host.credentials.token_env // "")]
     | join("|")
   ' "${registry}")
   for ((i = 0; i < ${#ids[@]}; i++)); do
-    if wait "${pids[i]}"; then
+    code=0
+    wait "${pids[i]}" || code=$?
+    if [[ "${code}" -eq 0 ]]; then
       echo "::group::${ids[i]} adapter"
     else
-      echo "::group::${ids[i]} adapter (exited non-zero)"
+      echo "::group::${ids[i]} adapter (exited ${code})"
+      write_adapter_failure_envelope "${ids[i]}" "${outputs[i]}" "${producer_files[i]}" "${code}"
     fi
     cat "${log_dir}/${ids[i]}.log"
     echo "::endgroup::"
@@ -512,6 +531,7 @@ run_self_test() {
       'env | grep -E "^(ALPHA_|BETA_|REVIEW_|GH_)" > "${0%.sh}.env" || true' \
       'printf "FULLSEND_ADAPTER_BIN=/opt/tool\n" >> "${FULLSEND_ADAPTER_ENV_FILE}"' > "${_SCRIPT_DIR}/setup.sh"
     cp "${_SCRIPT_DIR}/setup.sh" "${_SCRIPT_DIR}/setup-c.sh"
+    printf '%s\n' '#!/usr/bin/env bash' 'echo partial > "${0%/scripts/d.sh}/.run/d.json"' 'exit 3' > "${_SCRIPT_DIR}/d.sh"
     jq -n '{dimensions: [
       {id: "a", kind: "cli-adapter", output: "context", runner: "scripts/a.sh", producer_file: ".run/a.json",
        host: {execution: "pre_review", setup_runner: "scripts/setup.sh",
@@ -521,7 +541,10 @@ run_self_test() {
               credentials: {url_env: "", username_env: "", token_env: "BETA_TOKEN"}}},
       {id: "c", kind: "cli-adapter", output: "findings", runner: "scripts/c.sh", producer_file: ".run/c.json",
        host: {execution: "pre_review", setup_runner: "scripts/setup-c.sh",
-              credentials: {url_env: "", username_env: "", token_env: "GAMMA_TOKEN"}}}
+              credentials: {url_env: "", username_env: "", token_env: "GAMMA_TOKEN"}}},
+      {id: "d", kind: "cli-adapter", output: "findings", runner: "scripts/d.sh", producer_file: ".run/d.json",
+       host: {execution: "pre_review", setup_runner: "",
+              credentials: {url_env: "", username_env: "", token_env: ""}}}
     ]}' > "${temp_dir}/dimensions.json"
     export ALPHA_URL="https://alpha.example.test" ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
     export REVIEW_TOKEN="review-token-value" GH_TOKEN="gh-token-value"
@@ -548,6 +571,10 @@ run_self_test() {
     refuse_text 'beta-token-value' "${_SCRIPT_DIR}/a.env"
     refuse_text '^(ALPHA_|BETA_|REVIEW_TOKEN|GH_)' "${_SCRIPT_DIR}/a.env" "${_SCRIPT_DIR}/b.env" "${_SCRIPT_DIR}/c.env" "${_SCRIPT_DIR}/setup.env"
     [[ ! -e "${_SCRIPT_DIR}/setup-c.env" ]] || exit 1
+    # An adapter that exits non-zero is reported as an error, not dropped,
+    # and its partial output is replaced.
+    jq -e '.id == "d" and .status == "error" and .reason == "adapter-exited-3"
+      and (.findings | length == 0)' "${temp_dir}/.run/d.json" >/dev/null || exit 1
     # A row that claims a reserved name fails capture and validation, and
     # capture unsets nothing first. The fixture itself validates.
     validate_adapter_registry || exit 1
