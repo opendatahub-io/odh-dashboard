@@ -699,7 +699,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: source
           description: |-
             Filter models by source. This parameter may be included multiple
@@ -748,7 +748,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
       responses:
         "200":
           $ref: "#/components/responses/FilterOptionsResponse"
@@ -769,7 +769,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - $ref: "#/components/parameters/name"
         - $ref: "#/components/parameters/assetType"
         - $ref: "#/components/parameters/pageSize"
@@ -799,7 +799,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - $ref: "#/components/parameters/assetType"
         - $ref: "#/components/parameters/pageSize"
         - $ref: "#/components/parameters/orderBy"
@@ -827,7 +827,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -859,7 +859,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -894,7 +894,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -931,7 +931,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -5407,6 +5407,14 @@ components:
         type: string
       in: query
       required: false
+    modelCatalogNamespace:
+      name: namespace
+      description: The namespace to read Model Catalog resources from.
+      schema:
+        type: string
+        minLength: 1
+      in: query
+      required: true
     filterQuery:
       examples:
         filterQuery:
