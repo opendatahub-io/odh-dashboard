@@ -102,6 +102,10 @@ jobs:
       # env.runner. It is composed here from the existing per-integration
       # secrets, so each one still rotates on its own. Rules this expression
       # follows:
+      # - Only review-routed events get it (the pull_request_target events
+      #   `dispatch` admits, and `/fs-review`). Fix runs get an empty string,
+      #   which `fullsend run` treats as no bundle; no other harness reads
+      #   these names.
       # - Every name is always present. `fullsend run` fails the review when an
       #   env.runner reference is unset, and also when a value is empty, so an
       #   unset secret is sent as the placeholder "odh-adapter-credential-unset",
@@ -111,11 +115,14 @@ jobs:
       # - JIRA_TOKEN, JIRA_USER_EMAIL and JIRA_BASE_URL are refused names: the
       #   reusable workflow sets them itself on harness-run.
       FULLSEND_GITHUB_RUNNER_SECRETS: >-
-        ${{ format('{{"CODERABBIT_API_KEY":{0},"JIRA_URL":{1},"JIRA_USERNAME":{2},"JIRA_API_TOKEN":{3}}}',
+        ${{ (github.event_name == 'pull_request_target'
+        || (github.event_name == 'issue_comment' && github.event.comment.body == '/fs-review'))
+        && format('{{"CODERABBIT_API_KEY":{0},"JIRA_URL":{1},"JIRA_USERNAME":{2},"JIRA_API_TOKEN":{3}}}',
         secrets.CODERABBIT_API_KEY != '' && toJSON(secrets.CODERABBIT_API_KEY) || '"odh-adapter-credential-unset"',
         secrets.JIRA_URL != '' && toJSON(secrets.JIRA_URL) || '"odh-adapter-credential-unset"',
         secrets.JIRA_USERNAME != '' && toJSON(secrets.JIRA_USERNAME) || '"odh-adapter-credential-unset"',
-        secrets.JIRA_API_TOKEN != '' && toJSON(secrets.JIRA_API_TOKEN) || '"odh-adapter-credential-unset"') }}
+        secrets.JIRA_API_TOKEN != '' && toJSON(secrets.JIRA_API_TOKEN) || '"odh-adapter-credential-unset"')
+        || '' }}
 
   stop-fix:
     # Job-level if: is intentionally coarse — it only screens for the
