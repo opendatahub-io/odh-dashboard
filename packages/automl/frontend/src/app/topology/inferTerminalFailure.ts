@@ -7,6 +7,7 @@ type InferUniqueFailedNodeOptions = {
   shouldInfer: boolean;
   isCandidate?: (nodeId: string) => boolean;
   isUnresolved?: (nodeId: string, status: RunStatus | undefined) => boolean;
+  isContradictoryStatus?: (status: RunStatus | undefined) => boolean;
   isTransparent?: (nodeId: string) => boolean;
   onInferredNode?: (nodeId: string) => void;
 };
@@ -22,6 +23,7 @@ export const inferUniqueFailedNode = ({
   shouldInfer,
   isCandidate = () => true,
   isUnresolved = (_nodeId, status) => status == null,
+  isContradictoryStatus = (status) => status === RunStatus.InProgress,
   isTransparent = () => false,
   onInferredNode,
 }: InferUniqueFailedNodeOptions): Map<string, RunStatus | undefined> => {
@@ -59,13 +61,30 @@ export const inferUniqueFailedNode = ({
   }
 
   const inferredNodeId = reachableUnresolvedNodes[0];
-  onInferredNode?.(inferredNodeId);
   const dependentsById = new Map<string, string[]>(nodeIds.map((nodeId) => [nodeId, []]));
   for (const nodeId of nodeIds) {
     for (const dependency of dependenciesById.get(nodeId) ?? []) {
       dependentsById.get(dependency)?.push(nodeId);
     }
   }
+
+  const hasContradictoryDescendant = (nodeId: string, visited = new Set<string>()): boolean => {
+    if (visited.has(nodeId)) {
+      return false;
+    }
+    visited.add(nodeId);
+    return (dependentsById.get(nodeId) ?? []).some(
+      (dependent) =>
+        isContradictoryStatus(statusById.get(dependent)) ||
+        hasContradictoryDescendant(dependent, new Set(visited)),
+    );
+  };
+
+  if (hasContradictoryDescendant(inferredNodeId)) {
+    return statusById;
+  }
+
+  onInferredNode?.(inferredNodeId);
 
   const pendingDescendants = new Set<string>();
   const queue = [inferredNodeId];
@@ -85,7 +104,7 @@ export const inferUniqueFailedNode = ({
   const nextStatusById = new Map(statusById);
   nextStatusById.set(inferredNodeId, RunStatus.Failed);
   for (const descendant of pendingDescendants) {
-    if (!isCompleted(statusById.get(descendant))) {
+    if (isUnresolved(descendant, statusById.get(descendant))) {
       nextStatusById.set(descendant, RunStatus.Pending);
     }
   }

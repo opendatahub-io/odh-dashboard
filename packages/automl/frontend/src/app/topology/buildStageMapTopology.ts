@@ -296,7 +296,11 @@ const inferFailedNodeForTerminalRun = (
     isCandidate: (nodeId) => nodeById.get(nodeId)?.type !== DEFAULT_SPACER_NODE_TYPE,
     isUnresolved: (nodeId) => {
       const node = nodeById.get(nodeId);
-      return node != null && !isCompletedNode(node);
+      return (
+        node?.data?.runStatus == null ||
+        node.data.runStatus === RunStatus.Pending ||
+        node.data.runStatus === RunStatus.Failed
+      );
     },
     isTransparent: (nodeId) => nodeById.get(nodeId)?.type === DEFAULT_SPACER_NODE_TYPE,
     onInferredNode: (nodeId) => {

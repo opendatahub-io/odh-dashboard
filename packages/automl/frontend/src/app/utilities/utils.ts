@@ -458,6 +458,12 @@ export function resolveModelRecordKey(
   if (Object.hasOwn(models, modelIdentifier) && models[modelIdentifier] != null) {
     return modelIdentifier;
   }
+  const exactNameMatches = Object.entries(models)
+    .filter(([, model]) => model?.name === modelIdentifier)
+    .map(([key]) => key);
+  if (exactNameMatches.length > 0) {
+    return exactNameMatches.length === 1 ? exactNameMatches[0] : undefined;
+  }
   const normalizedIdentifier = normalizeModelIdentifier(modelIdentifier);
   const matchingKeys = Object.entries(models)
     .filter(

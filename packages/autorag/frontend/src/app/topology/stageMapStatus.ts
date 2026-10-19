@@ -307,6 +307,12 @@ export const resolvePatternRecordKey = (
   ) {
     return patternIdentifier;
   }
+  const exactNameMatches = Object.entries(patternRecords)
+    .filter(([, record]) => record?.name === patternIdentifier)
+    .map(([key]) => key);
+  if (exactNameMatches.length > 0) {
+    return exactNameMatches.length === 1 ? exactNameMatches[0] : undefined;
+  }
   const normalizedIdentifier = normalizePatternIdentifier(patternIdentifier);
   const matches = Object.entries(patternRecords).filter(
     ([key, record]) =>

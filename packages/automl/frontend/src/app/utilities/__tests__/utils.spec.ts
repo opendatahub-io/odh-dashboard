@@ -924,6 +924,15 @@ describe('resolveBestModelKey', () => {
     );
   });
 
+  it('prefers a unique exact model name before normalized matching', () => {
+    expect(
+      resolveBestModelKey(
+        { model_one: { name: 'Other Model' }, generated: { name: 'Model One' } },
+        'Model One',
+      ),
+    ).toBe('generated');
+  });
+
   it('leaves normalized key-to-name collisions unresolved', () => {
     expect(
       resolveBestModelKey(

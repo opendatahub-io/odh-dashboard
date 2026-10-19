@@ -115,6 +115,15 @@ describe('resolvePatternRecordKey', () => {
     ).toBe('generated');
   });
 
+  it('should prefer a unique exact pattern name before normalized matching', () => {
+    expect(
+      resolvePatternRecordKey(
+        { pattern_one: { name: 'Other Pattern' }, generated: { name: 'Pattern One' } },
+        'Pattern One',
+      ),
+    ).toBe('generated');
+  });
+
   it('should leave duplicate display-name matches unresolved', () => {
     expect(
       resolvePatternRecordKey(
