@@ -191,10 +191,11 @@ var wellKnownProfiles = map[string]tlsProfileSpec{
 // does not exist (IsNotFound), it returns Intermediate defaults
 // (TLS 1.2, 6 ECDHE ciphers, ALPN h2+http/1.1).
 //
-// On Forbidden/Unauthorized, falls back to Intermediate defaults (fail-open;
-// check RBAC if the profile is not being applied). On any other unexpected
-// error (e.g., REST client creation failure), returns the error so the caller
-// can exit (fail-closed).
+// On Forbidden/Unauthorized (missing RBAC) the profile cannot be read, so the
+// cluster TLS policy cannot be guaranteed: the error is returned so the caller
+// exits rather than silently weakening TLS (fail-closed). On any other
+// unexpected error (e.g., REST client creation failure), the error is likewise
+// returned (fail-closed).
 func ServerTLSConfig(ctx context.Context, logger *slog.Logger) (*tls.Config, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
@@ -255,8 +256,12 @@ func serverTLSConfigFromREST(ctx context.Context, restCfg *rest.Config, logger *
 			logger.Info("Transient API error reading TLS profile, using Intermediate TLS defaults",
 				"error", err)
 		case errors.IsForbidden(err), errors.IsUnauthorized(err):
-			logger.Info("Forbidden/Unauthorized reading TLS profile, using Intermediate TLS defaults (check RBAC)",
-				"error", err)
+			// The profile exists but RBAC denies reading it. We cannot prove the
+			// listener honors the cluster TLS policy, so fail closed instead of
+			// silently serving weaker Intermediate defaults. Grant the
+			// config.openshift.io/apiservers "get" permission to the service
+			// account to resolve this.
+			return nil, fmt.Errorf("denied reading APIServer 'cluster' TLS profile (check RBAC): %w", err)
 		default:
 			return nil, fmt.Errorf("failed to get APIServer 'cluster': %w", err)
 		}
@@ -276,14 +281,6 @@ func tlsConfigFromProfile(profile *tlsSecurityProfile, logger *slog.Logger) (*tl
 	spec, err := resolveProfileSpec(profile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve TLS profile: %w", err)
-	}
-
-	// Log when an unknown profile type falls back to Intermediate defaults.
-	if profile != nil && profile.Type != "" {
-		if _, known := wellKnownProfiles[profile.Type]; !known && profile.Type != "Custom" {
-			logger.Warn("unknown TLS profile type, falling back to Intermediate defaults",
-				"requestedType", profile.Type)
-		}
 	}
 
 	minVersion, ok := tlsVersionMap[spec.MinTLSVersion]
@@ -355,8 +352,9 @@ func resolveProfileSpec(profile *tlsSecurityProfile) (tlsProfileSpec, error) {
 		return spec, nil
 	}
 
-	// Unknown profile type: return Intermediate as safe default.
-	return defaultProfile, nil
+	// Unknown profile type: fail closed rather than silently substituting
+	// Intermediate, which could serve a weaker policy than the cluster intends.
+	return tlsProfileSpec{}, fmt.Errorf("unknown TLS profile type %q", profile.Type)
 }
 
 // tls13CipherNames contains TLS 1.3 cipher names that Go manages automatically.
@@ -368,8 +366,25 @@ var tls13CipherNames = map[string]bool{
 	"TLS_CHACHA20_POLY1305_SHA256": true,
 }
 
+// goNegotiableCiphers is the set of TLS ≤1.2 cipher suite IDs the running Go
+// runtime can actually negotiate. It is the union of tls.CipherSuites() (secure)
+// and tls.InsecureCipherSuites() (available but weak), so a mapped constant that
+// a future Go release removes from both is treated as unusable rather than
+// silently handed to crypto/tls where it would be ignored.
+var goNegotiableCiphers = func() map[uint16]bool {
+	m := make(map[uint16]bool)
+	for _, c := range tls.CipherSuites() {
+		m[c.ID] = true
+	}
+	for _, c := range tls.InsecureCipherSuites() {
+		m[c.ID] = true
+	}
+	return m
+}()
+
 // resolveCiphers converts cipher name strings (OpenSSL or IANA format) to Go cipher suite IDs.
-// Returns the resolved IDs and a list of names that could not be mapped.
+// Returns the resolved IDs and a list of names that could not be used — either
+// because they are unknown or because the running Go runtime cannot negotiate them.
 // TLS 1.3 cipher names are silently skipped (Go manages them automatically).
 func resolveCiphers(names []string) ([]uint16, []string) {
 	var codes []uint16
@@ -382,6 +397,11 @@ func resolveCiphers(names []string) ([]uint16, []string) {
 		}
 		code, ok := openSSLToGo[name]
 		if !ok {
+			dropped = append(dropped, name)
+			continue
+		}
+		if !goNegotiableCiphers[code] {
+			// Mapped to a constant the running Go runtime no longer negotiates.
 			dropped = append(dropped, name)
 			continue
 		}

@@ -112,14 +112,12 @@ func TestResolveProfileSpecCustom(t *testing.T) {
 }
 
 func TestResolveProfileSpecUnknownType(t *testing.T) {
+	// Unknown profile types fail closed rather than silently substituting
+	// Intermediate, which could serve a weaker policy than the cluster intends.
 	profile := &tlsSecurityProfile{Type: "FutureType"}
-	spec, err := resolveProfileSpec(profile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	// Should fall back to Intermediate
-	if spec.MinTLSVersion != "VersionTLS12" {
-		t.Errorf("expected VersionTLS12 (Intermediate fallback), got %s", spec.MinTLSVersion)
+	_, err := resolveProfileSpec(profile)
+	if err == nil {
+		t.Fatal("expected error for unknown TLS profile type")
 	}
 }
 
@@ -344,6 +342,34 @@ func TestServerTLSConfigFromRESTNotFoundFailsOpen(t *testing.T) {
 	}
 }
 
+// TestServerTLSConfigFromRESTForbiddenFailsClosed verifies that a 403 reading the
+// APIServer profile fails closed (returns an error) rather than silently serving
+// weaker Intermediate defaults.
+func TestServerTLSConfigFromRESTForbiddenFailsClosed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"Forbidden","code":403}`, http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger()); err == nil {
+		t.Fatal("expected error on 403 (fail-closed), got nil")
+	}
+}
+
+// TestServerTLSConfigFromRESTUnauthorizedFailsClosed verifies the same for 401.
+func TestServerTLSConfigFromRESTUnauthorizedFailsClosed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"Unauthorized","code":401}`, http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger()); err == nil {
+		t.Fatal("expected error on 401 (fail-closed), got nil")
+	}
+}
+
 func TestResolveGroups(t *testing.T) {
 	names := []string{"X25519", "P-256", "P-384", "X25519MLKEM768", "UNKNOWN-GROUP"}
 	curves, dropped := resolveGroups(names)
@@ -425,14 +451,11 @@ func TestTLSConfigFromCustomAllUnsupportedGroups(t *testing.T) {
 	}
 }
 
-func TestTLSConfigFromUnknownProfileLogs(t *testing.T) {
-	// Unknown profile type should not error but should fall back to Intermediate.
+func TestTLSConfigFromUnknownProfileFailsClosed(t *testing.T) {
+	// Unknown profile type must fail closed rather than fall back to Intermediate.
 	profile := &tlsSecurityProfile{Type: "FutureProfile"}
-	cfg, err := tlsConfigFromProfile(profile, testLogger())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cfg.MinVersion != tls.VersionTLS12 {
-		t.Errorf("expected TLS 1.2 (Intermediate fallback), got %d", cfg.MinVersion)
+	_, err := tlsConfigFromProfile(profile, testLogger())
+	if err == nil {
+		t.Fatal("expected error for unknown TLS profile type")
 	}
 }
