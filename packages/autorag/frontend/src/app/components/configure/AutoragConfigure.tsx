@@ -649,11 +649,9 @@ function AutoragConfigure({
                           </StackItem>
                           <StackItem>
                             <Content component="small">
-                              Select a file or folder from this bucket to use as a knowledge source.
-                              When you select a folder, only supported files directly inside that
-                              folder are processed. Nested folders are not scanned. Unsupported file
-                              types are skipped.{' '}
-                              <SupportedFileTypesLink onClick={openSupportedFileTypesModal} />
+                              Audio upload and automatic transcription are supported. Select a file
+                              or folder from this bucket to use as the knowledge for your
+                              experiment.
                             </Content>
                           </StackItem>
                           <StackItem>
@@ -720,8 +718,8 @@ function AutoragConfigure({
                           <StackItem>
                             <Content component="small" id="input-data-upload-description">
                               Audio upload and automatic transcription are supported. Drop a file
-                              here or browse to select a file.{' '}
-                              <SupportedFileTypesLink onClick={openSupportedFileTypesModal} />
+                              here or browse to select a file to use as the knowledge for your
+                              experiment.
                             </Content>
                           </StackItem>
                           <StackItem>
@@ -1399,7 +1397,9 @@ function AutoragConfigure({
         unselectableReason={SUPPORTED_FORMAT_HINT}
         modalDescription={
           <>
-            Select a file or folder from this bucket to use as a knowledge source.{' '}
+            Select a file or folder from this bucket to use as a knowledge source. When you select a
+            folder, only supported files directly inside that folder are processed. Nested folders
+            are not scanned. Unsupported file types are skipped.{' '}
             <SupportedFileTypesLink onClick={openSupportedFileTypesModal} />
           </>
         }
