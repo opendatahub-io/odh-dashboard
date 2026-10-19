@@ -33,15 +33,11 @@ export const listNotebookStatus = async (
   namespace: string,
   name: string,
 ): Promise<[boolean, string]> => {
-  const response = await fastify.kube.coreV1Api.listNamespacedPod(
+  const response = await fastify.kube.coreV1Api.listNamespacedPod({
     namespace,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    `notebook-name=${name}`,
-  );
-  const pods = (response.body as V1PodList).items;
+    labelSelector: `notebook-name=${name}`,
+  });
+  const pods = (response as V1PodList).items;
   return [pods.some((pod) => checkPodContainersReady(pod)), pods[0]?.metadata?.uid || ''];
 };
 

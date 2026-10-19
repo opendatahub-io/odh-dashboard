@@ -1,4 +1,3 @@
-import { IncomingMessage } from 'http';
 import { CoreV1Api, V1Secret, V1ConfigMap } from '@kubernetes/client-node';
 import { FastifyRequest } from 'fastify';
 import { CronJobKind, KubeFastifyInstance, OdhApplication } from '../../../types';
@@ -48,7 +47,7 @@ export const createAccessSecret = async (
   namespace: string,
   stringData: { [key: string]: string },
   coreV1Api: CoreV1Api,
-): Promise<{ response: IncomingMessage; body: V1Secret }> => {
+): Promise<V1Secret | null> => {
   const { enable } = appDef.spec;
   if (!enable) {
     return Promise.resolve(null);
@@ -69,12 +68,12 @@ export const createAccessSecret = async (
     stringData,
   };
   return coreV1Api
-    .readNamespacedSecret(name, namespace)
+    .readNamespacedSecret({ name, namespace })
     .then(() => {
-      return coreV1Api.replaceNamespacedSecret(name, namespace, secret);
+      return coreV1Api.replaceNamespacedSecret({ name, namespace, body: secret });
     })
     .catch(() => {
-      return coreV1Api.createNamespacedSecret(namespace, secret);
+      return coreV1Api.createNamespacedSecret({ namespace, body: secret });
     });
 };
 
@@ -103,8 +102,14 @@ export const runValidation = async (
   });
 
   const cronJob = await customObjectsApi
-    .getNamespacedCustomObject('batch', 'v1', namespace, 'cronjobs', cronjobName)
-    .then((res) => res.body as CronJobKind)
+    .getNamespacedCustomObject({
+      group: 'batch',
+      version: 'v1',
+      namespace,
+      plural: 'cronjobs',
+      name: cronjobName,
+    })
+    .then((res) => res as CronJobKind)
     .catch(() => {
       fastify.log.error(`validation cronjob does not exist`);
     });
@@ -121,19 +126,25 @@ export const runValidation = async (
   const updateCronJobSuspension = async (suspend: boolean) => {
     try {
       const updateCronJob = await customObjectsApi
-        .getNamespacedCustomObject('batch', 'v1', namespace, 'cronjobs', cronjobName)
-        .then((res) => res.body as CronJobKind);
+        .getNamespacedCustomObject({
+          group: 'batch',
+          version: 'v1',
+          namespace,
+          plural: 'cronjobs',
+          name: cronjobName,
+        })
+        .then((res) => res as CronJobKind);
 
       // Flag the cronjob as no longer suspended
       updateCronJob.spec.suspend = suspend;
-      await customObjectsApi.replaceNamespacedCustomObject(
-        'batch',
-        'v1',
+      await customObjectsApi.replaceNamespacedCustomObject({
+        group: 'batch',
+        version: 'v1',
         namespace,
-        'cronjobs',
-        cronjobName,
-        updateCronJob,
-      );
+        plural: 'cronjobs',
+        name: cronjobName,
+        body: updateCronJob,
+      });
     } catch (e) {
       fastify.log.error(
         `failed to ${suspend ? 'suspend' : 'unsuspend'} cronjob: ${e.response.body.message}`,
@@ -145,13 +156,13 @@ export const runValidation = async (
   await updateCronJobSuspension(true);
 
   // If there was a manual job already, delete it
-  await batchV1Api.deleteNamespacedJob(jobName, namespace).catch(() => {
+  await batchV1Api.deleteNamespacedJob({ name: jobName, namespace }).catch(() => {
     return;
   });
 
   // wait for job to be deleted
   await waitOnDeletion(() => {
-    return batchV1Api.readNamespacedJob(jobName, namespace).then(() => {
+    return batchV1Api.readNamespacedJob({ name: jobName, namespace }).then(() => {
       return;
     });
   });
@@ -171,16 +182,18 @@ export const runValidation = async (
     spec: cronJob.spec.jobTemplate.spec,
   };
 
-  const { body } = await batchV1Api.createNamespacedJob(namespace, job).catch(async () => {
-    fastify.log.error(`failed to create validation job`);
+  const createdJob = await batchV1Api
+    .createNamespacedJob({ namespace, body: job })
+    .catch(async () => {
+      fastify.log.error(`failed to create validation job`);
 
-    // Flag the cronjob as no longer suspended
-    await updateCronJobSuspension(false);
+      // Flag the cronjob as no longer suspended
+      await updateCronJobSuspension(false);
 
-    return { body: null };
-  });
+      return null;
+    });
 
-  if (!body) {
+  if (!createdJob) {
     // Flag the cronjob as no longer suspended
     await updateCronJobSuspension(false);
 
@@ -189,11 +202,11 @@ export const runValidation = async (
   }
 
   waitOnCompletion(fastify, async () => {
-    const res = await batchV1Api.readNamespacedJobStatus(jobName, namespace);
-    if (res.body.status.succeeded) {
+    const res = await batchV1Api.readNamespacedJobStatus({ name: jobName, namespace });
+    if (res.status.succeeded) {
       return true;
     }
-    if (res.body.status.failed) {
+    if (res.status.failed) {
       fastify.log.error('Validation job failed failed to run');
       return true;
     }
@@ -260,7 +273,7 @@ export const validateISV = async (
 
   const coreV1Api = fastify.kube.coreV1Api;
   return coreV1Api
-    .readNamespacedConfigMap(cmName, namespace)
+    .readNamespacedConfigMap({ name: cmName, namespace })
     .then(async () => {
       const success = await getApplicationEnabledConfigMap(fastify, appDef);
       if (success) {
@@ -276,7 +289,7 @@ export const validateISV = async (
     })
     .catch(async () => {
       return coreV1Api
-        .createNamespacedConfigMap(namespace, cmBody)
+        .createNamespacedConfigMap({ namespace, body: cmBody })
         .then(checkResult)
         .catch(catchError);
     });
@@ -313,9 +326,9 @@ export const getValidateISVResults = async (
 
     try {
       const complete = await batchV1Api
-        .readNamespacedJobStatus(jobName, namespace)
+        .readNamespacedJobStatus({ name: jobName, namespace })
         .then(async (res) => {
-          return res.body.status.succeeded || res.body.status.failed;
+          return res.status.succeeded || res.status.failed;
         });
       if (!complete) {
         return { complete: false, valid: false, error: null };

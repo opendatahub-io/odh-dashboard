@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import { HttpError } from '@kubernetes/client-node';
 import { KubeFastifyInstance } from './types';
+import { K8sApiError, isK8sApiError } from './utils/k8sApiError';
 
-export const isHttpError = (e: unknown): e is HttpError => e instanceof HttpError;
+export const isHttpError = (e: unknown): e is K8sApiError => isK8sApiError(e);
 
 export const errorHandler = (e: unknown): string => {
   if (typeof e === 'object' && !!e) {

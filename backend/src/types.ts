@@ -1,5 +1,13 @@
-import k8s, { V1ConfigMap, V1Secret } from '@kubernetes/client-node';
-import { User } from '@kubernetes/client-node/dist/config_types';
+import type {
+  BatchV1Api,
+  CoreV1Api,
+  CustomObjectsApi,
+  KubeConfig,
+  RbacAuthorizationV1Api,
+  User,
+  V1ConfigMap,
+  V1Secret,
+} from '@kubernetes/client-node';
 import type { FastifyInstance, FastifyRequest, RouteGenericInterface } from 'fastify';
 import type { EitherNotBoth } from '@odh-dashboard/foundation';
 
@@ -335,12 +343,11 @@ export type KubeStatus = {
 };
 
 export type KubeDecorator = KubeStatus & {
-  config: k8s.KubeConfig;
-  coreV1Api: k8s.CoreV1Api;
-  batchV1beta1Api: k8s.BatchV1beta1Api;
-  batchV1Api: k8s.BatchV1Api;
-  customObjectsApi: k8s.CustomObjectsApi;
-  rbac: k8s.RbacAuthorizationV1Api;
+  config: KubeConfig;
+  coreV1Api: CoreV1Api;
+  batchV1Api: BatchV1Api;
+  customObjectsApi: CustomObjectsApi;
+  rbac: RbacAuthorizationV1Api;
   currentToken: string;
 };
 

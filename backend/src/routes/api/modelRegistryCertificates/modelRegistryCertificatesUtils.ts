@@ -5,20 +5,14 @@ export const listSecrets = async (
   fastify: KubeFastifyInstance,
   modelRegistryNamespace: string,
 ): Promise<{ items: V1Secret[] }> => {
-  const response = await (fastify.kube.coreV1Api.listNamespacedSecret(
-    modelRegistryNamespace,
-  ) as Promise<{ body: { items: V1Secret[] } }>);
-  return response.body;
+  return fastify.kube.coreV1Api.listNamespacedSecret({ namespace: modelRegistryNamespace });
 };
 
 export const listConfigMaps = async (
   fastify: KubeFastifyInstance,
   modelRegistryNamespace: string,
 ): Promise<{ items: V1ConfigMap[] }> => {
-  const response = await (fastify.kube.coreV1Api.listNamespacedConfigMap(
-    modelRegistryNamespace,
-  ) as Promise<{ body: { items: V1ConfigMap[] } }>);
-  return response.body;
+  return fastify.kube.coreV1Api.listNamespacedConfigMap({ namespace: modelRegistryNamespace });
 };
 
 export const listModelRegistryCertificateNames = async (

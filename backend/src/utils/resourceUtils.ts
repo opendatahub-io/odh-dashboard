@@ -90,15 +90,15 @@ const fetchWatchedAIHub = async (fastify: KubeFastifyInstance): Promise<AIHubKin
 
 const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi
-    .getNamespacedCustomObject(
-      DASHBOARD_CONFIG.group,
-      DASHBOARD_CONFIG.version,
-      fastify.kube.namespace,
-      DASHBOARD_CONFIG.plural,
-      DASHBOARD_CONFIG.dashboardName,
-    )
+    .getNamespacedCustomObject({
+      group: DASHBOARD_CONFIG.group,
+      version: DASHBOARD_CONFIG.version,
+      namespace: fastify.kube.namespace,
+      plural: DASHBOARD_CONFIG.plural,
+      name: DASHBOARD_CONFIG.dashboardName,
+    })
     .then((res) => {
-      const dashboardCR = res?.body as DashboardConfig;
+      const dashboardCR = res as DashboardConfig;
       return _.merge({}, blankDashboardCR, dashboardCR); // merge with blank CR to prevent any missing values
     })
     .catch((e) => {
@@ -113,14 +113,14 @@ const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<D
 const defaultDashboardCR = _.omit(blankDashboardCR, 'spec.dashboardConfig');
 const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi
-    .createNamespacedCustomObject(
-      DASHBOARD_CONFIG.group,
-      DASHBOARD_CONFIG.version,
-      fastify.kube.namespace,
-      DASHBOARD_CONFIG.plural,
-      defaultDashboardCR,
-    )
-    .then((result) => result.body as DashboardConfig)
+    .createNamespacedCustomObject({
+      group: DASHBOARD_CONFIG.group,
+      version: DASHBOARD_CONFIG.version,
+      namespace: fastify.kube.namespace,
+      plural: DASHBOARD_CONFIG.plural,
+      body: defaultDashboardCR,
+    })
+    .then((result) => result as DashboardConfig)
     .catch((e) => {
       fastify.log.error(e, 'Error creating Dashboard CR: ');
       return defaultDashboardCR;
@@ -135,23 +135,18 @@ const fetchOLMv0Subscriptions = async (
   let remainingItemCount = 1;
   try {
     while (remainingItemCount) {
-      const res = (await fastify.kube.customObjectsApi.listNamespacedCustomObject(
-        subscriptionsGroup,
-        subscriptionsVersion,
-        '',
-        subscriptionsPlural,
-        undefined,
+      const res = (await fastify.kube.customObjectsApi.listNamespacedCustomObject({
+        group: subscriptionsGroup,
+        version: subscriptionsVersion,
+        namespace: '',
+        plural: subscriptionsPlural,
         _continue,
-        undefined,
-        undefined,
-        250,
-      )) as {
-        body: {
-          items: SubscriptionKind[];
-          metadata: { continue: string; remainingItemCount: number };
-        };
+        limit: 250,
+      })) as {
+        items: SubscriptionKind[];
+        metadata: { continue: string; remainingItemCount: number };
       };
-      const subs = res?.body.items?.map(
+      const subs = res?.items?.map(
         (sub): SubscriptionStatusData => ({
           channel: sub.spec.channel,
           installedCSV: sub.status?.installedCSV,
@@ -160,8 +155,8 @@ const fetchOLMv0Subscriptions = async (
           source: 'OLMv0',
         }),
       );
-      remainingItemCount = res.body?.metadata?.remainingItemCount;
-      _continue = res.body?.metadata?.continue;
+      remainingItemCount = res?.metadata?.remainingItemCount;
+      _continue = res?.metadata?.continue;
       if (subs?.length) {
         installedCSVs.push(...subs);
       }
@@ -214,24 +209,19 @@ const fetchOLMv1ClusterExtensions = async (
   let remainingItemCount = 1;
   try {
     while (remainingItemCount) {
-      const res = (await fastify.kube.customObjectsApi.listClusterCustomObject(
-        clusterExtensionsGroup,
-        clusterExtensionsVersion,
-        clusterExtensionsPlural,
-        undefined,
+      const res = (await fastify.kube.customObjectsApi.listClusterCustomObject({
+        group: clusterExtensionsGroup,
+        version: clusterExtensionsVersion,
+        plural: clusterExtensionsPlural,
         _continue,
-        undefined,
-        undefined,
-        250,
-      )) as {
-        body: {
-          items: ClusterExtensionKind[];
-          metadata: { continue: string; remainingItemCount: number };
-        };
+        limit: 250,
+      })) as {
+        items: ClusterExtensionKind[];
+        metadata: { continue: string; remainingItemCount: number };
       };
-      const exts = res?.body.items?.map(clusterExtensionToSubscriptionStatus);
-      remainingItemCount = res.body?.metadata?.remainingItemCount;
-      _continue = res.body?.metadata?.continue;
+      const exts = res?.items?.map(clusterExtensionToSubscriptionStatus);
+      remainingItemCount = res?.metadata?.remainingItemCount;
+      _continue = res?.metadata?.continue;
       if (exts?.length) {
         results.push(...exts);
       }
@@ -275,25 +265,20 @@ const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStar
     const customObjectsApi = fastify.kube.customObjectsApi;
     try {
       while (remainingItemCount) {
-        const res = (await customObjectsApi.listNamespacedCustomObject(
-          quickStartsGroup,
-          quickStartsVersion,
-          fastify.kube.namespace,
-          quickStartsPlural,
-          undefined,
+        const res = (await customObjectsApi.listNamespacedCustomObject({
+          group: quickStartsGroup,
+          version: quickStartsVersion,
+          namespace: fastify.kube.namespace,
+          plural: quickStartsPlural,
           _continue,
-          undefined,
-          undefined,
-          250,
-        )) as {
-          body: {
-            items: QuickStart[];
-            metadata: { _continue: string; remainingItemCount: number };
-          };
+          limit: 250,
+        })) as {
+          items: QuickStart[];
+          metadata: { _continue: string; remainingItemCount: number };
         };
-        const qStarts = res?.body.items;
-        remainingItemCount = res.body?.metadata?.remainingItemCount;
-        _continue = res.body?.metadata?._continue;
+        const qStarts = res?.items;
+        remainingItemCount = res?.metadata?.remainingItemCount;
+        _continue = res?.metadata?._continue;
 
         qStarts.forEach((qStart) => {
           if (qStart.spec.featureFlag) {
@@ -328,25 +313,20 @@ const fetchApplicationDefs = async (fastify: KubeFastifyInstance): Promise<OdhAp
     let remainingItemCount = 1;
     try {
       while (remainingItemCount) {
-        const res = (await customObjectsApi.listNamespacedCustomObject(
-          dashboardGroup,
-          dashboardVersion,
-          fastify.kube.namespace,
-          applicationsPlural,
-          undefined,
+        const res = (await customObjectsApi.listNamespacedCustomObject({
+          group: dashboardGroup,
+          version: dashboardVersion,
+          namespace: fastify.kube.namespace,
+          plural: applicationsPlural,
           _continue,
-          undefined,
-          undefined,
-          250,
-        )) as {
-          body: {
-            items: OdhApplication[];
-            metadata: { _continue: string; remainingItemCount: number };
-          };
+          limit: 250,
+        })) as {
+          items: OdhApplication[];
+          metadata: { _continue: string; remainingItemCount: number };
         };
-        const apps = res?.body.items;
-        remainingItemCount = res.body?.metadata?.remainingItemCount;
-        _continue = res.body?.metadata?._continue;
+        const apps = res?.items;
+        remainingItemCount = res?.metadata?.remainingItemCount;
+        _continue = res?.metadata?._continue;
         apps.forEach((app) => {
           if (!app.spec.featureFlag || featureFlags[app.spec.featureFlag]) {
             applicationDefs.push(app);
@@ -372,8 +352,7 @@ export const fetchApplications = async (
   const coreV1Api = fastify.kube.coreV1Api;
   const namespace = fastify.kube.namespace;
   const enabledAppsCM: V1ConfigMap = await coreV1Api
-    .readNamespacedConfigMap(enabledAppsConfigMapName, namespace)
-    .then((result) => result.body)
+    .readNamespacedConfigMap({ name: enabledAppsConfigMapName, namespace })
     .catch(() => null);
   for (const appDef of applicationDefs) {
     if (isIntegrationApp(appDef)) {
@@ -419,10 +398,14 @@ export const fetchApplications = async (
       data: enabledAppsCMData,
     };
     if (!enabledAppsCM) {
-      await coreV1Api.createNamespacedConfigMap(namespace, cmBody);
+      await coreV1Api.createNamespacedConfigMap({ namespace, body: cmBody });
     } else {
       cmBody.data = { ...enabledAppsCM.data, ...enabledAppsCMData };
-      await coreV1Api.replaceNamespacedConfigMap(enabledAppsConfigMapName, namespace, cmBody);
+      await coreV1Api.replaceNamespacedConfigMap({
+        name: enabledAppsConfigMapName,
+        namespace,
+        body: cmBody,
+      });
     }
   }
   return Promise.resolve(applications);
@@ -438,25 +421,20 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
     try {
       while (remainingItemCount) {
         const customObjectsApi = fastify.kube.customObjectsApi;
-        const res = (await customObjectsApi.listNamespacedCustomObject(
-          dashboardGroup,
-          dashboardVersion,
-          fastify.kube.namespace,
-          documentationsPlural,
-          undefined,
+        const res = (await customObjectsApi.listNamespacedCustomObject({
+          group: dashboardGroup,
+          version: dashboardVersion,
+          namespace: fastify.kube.namespace,
+          plural: documentationsPlural,
           _continue,
-          undefined,
-          undefined,
-          250,
-        )) as {
-          body: {
-            items: OdhDocument[];
-            metadata: { _continue: string; remainingItemCount: number };
-          };
+          limit: 250,
+        })) as {
+          items: OdhDocument[];
+          metadata: { _continue: string; remainingItemCount: number };
         };
-        const odhDocuments = res?.body.items;
-        remainingItemCount = res.body?.metadata?.remainingItemCount;
-        _continue = res.body?.metadata?._continue;
+        const odhDocuments = res?.items;
+        remainingItemCount = res?.metadata?.remainingItemCount;
+        _continue = res?.metadata?._continue;
 
         odhDocuments.forEach((doc) => {
           if (doc.spec.featureFlag) {
@@ -509,19 +487,16 @@ const getBuildConfigStatus = (
   const bcName = buildConfig.metadata.name;
   const notebookName = buildConfig.metadata.labels?.['opendatahub.io/notebook-name'] || bcName;
   return fastify.kube.customObjectsApi
-    .listNamespacedCustomObject(
-      'build.openshift.io',
-      'v1',
-      fastify.kube.namespace,
-      'builds',
-      undefined,
-      undefined,
-      undefined,
-      `buildconfig=${bcName}`,
-    )
+    .listNamespacedCustomObject({
+      group: 'build.openshift.io',
+      version: 'v1',
+      namespace: fastify.kube.namespace,
+      plural: 'builds',
+      labelSelector: `buildconfig=${bcName}`,
+    })
     .then((res) => {
       const bcBuilds = (
-        res?.body as {
+        res as {
           items: BuildKind[];
         }
       )?.items;
@@ -549,18 +524,15 @@ const getBuildConfigStatus = (
 
 export const fetchBuilds = async (fastify: KubeFastifyInstance): Promise<BuildStatus[]> => {
   const buildConfigs: K8sResourceCommon[] = await fastify.kube.customObjectsApi
-    .listNamespacedCustomObject(
-      'build.openshift.io',
-      'v1',
-      fastify.kube.namespace,
-      'buildconfigs',
-      undefined,
-      undefined,
-      undefined,
-      'opendatahub.io/build_type=notebook_image',
-    )
+    .listNamespacedCustomObject({
+      group: 'build.openshift.io',
+      version: 'v1',
+      namespace: fastify.kube.namespace,
+      plural: 'buildconfigs',
+      labelSelector: 'opendatahub.io/build_type=notebook_image',
+    })
     .then((res) => {
-      return (res?.body as { items: K8sResourceCommon[] })?.items;
+      return (res as { items: K8sResourceCommon[] })?.items;
     })
     .catch(() => {
       return [];
@@ -590,9 +562,13 @@ const getRefreshTimeForBuilds = (buildStatuses: BuildStatus[]): ResourceWatcherT
 
 const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
   return fastify.kube.customObjectsApi
-    .listClusterCustomObject(consoleLinksGroup, consoleLinksVersion, consoleLinksPlural)
+    .listClusterCustomObject({
+      group: consoleLinksGroup,
+      version: consoleLinksVersion,
+      plural: consoleLinksPlural,
+    })
     .then((res) => {
-      return (res.body as { items: ConsoleLinkKind[] }).items;
+      return (res as { items: ConsoleLinkKind[] }).items;
     })
     .catch((e) => {
       fastify.log.error(e, 'failed to get ConsoleLinks');
@@ -602,8 +578,13 @@ const fetchConsoleLinks = async (fastify: KubeFastifyInstance) => {
 
 const fetchAuthKind = (fastify: KubeFastifyInstance): Promise<AuthKind[]> => {
   return fastify.kube.customObjectsApi
-    .getClusterCustomObject('services.platform.opendatahub.io', 'v1alpha1', 'auths', 'auth')
-    .then((response) => response.body as AuthKind)
+    .getClusterCustomObject({
+      group: 'services.platform.opendatahub.io',
+      version: 'v1alpha1',
+      plural: 'auths',
+      name: 'auth',
+    })
+    .then((response) => response as AuthKind)
     .then((auth) => [auth]);
 };
 
@@ -776,10 +757,7 @@ export const getApplicationEnabledConfigMap = async (
     return Promise.resolve(null);
   }
   const coreV1Api = fastify.kube.coreV1Api;
-  const enabledCM = await coreV1Api
-    .readNamespacedConfigMap(name, namespace)
-    .then((result) => result.body)
-    .catch(() => null);
+  const enabledCM = await coreV1Api.readNamespacedConfigMap({ name, namespace }).catch(() => null);
   if (!enabledCM) {
     return false;
   }
@@ -809,9 +787,9 @@ const getCREnabledForApp = (
   const namespace = enableCR.namespace || fastify.kube.namespace;
   const { group, version, plural, name } = enableCR;
   return customObjectsApi
-    .getNamespacedCustomObject(group, version, namespace, plural, name)
+    .getNamespacedCustomObject({ group, version, namespace, plural, name })
     .then((res) => {
-      const existingCR = res.body;
+      const existingCR = res;
       if (!enableCR) {
         return false;
       }
@@ -870,15 +848,15 @@ export const getCSVForApp = (
   }
 
   return fastify.kube.customObjectsApi
-    .getNamespacedCustomObject(
-      subscriptionsGroup,
-      subscriptionsVersion,
+    .getNamespacedCustomObject({
+      group: subscriptionsGroup,
+      version: subscriptionsVersion,
       namespace,
-      clusterServiceVersionsPlural,
-      installedCSV,
-    )
+      plural: clusterServiceVersionsPlural,
+      name: installedCSV,
+    })
     .then((response) => {
-      const csv = response.body as CSVKind;
+      const csv = response as CSVKind;
       if (csv.status?.phase === 'Succeeded') {
         return csv;
       }
@@ -958,7 +936,7 @@ const shouldMigrationContinue = async (
   description: string,
 ): Promise<boolean> =>
   fastify.kube.coreV1Api
-    .readNamespacedConfigMap(configMapName, fastify.kube.namespace)
+    .readNamespacedConfigMap({ name: configMapName, namespace: fastify.kube.namespace })
     .then(() => {
       // Found configmap, not continuing
       fastify.log.info(`${description} migration already completed, skipping`);
@@ -990,7 +968,7 @@ const createSuccessfulMigrationConfigMap = async (
     },
   };
   return await fastify.kube.coreV1Api
-    .createNamespacedConfigMap(fastify.kube.namespace, configMap)
+    .createNamespacedConfigMap({ namespace: fastify.kube.namespace, body: configMap })
     .then(() => fastify.log.info(`Successfully migrated ${description}`))
     .catch((e) => {
       throw `A ${
@@ -1010,17 +988,14 @@ export const cleanupKserveRoleBindings = async (fastify: KubeFastifyInstance): P
   const continueProcessing = await shouldMigrationContinue(fastify, CONFIG_MAP_NAME, DESCRIPTION);
 
   if (continueProcessing) {
-    const roleBindings = await fastify.kube.customObjectsApi.listClusterCustomObject(
-      'rbac.authorization.k8s.io',
-      'v1',
-      'rolebindings',
-      undefined,
-      undefined,
-      undefined,
-      `${KnownLabels.DASHBOARD_RESOURCE} = true`,
-    );
+    const roleBindings = await fastify.kube.customObjectsApi.listClusterCustomObject({
+      group: 'rbac.authorization.k8s.io',
+      version: 'v1',
+      plural: 'rolebindings',
+      labelSelector: `${KnownLabels.DASHBOARD_RESOURCE} = true`,
+    });
     const kserveSARoleBindings =
-      (roleBindings?.body as V1RoleBindingList).items?.filter(
+      (roleBindings as V1RoleBindingList).items?.filter(
         ({ roleRef, subjects, metadata }) =>
           roleRef.kind === 'ClusterRole' &&
           roleRef.name === 'view' &&
@@ -1075,40 +1050,40 @@ export const cleanupKserveRoleBindings = async (fastify: KubeFastifyInstance): P
 
       // Create new role if it doesn't already exist
       await fastify.kube.customObjectsApi
-        .getNamespacedCustomObject(
-          'rbac.authorization.k8s.io',
-          'v1',
+        .getNamespacedCustomObject({
+          group: 'rbac.authorization.k8s.io',
+          version: 'v1',
           namespace,
-          'roles',
-          newRoleName,
-        )
+          plural: 'roles',
+          name: newRoleName,
+        })
         .catch((e) => {
           if (e.statusCode === 404) {
-            return fastify.kube.customObjectsApi.createNamespacedCustomObject(
-              'rbac.authorization.k8s.io',
-              'v1',
+            return fastify.kube.customObjectsApi.createNamespacedCustomObject({
+              group: 'rbac.authorization.k8s.io',
+              version: 'v1',
               namespace,
-              'roles',
-              newRole,
-            );
+              plural: 'roles',
+              body: newRole,
+            });
           }
         });
 
       // Delete and replace old RB because we can't patch rolebindings
-      await fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
-        'rbac.authorization.k8s.io',
-        'v1',
+      await fastify.kube.customObjectsApi.deleteNamespacedCustomObject({
+        group: 'rbac.authorization.k8s.io',
+        version: 'v1',
         namespace,
-        'rolebindings',
-        existingRoleBinding?.metadata.name,
-      );
-      await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-        'rbac.authorization.k8s.io',
-        'v1',
+        plural: 'rolebindings',
+        name: existingRoleBinding?.metadata.name,
+      });
+      await fastify.kube.customObjectsApi.createNamespacedCustomObject({
+        group: 'rbac.authorization.k8s.io',
+        version: 'v1',
         namespace,
-        'rolebindings',
-        newRoleBinding,
-      );
+        plural: 'rolebindings',
+        body: newRoleBinding,
+      });
     };
 
     await Promise.all(kserveSARoleBindings.map(replaceRoleBinding));

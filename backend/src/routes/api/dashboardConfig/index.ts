@@ -1,8 +1,8 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { PatchUtils } from '@kubernetes/client-node';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { KubeFastifyInstance, DashboardConfig } from '../../../types';
 import { secureAdminRoute } from '../../../utils/route-security';
+import { JSON_PATCH } from '../../../utils/k8sClient';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
@@ -14,14 +14,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       ) => {
         const { namespace, name } = request.params;
         try {
-          const response = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
-            'opendatahub.io',
-            'v1alpha',
+          return await fastify.kube.customObjectsApi.getNamespacedCustomObject({
+            group: 'opendatahub.io',
+            version: 'v1alpha',
             namespace,
-            'odhdashboardconfigs',
+            plural: 'odhdashboardconfigs',
             name,
-          );
-          return response.body;
+          });
         } catch (e) {
           fastify.log.error(
             `Dashboard ${name} could not be read, ${e.response?.body?.message || e.message}`,
@@ -42,24 +41,19 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         }>,
         reply: FastifyReply,
       ) => {
-        const options = {
-          headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_PATCH },
-        };
         const { namespace, name } = request.params;
         try {
-          const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-            'opendatahub.io',
-            'v1alpha',
-            namespace,
-            'odhdashboardconfigs',
-            name,
-            request.body,
-            undefined,
-            undefined,
-            undefined,
-            options,
+          return await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
+            {
+              group: 'opendatahub.io',
+              version: 'v1alpha',
+              namespace,
+              plural: 'odhdashboardconfigs',
+              name,
+              body: request.body,
+            },
+            JSON_PATCH,
           );
-          return response.body;
         } catch (e) {
           fastify.log.error(
             `Dashboard ${name} could not be patched, ${e.response?.body?.message || e.message}`,

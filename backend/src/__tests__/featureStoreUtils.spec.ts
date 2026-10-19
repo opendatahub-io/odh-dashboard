@@ -1,8 +1,13 @@
 import { EventEmitter } from 'events';
 import * as https from 'https';
-import * as k8s from '@kubernetes/client-node';
+import { ApiException, KubeConfig } from '@kubernetes/client-node';
 import * as constants from '../utils/constants';
 import * as devFlags from '../devFlags';
+
+jest.mock('@kubernetes/client-node', () => ({
+  ...jest.requireActual('@kubernetes/client-node'),
+  KubeConfig: jest.fn(),
+}));
 
 jest.mock('https', () => {
   const actual = jest.requireActual<typeof import('https')>('https');
@@ -84,7 +89,6 @@ const createMockFastify = () =>
   } as any);
 
 const createMockApi = () => ({
-  setApiKey: jest.fn(),
   listClusterCustomObject: jest.fn(),
   listNamespacedCustomObject: jest.fn(),
   getNamespacedCustomObject: jest.fn(),
@@ -115,7 +119,7 @@ const createMockKubeFastify = (mockApi = createMockApi()) =>
  */
 const spyKubeConfigForMockApi = (getMockApi: () => ReturnType<typeof createMockApi>) => {
   const loadFromClusterAndUser = jest.fn();
-  jest.spyOn(k8s, 'KubeConfig').mockImplementation(
+  jest.mocked(KubeConfig).mockImplementation(
     () =>
       ({
         loadFromClusterAndUser,
@@ -126,6 +130,15 @@ const spyKubeConfigForMockApi = (getMockApi: () => ReturnType<typeof createMockA
 };
 
 const KUBE_HEADERS = { Authorization: 'Bearer test-token' } as Record<string, string>;
+
+/** A 2.x client error as thrown by the generated API (before the compat wrapper maps it). */
+const apiException = (code: number) =>
+  new ApiException(
+    code,
+    'Unknown API Status Code!',
+    JSON.stringify({ kind: 'Status', status: 'Failure', message: `error ${code}`, code }),
+    {},
+  );
 
 const USER_TOKEN = 'user-registry-token';
 
@@ -449,28 +462,18 @@ describe('featureStoreUtils', () => {
 
     it('should return project names for accessible namespaces', async () => {
       mockApi.listClusterCustomObject.mockResolvedValue({
-        body: {
-          items: [{ metadata: { name: 'feast-ns-1' } }, { metadata: { name: 'feast-ns-2' } }],
-        },
+        items: [{ metadata: { name: 'feast-ns-1' } }, { metadata: { name: 'feast-ns-2' } }],
       });
 
       const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
 
       expect(result).toEqual(['feast-ns-1', 'feast-ns-2']);
-      expect(mockApi.listClusterCustomObject).toHaveBeenCalledWith(
-        'project.openshift.io',
-        'v1',
-        'projects',
-        undefined,
-        undefined,
-        undefined,
-        'opendatahub.io/feast=true',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { headers: {} },
-      );
+      expect(mockApi.listClusterCustomObject).toHaveBeenCalledWith({
+        group: 'project.openshift.io',
+        version: 'v1',
+        plural: 'projects',
+        labelSelector: 'opendatahub.io/feast=true',
+      });
       expect(loadFromClusterAndUser).toHaveBeenCalledWith(
         { name: 'test-cluster', server: 'https://test' },
         { name: 'current-user', token: 'test-token' },
@@ -479,13 +482,11 @@ describe('featureStoreUtils', () => {
 
     it('should filter out items with falsy names', async () => {
       mockApi.listClusterCustomObject.mockResolvedValue({
-        body: {
-          items: [
-            { metadata: { name: 'feast-ns-1' } },
-            { metadata: { name: '' } },
-            { metadata: { name: 'feast-ns-2' } },
-          ],
-        },
+        items: [
+          { metadata: { name: 'feast-ns-1' } },
+          { metadata: { name: '' } },
+          { metadata: { name: 'feast-ns-2' } },
+        ],
       });
 
       const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
@@ -494,9 +495,7 @@ describe('featureStoreUtils', () => {
     });
 
     it('should return empty array when no projects exist', async () => {
-      mockApi.listClusterCustomObject.mockResolvedValue({
-        body: { items: [] },
-      });
+      mockApi.listClusterCustomObject.mockResolvedValue({ items: [] });
 
       const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
 
@@ -510,6 +509,26 @@ describe('featureStoreUtils', () => {
 
       expect(result).toEqual([]);
       expect(mockFastify.log.error).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array on a 403 ApiException mapped by the client wrapper', async () => {
+      mockApi.listClusterCustomObject.mockRejectedValue(apiException(403));
+
+      const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
+    });
+
+    it('should log the Kubernetes error for a non-403 ApiException', async () => {
+      mockApi.listClusterCustomObject.mockRejectedValue(apiException(500));
+
+      const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to list Feast namespaces for user'),
+      );
     });
 
     it('should return empty array and log on non-403 errors', async () => {
@@ -554,7 +573,7 @@ describe('featureStoreUtils', () => {
         jest.replaceProperty(constants, 'DEV_MODE', true);
         jest.spyOn(devFlags, 'isImpersonating').mockReturnValue(true);
         jest.spyOn(devFlags, 'getImpersonateAccessToken').mockReturnValue('impersonate-token');
-        mockApi.listClusterCustomObject.mockResolvedValue({ body: { items: [] } });
+        mockApi.listClusterCustomObject.mockResolvedValue({ items: [] });
 
         await listFeastNamespaces(mockFastify, KUBE_HEADERS);
 
@@ -567,7 +586,7 @@ describe('featureStoreUtils', () => {
       it('should use kube config user token in DEV_MODE when not impersonating', async () => {
         jest.replaceProperty(constants, 'DEV_MODE', true);
         jest.spyOn(devFlags, 'isImpersonating').mockReturnValue(false);
-        mockApi.listClusterCustomObject.mockResolvedValue({ body: { items: [] } });
+        mockApi.listClusterCustomObject.mockResolvedValue({ items: [] });
 
         await listFeastNamespaces(mockFastify, KUBE_HEADERS);
 
@@ -594,28 +613,18 @@ describe('featureStoreUtils', () => {
 
     it('should return all user-accessible project names without a label filter', async () => {
       mockApi.listClusterCustomObject.mockResolvedValue({
-        body: {
-          items: [{ metadata: { name: 'ds-project' } }, { metadata: { name: 'other-ns' } }],
-        },
+        items: [{ metadata: { name: 'ds-project' } }, { metadata: { name: 'other-ns' } }],
       });
 
       const result = await listUserOpenShiftProjects(mockFastify, KUBE_HEADERS);
 
       expect(result).toEqual(['ds-project', 'other-ns']);
-      expect(mockApi.listClusterCustomObject).toHaveBeenCalledWith(
-        'project.openshift.io',
-        'v1',
-        'projects',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { headers: {} },
-      );
+      expect(mockApi.listClusterCustomObject).toHaveBeenCalledWith({
+        group: 'project.openshift.io',
+        version: 'v1',
+        plural: 'projects',
+        labelSelector: undefined,
+      });
       expect(loadFromClusterAndUser).toHaveBeenCalledWith(
         { name: 'test-cluster', server: 'https://test' },
         { name: 'current-user', token: 'test-token' },
@@ -665,9 +674,7 @@ describe('featureStoreUtils', () => {
         },
       };
 
-      mockApi.listNamespacedCustomObject.mockResolvedValue({
-        body: { items: [notebook] },
-      });
+      mockApi.listNamespacedCustomObject.mockResolvedValue({ items: [notebook] });
 
       const result = await listFeastIntegrationNotebooks(
         mockFastify,
@@ -676,21 +683,13 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result).toEqual([notebook]);
-      expect(mockApi.listNamespacedCustomObject).toHaveBeenCalledWith(
-        'kubeflow.org',
-        'v1',
-        NAMESPACE.VIEWER,
-        'notebooks',
-        undefined,
-        undefined,
-        undefined,
-        'opendatahub.io/feast-integration=true',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { headers: {} },
-      );
+      expect(mockApi.listNamespacedCustomObject).toHaveBeenCalledWith({
+        group: 'kubeflow.org',
+        version: 'v1',
+        namespace: NAMESPACE.VIEWER,
+        plural: 'notebooks',
+        labelSelector: 'opendatahub.io/feast-integration=true',
+      });
       expect(loadFromClusterAndUser).toHaveBeenCalledWith(
         { name: 'test-cluster', server: 'https://test' },
         { name: 'current-user', token: 'test-token' },
@@ -747,28 +746,18 @@ describe('featureStoreUtils', () => {
         metadata: { name: 'retail', namespace: NAMESPACE.VIEWER },
       });
 
-      mockApi.listNamespacedCustomObject.mockResolvedValue({
-        body: { items: [crd1, crd2] },
-      });
+      mockApi.listNamespacedCustomObject.mockResolvedValue({ items: [crd1, crd2] });
 
       const result = await listFeastFeatureStoreCRDs(mockFastify, NAMESPACE.VIEWER, KUBE_HEADERS);
 
       expect(result).toEqual([crd1, crd2]);
-      expect(mockApi.listNamespacedCustomObject).toHaveBeenCalledWith(
-        'feast.dev',
-        'v1',
-        NAMESPACE.VIEWER,
-        'featurestores',
-        undefined,
-        undefined,
-        undefined,
-        'feature-store-ui=enabled',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { headers: {} },
-      );
+      expect(mockApi.listNamespacedCustomObject).toHaveBeenCalledWith({
+        group: 'feast.dev',
+        version: 'v1',
+        namespace: NAMESPACE.VIEWER,
+        plural: 'featurestores',
+        labelSelector: 'feature-store-ui=enabled',
+      });
       expect(loadFromClusterAndUser).toHaveBeenCalledWith(
         { name: 'test-cluster', server: 'https://test' },
         { name: 'current-user', token: 'test-token' },
@@ -776,9 +765,7 @@ describe('featureStoreUtils', () => {
     });
 
     it('should return empty array when no enabled CRDs exist', async () => {
-      mockApi.listNamespacedCustomObject.mockResolvedValue({
-        body: { items: [] },
-      });
+      mockApi.listNamespacedCustomObject.mockResolvedValue({ items: [] });
 
       const result = await listFeastFeatureStoreCRDs(mockFastify, NAMESPACE.DEFAULT, KUBE_HEADERS);
 
@@ -821,7 +808,7 @@ describe('featureStoreUtils', () => {
 
     it('should return the CRD when found', async () => {
       const crd = createFeatureStoreCRD();
-      mockApi.getNamespacedCustomObject.mockResolvedValue({ body: crd });
+      mockApi.getNamespacedCustomObject.mockResolvedValue(crd);
 
       const result = await getFeastFeatureStoreCRD(
         mockFastify,
@@ -831,18 +818,31 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result).toEqual(crd);
-      expect(mockApi.getNamespacedCustomObject).toHaveBeenCalledWith(
-        'feast.dev',
-        'v1',
-        NAMESPACE.VIEWER,
-        'featurestores',
-        PROJECT.BANKING,
-        { headers: {} },
-      );
+      expect(mockApi.getNamespacedCustomObject).toHaveBeenCalledWith({
+        group: 'feast.dev',
+        version: 'v1',
+        namespace: NAMESPACE.VIEWER,
+        plural: 'featurestores',
+        name: PROJECT.BANKING,
+      });
       expect(loadFromClusterAndUser).toHaveBeenCalledWith(
         { name: 'test-cluster', server: 'https://test' },
         { name: 'current-user', token: 'test-token' },
       );
+    });
+
+    it('should return null on a 404 ApiException mapped by the client wrapper', async () => {
+      mockApi.getNamespacedCustomObject.mockRejectedValue(apiException(404));
+
+      const result = await getFeastFeatureStoreCRD(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        PROJECT.BANKING,
+        KUBE_HEADERS,
+      );
+
+      expect(result).toBeNull();
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
     });
 
     it('should return null on 404', async () => {

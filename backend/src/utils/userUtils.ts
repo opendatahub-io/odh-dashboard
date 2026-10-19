@@ -1,5 +1,5 @@
 import { FastifyRequest } from 'fastify';
-import * as _ from 'lodash';
+import { CustomObjectsApi, KubeConfig } from '@kubernetes/client-node';
 import {
   DEV_IMPERSONATE_USER,
   USER_ACCESS_TOKEN,
@@ -11,6 +11,21 @@ import { errorHandler, isHttpError } from '../utils';
 import { KubeFastifyInstance } from '../types';
 import { isImpersonating } from '../devFlags';
 import { getUsernameFromToken } from './jwtUtils';
+import { createK8sApiClient } from './k8sClient';
+
+/** A CustomObjectsApi client that authenticates with the given user token only. */
+const getUserScopedCustomObjectsApi = (
+  fastify: KubeFastifyInstance,
+  accessToken: string,
+): CustomObjectsApi => {
+  const cluster = fastify.kube.config.getCurrentCluster();
+  if (!cluster) {
+    throw new Error('No current cluster configured');
+  }
+  const userKc = new KubeConfig();
+  userKc.loadFromClusterAndUser(cluster, { name: 'user', token: accessToken });
+  return createK8sApiClient(userKc, CustomObjectsApi);
+};
 
 export const usernameTranslate = (username: string): string => {
   const encodedUsername = encodeURIComponent(username);
@@ -58,16 +73,14 @@ export const getUser = async (
     throw error;
   }
   try {
-    const customObjectApiNoAuth = _.cloneDeep(fastify.kube.customObjectsApi);
-    customObjectApiNoAuth.setApiKey(0, `Bearer ${accessToken}`);
-    const userResponse = await customObjectApiNoAuth.getClusterCustomObject(
-      'user.openshift.io',
-      'v1',
-      'users',
-      '~',
-      { headers: { Authorization: `Bearer ${accessToken}` } },
-    );
-    return userResponse.body as OpenShiftUser;
+    const userScopedApi = getUserScopedCustomObjectsApi(fastify, accessToken);
+    const user = await userScopedApi.getClusterCustomObject({
+      group: 'user.openshift.io',
+      version: 'v1',
+      plural: 'users',
+      name: '~',
+    });
+    return user as OpenShiftUser;
   } catch (e) {
     const error = createCustomError(
       errorHandler(e),
@@ -168,22 +181,21 @@ export const getUsernameFromSelfSubjectReview = async (
   accessToken: string,
 ): Promise<string | null> => {
   try {
-    const authApi = _.cloneDeep(fastify.kube.customObjectsApi);
-    authApi.setApiKey(0, `Bearer ${accessToken}`);
+    const authApi = getUserScopedCustomObjectsApi(fastify, accessToken);
 
     // Create SelfSubjectReview request
-    const response = await authApi.createClusterCustomObject(
-      'authentication.k8s.io',
-      'v1',
-      'selfsubjectreviews',
-      {
+    const review = (await authApi.createClusterCustomObject({
+      group: 'authentication.k8s.io',
+      version: 'v1',
+      plural: 'selfsubjectreviews',
+      body: {
         apiVersion: 'authentication.k8s.io/v1',
         kind: 'SelfSubjectReview',
         metadata: {},
       },
-    );
+    })) as { status?: { userInfo?: { username?: string } } } | undefined;
 
-    const username = (response.body as any)?.status?.userInfo?.username;
+    const username = review?.status?.userInfo?.username;
     return username || null;
   } catch (e) {
     fastify.log.debug(`SelfSubjectReview failed: ${errorHandler(e)}`);

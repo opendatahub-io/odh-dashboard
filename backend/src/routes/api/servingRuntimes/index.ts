@@ -16,16 +16,14 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { dryRun } = request.query;
         const servingRuntime = request.body;
         try {
-          const response = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-            'serving.kserve.io',
-            'v1alpha1',
-            servingRuntime.metadata.namespace,
-            'servingruntimes',
-            servingRuntime,
-            undefined,
+          return await fastify.kube.customObjectsApi.createNamespacedCustomObject({
+            group: 'serving.kserve.io',
+            version: 'v1alpha1',
+            namespace: servingRuntime.metadata.namespace,
+            plural: 'servingruntimes',
+            body: servingRuntime,
             dryRun,
-          );
-          return response.body;
+          });
         } catch (e) {
           fastify.log.error(
             `Servingruntime ${servingRuntime.metadata.name} could not be created, ${

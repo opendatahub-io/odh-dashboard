@@ -1,0 +1,112 @@
+{
+  "e404": {
+    "name": "HttpError",
+    "message": "HTTP request failed",
+    "statusCode": 404,
+    "body": {
+      "apiVersion": "v1",
+      "kind": "Status",
+      "metadata": {}
+    },
+    "responseStatusCode": 404,
+    "responseBody": {
+      "kind": "Status",
+      "apiVersion": "v1",
+      "metadata": {},
+      "status": "Failure",
+      "message": "configmaps \"e404\" not found",
+      "reason": "NotFound",
+      "details": {
+        "name": "e404",
+        "kind": "configmaps"
+      },
+      "code": 404
+    },
+    "isHttpError": true,
+    "errorHandler": "configmaps \"e404\" not found"
+  },
+  "e403": {
+    "name": "HttpError",
+    "message": "HTTP request failed",
+    "statusCode": 403,
+    "body": {
+      "apiVersion": "v1",
+      "kind": "Status",
+      "metadata": {}
+    },
+    "responseStatusCode": 403,
+    "responseBody": {
+      "kind": "Status",
+      "apiVersion": "v1",
+      "metadata": {},
+      "status": "Failure",
+      "message": "configmaps \"e403\" is forbidden: User \"u\" cannot get resource",
+      "reason": "Forbidden",
+      "code": 403
+    },
+    "isHttpError": true,
+    "errorHandler": "configmaps \"e403\" is forbidden: User \"u\" cannot get resource"
+  },
+  "e409": {
+    "name": "HttpError",
+    "message": "HTTP request failed",
+    "statusCode": 409,
+    "body": {
+      "apiVersion": "v1",
+      "kind": "Status",
+      "metadata": {}
+    },
+    "responseStatusCode": 409,
+    "responseBody": {
+      "kind": "Status",
+      "apiVersion": "v1",
+      "metadata": {},
+      "status": "Failure",
+      "message": "already exists",
+      "reason": "AlreadyExists",
+      "code": 409
+    },
+    "isHttpError": true,
+    "errorHandler": "already exists"
+  },
+  "e401": {
+    "name": "HttpError",
+    "message": "HTTP request failed",
+    "statusCode": 401,
+    "body": {
+      "apiVersion": "v1",
+      "kind": "Status",
+      "metadata": {}
+    },
+    "responseStatusCode": 401,
+    "responseBody": {
+      "kind": "Status",
+      "apiVersion": "v1",
+      "metadata": {},
+      "status": "Failure",
+      "message": "Unauthorized",
+      "reason": "Unauthorized",
+      "code": 401
+    },
+    "isHttpError": true,
+    "errorHandler": "Unauthorized"
+  },
+  "e500text": {
+    "name": "HttpError",
+    "message": "HTTP request failed",
+    "statusCode": 500,
+    "body": {},
+    "responseStatusCode": 500,
+    "responseBody": "upstream connect error",
+    "isHttpError": true,
+    "errorHandler": "HTTP request failed"
+  },
+  "e503empty": {
+    "name": "HttpError",
+    "message": "HTTP request failed",
+    "statusCode": 503,
+    "responseStatusCode": 503,
+    "isHttpError": true,
+    "errorHandler": "HTTP request failed"
+  }
+}

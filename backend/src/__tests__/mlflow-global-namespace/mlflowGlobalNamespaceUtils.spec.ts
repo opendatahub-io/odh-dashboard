@@ -1,3 +1,6 @@
+import { ApiException } from '@kubernetes/client-node';
+import { K8sApiError } from '../../utils/k8sApiError';
+import { MERGE_PATCH } from '../../utils/k8sClient';
 import {
   updateGlobalMLflowNamespaces,
   validateGlobalMLflowNamespaces,
@@ -52,13 +55,11 @@ const makeDashboardConfig = (globalMLflowNamespaces: string[] = []) => ({
 
 const expectLabelApply = (ns: string, callIndex?: number) => {
   const args = [
-    ns,
-    { metadata: { labels: { [GLOBAL_MLFLOW_LABEL_KEY]: GLOBAL_MLFLOW_CR_NAME } } },
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    expect.objectContaining({ headers: expect.any(Object) }),
+    {
+      name: ns,
+      body: { metadata: { labels: { [GLOBAL_MLFLOW_LABEL_KEY]: GLOBAL_MLFLOW_CR_NAME } } },
+    },
+    MERGE_PATCH,
   ];
   if (callIndex !== undefined) {
     expect(mockPatchNamespace).toHaveBeenNthCalledWith(callIndex, ...args);
@@ -69,13 +70,8 @@ const expectLabelApply = (ns: string, callIndex?: number) => {
 
 const expectLabelRemove = (ns: string, callIndex?: number) => {
   const args = [
-    ns,
-    { metadata: { labels: { [GLOBAL_MLFLOW_LABEL_KEY]: null } } },
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    expect.objectContaining({ headers: expect.any(Object) }),
+    { name: ns, body: { metadata: { labels: { [GLOBAL_MLFLOW_LABEL_KEY]: null } } } },
+    MERGE_PATCH,
   ];
   if (callIndex !== undefined) {
     expect(mockPatchNamespace).toHaveBeenNthCalledWith(callIndex, ...args);
@@ -87,8 +83,8 @@ const expectLabelRemove = (ns: string, callIndex?: number) => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockSetDashboardConfig.mockResolvedValue({});
-  mockReadNamespace.mockResolvedValue({ body: {} });
-  mockPatchNamespace.mockResolvedValue({ body: {} });
+  mockReadNamespace.mockResolvedValue({});
+  mockPatchNamespace.mockResolvedValue({});
   mockEnsurePermission.mockResolvedValue(undefined);
 });
 
@@ -99,7 +95,7 @@ describe('validateGlobalMLflowNamespaces', () => {
     const result = await validateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']);
 
     expect(result).toEqual({ uniqueNamespaces: ['ns-a'], oldNamespaces: [] });
-    expect(mockReadNamespace).toHaveBeenCalledWith('ns-a');
+    expect(mockReadNamespace).toHaveBeenCalledWith({ name: 'ns-a' });
     expect(mockEnsurePermission).toHaveBeenCalledTimes(1);
   });
 
@@ -113,7 +109,7 @@ describe('validateGlobalMLflowNamespaces', () => {
 
     expect(result).toEqual({ uniqueNamespaces: ['ns-a'], oldNamespaces: [] });
     expect(mockReadNamespace).toHaveBeenCalledTimes(1);
-    expect(mockReadNamespace).toHaveBeenCalledWith('ns-a');
+    expect(mockReadNamespace).toHaveBeenCalledWith({ name: 'ns-a' });
     expect(mockEnsurePermission).toHaveBeenCalledTimes(1);
   });
 
@@ -269,7 +265,7 @@ describe('updateGlobalMLflowNamespaces', () => {
 
   it('handles stale namespace (previous namespace deleted) -- label removal skips gracefully', async () => {
     mockPatchNamespace
-      .mockResolvedValueOnce({ body: {} })
+      .mockResolvedValueOnce({})
       .mockRejectedValueOnce({ response: { statusCode: 404 } });
 
     const result = await updateGlobalMLflowNamespaces(mockFastify, ['ns-new'], ['deleted-ns']);
@@ -308,7 +304,7 @@ describe('updateGlobalMLflowNamespaces', () => {
 
   it('returns warnings when label removal fails (non-404)', async () => {
     mockPatchNamespace
-      .mockResolvedValueOnce({ body: {} })
+      .mockResolvedValueOnce({})
       .mockRejectedValueOnce({ response: { statusCode: 500 }, message: 'internal error' });
 
     const result = await updateGlobalMLflowNamespaces(mockFastify, ['ns-new'], ['ns-old']);
@@ -333,9 +329,17 @@ describe('updateGlobalMLflowNamespaces', () => {
   });
 
   it('returns "insufficient permissions" reason when label application gets 403', async () => {
-    mockPatchNamespace.mockRejectedValue({
-      response: { statusCode: 403, body: { message: 'Forbidden' } },
-    });
+    mockPatchNamespace.mockRejectedValue(
+      new K8sApiError(
+        new ApiException(
+          403,
+          'Unknown API Status Code!',
+          JSON.stringify({ kind: 'Status', message: 'Forbidden', reason: 'Forbidden', code: 403 }),
+          {},
+        ),
+        false,
+      ),
+    );
 
     await expect(updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], [])).rejects.toMatchObject({
       message: expect.stringContaining('insufficient permissions'),
@@ -359,7 +363,17 @@ describe('updateGlobalMLflowNamespaces', () => {
   });
 
   it('returns 404 when namespace is deleted before label application', async () => {
-    mockPatchNamespace.mockRejectedValue({ response: { statusCode: 404 } });
+    mockPatchNamespace.mockRejectedValue(
+      new K8sApiError(
+        new ApiException(
+          404,
+          'Unknown API Status Code!',
+          JSON.stringify({ kind: 'Status', message: 'not found', reason: 'NotFound', code: 404 }),
+          {},
+        ),
+        false,
+      ),
+    );
 
     await expect(updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], [])).rejects.toMatchObject({
       code: 404,

@@ -84,7 +84,9 @@ describe('app static and view wiring', () => {
     app = fastify();
     await app.register(initializeApp);
     await app.ready();
-  });
+    // jest.resetModules() re-evaluates the app's module graph on every test; on a cold transform
+    // cache with coverage enabled that takes longer than the default 5 s hook timeout.
+  }, 30_000);
 
   afterEach(async () => {
     await app.close();

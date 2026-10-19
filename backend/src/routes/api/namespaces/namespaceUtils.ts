@@ -1,10 +1,11 @@
-import { PatchUtils, V1Namespace, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
+import { V1Namespace, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KnownLabels, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isK8sStatus, passThroughResource } from '../../../utils/pass-through';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { createSelfSubjectAccessReview } from '../../../utils/authUtils';
+import { MERGE_PATCH } from '../../../utils/k8sClient';
 
 export const checkAdminNamespacePermission = (
   fastify: KubeFastifyInstance,
@@ -33,10 +34,6 @@ const checkEditNamespacePermission = (
     name,
     namespace: name,
   });
-
-export const MERGE_PATCH_OPTIONS = {
-  headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-};
 
 export const validateNotSystemNamespace = (name: string): void => {
   if (name.startsWith('openshift') || name.startsWith('kube')) {
@@ -172,15 +169,7 @@ export const applyNamespaceChange = async (
   );
 
   return fastify.kube.coreV1Api
-    .patchNamespace(
-      name,
-      { metadata: { annotations, labels } },
-      undefined,
-      dryRun,
-      undefined,
-      undefined,
-      MERGE_PATCH_OPTIONS,
-    )
+    .patchNamespace({ name, body: { metadata: { annotations, labels } }, dryRun }, MERGE_PATCH)
     .then(() => ({ applied: true }))
     .catch((e) => {
       fastify.log.error(

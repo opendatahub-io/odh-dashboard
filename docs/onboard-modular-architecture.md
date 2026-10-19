@@ -4,7 +4,7 @@ This guide outlines the steps to create and onboard a new modular architecture m
 
 ## Prerequisites
 
-- Node.js >= 22.18.0.
+- Node.js >= 22.19.0.
 - pnpm 11.22.0 (the version pinned in the repository root).
 - Access to the ODH Dashboard repository.
 

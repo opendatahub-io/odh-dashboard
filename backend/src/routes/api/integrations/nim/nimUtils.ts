@@ -36,14 +36,13 @@ export const getNIMAccount = async (
 ): Promise<NIMAccountKind | undefined> => {
   const { customObjectsApi, namespace } = fastify.kube;
   try {
-    const response = await customObjectsApi.listNamespacedCustomObject(
-      'nim.opendatahub.io',
-      'v1',
-      namespace,
-      'accounts',
-    );
     // Get the list of accounts from the response
-    const accounts = response.body as {
+    const accounts = (await customObjectsApi.listNamespacedCustomObject({
+      group: 'nim.opendatahub.io',
+      version: 'v1',
+      namespace,
+      plural: 'accounts',
+    })) as {
       items: NIMAccountKind[];
     };
 
@@ -71,14 +70,14 @@ export const createNIMAccount = async (fastify: KubeFastifyInstance): Promise<NI
       },
     },
   };
-  const response = await customObjectsApi.createNamespacedCustomObject(
-    'nim.opendatahub.io',
-    'v1',
+  const response = await customObjectsApi.createNamespacedCustomObject({
+    group: 'nim.opendatahub.io',
+    version: 'v1',
     namespace,
-    'accounts',
-    account,
-  );
-  return Promise.resolve(response.body as NIMAccountKind);
+    plural: 'accounts',
+    body: account,
+  });
+  return Promise.resolve(response as NIMAccountKind);
 };
 
 export const manageNIMSecret = async (
@@ -102,8 +101,8 @@ export const manageNIMSecret = async (
 
   try {
     // Try to create the secret
-    const response = await coreV1Api.createNamespacedSecret(namespace, nimSecret);
-    return { secret: response.body as SecretKind };
+    const response = await coreV1Api.createNamespacedSecret({ namespace, body: nimSecret });
+    return { secret: response as SecretKind };
   } catch (e: any) {
     if (e.response?.statusCode === 409) {
       // Secret already exists, so update it (replace)
@@ -119,12 +118,12 @@ export const manageNIMSecret = async (
         },
       };
 
-      const updateResponse = await coreV1Api.replaceNamespacedSecret(
-        NIM_SECRET_NAME,
+      const updateResponse = await coreV1Api.replaceNamespacedSecret({
+        name: NIM_SECRET_NAME,
         namespace,
-        updatedSecret,
-      );
-      return { secret: updateResponse.body as SecretKind };
+        body: updatedSecret,
+      });
+      return { secret: updateResponse as SecretKind };
     } else {
       throw e;
     }
@@ -139,13 +138,13 @@ export const deleteNIMAccount = async (
 
   try {
     await customObjectsApi
-      .deleteNamespacedCustomObject(
-        'nim.opendatahub.io',
-        'v1',
+      .deleteNamespacedCustomObject({
+        group: 'nim.opendatahub.io',
+        version: 'v1',
         namespace,
-        'accounts',
-        NIM_ACCOUNT_NAME,
-      )
+        plural: 'accounts',
+        name: NIM_ACCOUNT_NAME,
+      })
       .catch((e) => {
         throw createError(e.statusCode, e?.body?.message);
       });

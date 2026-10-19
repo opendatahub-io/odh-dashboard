@@ -1,5 +1,5 @@
-import { PatchUtils } from '@kubernetes/client-node';
 import { KubeFastifyInstance } from '../types';
+import { MERGE_PATCH } from './k8sClient';
 
 export const rolloutDeployment = async (
   fastify: KubeFastifyInstance,
@@ -24,21 +24,10 @@ export const rolloutDeployment = async (
       },
     },
   };
-  const options = {
-    headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-  };
   try {
     await customObjectsApi.patchNamespacedCustomObject(
-      group,
-      version,
-      namespace,
-      plural,
-      name,
-      body,
-      undefined,
-      undefined,
-      undefined,
-      options,
+      { group, version, namespace, plural, name, body },
+      MERGE_PATCH,
     );
   } catch (e) {
     throw new Error('Error rolling out the deployment: ' + e.message);

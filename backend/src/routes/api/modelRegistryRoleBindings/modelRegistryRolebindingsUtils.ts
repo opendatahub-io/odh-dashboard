@@ -9,17 +9,13 @@ export const listModelRegistryRoleBindings = async (
   fastify: KubeFastifyInstance,
   mrNamespace: string,
 ): Promise<{ items: V1RoleBinding[] }> => {
-  const response = await (fastify.kube.customObjectsApi.listNamespacedCustomObject(
-    MODEL_REGISTRY_ROLE_BINDING_API_GROUP,
-    MODEL_REGISTRY_ROLE_BINDING_API_VERSION,
-    mrNamespace,
-    MODEL_REGISTRY_ROLE_BINDING_PLURAL,
-    undefined,
-    undefined,
-    undefined,
-    KnownLabels.LABEL_SELECTOR_MODEL_REGISTRY,
-  ) as Promise<{ body: { items: V1RoleBinding[] } }>);
-  return response.body;
+  return (await fastify.kube.customObjectsApi.listNamespacedCustomObject({
+    group: MODEL_REGISTRY_ROLE_BINDING_API_GROUP,
+    version: MODEL_REGISTRY_ROLE_BINDING_API_VERSION,
+    namespace: mrNamespace,
+    plural: MODEL_REGISTRY_ROLE_BINDING_PLURAL,
+    labelSelector: KnownLabels.LABEL_SELECTOR_MODEL_REGISTRY,
+  })) as { items: V1RoleBinding[] };
 };
 
 export const createModelRegistryRoleBinding = async (
@@ -34,14 +30,13 @@ export const createModelRegistryRoleBinding = async (
     ...rbRequest,
     metadata: { ...rbRequest.metadata, namespace: mrNamespace },
   };
-  const response = await (fastify.kube.customObjectsApi.createNamespacedCustomObject(
-    MODEL_REGISTRY_ROLE_BINDING_API_GROUP,
-    MODEL_REGISTRY_ROLE_BINDING_API_VERSION,
-    mrNamespace,
-    MODEL_REGISTRY_ROLE_BINDING_PLURAL,
-    roleBindingWithNamespace,
-  ) as Promise<{ body: V1RoleBinding }>);
-  return response.body;
+  return (await fastify.kube.customObjectsApi.createNamespacedCustomObject({
+    group: MODEL_REGISTRY_ROLE_BINDING_API_GROUP,
+    version: MODEL_REGISTRY_ROLE_BINDING_API_VERSION,
+    namespace: mrNamespace,
+    plural: MODEL_REGISTRY_ROLE_BINDING_PLURAL,
+    body: roleBindingWithNamespace,
+  })) as V1RoleBinding;
 };
 
 export const deleteModelRegistriesRolebinding = async (
@@ -49,13 +44,11 @@ export const deleteModelRegistriesRolebinding = async (
   roleBindingName: string,
   mrNamespace: string,
 ): Promise<K8sStatus> => {
-  const response = await (fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
-    MODEL_REGISTRY_ROLE_BINDING_API_GROUP,
-    MODEL_REGISTRY_ROLE_BINDING_API_VERSION,
-    mrNamespace,
-    MODEL_REGISTRY_ROLE_BINDING_PLURAL,
-    roleBindingName,
-  ) as Promise<{ body: K8sStatus }>);
-
-  return response.body;
+  return (await fastify.kube.customObjectsApi.deleteNamespacedCustomObject({
+    group: MODEL_REGISTRY_ROLE_BINDING_API_GROUP,
+    version: MODEL_REGISTRY_ROLE_BINDING_API_VERSION,
+    namespace: mrNamespace,
+    plural: MODEL_REGISTRY_ROLE_BINDING_PLURAL,
+    name: roleBindingName,
+  })) as K8sStatus;
 };

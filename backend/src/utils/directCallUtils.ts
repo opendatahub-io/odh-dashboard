@@ -1,3 +1,4 @@
+import type * as https from 'https';
 import { DEV_MODE, USER_ACCESS_TOKEN } from './constants';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import { getImpersonateAccessToken, isImpersonating } from '../devFlags';
@@ -15,8 +16,8 @@ export const getDirectCallOptions = async (
 ): Promise<Pick<FastifyRequest, 'headers'>> => {
   // Use our kube setup to boostrap our request
   const kc = fastify.kube.config;
-  const kubeOptions: Parameters<typeof kc.applyToRequest>[0] = { url };
-  await kc.applyToRequest(kubeOptions);
+  const kubeOptions: https.RequestOptions = {};
+  await kc.applyToHTTPSOptions(kubeOptions);
   const { headers: kubeHeaders } = kubeOptions;
 
   // Adjust the header auth token
