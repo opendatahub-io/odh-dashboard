@@ -148,11 +148,43 @@ func TestRoutes_SPAFallback(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			assert.Equal(t, "no-cache", resp.Header.Get("Cache-Control"))
+			assertConsoleSecurityHeaders(t, resp.Header)
+			assertNoStoreCache(t, resp.Header)
 
 			body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 			require.NoError(t, err)
 			assert.Contains(t, string(body), "<html>")
+		})
+	}
+}
+
+func TestRoutes_SecurityHeadersOnRepresentativeRoutes(t *testing.T) {
+	ts := newTestServer(t)
+	defer ts.Close()
+
+	tests := []struct {
+		name        string
+		path        string
+		wantNoStore bool
+	}{
+		{"SPA HTML", "/", true},                        // document cache set by static handler
+		{"public healthcheck", HealthCheckPath, false}, // not under /api
+		{"authenticated API health", APIHealthCheckPath, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + tt.path)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assertConsoleSecurityHeaders(t, resp.Header)
+			if tt.wantNoStore {
+				assertNoStoreCache(t, resp.Header)
+			} else {
+				assertNotNoStoreCache(t, resp.Header)
+			}
 		})
 	}
 }
@@ -174,7 +206,45 @@ func TestRoutes_NestedIndexHTMLIsCacheable(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Empty(t, resp.Header.Get(constants.HeaderCacheControl))
+	// Nested index.html is a real static file, not the SPA entry — keep static no-cache.
+	assert.Equal(t, constants.CacheControlNo, resp.Header.Get(constants.HeaderCacheControl))
+}
+
+func TestRoutes_StaticFileCachePolicies(t *testing.T) {
+	tmpDir := t.TempDir()
+	hashedAsset := "app.db5954bb8ab62ecf.js"
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, constants.IndexHTMLFileName), []byte("<html></html>"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, hashedAsset), []byte("console.log(1);"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "vendor.js"), []byte("console.log(2);"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "logo.png"), []byte("png"), 0600))
+
+	app := newTestApp(func(a *App) {
+		a.config.StaticAssetsDir = tmpDir
+	})
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	tests := []struct {
+		name   string
+		path   string
+		wantCC string
+	}{
+		{"hashed asset immutable", "/" + hashedAsset, constants.CacheControlImmutable},
+		{"unhashed script no-cache", "/vendor.js", constants.CacheControlNo},
+		{"image short cache", "/logo.png", constants.CacheControlShort},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + tt.path)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assertConsoleSecurityHeaders(t, resp.Header)
+			assert.Equal(t, tt.wantCC, resp.Header.Get(constants.HeaderCacheControl))
+		})
+	}
 }
 
 func TestRoutes_MethodNotAllowed(t *testing.T) {

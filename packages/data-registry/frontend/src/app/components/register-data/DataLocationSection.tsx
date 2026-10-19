@@ -122,7 +122,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
         name="connection"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Connection" fieldId="data-connection">
+          <FormGroup label="Connection" fieldId="data-connection" isStack>
             <Content component="p">
               Select the connection in this project where the data is located.
             </Content>

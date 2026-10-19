@@ -43,6 +43,12 @@ const renderRow = (server: MCPServer) =>
   );
 
 describe('MCPServerTableRow', () => {
+  it('should render the endpoint in the Access details cell', () => {
+    renderRow(baseServer);
+
+    expect(screen.getByText('View').closest('td')).toHaveAttribute('data-label', 'Access details');
+  });
+
   it('renders "Manual" for configmap source', () => {
     renderRow(baseServer);
     expect(screen.getByText('Manual')).toBeInTheDocument();

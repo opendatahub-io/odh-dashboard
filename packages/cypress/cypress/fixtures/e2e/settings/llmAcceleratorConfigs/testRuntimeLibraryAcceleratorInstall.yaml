@@ -1,0 +1,8 @@
+searchTerm: LLMInferenceServiceConfig
+resourceNamePrefix: e2e-library-accelerator
+displayNamePrefix: E2E library accelerator
+resourceKind: LLMInferenceServiceConfig
+resourceApiVersion: serving.kserve.io/v1alpha2
+editedVersion: e2e-install-version
+configType: accelerator
+listPath: /settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations

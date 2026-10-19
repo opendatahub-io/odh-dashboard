@@ -1,3 +1,7 @@
+import {
+  getPipelineTaskAttemptTimestamp,
+  getPipelineTaskTiming,
+} from '@odh-dashboard/autox-core/ui/utils';
 import type {
   ComponentStageMap,
   ComponentStageMapComponent,
@@ -297,16 +301,21 @@ const hasStageExecutionEvidence = (
 const getComponentTaskTimes = (
   component: ComponentStageMapComponent,
   pipelineRun?: PipelineRun,
-): { start?: string; end?: string } | undefined => {
+): { start?: string; end?: string; retryStart?: string } | undefined => {
   const task = pipelineRun
     ? findComponentTaskInRunDetails(pipelineRun.run_details?.task_details ?? [], component.id)
     : undefined;
+  const { end: taskEnd, retryStart } = getPipelineTaskTiming(task);
 
-  const start = task?.start_time ?? component.started_at ?? task?.create_time;
-  const end = task?.end_time ?? component.completed_at;
+  const start =
+    retryStart ??
+    task?.start_time ??
+    getPipelineTaskAttemptTimestamp(component.started_at, retryStart) ??
+    task?.create_time;
+  const end = taskEnd ?? getPipelineTaskAttemptTimestamp(component.completed_at, retryStart);
 
   if (start ?? end) {
-    return { start, end };
+    return { start, end, retryStart };
   }
 
   return undefined;
@@ -392,16 +401,35 @@ function computeStageDuration(
   }
 
   const taskTimes = getComponentTaskTimes(component, pipelineRun);
-  const start = resolveStageStartTime(stage, taskTimes?.start, stepState);
+  const stageTimestamp = getPipelineTaskAttemptTimestamp(stage.timestamp, taskTimes?.retryStart);
+  if (stage.timestamp && !stageTimestamp && stage.status !== 'failed' && stepState !== 'failed') {
+    return undefined;
+  }
+
+  const stageForAttempt = { ...stage, timestamp: stageTimestamp };
+  /* eslint-disable camelcase -- API timestamp fields match the backend */
+  const componentForAttempt = {
+    ...component,
+    started_at: getPipelineTaskAttemptTimestamp(component.started_at, taskTimes?.retryStart),
+    completed_at: getPipelineTaskAttemptTimestamp(component.completed_at, taskTimes?.retryStart),
+  };
+  /* eslint-enable camelcase */
+  const nextStageForAttempt = nextStage
+    ? {
+        ...nextStage,
+        timestamp: getPipelineTaskAttemptTimestamp(nextStage.timestamp, taskTimes?.retryStart),
+      }
+    : undefined;
+  const start = resolveStageStartTime(stageForAttempt, taskTimes?.start, stepState);
 
   if (!start) {
     return undefined;
   }
 
   const end = resolveStageEndTime(
-    stage,
-    component,
-    nextStage,
+    stageForAttempt,
+    componentForAttempt,
+    nextStageForAttempt,
     pipelineRun,
     stepState,
     taskTimes?.end,

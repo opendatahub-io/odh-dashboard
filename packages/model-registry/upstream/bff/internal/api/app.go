@@ -131,6 +131,9 @@ const (
 	McpDeploymentName     = "mcp_deployment_name"
 	McpDeploymentListPath = ApiPathPrefix + "/mcp_deployments"
 	McpDeploymentPath     = McpDeploymentListPath + "/:" + McpDeploymentName
+
+	// Deploy readiness for an MCP server image (downstream-only implementation)
+	McpDeployReadinessPath = ApiPathPrefix + "/mcp_deploy_readiness"
 )
 
 const (
@@ -160,6 +163,7 @@ const (
 
 	// MCP server deploy readiness handler - downstream-only
 	handlerMcpServerDeployReadinessGetID HandlerID = "mcpServer:deployReadiness:get"
+	handlerMcpDeployReadinessGetID       HandlerID = "mcpDeployment:readiness:get"
 )
 
 type App struct {
@@ -476,6 +480,12 @@ func (app *App) Routes() http.Handler {
 			app.handlerWithOverride(handlerMcpServerDeployReadinessGetID, func() httprouter.Handle {
 				return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(
 					app.EndpointNotImplementedHandler("MCP server deploy readiness"))))
+			}),
+		)
+		apiRouter.GET(
+			McpDeployReadinessPath,
+			app.handlerWithOverride(handlerMcpDeployReadinessGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deploy readiness"))
 			}),
 		)
 

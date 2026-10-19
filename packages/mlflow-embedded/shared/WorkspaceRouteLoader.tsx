@@ -16,6 +16,7 @@ type ApplicationPageRenderState = Pick<ApplicationPageProps, 'emptyStatePage' | 
 interface WorkspaceRouteLoaderProps {
   title: React.ReactNode;
   getRedirectPath: (namespace: string) => string;
+  getNoProjectsRedirectPath?: (namespace: string) => string;
   noProjectsMessage: string;
   noProjectsTestId: string;
   PageComponent: React.ComponentType;
@@ -24,6 +25,7 @@ interface WorkspaceRouteLoaderProps {
 const WorkspaceRouteLoader: React.FC<WorkspaceRouteLoaderProps> = ({
   title,
   getRedirectPath,
+  getNoProjectsRedirectPath = getRedirectPath,
   noProjectsMessage,
   noProjectsTestId,
   PageComponent,
@@ -42,7 +44,7 @@ const WorkspaceRouteLoader: React.FC<WorkspaceRouteLoaderProps> = ({
         <NoProjectsEmptyState
           message={noProjectsMessage}
           testId={noProjectsTestId}
-          getRedirectPath={getRedirectPath}
+          getRedirectPath={getNoProjectsRedirectPath}
         />
       ),
     };

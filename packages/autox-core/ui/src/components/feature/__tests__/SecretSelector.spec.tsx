@@ -26,6 +26,7 @@ jest.mock('@odh-dashboard/ui-core', () => ({
       content: string | number;
       value: string | number;
       isDisabled?: boolean;
+      dropdownLabel?: React.ReactNode;
     }[];
   }) => (
     <div>
@@ -44,6 +45,7 @@ jest.mock('@odh-dashboard/ui-core', () => ({
           aria-disabled={option.isDisabled}
         >
           {option.content}
+          {option.dropdownLabel}
         </span>
       ))}
     </div>
@@ -278,6 +280,49 @@ describe('SecretSelector', () => {
     expect(onChange).toHaveBeenCalledWith({ ...refreshedSecret, invalid: false });
   });
 
+  it('should clear a selected value after refresh while preserving it as a disabled option', async () => {
+    const onChange = jest.fn();
+    const preservedSelection: SecretListItem = { ...secrets[0], databaseProviders: ['milvus'] };
+    mockUseSecretsQuery.mockReturnValue({
+      data: [preservedSelection],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+    const { rerender } = render(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus']}
+        preserveSelectedValue
+        preservedSelection={preservedSelection}
+        valueName="valid-secret"
+        onChange={onChange}
+      />,
+    );
+
+    mockUseSecretsQuery.mockReturnValue({
+      data: [],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+    rerender(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus']}
+        preserveSelectedValue
+        preservedSelection={preservedSelection}
+        valueName="valid-secret"
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-option-valid')).toHaveAttribute('aria-disabled', 'true');
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(undefined));
+  });
+
   it('should filter database secrets to allowed single providers', () => {
     const databaseSecrets: SecretListItem[] = [
       {
@@ -355,6 +400,54 @@ describe('SecretSelector', () => {
     expect(screen.queryByTestId('secret-option-mixed')).not.toBeInTheDocument();
   });
 
+  it('should show compact provider labels for uniquely recognized database secrets', () => {
+    const databaseSecrets: SecretListItem[] = [
+      {
+        uuid: 'milvus',
+        name: 'milvus',
+        data: { MILVUS_URI: 'https://milvus' },
+        databaseProviders: ['milvus'],
+      },
+      {
+        uuid: 'pgvector',
+        name: 'pgvector',
+        data: {
+          PGVECTOR_HOST: 'host',
+          PGVECTOR_PORT: '5432',
+          PGVECTOR_DB: 'db',
+          PGVECTOR_USER: 'user',
+          PGVECTOR_PASSWORD: 'password',
+        },
+        databaseProviders: ['pgvector'],
+      },
+      {
+        uuid: 'neo4j',
+        name: 'neo4j',
+        data: { NEO4J_URI: 'neo4j://db' },
+        databaseProviders: ['neo4j'],
+      },
+    ];
+    mockUseSecretsQuery.mockReturnValue({
+      data: databaseSecrets,
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+
+    render(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus', 'pgvector', 'neo4j']}
+        onChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Milvus')).toBeInTheDocument();
+    expect(screen.getByText('PGVector')).toBeInTheDocument();
+    expect(screen.getByText('Neo4j')).toBeInTheDocument();
+  });
+
   it.each([
     ['missing metadata', undefined],
     ['empty metadata', []],
@@ -407,40 +500,9 @@ describe('SecretSelector', () => {
       error: null,
       refetch: jest.fn(),
     } as never);
-
     render(<SecretSelector namespace="test" type="vector-db" onChange={jest.fn()} />);
 
     expect(screen.queryByTestId('secret-option-ambiguous-vector')).not.toBeInTheDocument();
-  });
-
-  it('should reject a legacy Milvus selection instead of preserving it', async () => {
-    const onChange = jest.fn();
-    const legacySecret: SecretListItem = {
-      uuid: 'legacy',
-      name: 'legacy',
-      data: { MILVUS_URI: '[REDACTED]', MILVUS_SERVER_CERT: '[REDACTED]' },
-      databaseProviders: [],
-    };
-    mockUseSecretsQuery.mockReturnValue({
-      data: [legacySecret],
-      isPending: false,
-      error: null,
-      refetch: jest.fn(),
-    } as never);
-
-    render(
-      <SecretSelector
-        namespace="test"
-        type="vector-db"
-        allowedProviders={['milvus']}
-        preserveSelectedValue
-        valueName="legacy"
-        onChange={onChange}
-      />,
-    );
-
-    expect(screen.queryByTestId('secret-option-legacy')).not.toBeInTheDocument();
-    await waitFor(() => expect(onChange).toHaveBeenCalledWith(undefined));
   });
 
   it('should reject a URI-only Neo4j selection instead of preserving it', async () => {
@@ -471,5 +533,64 @@ describe('SecretSelector', () => {
 
     expect(screen.queryByTestId('secret-option-neo4j-uri-only')).not.toBeInTheDocument();
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(undefined));
+  });
+
+  it('should preserve a legacy selection supplied outside the database query as disabled', () => {
+    const legacySecret: SecretListItem = {
+      uuid: 'legacy',
+      name: 'legacy',
+      data: { MILVUS_URI: 'https://milvus', NEO4J_URI: 'neo4j://db' },
+    };
+    mockUseSecretsQuery.mockReturnValue({
+      data: [],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+
+    render(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus', 'pgvector', 'neo4j']}
+        preserveSelectedValue
+        preservedSelection={legacySecret}
+        valueName="legacy"
+        onChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-option-legacy')).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('should preserve an unavailable current-format selection supplied outside the database query as disabled', () => {
+    const unavailableSecret: SecretListItem = {
+      uuid: 'unavailable-current',
+      name: 'unavailable-current',
+      data: {},
+    };
+    mockUseSecretsQuery.mockReturnValue({
+      data: [],
+      isPending: false,
+      error: null,
+      refetch: jest.fn(),
+    } as never);
+
+    render(
+      <SecretSelector
+        namespace="test"
+        type="database"
+        allowedProviders={['milvus', 'pgvector', 'neo4j']}
+        preserveSelectedValue
+        preservedSelection={unavailableSecret}
+        valueName="unavailable-current"
+        onChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-option-unavailable-current')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 });

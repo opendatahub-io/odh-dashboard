@@ -29,6 +29,8 @@ export class ResourceWatcher<T> {
 
   private resources: T[] = [];
 
+  private lastError: unknown;
+
   constructor(
     fastify: KubeFastifyInstance,
     getter: (fastify: KubeFastifyInstance) => Promise<T[]>,
@@ -45,9 +47,15 @@ export class ResourceWatcher<T> {
   }
 
   updateResults(): Promise<void> {
-    return this.getter(this.fastify).then((results) => {
-      this.resources = results;
-    });
+    return this.getter(this.fastify)
+      .then((results) => {
+        this.resources = results;
+        this.lastError = undefined;
+      })
+      .catch((error) => {
+        this.lastError = error;
+        throw error;
+      });
   }
 
   updateRefreshTime(): boolean {
@@ -143,5 +151,9 @@ export class ResourceWatcher<T> {
     }, ACTIVITY_TIMEOUT);
 
     return this.resources;
+  }
+
+  public getLastError(): unknown {
+    return this.lastError;
   }
 }

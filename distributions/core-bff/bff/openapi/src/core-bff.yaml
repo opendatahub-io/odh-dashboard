@@ -1378,7 +1378,11 @@ components:
           properties:
             dashboardConfig:
               type: object
-              description: Feature flags (40+ boolean fields)
+              description: Feature flags (including grid)
+              properties:
+                grid:
+                  type: boolean
+                  default: false
             notebookController:
               type: object
             templateOrder:
