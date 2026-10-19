@@ -679,10 +679,11 @@ describe('ExtensibleDetailTabs', () => {
       );
 
       expect(screen.getByTestId('insights-tab')).toBeInTheDocument();
-      expect(onSelect).not.toHaveBeenCalledWith('overview');
+      expect(onSelect).not.toHaveBeenCalled();
 
       await act(async () => resolveNext?.(true));
       expect(screen.getByTestId('insights-tab')).toBeInTheDocument();
+      expect(onSelect).not.toHaveBeenCalled();
     });
   });
 });

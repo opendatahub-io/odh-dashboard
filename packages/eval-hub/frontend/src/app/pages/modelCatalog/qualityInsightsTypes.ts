@@ -73,7 +73,7 @@ export type QualityInsight = {
 
 const getArtifactCreatedAt = (artifact: CatalogQualityArtifact): string | undefined => {
   const customCreatedAt = artifact.customProperties?.created_at?.string_value;
-  if (customCreatedAt) {
+  if (customCreatedAt && !Number.isNaN(new Date(customCreatedAt).getTime())) {
     return customCreatedAt;
   }
 

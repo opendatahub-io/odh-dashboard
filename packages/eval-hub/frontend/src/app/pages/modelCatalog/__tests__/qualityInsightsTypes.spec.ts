@@ -76,6 +76,18 @@ describe('mapArtifactToQualityInsight', () => {
     ).toBe('2026-10-06T15:30:34.000Z');
   });
 
+  it('falls back to the artifact creation epoch when created_at is not a valid date', () => {
+    expect(
+      mapArtifactToQualityInsight({
+        artifactType: 'metrics-artifact',
+        createTimeSinceEpoch: '1791300634000',
+        customProperties: {
+          created_at: { metadataType: 'MetadataStringValue', string_value: 'not-a-date' },
+        },
+      }).createdAt,
+    ).toBe('2026-10-06T15:30:34.000Z');
+  });
+
   it('omits createdAt when the artifact has no created_at property', () => {
     expect(
       mapArtifactToQualityInsight({ artifactType: 'metrics-artifact' }).createdAt,
