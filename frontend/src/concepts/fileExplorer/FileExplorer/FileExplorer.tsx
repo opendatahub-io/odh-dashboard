@@ -574,15 +574,25 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         alignItems={{ default: 'alignItemsCenter' }}
                         flexWrap={{ default: 'nowrap' }}
                       >
-                        <FlexItem>
+                        <FlexItem
+                          className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
+                          data-testid="file-explorer-icon"
+                        >
                           {isFolder(file) ? (
                             <FolderIcon aria-hidden data-testid="file-explorer-folder-icon" />
                           ) : (
                             getFileIcon(file.name, 'file-explorer-file-icon')
                           )}
                         </FlexItem>
-                        <FlexItem>
-                          {isFolder(file) && !file.disabled ? (
+                        <FlexItem
+                          className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
+                          data-testid="file-explorer-name"
+                        >
+                          {isUnselectable ? (
+                            <Content className="pf-v6-u-text-color-disabled">
+                              <Truncate content={file.name} />
+                            </Content>
+                          ) : isFolder(file) && !file.disabled ? (
                             <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
                               <Truncate content={file.name} />
                             </Button>

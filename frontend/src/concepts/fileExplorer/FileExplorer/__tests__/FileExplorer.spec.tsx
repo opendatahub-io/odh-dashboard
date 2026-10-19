@@ -574,6 +574,12 @@ describe('FileExplorer', () => {
       const checkbox = within(row).getByRole('checkbox');
 
       expect(checkbox).toBeDisabled();
+      expect(within(row).getByTestId('file-explorer-icon')).toHaveClass(
+        'pf-v6-u-text-color-disabled',
+      );
+      expect(within(row).getByTestId('file-explorer-name')).toHaveClass(
+        'pf-v6-u-text-color-disabled',
+      );
 
       // Attempt to toggle with Space
       fireEvent.keyDown(checkbox, { key: ' ', code: 'Space' });
