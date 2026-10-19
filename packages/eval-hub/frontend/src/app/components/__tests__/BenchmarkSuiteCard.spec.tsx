@@ -643,9 +643,6 @@ describe('BenchmarkSuiteCard', () => {
       screen.getByTestId('benchmark-suite-card-category-multi-domain-suite'),
     ).toHaveTextContent('3 categories');
     expect(
-      screen.getByTestId('benchmark-suite-card-domain-icons-multi-domain-suite'),
-    ).toHaveAttribute('aria-label', 'Software, Multilingual, Trustworthiness');
-    expect(
       screen.getByTestId('benchmark-suite-card-domain-group-multi-domain-suite'),
     ).not.toHaveClass('m-many-domains');
     expect(
@@ -674,7 +671,7 @@ describe('BenchmarkSuiteCard', () => {
       screen.getByTestId('benchmark-suite-card-category-empty-domain-suite'),
     ).toHaveTextContent('Software');
     expect(
-      screen.getByTestId('benchmark-suite-card-domain-icons-empty-domain-suite'),
+      screen.getByTestId('benchmark-suite-card-domain-icon-empty-domain-suite'),
     ).toHaveAttribute('aria-label', 'Software');
     expect(
       screen.queryByTestId('benchmark-suite-card-domain-icon-empty-domain-suite-1'),

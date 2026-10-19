@@ -92,7 +92,6 @@ const DomainIconStack: React.FC<DomainIconStackProps> = ({ collectionId, domains
   const categoryLabel = isMultipleDomains
     ? `${domains.length} categories`
     : formatCategory(domains[0] ?? '');
-  const domainNames = domains.map(formatCategory);
   const iconsStyle: DomainIconsStyle = {
     '--evalhub-benchmark-suite-card-domain-count': domains.length,
   };
@@ -108,7 +107,6 @@ const DomainIconStack: React.FC<DomainIconStackProps> = ({ collectionId, domains
         className="evalhub-benchmark-suite-card__domain-icons"
         style={iconsStyle}
         data-testid={`benchmark-suite-card-domain-icons-${collectionId}`}
-        aria-label={domainNames.join(', ')}
       >
         {domains.map((domain, index) => {
           const DomainIcon = DOMAIN_ICON_CONFIG[domain]?.icon ?? RhUiAssessmentIcon;
@@ -321,18 +319,19 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   const domains = [...new Set((collection.domains ?? []).map(normalizeCategory).filter(Boolean))];
   const normalizedCategory = normalizeCategory(collection.category);
   const resolvedDomains = domains.length > 0 ? domains : [normalizedCategory].filter(Boolean);
-  const resolvedCategory = resolvedDomains[0] ?? normalizedCategory;
-  const iconColor = getCategoryTileColor(resolvedCategory);
-  const metrics = [
-    ...new Set(
-      (collection.benchmarks ?? [])
-        .map((benchmark) => benchmark.primary_score?.metric)
-        .filter((metric): metric is string => Boolean(metric)),
-    ),
-  ];
-  const metricNames = metrics
-    .map(getMetricDisplayName)
-    .toSorted((first, second) => first.localeCompare(second));
+  const metricNames = React.useMemo(
+    () =>
+      [
+        ...new Set(
+          (collection.benchmarks ?? [])
+            .map((benchmark) => benchmark.primary_score?.metric)
+            .filter((metric): metric is string => Boolean(metric)),
+        ),
+      ]
+        .map(getMetricDisplayName)
+        .toSorted((first, second) => first.localeCompare(second)),
+    [collection],
+  );
   const evaluationTargetNames = [...new Set(collection.evaluation_targets ?? [])]
     .map(formatCategory)
     .toSorted((first, second) => first.localeCompare(second));
@@ -513,7 +512,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
 
   return (
     <Card
-      className={`evalhub-benchmark-suite-card evalhub-benchmark-suite-card--${iconColor}`}
+      className="evalhub-benchmark-suite-card"
       isFullHeight
       data-testid={`benchmark-suite-card-${collection.resource.id}`}
     >
