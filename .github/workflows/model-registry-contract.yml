@@ -1,6 +1,6 @@
 name: Contract / Model Registry
 
-# Post-merge baseline simulation for opendatahub-io/odh-dashboard#10256.
+# Post-merge baseline simulation for #10256.
 
 on:
   pull_request:
