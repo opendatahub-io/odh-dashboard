@@ -5,6 +5,7 @@ import {
   type ContainerResources,
   type Toleration,
   type NodeSelector,
+  type PodSpec,
 } from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockNotebookK8sResource } from '#~/__mocks__';
@@ -19,6 +20,7 @@ import {
   formatResource,
   getLocalQueueLabel,
   isDRAHardwareProfile,
+  getDRAHardwareProfileDetails,
 } from '#~/concepts/hardwareProfiles/utils';
 import { UseHardwareProfileConfigResult } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
@@ -830,5 +832,121 @@ describe('isDRAHardwareProfile', () => {
 
   it('should return false when the profile has no dra field', () => {
     expect(isDRAHardwareProfile(mockHardwareProfile({}))).toBe(false);
+  });
+});
+
+describe('getDRAHardwareProfileDetails', () => {
+  const dra = { resourceClaimTemplateName: 'single-mig-partition' };
+
+  it('should return undefined for a non-DRA hardware profile', () => {
+    expect(getDRAHardwareProfileDetails(mockHardwareProfile({}))).toBeUndefined();
+  });
+
+  it('should return the template name and description', () => {
+    const profile = mockHardwareProfile({
+      dra,
+      annotations: {
+        'opendatahub.io/resource-claim-description':
+          'Requests one partitioned GPU device for the workload.',
+      },
+    });
+
+    expect(getDRAHardwareProfileDetails(profile)).toStrictEqual({
+      resourceClaimTemplateName: 'single-mig-partition',
+      description: 'Requests one partitioned GPU device for the workload.',
+    });
+  });
+
+  it('should omit the description when the annotation is missing', () => {
+    expect(getDRAHardwareProfileDetails(mockHardwareProfile({ dra }))).toStrictEqual({
+      resourceClaimTemplateName: 'single-mig-partition',
+    });
+  });
+
+  it.each(['', '   ', ' \n\t '])(
+    'should omit the description when the annotation is %j',
+    (value) => {
+      const profile = mockHardwareProfile({
+        dra,
+        annotations: { 'opendatahub.io/resource-claim-description': value },
+      });
+
+      expect(getDRAHardwareProfileDetails(profile)).toStrictEqual({
+        resourceClaimTemplateName: 'single-mig-partition',
+      });
+    },
+  );
+
+  describe('with the workload pod spec', () => {
+    const description = 'Requests one partitioned GPU device for the workload.';
+    const podSpec = (resourceClaims: PodSpec['resourceClaims']): PodSpec => ({
+      containers: [],
+      resourceClaims,
+    });
+
+    it("should return the workload's template and no description when it differs from the profile", () => {
+      const profile = mockHardwareProfile({
+        dra,
+        annotations: { 'opendatahub.io/resource-claim-description': description },
+      });
+
+      expect(
+        getDRAHardwareProfileDetails(
+          profile,
+          podSpec([{ name: 'hwp-dra', resourceClaimTemplateName: 'single-gpu' }]),
+        ),
+      ).toStrictEqual({ resourceClaimTemplateName: 'single-gpu' });
+    });
+
+    it('should keep the description when the workload uses the profile template', () => {
+      const profile = mockHardwareProfile({
+        dra,
+        annotations: { 'opendatahub.io/resource-claim-description': description },
+      });
+
+      expect(
+        getDRAHardwareProfileDetails(
+          profile,
+          podSpec([{ name: 'hwp-dra', resourceClaimTemplateName: 'single-mig-partition' }]),
+        ),
+      ).toStrictEqual({ resourceClaimTemplateName: 'single-mig-partition', description });
+    });
+
+    it('should return the workload template when the profile no longer uses DRA', () => {
+      expect(
+        getDRAHardwareProfileDetails(
+          mockHardwareProfile({}),
+          podSpec([{ name: 'hwp-dra', resourceClaimTemplateName: 'single-gpu' }]),
+        ),
+      ).toStrictEqual({ resourceClaimTemplateName: 'single-gpu' });
+    });
+
+    it('should ignore claims the webhook did not add', () => {
+      expect(
+        getDRAHardwareProfileDetails(
+          mockHardwareProfile({ dra }),
+          podSpec([{ name: 'user-claim', resourceClaimTemplateName: 'other-template' }]),
+        ),
+      ).toStrictEqual({ resourceClaimTemplateName: 'single-mig-partition' });
+    });
+
+    it('should fall back to the profile template when the workload has no claims', () => {
+      expect(
+        getDRAHardwareProfileDetails(mockHardwareProfile({ dra }), podSpec(undefined)),
+      ).toStrictEqual({
+        resourceClaimTemplateName: 'single-mig-partition',
+      });
+    });
+  });
+
+  it('should collapse line breaks and repeated whitespace into single spaces', () => {
+    const profile = mockHardwareProfile({
+      dra,
+      annotations: {
+        'opendatahub.io/resource-claim-description': '\n  Line one\n\nLine\ttwo  \n',
+      },
+    });
+
+    expect(getDRAHardwareProfileDetails(profile)?.description).toBe('Line one Line two');
   });
 });

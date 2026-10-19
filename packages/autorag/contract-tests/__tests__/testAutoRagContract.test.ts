@@ -511,7 +511,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       }, 8000);
@@ -521,7 +521,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&bucket=${BUCKET}`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       }, 8000);
@@ -533,7 +533,7 @@ describe('AutoRAG API Contract Tests', () => {
         it('should accept request with valid path parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&path=folder/subfolder`);
           expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
             status: 200,
           });
         }, 8000);
@@ -551,7 +551,7 @@ describe('AutoRAG API Contract Tests', () => {
         it('should accept request with valid search parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&search=myfile`);
           expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
             status: 200,
           });
         }, 8000);
@@ -569,7 +569,7 @@ describe('AutoRAG API Contract Tests', () => {
         it('should accept request with valid next parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&next=some-continuation-token`);
           expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
             status: 200,
           });
         }, 8000);
@@ -587,7 +587,7 @@ describe('AutoRAG API Contract Tests', () => {
         it('should accept request with valid limit parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&limit=20`);
           expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
             status: 200,
           });
         }, 8000);
@@ -632,7 +632,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -642,7 +642,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&bucket=${BUCKET}`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -652,7 +652,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
         expect(result.success).toBe(true);
@@ -663,7 +663,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&path=autorag%20input%20data`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -673,7 +673,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&search=myfile`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -683,7 +683,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&limit=10`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -693,7 +693,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&next=some-token`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -703,7 +703,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&path=autorag%20input%20data&search=report&limit=5`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -718,7 +718,7 @@ describe('AutoRAG API Contract Tests', () => {
           undefined,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application/json/schema',
+          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -784,6 +784,31 @@ describe('AutoRAG API Contract Tests', () => {
       const result = await apiClient.post(`/api/v1/indexing-pipeline-runs?namespace=${NS}`, {
         display_name: 'incomplete-indexing-run',
       });
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+  });
+
+  describe('Pipeline Server Status Endpoint', () => {
+    it('should return 200 with a ready status on a namespace with a DSPA', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 200 with a not-found status when no DSPA exists in namespace', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS_NO_DSPA}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect((result.response.data as { data: { status: string } }).data.status).toBe('not-found');
+    });
+
+    it('should return 400 when namespace query parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/pipeline-server/status');
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);
     });

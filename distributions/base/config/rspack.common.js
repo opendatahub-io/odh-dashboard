@@ -23,6 +23,7 @@ const isImagesDirSvg = (input) =>
  * are bundled at build time via normal import statements.
  *
  * @param {object} [options]
+ * @param {'development'|'production'} [options.mode] - Build mode. Defaults to 'development'.
  * @param {string} [options.distributionSrcDir] - Source directory for the distribution. Defaults to base's src/.
  * @param {string} [options.outputDir] - Output directory. Defaults to <distributionSrcDir>/../public.
  * @param {string} [options.title] - HTML page title. Defaults to 'App Shell'.
@@ -30,12 +31,14 @@ const isImagesDirSvg = (input) =>
  * @param {string[]} [options.additionalIncludes] - Extra directories to compile with swc-loader.
  */
 module.exports = ({
+  mode = 'development',
   distributionSrcDir = BASE_SRC_DIR,
   outputDir,
   title = 'App Shell',
   publicPath = '/',
   additionalIncludes = [],
 } = {}) => {
+  const isProduction = mode === 'production';
   const normalizedDistDir = path.resolve(distributionSrcDir);
   const normalizedIncludes = additionalIncludes.map((p) => path.resolve(p));
   const resolvedOutputDir = outputDir
@@ -43,6 +46,7 @@ module.exports = ({
     : path.resolve(path.dirname(normalizedDistDir), 'public');
 
   return {
+    mode,
     entry: {
       app: path.join(normalizedDistDir, 'index.tsx'),
     },
@@ -84,7 +88,7 @@ module.exports = ({
             loader: 'file-loader',
             options: {
               outputPath: 'fonts',
-              name: '[name].[ext]',
+              name: isProduction ? '[name].[contenthash].[ext]' : '[name].[ext]',
             },
           },
         },
@@ -124,7 +128,11 @@ module.exports = ({
           use: [
             {
               loader: 'url-loader',
-              options: { limit: 5000, outputPath: 'images', name: '[name].[ext]' },
+              options: {
+                limit: 5000,
+                outputPath: 'images',
+                name: isProduction ? '[name].[contenthash].[ext]' : '[name].[ext]',
+              },
             },
           ],
         },

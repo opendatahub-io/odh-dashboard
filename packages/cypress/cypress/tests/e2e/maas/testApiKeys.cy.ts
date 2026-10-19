@@ -188,6 +188,7 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
       copyApiKeyModal.findApiKeyName().should('contain.text', apiKeyName);
       copyApiKeyModal.findSubscriptionName().should('contain.text', subscriptionName);
       copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', apiKeyExpirationTime);
+      copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
       copyApiKeyModal.findCloseButton().click();
       apiKeyCount++;
 
@@ -263,6 +264,7 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
       copyApiKeyModal.findApiKeyName().should('contain.text', secondApiKeyName);
       copyApiKeyModal.findSubscriptionName().should('contain.text', subscriptionName);
       copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '30 days');
+      copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
       copyApiKeyModal.findCloseButton().click();
       apiKeysPage.findRows().should('contain.text', secondApiKeyName);
 

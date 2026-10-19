@@ -17,6 +17,7 @@ import {
   findEquivalentMetric,
   findTrainingTaskPrefix,
   resolveTrainingTaskPrefix,
+  resolveUniqueTrainingTaskPrefix,
   resolveUniqueUuidPrefix,
   generateReconfigureName,
   getBestModelFromStageMap,
@@ -1321,6 +1322,29 @@ describe('resolveTrainingTaskPrefix', () => {
       resolveTrainingTaskPrefix(
         [{ prefix: 'pipeline/run-1/autogluon-models-training-backup/' }],
         allowedTaskNames,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe('resolveUniqueTrainingTaskPrefix', () => {
+  it('should resolve a single numeric task suffix', () => {
+    expect(
+      resolveUniqueTrainingTaskPrefix(
+        [{ prefix: 'pipeline/run-1/autogluon-models-training-3/' }],
+        'autogluon-models-training',
+      ),
+    ).toBe('pipeline/run-1/autogluon-models-training-3');
+  });
+
+  it('should reject ambiguous task suffixes', () => {
+    expect(
+      resolveUniqueTrainingTaskPrefix(
+        [
+          { prefix: 'pipeline/run-1/autogluon-models-training/' },
+          { prefix: 'pipeline/run-1/autogluon-models-training-3/' },
+        ],
+        'autogluon-models-training',
       ),
     ).toBeUndefined();
   });

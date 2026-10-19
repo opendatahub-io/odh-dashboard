@@ -4397,7 +4397,7 @@ func GetServingRuntimeMocks() []models.ServingRuntime {
 			SourceID:              stringToPointer("redhat-runtimes"),
 			Description:           stringToPointer("Illustrative mock runtime for hardware filtering; not a deployable runtime."),
 			SupportedModelFormats: []models.SupportedModelFormat{{Name: "safetensors"}},
-			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"ibm.com/spyre"}},
+			Capabilities:          &models.ServingRuntimeCapabilities{RequiresGPU: &gpu, SupportedAccelerators: []string{"ibm.com/spyre_pf"}},
 			VersionCount:          &one,
 		},
 		{
@@ -4510,27 +4510,35 @@ func GetServingRuntimeVersionMocks(runtimeID string) []models.ServingRuntimeVers
 	return []models.ServingRuntimeVersion{}
 }
 
-func servingRuntimeMockHardware(runtime models.ServingRuntime) []string {
-	values := []string{}
-	for _, tag := range runtime.Tags {
-		if tag == "cpu" || tag == "cpu-or-gpu" {
-			values = append(values, tag)
-		}
+// Filter keys match the catalog's serving_runtimes filter_options and filterQuery fields.
+const (
+	servingRuntimeAcceleratorsFilterKey = "capabilities.supportedAccelerators"
+	servingRuntimeModelFormatsFilterKey = "supportedModelFormats"
+)
+
+func servingRuntimeMockAccelerators(runtime models.ServingRuntime) []string {
+	if runtime.Capabilities == nil {
+		return nil
 	}
-	if runtime.Capabilities != nil {
-		values = append(values, runtime.Capabilities.SupportedAccelerators...)
+	return runtime.Capabilities.SupportedAccelerators
+}
+
+func servingRuntimeMockModelFormats(runtime models.ServingRuntime) []string {
+	formats := make([]string, 0, len(runtime.SupportedModelFormats))
+	for _, format := range runtime.SupportedModelFormats {
+		formats = append(formats, format.Name)
 	}
-	return values
+	return formats
 }
 
 func GetServingRuntimeFilterOptionsListMock() models.FilterOptionsList {
-	values := map[string]map[string]bool{"hardware": {}, "modelFormat": {}}
+	values := map[string]map[string]bool{servingRuntimeAcceleratorsFilterKey: {}, servingRuntimeModelFormatsFilterKey: {}}
 	for _, runtime := range GetServingRuntimeMocks() {
-		for _, hardware := range servingRuntimeMockHardware(runtime) {
-			values["hardware"][hardware] = true
+		for _, accelerator := range servingRuntimeMockAccelerators(runtime) {
+			values[servingRuntimeAcceleratorsFilterKey][accelerator] = true
 		}
-		for _, format := range runtime.SupportedModelFormats {
-			values["modelFormat"][format.Name] = true
+		for _, format := range servingRuntimeMockModelFormats(runtime) {
+			values[servingRuntimeModelFormatsFilterKey][format] = true
 		}
 	}
 	filters := make(map[string]models.FilterOption, len(values))

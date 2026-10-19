@@ -115,6 +115,12 @@ export type TemplateParameter = {
   required: boolean;
 };
 
+export type PodResourceClaim = {
+  name: string;
+  resourceClaimName?: string;
+  resourceClaimTemplateName?: string;
+};
+
 export type PodSpec = {
   affinity?: PodAffinity;
   enableServiceLinks?: boolean;
@@ -123,6 +129,7 @@ export type PodSpec = {
   volumes?: Volume[];
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
+  resourceClaims?: PodResourceClaim[];
 };
 
 export type PodContainerStatus = {
@@ -300,6 +307,8 @@ export type DashboardCommonConfig = {
   disableFeatureStore?: boolean;
   featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
+  genAiImageUpload?: boolean;
+  genAiAudioUpload?: boolean;
   guardrails?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
@@ -308,6 +317,7 @@ export type DashboardCommonConfig = {
   aiAssetCustomEndpoints?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
+  skillRegistry?: boolean;
   genAiMcpRegistryServers?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
@@ -331,7 +341,7 @@ export type DashboardCommonConfig = {
   roleManagement?: boolean;
   gpuaas?: boolean;
   modelCapabilities?: boolean;
-  runtimeCatalog?: boolean;
+  grid?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;
@@ -415,6 +425,8 @@ export type DataScienceClusterKindStatus = {
     version: string;
   };
 };
+
+export type { AIHubKind, AIHubNamespaceResponse } from './aihubTypes';
 
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];

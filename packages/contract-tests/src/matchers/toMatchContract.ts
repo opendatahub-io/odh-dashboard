@@ -129,6 +129,7 @@ export function toMatchContract(
 
   // Helper: shallow JSON pointer resolver for OAS3 docs
   const getByPointer = (root: unknown, pointer: string): unknown => {
+    if (pointer === '#') return root;
     if (!pointer.startsWith('#/')) return undefined;
     const parts = pointer
       .slice(2)
@@ -157,13 +158,18 @@ export function toMatchContract(
 
     const n: Record<string, unknown> = { ...node };
     const refVal = n.$ref;
+    const nullable = n.nullable === true;
     if (typeof refVal === 'string' && componentsSchemas) {
       const refPath: string = refVal;
       if (refPath.startsWith('#/components/schemas/')) {
         const name = refPath.split('/').pop() || '';
         const target = componentsSchemas[name];
-        return derefSchema(target, componentsSchemas);
+        const resolved = derefSchema(target, componentsSchemas);
+        return nullable ? makeNullable(resolved) : resolved;
       }
+    }
+    if (nullable && typeof n.type === 'string') {
+      n.type = [n.type, 'null'];
     }
     for (const key of Object.keys(n)) {
       if (isRecord(n[key]) || Array.isArray(n[key])) {
@@ -171,6 +177,13 @@ export function toMatchContract(
       }
     }
     return n;
+  };
+
+  const makeNullable = (resolvedSchema: unknown): unknown => {
+    if (!isRecord(resolvedSchema) || typeof resolvedSchema.type !== 'string') {
+      return { anyOf: [resolvedSchema, { type: 'null' }] };
+    }
+    return { ...resolvedSchema, type: [resolvedSchema.type, 'null'] };
   };
 
   // Schema validation (resolve ref against OAS3 if provided, otherwise treat schema as JSON Schema)
@@ -182,7 +195,13 @@ export function toMatchContract(
     let targetSchema: unknown = schema;
     if (ref) {
       const maybe = getByPointer(schema, ref.startsWith('#') ? ref : `#${ref}`);
-      targetSchema = maybe ?? schema;
+      if (maybe === undefined) {
+        return {
+          pass: false,
+          message: () => `Schema reference ${ref} was not found`,
+        };
+      }
+      targetSchema = maybe;
     }
     // If this looks like OAS3 (has components.schemas), deref $refs that point to components
     const componentsSchemas =

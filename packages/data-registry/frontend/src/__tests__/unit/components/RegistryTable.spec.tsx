@@ -75,6 +75,20 @@ describe('RegistryTable', () => {
     renderTable();
     expect(screen.getByText('Apache Parquet')).toBeTruthy();
     expect(screen.getByText('Documents')).toBeTruthy();
+    expect(screen.getByText('Structured')).toBeTruthy();
+    expect(screen.getByText('Unstructured')).toBeTruthy();
+  });
+
+  it('should explain the asset location column', () => {
+    renderTable();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Asset location information' }));
+
+    expect(
+      screen.getByText(
+        'This column shows the connection or path for each data asset. If both are specified, the connection is shown.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('should render labels', () => {
@@ -122,12 +136,13 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('registry-empty-state')).toBeTruthy();
     expect(screen.getByTestId('registry-empty-state-image')).toBeTruthy();
     expect(screen.getByTestId('registry-empty-state-description')).toHaveTextContent(
-      'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.',
+      'To help users in your organization discover and understand external data, create a data asset. Data assets are metadata records that store information like location, format, and schema, but not the data itself.',
     );
     expect(screen.getByRole('heading', { name: 'No data assets' })).toBeInTheDocument();
     expect(screen.getByTestId('registry-toolbar')).toHaveClass('pf-v6-u-display-none');
     expect(screen.queryByRole('columnheader', { name: 'Name' })).toBeNull();
     expect(screen.getByTestId('empty-register-data-button')).toBeTruthy();
+    expect(screen.getByTestId('registry-table')).toHaveClass('pf-m-no-border-rows');
   });
 
   it('should show the filtered empty state when filters match no assets', () => {
@@ -147,6 +162,9 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('filter-value')).toBeTruthy();
     expect(screen.getByTestId('asset-search')).toBeTruthy();
     expect(screen.getByTestId('register-data-button')).toBeTruthy();
+    expect(screen.getByTestId('asset-search')).toHaveClass(
+      'odh-data-registry-registry-table__search',
+    );
     expect(screen.getByTestId('registry-toolbar')).toContainElement(
       screen.getByTestId('registry-pagination'),
     );
@@ -245,6 +263,16 @@ describe('RegistryTable', () => {
     );
     expect(screen.getByTestId('asset-delete-table-analytics-claims-data')).toHaveClass(
       'pf-m-disabled',
+    );
+  });
+
+  it('styles the per-asset delete action as dangerous', () => {
+    renderTable();
+
+    fireEvent.click(screen.getByTestId('asset-actions-table-analytics-claims-data'));
+
+    expect(screen.getByTestId('asset-delete-table-analytics-claims-data')).toHaveClass(
+      'pf-m-danger',
     );
   });
 });

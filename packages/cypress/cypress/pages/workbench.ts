@@ -210,6 +210,10 @@ class NotebookImageUpdateModal {
   findLatestVersionOption() {
     return cy.findByTestId('latest-image');
   }
+
+  findErrorAlert() {
+    return cy.findByTestId('update-image-error-alert');
+  }
 }
 
 class NotebookImageVersionPopover extends Contextual<HTMLElement> {
@@ -269,6 +273,22 @@ class NotebookRow extends TableRow {
 
   findExpansion() {
     return this.find().siblings();
+  }
+
+  findHardwareProfileDRADetails() {
+    return this.findExpansion().findByTestId('hardware-profile-dra-details');
+  }
+
+  findHardwareProfileDRATemplate() {
+    return this.findHardwareProfileDRADetails().findByTestId('hardware-profile-dra-template');
+  }
+
+  findHardwareProfileDRAResourceNameButton() {
+    return this.findHardwareProfileDRADetails().findByTestId('resource-name-icon-button');
+  }
+
+  findLimitsDetails() {
+    return this.findExpansion().findByTestId('notebook-limits-details');
   }
 
   findAddStorageButton() {

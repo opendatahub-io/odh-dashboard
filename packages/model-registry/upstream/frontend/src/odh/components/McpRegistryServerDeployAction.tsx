@@ -1,8 +1,11 @@
 import React from 'react';
-import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
+import { FlexItem } from '@patternfly/react-core';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
+import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
 import type { McpDeployModalData, McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
+import McpDeployButton from '~/odh/components/McpDeployButton';
+import { DeployButtonState, getMcpDeployReadinessBlock } from '~/odh/utils/mcpDeployReadiness';
 
 type McpRegistryServerDeployActionProps = {
   deployData?: McpDeployModalData;
@@ -26,6 +29,11 @@ const isMcpRegistryServerDeployActionProps = (
  * server via hooks and route params), this component accepts pre-computed
  * `McpDeployModalData` — the caller handles registry-to-modal data
  * conversion and provides an optional post-deploy callback.
+ *
+ * Deploy also waits for the deploy readiness of the prefilled image, so servers that
+ * require an MCP gateway (the MCP server for Red Hat OpenShift) stay blocked without one.
+ * Without a prefilled image the user enters one in the deploy modal, and the BFF checks it
+ * when creating the deployment.
  */
 const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps> = ({
   deployData,
@@ -33,46 +41,48 @@ const McpRegistryServerDeployAction: React.FC<McpRegistryServerDeployActionProps
   onDeployed,
 }) => {
   const { available, loaded } = useMcpServerDeployAvailable();
+  // Without MCP Lifecycle nothing can be deployed, so there is nothing to check (or poll).
+  const [readiness, readinessLoaded, readinessError] = useMcpImageDeployReadiness(
+    loaded && available ? deployData?.namespace : undefined,
+    deployData?.image,
+  );
   const [openModal, setOpenModal] = React.useState(false);
 
-  const effectiveDisabledReason = React.useMemo(() => {
+  const buttonState = React.useMemo<DeployButtonState>(() => {
     if (disabledReason) {
-      return disabledReason;
+      return { enabled: false, loading: false, tooltip: disabledReason };
     }
     if (!loaded) {
-      return 'Checking deploy availability...';
+      return { enabled: false, loading: true, tooltip: 'Checking deploy availability...' };
     }
     if (!available) {
-      return 'MCP Lifecycle is not available in this cluster.';
+      return {
+        enabled: false,
+        loading: false,
+        tooltip: 'MCP Lifecycle is not available in this cluster.',
+      };
     }
-    return undefined;
-  }, [disabledReason, loaded, available]);
-
-  const canDeploy = !effectiveDisabledReason && !!deployData;
-
-  const deployButton = (
-    <Button
-      variant={ButtonVariant.primary}
-      onClick={() => {
-        if (canDeploy) {
-          setOpenModal(true);
-        }
-      }}
-      isAriaDisabled={!canDeploy}
-      isLoading={!loaded && !disabledReason}
-      data-testid="mcp-registry-deploy-action-button"
-    >
-      Deploy
-    </Button>
-  );
+    if (!deployData) {
+      return { enabled: false, loading: false };
+    }
+    if (deployData.image) {
+      const readinessBlock = getMcpDeployReadinessBlock(readiness, readinessLoaded, readinessError);
+      if (readinessBlock) {
+        return { enabled: false, ...readinessBlock };
+      }
+    }
+    return { enabled: true, loading: false };
+  }, [disabledReason, loaded, available, deployData, readiness, readinessLoaded, readinessError]);
 
   return (
     <FlexItem>
-      {effectiveDisabledReason ? (
-        <Tooltip content={effectiveDisabledReason}>{deployButton}</Tooltip>
-      ) : (
-        deployButton
-      )}
+      <McpDeployButton
+        state={buttonState}
+        onDeploy={() => setOpenModal(true)}
+        testId="mcp-registry-deploy-action-button"
+      >
+        Deploy
+      </McpDeployButton>
       {openModal && deployData && (
         <McpDeployModal
           data={deployData}
