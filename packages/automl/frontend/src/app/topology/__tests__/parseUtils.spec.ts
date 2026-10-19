@@ -186,6 +186,19 @@ describe('resolveTaskTopologyRunStatuses', () => {
     expect(statuses.get('condition-branches-1')).toBe('Pending');
   });
 
+  it('does not infer a failed task for a canceled run', () => {
+    const taskIds = ['publish-component-stage-map', 'automl-data-loader'];
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, undefined),
+      RuntimeStateKF.CANCELED,
+      linearDeps(taskIds),
+    );
+
+    expect(statuses.get('publish-component-stage-map')).toBeUndefined();
+    expect(statuses.get('automl-data-loader')).toBeUndefined();
+  });
+
   it('keeps later tasks pending after an explicit task failure', () => {
     const taskIds = ['test-data-loader', 'documents-sampling', 'text-extraction'];
     const runDetails = makeRunDetails(
@@ -256,7 +269,7 @@ describe('resolveTaskTopologyRunStatuses', () => {
     expect(statuses.get('merge')).toBe('Pending');
   });
 
-  it('infers run-level failure on all eligible parallel branches after a succeeded root', () => {
+  it('does not guess between multiple reachable parallel branches', () => {
     const taskIds = ['root', 'branch-b', 'branch-a', 'merge'];
     const depsByTaskId = new Map<string, string[]>([
       ['root', []],
@@ -277,9 +290,9 @@ describe('resolveTaskTopologyRunStatuses', () => {
     );
 
     expect(statuses.get('root')).toBe('Succeeded');
-    expect(statuses.get('branch-a')).toBe('Failed');
-    expect(statuses.get('branch-b')).toBe('Failed');
-    expect(statuses.get('merge')).toBe('Pending');
+    expect(statuses.get('branch-a')).toBeUndefined();
+    expect(statuses.get('branch-b')).toBeUndefined();
+    expect(statuses.get('merge')).toBeUndefined();
   });
 
   it('preserves explicit in-progress branch statuses after a succeeded root on a failed run', () => {

@@ -99,6 +99,19 @@ describe('branchExpand', () => {
     ).toEqual([0, 1]);
   });
 
+  it('should not choose the first branch when winner labels are ambiguous', () => {
+    const branches = new Map<number, PipelineNodeModelExpanded[]>([
+      [0, [makeNode('training__model__branch-0', 'shared-model')]],
+      [1, [makeNode('training__model__branch-1', 'shared-model')]],
+    ]);
+
+    expect(
+      resolveWinnerBranchIndex(branches, [0, 1], {
+        winnerModelLabel: 'shared-model',
+      }),
+    ).toBeUndefined();
+  });
+
   it('should resolve top-3 model ranks from the leaderboard map', () => {
     const node = makeNode('training__model__branch-1', 'lightgbm');
     expect(

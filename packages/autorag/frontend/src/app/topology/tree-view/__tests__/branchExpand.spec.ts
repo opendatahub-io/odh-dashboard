@@ -114,6 +114,19 @@ describe('branchExpand', () => {
     ).toEqual([0, 1]);
   });
 
+  it('should not choose the first branch when winner labels are ambiguous', () => {
+    const branches = new Map<number, PipelineNodeModelExpanded[]>([
+      [0, [makeNode('rag__pattern__branch-0', 'shared-pattern')]],
+      [1, [makeNode('rag__pattern__branch-1', 'shared-pattern')]],
+    ]);
+
+    expect(
+      resolveWinnerBranchIndex(branches, [0, 1], {
+        winnerPatternLabel: 'shared-pattern',
+      }),
+    ).toBeUndefined();
+  });
+
   it('should resolve top-3 pattern ranks from the leaderboard map', () => {
     const node = makeNode('rag__pattern__branch-1', 'Display Name', undefined, 'pattern_h');
     const patternRanks = Object.fromEntries([

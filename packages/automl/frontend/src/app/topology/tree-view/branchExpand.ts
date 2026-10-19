@@ -108,26 +108,27 @@ export const resolveModelRank = (
     return exactRank === 1 || exactRank === 2 || exactRank === 3 ? exactRank : undefined;
   }
 
-  const nodeValues = [modelNode.label, modelNode.id].filter(
+  const nodeValues = [modelNode.data?.modelKey, modelNode.label, modelNode.id].filter(
     (value): value is string => typeof value === 'string' && value.length > 0,
   );
+  const matchingRanks = new Set<1 | 2 | 3>();
   for (const [key, rank] of Object.entries(modelRanks)) {
     if (rank !== 1 && rank !== 2 && rank !== 3) {
       continue;
     }
     const normalizedKey = normalizeMatchKey(key);
     if (nodeValues.some((value) => valuesLooselyMatch(normalizeMatchKey(value), normalizedKey))) {
-      return rank;
+      matchingRanks.add(rank);
     }
   }
-  return undefined;
+  return matchingRanks.size === 1 ? [...matchingRanks][0] : undefined;
 };
 
 export const matchesWinnerModel = (
   modelNode: PipelineNodeModelExpanded,
   options: Pick<BranchExpandOptions, 'winnerModelLabel' | 'winnerModelKey'>,
 ): boolean => {
-  const nodeValues = [modelNode.label, modelNode.id].filter(
+  const nodeValues = [modelNode.data?.modelKey, modelNode.label, modelNode.id].filter(
     (value): value is string => typeof value === 'string' && value.length > 0,
   );
   const candidates = [options.winnerModelLabel, options.winnerModelKey].filter(
@@ -149,13 +150,11 @@ export const resolveWinnerBranchIndex = (
   branchIndices: number[],
   options: Pick<BranchExpandOptions, 'winnerModelLabel' | 'winnerModelKey'>,
 ): number | undefined => {
-  for (const index of branchIndices) {
+  const matchingBranchIndices = branchIndices.filter((index) => {
     const modelNode = getModelTerminus(branches.get(index) ?? []);
-    if (modelNode && matchesWinnerModel(modelNode, options)) {
-      return index;
-    }
-  }
-  return undefined;
+    return modelNode != null && matchesWinnerModel(modelNode, options);
+  });
+  return matchingBranchIndices.length === 1 ? matchingBranchIndices[0] : undefined;
 };
 
 /** Branch indices to lay out: all when expanded, else winner (or first) spine. */

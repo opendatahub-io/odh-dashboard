@@ -13,6 +13,7 @@ import {
   resolveSequentialStageRunStatuses,
   resolveStageRunStatus,
   promoteWaitingFrontierToInProgress,
+  resolvePatternRecordKey,
   translateStageStatus,
 } from '~/app/topology/stageMapStatus';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
@@ -80,6 +81,62 @@ describe('translateStageStatus', () => {
     expect(translateStageStatus('')).toBeUndefined();
     expect(translateStageStatus('   ')).toBeUndefined();
     expect(translateStageStatus('unknown')).toBeUndefined();
+  });
+});
+
+describe('resolvePatternRecordKey', () => {
+  it('should prefer an exact record key', () => {
+    expect(
+      resolvePatternRecordKey(
+        { patternKey: { name: 'Pattern 1' }, other: { name: 'patternKey' } },
+        'patternKey',
+      ),
+    ).toBe('patternKey');
+  });
+
+  it('should resolve a stage-map display name to its record key', () => {
+    expect(resolvePatternRecordKey({ generatedKey: { name: 'Pattern 1' } }, 'Pattern 1')).toBe(
+      'generatedKey',
+    );
+  });
+
+  it('should resolve spacing and separator differences in a unique identifier', () => {
+    expect(resolvePatternRecordKey({ pattern_one: { name: 'Pattern One' } }, 'PatternOne')).toBe(
+      'pattern_one',
+    );
+  });
+
+  it('should skip null exact records when resolving a matching loaded record', () => {
+    expect(
+      resolvePatternRecordKey(
+        { pattern_one: null, generated: { name: 'Pattern One' } },
+        'Pattern One',
+      ),
+    ).toBe('generated');
+  });
+
+  it('should leave duplicate display-name matches unresolved', () => {
+    expect(
+      resolvePatternRecordKey(
+        { first: { name: 'Pattern One' }, second: { name: 'Pattern One' } },
+        'Pattern One',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('should leave key-to-name normalization collisions unresolved', () => {
+    expect(
+      resolvePatternRecordKey(
+        { pattern_one: { name: 'Different Pattern' }, other: { name: 'Pattern One' } },
+        'PatternOne',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined when the identifier is not loaded', () => {
+    expect(resolvePatternRecordKey({ generatedKey: { name: 'Pattern 1' } }, 'Pattern 2')).toBe(
+      undefined,
+    );
   });
 });
 
