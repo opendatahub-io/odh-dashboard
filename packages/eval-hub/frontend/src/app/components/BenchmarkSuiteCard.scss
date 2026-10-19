@@ -106,7 +106,7 @@
 
 .evalhub-benchmark-suite-card__domain-icons {
   --evalhub-benchmark-suite-card-domain-icon-size: calc(var(--pf-t--global--spacer--xl) + 4px);
-  --evalhub-benchmark-suite-card-domain-icon-overlap: 8px;
+  --evalhub-benchmark-suite-card-domain-icon-overlap: var(--pf-t--global--spacer--sm);
   --evalhub-benchmark-suite-card-domain-icon-expanded-gap: var(--pf-t--global--spacer--xs);
   flex: 0 0 auto;
   height: var(--evalhub-benchmark-suite-card-domain-icon-size);
@@ -135,7 +135,7 @@
   white-space: nowrap;
 }
 
-.evalhub-benchmark-suite-card__domain-group--multiple:hover {
+.evalhub-benchmark-suite-card__domain-group.m-multiple:hover {
   align-items: flex-start;
   flex: 1 1 auto;
   gap: 0;
@@ -149,9 +149,7 @@
   }
 }
 
-.evalhub-benchmark-suite-card__domain-group--multiple:not(
-    .evalhub-benchmark-suite-card__domain-group--many-domains
-  ):hover {
+.evalhub-benchmark-suite-card__domain-group.m-multiple:not(.m-many-domains):hover {
   .evalhub-benchmark-suite-card__domain-icons {
     flex: 0 0 auto;
     width: calc(
@@ -173,7 +171,7 @@
   }
 }
 
-.evalhub-benchmark-suite-card__domain-group--many-domains:hover {
+.evalhub-benchmark-suite-card__domain-group.m-many-domains:hover {
   .evalhub-benchmark-suite-card__domain-icons {
     display: grid;
     flex: 1 1 auto;
@@ -220,7 +218,7 @@
   }
 }
 
-.evalhub-benchmark-suite-card__domain-group--many-domains:hover
+.evalhub-benchmark-suite-card__domain-group.m-many-domains:hover
   .evalhub-benchmark-suite-card__domain-icon {
   inset-block-start: auto;
   inset-inline-start: auto;

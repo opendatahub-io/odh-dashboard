@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { mockCollection } from '~/__mocks__/mockCollection';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
 
@@ -116,6 +116,143 @@ describe('BenchmarkSuiteCard', () => {
 
     expect(screen.getByText('Robustness')).toBeInTheDocument();
     expect(screen.getByText('Truthfulness')).toBeVisible();
+  });
+
+  describe('responsive metric measurement', () => {
+    type MetricWidths = { container: number; metric: number; overflow: number };
+
+    const widthRect = (width: number): DOMRect =>
+      ({
+        width,
+        height: 0,
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: width,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
+
+    const mockMetricWidths = (widths: MetricWidths) => {
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function mockedRect(
+        this: Element,
+      ) {
+        if (this.hasAttribute('data-metric-label')) {
+          return widthRect(widths.metric);
+        }
+        if (this.hasAttribute('data-overflow-label')) {
+          return widthRect(widths.overflow);
+        }
+        if (this.getAttribute('data-testid')?.startsWith('benchmark-suite-card-footer-metrics-')) {
+          return widthRect(widths.container);
+        }
+        return widthRect(0);
+      });
+    };
+
+    const renderMeasuredCard = (id: string, widths: MetricWidths) => {
+      mockMetricWidths(widths);
+      render(
+        <BenchmarkSuiteCard
+          collection={mockCollection({
+            id,
+            benchmarkIds: [
+              'benchmark-1',
+              'benchmark-2',
+              'benchmark-3',
+              'benchmark-4',
+              'benchmark-5',
+            ],
+            benchmarkMetrics: [
+              'accuracy',
+              'bias_score',
+              'toxicity_score',
+              'robustness',
+              'truthfulness',
+            ],
+          })}
+          primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        />,
+      );
+    };
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should show only the metric labels that fit the measured container width', () => {
+      renderMeasuredCard('measurement-suite', { container: 200, metric: 100, overflow: 50 });
+
+      expect(screen.getByText('Accuracy')).toBeInTheDocument();
+      expect(screen.queryByText('Bias score')).not.toBeInTheDocument();
+      expect(screen.getByText('4 more')).toBeInTheDocument();
+    });
+
+    it('should update the visible metric count when the container resizes', () => {
+      const widths: MetricWidths = { container: 200, metric: 100, overflow: 50 };
+      renderMeasuredCard('resize-suite', widths);
+
+      expect(screen.getByText('4 more')).toBeInTheDocument();
+
+      widths.container = 40;
+      fireEvent(window, new Event('resize'));
+
+      expect(screen.getByText('5 more')).toBeInTheDocument();
+      expect(screen.queryByText('Accuracy')).not.toBeInTheDocument();
+
+      widths.container = 1000;
+      fireEvent(window, new Event('resize'));
+
+      expect(screen.getByText('2 more')).toBeInTheDocument();
+      expect(screen.getByText('Accuracy')).toBeInTheDocument();
+      expect(screen.getByText('Bias score')).toBeInTheDocument();
+      expect(screen.getByText('Robustness')).toBeInTheDocument();
+      expect(screen.queryByText('Toxicity score')).not.toBeInTheDocument();
+    });
+
+    it('should keep the metrics tooltip when labels are collapsed by measurement', async () => {
+      renderMeasuredCard('collapsed-tooltip-suite', { container: 200, metric: 100, overflow: 50 });
+
+      // PF attaches the tooltip trigger to the label group root; the testid sits on the
+      // inner list, so the hover event must bubble to reach the trigger.
+      fireEvent.mouseEnter(
+        screen.getByTestId('benchmark-suite-card-metrics-collapsed-tooltip-suite'),
+        { bubbles: true },
+      );
+
+      expect(await screen.findByText('Truthfulness')).toBeInTheDocument();
+      expect(screen.getByText('Bias score')).toBeInTheDocument();
+    });
+
+    it('should remove the overflow control and tooltip when all metric labels fit', async () => {
+      mockMetricWidths({ container: 500, metric: 100, overflow: 50 });
+      render(
+        <BenchmarkSuiteCard
+          collection={mockCollection({
+            id: 'fits-suite',
+            benchmarkIds: ['benchmark-1', 'benchmark-2'],
+            benchmarkMetrics: ['accuracy', 'bias_score'],
+          })}
+          primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        />,
+      );
+
+      expect(screen.getByText('Accuracy')).toBeInTheDocument();
+      expect(screen.getByText('Bias score')).toBeInTheDocument();
+      expect(screen.queryByText('1 more')).not.toBeInTheDocument();
+
+      fireEvent.mouseEnter(screen.getByTestId('benchmark-suite-card-metrics-fits-suite'), {
+        bubbles: true,
+      });
+      await act(async () => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 0);
+        });
+      });
+
+      expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    });
   });
 
   it('should show benchmark names and fall back to IDs in the benchmark count tooltip', async () => {
@@ -480,7 +617,7 @@ describe('BenchmarkSuiteCard', () => {
 
     expect(
       screen.getByTestId('benchmark-suite-card-domain-icon-category-icon-suite'),
-    ).toHaveAttribute('title', 'Software');
+    ).toHaveAttribute('aria-label', 'Software');
     expect(
       screen.getByTestId('benchmark-suite-card-category-category-icon-suite'),
     ).toHaveTextContent('Software');
@@ -508,16 +645,16 @@ describe('BenchmarkSuiteCard', () => {
     ).toHaveAttribute('aria-label', 'Software, Multilingual, Trustworthiness');
     expect(
       screen.getByTestId('benchmark-suite-card-domain-group-multi-domain-suite'),
-    ).not.toHaveClass('evalhub-benchmark-suite-card__domain-group--many-domains');
+    ).not.toHaveClass('m-many-domains');
     expect(
       screen.getByTestId('benchmark-suite-card-domain-icon-multi-domain-suite'),
-    ).toHaveAttribute('title', 'Software');
+    ).toHaveAttribute('aria-label', 'Software');
     expect(
       screen.getByTestId('benchmark-suite-card-domain-icon-multi-domain-suite-1'),
-    ).toHaveAttribute('title', 'Multilingual');
+    ).toHaveAttribute('aria-label', 'Multilingual');
     expect(
       screen.getByTestId('benchmark-suite-card-domain-icon-multi-domain-suite-2'),
-    ).toHaveAttribute('title', 'Trustworthiness');
+    ).toHaveAttribute('aria-label', 'Trustworthiness');
   });
 
   it('should ignore empty domains before counting and rendering domain icons', () => {
@@ -561,7 +698,7 @@ describe('BenchmarkSuiteCard', () => {
     );
 
     expect(screen.getByTestId('benchmark-suite-card-domain-group-many-domain-suite')).toHaveClass(
-      'evalhub-benchmark-suite-card__domain-group--many-domains',
+      'm-many-domains',
     );
   });
 
@@ -602,7 +739,7 @@ describe('BenchmarkSuiteCard', () => {
 
     expect(
       screen.getByTestId('benchmark-suite-card-domain-icon-domain-icon-fallback-suite'),
-    ).toHaveAttribute('title', 'Software');
+    ).toHaveAttribute('aria-label', 'Software');
     expect(screen.getByText('Software')).toBeInTheDocument();
     expect(screen.queryByText('Legacy category')).not.toBeInTheDocument();
   });

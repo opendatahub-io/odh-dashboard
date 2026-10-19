@@ -100,8 +100,8 @@ const DomainIconStack: React.FC<DomainIconStackProps> = ({ collectionId, domains
   return (
     <div
       className={`evalhub-benchmark-suite-card__domain-group${
-        isMultipleDomains ? ' evalhub-benchmark-suite-card__domain-group--multiple' : ''
-      }${hasManyDomains ? ' evalhub-benchmark-suite-card__domain-group--many-domains' : ''}`}
+        isMultipleDomains ? ' m-multiple' : ''
+      }${hasManyDomains ? ' m-many-domains' : ''}`}
       data-testid={`benchmark-suite-card-domain-group-${collectionId}`}
     >
       <div
@@ -131,7 +131,6 @@ const DomainIconStack: React.FC<DomainIconStackProps> = ({ collectionId, domains
                 data-icon-color={iconColor}
                 role="img"
                 aria-label={domainName}
-                title={domainName}
               >
                 <DomainIcon aria-hidden="true" />
               </span>
@@ -239,7 +238,6 @@ const MetricLabelGroup: React.FC<MetricLabelGroupProps> = ({
 
   const labelGroup = (
     <LabelGroup
-      key={visibleMetricCount}
       className="evalhub-benchmark-suite-card__metrics"
       numLabels={visibleMetricCount}
       isCompact
