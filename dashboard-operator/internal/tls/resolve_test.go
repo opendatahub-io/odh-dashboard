@@ -88,36 +88,48 @@ func TestResolve_TransientError(t *testing.T) {
 	}
 }
 
-func TestResolve_Forbidden(t *testing.T) {
+func TestResolve_ForbiddenFailsClosed(t *testing.T) {
 	gr := schema.GroupResource{Group: "config.openshift.io", Resource: "apiservers"}
 	fc := &errorClient{err: apierrors.NewForbidden(gr, "cluster", nil)}
-	result, err := resolve(context.Background(), fc)
-	if err != nil {
-		t.Fatalf("resolve() error = %v, expected fallback on Forbidden", err)
-	}
-	if !result.APIAvailable {
-		t.Error("expected APIAvailable = true on Forbidden (watcher should register)")
-	}
-	cfg := &tls.Config{}
-	result.TLSOpts[0](cfg)
-	if cfg.MinVersion != tls.VersionTLS12 {
-		t.Errorf("expected TLS 1.2 fallback, got %d", cfg.MinVersion)
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error on Forbidden (fail-closed), got nil")
 	}
 }
 
-func TestResolve_Unauthorized(t *testing.T) {
+func TestResolve_UnauthorizedFailsClosed(t *testing.T) {
 	fc := &errorClient{err: apierrors.NewUnauthorized("not authorized")}
-	result, err := resolve(context.Background(), fc)
-	if err != nil {
-		t.Fatalf("resolve() error = %v, expected fallback on Unauthorized", err)
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error on Unauthorized (fail-closed), got nil")
 	}
-	if !result.APIAvailable {
-		t.Error("expected APIAvailable = true on Unauthorized (watcher should register)")
+}
+
+func TestResolve_UnknownTypeFailsClosed(t *testing.T) {
+	apiServer := newAPIServer(map[string]interface{}{"type": "FutureType"})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for unknown TLS profile type, got nil")
 	}
-	cfg := &tls.Config{}
-	result.TLSOpts[0](cfg)
-	if cfg.MinVersion != tls.VersionTLS12 {
-		t.Errorf("expected TLS 1.2 fallback, got %d", cfg.MinVersion)
+}
+
+func TestResolve_CustomBlockMissingFailsClosed(t *testing.T) {
+	apiServer := newAPIServer(map[string]interface{}{"type": "Custom"})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for Custom profile with missing custom block, got nil")
+	}
+}
+
+func TestResolve_CustomBadMinVersionFailsClosed(t *testing.T) {
+	apiServer := newAPIServer(map[string]interface{}{
+		"type": "Custom",
+		"custom": map[string]interface{}{
+			"minTLSVersion": "VersionTLS99",
+			"ciphers":       []interface{}{"ECDHE-RSA-AES128-GCM-SHA256"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for unknown minTLSVersion, got nil")
 	}
 }
 

@@ -167,9 +167,10 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 			result.APIAvailable = true
 			result.Profile = map[string]interface{}{"type": "Intermediate"}
 		case apierrors.IsForbidden(err), apierrors.IsUnauthorized(err):
-			log.Info("Forbidden/Unauthorized reading APIServer TLS profile, using hardened defaults (watcher will retry once RBAC is fixed)", "error", err)
-			result.APIAvailable = true
-			result.Profile = map[string]interface{}{"type": "Intermediate"}
+			// RBAC denies reading the profile, so the cluster TLS policy cannot
+			// be guaranteed. Fail closed rather than silently serving weaker
+			// defaults; grant config.openshift.io/apiservers get/list/watch to fix.
+			return result, fmt.Errorf("denied reading APIServer TLS profile (check RBAC): %w", err)
 		default:
 			return result, fmt.Errorf("failed to read APIServer TLS profile: %w", err)
 		}
@@ -180,7 +181,10 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 	result.APIAvailable = true
 	result.Profile, _, _ = unstructured.NestedMap(apiServer.Object, "spec", "tlsSecurityProfile")
 
-	minVersion, ciphers, curves := parseProfile(apiServer)
+	minVersion, ciphers, curves, err := parseProfile(apiServer)
+	if err != nil {
+		return result, fmt.Errorf("invalid cluster TLS profile: %w", err)
+	}
 	if ciphers != nil && len(ciphers) == 0 {
 		return result, fmt.Errorf("custom TLS profile specified ciphers but none are supported by Go")
 	}
@@ -210,69 +214,87 @@ func intermediateWithALPN(c *tls.Config) {
 // parseProfile returns the resolved minimum TLS version, cipher suites, and
 // key-exchange curves. Curves are nil for well-known profiles (no group
 // restriction); only Custom profiles that set `groups` produce a non-nil slice.
-func parseProfile(apiServer *unstructured.Unstructured) (uint16, []uint16, []tls.CurveID) {
+// It fails closed: malformed specs and unknown profile types return an error
+// rather than silently substituting Intermediate.
+func parseProfile(apiServer *unstructured.Unstructured) (uint16, []uint16, []tls.CurveID, error) {
 	spec, found, err := unstructured.NestedMap(apiServer.Object, "spec", "tlsSecurityProfile")
 	if err != nil {
-		log.Error(err, "Failed to read spec.tlsSecurityProfile from APIServer")
-		return tls.VersionTLS12, IntermediateCiphers, nil
+		return 0, nil, nil, fmt.Errorf("reading spec.tlsSecurityProfile: %w", err)
 	}
 	if !found || spec == nil {
-		return tls.VersionTLS12, IntermediateCiphers, nil
+		return tls.VersionTLS12, IntermediateCiphers, nil, nil
 	}
 
 	profileType, _, _ := unstructured.NestedString(spec, "type")
 
 	switch profileType {
 	case "Intermediate", "":
-		return tls.VersionTLS12, IntermediateCiphers, nil
+		return tls.VersionTLS12, IntermediateCiphers, nil, nil
 	case "Modern":
-		return tls.VersionTLS13, nil, nil
+		return tls.VersionTLS13, nil, nil, nil
 	case "Old":
-		return tls.VersionTLS10, resolveCipherNames(oldCipherNames), nil
+		return tls.VersionTLS10, resolveCipherNames(oldCipherNames), nil, nil
 	case "Custom":
 		return parseCustomProfile(spec)
 	default:
-		log.Info("Unknown TLS profile type, falling back to Intermediate", "type", profileType)
-		return tls.VersionTLS12, IntermediateCiphers, nil
+		return 0, nil, nil, fmt.Errorf("unknown TLS profile type %q", profileType)
 	}
 }
 
-func parseCustomProfile(spec map[string]interface{}) (uint16, []uint16, []tls.CurveID) {
+func parseCustomProfile(spec map[string]interface{}) (uint16, []uint16, []tls.CurveID, error) {
 	custom, found, err := unstructured.NestedMap(spec, "custom")
 	if err != nil {
-		log.Error(err, "Failed to read custom TLS profile block")
-		return tls.VersionTLS12, IntermediateCiphers, nil
+		return 0, nil, nil, fmt.Errorf("reading custom TLS profile block: %w", err)
 	}
 	if !found || custom == nil {
-		log.Info("Custom TLS profile type specified but custom block is nil, falling back to Intermediate")
-		return tls.VersionTLS12, IntermediateCiphers, nil
+		return 0, nil, nil, fmt.Errorf("Custom TLS profile type specified but custom block is missing")
 	}
 
 	minTLSStr, _, _ := unstructured.NestedString(custom, "minTLSVersion")
 	minVersion, ok := tlsVersionMap[minTLSStr]
 	if !ok {
-		log.Info("Unknown minTLSVersion in custom profile, defaulting to TLS 1.2", "minTLSVersion", minTLSStr)
-		minVersion = tls.VersionTLS12
+		return 0, nil, nil, fmt.Errorf("unknown minTLSVersion %q in custom TLS profile", minTLSStr)
 	}
 
-	return minVersion, parseCustomCiphers(custom), parseCustomGroups(custom)
+	ciphers, err := parseCustomCiphers(custom)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	groups, err := parseCustomGroups(custom)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	return minVersion, ciphers, groups, nil
 }
 
-func parseCustomCiphers(custom map[string]interface{}) []uint16 {
+func parseCustomCiphers(custom map[string]interface{}) ([]uint16, error) {
 	cipherNames, found, err := unstructured.NestedStringSlice(custom, "ciphers")
 	if err != nil {
-		log.Error(err, "Failed to read ciphers from custom TLS profile")
-		return nil
+		return nil, fmt.Errorf("reading ciphers from custom TLS profile: %w", err)
 	}
 	if !found || len(cipherNames) == 0 {
-		return nil
+		return nil, nil
 	}
-	return resolveCipherNames(cipherNames)
+	return resolveCipherNames(cipherNames), nil
 }
+
+// goNegotiableCiphers is the set of TLS ≤1.2 cipher suite IDs the running Go
+// runtime can actually negotiate (secure + insecure-but-available). A mapped
+// constant a future Go release removes from both is treated as unusable.
+var goNegotiableCiphers = func() map[uint16]bool {
+	m := make(map[uint16]bool)
+	for _, c := range tls.CipherSuites() {
+		m[c.ID] = true
+	}
+	for _, c := range tls.InsecureCipherSuites() {
+		m[c.ID] = true
+	}
+	return m
+}()
 
 // resolveCipherNames maps OpenSSL/IANA cipher names to Go cipher suite IDs,
 // skipping TLS 1.3 names (managed by Go), deduplicating, and dropping any name
-// Go does not support.
+// Go does not support or the running runtime cannot negotiate.
 func resolveCipherNames(names []string) []uint16 {
 	ciphers := make([]uint16, 0, len(names))
 	seen := make(map[uint16]bool)
@@ -285,6 +307,10 @@ func resolveCipherNames(names []string) []uint16 {
 			log.Info("Dropping unsupported cipher from TLS profile", "cipher", name)
 			continue
 		}
+		if !goNegotiableCiphers[id] {
+			log.Info("Dropping cipher the running Go runtime cannot negotiate", "cipher", name)
+			continue
+		}
 		if seen[id] {
 			continue
 		}
@@ -294,14 +320,13 @@ func resolveCipherNames(names []string) []uint16 {
 	return ciphers
 }
 
-func parseCustomGroups(custom map[string]interface{}) []tls.CurveID {
+func parseCustomGroups(custom map[string]interface{}) ([]tls.CurveID, error) {
 	groupNames, found, err := unstructured.NestedStringSlice(custom, "groups")
 	if err != nil {
-		log.Error(err, "Failed to read groups from custom TLS profile")
-		return nil
+		return nil, fmt.Errorf("reading groups from custom TLS profile: %w", err)
 	}
 	if !found || len(groupNames) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	seen := make(map[tls.CurveID]bool)
@@ -318,5 +343,5 @@ func parseCustomGroups(custom map[string]interface{}) []tls.CurveID {
 		seen[id] = true
 		curves = append(curves, id)
 	}
-	return curves
+	return curves, nil
 }

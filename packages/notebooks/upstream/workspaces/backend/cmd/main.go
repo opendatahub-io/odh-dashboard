@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -25,7 +27,10 @@ import (
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	tlsprofile "github.com/kubeflow/notebooks/workspaces/controller/pkg/tls"
 
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
@@ -34,6 +39,22 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/server"
 	"github.com/kubeflow/notebooks/workspaces/backend/openapi"
 )
+
+// resolveServerTLSConfig derives the HTTPS listener TLS configuration from the
+// OpenShift cluster TLS security profile, replacing the previously hardcoded
+// TLS 1.3. A nil result means plaintext. Fatal resolution errors (e.g. an
+// all-unsupported custom cipher set) are returned so startup fails closed.
+func resolveServerTLSConfig(ctx context.Context, kubeconfig *rest.Config) (*tls.Config, map[string]any, error) {
+	result, err := tlsprofile.Resolve(ctx, kubeconfig)
+	if err != nil {
+		return nil, nil, err
+	}
+	cfg := &tls.Config{}
+	for _, opt := range result.TLSOpts {
+		opt(cfg)
+	}
+	return cfg, result.Profile, nil
+}
 
 //	@title			Kubeflow Notebooks API
 //	@version		1.0.0
@@ -261,7 +282,20 @@ func run() (status int) {
 		logger.Error("failed to create app", "error", err)
 		return 1
 	}
-	svr, err := server.NewServer(app, logger, certFile, keyFile)
+	// Resolve the HTTPS listener TLS configuration from the cluster TLS profile
+	// (replaces the previously hardcoded TLS 1.3). Only when TLS is enabled.
+	var serverTLSConfig *tls.Config
+	var initialTLSProfile map[string]any
+	tlsEnabled := certFile != "" && keyFile != ""
+	if tlsEnabled {
+		serverTLSConfig, initialTLSProfile, err = resolveServerTLSConfig(context.Background(), kubeconfig)
+		if err != nil {
+			logger.Error("failed to resolve cluster TLS profile", "error", err)
+			return 1
+		}
+	}
+
+	svr, err := server.NewServer(app, logger, certFile, keyFile, serverTLSConfig)
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
 		return 1
@@ -269,6 +303,28 @@ func run() (status int) {
 	if err := svr.SetupWithManager(mgr); err != nil {
 		logger.Error("failed to setup server with manager", "error", err)
 		return 1
+	}
+
+	// Watch the cluster TLS profile and gracefully restart the HTTPS listener
+	// when it changes, so policy updates apply without a pod restart.
+	if tlsEnabled {
+		watcher := &tlsprofile.ProfileWatcher{
+			Client:         mgr.GetClient(),
+			InitialProfile: initialTLSProfile,
+			OnProfileChange: func(ctx context.Context) {
+				newCfg, _, resolveErr := resolveServerTLSConfig(ctx, kubeconfig)
+				if resolveErr != nil {
+					logger.Error("failed to re-resolve TLS profile on change; keeping current configuration", "error", resolveErr)
+					return
+				}
+				logger.Info("cluster TLS profile changed, reloading HTTPS listener")
+				svr.ReloadTLSConfig(newCfg)
+			},
+		}
+		if err := watcher.SetupWithManager(mgr); err != nil {
+			logger.Error("failed to setup TLS profile watcher", "error", err)
+			return 1
+		}
 	}
 
 	// Start the controller manager

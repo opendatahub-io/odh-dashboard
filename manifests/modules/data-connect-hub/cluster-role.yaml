@@ -11,14 +11,17 @@ rules:
       - watch
     resources:
       - configmaps
+  # Read the cluster-wide TLS security profile (apiservers.config.openshift.io/cluster)
+  # so the BFF can enforce it on its HTTPS listener and reload on change. list/watch
+  # must omit resourceNames to be granted; apiservers is a cluster singleton.
   - apiGroups:
       - config.openshift.io
     resources:
       - apiservers
-    resourceNames:
-      - cluster
     verbs:
       - get
+      - list
+      - watch
   - apiGroups:
       - authorization.k8s.io
     verbs:
