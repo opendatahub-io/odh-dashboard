@@ -261,6 +261,38 @@ var _ = Describe("GenAIProxyNSEmbeddingsHandler", func() {
 		assert.Equal(t, "team/embed", upstreamModel)
 	})
 
+	It("should resolve custom-endpoint models whose native ID begins with maas-", func() {
+		t := GinkgoT()
+		// The custom-endpoint ConfigMap is the more specific registration than the
+		// MaaS prefix heuristic (the embeddings path has no model-source header to
+		// disambiguate), so an exact ConfigMap match must win even when the native
+		// model_id begins with "maas-". With the MaaS branch checked first this
+		// request would 500 ("MaaS is not available") instead of reaching the
+		// configured endpoint.
+		var upstreamModel string
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var upstreamBody struct {
+				Model string `json:"model"`
+			}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&upstreamBody))
+			upstreamModel = upstreamBody.Model
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer upstream.Close()
+
+		app.kubernetesClientFactory = &proxyCredentialsK8sFactory{client: &proxyCredentialsK8sClient{
+			externalModelsConfig: customEndpointConfig(upstream.URL, "edge-provider", "maas-custom-embedding", "", ""),
+		}}
+		app.httpClient = upstream.Client()
+
+		req := embeddingProxyRequest(`{"model":"maas-custom-embedding","input":"test"}`, "test-token")
+		rr := httptest.NewRecorder()
+		app.GenAIProxyNSEmbeddingsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code, "the configured custom endpoint must win over the MaaS prefix heuristic")
+		assert.Equal(t, "maas-custom-embedding", upstreamModel)
+	})
+
 	It("should strip the custom-endpoint provider prefix from the proxied model", func() {
 		t := GinkgoT()
 		var upstreamModel string

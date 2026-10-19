@@ -196,8 +196,10 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 // registered models is the model_id from the generated config — that ID may itself
 // contain namespace slashes (e.g. "RedHatAI/granite-embedding-english-r2") which must
 // be preserved when forwarded upstream. Resolution follows the same priority as
-// getProviderData:
-//  1. Custom endpoint (provider-qualified with known provider) → ConfigMap + Secret
+// getProviderData — an exact custom-endpoint ConfigMap match wins over the MaaS
+// prefix heuristic (a custom-endpoint model whose native model_id begins with
+// "maas-" must reach its configured endpoint):
+//  1. Custom endpoint (exact ConfigMap match) → ConfigMap + Secret
 //  2. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
 //  3. Namespace (bare name) → InferenceService/LLMInferenceService URL + user JWT
 func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, maasSubscription string) (baseURL, apiKey, resolvedModelID string, err error) {
@@ -221,9 +223,19 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, ma
 	routingStripped := strings.TrimPrefix(modelID, constants.PassthroughProviderID+"/")
 
 	// Resolution priority:
-	// 1. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
-	// 2. Custom endpoint (provider-qualified with "/") → ConfigMap + Secret
+	// 1. Custom endpoint (exact ConfigMap match) → ConfigMap + Secret. Runs before
+	//    the MaaS prefix check so a custom-endpoint model whose native model_id
+	//    begins with "maas-" reaches its configured endpoint — unlike the chat
+	//    proxy, the embeddings path has no model-source header to disambiguate, and
+	//    the ConfigMap registration is the more specific intent than the prefix
+	//    heuristic.
+	// 2. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
 	// 3. Namespace ISVC fallback (bare name) → InferenceService URL + user JWT
+	extURL, extKey, extModelID := app.getCustomEndpointBaseURLKeyAndModelID(ctx, modelID)
+	if extURL != "" {
+		return extURL, extKey, extModelID, nil
+	}
+
 	if strings.HasPrefix(routingStripped, constants.MaaSProviderPrefix) {
 		if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			return "", "", "", &infraError{msg: "MaaS is not available"}
@@ -244,15 +256,6 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, ma
 			return "", "", "", &infraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", maasModelID)}
 		}
 		return inferenceURL, token, maasModelID, nil
-	}
-
-	// Try custom endpoint — model IDs may be simple names (e.g. "gpt-4o") or
-	// provider-qualified (e.g. "endpoint-1/gpt-4o"). The resolved model ID is the
-	// ConfigMap-registered model_id, so namespaced IDs (e.g.
-	// "RedHatAI/granite-embedding-english-r2") are returned verbatim.
-	extURL, extKey, extModelID := app.getCustomEndpointBaseURLKeyAndModelID(ctx, modelID)
-	if extURL != "" {
-		return extURL, extKey, extModelID, nil
 	}
 
 	// Fallback: namespace ISVC (bare name or failed custom endpoint lookup)
