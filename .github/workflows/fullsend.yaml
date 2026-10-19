@@ -73,7 +73,7 @@ jobs:
       packages: read
       pull-requests: write
     # Keep in step with the sandbox image pinned in .fullsend/harness/review.yaml
-    # (same release, Pi 1.3.0).
+    # (v0.48.1, Pi 1.3.0; this pin is just past that release, see below).
     # The harness base names built-in providers that only v0.45.0 onward
     # resolves, so this pin and the base pin move together. v0.48.0 is the
     # first release that declares FULLSEND_GITHUB_RUNNER_SECRETS (ADR 0136).
