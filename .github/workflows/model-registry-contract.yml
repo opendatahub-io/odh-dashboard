@@ -68,6 +68,7 @@ jobs:
         working-directory: packages/model-registry
         env:
           CONTRACT_OPENAPI_PATH: ${{ github.workspace }}/.upstream-model-registry/clients/ui/api/openapi/mod-arch.yaml
+          CONTRACT_TEST_PATH: '__tests__/test(ModelCatalog|ModelRegistry)Contract\.test\.ts'
           BFF_MOCK_FLAGS: --mock-k8s-client --mock-mr-client --mock-mr-catalog-client
         run: |
           pnpm exec odh-ct-bff-consumer \
