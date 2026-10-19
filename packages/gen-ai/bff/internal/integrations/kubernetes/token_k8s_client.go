@@ -2694,18 +2694,31 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 
 // getExternalModelDetails retrieves external model details from a pre-fetched ExternalModelsConfig.
 func (kc *TokenKubernetesClient) getExternalModelDetails(config *models.ExternalModelsConfig, modelID string) (externalModelDetailsResult, error) {
-	// Find the model by model_id
-	var foundModel *models.RegisteredModel
+	// Find the model by model_id. More than one match across providers is
+	// ambiguous: proxy-routed registrations keep only the native model ID, so
+	// query-time resolution (ResolveCustomEndpointModelProvider) cannot tell the
+	// providers apart and the request fails. Reject at install time with a clear
+	// error rather than installing a config whose retrieval silently fails.
+	var matches []*models.RegisteredModel
 	for i := range config.RegisteredResources.Models {
 		if config.RegisteredResources.Models[i].ModelID == modelID {
-			foundModel = &config.RegisteredResources.Models[i]
-			break
+			matches = append(matches, &config.RegisteredResources.Models[i])
 		}
 	}
 
-	if foundModel == nil {
+	if len(matches) == 0 {
 		return externalModelDetailsResult{}, fmt.Errorf("external model with model_id '%s' not found in ConfigMap", modelID)
 	}
+	if len(matches) > 1 {
+		providerIDs := make([]string, 0, len(matches))
+		for _, m := range matches {
+			providerIDs = append(providerIDs, m.ProviderID)
+		}
+		return externalModelDetailsResult{}, fmt.Errorf(
+			"external model '%s' is registered under %d providers (%s); model IDs must be unique across custom-endpoint providers — remove the duplicate registration or rename one of the models",
+			modelID, len(matches), strings.Join(providerIDs, ", "))
+	}
+	foundModel := matches[0]
 
 	// Find the provider for this model
 	var foundProvider *models.InferenceProvider

@@ -1516,6 +1516,54 @@ func TestGenerateLlamaStackConfigWithExternalEmbeddingModels(t *testing.T) {
 		assert.Contains(t, err.Error(), "GATEWAY_DOMAIN is not configured")
 		assert.Contains(t, err.Error(), "gemini-embedding-001")
 	})
+
+	t.Run("duplicate model_id across providers: install fails fast with a clear error", func(t *testing.T) {
+		// Proxy-routed registration keeps only the native model ID, so a model_id
+		// declared under two custom-endpoint providers cannot be resolved at query
+		// time (ResolveCustomEndpointModelProvider reports it as ambiguous). The
+		// install must reject the configuration instead of silently failing retrieval.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newConfigMap(`
+providers:
+  inference:
+    - provider_id: "gemini-embedding-provider"
+      provider_type: "remote::passthrough"
+      config:
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+    - provider_id: "gemini-embedding-provider-eu"
+      provider_type: "remote::passthrough"
+      config:
+        base_url: "https://eu.example.com/v1"
+registered_resources:
+  models:
+    - model_id: "gemini-embedding-001"
+      provider_id: "gemini-embedding-provider"
+      model_type: "embedding"
+      metadata:
+        display_name: "Gemini Embedding"
+        embedding_dimension: 3072
+    - model_id: "gemini-embedding-001"
+      provider_id: "gemini-embedding-provider-eu"
+      model_type: "embedding"
+      metadata:
+        display_name: "Gemini Embedding (EU)"
+        embedding_dimension: 3072
+`)).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			Client:    fakeClient,
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
+		}
+
+		_, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "gemini-embedding-001")
+		assert.Contains(t, err.Error(), "registered under 2 providers")
+		assert.Contains(t, err.Error(), "gemini-embedding-provider, gemini-embedding-provider-eu")
+	})
 }
 
 func TestModelSourceTypeRouting(t *testing.T) {

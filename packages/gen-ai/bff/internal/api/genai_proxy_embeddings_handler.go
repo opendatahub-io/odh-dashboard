@@ -211,21 +211,26 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, ma
 		return "", "", "", &infraError{msg: fmt.Sprintf("failed to get Kubernetes client: %v", k8sErr)}
 	}
 
-	// Strip the passthrough routing prefix if present (e.g.
-	// "genai-bff-proxy/maas-publishers/..." → "maas-publishers/...").
-	modelID = strings.TrimPrefix(modelID, constants.PassthroughProviderID+"/")
+	// Strip the passthrough routing prefix (e.g. "genai-bff-proxy/...") for MaaS
+	// detection and the namespace fallback. Custom-endpoint resolution below keeps
+	// the ORIGINAL ID: ResolveCustomEndpointModelProvider treats a genai-bff-proxy/
+	// prefix as "the remainder is the provider-native model ID" and only applies
+	// provider/model split matching to unprefixed IDs. That distinction keeps a
+	// native namespaced ID (e.g. "team/embed") from being misread as a
+	// provider-qualified reference to a provider literally named "team".
+	routingStripped := strings.TrimPrefix(modelID, constants.PassthroughProviderID+"/")
 
 	// Resolution priority:
 	// 1. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
 	// 2. Custom endpoint (provider-qualified with "/") → ConfigMap + Secret
 	// 3. Namespace ISVC fallback (bare name) → InferenceService URL + user JWT
-	if strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
+	if strings.HasPrefix(routingStripped, constants.MaaSProviderPrefix) {
 		if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			return "", "", "", &infraError{msg: "MaaS is not available"}
 		}
 		// MaaS BFF APIs use the raw model ID, without the BFF routing prefix.
 		// TrimPrefix preserves any path segments in the model ID.
-		maasModelID := strings.TrimPrefix(modelID, constants.MaaSProviderPrefix)
+		maasModelID := strings.TrimPrefix(routingStripped, constants.MaaSProviderPrefix)
 		maasHeaders := map[string]string{constants.MaaSReturnAllModelsHeader: "true"}
 		maasClient := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, identity.Token, maasHeaders)
 		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
@@ -251,7 +256,7 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, ma
 	}
 
 	// Fallback: namespace ISVC (bare name or failed custom endpoint lookup)
-	return app.resolveNamespaceModel(ctx, k8sClient, identity, namespace, modelID)
+	return app.resolveNamespaceModel(ctx, k8sClient, identity, namespace, routingStripped)
 }
 
 // resolveNamespaceModel resolves a namespace model (InferenceService/LLMInferenceService)
