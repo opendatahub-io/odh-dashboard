@@ -126,11 +126,12 @@ export const useDefaultStorageClass = (
 
   // 1. First priority: admin storage class (from Dashboard Admin Configuration)
   if (isStorageClassesAvailable) {
-    if (!adminDefaultStorageClassLoaded) {
+    if (!adminDefaultStorageClassLoaded && !adminDefaultStorageClassError) {
       // Admin default is still loading -- report not loaded so consumers wait
-      // for the highest-priority source before acting on a lower-priority fallback
+      // for the highest-priority source before acting on a lower-priority fallback.
+      // If there is an error, allow fallthrough to lower-priority defaults.
       loaded = false;
-    } else if (!adminDefaultStorageClassError) {
+    } else if (adminDefaultStorageClassLoaded && !adminDefaultStorageClassError) {
       storageClass = adminDefaultStorageClass;
     }
   }

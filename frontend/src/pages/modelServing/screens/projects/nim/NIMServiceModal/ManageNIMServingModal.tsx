@@ -177,14 +177,15 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   React.useEffect(() => {
     if (pvc?.spec.storageClassName) {
       // If a deployed storage class exists, use it.
-      if (storageClassName !== pvc.spec.storageClassName) {
-        setStorageClassName(pvc.spec.storageClassName);
-      }
+      setStorageClassName(pvc.spec.storageClassName);
     } else if (defaultStorageClassName && !deployedStorageClassName) {
       // No deployed PVC — sync to the resolved default storage class.
       setStorageClassName(defaultStorageClassName);
     }
-  }, [pvc, defaultStorageClassName, storageClassName, deployedStorageClassName]);
+    // storageClassName is intentionally excluded: including it would reset
+    // user selections back to the default whenever the dropdown changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pvc, defaultStorageClassName, deployedStorageClassName]);
 
   React.useEffect(() => {
     if (currentProjectName) {
