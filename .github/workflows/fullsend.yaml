@@ -102,17 +102,16 @@ jobs:
       # - An empty value is refused by `fullsend run` and fails the review, so
       #   each entry is added only when its secret is set. The fixed first entry
       #   keeps the object valid when none is.
-      # - Values are inserted unescaped, so a secret holding `"` or `\` breaks
-      #   the object (also a failed review). URLs, emails, and Atlassian and
-      #   CodeRabbit keys do not hold either.
+      # - Each value goes through toJSON(), which quotes and escapes it, so a
+      #   secret holding `"`, `\` or a newline still yields a valid object.
       # - JIRA_TOKEN, JIRA_USER_EMAIL and JIRA_BASE_URL are refused names: the
       #   reusable workflow sets them itself on harness-run.
       FULLSEND_GITHUB_RUNNER_SECRETS: >-
         ${{ format('{{"ODH_RUNNER_SECRETS_SOURCE":"odh-dashboard-fullsend-shim"{0}{1}{2}{3}}}',
-        secrets.CODERABBIT_API_KEY != '' && format(',"CODERABBIT_API_KEY":"{0}"', secrets.CODERABBIT_API_KEY) || '',
-        secrets.JIRA_URL != '' && format(',"JIRA_URL":"{0}"', secrets.JIRA_URL) || '',
-        secrets.JIRA_USERNAME != '' && format(',"JIRA_USERNAME":"{0}"', secrets.JIRA_USERNAME) || '',
-        secrets.JIRA_API_TOKEN != '' && format(',"JIRA_API_TOKEN":"{0}"', secrets.JIRA_API_TOKEN) || '') }}
+        secrets.CODERABBIT_API_KEY != '' && format(',"CODERABBIT_API_KEY":{0}', toJSON(secrets.CODERABBIT_API_KEY)) || '',
+        secrets.JIRA_URL != '' && format(',"JIRA_URL":{0}', toJSON(secrets.JIRA_URL)) || '',
+        secrets.JIRA_USERNAME != '' && format(',"JIRA_USERNAME":{0}', toJSON(secrets.JIRA_USERNAME)) || '',
+        secrets.JIRA_API_TOKEN != '' && format(',"JIRA_API_TOKEN":{0}', toJSON(secrets.JIRA_API_TOKEN)) || '') }}
 
   stop-fix:
     # Job-level if: is intentionally coarse — it only screens for the
