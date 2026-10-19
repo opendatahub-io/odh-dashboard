@@ -84,8 +84,6 @@ overrides:
   '@types/tar': '^6.1.13'
   jsonpath-plus: '^10.4.0'
   tough-cookie: '^4.1.4'
-  # @kubernetes/client-node@0.12.3 declares tar@^6, but main requires this patched major.
-  '@kubernetes/client-node>tar': '^7.5.22'
   redux: '^4.2.1'
   form-data: '^4.0.5'
   axios: '^1.17.0'

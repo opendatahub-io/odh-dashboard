@@ -13,7 +13,7 @@
     "url": "https://github.com/opendatahub-io/odh-dashboard/issues"
   },
   "engines": {
-    "node": ">=22.18.0"
+    "node": ">=22.19.0"
   },
   "main": "src/server.ts",
   "scripts": {
@@ -46,7 +46,7 @@
     "@fastify/static": "^10.1.3",
     "@fastify/view": "^12.0.0",
     "@fastify/websocket": "^11.3.0",
-    "@kubernetes/client-node": "^0.12.3",
+    "@kubernetes/client-node": "^2.0.0",
     "@odh-dashboard/app-config": "workspace:*",
     "@odh-dashboard/foundation": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",

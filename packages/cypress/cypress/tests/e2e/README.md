@@ -33,7 +33,7 @@ Learn more about the Dashboard through our documentation:
 
 Before you begin, ensure you have the following installed:
 
-* **Node.js**: Version 22.18.0 or higher
+* **Node.js**: Version 22.19.0 or higher
 * **pnpm**: Version 11.22.0 (the repository-pinned version)
 * **Cypress**: This will be installed as part of the project setup
 

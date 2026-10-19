@@ -27,7 +27,7 @@ A dashboard for Open Data Hub components, featuring user flows to navigate and i
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js**: >= 22.18.0
+- **Node.js**: >= 22.19.0
 - **pnpm**: 11.22.0 (the version pinned in `package.json`)
 - **Go**: >= 1.26 (for packages with Backend-for-Frontend services)
 
