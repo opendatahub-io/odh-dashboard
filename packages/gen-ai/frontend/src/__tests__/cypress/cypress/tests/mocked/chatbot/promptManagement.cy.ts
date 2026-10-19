@@ -2,6 +2,11 @@
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
 import {
+  interceptExistingAgentProfile,
+  interceptMLflowPrompt,
+  setupPlaygroundBase,
+} from '~/__tests__/cypress/cypress/support/helpers/agentProfiles/agentProfilePlaygroundHelpers';
+import {
   promptManagementModal,
   promptDrawer,
   createPromptModal,
@@ -160,6 +165,55 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         promptAssistant.findNameTitle().should('contain.text', 'New Prompt');
       },
     );
+
+    it(
+      'should hide the Model column and Model filter when prompt model associations flag is off',
+      { tags: ['@GenAI', '@PromptManagement', '@FeatureFlag'] },
+      () => {
+        const namespace = config.defaultNamespace;
+
+        cy.step('Setup base mocks without promptModelAssociations flag');
+        setupBaseMCPServerMocks(config, {
+          lsdStatus: 'Ready',
+          includeLsdModel: true,
+          includeAAModel: true,
+        });
+        cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+        cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+        cy.intercept('GET', '**/api/v1/mcp/status**', {
+          statusCode: 200,
+          body: { status: 'ready' },
+        });
+        setupPromptMocks(namespace);
+
+        cy.step('Visit page without promptModelAssociations flag');
+        appChrome.visit(['genAiStudio', 'promptManagement']);
+        chatbotPage.visit(namespace);
+        chatbotPage.verifyOnChatbotPage(namespace);
+        cy.wait('@bffConfig');
+        cy.wait('@aaModels');
+
+        cy.step('Open the prompt table');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTable().should('be.visible');
+
+        cy.step('Verify the Model column is hidden on the Project prompts tab');
+        promptManagementModal.findTableRow('summarization-prompt').should('exist');
+        promptManagementModal.findModelColumnHeader().should('not.exist');
+
+        cy.step('Verify the Model column is hidden on the Global prompts tab');
+        promptManagementModal.findGlobalPromptsTab().click();
+        promptManagementModal.findTableRow('starter-template-prompt').should('exist');
+        promptManagementModal.findModelColumnHeader().should('not.exist');
+
+        cy.step('Verify only the Name filter type is offered');
+        promptManagementModal.findFilterTypeToggle().click();
+        promptManagementModal.findFilterTypeItem('name').should('exist');
+        promptManagementModal.findFilterTypeItem('model').should('not.exist');
+      },
+    );
   });
 
   describe('Prompt Table - Load Flow', () => {
@@ -252,6 +306,42 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
     );
   });
 
+  describe('Saved agent prompt', () => {
+    it(
+      'should display the first prompt version at full height before the textarea receives focus',
+      { tags: ['@GenAI', '@PromptManagement', '@AgentProfile'] },
+      () => {
+        const namespace = 'mock-test-namespace-2';
+        const profileId = 'saved-prompt-profile';
+        const promptName = 'saved-agent-prompt';
+        const instructions =
+          'You are a helpful AI assistant. You are designed to answer questions in a concise and professional manner.';
+
+        setupPlaygroundBase(namespace);
+        interceptExistingAgentProfile(profileId, 'Saved agent', namespace, {
+          promptName,
+          promptVersion: 1,
+        });
+        interceptMLflowPrompt(promptName, instructions);
+
+        appChrome.visit(['genAiStudio', 'promptManagement', 'agentConfigManagement']);
+        chatbotPage.visit(namespace, { agentProfileId: profileId });
+
+        cy.step('Open the Prompt tab for the first time after the saved agent loads');
+        openSettingsPromptTab();
+        promptAssistant.findNameTitle().should('contain.text', promptName);
+        promptAssistant
+          .findTextarea()
+          .should('have.value', instructions)
+          .should(($field) => {
+            const field = $field[0] as HTMLTextAreaElement;
+            expect(field.clientHeight).to.be.greaterThan(30);
+            expect(field.clientHeight).to.be.at.least(field.scrollHeight - 2);
+          });
+      },
+    );
+  });
+
   describe('Prompt Table - Model Filter and Sort', () => {
     beforeEach(() => {
       const namespace = config.defaultNamespace;
@@ -269,7 +359,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
       });
       setupPromptMocks(namespace);
 
-      appChrome.visit(['genAiStudio', 'promptManagement']);
+      appChrome.visit(['genAiStudio', 'promptManagement', 'promptModelAssociations']);
       chatbotPage.visit(namespace);
       chatbotPage.verifyOnChatbotPage(namespace);
       cy.wait('@bffConfig');

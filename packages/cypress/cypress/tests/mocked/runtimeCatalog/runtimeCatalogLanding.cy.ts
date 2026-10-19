@@ -2,70 +2,89 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { runtimeCatalogPage } from '../../../pages/runtimeCatalog';
 import { runtimeCatalogDetailsPage } from '../../../pages/runtimeCatalogDetails';
+import { pageNotfound } from '../../../pages/pageNotFound';
 import { API_VERSION, setupModelCatalogIntercepts } from '../catalogHelpers';
 
+const runtimeListPath = `/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes`;
+
+const mockRuntimes = [
+  {
+    id: '1',
+    name: 'vllm',
+    displayName: 'vLLM',
+    description: 'GPU-accelerated serving for large language models.',
+    versionCount: 2,
+    tags: ['llm', 'gpu'],
+    capabilities: { supportedAccelerators: ['nvidia.com/gpu'] },
+  },
+  {
+    id: '2',
+    name: 'ovms',
+    displayName: 'OpenVINO Model Server',
+    description: 'Model serving with OpenVINO.',
+    versionCount: 1,
+    tags: ['predictive-ai', 'cpu'],
+  },
+  {
+    id: '3',
+    name: 'triton',
+    displayName: 'NVIDIA Triton Inference Server',
+    description: 'A high-performance inference serving platform.',
+    versionCount: 0,
+    tags: ['gpu'],
+    capabilities: { supportedAccelerators: ['nvidia.com/gpu'] },
+  },
+  {
+    id: '4',
+    name: 'vllm-spyre-x86',
+    displayName: 'vLLM Spyre on x86 ServingRuntime for KServe',
+    description: 'vLLM for IBM Spyre accelerators.',
+    versionCount: 1,
+    capabilities: { supportedAccelerators: ['ibm.com/spyre_pf'] },
+  },
+];
+
 const setupRuntimeCatalogIntercepts = (): void => {
+  // Same key shape as the catalog's serving_runtimes/filter_options response.
   cy.intercept(
-    'GET',
-    `**/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes_filter_options*`,
+    { method: 'GET', pathname: `${runtimeListPath}_filter_options` },
     {
       body: {
         data: {
           filters: {
-            hardware: {
+            'capabilities.supportedAccelerators': {
               type: 'string',
-              values: ['cpu', 'cpu-or-gpu', 'nvidia.com/gpu', 'amd.com/gpu'],
+              values: [
+                'amd.com/gpu',
+                'habana.ai/gaudi',
+                'ibm.com/spyre_pf',
+                'ibm.com/spyre_vf',
+                'nvidia.com/gpu',
+              ],
             },
+            supportedModelFormats: { type: 'string', values: ['onnx', 'vLLM'] },
           },
         },
       },
     },
-  );
+  ).as('runtimeFilterOptions');
 
-  cy.intercept(
-    'GET',
-    `**/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes*`,
-    {
-      body: {
-        data: {
-          items: [
-            {
-              id: '1',
-              name: 'vllm',
-              displayName: 'vLLM',
-              description: 'GPU-accelerated serving for large language models.',
-              versionCount: 2,
-              tags: ['llm', 'gpu'],
-              capabilities: { supportedAccelerators: ['nvidia.com/gpu'] },
-            },
-            {
-              id: '2',
-              name: 'ovms',
-              displayName: 'OpenVINO Model Server',
-              description: 'Model serving with OpenVINO.',
-              versionCount: 1,
-              tags: ['predictive-ai', 'cpu'],
-            },
-            {
-              id: '3',
-              name: 'triton',
-              displayName: 'NVIDIA Triton Inference Server',
-              description: 'A high-performance inference serving platform.',
-              versionCount: 0,
-              tags: ['gpu'],
-              capabilities: { supportedAccelerators: ['nvidia.com/gpu'] },
-            },
-          ],
-          size: 3,
-          pageSize: 50,
-          nextPageToken: '',
-        },
-      },
-    },
-  );
+  cy.intercept({ method: 'GET', pathname: runtimeListPath }, (req) => {
+    const filterQuery = typeof req.query.filterQuery === 'string' ? req.query.filterQuery : '';
+    // Exact values from `field='a'` or `field IN ('a','b')`, so overlapping names cannot match.
+    const selected = Array.from(filterQuery.matchAll(/'([^']*)'/g), ([, value]) => value);
+    const items = mockRuntimes.filter(
+      (runtime) =>
+        !filterQuery ||
+        (runtime.capabilities?.supportedAccelerators ?? []).some((accelerator) =>
+          selected.includes(accelerator),
+        ),
+    );
+    req.reply({ body: { data: { items, size: items.length, pageSize: 50, nextPageToken: '' } } });
+  }).as('runtimeList');
 };
 
-const runtimeDetailsPath = `/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes/1`;
+const runtimeDetailsPath = `${runtimeListPath}/1`;
 
 const setupRuntimeCatalogSourceIntercepts = (): void => {
   cy.intercept('GET', `**/model-registry/api/${API_VERSION}/model_catalog/sources*`, {
@@ -105,7 +124,6 @@ const initIntercepts = (): void => {
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
-      runtimeCatalog: true,
     }),
   );
   setupModelCatalogIntercepts();
@@ -113,7 +131,7 @@ const initIntercepts = (): void => {
   setupRuntimeCatalogIntercepts();
 };
 
-describe('Runtime image library landing', () => {
+describe('Runtime library landing', () => {
   beforeEach(() => {
     initIntercepts();
   });
@@ -132,9 +150,30 @@ describe('Runtime image library landing', () => {
     runtimeCatalogPage.findCard('triton').should('exist');
   });
 
-  it('shows card name and description', () => {
+  it('shows the reviewed page description even when catalog labels have one', () => {
+    cy.intercept('GET', `**/model-registry/api/${API_VERSION}/model_catalog/labels*`, {
+      body: {
+        data: {
+          items: [{ name: 'Red Hat', description: 'Label description from the catalog API' }],
+          size: 1,
+          pageSize: 10,
+          nextPageToken: '',
+        },
+      },
+    });
+    runtimeCatalogPage.visit();
+    runtimeCatalogPage
+      .findPageDescription()
+      .should(
+        'have.text',
+        'Browse runtimes you can add to this cluster for model serving or LLM inference.',
+      );
+  });
+
+  it('shows card name, icon and description', () => {
     runtimeCatalogPage.visit();
     runtimeCatalogPage.findCardName('vllm').should('contain.text', 'vLLM');
+    runtimeCatalogPage.findCardIcon('vllm').find('svg').should('exist');
     runtimeCatalogPage.findCardDescription('vllm').should('contain.text', 'GPU-accelerated');
   });
 
@@ -149,6 +188,52 @@ describe('Runtime image library landing', () => {
     runtimeCatalogPage.visit();
     runtimeCatalogPage.findCardHardware('vllm').should('contain.text', 'NVIDIA GPU');
     runtimeCatalogPage.findCardHardware('ovms').should('contain.text', 'CPU');
+  });
+
+  it('shows the hardware filter from the catalog accelerator options', () => {
+    runtimeCatalogPage.visit();
+    cy.wait('@runtimeFilterOptions');
+    runtimeCatalogPage.findHardwareFilter().should('contain.text', 'Hardware');
+    [
+      ['amd.com/gpu', 'AMD GPU'],
+      ['habana.ai/gaudi', 'Intel Gaudi'],
+      ['ibm.com/spyre_pf', 'IBM Spyre (PF)'],
+      ['ibm.com/spyre_vf', 'IBM Spyre (VF)'],
+      ['nvidia.com/gpu', 'NVIDIA GPU'],
+    ].forEach(([value, label]) => {
+      runtimeCatalogPage.findHardwareFilterCheckbox(value).should('exist');
+      runtimeCatalogPage.findHardwareFilter().should('contain.text', label);
+    });
+    cy.testA11y();
+  });
+
+  it('narrows the runtime list by the selected accelerators', () => {
+    const spyFilteredList = (filterQuery: string, alias: string) =>
+      cy.intercept({ method: 'GET', pathname: runtimeListPath, query: { filterQuery } }).as(alias);
+    spyFilteredList("capabilities.supportedAccelerators='ibm.com/spyre_pf'", 'spyreList');
+    spyFilteredList(
+      "capabilities.supportedAccelerators IN ('ibm.com/spyre_pf','nvidia.com/gpu')",
+      'spyreOrNvidiaList',
+    );
+
+    runtimeCatalogPage.visit();
+    runtimeCatalogPage.findCard('ovms').should('exist');
+
+    runtimeCatalogPage.findHardwareFilterCheckbox('ibm.com/spyre_pf').click();
+    cy.wait('@spyreList');
+    runtimeCatalogPage.findCard('vllm-spyre-x86').should('exist');
+    runtimeCatalogPage.findCard('vllm').should('not.exist');
+    runtimeCatalogPage.findCard('ovms').should('not.exist');
+    runtimeCatalogPage
+      .findHardwareFilterChip('ibm.com/spyre_pf')
+      .should('have.text', 'IBM Spyre (PF)');
+
+    runtimeCatalogPage.findHardwareFilterCheckbox('nvidia.com/gpu').click();
+    cy.wait('@spyreOrNvidiaList');
+    runtimeCatalogPage.findCard('vllm').should('exist');
+    runtimeCatalogPage.findCard('triton').should('exist');
+    runtimeCatalogPage.findCard('vllm-spyre-x86').should('exist');
+    runtimeCatalogPage.findCard('ovms').should('not.exist');
   });
 
   it('opens runtime details using the BFF ID instead of the runtime name', () => {
@@ -185,11 +270,18 @@ describe('Runtime image library landing', () => {
     cy.wait('@runtimeDetails');
     runtimeCatalogDetailsPage.findHeading('vLLM').should('be.visible');
     runtimeCatalogDetailsPage.findLatestBadge().should('have.text', 'Latest');
+    runtimeCatalogDetailsPage.openLatestPopover();
+    runtimeCatalogDetailsPage
+      .findLatestPopover()
+      .should(
+        'contain.text',
+        'This is the newest version of this runtime image available in the library.',
+      );
     cy.testA11y();
   });
 
   it('does not show Latest in details when the card has no versions', () => {
-    const tritonDetailsPath = `/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes/3`;
+    const tritonDetailsPath = `${runtimeListPath}/3`;
     cy.intercept(
       { method: 'GET', pathname: tritonDetailsPath },
       {
@@ -224,10 +316,7 @@ describe('Runtime image library landing', () => {
 
   it('does not offer navigation for a runtime without a BFF ID', () => {
     cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/model-registry/api/${API_VERSION}/serving_runtime_catalog/serving_runtimes`,
-      },
+      { method: 'GET', pathname: runtimeListPath },
       {
         body: {
           data: {
@@ -242,6 +331,20 @@ describe('Runtime image library landing', () => {
 
     runtimeCatalogPage.visit();
     runtimeCatalogPage.findCardDetailLink('idless').should('be.disabled');
+    cy.testA11y();
+  });
+});
+
+describe('Runtime image library landing gating', () => {
+  it('does not expose the library when model serving is disabled', () => {
+    asProductAdminUser();
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ disableModelRegistry: false, disableModelServing: true }),
+    );
+    runtimeCatalogPage.visit(false);
+    pageNotfound.findPage().should('exist');
+    runtimeCatalogPage.findPage().should('not.exist');
     cy.testA11y();
   });
 });

@@ -5,6 +5,47 @@ import {
   NotebookImageAvailability,
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
+import { ImageStreamAnnotation, ImageStreamSpecTagAnnotation } from '#~/types';
+
+const getRecommendedNotebookImageData = (deprecated?: string) => {
+  const buildCommit = 'recommended-build-commit';
+  const notebook = mockNotebookK8sResource({
+    image: 'test-imagestream:1.2',
+    lastImageSelection: 'test-imagestream:1.2',
+    opts: {
+      metadata: {
+        annotations: {
+          'notebooks.opendatahub.io/last-image-version-git-commit-selection': buildCommit,
+        },
+      },
+    },
+  });
+  const imageStream = mockImageStreamK8sResource({
+    opts: {
+      metadata: {
+        annotations:
+          deprecated === undefined
+            ? {}
+            : {
+                [ImageStreamAnnotation.DEPRECATED]: deprecated,
+              },
+      },
+      spec: {
+        tags: [
+          {
+            name: '1.2',
+            annotations: {
+              'opendatahub.io/notebook-build-commit': buildCommit,
+              [ImageStreamSpecTagAnnotation.RECOMMENDED]: 'true',
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  return getNotebookImageData(notebook, [imageStream]);
+};
 
 describe('getNotebookImageData', () => {
   it('should return image data when image stream exists and image version exists with internal registry', () => {
@@ -150,5 +191,23 @@ describe('getNotebookImageData', () => {
     expect(result?.imageStatus !== NotebookImageStatus.DELETED && result?.imageAvailability).toBe(
       NotebookImageAvailability.ENABLED,
     );
+  });
+
+  it('should retain the latest version status for a deprecated ImageStream', () => {
+    const result = getRecommendedNotebookImageData('true');
+
+    expect(result?.imageStatus).toBe(NotebookImageStatus.LATEST);
+  });
+
+  it('should retain the latest status when the ImageStream deprecation annotation is absent', () => {
+    const result = getRecommendedNotebookImageData();
+
+    expect(result?.imageStatus).toBe(NotebookImageStatus.LATEST);
+  });
+
+  it('should retain the latest status when the ImageStream deprecation annotation is false', () => {
+    const result = getRecommendedNotebookImageData('false');
+
+    expect(result?.imageStatus).toBe(NotebookImageStatus.LATEST);
   });
 });

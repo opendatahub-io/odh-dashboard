@@ -247,7 +247,7 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
   );
 
   it(
-    'starts a benchmark-suite evaluation with the required Queue HardwareProfile',
+    'starts a benchmark-collection evaluation with the required Queue HardwareProfile',
     {
       retries: { runMode: 0, openMode: 0 },
       tags: ['@EvalHubKueue', '@Kueue'],
@@ -275,7 +275,7 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
         hardwareProfileName: config.hardwareProfileName,
       });
       verifyEvaluationProgressModal(evaluationRunName);
-      cy.step(`Wait for Kueue benchmark suite ${evaluationRunName} to complete`);
+      cy.step(`Wait for Kueue benchmark collection ${evaluationRunName} to complete`);
       waitForEvaluationRunComplete(evaluationTenantProject, evaluationRunName, 1800000);
       verifyEvaluationCompletedAndViewResults(
         evaluationRunName,

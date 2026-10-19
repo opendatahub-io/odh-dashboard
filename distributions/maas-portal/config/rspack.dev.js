@@ -15,6 +15,7 @@ const portalApiPaths = {
   maas: `${BASE_PATH}/maas/api`,
   genAi: `${BASE_PATH}/gen-ai/api`,
   perses: `${BASE_PATH}/perses/api`,
+  config: `${BASE_PATH}/api/config`,
   k8s: `${BASE_PATH}/api/k8s`,
   k8sWatch: `${BASE_PATH}/wss/k8s`,
   operatorSubscriptionStatus: `${BASE_PATH}/api/operator-subscription-status`,
@@ -217,6 +218,7 @@ const buildProxyConfig = () => {
     { path: portalApiPaths.maas, target: MAAS_BFF_TARGET, pathRewrite: '/api' },
     { path: portalApiPaths.genAi, target: GENAI_BFF_TARGET, pathRewrite: '/api' },
     { path: portalApiPaths.perses, target: PERSES_TARGET, pathRewrite: '' },
+    { path: portalApiPaths.config, target: CORE_BFF_TARGET, pathRewrite: '/api/config' },
     { path: portalApiPaths.k8s, target: CORE_BFF_TARGET, pathRewrite: '/api/k8s' },
     { path: portalApiPaths.k8sWatch, target: CORE_BFF_TARGET, pathRewrite: '/wss/k8s' },
     {

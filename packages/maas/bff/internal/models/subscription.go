@@ -108,12 +108,14 @@ type MaaSSubscription struct {
 	Reason             string `json:"reason,omitempty"`
 	InferencePriority  *int32 `json:"inferencePriority,omitempty"`
 	// InferenceObjectivesReady is present only when inferencePriority is set and the controller has written the condition.
-	InferenceObjectivesReady *ConditionSummary      `json:"inferenceObjectivesReady,omitempty"`
-	Owner                    OwnerSpec              `json:"owner"`
-	ModelRefs                []ModelSubscriptionRef `json:"modelRefs"`
-	TokenMetadata            *TokenMetadata         `json:"tokenMetadata,omitempty"`
-	CreationTimestamp        *time.Time             `json:"creationTimestamp,omitempty"`
-	DeletionTimestamp        *time.Time             `json:"deletionTimestamp,omitempty"`
+	InferenceObjectivesReady *ConditionSummary `json:"inferenceObjectivesReady,omitempty"`
+	// ResourceVersion is the Kubernetes metadata.resourceVersion at read time (for optimistic concurrency on update).
+	ResourceVersion   string                 `json:"resourceVersion,omitempty"`
+	Owner             OwnerSpec              `json:"owner"`
+	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
+	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`
+	CreationTimestamp *time.Time             `json:"creationTimestamp,omitempty"`
+	DeletionTimestamp *time.Time             `json:"deletionTimestamp,omitempty"`
 }
 
 // SubjectSpec defines subjects (groups) that have access.
@@ -192,6 +194,9 @@ type UpdateSubscriptionRequest struct {
 	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`
 	InferencePriority *int32                 `json:"inferencePriority,omitempty"`
+	// ResourceVersion is the resourceVersion from when the client loaded the subscription.
+	// When set, the update fails with 409 if the resource has changed since that read.
+	ResourceVersion string `json:"resourceVersion,omitempty"`
 }
 
 // CreateSubscriptionResponse is the response after creating or updating a subscription.

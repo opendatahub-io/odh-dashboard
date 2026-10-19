@@ -62,6 +62,7 @@ export type HardwareProfileAnnotations = Partial<{
   'opendatahub.io/description': string;
   'opendatahub.io/dashboard-feature-visibility': string;
   'opendatahub.io/disabled': string;
+  'opendatahub.io/resource-claim-description': string;
 }>;
 
 export type HardwareProfileBindingAnnotations = {

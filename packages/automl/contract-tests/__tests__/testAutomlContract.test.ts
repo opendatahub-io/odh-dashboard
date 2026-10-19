@@ -323,7 +323,7 @@ describe('AutoML API Contract Tests', () => {
           undefined,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application/json/schema',
+          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -344,6 +344,31 @@ describe('AutoML API Contract Tests', () => {
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(404);
       });
+    });
+  });
+
+  describe('Pipeline Server Status Endpoint', () => {
+    it('should return 200 with a ready status on a namespace with a DSPA', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 200 with a not-found status when no DSPA exists in namespace', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS_NO_DSPA}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect((result.response.data as { data: { status: string } }).data.status).toBe('not-found');
+    });
+
+    it('should return 400 when namespace query parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/pipeline-server/status');
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
     });
   });
 

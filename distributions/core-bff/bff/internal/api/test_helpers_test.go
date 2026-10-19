@@ -3,11 +3,33 @@ package api
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"sync"
+	"testing"
 
 	"github.com/julienschmidt/httprouter"
-	"net/http"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/stretchr/testify/assert"
 )
+
+func assertConsoleSecurityHeaders(t *testing.T, h http.Header) {
+	t.Helper()
+	assert.Equal(t, constants.ReferrerPolicyStrictOriginWhenCrossOrigin, h.Get(constants.HeaderReferrerPolicy))
+	assert.Equal(t, constants.XContentTypeOptionsNoSniff, h.Get(constants.HeaderXContentTypeOptions))
+	assert.Equal(t, constants.CrossOriginOpenerPolicySameOrigin, h.Get(constants.HeaderCrossOriginOpenerPolicy))
+	assert.Equal(t, constants.XFrameOptionsDeny, h.Get(constants.HeaderXFrameOptions))
+	assert.Equal(t, constants.XDNSPrefetchControlOff, h.Get(constants.HeaderXDNSPrefetchControl))
+}
+
+func assertNoStoreCache(t *testing.T, h http.Header) {
+	t.Helper()
+	assert.Equal(t, constants.CacheControlNoStore, h.Get(constants.HeaderCacheControl))
+}
+
+func assertNotNoStoreCache(t *testing.T, h http.Header) {
+	t.Helper()
+	assert.NotEqual(t, constants.CacheControlNoStore, h.Get(constants.HeaderCacheControl))
+}
 
 func dummyHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	w.WriteHeader(http.StatusOK)

@@ -209,6 +209,45 @@ func TestIntegration_MaaSPortalConditionMigration(t *testing.T) {
 			}
 			assert.Equal(t, tt.wantReady, conditionStatus(updated, string(common.ConditionTypeReady)))
 			assert.Equal(t, tt.wantPhase, updated.Status.Phase)
+
+			// Backdate persisted conditions to expose timestamp churn even when
+			// consecutive reconciliations occur within the same second.
+			oldTime := metav1.NewTime(time.Unix(1, 0))
+			for i := range updated.Status.Conditions {
+				updated.Status.Conditions[i].LastTransitionTime = oldTime
+			}
+			require.NoError(t, k8sClient.Status().Update(ctx, updated))
+			stable := getDashboard(t)
+			for range 2 {
+				reconcile(t, r)
+				updated = getDashboard(t)
+				assert.Equal(t, stable.Status, updated.Status)
+				assert.Equal(t, stable.ResourceVersion, updated.ResourceVersion, "stable status must not generate update events")
+			}
+
+			// A previous canonical failure must not block recovery. A reason or
+			// severity change alone must preserve the time; a status change must not.
+			for _, previousStatus := range []metav1.ConditionStatus{metav1.ConditionFalse, metav1.ConditionTrue} {
+				updated = getDashboard(t)
+				conditions.RemoveStatusCondition(updated, ctrlpkg.ConditionMaaSPortalAvailable)
+				conditions.SetStatusCondition(updated, common.Condition{
+					Type: ctrlpkg.ConditionMaaSPortalAvailable, Status: previousStatus,
+					Reason: "MaaSPortalFederationConfigMapFailed", Message: "previous reconciliation failed",
+					Severity: common.ConditionSeverityError, LastTransitionTime: oldTime,
+				})
+				require.NoError(t, k8sClient.Status().Update(ctx, updated))
+				reconcile(t, r)
+				recovered := conditions.FindStatusCondition(getDashboard(t), ctrlpkg.ConditionMaaSPortalAvailable)
+				require.NotNil(t, recovered)
+				assert.Equal(t, portal.Status, recovered.Status)
+				assert.Equal(t, tt.wantReason, recovered.Reason)
+				assert.Equal(t, tt.wantReady, conditionStatus(getDashboard(t), string(common.ConditionTypeReady)))
+				if previousStatus == recovered.Status {
+					assert.True(t, oldTime.Equal(&recovered.LastTransitionTime))
+				} else {
+					assert.True(t, recovered.LastTransitionTime.After(oldTime.Time))
+				}
+			}
 		})
 	}
 }

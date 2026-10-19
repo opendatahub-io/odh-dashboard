@@ -27,6 +27,7 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import { pipelinesBaseRoute } from '#~/routes/pipelines/global.ts';
@@ -171,7 +172,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
           fireFormTrackingEvent(serverConfiguredEvent, {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: caughtError.message,
+            error: errorCategory(caughtError),
           });
           deleteSecret(effectiveNamespace, ExternalDatabaseSecret.NAME);
           return;
@@ -261,7 +262,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
         fireFormTrackingEvent(serverConfiguredEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
-          error: caughtError.message,
+          error: errorCategory(caughtError),
         });
       });
   };

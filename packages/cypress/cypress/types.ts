@@ -415,6 +415,26 @@ export type AcceleratorTestData = DataScienceProjectData & {
   replaceTargetString: string;
 };
 
+export type RuntimeLibraryInstallTestData = {
+  searchTerm: string;
+  resourceNamePrefix: string;
+  displayNamePrefix: string;
+  resourceKind: string;
+  resourceApiVersion: string;
+  listPath: string;
+};
+
+export type RuntimeLibraryTemplateTestData = RuntimeLibraryInstallTestData & {
+  templateKind: string;
+  templateApiVersion: string;
+  modelServingSupport: string[];
+};
+
+export type RuntimeLibraryAcceleratorTestData = RuntimeLibraryInstallTestData & {
+  editedVersion: string;
+  configType: string;
+};
+
 export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
   servingRuntimeId: string;
   servingRuntimeDisplayName: string;
@@ -807,6 +827,17 @@ export type GenAiTestData = {
   servingRuntimesPath: string;
 };
 
+export type GenAiMaaSTestData = {
+  llmInferenceServiceFixturePath: string;
+  subscriptionFixturePath: string;
+  authPolicyFixturePath: string;
+  phase: string;
+  playgroundServiceName: string;
+  playgroundPodPrefix: string;
+  playgroundPodReadyTimeout: string;
+  testMessage: string;
+};
+
 export type GenAiTracingTestData = {
   modelId: string;
   modelType: string;
@@ -867,6 +898,43 @@ export type CustomEndpointTestData = {
     image: string;
     serverDescription: string;
     testQuestion: string;
+  };
+};
+
+export type ExternalVectorStoreTestData = {
+  model: {
+    id: string;
+    displayName: string;
+    endpointUrl: string;
+  };
+  provider: {
+    id: string;
+    type: string;
+    resourceName: string;
+    credentialsSecretName: string;
+    database: string;
+    user: string;
+    password: string;
+  };
+  vectorStore: {
+    id: string;
+    name: string;
+    description: string;
+    embeddingModel: string;
+    embeddingModelId: string;
+    embeddingDimension: number;
+  };
+  seed: {
+    id: string;
+    fileId: string;
+    fileName: string;
+    content: string;
+    question: string;
+    expectedContentFragment: string;
+  };
+  llamaStack: {
+    deploymentName: string;
+    serviceName: string;
   };
 };
 
@@ -1145,6 +1213,15 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
+};
+
+export type AgentRuntimesTestData = {
+  pageTitle: string;
+  projectResourceName: string;
+  filterSearchTerm: string;
+  filterOptionStatus: string;
+  statusPending: string;
+  statusReady: string;
 };
 
 export type MlflowIrisRunData = {

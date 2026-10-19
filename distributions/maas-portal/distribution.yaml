@@ -15,6 +15,7 @@ packages:
       featureFlags:
         modelAsService: true
         mySubscriptions: true
+        grid: false
     - package: '@odh-dashboard/gen-ai'
       extensionsPath: './extensions/static'
       featureFlags:
@@ -22,3 +23,4 @@ packages:
         plugin-gen-ai: true
         chatPlayground: true
         modelAsService: true
+        grid: false

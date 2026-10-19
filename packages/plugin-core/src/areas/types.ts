@@ -117,6 +117,9 @@ export enum SupportedArea {
   /* MCP Registry */
   MCP_REGISTRY = 'mcp-registry',
 
+  /* Skill Registry */
+  SKILL_REGISTRY = 'skill-registry',
+
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
 
@@ -134,9 +137,6 @@ export enum SupportedArea {
 
   /* Unified Project Selector — development-only gate for the shared project-selection foundation */
   UNIFIED_PROJECT_SELECTOR = 'unified-project-selector',
-
-  /* Runtime Catalog */
-  RUNTIME_CATALOG = 'runtime-catalog',
 }
 
 export type SupportedAreaType = SupportedArea | string;

@@ -1348,6 +1348,7 @@ describe('AutomlResultsPage', () => {
       run: PipelineRun,
       options: {
         runLevelPrefixes?: { prefix: string }[];
+        taskName?: string;
         taskPrefixes?: { prefix: string }[];
         notebookContents?: { key: string; size: number }[];
         errorPath?: string;
@@ -1358,9 +1359,9 @@ describe('AutomlResultsPage', () => {
       const rootDir = isTimeseries
         ? 'autogluon-timeseries-training-pipeline'
         : 'autogluon-tabular-training-pipeline';
-      const taskName = isTimeseries
-        ? 'autogluon-timeseries-models-training-2'
-        : 'autogluon-models-training-2';
+      const taskName =
+        options.taskName ??
+        (isTimeseries ? 'autogluon-timeseries-models-training-2' : 'autogluon-models-training-2');
       const taskPath = `${rootDir}/run-123/${taskName}`;
       const executionPath = `${taskPath}/11111111-1111-1111-1111-111111111111`;
       const notebookPath = `${executionPath}/experiment_notebook`;
@@ -1444,7 +1445,7 @@ describe('AutomlResultsPage', () => {
       ['missing task', []],
       [
         'invalid task suffix',
-        [{ prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-3/' }],
+        [{ prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-x/' }],
       ],
       [
         'duplicate allowed tasks',
@@ -1590,6 +1591,25 @@ describe('AutomlResultsPage', () => {
           AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
           { downloadType: 'runNotebook' },
         );
+      });
+    });
+
+    it('should discover a run notebook from any numeric training task suffix', async () => {
+      const run = tabularRun();
+      const blob = new Blob(['notebook']);
+      const key = mockNestedArtifactLists(run, { taskName: 'autogluon-models-training-3' });
+      mockFetchS3File.mockResolvedValue(blob);
+      renderWithRun(run);
+
+      await userEvent.click(screen.getByTestId('run-notebook-download-button'));
+
+      await waitFor(() => {
+        expect(mockFetchS3File).toHaveBeenCalledWith(
+          'test-ns',
+          key,
+          expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        );
+        expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'automl_experiment_notebook.ipynb');
       });
     });
 

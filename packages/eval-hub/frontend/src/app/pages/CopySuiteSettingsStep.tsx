@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Form,
   FormHelperText,
@@ -34,6 +35,7 @@ import {
 type CopySuiteSettingsStepProps = {
   onNext: () => void;
   onCancel: () => void;
+  prerequisite?: string;
   sourceCollectionName?: string;
 };
 
@@ -287,6 +289,7 @@ const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = (props) 
 const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
   onNext,
   onCancel,
+  prerequisite,
   sourceCollectionName,
 }) => {
   const { control, watch } = useFormContext<CopySuiteFormValues>();
@@ -303,7 +306,17 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
       data-testid="copy-suite-step-settings"
     >
       <Form id="copy-suite-form" style={{ maxWidth: 840 }} data-testid="copy-suite-form">
-        <FormGroup label="Suite name" isRequired fieldId="suite-name">
+        {prerequisite ? (
+          <Alert
+            variant="warning"
+            isInline
+            title="Prerequisite"
+            data-testid="copy-suite-prerequisite-alert"
+          >
+            {prerequisite}
+          </Alert>
+        ) : null}
+        <FormGroup label="Collection name" isRequired fieldId="suite-name">
           <Controller
             name="suiteName"
             control={control}
@@ -319,7 +332,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
                   <TextInput
                     id="suite-name"
                     data-testid="suite-name-input"
-                    placeholder="Enter suite name"
+                    placeholder="Enter collection name"
                     value={field.value}
                     onChange={(_event, value) => field.onChange(value)}
                     onBlur={field.onBlur}
@@ -347,7 +360,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
               <TextArea
                 id="suite-description"
                 data-testid="suite-description-input"
-                placeholder="Enter suite description"
+                placeholder="Enter collection description"
                 value={field.value}
                 onChange={(_event, value) => field.onChange(value)}
                 onBlur={field.onBlur}
@@ -412,8 +425,8 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
             <BenchmarkThresholdField
               value={field.value}
               onChange={field.onChange}
-              label="Suite threshold"
-              description="Set the minimum passing score for this suite. Results below this threshold are marked as failing."
+              label="Collection threshold"
+              description="Set the minimum passing score for this collection. Results below this threshold are marked as failing."
               fieldId="suite-threshold"
             />
           )}
