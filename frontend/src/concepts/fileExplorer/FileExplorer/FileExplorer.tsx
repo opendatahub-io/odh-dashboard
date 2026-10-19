@@ -473,6 +473,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   hint = <FlexItem className="pf-v6-u-ml-auto">{hint}</FlexItem>;
                 }
 
+                const fileName = (
+                  <Truncate
+                    content={file.name}
+                    tooltipProps={{ trigger: 'manual', isVisible: false }}
+                  />
+                );
+
                 return (
                   <Tr
                     key={file.path}
@@ -522,11 +529,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       >
                         <FlexItem>
                           {isFolder(file) && !file.disabled ? (
-                            <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
-                              <Truncate content={file.name} />
-                            </Button>
+                            <Tooltip content={file.name}>
+                              <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
+                                {fileName}
+                              </Button>
+                            </Tooltip>
                           ) : (
-                            <Truncate content={file.name} />
+                            <Tooltip content={file.name}>{fileName}</Tooltip>
                           )}
                         </FlexItem>
                         {!isSelected && isFileBeingViewed && (
