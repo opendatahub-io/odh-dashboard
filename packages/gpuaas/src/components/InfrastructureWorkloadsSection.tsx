@@ -29,6 +29,7 @@ import { isKueueManagedDataScienceProject } from '../utils/kueueProjects';
 import {
   INFRASTRUCTURE_WORKLOADS_EMPTY_BODY,
   INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE,
+  INFRASTRUCTURE_WORKLOADS_REFRESH_INTERVAL,
 } from '../const';
 import './InfrastructureWorkloadsSection.scss';
 
@@ -269,7 +270,6 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
   kueueAvailable,
   canAccessAdminMetrics,
 }) => {
-  const workloadsContentRef = React.useRef<HTMLDivElement>(null);
   const {
     projects,
     preferredProject,
@@ -297,24 +297,20 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
     }
   }, [preferredProject, projects, projectsLoaded, updatePreferredProject]);
 
-  const previousProjectName = React.useRef<string | undefined>(undefined);
-  React.useEffect(() => {
-    const projectName = preferredProject?.metadata.name;
-    if (previousProjectName.current && projectName !== previousProjectName.current) {
-      window.requestAnimationFrame(() => {
-        const contentSection = workloadsContentRef.current;
-        if (contentSection) {
-          contentSection.scrollTop = 0;
-        }
-      });
-    }
-    previousProjectName.current = projectName;
-  }, [preferredProject?.metadata.name]);
-
   React.useEffect(() => {
     const interval = window.setInterval(() => setCurrentTime(Date.now()), 20_000);
     return () => window.clearInterval(interval);
   }, []);
+
+  React.useEffect(() => {
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+      setCurrentTime(now);
+      setLastRefreshed(new Date(now));
+      void refresh();
+    }, INFRASTRUCTURE_WORKLOADS_REFRESH_INTERVAL);
+    return () => window.clearInterval(interval);
+  }, [refresh]);
 
   React.useEffect(() => {
     if (refreshTrigger > 0) {
@@ -345,18 +341,14 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
     isKueueManagedDataScienceProject(preferredProject);
 
   return (
-    <Stack className="gpuaas-infrastructure-workloads" hasGutter>
+    <Stack hasGutter>
       <InfrastructureWorkloadsHeader
         preferredProject={preferredProject}
         refreshTime={refreshTime}
         onProjectSelection={handleProjectSelection}
         onRefresh={handleRefresh}
       />
-      <div
-        ref={workloadsContentRef}
-        className="gpuaas-infrastructure-workloads__content-section"
-        data-testid="infrastructure-workloads"
-      >
+      <div data-testid="infrastructure-workloads">
         <Stack>
           <StackItem>
             <InfrastructureWorkloadsContent

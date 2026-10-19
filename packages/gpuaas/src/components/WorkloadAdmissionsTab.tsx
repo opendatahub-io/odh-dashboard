@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-tokens';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 
-import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
+import useWorkloadAdmissionMetrics, { getWindowConfig } from '../hooks/useWorkloadAdmissionMetrics';
 import {
   ADMISSION_TIME_WINDOW_OPTIONS,
   buildAdmissionMetrics,
@@ -77,8 +77,11 @@ const AdmissionMetricChartComponent: React.FC<{
   const { yMin, yMax, yPadding } = getAdmissionMetricYBounds(data);
   const option = React.useMemo(() => {
     const yDomain: [number, number] = [Math.max(0, yMin - yPadding), yMax + yPadding];
+    const dataDomain: [number, number] | undefined =
+      data.length > 0 ? [data[0].x, data[data.length - 1].x] : undefined;
     const spansMultipleCalendarDays =
-      new Date(xDomain[0]).toDateString() !== new Date(xDomain[1]).toDateString();
+      dataDomain !== undefined &&
+      new Date(dataDomain[0]).toDateString() !== new Date(dataDomain[1]).toDateString();
     return {
       animation: animateOnMount,
       animationDuration: animateOnMount ? 1200 : 0,
@@ -97,7 +100,7 @@ const AdmissionMetricChartComponent: React.FC<{
           fontSize: 9,
           hideOverlap: true,
           formatter: (timestamp: number) =>
-            formatAdmissionTimestamp(timestamp, timeWindow, xDomain),
+            formatAdmissionTimestamp(timestamp, timeWindow, dataDomain),
         },
         splitLine: {
           show: false,
@@ -231,15 +234,6 @@ const AdmissionMetricChartLoading: React.FC<{ label: string }> = ({ label }) => 
   </div>
 );
 
-const AdmissionMetricHeaderLoading: React.FC<{ label: string }> = ({ label }) => (
-  <div className="gpuaas-workload-overview__admission-header-loading">
-    <div data-testid={`admission-metric-value-loading-${label.toLowerCase().replaceAll(' ', '-')}`}>
-      <Skeleton width="80px" height="24px" screenreaderText={`Loading ${label} value`} />
-    </div>
-    <Skeleton width="120px" height="16px" screenreaderText={`Loading ${label} label`} />
-  </div>
-);
-
 const AdmissionMetricCard: React.FC<{
   metric: AdmissionMetric;
   xDomain: [number, number];
@@ -247,7 +241,6 @@ const AdmissionMetricCard: React.FC<{
   animateOnMount: boolean;
   timeWindow: string;
 }> = ({ metric, xDomain, isLoading, animateOnMount, timeWindow }) => {
-  const isChartLoading = isLoading;
   const formattedValue = formatAdmissionMetricHeadline(
     metric,
     getAdmissionMetricHeadlineValue(metric),
@@ -256,10 +249,10 @@ const AdmissionMetricCard: React.FC<{
   return (
     <div
       className="gpuaas-workload-overview__admission-metric"
-      data-testid={`admission-metric-${metric.id}`}
+      data-testid={`admission-metric-card-${metric.id}`}
     >
-      {isChartLoading ? (
-        <AdmissionMetricHeaderLoading label={metric.label} />
+      {isLoading ? (
+        <AdmissionMetricChartLoading label={metric.label} />
       ) : (
         <>
           <div data-testid={`admission-metric-value-${metric.id}`}>
@@ -270,9 +263,7 @@ const AdmissionMetricCard: React.FC<{
           <Content component="p">{metric.label}</Content>
         </>
       )}
-      {isChartLoading ? (
-        <AdmissionMetricChartLoading label={metric.label} />
-      ) : (
+      {!isLoading && (
         <AdmissionMetricChart
           key={`${metric.id}-${timeWindow}`}
           metric={metric}
@@ -322,7 +313,7 @@ const WorkloadAdmissionsTab: React.FC<WorkloadAdmissionsTabProps> = ({
     { blue: chartBlue.var, orange: chartOrange.var },
     canAccessAdminMetrics,
   );
-  const xDomain = getAdmissionMetricsXDomain(metricSeries);
+  const xDomain = getAdmissionMetricsXDomain(getWindowConfig(timeWindow).span);
 
   return (
     <div

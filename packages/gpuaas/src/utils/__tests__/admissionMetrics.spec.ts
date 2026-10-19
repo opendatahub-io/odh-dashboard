@@ -11,6 +11,7 @@ import {
   formatAdmissionMetricValue,
   formatAdmissionMetricHeadline,
   formatAdmissionTooltipTimestamp,
+  getAdmissionMetricsXDomain,
   getAdmissionMetricHeadlineValue,
   getAdmissionMetricYInterval,
 } from '../workloadAdmissions';
@@ -27,6 +28,14 @@ describe('getWindowConfig', () => {
     ['30d', '8h'],
   ])('should use a %s rate window for the %s range', (timeWindow, rateWindow) => {
     expect(getWindowConfig(timeWindow).rateWindow).toBe(rateWindow);
+  });
+});
+
+describe('getAdmissionMetricsXDomain', () => {
+  it('uses selected range instead of returned data timestamps', () => {
+    expect(getAdmissionMetricsXDomain(7 * 24 * 60 * 60, 1_000_000)).toEqual([
+      -603_800_000, 1_000_000,
+    ]);
   });
 });
 

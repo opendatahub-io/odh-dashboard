@@ -89,20 +89,10 @@ export const getAdmissionMetricYInterval = (metricId: string, yMax = 0): number 
     ? Math.max(1, Math.ceil(yMax / 5))
     : undefined;
 
-export const getAdmissionMetricsXDomain = (metrics: AdmissionMetric[]): [number, number] => {
-  const timestamps = metrics.flatMap((metric) =>
-    metric.data
-      .map((point) => point.x)
-      .filter((timestamp): timestamp is number => Number.isFinite(timestamp)),
-  );
-  const latestTimestamp = timestamps.length > 0 ? Math.max(...timestamps) : Date.now();
-  const earliestTimestamp =
-    timestamps.length > 0 ? Math.min(...timestamps) : latestTimestamp - 24 * 60 * 60 * 1000;
-
-  return earliestTimestamp === latestTimestamp
-    ? [earliestTimestamp - 1, latestTimestamp + 1]
-    : [earliestTimestamp, latestTimestamp];
-};
+export const getAdmissionMetricsXDomain = (
+  spanInSeconds: number,
+  endInMs = Date.now(),
+): [number, number] => [endInMs - spanInSeconds * 1000, endInMs];
 
 export const getAdmissionMetricHeadlineValue = (metric: AdmissionMetric): number | null => {
   const values = metric.data.map((point) => point.y).filter(Number.isFinite);
@@ -172,7 +162,7 @@ export const buildAdmissionMetrics = (
           ? '--'
           : `${metrics.waitingWorkloads.value} waiting`,
       data: metrics.waitingWorkloads.data,
-      color: colors.orange,
+      color: colors.blue,
       interpolation: 'stepAfter' as const,
     },
     {

@@ -112,7 +112,7 @@ const useWorkloadAdmissionMetrics = (
 
   const localQueueNames = localQueues.map((queue) => queue.metadata?.name ?? '').filter(Boolean);
   const clusterQueueNames = localQueues.map((queue) => queue.spec.clusterQueue).filter(Boolean);
-  const queriesActive = active && localQueuesLoaded && localQueueNames.length > 0;
+  const queriesActive = adminActive && localQueuesLoaded && localQueueNames.length > 0;
   const adminQueriesActive = adminActive && localQueuesLoaded && clusterQueueNames.length > 0;
 
   const admissionRate = usePrometheusQueryRange(
