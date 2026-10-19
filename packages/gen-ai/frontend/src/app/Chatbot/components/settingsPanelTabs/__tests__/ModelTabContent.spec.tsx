@@ -5,6 +5,13 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import ModelTabContent from '~/app/Chatbot/components/settingsPanelTabs/ModelTabContent';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
+const mockUseGenAiAudioUploadEnabled = jest.fn(() => true);
+
+jest.mock('~/app/hooks/useGenAiAudioUploadEnabled', () => ({
+  __esModule: true,
+  default: () => mockUseGenAiAudioUploadEnabled(),
+}));
+
 const mockWorkspaceCapabilities = {
   hasVisionModel: false,
   hasASRModel: true,
@@ -107,6 +114,7 @@ describe('ModelTabContent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiAudioUploadEnabled.mockReturnValue(true);
     mockWorkspaceCapabilities.hasVisionModel = false;
     mockWorkspaceCapabilities.hasASRModel = true;
     mockWorkspaceCapabilities.capabilitiesReady = true;
@@ -198,6 +206,14 @@ describe('ModelTabContent', () => {
     render(<ModelTabContent {...defaultProps} />);
 
     expect(screen.getByTestId('transcription-model-section')).toBeInTheDocument();
+  });
+
+  it('does not render TranscriptionModelSection when audio upload is disabled', () => {
+    mockUseGenAiAudioUploadEnabled.mockReturnValue(false);
+
+    render(<ModelTabContent {...defaultProps} />);
+
+    expect(screen.queryByTestId('transcription-model-section')).not.toBeInTheDocument();
   });
 
   it('keeps the selected transcription model when no models are tagged', () => {

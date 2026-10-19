@@ -50,7 +50,12 @@ module.exports = merge(
       minimize: true,
       minimizer: [
         new rspack.SwcJsMinimizerRspackPlugin(),
-        new rspack.LightningCssMinimizerRspackPlugin(),
+        new rspack.LightningCssMinimizerRspackPlugin({
+          minimizerOptions: {
+            // Keep logical properties from being lowered into :lang() fallbacks.
+            exclude: { logicalProperties: true },
+          },
+        }),
       ],
     },
     plugins: [

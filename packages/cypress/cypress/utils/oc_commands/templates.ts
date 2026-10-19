@@ -2,6 +2,7 @@ import { pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import { replacePlaceholdersInYaml } from '../yaml_files';
+import type { LibraryTemplate } from '../runtimeLibrary';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
@@ -27,6 +28,33 @@ export const waitForTemplateByServingRuntimeName = (
     pollIntervalMs,
   });
 };
+
+export const getTemplatesByServingRuntimeName = (
+  servingRuntimeName: string,
+): Cypress.Chainable<LibraryTemplate[]> =>
+  cy.exec(`oc get templates -o json -n ${applicationNamespace}`).then(({ stdout }) => {
+    const list: TemplateList = JSON.parse(stdout);
+    if (!Array.isArray(list.items)) {
+      throw new Error('The Template list must contain an items array');
+    }
+    return list.items.filter((template) =>
+      template.objects?.some(
+        (resource) =>
+          resource.kind === 'ServingRuntime' && resource.metadata?.name === servingRuntimeName,
+      ),
+    ) as LibraryTemplate[];
+  });
+
+export const checkServingRuntimeAbsent = (
+  servingRuntimeName: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  cy
+    .exec(
+      `oc get servingruntime ${servingRuntimeName} -n ${applicationNamespace} --ignore-not-found -o name`,
+    )
+    .should(({ stdout }) => {
+      expect(stdout.trim(), 'Dry-run must not persist a standalone ServingRuntime').to.equal('');
+    });
 
 type TemplateList = {
   items?: {
