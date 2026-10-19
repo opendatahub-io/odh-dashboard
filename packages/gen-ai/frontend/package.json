@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/app-config": "workspace:*",
+    "@odh-dashboard/cypress": "workspace:*",
     "@odh-dashboard/jest-config": "workspace:*",
     "@module-federation/enhanced": "^0.24.1",
     "@types/jest": "^29.5.14",

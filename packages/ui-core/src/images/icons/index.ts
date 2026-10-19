@@ -37,6 +37,7 @@ export { default as RhUiTagIcon } from './RhUiTagIcon';
 export { default as ScrewWrenchIcon } from './ScrewWrenchIcon';
 export { default as ServingRuntimeIcon } from './ServingRuntimeIcon';
 export { default as SingleModelIcon } from './SingleModelIcon';
+export { default as SkillRegistryIcon } from './SkillRegistryIcon';
 export { default as StorageClassIcon } from './StorageClassIcon';
 export { default as StorageIcon } from './StorageIcon';
 export { default as UserIcon } from './UserIcon';

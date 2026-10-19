@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { APIKey } from '~/app/types/api-key';
 import DeleteModal from '~/app/shared/DeleteModal';
 import useRevokeApiKey from '~/app/hooks/useRevokeApiKey';
@@ -53,7 +54,7 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({
       fireFormTrackingEvent(MaaSEvents.API_KEY_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: err instanceof Error ? err.message : 'Failed to revoke API key',
+        error: errorCategory(err),
         initiatedFrom,
       } satisfies ApiKeyRevokedProperties);
       // Error is handled by the hook and displayed in the modal
