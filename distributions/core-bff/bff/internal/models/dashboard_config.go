@@ -84,6 +84,7 @@ type DashboardFeatureFlags struct {
 	McpCatalog                   bool `json:"mcpCatalog"`
 	McpRegistry                  bool `json:"mcpRegistry"`
 	GenAiMcpRegistryServers      bool `json:"genAiMcpRegistryServers"`
+	SkillRegistry                bool `json:"skillRegistry"`
 	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
@@ -185,6 +186,7 @@ var BlankDashboardCR = DashboardConfig{
 			McpCatalog:                   false,
 			McpRegistry:                  false,
 			GenAiMcpRegistryServers:      false,
+			SkillRegistry:                false,
 			AgentsCatalog:                false,
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
