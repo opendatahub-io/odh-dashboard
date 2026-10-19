@@ -99,22 +99,23 @@ jobs:
       JIRA_USER_EMAIL: ${{ secrets.JIRA_USERNAME }}
       # Host-adapter credentials for the review pre-script, as the JSON object
       # ADR 0136 defines. .fullsend/harness/review.yaml references each name in
-      # env.runner; unreferenced names reach no script. It is composed here from
-      # the existing per-integration secrets, so each one still rotates on its
-      # own. Rules this expression follows:
-      # - An empty value is refused by `fullsend run` and fails the review, so
-      #   each entry is added only when its secret is set. The fixed first entry
-      #   keeps the object valid when none is.
+      # env.runner. It is composed here from the existing per-integration
+      # secrets, so each one still rotates on its own. Rules this expression
+      # follows:
+      # - Every name is always present. `fullsend run` fails the review when an
+      #   env.runner reference is unset, and also when a value is empty, so an
+      #   unset secret is sent as the placeholder "odh-adapter-credential-unset",
+      #   which pre-review.sh reads as empty.
       # - Each value goes through toJSON(), which quotes and escapes it, so a
       #   secret holding `"`, `\` or a newline still yields a valid object.
       # - JIRA_TOKEN, JIRA_USER_EMAIL and JIRA_BASE_URL are refused names: the
       #   reusable workflow sets them itself on harness-run.
       FULLSEND_GITHUB_RUNNER_SECRETS: >-
-        ${{ format('{{"ODH_RUNNER_SECRETS_SOURCE":"odh-dashboard-fullsend-shim"{0}{1}{2}{3}}}',
-        secrets.CODERABBIT_API_KEY != '' && format(',"CODERABBIT_API_KEY":{0}', toJSON(secrets.CODERABBIT_API_KEY)) || '',
-        secrets.JIRA_URL != '' && format(',"JIRA_URL":{0}', toJSON(secrets.JIRA_URL)) || '',
-        secrets.JIRA_USERNAME != '' && format(',"JIRA_USERNAME":{0}', toJSON(secrets.JIRA_USERNAME)) || '',
-        secrets.JIRA_API_TOKEN != '' && format(',"JIRA_API_TOKEN":{0}', toJSON(secrets.JIRA_API_TOKEN)) || '') }}
+        ${{ format('{{"CODERABBIT_API_KEY":{0},"JIRA_URL":{1},"JIRA_USERNAME":{2},"JIRA_API_TOKEN":{3}}}',
+        secrets.CODERABBIT_API_KEY != '' && toJSON(secrets.CODERABBIT_API_KEY) || '"odh-adapter-credential-unset"',
+        secrets.JIRA_URL != '' && toJSON(secrets.JIRA_URL) || '"odh-adapter-credential-unset"',
+        secrets.JIRA_USERNAME != '' && toJSON(secrets.JIRA_USERNAME) || '"odh-adapter-credential-unset"',
+        secrets.JIRA_API_TOKEN != '' && toJSON(secrets.JIRA_API_TOKEN) || '"odh-adapter-credential-unset"') }}
 
   stop-fix:
     # Job-level if: is intentionally coarse — it only screens for the

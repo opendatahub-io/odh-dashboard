@@ -1462,7 +1462,8 @@ run_self_test() {
   # Every adapter credential the registry names reaches this script through
   # env.runner, so the unset line at the top must list it. Only the top-level
   # env.runner mapping counts: a mention elsewhere in the harness does not.
-  local cred_name unset_line runner_env missing_creds=""
+  local cred_name unset_line runner_env shim missing_creds=""
+  shim="${POST_REVIEW_SCRIPT_DIR}/../../.github/workflows/fullsend.yaml"
   unset_line="$(grep -m1 -E '^unset CODERABBIT_API_KEY' "${POST_REVIEW_SCRIPT_DIR}/post-review.sh")"
   runner_env="$(awk '
     /^[^[:space:]#]/ { in_env = ($0 ~ /^env:[[:space:]]*$/); in_runner = 0; next }
@@ -1472,14 +1473,15 @@ run_self_test() {
   while IFS= read -r cred_name; do
     [[ -n "${cred_name}" ]] || continue
     if [[ " ${unset_line#unset } " != *" ${cred_name} "* ]] \
-      || ! grep -qxF "    ${cred_name}: \"\${${cred_name}}\"" <<<"${runner_env}"; then
+      || ! grep -qxF "    ${cred_name}: \"\${${cred_name}}\"" <<<"${runner_env}" \
+      || { [[ -f "${shim}" ]] && ! grep -qF "secrets.${cred_name} != '' && toJSON(secrets.${cred_name}) || '\"odh-adapter-credential-unset\"'" "${shim}"; }; then
       missing_creds+=" ${cred_name}"
     fi
   done < <(jq -r '[.dimensions[] | select(.kind == "cli-adapter") | .host.credentials // {}
     | .url_env, .username_env, .token_env | select(type == "string" and . != "")] | unique[]' \
     "${POST_REVIEW_SCRIPT_DIR}/../dimensions.json")
   if [[ -z "${unset_line}" || -n "${missing_creds}" ]]; then
-    echo "FAIL adapter credentials: not unset here or not in env.runner:${missing_creds:- (no unset line)}" >&2
+    echo "FAIL adapter credentials: not unset here, not in env.runner, or no shim placeholder:${missing_creds:- (no unset line)}" >&2
     fail=1
   else
     echo "PASS adapter credentials are unset before any child"

@@ -314,7 +314,10 @@ skip-author checks:
 - **Credentials.** The shim composes `FULLSEND_GITHUB_RUNNER_SECRETS` from the
   `CODERABBIT_API_KEY`, `JIRA_URL`, `JIRA_USERNAME` and `JIRA_API_TOKEN`
   secrets, and [`harness/review.yaml`](../../harness/review.yaml) references
-  them in `env.runner` (Fullsend ADR 0136). `pre-review.sh` unsets them before
+  them in `env.runner` (Fullsend ADR 0136). Every name is always sent: an
+  unset secret goes as the placeholder `odh-adapter-credential-unset`, because
+  `fullsend run` refuses an unset reference and an empty value alike, and
+  `pre-review.sh` reads the placeholder as empty. `pre-review.sh` unsets them before
   starting any child. Each adapter runs with an allowlisted environment (no
   review or GitHub token) and only the credentials its row names in
   `host.credentials`, under the generic `FULLSEND_ADAPTER_*` names. None of
@@ -339,8 +342,9 @@ skip-author checks:
   head the sandbox reviewed. Fullsend's steer and coalesce work (fullsend#7689
   follow-ups) can change this; recheck it when that lands.
 - **Adding a credential.** Add the secret to the shim's `format(...)`
-  expression, reference it in `env.runner`, and name it in the row's
-  `host.credentials`. A name the reusable workflow sets itself (`JIRA_TOKEN`,
+  expression with the same placeholder fallback, reference it in
+  `env.runner`, add it to `post-review.sh`'s unset line, and name it in the
+  row's `host.credentials`; `post-review.sh --self-test` checks all four. A name the reusable workflow sets itself (`JIRA_TOKEN`,
   `JIRA_USER_EMAIL`, `JIRA_BASE_URL`, any `FULLSEND_*` or `GITHUB_*`) is
   refused by `fullsend run`. `pre-review.sh` also refuses rows that name a
   variable the review needs or must not forward (`REVIEW_*`, `GH_TOKEN`,

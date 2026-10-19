@@ -214,8 +214,13 @@ aggregate_cli_adapters() {
 # shell variable and unset it; only the jq that reads the registry runs
 # first. run_adapter then hands an adapter only its own row's values. Bash 3.2 has no associative arrays,
 # hence the _ADAPTER_CRED_<NAME> variables.
+# The shim sends this for a credential whose secret is not set: `fullsend run`
+# refuses both an unset env.runner reference and an empty value.
+ADAPTER_CREDENTIAL_UNSET="odh-adapter-credential-unset"
+
 # A reserved or malformed name fails the review here, before anything is
-# unset, rather than leaving the run without a variable it needs.
+# unset, rather than leaving the run without a variable it needs. The unset
+# placeholder is stored as empty.
 capture_adapter_credentials() {
   local name names
   names="$(adapter_credential_names)" || return 1
@@ -228,7 +233,11 @@ capture_adapter_credentials() {
   done <<< "${names}"
   while IFS= read -r name; do
     [[ -n "${name}" ]] || continue
-    printf -v "_ADAPTER_CRED_${name}" '%s' "${!name:-}"
+    if [[ "${!name:-}" == "${ADAPTER_CREDENTIAL_UNSET}" ]]; then
+      printf -v "_ADAPTER_CRED_${name}" '%s' ""
+    else
+      printf -v "_ADAPTER_CRED_${name}" '%s' "${!name:-}"
+    fi
     unset "${name}"
   done <<< "${names}"
 }
@@ -548,8 +557,10 @@ run_self_test() {
     ]}' > "${temp_dir}/dimensions.json"
     export ALPHA_URL="https://alpha.example.test" ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
     export REVIEW_TOKEN="review-token-value" GH_TOKEN="gh-token-value"
-    unset GAMMA_TOKEN
+    # GAMMA's secret is not set, so the shim sends the placeholder.
+    export GAMMA_TOKEN="${ADAPTER_CREDENTIAL_UNSET}"
     capture_adapter_credentials || exit 1
+    [[ -z "${GAMMA_TOKEN:-}" ]] || exit 1
     [[ -z "${ALPHA_URL:-}" && -z "${ALPHA_TOKEN:-}" && -z "${BETA_TOKEN:-}" ]] || exit 1
     REPO=o/r PR_BASE_REF=main PR_BASE_SHA="$(printf 'b%.0s' {1..40})" PR_HEAD_SHA="$(printf 'a%.0s' {1..40})" \
       run_pre_review_adapters > /dev/null
