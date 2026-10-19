@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
+import './StopRunModal.scss';
 
 type StopRunModalProps = {
   isOpen: boolean;
@@ -82,7 +83,12 @@ const StopRunModal: React.FC<StopRunModalProps> = ({
         >
           Stop
         </Button>
-        <Button variant="link" onClick={handleCancel} isDisabled={isDisabled}>
+        <Button
+          variant="link"
+          className="autox-stop-run-modal__cancel"
+          onClick={handleCancel}
+          isDisabled={isDisabled}
+        >
           Cancel
         </Button>
       </ModalFooter>
