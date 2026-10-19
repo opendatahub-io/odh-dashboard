@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Host snapshot of a linked Jira issue for the product-ask-review section LLM.
+# Host snapshot of linked Jira issues for the product-ask-review section LLM.
 #
-# Parses an issue key from the PR title/body (prefers Product ask / tracking).
+# Parses issue keys from the PR title/body (preamble first, then title).
+# Strips HTML comments before scanning so template placeholders inside
+# <!-- ... --> are ignored. Fetches every collected key and writes an
+# issues[] array alongside the backward-compatible top-level fields.
+#
 # Reads only the existing Dashboard preflight secrets: JIRA_URL,
 # JIRA_USERNAME, and JIRA_API_TOKEN. It deliberately produces no mock data.
 #
@@ -24,31 +28,31 @@ dest = Path(sys.argv[1])
 KEY_RE = re.compile(r"\b([A-Z][A-Z0-9]+-\d+)\b")
 
 
-def section_bodies(body):
-    matches = list(re.finditer(r"^(#{1,6})\s+(.+?)\s*$", body or "", re.M))
-    out = {}
-    for i, m in enumerate(matches):
-        start = m.end()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(body or "")
-        heading = re.sub(r"\s+", " ", (m.group(2) or "").strip().rstrip(":").strip()).lower()
-        out[heading] = (body or "")[start:end]
+def strip_html_comments(text):
+    return re.sub(r"<!--.*?-->", "", text or "", flags=re.S)
+
+
+def preamble(body):
+    m = re.search(r"^#{1,6}\s", body or "", re.M)
+    return (body or "")[:m.start()] if m else (body or "")
+
+
+def unique_keys(raw_keys):
+    seen = set()
+    out = []
+    for k in raw_keys:
+        if k not in seen:
+            seen.add(k)
+            out.append(k)
     return out
 
 
-def pick_key(title, body):
-    sections = section_bodies(body)
-    for heading, text in sections.items():
-        if "product ask" in heading or "tracking" in heading or heading == "jira":
-            keys = KEY_RE.findall(text or "")
-            if keys:
-                return keys[0]
-    keys = KEY_RE.findall(body or "")
-    if keys:
-        return keys[0]
-    keys = KEY_RE.findall(title or "")
-    if keys:
-        return keys[0]
-    return None
+def collect_keys(title, body):
+    pre = strip_html_comments(preamble(body))
+    pre_keys = unique_keys(KEY_RE.findall(pre))
+    if pre_keys:
+        return pre_keys
+    return unique_keys(KEY_RE.findall(strip_html_comments(title)))
 
 
 def flatten_adf(node):
@@ -99,7 +103,8 @@ def snapshot_from_issue(data, key):
 
 title = os.environ.get("REVIEW_PR_TITLE") or ""
 body = os.environ.get("REVIEW_PR_BODY") or ""
-key = pick_key(title, body)
+keys = collect_keys(title, body)
+key = keys[0] if keys else None
 base = (os.environ.get("FULLSEND_ADAPTER_URL") or os.environ.get("JIRA_URL") or "").rstrip("/")
 user = os.environ.get("FULLSEND_ADAPTER_USERNAME") or os.environ.get("JIRA_USERNAME") or ""
 token = os.environ.get("FULLSEND_ADAPTER_TOKEN") or os.environ.get("JIRA_API_TOKEN") or ""
@@ -112,7 +117,7 @@ class RejectRedirects(urllib.request.HTTPRedirectHandler):
 if os.environ.get("FULLSEND_JIRA_SNAPSHOT_READY") == "1" and dest.is_file():
     allowed = {
         "id", "dimension", "kind", "output", "status", "source", "url",
-        "key", "summary", "description", "status_name", "reason",
+        "key", "summary", "description", "status_name", "reason", "issues",
     }
     try:
         existing = json.loads(dest.read_text(encoding="utf-8"))
@@ -133,40 +138,50 @@ if base and urllib.parse.urlsplit(base).scheme.lower() != "https":
     print(f"Wrote Jira snapshot (error: Jira URL must use HTTPS, key={key}) to {dest}")
     raise SystemExit(0)
 
-if base and user and token:
-    if not key:
-        write(envelope(status="none", reason="no-issue-key"))
-        print(f"Wrote Jira snapshot (none: no-issue-key) to {dest}")
-        raise SystemExit(0)
-    url = f"{base}/rest/api/2/issue/{urllib.parse.quote(key)}?fields=summary,description,status"
-    req = urllib.request.Request(url, headers={"Accept": "application/json"})
-    import base64
-
-    raw = base64.b64encode(f"{user}:{token}".encode()).decode()
-    req.add_unredirected_header("Authorization", f"Basic {raw}")
-    opener = urllib.request.build_opener(RejectRedirects())
-    try:
-        with opener.open(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        write(envelope(status="error", key=key, reason=f"http-{exc.code}"))
-        print(f"Wrote Jira snapshot (error: http-{exc.code}, key={key}) to {dest}")
-        raise SystemExit(0)
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
-        write(envelope(status="error", key=key, reason=type(exc).__name__))
-        print(f"Wrote Jira snapshot (error: {type(exc).__name__}, key={key}) to {dest}")
-        raise SystemExit(0)
-    fields = snapshot_from_issue(data, key)
-    write(envelope(status="ok", url=f"{base}/browse/{key}", **fields))
-    print(f"Wrote Jira snapshot (ok, key={key}) to {dest}")
-    raise SystemExit(0)
-
-if not key:
+if not keys:
     write(envelope(status="none", reason="no-issue-key"))
     print(f"Wrote Jira snapshot (none: no-issue-key) to {dest}")
     raise SystemExit(0)
-write(envelope(status="none", key=key, reason="jira-credentials-unset"))
-print(f"Wrote Jira snapshot (none: credentials unset, key={key}) to {dest}")
+
+if base and user and token:
+    import base64
+    raw = base64.b64encode(f"{user}:{token}".encode()).decode()
+    opener = urllib.request.build_opener(RejectRedirects())
+
+    issues = []
+    for k in keys:
+        url = f"{base}/rest/api/2/issue/{urllib.parse.quote(k)}?fields=summary,description,status"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        req.add_unredirected_header("Authorization", f"Basic {raw}")
+        try:
+            with opener.open(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            entry = snapshot_from_issue(data, k)
+            entry["url"] = f"{base}/browse/{k}"
+            issues.append(entry)
+        except urllib.error.HTTPError as exc:
+            issues.append({"key": k, "status": "error", "reason": f"http-{exc.code}"})
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+            issues.append({"key": k, "status": "error", "reason": type(exc).__name__})
+
+    ok_issues = [i for i in issues if i.get("status") != "error"]
+    if ok_issues:
+        first = ok_issues[0]
+        write(envelope(
+            status="ok", issues=issues,
+            key=first["key"], summary=first["summary"],
+            description=first["description"], status_name=first["status_name"],
+            url=first["url"],
+        ))
+        ok_keys = ", ".join(i["key"] for i in ok_issues)
+        print(f"Wrote Jira snapshot (ok, keys={ok_keys}) to {dest}")
+    else:
+        write(envelope(status="error", key=key, issues=issues, reason="all-fetches-failed"))
+        print(f"Wrote Jira snapshot (error: all fetches failed, keys={','.join(keys)}) to {dest}")
+    raise SystemExit(0)
+
+write(envelope(status="none", key=key, issues=[{"key": k} for k in keys], reason="jira-credentials-unset"))
+print(f"Wrote Jira snapshot (none: credentials unset, keys={','.join(keys)}) to {dest}")
 PY
 }
 
@@ -174,20 +189,7 @@ run_self_test() {
   local tmp
   tmp="$(mktemp)"
 
-  REVIEW_PR_TITLE='fix: export' \
-  REVIEW_PR_BODY=$'## Product ask / tracking\nFixes RHOAIENG-82129\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
-    run_producer "${tmp}" >/dev/null
-
-  python3 - "${tmp}" <<'PY'
-import json, sys
-data = json.load(open(sys.argv[1], encoding="utf-8"))
-assert data["status"] == "none", data
-assert data["key"] == "RHOAIENG-82129", data
-assert data["reason"] == "jira-credentials-unset", data
-print("PASS jira-snapshot: missing credentials produce no context")
-PY
-
+  # Existing: HTTPS required.
   REVIEW_PR_TITLE='fix: export' \
   REVIEW_PR_BODY=$'Fixes RHOAIENG-82129\n' \
   JIRA_URL='http://jira.example.test' JIRA_USERNAME='user' JIRA_API_TOKEN='token' \
@@ -201,6 +203,7 @@ assert data["reason"] == "jira-url-must-use-https", data
 print("PASS jira-snapshot: authenticated requests require HTTPS")
 PY
 
+  # Existing: no key at all.
   REVIEW_PR_TITLE='docs' REVIEW_PR_BODY=$'## Problem\nNo tracker.\n' \
   JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
@@ -214,6 +217,108 @@ assert data["reason"] == "no-issue-key", data
 print("PASS jira-snapshot: missing key produces no context")
 PY
 
+  # HTML-commented template sample + real Fixes: URL at the top.
+  REVIEW_PR_TITLE='fix: export RHOAIENG-100655' \
+  REVIEW_PR_BODY=$'<!-- Fixes: https://issues.redhat.com/browse/RHOAIENG-123456 -->\nFixes: https://issues.redhat.com/browse/RHOAIENG-100655\n\n## Problem\nBroken.\n' \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["key"] == "RHOAIENG-100655", data
+assert data["issues"] == [{"key": "RHOAIENG-100655"}], data
+assert "RHOAIENG-123456" not in json.dumps(data), f"template sample leaked: {data}"
+print("PASS jira-snapshot: commented template sample ignored, real key used")
+PY
+
+  # Four Fixes: lines at the top (PR #10264 shape).
+  REVIEW_PR_TITLE='fix: multi' \
+  REVIEW_PR_BODY=$'Fixes: https://issues.redhat.com/browse/RHOAIENG-100580\nFixes: https://issues.redhat.com/browse/RHOAIENG-100583\nFixes: https://issues.redhat.com/browse/RHOAIENG-100584\nFixes: https://issues.redhat.com/browse/RHOAIENG-100585\n\n## Problem\nMulti.\n' \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["key"] == "RHOAIENG-100580", data
+keys = [i["key"] for i in data["issues"]]
+assert keys == ["RHOAIENG-100580", "RHOAIENG-100583", "RHOAIENG-100584", "RHOAIENG-100585"], keys
+print("PASS jira-snapshot: four Fixes: lines, all keys, order preserved")
+PY
+
+  # Bare keys at the top with no Fixes: prefix; key under Problem excluded.
+  REVIEW_PR_TITLE='fix: stuff' \
+  REVIEW_PR_BODY=$'RHOAIENG-100580\nRHOAIENG-100583\n\n## Problem\nSee RHOAIENG-99999 for background.\n' \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+keys = [i["key"] for i in data["issues"]]
+assert keys == ["RHOAIENG-100580", "RHOAIENG-100583"], keys
+assert "RHOAIENG-99999" not in json.dumps(data), f"body key leaked: {data}"
+print("PASS jira-snapshot: bare preamble keys only, body mention excluded")
+PY
+
+  # Comma-separated keys on one preamble line.
+  REVIEW_PR_TITLE='fix: combo' \
+  REVIEW_PR_BODY=$'Fixes: RHOAIENG-100580, RHOAIENG-100583\n\n## Problem\nMulti.\n' \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+keys = [i["key"] for i in data["issues"]]
+assert keys == ["RHOAIENG-100580", "RHOAIENG-100583"], keys
+print("PASS jira-snapshot: comma-separated preamble keys")
+PY
+
+  # Same key twice in preamble: deduplicated.
+  REVIEW_PR_TITLE='fix: dup' \
+  REVIEW_PR_BODY=$'Fixes: RHOAIENG-100580\nFixes: RHOAIENG-100580\n\n## Problem\nDup.\n' \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+keys = [i["key"] for i in data["issues"]]
+assert keys == ["RHOAIENG-100580"], keys
+print("PASS jira-snapshot: duplicate preamble key deduplicated")
+PY
+
+  # Commented key only: no key found.
+  REVIEW_PR_TITLE='docs' \
+  REVIEW_PR_BODY=$'<!-- Fixes: https://issues.redhat.com/browse/RHOAIENG-123456 -->\n\n## Problem\nNo real tracker.\n' \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["status"] == "none", data
+assert data["reason"] == "no-issue-key", data
+print("PASS jira-snapshot: commented key only yields no-issue-key")
+PY
+
+  # Title fallback when body has no keys.
+  REVIEW_PR_TITLE='RHOAIENG-55555: fix it' \
+  REVIEW_PR_BODY=$'## Problem\nNo tracker in body.\n' \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["key"] == "RHOAIENG-55555", data
+assert data["issues"] == [{"key": "RHOAIENG-55555"}], data
+print("PASS jira-snapshot: title fallback when body has no keys")
+PY
+
+  # Precomputed snapshot without issues (backward compat).
   python3 - "${tmp}" <<'PY'
 import json, sys
 json.dump({
@@ -236,7 +341,36 @@ data = json.load(open(sys.argv[1], encoding="utf-8"))
 assert data["status"] == "ok", data
 assert data["key"] == "RHOAIENG-57547", data
 assert data["summary"] == "Trusted host snapshot", data
-print("PASS jira-snapshot: trusted precomputed context is preserved")
+print("PASS jira-snapshot: precomputed context without issues preserved")
+PY
+
+  # Precomputed snapshot with issues accepted.
+  python3 - "${tmp}" <<'PY'
+import json, sys
+json.dump({
+    "id": "jira-snapshot",
+    "dimension": "jira-snapshot",
+    "kind": "cli-adapter",
+    "output": "context",
+    "status": "ok",
+    "key": "RHOAIENG-57547",
+    "summary": "Trusted host snapshot",
+    "description": "Sanitized Jira description",
+    "status_name": "In Progress",
+    "url": "https://redhat.atlassian.net/browse/RHOAIENG-57547",
+    "issues": [
+        {"key": "RHOAIENG-57547", "summary": "First", "description": "d1", "status_name": "In Progress", "url": "https://redhat.atlassian.net/browse/RHOAIENG-57547"},
+        {"key": "RHOAIENG-57548", "summary": "Second", "description": "d2", "status_name": "New", "url": "https://redhat.atlassian.net/browse/RHOAIENG-57548"},
+    ],
+}, open(sys.argv[1], "w", encoding="utf-8"))
+PY
+  FULLSEND_JIRA_SNAPSHOT_READY=1 run_producer "${tmp}" >/dev/null
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["status"] == "ok", data
+assert len(data["issues"]) == 2, data
+print("PASS jira-snapshot: precomputed context with issues preserved")
 PY
 
   # The row that reads the snapshot names it by its sandbox path, which is the

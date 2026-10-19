@@ -534,6 +534,34 @@ def compute_action(result):
         return "comment", "needs-human"
     return "approve", "no-blocking-findings"
 
+def compute_product_ask_overall(result):
+    """Overwrite top-level product_ask.status from per-issue statuses when issues[] is present."""
+    pa = result.get("product_ask")
+    if not isinstance(pa, dict):
+        return result
+    issues = pa.get("issues")
+    if not isinstance(issues, list) or not issues:
+        return result
+    rank = {"mismatch-unjustified": 3, "mismatch-justified": 2, "aligned": 1, "none": 0}
+    best = 0
+    any_human = False
+    any_justified = False
+    for issue in issues:
+        s = issue.get("status") or "none"
+        best = max(best, rank.get(s, 0))
+        if issue.get("needs_human"):
+            any_human = True
+        if issue.get("justified_in_description"):
+            any_justified = True
+    reverse = {v: k for k, v in rank.items()}
+    pa["status"] = reverse.get(best, "none")
+    if any_human:
+        pa["needs_human"] = True
+    if any_justified:
+        pa["justified_in_description"] = True
+    return result
+
+
 def apply_product_ask(result):
     """Floor confidence for unjustified Jira-vs-description mismatch. Never bump risk."""
     pa = result.get("product_ask")
@@ -1194,18 +1222,45 @@ def render_todo_section(result):
         lines += ["", label] + [f"- {clean(text)}" for text in items]
     return lines
 
+def _pa_status_line(label, record, suffix=""):
+    status = record.get("status") or "none"
+    human = " · needs human review" if record.get("needs_human") else ""
+    return f"**{label}:** `{clean(status)}`{human}{suffix}"
+
+
+def _pa_issue_link(issue):
+    key = clean(issue.get("key") or "")
+    if not key:
+        return ""
+    url = issue.get("url") or ""
+    return f"[{key}]({url})" if url else f"`{key}`"
+
+
+def _render_pa_block(issue, suffix=""):
+    lines = [_pa_status_line("Status", issue, suffix), ""]
+    if issue.get("aligned"):
+        lines += ["Aligned:"] + [f"- {clean(item)}" for item in issue["aligned"]] + [""]
+    if issue.get("mismatched"):
+        lines += ["Mismatched:"] + [f"- {clean(item)}" for item in issue["mismatched"]] + [""]
+    return lines
+
+
 def render_product_ask_section(pa):
     if not pa or (pa.get("status") or "none") == "none":
         return []
-    status = pa.get("status") or "none"
+    issues = pa.get("issues") if isinstance(pa.get("issues"), list) else []
+    ok_issues = [i for i in issues if (i.get("status") or "none") != "none"]
     lines = ["", "## Product ask", ""]
-    human = " · needs human review" if pa.get("needs_human") else ""
-    lines.append(f"**Status:** `{clean(status)}`{human}")
-    lines.append("")
-    if pa.get("aligned"):
-        lines += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
-    if pa.get("mismatched"):
-        lines += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
+    if len(ok_issues) > 1:
+        lines += [_pa_status_line("Overall", pa), ""]
+        for issue in ok_issues:
+            lines += [f"### {_pa_issue_link(issue)}", ""]
+            lines += _render_pa_block(issue)
+    elif len(ok_issues) == 1:
+        link = _pa_issue_link(ok_issues[0])
+        lines += _render_pa_block(ok_issues[0], suffix=f" · {link}" if link else "")
+    else:
+        lines += _render_pa_block(pa)
     return lines
 
 def render_body(result, previous_md, action):
@@ -1320,6 +1375,7 @@ result = normalize_protected_findings(result)
 result = reconcile_producers(result)
 result = apply_host_todos(result)
 result = augment_inspected(result)
+result = compute_product_ask_overall(result)
 result = apply_product_ask(result)
 result = cap_confidence(result)
 action, _reason = compute_action(result)
@@ -1566,6 +1622,60 @@ run_self_test() {
     fail=1
   else
     echo "PASS product-ask floors confidence only; risk unchanged"
+  fi
+
+  # Multi-issue product-ask: overall computed from per-issue statuses.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]},{\"key\":\"RHOAIENG-100583\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100583\",\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for import.\"],\"needs_human\":true}]}}" > "${tmp}/pa-multi.json"
+  transform_review_result "${tmp}/pa-multi.json" > "${tmp}/pa-multi-out.json"
+  body=$(jq -r .body "${tmp}/pa-multi-out.json")
+  if ! grep -qF '**Overall:** `mismatch-unjustified` · needs human review' <<<"${body}"; then
+    echo "FAIL pa-multi: Overall line missing or wrong" >&2
+    fail=1
+  elif ! grep -qF '### [RHOAIENG-100580](https://issues.redhat.com/browse/RHOAIENG-100580)' <<<"${body}"; then
+    echo "FAIL pa-multi: first issue heading missing" >&2
+    fail=1
+  elif ! grep -qF '### [RHOAIENG-100583](https://issues.redhat.com/browse/RHOAIENG-100583)' <<<"${body}"; then
+    echo "FAIL pa-multi: second issue heading missing" >&2
+    fail=1
+  elif ! jq -e '.confidence.level == "low"' "${tmp}/pa-multi-out.json" >/dev/null; then
+    echo "FAIL pa-multi: confidence floor not applied from computed overall" >&2
+    fail=1
+  else
+    echo "PASS pa-multi: overall computed, per-issue headings, confidence floored"
+  fi
+
+  # Single-issue product-ask: key linked on status line, no Overall.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-single.json"
+  transform_review_result "${tmp}/pa-single.json" > "${tmp}/pa-single-out.json"
+  body=$(jq -r .body "${tmp}/pa-single-out.json")
+  if grep -qF '**Overall:**' <<<"${body}"; then
+    echo "FAIL pa-single: Overall line should not appear for one issue" >&2
+    fail=1
+  elif ! grep -qF '[RHOAIENG-100655](https://issues.redhat.com/browse/RHOAIENG-100655)' <<<"${body}"; then
+    echo "FAIL pa-single: key link missing on status line" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-single: Status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-single: single issue renders linked status, no Overall"
+  fi
+
+  # Legacy product-ask without issues: same block as before.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"aligned\":[\"Matches.\"]}}" > "${tmp}/pa-legacy.json"
+  transform_review_result "${tmp}/pa-legacy.json" > "${tmp}/pa-legacy-out.json"
+  body=$(jq -r .body "${tmp}/pa-legacy-out.json")
+  if grep -qF '**Overall:**' <<<"${body}"; then
+    echo "FAIL pa-legacy: Overall line should not appear without issues" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-legacy: Status line missing" >&2
+    fail=1
+  elif ! grep -qF 'Matches.' <<<"${body}"; then
+    echo "FAIL pa-legacy: aligned items missing" >&2
+    fail=1
+  else
+    echo "PASS pa-legacy: legacy single-key renders unchanged"
   fi
 
   # Gate matrix: any medium finding → request-changes (no advisory carve-out).
