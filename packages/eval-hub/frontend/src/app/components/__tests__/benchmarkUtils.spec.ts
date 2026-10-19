@@ -85,6 +85,13 @@ describe('getCategoryColor', () => {
     expect(getCategoryColor('Unknown-Category')).toBe(getCategoryColor('unknown-category'));
   });
 
+  it('should not resolve Object.prototype members', () => {
+    const palette = ['blue', 'teal', 'green', 'purple', 'orange', 'red', 'yellow'];
+    expect(palette).toContain(getCategoryColor('constructor'));
+    expect(palette).toContain(getCategoryColor('__proto__'));
+    expect(palette).toContain(getCategoryColor('toString'));
+  });
+
   it.each([
     ['knowledge_and_reasoning', 'purple'],
     ['grounded_document_understanding', 'blue'],
@@ -131,6 +138,12 @@ describe('getCategoryTileColor', () => {
 
   it('uses the light-blue swatch for an unknown category', () => {
     expect(getCategoryTileColor(undefined)).toBe('light-blue');
+  });
+
+  it('should not resolve Object.prototype members', () => {
+    expect(getCategoryTileColor('constructor')).toBe('light-blue');
+    expect(getCategoryTileColor('__proto__')).toBe('light-blue');
+    expect(getCategoryTileColor('toString')).toBe('light-blue');
   });
 });
 

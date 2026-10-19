@@ -88,8 +88,12 @@ export const normalizeCategory = (category?: string): string =>
     .toLowerCase()
     .replace(/[\s-]+/g, '_') ?? '';
 
-export const getCategoryTileColor = (category?: string): CategoryTileColor =>
-  CATEGORY_TILE_COLOR_MAP[normalizeCategory(category)] ?? 'light-blue';
+export const getCategoryTileColor = (category?: string): CategoryTileColor => {
+  const normalizedCategory = normalizeCategory(category);
+  return Object.hasOwn(CATEGORY_TILE_COLOR_MAP, normalizedCategory)
+    ? CATEGORY_TILE_COLOR_MAP[normalizedCategory]
+    : 'light-blue';
+};
 
 const CATEGORY_COLOR_PALETTE: CategoryColor[] = [
   'blue',
@@ -119,7 +123,9 @@ export const getCategoryColor = (category?: string): CategoryColor => {
     return 'blue';
   }
   const normalizedCategory = normalizeCategory(category);
-  const mappedColor = CATEGORY_LABEL_COLOR_MAP[normalizedCategory];
+  const mappedColor = Object.hasOwn(CATEGORY_LABEL_COLOR_MAP, normalizedCategory)
+    ? CATEGORY_LABEL_COLOR_MAP[normalizedCategory]
+    : undefined;
   if (mappedColor) {
     return mappedColor;
   }

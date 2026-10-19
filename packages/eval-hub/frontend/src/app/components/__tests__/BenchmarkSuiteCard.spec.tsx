@@ -245,9 +245,11 @@ describe('BenchmarkSuiteCard', () => {
       fireEvent.mouseEnter(screen.getByTestId('benchmark-suite-card-metrics-fits-suite'), {
         bubbles: true,
       });
+      // Must exceed PF Tooltip's 300ms entry delay so the negative assertion
+      // below can't pass while a tooltip is still pending.
       await act(async () => {
         await new Promise((resolve) => {
-          setTimeout(resolve, 0);
+          setTimeout(resolve, 400);
         });
       });
 
