@@ -1460,13 +1460,19 @@ run_self_test() {
   trap cleanup_self_test EXIT
 
   # Every adapter credential the registry names reaches this script through
-  # env.runner, so the unset line at the top must list it.
-  local cred_name unset_line missing_creds=""
+  # env.runner, so the unset line at the top must list it. Only the top-level
+  # env.runner mapping counts: a mention elsewhere in the harness does not.
+  local cred_name unset_line runner_env missing_creds=""
   unset_line="$(grep -m1 -E '^unset CODERABBIT_API_KEY' "${POST_REVIEW_SCRIPT_DIR}/post-review.sh")"
+  runner_env="$(awk '
+    /^[^[:space:]#]/ { in_env = ($0 ~ /^env:[[:space:]]*$/); in_runner = 0; next }
+    in_env && /^  [^[:space:]#]/ { in_runner = ($0 ~ /^  runner:[[:space:]]*$/); next }
+    in_runner && /^    [A-Z]/ { print }
+  ' "${POST_REVIEW_SCRIPT_DIR}/../harness/review.yaml")"
   while IFS= read -r cred_name; do
     [[ -n "${cred_name}" ]] || continue
     if [[ " ${unset_line#unset } " != *" ${cred_name} "* ]] \
-      || ! grep -qF "\${${cred_name}}" "${POST_REVIEW_SCRIPT_DIR}/../harness/review.yaml"; then
+      || ! grep -qxF "    ${cred_name}: \"\${${cred_name}}\"" <<<"${runner_env}"; then
       missing_creds+=" ${cred_name}"
     fi
   done < <(jq -r '[.dimensions[] | select(.kind == "cli-adapter") | .host.credentials // {}
