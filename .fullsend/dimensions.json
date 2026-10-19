@@ -212,7 +212,7 @@
       "dispatch": "always",
       "definition": "skills/pr-review/sub-agents/product-ask-review/SKILL.md",
       "meta_prompt": "meta-prompts/section-output.md",
-      "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
+      "context_file": "/sandbox/workspace/odh-review/jira.json",
       "include_findings": false,
       "failure_severity": "info",
       "re_review": "full",

@@ -8,9 +8,9 @@ agent: agents/review.md
 # in the review writes inside it.
 readonly_repo: true
 
-# Pin the multi-architecture Fullsend sandbox image (v0.45.0) that carries
-# Pi 0.99.2, the first Pi release whose model catalog has GPT-6.1 Sol.
-image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:dec698251c58eabcb0c0d6d08ab9ca4415929991cc1deec5d3f3a94de5db6cca
+# Pin the multi-architecture Fullsend sandbox image (v0.48.1, Pi 1.3.0). It
+# moves with the reusable workflow pin in .github/workflows/fullsend.yaml.
+image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:7304e1f635eeebf1a3ebf60bfc9ac20a8db6f01b646d0ebb0ad4d53c2d7c30aa
 
 # The `openai` provider comes from the base, which now declares it.
 
@@ -26,15 +26,18 @@ skills:
   # loads. This copy of it has a basename of its own.
   - skills/issue-labels
 
+# The runner owns /sandbox/workspace/.fullsend (output schema, iteration
+# state) and refuses host_files under it, so the registry and the host's
+# adapter output land in a directory of their own.
 host_files:
   - src: dimensions.json
-    dest: /sandbox/workspace/.fullsend/dimensions.json
+    dest: /sandbox/workspace/odh-review/dimensions.json
   # product-ask-review reads its trusted snapshot by path (registry context_file).
   - src: .run/jira.json
-    dest: /sandbox/workspace/.fullsend/.run/jira.json
+    dest: /sandbox/workspace/odh-review/jira.json
     optional: true
   - src: .run/collected.json
-    dest: /sandbox/workspace/.fullsend/.run/collected.json
+    dest: /sandbox/workspace/odh-review/collected.json
     optional: true
 
 model: sonnet

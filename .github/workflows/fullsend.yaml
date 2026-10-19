@@ -247,12 +247,11 @@ jobs:
       packages: read
       pull-requests: write
     # Keep in step with the sandbox image pinned in .fullsend/harness/review.yaml
-    # (same release, Pi 0.99.2).
+    # (same release, Pi 1.3.0).
     # The harness base names built-in providers that only v0.45.0 onward
-    # resolves, so this pin and the base pin move together.
-    # Temporary pin through fullsend#7848 (fixes #7834 custom role_name auth).
-    # Revert to a released tag when v0.46+ ships this.
-    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@d8560dcc4f4920618f8eba3afd6c56e60263502a # fullsend#7848 (post-v0.45.0)
+    # resolves, so this pin and the base pin move together. v0.48.0 is the
+    # first release that declares FULLSEND_GITHUB_RUNNER_SECRETS (ADR 0136).
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@0cb88dc74260785f0b977f7277f91c0039eaaf21 # v0.48.1
     with:
       event_action: ${{ github.event.action }}
       install_mode: per-repo

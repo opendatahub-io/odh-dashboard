@@ -350,9 +350,13 @@ For dispatched LLM producers, compose the kind contract after
 Stock files track [fullsend-ai/agents](https://github.com/fullsend-ai/agents)
 at `ce2eedd` (2026-10-06). The harness base in
 [`harness/review.yaml`](../../harness/review.yaml) and the reusable workflow in
-[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) (Fullsend v0.45.0)
-move together: the base names built-in providers that earlier releases do not
-resolve.
+[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) move together: the
+base names built-in providers that releases before v0.45.0 do not resolve. The
+workflow and the sandbox image are on Fullsend v0.48.1, the first release line
+that passes declared secrets to host-side scripts (ADR 0136). From v0.48 the
+runner refuses `host_files` under `/sandbox/workspace/.fullsend`, so the
+registry and the adapter output reach the sandbox under
+`/sandbox/workspace/odh-review/`.
 
 | Path | State |
 | --- | --- |
