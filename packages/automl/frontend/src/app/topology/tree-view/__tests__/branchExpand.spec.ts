@@ -21,12 +21,17 @@ import {
   resolveWinnerBranchIndex,
 } from '~/app/topology/tree-view/branchExpand';
 
-const makeNode = (id: string, label: string, runStatus?: RunStatus): PipelineNodeModelExpanded =>
+const makeNode = (
+  id: string,
+  label: string,
+  runStatus?: RunStatus,
+  modelKey?: string,
+): PipelineNodeModelExpanded =>
   ({
     id,
     label,
     type: 'DEFAULT_TASK_NODE',
-    data: runStatus ? { runStatus } : undefined,
+    data: runStatus || modelKey ? { runStatus, modelKey } : undefined,
   }) as PipelineNodeModelExpanded;
 
 describe('branchExpand', () => {
@@ -110,6 +115,20 @@ describe('branchExpand', () => {
         winnerModelLabel: 'shared-model',
       }),
     ).toBeUndefined();
+  });
+
+  it('should prefer the exact winner model key over label matches', () => {
+    const branches = new Map<number, PipelineNodeModelExpanded[]>([
+      [0, [makeNode('training__model__branch-0', 'Other', undefined, 'winner')]],
+      [1, [makeNode('training__model__branch-1', 'winner', undefined, 'other')]],
+    ]);
+
+    expect(
+      resolveWinnerBranchIndex(branches, [0, 1], {
+        winnerModelLabel: 'winner',
+        winnerModelKey: 'winner',
+      }),
+    ).toBe(0);
   });
 
   it('should resolve top-3 model ranks from the leaderboard map', () => {

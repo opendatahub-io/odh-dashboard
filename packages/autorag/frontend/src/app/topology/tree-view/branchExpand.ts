@@ -136,6 +136,16 @@ export const resolveWinnerBranchIndex = (
   branchIndices: number[],
   options: Pick<BranchExpandOptions, 'winnerPatternLabel' | 'winnerPatternKey'>,
 ): number | undefined => {
+  if (typeof options.winnerPatternKey === 'string' && options.winnerPatternKey.length > 0) {
+    const exactMatches = branchIndices.filter((index) => {
+      const patternNode = getPatternTerminus(branches.get(index) ?? []);
+      return patternNode?.data?.patternKey === options.winnerPatternKey;
+    });
+    if (exactMatches.length > 0) {
+      return exactMatches.length === 1 ? exactMatches[0] : undefined;
+    }
+  }
+
   const matchingBranchIndices = branchIndices.filter((index) => {
     const patternNode = getPatternTerminus(branches.get(index) ?? []);
     return patternNode != null && matchesWinnerPattern(patternNode, options);

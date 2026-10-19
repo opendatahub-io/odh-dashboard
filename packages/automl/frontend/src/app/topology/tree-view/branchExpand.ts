@@ -150,6 +150,16 @@ export const resolveWinnerBranchIndex = (
   branchIndices: number[],
   options: Pick<BranchExpandOptions, 'winnerModelLabel' | 'winnerModelKey'>,
 ): number | undefined => {
+  if (typeof options.winnerModelKey === 'string' && options.winnerModelKey.length > 0) {
+    const exactMatches = branchIndices.filter((index) => {
+      const modelNode = getModelTerminus(branches.get(index) ?? []);
+      return modelNode?.data?.modelKey === options.winnerModelKey;
+    });
+    if (exactMatches.length > 0) {
+      return exactMatches.length === 1 ? exactMatches[0] : undefined;
+    }
+  }
+
   const matchingBranchIndices = branchIndices.filter((index) => {
     const modelNode = getModelTerminus(branches.get(index) ?? []);
     return modelNode != null && matchesWinnerModel(modelNode, options);
