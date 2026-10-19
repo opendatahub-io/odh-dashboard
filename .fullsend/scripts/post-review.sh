@@ -1459,6 +1459,26 @@ run_self_test() {
   cleanup_self_test() { rm -rf "${tmp}"; }
   trap cleanup_self_test EXIT
 
+  # Every adapter credential the registry names reaches this script through
+  # env.runner, so the unset line at the top must list it.
+  local cred_name unset_line missing_creds=""
+  unset_line="$(grep -m1 -E '^unset CODERABBIT_API_KEY' "${POST_REVIEW_SCRIPT_DIR}/post-review.sh")"
+  while IFS= read -r cred_name; do
+    [[ -n "${cred_name}" ]] || continue
+    if [[ " ${unset_line#unset } " != *" ${cred_name} "* ]] \
+      || ! grep -qF "\${${cred_name}}" "${POST_REVIEW_SCRIPT_DIR}/../harness/review.yaml"; then
+      missing_creds+=" ${cred_name}"
+    fi
+  done < <(jq -r '[.dimensions[] | select(.kind == "cli-adapter") | .host.credentials // {}
+    | .url_env, .username_env, .token_env | select(type == "string" and . != "")] | unique[]' \
+    "${POST_REVIEW_SCRIPT_DIR}/../dimensions.json")
+  if [[ -z "${unset_line}" || -n "${missing_creds}" ]]; then
+    echo "FAIL adapter credentials: not unset here or not in env.runner:${missing_creds:- (no unset line)}" >&2
+    fail=1
+  else
+    echo "PASS adapter credentials are unset before any child"
+  fi
+
   # Relative FULLSEND_DIR must still resolve when CWD is not the workspace
   # (post_script runs in runDir). Without this, labels/Type/Result collapse.
   local resolved_from_rundir
