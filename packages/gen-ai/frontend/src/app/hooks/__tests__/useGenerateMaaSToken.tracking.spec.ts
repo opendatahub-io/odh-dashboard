@@ -134,7 +134,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
   });
 
   describe('Failed Token Generation', () => {
-    it('should fire tracking event with error when token generation fails', async () => {
+    it('should fire tracking event with a controlled error category when token generation fails', async () => {
       const errorMessage = 'Failed to generate token: Unauthorized';
       mockGenerateMaaSToken.mockRejectedValue(new Error(errorMessage));
 
@@ -148,7 +148,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: errorMessage,
+            error: 'unknown_error',
             assetType: 'maas_model',
             copyTarget: 'service_token',
           },
@@ -156,7 +156,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       });
     });
 
-    it('should track generic error message for non-Error objects', async () => {
+    it('should track the controlled error category for non-Error objects', async () => {
       mockGenerateMaaSToken.mockRejectedValue('String error');
 
       const { result } = renderHook(() => useGenerateMaaSToken());
@@ -169,7 +169,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: 'Failed to generate MaaS token',
+            error: 'unknown_error',
             assetType: 'maas_model',
             copyTarget: 'service_token',
           },
@@ -177,7 +177,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       });
     });
 
-    it('should track network errors correctly', async () => {
+    it('should track network errors with the controlled error category', async () => {
       const networkError = new Error('Network request failed');
       mockGenerateMaaSToken.mockRejectedValue(networkError);
 
@@ -191,7 +191,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: 'Network request failed',
+            error: 'unknown_error',
             assetType: 'maas_model',
             copyTarget: 'service_token',
           },
@@ -199,7 +199,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
       });
     });
 
-    it('should track authorization errors correctly', async () => {
+    it('should track authorization errors with the controlled error category', async () => {
       const authError = new Error('Unauthorized: Invalid credentials');
       mockGenerateMaaSToken.mockRejectedValue(authError);
 
@@ -213,7 +213,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: 'Unauthorized: Invalid credentials',
+            error: 'unknown_error',
             assetType: 'maas_model',
             copyTarget: 'service_token',
           },
@@ -275,7 +275,7 @@ describe('useGenerateMaaSToken - Event Tracking', () => {
           {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: 'Server error',
+            error: 'unknown_error',
             assetType: 'maas_model',
             copyTarget: 'service_token',
           },
