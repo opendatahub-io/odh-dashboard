@@ -27,14 +27,18 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
-	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	platformlabels "github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
+
+	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
 func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, clientgoscheme.AddToScheme(s))
 	require.NoError(t, gatewayv1.Install(s))
+	require.NoError(t, v1alpha1.AddToScheme(s))
 
 	localEnv := &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("testdata", "crd")},
@@ -88,6 +92,23 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	wrongNamespace.Name = "selected-wrong-namespace"
 	wrongNamespace.Labels = map[string]string{platformlabels.PlatformPartOf: "dashboard"}
 	require.NoError(t, directClient.Create(context.Background(), wrongNamespace))
+	driftedRole := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dashboard-notebooks-role", Namespace: externalNamespace,
+			Labels: map[string]string{platformlabels.PlatformPartOf: "other"},
+		},
+		Rules: []rbacv1.PolicyRule{{APIGroups: []string{""}, Resources: []string{"pods"}, Verbs: []string{"get"}}},
+	}
+	driftedRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dashboard-notebooks-rolebinding", Namespace: externalNamespace,
+			Labels: map[string]string{platformlabels.PlatformPartOf: "other"},
+		},
+		RoleRef:  rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: driftedRole.Name},
+		Subjects: []rbacv1.Subject{{Kind: rbacv1.ServiceAccountKind, Name: "wrong", Namespace: "wrong"}},
+	}
+	require.NoError(t, directClient.Create(context.Background(), driftedRole))
+	require.NoError(t, directClient.Create(context.Background(), driftedRoleBinding))
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: s, NewCache: ctrlpkg.NewManagerCache(applicationsNamespace),
@@ -115,6 +136,27 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	}
 	err = mgr.GetCache().Get(ctx, client.ObjectKeyFromObject(wrongNamespace), &appsv1.Deployment{})
 	assert.ErrorContains(t, err, "unknown namespace for the cache")
+
+	reconciler := &ctrlpkg.DashboardReconciler{
+		Client:                mgr.GetClient(),
+		APIReader:             mgr.GetAPIReader(),
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: applicationsNamespace,
+	}
+	require.NoError(t, reconciler.ReconcileNamespacedRBAC(ctx, &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		NotebooksNamespace: externalNamespace,
+	}}))
+	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(driftedRole), driftedRole))
+	assert.Equal(t, "dashboard", driftedRole.Labels[platformlabels.PlatformPartOf])
+	assert.Equal(t, "true", driftedRole.Labels["dashboard.opendatahub.io/namespaced-rbac"])
+	assert.Len(t, driftedRole.Rules, 3)
+	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(driftedRoleBinding), driftedRoleBinding))
+	assert.Equal(t, "dashboard", driftedRoleBinding.Labels[platformlabels.PlatformPartOf])
+	assert.Equal(t, "true", driftedRoleBinding.Labels["dashboard.opendatahub.io/namespaced-rbac"])
+	require.Len(t, driftedRoleBinding.Subjects, 1)
+	assert.Equal(t, "odh-dashboard", driftedRoleBinding.Subjects[0].Name)
+	assert.Equal(t, applicationsNamespace, driftedRoleBinding.Subjects[0].Namespace)
 }
 
 func cacheTestDeployment(namespace string) *appsv1.Deployment {
