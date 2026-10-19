@@ -395,8 +395,10 @@ at `ce2eedd` (2026-10-06). The harness base in
 [`harness/review.yaml`](../../harness/review.yaml) and the reusable workflow in
 [`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) move together: the
 base names built-in providers that releases before v0.45.0 do not resolve. The
-workflow and the sandbox image are on Fullsend v0.48.1, the first release line
-that passes declared secrets to host-side scripts (ADR 0136). From v0.48 the
+sandbox image is on Fullsend v0.48.1, the first release line that passes
+declared secrets to host-side scripts (ADR 0136). The workflow is pinned to
+fullsend `main` at `af8cd47`, just past v0.48.1, for the review-findings marker
+fix (fullsend#8544); move it to v0.48.2 or later once that is released. From v0.48 the
 runner refuses `host_files` under `/sandbox/workspace/.fullsend`, so the
 registry and the adapter output reach the sandbox under
 `/sandbox/workspace/odh-review/`.

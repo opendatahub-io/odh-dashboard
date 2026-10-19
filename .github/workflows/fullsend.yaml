@@ -77,7 +77,10 @@ jobs:
     # The harness base names built-in providers that only v0.45.0 onward
     # resolves, so this pin and the base pin move together. v0.48.0 is the
     # first release that declares FULLSEND_GITHUB_RUNNER_SECRETS (ADR 0136).
-    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@0cb88dc74260785f0b977f7277f91c0039eaaf21 # v0.48.1
+    # Temporary pin past v0.48.1 for fullsend#8544 (cb06ac392): v0.48 escapes
+    # the review-findings-v2 marker, so every re-review ran as a first review.
+    # Revert to a released tag when v0.48.2+ ships it.
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@af8cd4756172ec105c3aa523515c9c7d51684e90 # fullsend#8544 (post-v0.48.1)
     with:
       event_action: ${{ github.event.action }}
       install_mode: per-repo
