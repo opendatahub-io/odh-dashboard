@@ -190,16 +190,18 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 }
 
 // resolveModelEndpoint resolves a model ID to its upstream endpoint URL, API key, and
-// the provider-native model ID the upstream expects. The incoming model ID may be
-// provider-qualified (e.g. "genai-bff-proxy/text-embedding-3-small") or bare (e.g.
-// "my-isvc-model"); OGX forwards the model's provider_resource_id, which for statically
-// registered models is the model_id from the generated config — that ID may itself
-// contain namespace slashes (e.g. "RedHatAI/granite-embedding-english-r2") which must
-// be preserved when forwarded upstream. Resolution follows the same priority as
-// getProviderData — an exact custom-endpoint ConfigMap match wins over the MaaS
-// prefix heuristic (a custom-endpoint model whose native model_id begins with
+// the provider-native model ID the upstream expects. Every OGX-forwarded request
+// carries the model's provider_resource_id — the native model ID exactly as the BFF
+// lists it (GenAIProxyNSModelsHandler returns bare model IDs) or as the generated
+// config registers it; the ID may contain namespace slashes (e.g.
+// "RedHatAI/granite-embedding-english-r2") which must be preserved when forwarded
+// upstream. IDs may arrive bare or genai-bff-proxy-prefixed, but never as an
+// unprefixed provider-qualified reference: the OGX inference router rewrites
+// params.model to the provider_resource_id on every path. Resolution priority —
+// an exact custom-endpoint ConfigMap match on the NATIVE model ID wins over the
+// MaaS prefix heuristic (a custom-endpoint model whose native model_id begins with
 // "maas-" must reach its configured endpoint):
-//  1. Custom endpoint (exact ConfigMap match) → ConfigMap + Secret
+//  1. Custom endpoint (exact native-ID ConfigMap match) → ConfigMap + Secret
 //  2. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
 //  3. Namespace (bare name) → InferenceService/LLMInferenceService URL + user JWT
 func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, maasSubscription string) (baseURL, apiKey, resolvedModelID string, err error) {
@@ -214,24 +216,31 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, ma
 	}
 
 	// Strip the passthrough routing prefix (e.g. "genai-bff-proxy/...") for MaaS
-	// detection and the namespace fallback. Custom-endpoint resolution below keeps
-	// the ORIGINAL ID: ResolveCustomEndpointModelProvider treats a genai-bff-proxy/
-	// prefix as "the remainder is the provider-native model ID" and only applies
-	// provider/model split matching to unprefixed IDs. That distinction keeps a
-	// native namespaced ID (e.g. "team/embed") from being misread as a
-	// provider-qualified reference to a provider literally named "team".
+	// detection and the namespace fallback.
 	routingStripped := strings.TrimPrefix(modelID, constants.PassthroughProviderID+"/")
 
 	// Resolution priority:
-	// 1. Custom endpoint (exact ConfigMap match) → ConfigMap + Secret. Runs before
-	//    the MaaS prefix check so a custom-endpoint model whose native model_id
-	//    begins with "maas-" reaches its configured endpoint — unlike the chat
-	//    proxy, the embeddings path has no model-source header to disambiguate, and
-	//    the ConfigMap registration is the more specific intent than the prefix
-	//    heuristic.
+	// 1. Custom endpoint (exact native-ID ConfigMap match) → ConfigMap + Secret. Runs
+	//    before the MaaS prefix check so a custom-endpoint model whose native model_id
+	//    begins with "maas-" reaches its configured endpoint — unlike the chat proxy,
+	//    the embeddings path has no model-source header to disambiguate, and the
+	//    ConfigMap registration is the more specific intent than the prefix heuristic.
 	// 2. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
 	// 3. Namespace ISVC fallback (bare name) → InferenceService URL + user JWT
-	extURL, extKey, extModelID := app.getCustomEndpointBaseURLKeyAndModelID(ctx, modelID)
+	//
+	// Normalize unprefixed IDs with the passthrough prefix for the lookup so
+	// ResolveCustomEndpointModelProvider applies exact native-ID matching only: it
+	// skips provider/model split matching for genai-bff-proxy-prefixed IDs, so a
+	// native namespaced ID ("team/embed") is never misread as a provider-qualified
+	// reference to a provider literally named "team". This is safe because the
+	// unprefixed provider-qualified form never arrives via OGX (see the doc comment
+	// above); the chat proxy, which does receive provider-qualified IDs, uses the
+	// source-type header instead of this heuristic.
+	lookupID := modelID
+	if !strings.HasPrefix(modelID, constants.PassthroughProviderID+"/") {
+		lookupID = constants.PassthroughProviderID + "/" + modelID
+	}
+	extURL, extKey, extModelID := app.getCustomEndpointBaseURLKeyAndModelID(ctx, lookupID)
 	if extURL != "" {
 		return extURL, extKey, extModelID, nil
 	}

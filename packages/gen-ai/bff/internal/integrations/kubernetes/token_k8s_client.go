@@ -3328,6 +3328,24 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		}
 	}
 
+	// Reject duplicate model IDs up front. Query-time proxy resolution
+	// (ResolveCustomEndpointModelProvider) and playground installation
+	// (getExternalModelDetails) both require model IDs to be unique across
+	// custom-endpoint providers; appending a duplicate would let this call
+	// succeed while producing a ConfigMap whose models fail at install or
+	// retrieval time with no hint that this registration was the cause.
+	var duplicateProviders []string
+	for _, m := range config.RegisteredResources.Models {
+		if m.ModelID == req.ModelID {
+			duplicateProviders = append(duplicateProviders, m.ProviderID)
+		}
+	}
+	if len(duplicateProviders) > 0 {
+		return fmt.Errorf(
+			"model ID '%s' is already registered under provider(s) %s; model IDs must be unique across custom-endpoint providers — remove the duplicate registration or rename the model",
+			req.ModelID, strings.Join(duplicateProviders, ", "))
+	}
+
 	// Select provider type based on model type: embedding models use passthrough, inference models use openai
 	providerType := models.ProviderTypeOpenAI
 	if req.ModelType == models.ModelTypeEmbedding {

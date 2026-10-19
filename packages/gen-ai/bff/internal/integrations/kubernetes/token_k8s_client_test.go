@@ -165,6 +165,92 @@ registered_resources:
 	assert.Equal(t, "example-model", config.RegisteredResources.Models[0].ModelID)
 }
 
+func TestCreateOrUpdateExternalModelConfigMapRejectsDuplicateModelIDs(t *testing.T) {
+	const namespace = "test-namespace"
+
+	existingConfigYAML := `providers:
+  inference:
+  - provider_id: endpoint-1
+    provider_type: remote::openai
+    config:
+      base_url: https://example.com/v1
+registered_resources:
+  models:
+  - provider_id: endpoint-1
+    model_id: example-model
+    model_type: llm
+    metadata:
+      display_name: Example model`
+
+	newRequest := func(modelID string) models.ExternalModelRequest {
+		return models.ExternalModelRequest{
+			ModelID:          modelID,
+			ModelDisplayName: "New model",
+			BaseURL:          "https://new-endpoint.com/v1",
+			ModelType:        models.ModelTypeLLM,
+		}
+	}
+
+	t.Run("duplicate model ID under another provider: rejected without modifying the ConfigMap", func(t *testing.T) {
+		client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		kc := &TokenKubernetesClient{Client: client, Logger: slog.Default()}
+
+		err := kc.CreateOrUpdateExternalModelConfigMap(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, namespace, "2", "", newRequest("example-model"))
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "'example-model' is already registered")
+		assert.Contains(t, err.Error(), "endpoint-1")
+
+		// The ConfigMap must be unchanged — no provider or model appended.
+		config, getConfigErr := kc.GetExternalModelsConfig(context.Background(), namespace)
+		require.NoError(t, getConfigErr)
+		require.Len(t, config.RegisteredResources.Models, 1)
+		require.Len(t, config.Providers.Inference, 1)
+	})
+
+	t.Run("re-submitting the same model ID under the same provider: rejected", func(t *testing.T) {
+		client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		kc := &TokenKubernetesClient{Client: client, Logger: slog.Default()}
+
+		err := kc.CreateOrUpdateExternalModelConfigMap(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, namespace, "1", "", newRequest("example-model"))
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "'example-model' is already registered")
+	})
+
+	t.Run("unique model ID: appended", func(t *testing.T) {
+		client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		kc := &TokenKubernetesClient{Client: client, Logger: slog.Default()}
+
+		err := kc.CreateOrUpdateExternalModelConfigMap(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, namespace, "2", "", newRequest("another-model"))
+
+		require.NoError(t, err)
+
+		config, getConfigErr := kc.GetExternalModelsConfig(context.Background(), namespace)
+		require.NoError(t, getConfigErr)
+		require.Len(t, config.RegisteredResources.Models, 2)
+		require.Len(t, config.Providers.Inference, 2)
+	})
+}
+
 func (c noMatchListClient) List(context.Context, client.ObjectList, ...client.ListOption) error {
 	return &apimeta.NoKindMatchError{
 		GroupKind: schema.GroupKind{Group: "trustyai.opendatahub.io", Kind: "NemoGuardrails"},

@@ -148,7 +148,7 @@ var _ = Describe("GenAIProxyNSEmbeddingsHandler", func() {
 		}}
 		app.httpClient = upstream.Client()
 
-		req := embeddingProxyRequest(`{"model":"custom-provider/embedding-model","input":"test"}`, "test-token")
+		req := embeddingProxyRequest(`{"model":"embedding-model","input":"test"}`, "test-token")
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSEmbeddingsHandler(rr, req, nil)
 
@@ -293,10 +293,19 @@ var _ = Describe("GenAIProxyNSEmbeddingsHandler", func() {
 		assert.Equal(t, "maas-custom-embedding", upstreamModel)
 	})
 
-	It("should strip the custom-endpoint provider prefix from the proxied model", func() {
+	It("should resolve unprefixed IDs by native model, not provider split", func() {
 		t := GinkgoT()
+		// OGX forwards provider_resource_id — the bare native model ID — on every
+		// path, so an unprefixed slash-containing ID is always a native ID, never a
+		// provider-qualified reference. Collision fixture: provider "team" serves
+		// model "embed", while provider "other-provider" serves the native namespaced
+		// model "team/embed". An unprefixed "team/embed" request must resolve to
+		// other-provider's endpoint with the model forwarded verbatim — not be split
+		// into provider "team" + model "embed".
+		var rightHits, wrongHits int
 		var upstreamModel string
-		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		right := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			rightHits++
 			var upstreamBody struct {
 				Model string `json:"model"`
 			}
@@ -304,19 +313,35 @@ var _ = Describe("GenAIProxyNSEmbeddingsHandler", func() {
 			upstreamModel = upstreamBody.Model
 			w.WriteHeader(http.StatusOK)
 		}))
-		defer upstream.Close()
+		defer right.Close()
+		wrong := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			wrongHits++
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer wrong.Close()
 
 		app.kubernetesClientFactory = &proxyCredentialsK8sFactory{client: &proxyCredentialsK8sClient{
-			externalModelsConfig: customEndpointConfig(upstream.URL, "custom-provider", "embedding-model", "", ""),
+			externalModelsConfig: &models.ExternalModelsConfig{
+				Providers: models.ProvidersConfig{Inference: []models.InferenceProvider{
+					{ProviderID: "team", Config: models.ProviderConfig{BaseURL: wrong.URL}},
+					{ProviderID: "other-provider", Config: models.ProviderConfig{BaseURL: right.URL}},
+				}},
+				RegisteredResources: models.RegisteredResourcesConfig{Models: []models.RegisteredModel{
+					{ProviderID: "team", ModelID: "embed"},
+					{ProviderID: "other-provider", ModelID: "team/embed"},
+				}},
+			},
 		}}
-		app.httpClient = upstream.Client()
+		app.httpClient = right.Client()
 
-		req := embeddingProxyRequest(`{"model":"custom-provider/embedding-model","input":"test"}`, "test-token")
+		req := embeddingProxyRequest(`{"model":"team/embed","input":"sensitive query"}`, "test-token")
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSEmbeddingsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, "embedding-model", upstreamModel)
+		assert.Equal(t, 1, rightHits, "the native model's provider must receive the request")
+		assert.Equal(t, 0, wrongHits, "the provider named like the model's first path segment must not receive the request")
+		assert.Equal(t, "team/embed", upstreamModel)
 	})
 
 	It("should append /v1 to base URLs that do not already end in /v1", func() {
@@ -358,7 +383,7 @@ var _ = Describe("GenAIProxyNSEmbeddingsHandler", func() {
 		}}
 		app.httpClient = upstream.Client()
 
-		req := embeddingProxyRequest(`{"model":"custom-provider/embedding-model","input":"test"}`, "test-token")
+		req := embeddingProxyRequest(`{"model":"embedding-model","input":"test"}`, "test-token")
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSEmbeddingsHandler(rr, req, nil)
 
