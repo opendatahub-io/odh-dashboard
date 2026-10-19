@@ -82,7 +82,7 @@ Each `dimensions[]` object:
 | `re_review` | `full` / `trivial` / `skip-unless-requalified` when this **findings** dimension had no prior findings |
 | `remediation_candidates` | If true, this **findings** LLM receives the step 3a-1 remediation candidates and the incremental diff, and re-qualifies on re-review per step 3c |
 | `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/` on the host. It may contain findings, a `check`, or trusted context. Every adapter envelope also appears in `/sandbox/workspace/odh-review/collected.json` |
-| `host` | Trusted execution metadata for a `cli-adapter`: `workflow` or `pre_review` execution plus any artifact, setup, checkout, and credential-name requirements |
+| `host` | Trusted execution metadata for a `cli-adapter`: `pre_review` execution, an optional setup script, and the names of the host environment variables that hold its credentials |
 | `context_file` | Optional trusted-host snapshot an LLM must read (do not fetch it yourself) |
 | `stage` | `pre-dispatch` on an LLM row with `output: context`, and only there. The row runs alone before step 4 and every later LLM reviewer is told to read its brief (step 3g) |
 

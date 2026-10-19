@@ -58,10 +58,21 @@ env:
   # That flag is also what makes pre-review.sh unshallow target-repo, so the
   # depth is requested explicitly: the stock correctness reviewer runs
   # `git log` on modified test files and needs the base branch history.
+  #
+  # The host-adapter credentials come from FULLSEND_GITHUB_RUNNER_SECRETS,
+  # which the shim composes (ADR 0136). env.runner reaches every host-side
+  # script; pre-review.sh unsets these names before it starts any child and
+  # passes each adapter only the names its registry row declares. They must
+  # stay out of env.sandbox, host_files and validation_loop, which the runner
+  # enforces.
   runner:
     REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
     REVIEW_RISK_ASSESSMENT_ENABLED: "false"
     REVIEW_GIT_FETCH_DEPTH: "0"
+    CODERABBIT_API_KEY: "${CODERABBIT_API_KEY}"
+    JIRA_URL: "${JIRA_URL}"
+    JIRA_USERNAME: "${JIRA_USERNAME}"
+    JIRA_API_TOKEN: "${JIRA_API_TOKEN}"
   sandbox:
     REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
     REVIEW_RISK_ASSESSMENT_ENABLED: "false"
