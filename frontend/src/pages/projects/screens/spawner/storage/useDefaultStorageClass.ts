@@ -125,22 +125,23 @@ export const useDefaultStorageClass = (
   let loaded = true;
 
   // 1. First priority: admin storage class (from Dashboard Admin Configuration)
-  if (
-    isStorageClassesAvailable &&
-    adminDefaultStorageClassLoaded &&
-    !adminDefaultStorageClassError
-  ) {
-    storageClass = adminDefaultStorageClass;
-    loaded = adminDefaultStorageClassLoaded;
+  if (isStorageClassesAvailable) {
+    if (!adminDefaultStorageClassLoaded) {
+      // Admin default is still loading -- report not loaded so consumers wait
+      // for the highest-priority source before acting on a lower-priority fallback
+      loaded = false;
+    } else if (!adminDefaultStorageClassError) {
+      storageClass = adminDefaultStorageClass;
+    }
   }
 
   // 2. Second priority: preferred storage class (from OdhDashboardConfig CR)
-  if (!storageClass && preferredStorageClass) {
+  if (!storageClass && loaded && preferredStorageClass) {
     storageClass = preferredStorageClass;
   }
 
   // 3. Third priority: OpenShift default storage class
-  if (!storageClass && openshiftDefaultStorageClass) {
+  if (!storageClass && loaded && openshiftDefaultStorageClass) {
     storageClass = openshiftDefaultStorageClass;
   }
 
