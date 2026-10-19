@@ -59,9 +59,16 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       try {
         const result =
           resourceInfo.type === 'Secret'
-            ? await coreV1Api.readNamespacedSecret(resourceName, dashboardNamespace)
-            : await coreV1Api.readNamespacedConfigMap(resourceName, dashboardNamespace);
-        return { body: result.body };
+            ? await coreV1Api.readNamespacedSecret({
+                name: resourceName,
+                namespace: dashboardNamespace,
+              })
+            : await coreV1Api.readNamespacedConfigMap({
+                name: resourceName,
+                namespace: dashboardNamespace,
+              });
+        // Intentional wire shape: the frontend expects the resource wrapped in `body`.
+        return { body: result };
       } catch (e: any) {
         fastify.log.error(
           `Failed to fetch ${resourceInfo.type.toLowerCase()} ${resourceName}: ${e.message}`,

@@ -42,14 +42,19 @@ export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Pro
     // This is not actually fetching all the groups who have admin access to the notebook resources
     // But only the cluster admins
     // The "*" in the verb field is more like a placeholder
-    .createClusterCustomObject('authorization.openshift.io', 'v1', 'resourceaccessreviews', {
-      resource: 'notebooks',
-      resourceAPIGroup: 'kubeflow.org',
-      resourceAPIVersion: 'v1',
-      verb: '*',
-      namespace: workbenchNamespace,
+    .createClusterCustomObject({
+      group: 'authorization.openshift.io',
+      version: 'v1',
+      plural: 'resourceaccessreviews',
+      body: {
+        resource: 'notebooks',
+        resourceAPIGroup: 'kubeflow.org',
+        resourceAPIVersion: 'v1',
+        verb: '*',
+        namespace: workbenchNamespace,
+      },
     })
-    .then((rar) => rar.body as ResourceAccessReviewResponse)
+    .then((rar) => rar as ResourceAccessReviewResponse)
     .catch((e) => {
       fastify.log.error(`Failure to fetch cluster admin users and groups: ${e.response.body}`);
       return { users: [], groups: [] };

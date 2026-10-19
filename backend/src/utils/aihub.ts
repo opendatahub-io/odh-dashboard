@@ -72,13 +72,12 @@ export const getAIHubRouteError = (error?: unknown): ReturnType<typeof createCus
 
 export const fetchAIHub = async (fastify: KubeFastifyInstance): Promise<AIHubKind> => {
   try {
-    const response = await fastify.kube.customObjectsApi.getClusterCustomObject(
-      AIHUB_GROUP,
-      AIHUB_VERSION,
-      AIHUB_PLURAL,
-      AIHUB_NAME,
-    );
-    return response.body as AIHubKind;
+    return (await fastify.kube.customObjectsApi.getClusterCustomObject({
+      group: AIHUB_GROUP,
+      version: AIHUB_VERSION,
+      plural: AIHUB_PLURAL,
+      name: AIHUB_NAME,
+    })) as AIHubKind;
   } catch (error) {
     fastify.log.error({ statusCode: getAIHubErrorStatus(error) }, 'Failure to fetch AIHub');
     throw error;

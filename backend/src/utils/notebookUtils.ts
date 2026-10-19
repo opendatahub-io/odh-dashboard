@@ -21,16 +21,12 @@ import {
 } from '../types';
 import { getUserInfo, usernameTranslate } from './userUtils';
 import { createCustomError } from './requestUtils';
-import {
-  PatchUtils,
-  V1PersistentVolumeClaim,
-  V1Role,
-  V1RoleBinding,
-} from '@kubernetes/client-node';
+import { V1PersistentVolumeClaim, V1Role, V1RoleBinding } from '@kubernetes/client-node';
 import { DEFAULT_PVC_SIZE, IMAGE_ANNOTATIONS, MOUNT_PATH } from './constants';
 import { FastifyRequest } from 'fastify';
 import { verifyEnvVars } from './envUtils';
 import { smartMergeArraysWithNameObjects } from './objUtils';
+import { MERGE_PATCH } from './k8sClient';
 
 export const generateNotebookNameFromUsername = (username: string): string =>
   `jupyter-nb-${usernameTranslate(username)}`;
@@ -120,8 +116,8 @@ export const createRBAC = async (
     ],
   };
 
-  await fastify.kube.rbac.createNamespacedRole(namespace, notebookRole);
-  await fastify.kube.rbac.createNamespacedRoleBinding(namespace, notebookRoleBinding);
+  await fastify.kube.rbac.createNamespacedRole({ namespace, body: notebookRole });
+  await fastify.kube.rbac.createNamespacedRoleBinding({ namespace, body: notebookRoleBinding });
 };
 
 const getImageTag = (image: ImageInfo, imageTagName: string): ImageTag => {
@@ -317,17 +313,14 @@ export const getNotebooks = async (
   namespace: string,
   labels?: string,
 ): Promise<NotebookList> => {
-  const kubeResponse = await fastify.kube.customObjectsApi.listNamespacedCustomObject(
-    'kubeflow.org',
-    'v1',
+  const kubeResponse = await fastify.kube.customObjectsApi.listNamespacedCustomObject({
+    group: 'kubeflow.org',
+    version: 'v1',
     namespace,
-    'notebooks',
-    undefined,
-    undefined,
-    undefined,
-    labels,
-  );
-  return kubeResponse.body as NotebookList;
+    plural: 'notebooks',
+    labelSelector: labels,
+  });
+  return kubeResponse as NotebookList;
 };
 
 export const getNotebook = async (
@@ -335,14 +328,14 @@ export const getNotebook = async (
   namespace: string,
   name: string,
 ): Promise<Notebook> => {
-  const kubeResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
-    'kubeflow.org',
-    'v1',
+  const kubeResponse = await fastify.kube.customObjectsApi.getNamespacedCustomObject({
+    group: 'kubeflow.org',
+    version: 'v1',
     namespace,
-    'notebooks',
+    plural: 'notebooks',
     name,
-  );
-  return kubeResponse.body as Notebook;
+  });
+  return kubeResponse as Notebook;
 };
 
 export const stopNotebook = async (
@@ -361,21 +354,18 @@ export const stopNotebook = async (
   };
 
   const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-    'kubeflow.org',
-    'v1',
-    workbenchNamespace,
-    'notebooks',
-    name,
-    data,
-    undefined,
-    undefined,
-    undefined,
     {
-      headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+      group: 'kubeflow.org',
+      version: 'v1',
+      namespace: workbenchNamespace,
+      plural: 'notebooks',
+      name,
+      body: data,
     },
+    MERGE_PATCH,
   );
 
-  return response.body as Notebook;
+  return response as Notebook;
 };
 
 export const createNotebook = async (
@@ -428,14 +418,14 @@ export const createNotebook = async (
 
   let notebook: Notebook;
   try {
-    const response = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-      'kubeflow.org',
-      'v1',
-      notebookAssembled.metadata.namespace,
-      'notebooks',
-      notebookAssembled,
-    );
-    notebook = response.body as Notebook;
+    const response = await fastify.kube.customObjectsApi.createNamespacedCustomObject({
+      group: 'kubeflow.org',
+      version: 'v1',
+      namespace: notebookAssembled.metadata.namespace,
+      plural: 'notebooks',
+      body: notebookAssembled,
+    });
+    notebook = response as Notebook;
   } catch (e) {
     const error = e.response.body;
     const customError = createCustomError(
@@ -524,20 +514,17 @@ export const updateNotebook = async (
     );
 
     const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-      'kubeflow.org',
-      'v1',
-      notebookAssembled.metadata.namespace,
-      'notebooks',
-      notebookAssembled.metadata.name,
-      notebookAssembled,
-      undefined,
-      undefined,
-      undefined,
       {
-        headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
+        group: 'kubeflow.org',
+        version: 'v1',
+        namespace: notebookAssembled.metadata.namespace,
+        plural: 'notebooks',
+        name: notebookAssembled.metadata.name,
+        body: notebookAssembled,
       },
+      MERGE_PATCH,
     );
-    return response.body as Notebook;
+    return response as Notebook;
   } catch (e) {
     fastify.log.error(
       `Failed to update notebook resources, ${e.response?.body?.message || e.message}`,
@@ -569,7 +556,7 @@ const generateNotebookResources = async (
 
   // generate pvc
   try {
-    await fastify.kube.coreV1Api.readNamespacedPersistentVolumeClaim(pvcName, namespace);
+    await fastify.kube.coreV1Api.readNamespacedPersistentVolumeClaim({ name: pvcName, namespace });
   } catch (e) {
     if (e.statusCode === 404) {
       await createPvc(fastify, namespace, pvcName, notebookData.storageClassName);
@@ -604,11 +591,11 @@ const createPvc = async (
   const pvc = assemblePvc(pvcName, namespace, pvcSize, preferredStorageClassName);
 
   try {
-    const pvcResponse = await fastify.kube.coreV1Api.createNamespacedPersistentVolumeClaim(
+    const pvcResponse = await fastify.kube.coreV1Api.createNamespacedPersistentVolumeClaim({
       namespace,
-      pvc,
-    );
-    return pvcResponse.body;
+      body: pvc,
+    });
+    return pvcResponse;
   } catch (e) {
     throw Error(`PVC ${pvcName} could not be read, ${e.response?.body?.message || e.message || e}`);
   }
@@ -646,15 +633,15 @@ const assemblePvc = (
 
 const getImage = async (fastify: KubeFastifyInstance, imageName: string): Promise<ImageStream> => {
   return fastify.kube.customObjectsApi
-    .getNamespacedCustomObject(
-      'image.openshift.io',
-      'v1',
-      fastify.kube.namespace,
-      'imagestreams',
-      imageName,
-    )
+    .getNamespacedCustomObject({
+      group: 'image.openshift.io',
+      version: 'v1',
+      namespace: fastify.kube.namespace,
+      plural: 'imagestreams',
+      name: imageName,
+    })
     .then((res) => {
-      return res.body as ImageStream;
+      return res as ImageStream;
     });
 };
 
@@ -766,16 +753,13 @@ export const getRoute = async (
   routeName: string,
 ): Promise<RouteKind> => {
   const kubeResponse = await fastify.kube.customObjectsApi
-    .listNamespacedCustomObject(
-      'route.openshift.io',
-      'v1',
+    .listNamespacedCustomObject({
+      group: 'route.openshift.io',
+      version: 'v1',
       namespace,
-      'routes',
-      undefined,
-      undefined,
-      undefined,
-      `notebook-name=${routeName}`,
-    )
+      plural: 'routes',
+      labelSelector: `notebook-name=${routeName}`,
+    })
     .catch((res) => {
       const e = res.response.body;
       const error = createCustomError('Error listing Routes', e.message, e.code);
@@ -783,7 +767,7 @@ export const getRoute = async (
       throw error;
     });
 
-  const routes = (kubeResponse.body as KubeResponseBody<RouteKind>)?.items ?? [];
+  const routes = (kubeResponse as KubeResponseBody<RouteKind>)?.items ?? [];
   const matched = routes.find(
     (r: RouteKind) => r?.metadata?.labels?.['notebook-name'] === routeName,
   );

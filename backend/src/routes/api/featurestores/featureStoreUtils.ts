@@ -5,6 +5,7 @@ import { KubeFastifyInstance } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
 import { isImpersonating, getImpersonateAccessToken } from '../../../devFlags';
 import { getAccessToken } from '../../../utils/directCallUtils';
+import { createK8sApiClient } from '../../../utils/k8sClient';
 
 const REGISTRY_CONDITION_TYPE = 'Registry';
 
@@ -110,10 +111,7 @@ function getUserScopedCustomObjectsApi(
   const userKc = new k8s.KubeConfig();
   userKc.loadFromClusterAndUser(cluster, { name: 'current-user', token });
 
-  return {
-    api: userKc.makeApiClient(k8s.CustomObjectsApi),
-    opts: { headers: {} },
-  };
+  return createK8sApiClient(userKc, k8s.CustomObjectsApi);
 }
 
 /** Lists custom objects cluster-wide or namespace-scoped using the user's token. Returns [] on 403. */
@@ -130,41 +128,16 @@ async function listCustomObjects<T>(
   },
 ): Promise<T[]> {
   try {
-    const { api, opts } = getUserScopedCustomObjectsApi(fastify, kubeHeaders);
+    const api = getUserScopedCustomObjectsApi(fastify, kubeHeaders);
     const { group, version, plural, namespace, labelSelector } = params;
 
-    const response = namespace
-      ? ((await api.listNamespacedCustomObject(
-          group,
-          version,
-          namespace,
-          plural,
-          undefined,
-          undefined,
-          undefined,
-          labelSelector,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          opts,
-        )) as { body: { items?: T[] } })
-      : ((await api.listClusterCustomObject(
-          group,
-          version,
-          plural,
-          undefined,
-          undefined,
-          undefined,
-          labelSelector,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          opts,
-        )) as { body: { items?: T[] } });
+    const response = (
+      namespace
+        ? await api.listNamespacedCustomObject({ group, version, namespace, plural, labelSelector })
+        : await api.listClusterCustomObject({ group, version, plural, labelSelector })
+    ) as { items?: T[] };
 
-    return response.body.items || [];
+    return response.items || [];
   } catch (error) {
     const statusCode =
       error && typeof error === 'object' && 'statusCode' in error
@@ -419,18 +392,15 @@ export async function getFeastFeatureStoreCRD(
   kubeHeaders: Record<string, string>,
 ): Promise<FeatureStoreCRD | null> {
   try {
-    const { api, opts } = getUserScopedCustomObjectsApi(fastify, kubeHeaders);
+    const api = getUserScopedCustomObjectsApi(fastify, kubeHeaders);
 
-    const response = (await api.getNamespacedCustomObject(
-      'feast.dev',
-      'v1',
+    return (await api.getNamespacedCustomObject({
+      group: 'feast.dev',
+      version: 'v1',
       namespace,
-      'featurestores',
+      plural: 'featurestores',
       name,
-      opts,
-    )) as { body: FeatureStoreCRD };
-
-    return response.body;
+    })) as FeatureStoreCRD;
   } catch (error) {
     const statusCode =
       error && typeof error === 'object' && 'statusCode' in error

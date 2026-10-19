@@ -5,20 +5,21 @@ import * as jsYaml from 'js-yaml';
 import * as k8s from '@kubernetes/client-node';
 import { errorHandler, isKubeFastifyInstance } from '../utils';
 import { DEV_MODE } from '../utils/constants';
+import { applyE2EProxyFromEnv, createK8sApiClient } from '../utils/k8sClient';
 import { cleanupKserveRoleBindings, initializeWatchedResources } from '../utils/resourceUtils';
 
 const CONSOLE_CONFIG_YAML_FIELD = 'console-config.yaml';
 
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
+applyE2EProxyFromEnv(kc);
 
 const currentContext = kc.getCurrentContext();
-const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);
-const coreV1Api = kc.makeApiClient(k8s.CoreV1Api);
-const batchV1Api = kc.makeApiClient(k8s.BatchV1Api);
-const batchV1beta1Api = kc.makeApiClient(k8s.BatchV1beta1Api);
+const customObjectsApi = createK8sApiClient(kc, k8s.CustomObjectsApi);
+const coreV1Api = createK8sApiClient(kc, k8s.CoreV1Api);
+const batchV1Api = createK8sApiClient(kc, k8s.BatchV1Api);
 const currentUser = kc.getCurrentUser();
-const rbac = kc.makeApiClient(k8s.RbacAuthorizationV1Api);
+const rbac = createK8sApiClient(kc, k8s.RbacAuthorizationV1Api);
 
 export default fp(async (fastify: FastifyInstance) => {
   let namespace;
@@ -38,21 +39,22 @@ export default fp(async (fastify: FastifyInstance) => {
 
   let clusterID;
   try {
-    const clusterVersion = await customObjectsApi.getClusterCustomObject(
-      'config.openshift.io',
-      'v1',
-      'clusterversions',
-      'version',
-    );
-    clusterID = (clusterVersion.body as { spec: { clusterID: string } }).spec.clusterID;
+    const clusterVersion = await customObjectsApi.getClusterCustomObject({
+      group: 'config.openshift.io',
+      version: 'v1',
+      plural: 'clusterversions',
+      name: 'version',
+    });
+    clusterID = (clusterVersion as { spec: { clusterID: string } }).spec.clusterID;
   } catch (e) {
     fastify.log.error(e, `Failed to retrieve cluster id: ${errorHandler(e)}.`);
   }
   let clusterBranding = 'okd';
   try {
-    const consoleConfig = await coreV1Api
-      .readNamespacedConfigMap('console-config', 'openshift-console')
-      .then((result) => result.body);
+    const consoleConfig = await coreV1Api.readNamespacedConfigMap({
+      name: 'console-config',
+      namespace: 'openshift-console',
+    });
     if (consoleConfig.data?.[CONSOLE_CONFIG_YAML_FIELD]) {
       const consoleConfigData = jsYaml.load(consoleConfig.data[CONSOLE_CONFIG_YAML_FIELD]) as any;
       clusterBranding = consoleConfigData.customization?.branding || 'okd';
@@ -71,7 +73,6 @@ export default fp(async (fastify: FastifyInstance) => {
     currentContext,
     namespace,
     coreV1Api,
-    batchV1beta1Api,
     batchV1Api,
     customObjectsApi,
     currentUser,

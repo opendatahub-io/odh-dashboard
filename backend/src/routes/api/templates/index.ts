@@ -1,8 +1,8 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { PatchUtils } from '@kubernetes/client-node';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { KubeFastifyInstance, Template } from '../../../types';
 import { secureAdminRoute } from '../../../utils/route-security';
+import { JSON_PATCH } from '../../../utils/k8sClient';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
@@ -14,14 +14,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       ) => {
         const { namespace, name } = request.params;
         try {
-          const response = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
-            'template.openshift.io',
-            'v1',
+          return await fastify.kube.customObjectsApi.getNamespacedCustomObject({
+            group: 'template.openshift.io',
+            version: 'v1',
             namespace,
-            'templates',
+            plural: 'templates',
             name,
-          );
-          return response.body;
+          });
         } catch (e) {
           fastify.log.error(
             `Template ${name} could not be read, ${e.response?.body?.message || e.message}`,
@@ -45,17 +44,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { namespace } = request.params;
         const { labelSelector } = request.query;
         try {
-          const response = await fastify.kube.customObjectsApi.listNamespacedCustomObject(
-            'template.openshift.io',
-            'v1',
+          return await fastify.kube.customObjectsApi.listNamespacedCustomObject({
+            group: 'template.openshift.io',
+            version: 'v1',
             namespace,
-            'templates',
-            undefined,
-            undefined,
-            undefined,
+            plural: 'templates',
             labelSelector,
-          );
-          return response.body;
+          });
         } catch (e) {
           fastify.log.error(
             `Templates could not be listed, ${e.response?.body?.message || e.message}`,
@@ -79,16 +74,14 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const { dryRun } = request.query;
         const template = request.body;
         try {
-          const response = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-            'template.openshift.io',
-            'v1',
-            template.metadata.namespace,
-            'templates',
-            template,
-            undefined,
+          return await fastify.kube.customObjectsApi.createNamespacedCustomObject({
+            group: 'template.openshift.io',
+            version: 'v1',
+            namespace: template.metadata.namespace,
+            plural: 'templates',
+            body: template,
             dryRun,
-          );
-          return response.body;
+          });
         } catch (e) {
           fastify.log.error(
             `Template ${template.metadata.name} could not be created, ${
@@ -111,24 +104,19 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         }>,
         reply: FastifyReply,
       ) => {
-        const options = {
-          headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_PATCH },
-        };
         const { namespace, name } = request.params;
         try {
-          const response = await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-            'template.openshift.io',
-            'v1',
-            namespace,
-            'templates',
-            name,
-            request.body,
-            undefined,
-            undefined,
-            undefined,
-            options,
+          return await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
+            {
+              group: 'template.openshift.io',
+              version: 'v1',
+              namespace,
+              plural: 'templates',
+              name,
+              body: request.body,
+            },
+            JSON_PATCH,
           );
-          return response.body;
         } catch (e) {
           fastify.log.error(
             `Template ${name} could not be modified, ${e.response?.body?.message || e.message}`,
@@ -148,14 +136,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       ) => {
         const { namespace, name } = request.params;
         try {
-          const response = await fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
-            'template.openshift.io',
-            'v1',
+          return await fastify.kube.customObjectsApi.deleteNamespacedCustomObject({
+            group: 'template.openshift.io',
+            version: 'v1',
             namespace,
-            'templates',
+            plural: 'templates',
             name,
-          );
-          return response.body;
+          });
         } catch (e) {
           fastify.log.error(
             `Template ${name} could not be deleted, ${e.response?.body?.message || e.message}`,

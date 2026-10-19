@@ -10,8 +10,12 @@ export const fetchClusterStatus = async (
   fastify: KubeFastifyInstance,
 ): Promise<DataScienceClusterKindStatus> => {
   const result: DataScienceClusterKind | null = await fastify.kube.customObjectsApi
-    .listClusterCustomObject('datasciencecluster.opendatahub.io', 'v2', 'datascienceclusters')
-    .then((res) => (res.body as DataScienceClusterList).items[0])
+    .listClusterCustomObject({
+      group: 'datasciencecluster.opendatahub.io',
+      version: 'v2',
+      plural: 'datascienceclusters',
+    })
+    .then((res) => (res as DataScienceClusterList).items[0])
     .catch((e) => {
       fastify.log.error(`Failure to fetch dsc: ${e.response.body}`);
       return null;

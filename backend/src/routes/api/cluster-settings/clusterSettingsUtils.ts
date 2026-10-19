@@ -2,6 +2,7 @@ import { FastifyRequest } from 'fastify';
 import { V1ConfigMap } from '@kubernetes/client-node';
 import { errorHandler, isHttpError } from '../../../utils';
 import { rolloutDeployment } from '../../../utils/deployment';
+import { MERGE_PATCH } from '../../../utils/k8sClient';
 import { KubeFastifyInstance, ClusterSettings, OauthFastifyRequest } from '../../../types';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { setDashboardConfig } from '../config/configUtils';
@@ -115,9 +116,9 @@ export const updateClusterSettings = async (
 
       let currentCullerTimeout = DEFAULT_CULLER_TIMEOUT;
       try {
-        const cullerRes = await coreV1Api.readNamespacedConfigMap(nbcCfg, namespace);
-        if (cullerRes.body.data?.ENABLE_CULLING === 'true') {
-          currentCullerTimeout = Number(cullerRes.body.data?.CULL_IDLE_TIME || 0) * 60;
+        const cullerRes = await coreV1Api.readNamespacedConfigMap({ name: nbcCfg, namespace });
+        if (cullerRes.data?.ENABLE_CULLING === 'true') {
+          currentCullerTimeout = Number(cullerRes.data?.CULL_IDLE_TIME || 0) * 60;
         }
       } catch (e) {
         if (isHttpError(e) && e.response.statusCode === 404) {
@@ -150,9 +151,11 @@ export const updateClusterSettings = async (
         isEnabled = false;
       }
       if (!isEnabled) {
-        await coreV1Api.deleteNamespacedConfigMap(nbcCfg, fastify.kube.namespace).catch((e) => {
-          fastify.log.error(`Failed to delete culler config: ${e.message}`);
-        });
+        await coreV1Api
+          .deleteNamespacedConfigMap({ name: nbcCfg, namespace: fastify.kube.namespace })
+          .catch((e) => {
+            fastify.log.error(`Failed to delete culler config: ${e.message}`);
+          });
       } else {
         await patchCM(fastify, nbcCfg, {
           data: { ENABLE_CULLING: String(isEnabled), CULL_IDLE_TIME: String(cullingTimeMin) },
@@ -173,7 +176,10 @@ export const updateClusterSettings = async (
                 IDLENESS_CHECK_PERIOD: DEFAULT_IDLENESS_CHECK_PERIOD, //In minutes
               },
             };
-            await fastify.kube.coreV1Api.createNamespacedConfigMap(fastify.kube.namespace, cm);
+            await fastify.kube.coreV1Api.createNamespacedConfigMap({
+              namespace: fastify.kube.namespace,
+              body: cm,
+            });
           } else {
             fastify.log.error(`Failed to patch culler config: ${e.message}`);
           }
@@ -227,9 +233,11 @@ export const getClusterSettings = async (
 
   if (!dashConfig.spec.dashboardConfig.disableTracking) {
     try {
-      const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap(segmentKeyCfg, namespace);
-      clusterSettings.userTrackingEnabled =
-        segmentEnabledRes.body.data?.segmentKeyEnabled === 'true';
+      const segmentEnabledRes = await coreV1Api.readNamespacedConfigMap({
+        name: segmentKeyCfg,
+        namespace,
+      });
+      clusterSettings.userTrackingEnabled = segmentEnabledRes.data?.segmentKeyEnabled === 'true';
     } catch (e) {
       fastify.log.error(e, 'Error retrieving segment key enabled.');
     }
@@ -241,10 +249,10 @@ export const getClusterSettings = async (
   }
   clusterSettings.cullerTimeout = DEFAULT_CULLER_TIMEOUT;
   await fastify.kube.coreV1Api
-    .readNamespacedConfigMap(nbcCfg, fastify.kube.namespace)
+    .readNamespacedConfigMap({ name: nbcCfg, namespace: fastify.kube.namespace })
     .then((res) => {
-      const cullerTimeout = res.body.data?.CULL_IDLE_TIME;
-      const isEnabled = Boolean(res.body.data?.ENABLE_CULLING);
+      const cullerTimeout = res.data?.CULL_IDLE_TIME;
+      const isEnabled = Boolean(res.data?.ENABLE_CULLING);
       if (isEnabled) {
         clusterSettings.cullerTimeout = Number(cullerTimeout) * 60; //minutes to seconds;
       }
@@ -266,19 +274,8 @@ const patchCM = async (
   name: string,
   patch: Partial<V1ConfigMap>,
 ): Promise<V1ConfigMap> => {
-  const response = await fastify.kube.coreV1Api.patchNamespacedConfigMap(
-    name,
-    fastify.kube.namespace,
-    patch,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    {
-      headers: {
-        'Content-Type': 'application/merge-patch+json',
-      },
-    },
+  return fastify.kube.coreV1Api.patchNamespacedConfigMap(
+    { name, namespace: fastify.kube.namespace, body: patch },
+    MERGE_PATCH,
   );
-  return response.body;
 };

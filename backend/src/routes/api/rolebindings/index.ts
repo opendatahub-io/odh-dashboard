@@ -14,14 +14,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const rbName = request.params.name;
         const rbNamespace = request.params.namespace;
         try {
-          const response = await fastify.kube.customObjectsApi.getNamespacedCustomObject(
-            'rbac.authorization.k8s.io',
-            'v1',
-            rbNamespace,
-            'rolebindings',
-            rbName,
-          );
-          return response.body;
+          return await fastify.kube.customObjectsApi.getNamespacedCustomObject({
+            group: 'rbac.authorization.k8s.io',
+            version: 'v1',
+            namespace: rbNamespace,
+            plural: 'rolebindings',
+            name: rbName,
+          });
         } catch (e) {
           fastify.log.error(
             `rolebinding ${rbName} could not be read, ${e.response?.body?.message || e.message}`,
@@ -58,14 +57,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         ],
       };
       try {
-        const response = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-          'rbac.authorization.k8s.io',
-          'v1',
-          dashboardNamespace,
-          'rolebindings',
-          roleBindingObject,
-        );
-        return response.body;
+        return await fastify.kube.customObjectsApi.createNamespacedCustomObject({
+          group: 'rbac.authorization.k8s.io',
+          version: 'v1',
+          namespace: dashboardNamespace,
+          plural: 'rolebindings',
+          body: roleBindingObject,
+        });
       } catch (e) {
         if (e.response?.statusCode === 409) {
           fastify.log.warn(`Rolebinding already present, skipping creation.`);

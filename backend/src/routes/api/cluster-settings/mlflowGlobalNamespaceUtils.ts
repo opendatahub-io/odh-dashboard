@@ -5,9 +5,9 @@ import { setDashboardConfig } from '../config/configUtils';
 import {
   checkAdminNamespacePermission,
   ensureNamespaceAccessPermission,
-  MERGE_PATCH_OPTIONS,
   validateNotSystemNamespace,
 } from '../namespaces/namespaceUtils';
+import { MERGE_PATCH } from '../../../utils/k8sClient';
 
 export const GLOBAL_MLFLOW_LABEL_KEY = KnownLabels.GLOBAL_MLFLOW_WORKSPACE;
 // Once we support multiple MLflow instances per namespace, this should
@@ -30,7 +30,7 @@ const validateNamespace = async (fastify: KubeFastifyInstance, name: string): Pr
   validateNotSystemNamespace(name);
 
   try {
-    await fastify.kube.coreV1Api.readNamespace(name);
+    await fastify.kube.coreV1Api.readNamespace({ name });
   } catch (e) {
     if (isNamespaceNotFound(e)) {
       throw createCustomError('Namespace not found', `Namespace "${name}" does not exist`, 404);
@@ -53,13 +53,11 @@ const applyGlobalMLflowLabel = async (
 ): Promise<void> => {
   try {
     await fastify.kube.coreV1Api.patchNamespace(
-      name,
-      { metadata: { labels: { [GLOBAL_MLFLOW_LABEL_KEY]: GLOBAL_MLFLOW_CR_NAME } } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      MERGE_PATCH_OPTIONS,
+      {
+        name,
+        body: { metadata: { labels: { [GLOBAL_MLFLOW_LABEL_KEY]: GLOBAL_MLFLOW_CR_NAME } } },
+      },
+      MERGE_PATCH,
     );
   } catch (e) {
     if (isNamespaceNotFound(e)) {
@@ -94,13 +92,8 @@ const removeGlobalMLflowLabel = async (
 ): Promise<string | null> => {
   try {
     await fastify.kube.coreV1Api.patchNamespace(
-      name,
-      { metadata: { labels: { [GLOBAL_MLFLOW_LABEL_KEY]: null } } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      MERGE_PATCH_OPTIONS,
+      { name, body: { metadata: { labels: { [GLOBAL_MLFLOW_LABEL_KEY]: null } } } },
+      MERGE_PATCH,
     );
     return null;
   } catch (e) {

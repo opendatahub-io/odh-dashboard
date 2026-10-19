@@ -1,7 +1,8 @@
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { KubeFastifyInstance, ModelRegistryKind } from '../../../types';
-import { PatchUtils, V1ConfigMap, V1Secret, V1Status } from '@kubernetes/client-node';
+import { V1ConfigMap, V1Secret, V1Status } from '@kubernetes/client-node';
 import { getAIHub } from '../../../utils/resourceUtils';
+import { MERGE_PATCH } from '../../../utils/k8sClient';
 
 const MODEL_REGISTRY_API_GROUP = 'modelregistry.opendatahub.io';
 const MODEL_REGISTRY_API_VERSION = 'v1beta1';
@@ -41,18 +42,14 @@ export const listModelRegistries = async (
   modelRegistryNamespace: string,
   labelSelector?: string,
 ): Promise<{ items: ModelRegistryKind[] }> => {
-  const response = await (fastify.kube.customObjectsApi.listNamespacedCustomObject(
-    MODEL_REGISTRY_API_GROUP,
-    MODEL_REGISTRY_API_VERSION,
-    modelRegistryNamespace,
-    MODEL_REGISTRY_PLURAL,
-    undefined,
-    undefined,
-    undefined,
+  // listNamespacedCustomObject doesn't support TS generics and returns `any`, so we assert its real type
+  return (await fastify.kube.customObjectsApi.listNamespacedCustomObject({
+    group: MODEL_REGISTRY_API_GROUP,
+    version: MODEL_REGISTRY_API_VERSION,
+    namespace: modelRegistryNamespace,
+    plural: MODEL_REGISTRY_PLURAL,
     labelSelector,
-    // listNamespacedCustomObject doesn't support TS generics and returns body as `object`, so we assert its real type
-  ) as Promise<{ body: { items: ModelRegistryKind[] } }>);
-  return response.body;
+  })) as { items: ModelRegistryKind[] };
 };
 
 const createDatabasePasswordSecret = async (
@@ -85,13 +82,11 @@ const createDatabasePasswordSecret = async (
     },
     type: 'Opaque',
   };
-  const response = await fastify.kube.coreV1Api.createNamespacedSecret(
-    modelRegistryNamespace,
-    secret,
-    undefined,
-    dryRun ? 'All' : undefined,
-  );
-  return response.body;
+  return fastify.kube.coreV1Api.createNamespacedSecret({
+    namespace: modelRegistryNamespace,
+    body: secret,
+    dryRun: dryRun ? 'All' : undefined,
+  });
 };
 
 const createModelRegistry = async (
@@ -118,17 +113,15 @@ const createModelRegistry = async (
           },
         }
       : modelRegistry;
-  const response = await (fastify.kube.customObjectsApi.createNamespacedCustomObject(
-    MODEL_REGISTRY_API_GROUP,
-    MODEL_REGISTRY_API_VERSION,
-    modelRegistryNamespace,
-    MODEL_REGISTRY_PLURAL,
-    modelRegistryWithSecretRef,
-    undefined,
-    dryRun ? 'All' : undefined,
-    // createNamespacedCustomObject doesn't support TS generics and returns body as `object`, so we assert its real type
-  ) as Promise<{ body: ModelRegistryKind }>);
-  return response.body;
+  // createNamespacedCustomObject doesn't support TS generics and returns `any`, so we assert its real type
+  return (await fastify.kube.customObjectsApi.createNamespacedCustomObject({
+    group: MODEL_REGISTRY_API_GROUP,
+    version: MODEL_REGISTRY_API_VERSION,
+    namespace: modelRegistryNamespace,
+    plural: MODEL_REGISTRY_PLURAL,
+    body: modelRegistryWithSecretRef,
+    dryRun: dryRun ? 'All' : undefined,
+  })) as ModelRegistryKind;
 };
 
 const createConfigMapForCACertficate = async (
@@ -144,9 +137,7 @@ const createConfigMapForCACertficate = async (
     },
     data: { 'ca.crt': newDatabaseCACertificate },
   };
-  return await fastify.kube.coreV1Api
-    .createNamespacedConfigMap(namespace, body)
-    .then((response) => response.body);
+  return await fastify.kube.coreV1Api.createNamespacedConfigMap({ namespace, body });
 };
 
 export const createModelRegistryAndCredentials = async (
@@ -203,15 +194,14 @@ export const getModelRegistry = async (
   modelRegistryName: string,
   modelRegistryNamespace: string,
 ): Promise<ModelRegistryKind> => {
-  const response = await (fastify.kube.customObjectsApi.getNamespacedCustomObject(
-    MODEL_REGISTRY_API_GROUP,
-    MODEL_REGISTRY_API_VERSION,
-    modelRegistryNamespace,
-    MODEL_REGISTRY_PLURAL,
-    modelRegistryName,
-    // getNamespacedCustomObject doesn't support TS generics and returns body as `object`, so we assert its real type
-  ) as Promise<{ body: ModelRegistryKind }>);
-  return response.body;
+  // getNamespacedCustomObject doesn't support TS generics and returns `any`, so we assert its real type
+  return (await fastify.kube.customObjectsApi.getNamespacedCustomObject({
+    group: MODEL_REGISTRY_API_GROUP,
+    version: MODEL_REGISTRY_API_VERSION,
+    namespace: modelRegistryNamespace,
+    plural: MODEL_REGISTRY_PLURAL,
+    name: modelRegistryName,
+  })) as ModelRegistryKind;
 };
 
 const getDatabasePasswordSecret = async (
@@ -223,11 +213,11 @@ const getDatabasePasswordSecret = async (
   if (!secretRef) {
     return {};
   }
-  const response = await fastify.kube.coreV1Api.readNamespacedSecret(
-    secretRef.name,
-    modelRegistryNamespace,
-  );
-  return { secret: response.body, passwordDataKey: secretRef.key };
+  const secret = await fastify.kube.coreV1Api.readNamespacedSecret({
+    name: secretRef.name,
+    namespace: modelRegistryNamespace,
+  });
+  return { secret, passwordDataKey: secretRef.key };
 };
 
 export const getDatabasePassword = async (
@@ -263,13 +253,11 @@ const deleteDatabasePasswordSecret = async (
   if (!existingSecret) {
     return;
   }
-  const response = await fastify.kube.coreV1Api.deleteNamespacedSecret(
-    existingSecret.metadata.name,
-    modelRegistryNamespace,
-    undefined,
-    dryRun ? 'All' : undefined,
-  );
-  return response.body;
+  return fastify.kube.coreV1Api.deleteNamespacedSecret({
+    name: existingSecret.metadata.name,
+    namespace: modelRegistryNamespace,
+    dryRun: dryRun ? 'All' : undefined,
+  });
 };
 
 const patchModelRegistry = async (
@@ -279,20 +267,19 @@ const patchModelRegistry = async (
   patchBody: RecursivePartial<ModelRegistryKind>,
   dryRun = false,
 ): Promise<ModelRegistryKind> => {
-  const response = await (fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-    MODEL_REGISTRY_API_GROUP,
-    MODEL_REGISTRY_API_VERSION,
-    modelRegistryNamespace,
-    MODEL_REGISTRY_PLURAL,
-    modelRegistryName,
-    patchBody,
-    dryRun ? 'All' : undefined,
-    undefined,
-    undefined,
-    { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH } },
-    // patchNamespacedCustomObject doesn't support TS generics and returns body as `object`, so we assert its real type
-  ) as Promise<{ body: ModelRegistryKind }>);
-  return response.body;
+  // patchNamespacedCustomObject doesn't support TS generics and returns `any`, so we assert its real type
+  return (await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
+    {
+      group: MODEL_REGISTRY_API_GROUP,
+      version: MODEL_REGISTRY_API_VERSION,
+      namespace: modelRegistryNamespace,
+      plural: MODEL_REGISTRY_PLURAL,
+      name: modelRegistryName,
+      body: patchBody,
+      dryRun: dryRun ? 'All' : undefined,
+    },
+    MERGE_PATCH,
+  )) as ModelRegistryKind;
 };
 
 const updateDatabasePassword = async (
@@ -312,19 +299,18 @@ const updateDatabasePassword = async (
   }
   if (databasePassword) {
     await fastify.kube.coreV1Api.patchNamespacedSecret(
-      secret.metadata.name,
-      modelRegistryNamespace,
       {
-        data: {
-          ...secret.data,
-          [passwordDataKey]: base64encode(databasePassword),
+        name: secret.metadata.name,
+        namespace: modelRegistryNamespace,
+        body: {
+          data: {
+            ...secret.data,
+            [passwordDataKey]: base64encode(databasePassword),
+          },
         },
+        dryRun: dryRun ? 'All' : undefined,
       },
-      undefined,
-      dryRun ? 'All' : undefined,
-      undefined,
-      undefined,
-      { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH } },
+      MERGE_PATCH,
     );
   } else {
     await deleteDatabasePasswordSecret(fastify, modelRegistry, modelRegistryNamespace);
@@ -392,19 +378,16 @@ export const deleteModelRegistryAndSecret = async (
 ): Promise<V1Status> => {
   const modelRegistry = await getModelRegistry(fastify, modelRegistryName, modelRegistryNamespace);
   const deleteBoth = async (dryRun = false) => {
-    const response = await fastify.kube.customObjectsApi.deleteNamespacedCustomObject(
-      MODEL_REGISTRY_API_GROUP,
-      MODEL_REGISTRY_API_VERSION,
-      modelRegistryNamespace,
-      MODEL_REGISTRY_PLURAL,
-      modelRegistryName,
-      undefined,
-      undefined,
-      undefined,
-      dryRun ? 'All' : undefined,
-    );
+    const response = await fastify.kube.customObjectsApi.deleteNamespacedCustomObject({
+      group: MODEL_REGISTRY_API_GROUP,
+      version: MODEL_REGISTRY_API_VERSION,
+      namespace: modelRegistryNamespace,
+      plural: MODEL_REGISTRY_PLURAL,
+      name: modelRegistryName,
+      dryRun: dryRun ? 'All' : undefined,
+    });
     await deleteDatabasePasswordSecret(fastify, modelRegistry, modelRegistryNamespace);
-    return response.body;
+    return response as V1Status;
   };
   // Dry run both deletes first so there are no changes if either would fail
   const dryRunResult = await deleteBoth(true);

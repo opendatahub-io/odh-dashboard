@@ -1,26 +1,22 @@
-import { PatchUtils } from '@kubernetes/client-node';
 import { getDashboardConfig, updateDashboardConfig } from '../../../utils/resourceUtils';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { KubeFastifyInstance, DashboardConfig } from '../../../types';
+import { MERGE_PATCH } from '../../../utils/k8sClient';
 
 export const setDashboardConfig = async (
   fastify: KubeFastifyInstance,
   request: RecursivePartial<DashboardConfig>,
 ): Promise<DashboardConfig> => {
-  const options = {
-    headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH },
-  };
   await fastify.kube.customObjectsApi.patchNamespacedCustomObject(
-    'opendatahub.io',
-    'v1alpha',
-    fastify.kube.namespace,
-    'odhdashboardconfigs',
-    'odh-dashboard-config',
-    request,
-    undefined,
-    undefined,
-    undefined,
-    options,
+    {
+      group: 'opendatahub.io',
+      version: 'v1alpha',
+      namespace: fastify.kube.namespace,
+      plural: 'odhdashboardconfigs',
+      name: 'odh-dashboard-config',
+      body: request,
+    },
+    MERGE_PATCH,
   );
   await updateDashboardConfig();
   return getDashboardConfig();

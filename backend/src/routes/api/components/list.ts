@@ -48,8 +48,7 @@ export const removeComponent = async (
   const { namespace } = fastify.kube;
   try {
     const enabledAppsCM = await coreV1Api
-      .readNamespacedConfigMap(enabledAppsConfigMapName ?? '', namespace)
-      .then((result) => result.body)
+      .readNamespacedConfigMap({ name: enabledAppsConfigMapName ?? '', namespace })
       .catch(() => {
         throw new Error('Error fetching applications shown on enabled page');
       });
@@ -64,7 +63,11 @@ export const removeComponent = async (
       },
       data: enabledAppsCMData,
     };
-    await coreV1Api.replaceNamespacedConfigMap(enabledAppsConfigMapName ?? '', namespace, cmBody);
+    await coreV1Api.replaceNamespacedConfigMap({
+      name: enabledAppsConfigMapName ?? '',
+      namespace,
+      body: cmBody,
+    });
     await updateApplications();
     return { success: true, error: '' };
   } catch (e) {

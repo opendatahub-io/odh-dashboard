@@ -14,21 +14,22 @@ export const getSecret = (
   namespace: string,
   name: string,
 ): Promise<V1Secret> => {
-  return fastify.kube.coreV1Api
-    .readNamespacedSecret(name, namespace)
-    .then((response) => response.body);
+  return fastify.kube.coreV1Api.readNamespacedSecret({ name, namespace });
 };
 
 const createSecret = (fastify: KubeFastifyInstance, secret: V1Secret): Promise<V1Secret> => {
-  return fastify.kube.coreV1Api
-    .createNamespacedSecret(secret.metadata?.namespace, secret)
-    .then((response) => response.body);
+  return fastify.kube.coreV1Api.createNamespacedSecret({
+    namespace: secret.metadata?.namespace,
+    body: secret,
+  });
 };
 
 const updateSecret = (fastify: KubeFastifyInstance, secret: V1Secret): Promise<V1Secret> => {
-  return fastify.kube.coreV1Api
-    .replaceNamespacedSecret(secret.metadata?.name, secret.metadata?.namespace, secret)
-    .then((response) => response.body);
+  return fastify.kube.coreV1Api.replaceNamespacedSecret({
+    name: secret.metadata?.name,
+    namespace: secret.metadata?.namespace,
+    body: secret,
+  });
 };
 
 export const getConfigMap = (
@@ -36,27 +37,28 @@ export const getConfigMap = (
   namespace: string,
   name: string,
 ): Promise<V1ConfigMap> => {
-  return fastify.kube.coreV1Api
-    .readNamespacedConfigMap(name, namespace)
-    .then((response) => response.body);
+  return fastify.kube.coreV1Api.readNamespacedConfigMap({ name, namespace });
 };
 
 const createConfigMap = (
   fastify: KubeFastifyInstance,
   secret: V1ConfigMap,
 ): Promise<V1ConfigMap> => {
-  return fastify.kube.coreV1Api
-    .createNamespacedConfigMap(secret.metadata?.namespace, secret)
-    .then((response) => response.body);
+  return fastify.kube.coreV1Api.createNamespacedConfigMap({
+    namespace: secret.metadata?.namespace,
+    body: secret,
+  });
 };
 
 const updateConfigMap = (
   fastify: KubeFastifyInstance,
   secret: V1ConfigMap,
 ): Promise<V1ConfigMap> => {
-  return fastify.kube.coreV1Api
-    .replaceNamespacedConfigMap(secret.metadata?.name, secret.metadata?.namespace, secret)
-    .then((response) => response.body);
+  return fastify.kube.coreV1Api.replaceNamespacedConfigMap({
+    name: secret.metadata?.name,
+    namespace: secret.metadata?.namespace,
+    body: secret,
+  });
 };
 
 export const verifyEnvVars = async (

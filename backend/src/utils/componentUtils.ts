@@ -1,11 +1,7 @@
-import { IncomingMessage } from 'http';
 import { KubeFastifyInstance, RouteKind } from '../types';
 
 type RoutesResponse = {
-  body: {
-    items: RouteKind[];
-  };
-  response: IncomingMessage;
+  items: RouteKind[];
 };
 
 export const getRouteForClusterId = (fastify: KubeFastifyInstance, route: string): string =>
@@ -35,8 +31,14 @@ export const getLink = async (
   }
   try {
     const route = await customObjectsApi
-      .getNamespacedCustomObject('route.openshift.io', 'v1', routeNamespace, 'routes', routeName)
-      .then((res) => res.body as RouteKind);
+      .getNamespacedCustomObject({
+        group: 'route.openshift.io',
+        version: 'v1',
+        namespace: routeNamespace,
+        plural: 'routes',
+        name: routeName,
+      })
+      .then((res) => res as RouteKind);
     return getURLForRoute(route, routeSuffix);
   } catch (e) {
     fastify.log.info(`failed to get route ${routeName} in namespace ${namespace}`);
@@ -52,12 +54,10 @@ export const getServiceLink = async (
   if (!serviceName) {
     return null;
   }
-  const res = await fastify.kube.coreV1Api.listServiceForAllNamespaces(
-    undefined,
-    undefined,
-    `metadata.name=${serviceName}`,
-  );
-  const service = res?.body.items?.[0];
+  const res = await fastify.kube.coreV1Api.listServiceForAllNamespaces({
+    fieldSelector: `metadata.name=${serviceName}`,
+  });
+  const service = res?.items?.[0];
   if (!service) {
     return null;
   }
@@ -66,8 +66,13 @@ export const getServiceLink = async (
   const { namespace } = service.metadata;
   try {
     const routes = await customObjectsApi
-      .listNamespacedCustomObject('route.openshift.io', 'v1', namespace, 'routes')
-      .then((res: RoutesResponse) => res?.body?.items);
+      .listNamespacedCustomObject({
+        group: 'route.openshift.io',
+        version: 'v1',
+        namespace,
+        plural: 'routes',
+      })
+      .then((res: RoutesResponse) => res?.items);
     return getURLForRoute(routes?.[0], routeSuffix);
   } catch (e) {
     fastify.log.info(`failed to get route in namespace ${namespace}`);
