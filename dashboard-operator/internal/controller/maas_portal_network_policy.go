@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func legacyMaaSPortalDeploymentExists(ctx context.Context, cli client.Client, namespace string) (bool, error) {
-	err := cli.Get(ctx, client.ObjectKey{Name: legacyMaaSPortalName, Namespace: namespace}, &appsv1.Deployment{})
+func legacyMaaSPortalDeploymentExists(ctx context.Context, reader client.Reader, namespace string) (bool, error) {
+	err := reader.Get(ctx, client.ObjectKey{Name: legacyMaaSPortalName, Namespace: namespace}, &appsv1.Deployment{})
 	if apierrors.IsNotFound(err) {
 		return false, nil
 	}
@@ -26,8 +26,8 @@ func legacyMaaSPortalDeploymentExists(ctx context.Context, cli client.Client, na
 // preserveLegacyMaaSPortalNetworkAccess keeps the serving legacy backend usable
 // while shared policies are upgraded before portal route cutover. Once cleanup
 // removes the old Deployment, the next render restores the new-only policies.
-func preserveLegacyMaaSPortalNetworkAccess(ctx context.Context, cli client.Client, resources []unstructured.Unstructured, namespace string) error {
-	exists, err := legacyMaaSPortalDeploymentExists(ctx, cli, namespace)
+func preserveLegacyMaaSPortalNetworkAccess(ctx context.Context, reader client.Reader, resources []unstructured.Unstructured, namespace string) error {
+	exists, err := legacyMaaSPortalDeploymentExists(ctx, reader, namespace)
 	if err != nil || !exists {
 		return err
 	}
