@@ -5,7 +5,6 @@ import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
 import { getModelRowLabel } from '~/app/topology/stageMapLabels';
 import {
   type BranchExpandOptions,
-  matchesWinnerModel,
   resolveModelRank,
   resolveVisibleBranchIndices,
   resolveWinnerBranchIndex,
@@ -247,10 +246,7 @@ const modelTerminusExtras = (
   }
 
   const branchIndex = getBranchIndex(topologyNode.id);
-  const isWinner =
-    winnerBranchIndex !== undefined
-      ? branchIndex === winnerBranchIndex
-      : matchesWinnerModel(topologyNode, options);
+  const isWinner = winnerBranchIndex != null && branchIndex === winnerBranchIndex;
   let collapsedRowLabel: string | undefined;
   if (isCollapsedSpine) {
     const collapsedBranchIndex = getBranchIndex(topologyNode.id);
@@ -273,7 +269,7 @@ const modelTerminusExtras = (
       ...extras,
       winnerRank: undefined,
       label: collapsedRowLabel,
-      labelSubtitle: 'winner',
+      labelSubtitle: options.winnerResolved ? undefined : 'winner',
       showWinnerStar: false,
     };
   }
@@ -335,7 +331,7 @@ export const transformStageMapNodesToTree = (
       ? exactWinnerBranches.length === 1
         ? exactWinnerBranches[0]
         : null
-      : resolveWinnerBranchIndex(branches, branchIndices, expandOptions)
+      : (resolveWinnerBranchIndex(branches, branchIndices, expandOptions) ?? null)
     : undefined;
   const isCollapsedSpine = !expandOptions.modelsExpanded && branchIndices.length > 1;
   const hideExpandedBranchLabels = options?.modelsExpanded === true && branchIndices.length > 1;

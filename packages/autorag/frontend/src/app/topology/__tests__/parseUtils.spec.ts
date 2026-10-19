@@ -340,6 +340,25 @@ describe('resolveTaskTopologyRunStatuses', () => {
     expect(statuses.get('grandchild')).toBe('InProgress');
   });
 
+  it('does not infer an upstream failure when a downstream task succeeded', () => {
+    const taskIds = ['root', 'child', 'grandchild'];
+    const runDetails = makeRunDetails({
+      task_id: 'grandchild',
+      display_name: 'grandchild',
+      state: RuntimeStateKF.SUCCEEDED,
+    });
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      linearDeps(taskIds),
+    );
+
+    expect(statuses.get('root')).toBeUndefined();
+    expect(statuses.get('child')).toBeUndefined();
+    expect(statuses.get('grandchild')).toBe('Succeeded');
+  });
+
   it('ignores malformed run-level states when resolving task statuses', () => {
     const taskIds = ['test-data-loader', 'documents-sampling'];
     const statuses = resolveTaskTopologyRunStatuses(

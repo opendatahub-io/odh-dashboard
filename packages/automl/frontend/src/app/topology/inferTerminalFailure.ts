@@ -23,7 +23,8 @@ export const inferUniqueFailedNode = ({
   shouldInfer,
   isCandidate = () => true,
   isUnresolved = (_nodeId, status) => status == null,
-  isContradictoryStatus = (status) => status === RunStatus.InProgress,
+  isContradictoryStatus = (status) =>
+    status === RunStatus.InProgress || status === RunStatus.Succeeded,
   isTransparent = () => false,
   onInferredNode,
 }: InferUniqueFailedNodeOptions): Map<string, RunStatus | undefined> => {
