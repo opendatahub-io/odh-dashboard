@@ -63,6 +63,7 @@ import {
   Skeleton,
   Tooltip,
   Truncate,
+  Icon,
 } from '@patternfly/react-core';
 import {
   OuterScrollContainer,
@@ -578,11 +579,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
                           className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
                           data-testid="file-explorer-icon"
                         >
-                          {isFolder(file) ? (
-                            <FolderIcon aria-hidden data-testid="file-explorer-folder-icon" />
-                          ) : (
-                            getFileIcon(file.name, 'file-explorer-file-icon')
-                          )}
+                          <Icon size="lg">
+                            {isFolder(file) ? (
+                              <FolderIcon aria-hidden data-testid="file-explorer-folder-icon" />
+                            ) : (
+                              getFileIcon(file.name, 'file-explorer-file-icon')
+                            )}
+                          </Icon>
                         </FlexItem>
                         <FlexItem
                           className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
