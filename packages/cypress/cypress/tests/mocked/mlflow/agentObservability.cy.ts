@@ -34,7 +34,7 @@ const initIntercepts = ({
   }
 };
 
-describe('Agent observability page', () => {
+describe('Agent traces page', () => {
   beforeEach(() => {
     initIntercepts();
   });
@@ -42,10 +42,7 @@ describe('Agent observability page', () => {
   describe('Page chrome and navigation', () => {
     it('should display page title and Launch MLflow button', () => {
       agentObservability.visit(PROJECT_A);
-      agentObservability
-        .findPageTitle()
-        .should('be.visible')
-        .should('contain', 'Agent observability');
+      agentObservability.findPageTitle().should('be.visible').should('contain', 'Agent traces');
       agentObservability
         .findLaunchMlflowButton()
         .should('be.visible')
@@ -69,12 +66,12 @@ describe('Agent observability page', () => {
       agentObservability.navigate();
 
       agentObservability.shouldHaveAgentObservabilityUrl();
-      agentObservability.findPageTitle().should('contain', 'Agent observability');
+      agentObservability.findPageTitle().should('contain', 'Agent traces');
     });
   });
 
   describe('Project selector', () => {
-    it('should stay on Agent observability when switching projects', () => {
+    it('should stay on Agent traces when switching projects', () => {
       agentObservability.visit(PROJECT_A);
       agentObservability.projectDropdown.findToggleButton().should('contain', PROJECT_A);
 
