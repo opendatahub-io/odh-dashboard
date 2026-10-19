@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 
@@ -36,13 +37,29 @@ type ConnectionType struct {
 		Provider          string                          `json:"provider"`
 		Description       string                          `json:"description,omitempty"`
 		CredentialsFields []ConnectionTypeCredentialField `json:"credentials_fields"`
+		Tags              []string                        `json:"tags,omitzero"`
 	} `json:"resource"`
 	Status struct {
-		Capabilities struct {
-			Flight bool `json:"flight"`
-			Rest   bool `json:"rest"`
-		} `json:"capabilities"`
+		FlightReady bool   `json:"flight_ready"`
+		FlightURL   string `json:"flight_url,omitempty"`
+		Message     string `json:"message,omitempty"`
+		UpdatedAt   string `json:"updated_at,omitempty"`
 	} `json:"status"`
+}
+
+type ConnectionTypeField struct {
+	Name         string      `json:"name"`
+	Label        string      `json:"label"`
+	Description  string      `json:"description,omitempty"`
+	Required     bool        `json:"required"`
+	Type         string      `json:"type"`
+	EnumValues   []EnumValue `json:"enum_values,omitempty"`
+	DefaultValue string      `json:"default_value,omitempty"`
+}
+
+type EnumValue struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
 }
 
 type upstreamConnectionTypeList struct {
@@ -135,8 +152,8 @@ func (app *App) GetConnectionTypeHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	connectionTypeID := params.ByName("connection_type_id")
-	if connectionTypeID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("path parameter 'connection_type_id' is required and cannot be empty"))
+	if err := validateID("path parameter", "connection_type_id", connectionTypeID); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -197,16 +214,26 @@ func mockConnectionType(namespace, connectionTypeID string) (ConnectionType, boo
 }
 
 func mockConnectionTypes(namespace string) []ConnectionType {
-	description := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor."
-	types := make([]ConnectionType, 2)
-	types[0].Metadata.ID = "postgresql"
-	types[0].Metadata.TenantID = namespace
-	types[0].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
-	types[0].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
-	types[0].Resource.Name = "PostgreSQL"
-	types[0].Resource.Provider = "postgres"
-	types[0].Resource.Description = description
-	types[0].Resource.CredentialsFields = []ConnectionTypeCredentialField{
+	rng := rand.New(rand.NewPCG(1, 2))
+
+	var baseMockConnectionType ConnectionType
+	baseMockConnectionType.Metadata.ID = "00000000-0000-0000-0000-000000000000"
+	baseMockConnectionType.Metadata.TenantID = namespace
+	baseMockConnectionType.Metadata.CreatedAt = "2026-01-01T00:00:00Z"
+	baseMockConnectionType.Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
+	baseMockConnectionType.Resource.Provider = "base_provider"
+	baseMockConnectionType.Resource.Description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor."
+	baseMockConnectionType.Resource.CredentialsFields = []ConnectionTypeCredentialField{}
+	baseMockConnectionType.Status.FlightReady = true
+	baseMockConnectionType.Status.FlightURL = "https://dch-default-dataconnectservice-flight.redhat-ods-applications.svc:8443"
+	baseMockConnectionType.Status.UpdatedAt = "2026-01-01T00:00:00Z"
+
+	postgresql := baseMockConnectionType
+	postgresql.Metadata.ID = "550e8400-e29b-41d4-a716-446655440003"
+	postgresql.Resource.Name = "PostgreSQL"
+	postgresql.Resource.Provider = "postgres"
+	postgresql.Resource.Tags = []string{"domain: database", "engine: postgresql", "access: sql"}
+	postgresql.Resource.CredentialsFields = []ConnectionTypeCredentialField{
 		{
 			Name:        "url",
 			Label:       "Connection URL",
@@ -222,17 +249,16 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 			DefaultValue: "postgresql://localhost:5432/database",
 		},
 	}
-	types[0].Status.Capabilities.Flight = true
-	types[0].Status.Capabilities.Rest = true
 
-	types[1].Metadata.ID = "s3"
-	types[1].Metadata.TenantID = namespace
-	types[1].Metadata.CreatedAt = "2026-01-01T00:00:00Z"
-	types[1].Metadata.UpdatedAt = "2026-01-01T00:00:00Z"
-	types[1].Resource.Name = "S3"
-	types[1].Resource.Provider = "s3"
-	types[1].Resource.Description = description
-	types[1].Resource.CredentialsFields = []ConnectionTypeCredentialField{
+	s3 := baseMockConnectionType
+	s3.Metadata.ID = "550e8400-e29b-41d4-a716-446655440004"
+	s3.Resource.Name = "S3"
+	s3.Resource.Provider = "s3"
+	s3.Resource.Tags = make([]string, 30)
+	for i := range s3.Resource.Tags {
+		s3.Resource.Tags[i] = fmt.Sprintf("tag: value-%d", i+1)
+	}
+	s3.Resource.CredentialsFields = []ConnectionTypeCredentialField{
 		{
 			Name:        "region",
 			Label:       "Region",
@@ -248,7 +274,20 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 			DefaultValue: "us-east-1",
 		},
 	}
-	types[1].Status.Capabilities.Flight = true
-	types[1].Status.Capabilities.Rest = true
+
+	names := []string{"Analytics", "Warehouse", "Data Lake", "Reporting", "Archive", "Metrics"}
+	tags := []string{"domain: database", "domain: storage", "access: sql", "access: read-only", "environment: dev", "environment: production"}
+	types := []ConnectionType{postgresql, s3}
+	for i := range 30 {
+		dummyConnectionType := baseMockConnectionType
+		dummyConnectionType.Metadata.ID = fmt.Sprintf("00000000-0000-0000-0000-%012d", i+1)
+		dummyConnectionType.Resource.Name = fmt.Sprintf("%s %d", names[rng.IntN(len(names))], i+1)
+		dummyConnectionType.Resource.Description = dummyConnectionType.Resource.Description[:rng.IntN(len(dummyConnectionType.Resource.Description)+1)]
+		dummyConnectionType.Status.FlightReady = rng.IntN(2) == 0
+		for _, j := range rng.Perm(len(tags))[:1+rng.IntN(len(tags))] {
+			dummyConnectionType.Resource.Tags = append(dummyConnectionType.Resource.Tags, tags[j])
+		}
+		types = append(types, dummyConnectionType)
+	}
 	return types
 }

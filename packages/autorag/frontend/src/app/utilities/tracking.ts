@@ -8,6 +8,13 @@ import {
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_OVERALL_SCORE,
+  RAG_METRIC_CUSTOM_OVERALL_SCORE,
+  RAG_METRIC_UNITXT_FAITHFULNESS,
+  RAG_METRIC_UNITXT_ANSWER_CORRECTNESS,
+  RAG_METRIC_RAGAS_FAITHFULNESS,
+  RAG_METRIC_RAGAS_ANSWER_RELEVANCY,
+  RAG_METRIC_RAGAS_CONTEXT_PRECISION,
+  RAG_METRIC_RAGAS_CONTEXT_RECALL,
 } from '~/app/utilities/const';
 
 export { TrackingOutcome };
@@ -30,6 +37,7 @@ export const AUTORAG_EVENTS = {
   RESULTS_VIEWED: 'AutoRAG Results Viewed',
   PLAYGROUND_OPENED: 'AutoRAG Playground Opened',
   NOTEBOOK_DOWNLOADED: 'AutoRAG Notebook Downloaded',
+  STARTER_KIT_DOWNLOADED: 'AutoRAG Starter Kit Downloaded',
   RESULTS_COLUMN_TOGGLED: 'AutoRAG Results Column Toggled',
   PATTERN_DETAILS_VIEWED: 'AutoRAG Pattern Details Viewed',
   PATTERN_DETAILS_DOWNLOAD_INITIATED: 'AutoRAG Pattern Details Download Initiated',
@@ -146,7 +154,7 @@ export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties):
 };
 
 /** Categorized vector I/O provider type, derived from the `SUPPORTED_VECTOR_STORE_PROVIDER_TYPES` allowlist. */
-export type VectorStoreProviderType = 'milvus' | 'pgvector';
+export type VectorStoreProviderType = 'milvus' | 'pgvector' | 'neo4j';
 
 /**
  * Maps a raw vector store provider type (e.g. `"remote::milvus"`) to the categorized
@@ -160,10 +168,14 @@ export const toVectorStoreProviderType = (
   providerType: string,
 ): VectorStoreProviderType | undefined => {
   switch (providerType) {
+    case 'milvus':
     case 'remote::milvus':
       return 'milvus';
+    case 'pgvector':
     case 'remote::pgvector':
       return 'pgvector';
+    case 'neo4j':
+      return 'neo4j';
     default:
       return undefined;
   }
@@ -177,24 +189,14 @@ export type VectorStoreConfiguredProperties = {
   success: boolean;
 };
 
-/** Infers a safe provider category from redacted Secret key metadata only. */
-export const getVectorStoreProviderTypeFromSecretData = (
-  data?: Record<string, string>,
+/** Maps authoritative BFF provider metadata to a safe analytics category. */
+export const getVectorStoreProviderTypeFromDatabaseProviders = (
+  databaseProviders?: readonly string[],
 ): VectorStoreProviderType | undefined => {
-  const keys = new Set(Object.keys(data ?? {}));
-  const hasMilvus = keys.has('MILVUS_URI');
-  const hasPgvector = [
-    'PGVECTOR_HOST',
-    'PGVECTOR_PORT',
-    'PGVECTOR_DB',
-    'PGVECTOR_USER',
-    'PGVECTOR_PASSWORD',
-  ].every((key) => keys.has(key));
-
-  if (hasMilvus === hasPgvector) {
+  if (databaseProviders?.length !== 1) {
     return undefined;
   }
-  return hasMilvus ? 'milvus' : 'pgvector';
+  return toVectorStoreProviderType(databaseProviders[0]);
 };
 
 /**
@@ -213,10 +215,25 @@ export const fireAutoragVectorStoreConfigured = (
 
 /** Product-wide, camelCase taxonomy for the RAG optimization metric, independent of the schema's snake_case values. */
 export type RagOptimizationMetric =
-  'overallScore' | 'answerFaithfulness' | 'answerCorrectness' | 'contextCorrectness';
+  | 'overallScore'
+  | 'answerFaithfulness'
+  | 'answerCorrectness'
+  | 'answerRelevancy'
+  | 'contextPrecision'
+  | 'contextRecall'
+  | 'contextCorrectness';
+
+export type RagOptimizationMetricEvaluator = 'unitxt' | 'ragas' | 'custom';
 
 /* eslint-disable camelcase -- keys mirror the schema's snake_case optimization_metric values */
 const RAG_OPTIMIZATION_METRIC_MAP: Record<string, RagOptimizationMetric> = {
+  [RAG_METRIC_CUSTOM_OVERALL_SCORE]: 'overallScore',
+  [RAG_METRIC_UNITXT_FAITHFULNESS]: 'answerFaithfulness',
+  [RAG_METRIC_UNITXT_ANSWER_CORRECTNESS]: 'answerCorrectness',
+  [RAG_METRIC_RAGAS_FAITHFULNESS]: 'answerFaithfulness',
+  [RAG_METRIC_RAGAS_ANSWER_RELEVANCY]: 'answerRelevancy',
+  [RAG_METRIC_RAGAS_CONTEXT_PRECISION]: 'contextPrecision',
+  [RAG_METRIC_RAGAS_CONTEXT_RECALL]: 'contextRecall',
   [RAG_METRIC_OVERALL_SCORE]: 'overallScore',
   [RAG_METRIC_FAITHFULNESS]: 'answerFaithfulness',
   [RAG_METRIC_ANSWER_CORRECTNESS]: 'answerCorrectness',
@@ -235,6 +252,19 @@ export const mapOptimizationMetric = (metric: string): RagOptimizationMetric | u
     ? RAG_OPTIMIZATION_METRIC_MAP[metric]
     : undefined;
 
+/** Maps a qualified optimization metric to its bounded evaluator dimension. */
+export const mapOptimizationMetricEvaluator = (
+  metric: string,
+): RagOptimizationMetricEvaluator | undefined => {
+  if (mapOptimizationMetric(metric) === undefined) {
+    return undefined;
+  }
+  const evaluator = metric.split(':', 1)[0];
+  return evaluator === 'unitxt' || evaluator === 'ragas' || evaluator === 'custom'
+    ? evaluator
+    : undefined;
+};
+
 export type RunTriggeredProperties = {
   /**
    * Only known when the corresponding source was actually (re)selected in this session — see
@@ -245,6 +275,7 @@ export type RunTriggeredProperties = {
   /** See {@link RunTriggeredProperties.knowledgeSourceType} — same caveat applies. */
   evaluationSourceType?: EvaluationSourceType;
   optimizationMetric?: RagOptimizationMetric;
+  optimizationMetricEvaluator?: RagOptimizationMetricEvaluator;
   /** See {@link RunTriggeredProperties.knowledgeSourceType} — same caveat applies. */
   vectorDatabase?: VectorStoreProviderType;
   countOfModels: number;
@@ -315,6 +346,7 @@ export type RunReconfiguredProperties = {
   /** See {@link RunReconfiguredProperties.knowledgeSourceType} — same caveat applies. */
   evaluationSourceType?: EvaluationSourceType;
   optimizationMetric?: RagOptimizationMetric;
+  optimizationMetricEvaluator?: RagOptimizationMetricEvaluator;
   /** See {@link RunReconfiguredProperties.knowledgeSourceType} — same caveat applies. */
   vectorDatabase?: VectorStoreProviderType;
   countOfFoundationModels: number;
@@ -539,6 +571,10 @@ export type NotebookDownloadedType = 'indexing' | 'inference' | 'other';
  */
 export const fireAutoragNotebookDownloaded = (notebookType: NotebookDownloadedType): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, { notebookType });
+};
+
+export const fireAutoragStarterKitDownloaded = (): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, { downloadType: 'starterKit' });
 };
 
 /**

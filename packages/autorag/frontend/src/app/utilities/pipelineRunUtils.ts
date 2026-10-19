@@ -12,7 +12,10 @@ const LEGACY_PARAM_RENAMES: Record<string, string> = {
  * Normalizes legacy pipeline run parameter keys so that old and new runs
  * present a consistent shape to the rest of the UI.
  */
-export const normalizePipelineRun = (run: PipelineRun): PipelineRun => {
+export function normalizePipelineRun<TParams extends Record<string, unknown>>(
+  run: PipelineRun<TParams>,
+): PipelineRun<TParams>;
+export function normalizePipelineRun(run: PipelineRun): PipelineRun {
   const params = run.runtime_config?.parameters;
   if (!params) {
     return run;
@@ -44,4 +47,4 @@ export const normalizePipelineRun = (run: PipelineRun): PipelineRun => {
       parameters: normalized,
     },
   };
-};
+}

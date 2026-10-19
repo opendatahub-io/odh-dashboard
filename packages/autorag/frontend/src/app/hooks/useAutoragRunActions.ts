@@ -1,10 +1,8 @@
-import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import {
-  useDeletePipelineRunMutation,
-  useRetryPipelineRunMutation,
-  useTerminatePipelineRunMutation,
-} from '~/app/hooks/mutations';
+import { usePipelineRunCacheActions } from '@odh-dashboard/autox-core/ui/hooks';
+import { useDeletePipelineRunMutation } from '~/app/hooks/useDeletePipelineRunMutation';
+import { useRetryPipelineRunMutation } from '~/app/hooks/useRetryPipelineRunMutation';
+import { useTerminatePipelineRunMutation } from '~/app/hooks/useTerminatePipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   AUTORAG_FAILURE_CATEGORY,
@@ -34,7 +32,7 @@ export const useAutoragRunActions = (
   source: RunActionSource,
   onActionComplete?: () => void | Promise<void>,
 ): AutoragRunActions => {
-  const queryClient = useQueryClient();
+  const { invalidatePipelineRun } = usePipelineRunCacheActions();
   const notification = useNotification();
   const retryMutation = useRetryPipelineRunMutation(namespace, runId);
   const terminateMutation = useTerminatePipelineRunMutation(namespace, runId);
@@ -43,9 +41,7 @@ export const useAutoragRunActions = (
   const handleRetry = React.useCallback(async () => {
     try {
       await retryMutation.mutateAsync();
-      await queryClient.invalidateQueries({
-        queryKey: ['autorag', 'pipelineRun', runId, namespace],
-      });
+      await invalidatePipelineRun(runId, namespace);
       notification.success(
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
@@ -69,14 +65,20 @@ export const useAutoragRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful retry.
     }
-  }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
+  }, [
+    retryMutation,
+    invalidatePipelineRun,
+    runId,
+    namespace,
+    onActionComplete,
+    notification,
+    source,
+  ]);
 
   const handleConfirmStop = React.useCallback(async () => {
     try {
       await terminateMutation.mutateAsync();
-      await queryClient.invalidateQueries({
-        queryKey: ['autorag', 'pipelineRun', runId, namespace],
-      });
+      await invalidatePipelineRun(runId, namespace);
       notification.success(
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
@@ -104,9 +106,7 @@ export const useAutoragRunActions = (
       });
       // Refresh the state to update the UI (don't let refresh failure mask the original error)
       try {
-        await queryClient.invalidateQueries({
-          queryKey: ['autorag', 'pipelineRun', runId, namespace],
-        });
+        await invalidatePipelineRun(runId, namespace);
       } catch {
         // Ignore refresh failure
       }
@@ -117,14 +117,20 @@ export const useAutoragRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful stop.
     }
-  }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
+  }, [
+    terminateMutation,
+    invalidatePipelineRun,
+    runId,
+    namespace,
+    onActionComplete,
+    notification,
+    source,
+  ]);
 
   const handleDelete = React.useCallback(async () => {
     try {
       await deleteMutation.mutateAsync();
-      await queryClient.invalidateQueries({
-        queryKey: ['autorag', 'pipelineRun', runId, namespace],
-      });
+      await invalidatePipelineRun(runId, namespace);
       notification.success(
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
@@ -148,7 +154,15 @@ export const useAutoragRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful delete.
     }
-  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
+  }, [
+    deleteMutation,
+    invalidatePipelineRun,
+    runId,
+    namespace,
+    onActionComplete,
+    notification,
+    source,
+  ]);
 
   return {
     handleRetry,

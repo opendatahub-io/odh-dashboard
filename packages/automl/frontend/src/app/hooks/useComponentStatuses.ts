@@ -1,14 +1,24 @@
 import React from 'react';
 import * as z from 'zod';
-import { fetchS3Json, useS3ListFilesQuery } from '~/app/hooks/queries';
+import type { S3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import {
+  useS3FileFetchers,
+  useS3FileOperations,
+  useS3ListFilesQuery,
+} from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import type {
   ComponentStageMap,
   ComponentStageMapComponent,
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
-import type { PipelineRun, PipelineRunError, S3ListObjectsResponse } from '~/app/types';
-import { getFiles as getS3Files } from '~/app/api/s3';
+import type {
+  PipelineRun,
+  PipelineRunError,
+  PipelineRunTaskDetail,
+  S3ListObjectsResponse,
+} from '~/app/types';
 import {
   isAllowedFlattenKey,
   NESTED_STAGE_FIELD_KEYS,
@@ -17,7 +27,6 @@ import {
 import {
   findTrainingTaskPrefix,
   isRunCompleted,
-  isRunInTerminalState,
   normalizePipelineRunState,
 } from '~/app/utilities/utils';
 
@@ -28,6 +37,7 @@ type ComponentTaskDetail = {
   create_time?: string;
   start_time?: string;
   end_time?: string;
+  state_history?: PipelineRunTaskDetail['state_history'];
   error?: PipelineRunError;
 };
 
@@ -343,12 +353,13 @@ async function discoverStatusJsonPath(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
+  listS3Files: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<string | undefined> {
-  const result: S3ListObjectsResponse = await getS3Files(
-    '',
-    { signal },
-    { namespace, path: s3Prefix },
-  );
+  const result = await listS3Files(namespace, s3Prefix, signal);
   const prefix = result.common_prefixes[0]?.prefix;
   if (!prefix) {
     return undefined;
@@ -360,13 +371,23 @@ async function fetchComponentStatus(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
+  fetchers: S3FileFetchers,
+  listS3Files: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<ComponentStatusFile | undefined> {
-  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal);
+  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal, listS3Files);
   if (!jsonPath) {
     return undefined;
   }
 
-  return fetchS3Json(namespace, jsonPath, { signal, schema: ComponentStatusFileSchema });
+  return fetchers.fetchS3Json(namespace, jsonPath, {
+    signal,
+    schema: ComponentStatusFileSchema,
+    fresh: true,
+  });
 }
 
 export async function fetchComponentStatusForComponent(
@@ -376,12 +397,21 @@ export async function fetchComponentStatusForComponent(
   componentId: string,
   runLevelPrefixes: { prefix: string }[] | undefined,
   signal: AbortSignal,
+  fetchers?: S3FileFetchers,
+  listS3Files?: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<{ componentId: string; data: ComponentStatusFile } | undefined> {
   const s3Prefix = resolveComponentTaskS3Prefix(rootDir, runId, componentId, runLevelPrefixes);
   if (!s3Prefix) {
     return undefined;
   }
-  const data = await fetchComponentStatus(namespace, s3Prefix, signal);
+  if (!fetchers || !listS3Files) {
+    return undefined;
+  }
+  const data = await fetchComponentStatus(namespace, s3Prefix, signal, fetchers, listS3Files);
   if (!data || data.component_id !== componentId) {
     return undefined;
   }
@@ -408,6 +438,8 @@ export function useComponentStatuses(
   componentStageMap: ComponentStageMap | undefined,
   dataUpdatedAt: number,
 ): UseComponentStatusesReturn {
+  const fetchers = useS3FileFetchers();
+  const { listS3Files } = useS3FileOperations();
   const { rootDir } = useAutomlOutputDir(pipelineRun);
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
   const shouldMergeStatuses = React.useMemo(() => {
@@ -528,6 +560,8 @@ export function useComponentStatuses(
           componentId,
           runLevelPrefixes,
           controller.signal,
+          { fetchS3File: fetchers.fetchS3File, fetchS3Json: fetchers.fetchS3Json },
+          listS3Files,
         ),
       ),
     )
@@ -593,6 +627,8 @@ export function useComponentStatuses(
       controller.abort();
     };
   }, [
+    fetchers,
+    listS3Files,
     runId,
     namespace,
     pipelineRun,

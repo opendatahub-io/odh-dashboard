@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Card, CardBody, Content, Grid, GridItem, Title } from '@patternfly/react-core';
-import { RhStandardAgenticIcon, RhStandardAiModelIcon } from '@patternfly/react-icons';
+// TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+// import { RhStandardAgenticIcon, RhStandardAiModelIcon } from '@patternfly/react-icons';
+import { RhStandardAiModelIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { evaluationCuratedBenchmarkSuitesRoute } from '~/app/routes';
 import './CuratedSuiteCategories.scss';
@@ -16,6 +18,8 @@ type CuratedCategory = {
 };
 
 const CURATED_CATEGORIES: CuratedCategory[] = [
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   {
     id: 'agents',
     title: 'Agents',
@@ -25,6 +29,7 @@ const CURATED_CATEGORIES: CuratedCategory[] = [
     iconColor: 'purple',
     evaluationTargets: ['agent'],
   },
+  */
   {
     id: 'models',
     title: 'Models',
@@ -86,10 +91,10 @@ type CuratedSuiteCategoriesProps = {
 const CuratedSuiteCategories: React.FC<CuratedSuiteCategoriesProps> = ({ namespace }) => (
   <section className="evalhub-curated-suite-categories" data-testid="curated-suite-categories">
     <Title headingLevel="h2" size="xl" className="evalhub-curated-suite-categories__title">
-      Red Hat validated benchmark suites
+      Red Hat validated collections
     </Title>
     <Content component="p" className="evalhub-curated-suite-categories__description">
-      Explore benchmark suites validated by Red Hat for evaluating models and agents.
+      Explore collections validated by Red Hat for evaluating models and agents.
     </Content>
     <Grid hasGutter>
       {CURATED_CATEGORIES.map((category) => {

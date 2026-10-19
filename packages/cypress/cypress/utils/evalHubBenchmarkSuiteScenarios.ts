@@ -49,7 +49,7 @@ const getScenarioUuid = (key: BenchmarkSuiteScenarioKey): string => {
 };
 
 /**
- * Creates the independently provisioned lifecycle shared by each benchmark-suite spec.
+ * Creates the independently provisioned lifecycle shared by each benchmark-collection spec.
  * Separate tenants keep failures and cleanup in one journey from affecting the other.
  */
 export const createEvalHubBenchmarkSuiteScenario = (
@@ -163,6 +163,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
 
     createBenchmarkSuite({
       suiteName: createdSuiteName,
+      suiteDomains: testData.suiteDomains,
       benchmarkProviderId: testData.benchmarkProviderId,
       benchmarks: testData.benchmarks,
       additionalBenchmarkParams: testData.additionalBenchmarkParams,
@@ -191,11 +192,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
 
     verifyEvaluationProgressModal(evaluationRunName);
     waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
-    verifyEvaluationCompletedAndViewResults(
-      evaluationRunName,
-      evaluationTenantProject,
-      testData.expectedBenchmarkIds,
-    );
+    verifyEvaluationCompletedAndViewResults(evaluationRunName, testData.expectedBenchmarkIds);
   };
 
   return { setup, cleanup, run };

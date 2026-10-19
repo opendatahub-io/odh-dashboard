@@ -54,7 +54,7 @@ func newRegistryProxyTestAppWithConfig(dataRegistryAPIURL string, cfg config.Env
 
 // proxyTestIdentityFactory verifies the configured token header and supplies a deterministic
 // user identity. The proxy tests do not exercise Kubernetes calls, so using a real token client
-// would unnecessarily require a live Kubernetes authentication endpoint for SelfSubjectReview.
+// would unnecessarily require a live Kubernetes authentication endpoint for SAR.
 type proxyTestIdentityFactory struct {
 	header string
 	prefix string
@@ -157,9 +157,9 @@ func TestDataRegistryProxy_ListNamespaces_ForwardsPathAndAuth(t *testing.T) {
 
 // TestDataRegistryProxy_StripsCallerAssertedIdentityHeaders guards against attribution
 // spoofing: the upstream Data Registry API trusts X-User/kubeflow-userid for fields like
-// `registered_by`, so a caller-supplied value must never reach the upstream verbatim — only the
-// BFF's own verified identity (via Authorization) may assert who the caller is. The BFF must set
-// X-User from the verified RequestIdentity.UserID when present.
+// server-managed attribution fields, so a caller-supplied value must never reach the upstream
+// verbatim — only the BFF's own verified identity (via Authorization) may assert who the caller
+// is. The BFF must set X-User from the verified RequestIdentity.UserID when present.
 func TestDataRegistryProxy_StripsCallerAssertedIdentityHeaders(t *testing.T) {
 	var captured capturedUpstreamRequest
 	upstream := newStandInDataRegistryServer(&captured, http.StatusOK, `{"namespaces":[["default"]]}`, nil)
@@ -481,8 +481,8 @@ func TestDataRegistryProxy_MalformedAPIURL_ReturnsServiceUnavailable(t *testing.
 	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
 }
 
-// TestDataRegistryProxy_DiscoveryRoutes covers the two non-project-scoped upstream routes
-// (/v1/config, /v1/projects) — with the catchall design these need no special-casing at all,
+// TestDataRegistryProxy_DiscoveryRoutes covers the non-project-scoped upstream route
+// (/v1/config) — with the catchall design it needs no special-casing at all,
 // unlike the old per-operation httprouter setup.
 func TestDataRegistryProxy_DiscoveryRoutes(t *testing.T) {
 	cases := []struct {
@@ -491,7 +491,6 @@ func TestDataRegistryProxy_DiscoveryRoutes(t *testing.T) {
 		upstreamPath string
 	}{
 		{"config", "/api/v1/config", "/v1/config"},
-		{"projects", "/api/v1/projects", "/v1/projects"},
 	}
 
 	for _, tc := range cases {

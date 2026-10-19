@@ -17,8 +17,10 @@ spec:
           name: openshift-service-ca.crt
           key: service-ca.crt
       serverName: workspaces-controller-metrics-service.NAMESPACE.svc
+  # Do not select on part-of. workbenches-operator rewrites metadata part-of
+  # to "workbenches" and does not update this selector. component+name uniquely
+  # identify workspaces-controller-metrics-service in both overlays.
   selector:
     matchLabels:
       app.kubernetes.io/component: metrics
       app.kubernetes.io/name: workspaces-controller
-      app.kubernetes.io/part-of: kubeflow-workspaces

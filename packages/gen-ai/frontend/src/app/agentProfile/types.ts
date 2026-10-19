@@ -47,11 +47,22 @@ export type AgentProfileMcpServerRef = {
   key?: string;
 };
 
-export type AgentProfileMcpServer = {
-  serverRef: AgentProfileMcpServerRef;
-  credentialsRef?: AgentProfileResourceRef;
+type AgentProfileMcpServerBase = {
   allowedTools?: string[];
 };
+
+export type AgentProfileConfigMapMcpServer = AgentProfileMcpServerBase & {
+  serverRef: AgentProfileMcpServerRef;
+  credentialsRef?: AgentProfileResourceRef;
+};
+
+export type AgentProfileRegistryMcpServer = AgentProfileMcpServerBase & {
+  name: string;
+  source: 'mlflow';
+  version?: string;
+};
+
+export type AgentProfileMcpServer = AgentProfileConfigMapMcpServer | AgentProfileRegistryMcpServer;
 
 export type AgentProfileGuardrail = {
   provider: string;
@@ -126,4 +137,39 @@ export type AgentProfileUpdateResponse = {
   displayName: string;
   namespace: string;
   resourceVersion: string;
+};
+
+export type AgentDeploymentState = 'ready' | 'creating' | 'failed';
+
+export type AgentDeploymentCreateRequest = {
+  name: string;
+  agentProfileId: string;
+  mcpServerAuth?: Record<string, string>;
+};
+
+export type AgentDeploymentCreateResponse = {
+  llamaStackConfigMapName: string;
+  wrapperAppConfigMapName: string;
+  sandboxName: string;
+  namespace: string;
+  routeUrl: string;
+  agentProfileId: string;
+};
+
+export type AgentDeploymentSummary = {
+  name: string;
+  displayName?: string;
+  namespace: string;
+  agentProfileId: string;
+  routeUrl?: string;
+  createdAt: string;
+  state: AgentDeploymentState;
+  lastError?: string;
+  /** Present only when the deployment detail endpoint can reach the Sandbox. */
+  config?: AgentProfile;
+};
+
+export type AgentDeploymentListResponse = {
+  deployments: AgentDeploymentSummary[];
+  totalCount: number;
 };

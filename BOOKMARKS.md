@@ -21,6 +21,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Architecture](docs/architecture.md) | Overall system architecture |
 | [Architecture Decisions](docs/architecture-decisions.md) | Key architecture decisions (monorepo, Module Federation, Turbo) |
 | [Module Federation](docs/module-federation.md) | Module Federation implementation |
+| [Community Plugin Registration](docs/community-plugin-registration.md) | Fixed ConfigMap contract for installer-owned community federation entries |
 | [Extensibility](docs/extensibility.md) | Plugin/extension system |
 | [Quality Gates](docs/modular-architecture-quality-gates.md) | Modular architecture quality standards |
 
@@ -39,6 +40,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Prototype Reading Skills](docs/prototype-reading.md) | `/prototype-tickets` and `/prototype-spec` — extracting PF component details from UX prototype forks |
 | [Upstream Sync](docs/upstream-sync.md) | How to sync upstream changes into monorepo packages |
 | [Konflux Build Simulation](docs/KONFLUX_BUILD_SIMULATION.md) | PR build validation, hermetic pnpm install checks, Docker builds, and runtime checks |
+| [Workspace Dockerfiles](docs/workspace-dockerfiles.md) | Workspace-aware module builds with prefetched pnpm and offline dependencies |
 
 ---
 
@@ -102,6 +104,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | Doc | Description |
 |-----|-------------|
 | [Operator Architecture](docs/dashboard-operator.md) | CRD design, reconciliation pipeline, module registry, dependency resolution, manifest management, local development, cluster deployment, troubleshooting |
+| [MaaS Portal](docs/maas-portal.md) | Independent portal lifecycle, routing, federation, subscription RBAC, resource migration, and rollout |
 | [Controller AGENTS.md](dashboard-operator/AGENTS.md) | Go operator conventions, controller-runtime patterns, CRD types, Makefile targets, reconciliation pipeline |
 
 ---

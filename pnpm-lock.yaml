@@ -5,16 +5,26 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@patternfly/patternfly': 6.6.1
+  '@patternfly/react-code-editor': 6.6.1
+  '@patternfly/react-core': 6.6.1
+  '@patternfly/react-drag-drop': 6.6.1
+  '@patternfly/react-icons': 6.6.1
+  '@patternfly/react-styles': 6.6.1
+  '@patternfly/react-table': 6.6.1
+  '@patternfly/react-templates': 6.6.1
+  '@patternfly/react-tokens': 6.6.1
   '@openshift/dynamic-plugin-sdk-utils': 5.0.1
+  '@openshift/dynamic-plugin-sdk-utils>immutable': 3.8.4
   '@openshift/dynamic-plugin-sdk-utils>react-redux': ^8.1.3
   '@openshift/dynamic-plugin-sdk-utils>react-router': ^7.18.3
   '@openshift/dynamic-plugin-sdk-utils>react-router-dom': ^7.18.3
   '@openshift/dynamic-plugin-sdk-utils>react': ^18.3.1
   '@openshift/dynamic-plugin-sdk-utils>react-dom': ^18.3.1
-  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-core': ~6.5.1
-  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-icons': ~6.5.1
-  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-styles': ~6.5.1
-  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-table': ~6.5.1
+  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-core': 6.6.1
+  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-icons': 6.6.1
+  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-styles': 6.6.1
+  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-table': 6.6.1
   '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-virtualized-extension': 6.2.0
   '@patternfly/react-topology>react': ^18.3.1
   '@types/react': ^18.3.31
@@ -79,7 +89,7 @@ importers:
         version: 4.1.4
       ws:
         specifier: ^8.21.0
-        version: 8.21.3
+        version: 8.22.0
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -134,7 +144,7 @@ importers:
         version: 6.1.3
       turbo:
         specifier: ^2.9.16
-        version: 2.10.12
+        version: 2.11.7
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -164,7 +174,7 @@ importers:
         version: 12.0.0
       '@fastify/websocket':
         specifier: ^11.3.0
-        version: 11.3.0
+        version: 11.3.1
       '@kubernetes/client-node':
         specifier: ^0.12.3
         version: 0.12.3
@@ -174,6 +184,9 @@ importers:
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../packages/foundation
+      '@odh-dashboard/k8s-core':
+        specifier: workspace:*
+        version: link:../packages/k8s-core
       dotenv:
         specifier: ^16.6.1
         version: 16.6.1
@@ -181,14 +194,17 @@ importers:
         specifier: ^3.1.10
         version: 3.1.10
       fastify:
-        specifier: ^5.11.2
-        version: 5.12.4
+        specifier: ^5.12.5
+        version: 5.12.5
       fastify-plugin:
         specifier: ^5.1.0
         version: 5.1.0
       http-errors:
         specifier: ^1.8.1
         version: 1.8.1
+      https-proxy-agent:
+        specifier: ^7.0.6
+        version: 7.0.6(supports-color@8.1.1)
       js-yaml:
         specifier: 4.3.2
         version: 4.3.2
@@ -198,9 +214,12 @@ importers:
       pino:
         specifier: ^9.14.0
         version: 9.14.0
+      proxy-from-env:
+        specifier: ^2.1.0
+        version: 2.1.0
       ws:
         specifier: ^8.21.0
-        version: 8.21.3
+        version: 8.22.0
     devDependencies:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
@@ -225,7 +244,7 @@ importers:
         version: 4.17.25
       '@types/ws':
         specifier: ^8.18.1
-        version: 8.18.1
+        version: 8.18.2
       '@typescript-eslint/eslint-plugin':
         specifier: ^7.18.0
         version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
@@ -273,7 +292,7 @@ importers:
         version: 2.8.8
       ts-jest:
         specifier: ^29.4.11
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)
@@ -295,18 +314,21 @@ importers:
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
+      '@openshift/dynamic-plugin-sdk-utils':
+        specifier: 5.0.1
+        version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -320,6 +342,9 @@ importers:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../packages/jest-config
       '@odh-dashboard/tsconfig':
         specifier: workspace:*
         version: link:../../packages/tsconfig
@@ -340,7 +365,7 @@ importers:
         version: 6.2.0(webpack@5.104.1)
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+        version: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       js-yaml:
         specifier: 4.3.2
         version: 4.3.2
@@ -400,29 +425,29 @@ importers:
   distributions/core-bff/frontend:
     dependencies:
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       lodash-es:
         specifier: ^4.18.1
         version: 4.18.1
@@ -528,7 +553,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -582,7 +607,7 @@ importers:
         version: 5.9.3
       typescript-eslint:
         specifier: ^8.31.1
-        version: 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+        version: 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
       url-loader:
         specifier: ^4.1.1
         version: 4.1.1(file-loader@6.2.0(webpack@5.104.1))(webpack@5.104.1)
@@ -658,9 +683,9 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.11
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
 
-  distributions/maas-consumer-portal:
+  distributions/maas-portal:
     dependencies:
       '@odh-dashboard/base-distribution':
         specifier: workspace:*
@@ -674,6 +699,9 @@ importers:
       '@odh-dashboard/maas':
         specifier: workspace:*
         version: link:../../packages/maas
+      '@odh-dashboard/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../../packages/plugin-core
@@ -687,20 +715,23 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@perses-dev/dashboards':
+        specifier: ^0.54.0-beta.10
+        version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       lodash-es:
         specifier: ^4.18.1
         version: 4.18.1
@@ -709,7 +740,7 @@ importers:
         version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       mod-arch-shared:
         specifier: ^1.15.4
-        version: 1.21.0(@types/eslint@9.6.1)(mod-arch-core@1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(mod-arch-kubeflow@1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
+        version: 1.21.0(@types/eslint@9.6.1)(mod-arch-core@1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(mod-arch-kubeflow@1.21.0(@mui/material@6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -789,12 +820,18 @@ importers:
       '@odh-dashboard/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
+      '@odh-dashboard/base-distribution':
+        specifier: workspace:*
+        version: link:../base
       '@odh-dashboard/k8s-core':
         specifier: workspace:*
         version: link:../../packages/k8s-core
       '@odh-dashboard/kserve':
         specifier: workspace:*
         version: link:../../packages/kserve
+      '@odh-dashboard/llmd-serving':
+        specifier: workspace:*
+        version: link:../../packages/llmd-serving
       '@odh-dashboard/model-serving':
         specifier: workspace:*
         version: link:../../packages/model-serving
@@ -811,23 +848,23 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lodash-es:
         specifier: ^4.18.1
         version: 4.18.1
@@ -950,50 +987,50 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/chatbot':
-        specifier: ~6.5.0
-        version: 6.5.0(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)
+        specifier: ~6.7.1
+        version: 6.7.1(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.2
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/quickstarts':
-        specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-core@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-catalog-view-extension':
         specifier: ~6.5.0
         version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-charts':
-        specifier: ~8.5.1
-        version: 8.5.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
+        specifier: ~8.6.1
+        version: 8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-drag-drop':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-log-viewer':
         specifier: ~6.5.0
         version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-tokens':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-topology':
-        specifier: ~6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^4.44.0
         version: 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1008,7 +1045,7 @@ importers:
         version: 3.6.0
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       google-protobuf:
         specifier: ^3.21.4
         version: 3.21.4
@@ -1138,7 +1175,7 @@ importers:
         version: 2.0.6
       '@types/ws':
         specifier: ^8.18.1
-        version: 8.18.1
+        version: 8.18.2
       babel-plugin-transform-imports:
         specifier: ^2.0.0
         version: 2.0.0
@@ -1331,7 +1368,7 @@ importers:
         version: 2.0.0
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+        version: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-environment-jsdom:
         specifier: ^29.7.0
         version: 29.7.0(supports-color@8.1.1)
@@ -1352,7 +1389,7 @@ importers:
         version: 0.2.7
       ts-jest:
         specifier: ^29.4.11
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
 
   frontend/src:
     dependencies:
@@ -1376,7 +1413,7 @@ importers:
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       marked:
         specifier: ^15.0.12
         version: 15.0.12
@@ -1428,23 +1465,23 @@ importers:
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.101.2
         version: 5.101.4(react@18.3.1)
@@ -1562,7 +1599,7 @@ importers:
         version: 7.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -1619,7 +1656,7 @@ importers:
         version: 5.9.3
       typescript-eslint:
         specifier: ^8.31.1
-        version: 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+        version: 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
       url-loader:
         specifier: ^4.1.1
         version: 4.1.1(file-loader@6.2.0(webpack@5.104.1))(webpack@5.104.1)
@@ -1668,7 +1705,7 @@ importers:
         version: 4.3.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))
       eslint-plugin-import:
         specifier: ^2.31.0
-        version: 2.32.0(@typescript-eslint/parser@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)
+        version: 2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)
       eslint-plugin-jsx-a11y:
         specifier: ^6.10.2
         version: 6.10.2(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))
@@ -1695,7 +1732,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/analytics:
     dependencies:
@@ -1785,6 +1822,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/autox-core':
+        specifier: workspace:*
+        version: link:../../autox-core
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -1792,38 +1832,38 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-charts':
-        specifier: ~8.5.1
-        version: 8.5.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
+        specifier: ~8.6.1
+        version: 8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-component-groups':
-        specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.7.0
+        version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-drag-drop':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-tokens':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-topology':
-        specifier: ~6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.101.4(react@18.3.1)
@@ -1832,7 +1872,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       es-toolkit:
         specifier: ^1.44.0
         version: 1.51.0
@@ -1962,7 +2002,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -2119,7 +2159,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/autorag:
     dependencies:
@@ -2163,6 +2203,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/autox-core':
+        specifier: workspace:*
+        version: link:../../autox-core
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -2170,38 +2213,38 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-charts':
-        specifier: ~8.5.1
-        version: 8.5.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
+        specifier: ~8.6.1
+        version: 8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-component-groups':
-        specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.7.0
+        version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-drag-drop':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-tokens':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-topology':
-        specifier: ~6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.101.4(react@18.3.1)
@@ -2210,7 +2253,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       echarts:
         specifier: ^5.6.0
         version: 5.6.0
@@ -2340,7 +2383,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -2497,65 +2540,52 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/autox-core:
     dependencies:
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
+      '@odh-dashboard/k8s-core':
+        specifier: workspace:*
+        version: link:../k8s-core
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../plugin-core
-    devDependencies:
-      '@odh-dashboard/eslint-config':
+      '@odh-dashboard/ui-core':
         specifier: workspace:*
-        version: link:../eslint-config
-      '@odh-dashboard/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-
-  packages/autox-core/ui:
-    dependencies:
-      '@hookform/resolvers':
-        specifier: ^5.2.2
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
-      '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        version: link:../ui-core
       '@patternfly/react-component-groups':
-        specifier: ~6.5.0
-        version: 6.5.0(@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.7.0
+        version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-drag-drop':
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-topology':
-        specifier: ~6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tanstack/react-query':
-        specifier: ^5.90.20
-        version: 5.101.4(react@18.3.1)
+        specifier: ^6
+        version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
-        specifier: ^2.2.6
+        specifier: ^2.5.1
         version: 2.5.1
       es-toolkit:
         specifier: ^1.44.0
-        version: 1.51.0
-      lodash-es:
-        specifier: ^4.17.15
-        version: 4.18.1
+        version: 1.52.0
+      mod-arch-core:
+        specifier: ^1.15.4
+        version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       react:
         specifier: ^18
         version: 18.3.1
@@ -2571,13 +2601,19 @@ importers:
       react-router-dom:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      zod:
-        specifier: ^4.3.6
-        version: 4.4.3
     devDependencies:
+      '@odh-dashboard/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
       '@odh-dashboard/jest-config':
         specifier: workspace:*
-        version: link:../../jest-config
+        version: link:../jest-config
+      '@odh-dashboard/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@tanstack/react-query':
+        specifier: 5.101.4
+        version: 5.101.4(react@18.3.1)
       '@testing-library/jest-dom':
         specifier: ^6.6.2
         version: 6.10.0(@testing-library/dom@10.4.1)
@@ -2590,9 +2626,9 @@ importers:
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
-      '@types/lodash-es':
-        specifier: ^4.17.8
-        version: 4.17.12
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.31)
@@ -2601,19 +2637,13 @@ importers:
         version: 30.4.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
-      prettier:
-        specifier: ^3.3.3
-        version: 3.9.6
-      tslib:
-        specifier: ^2.7.0
-        version: 2.8.1
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
 
   packages/connection-types:
     dependencies:
@@ -2653,7 +2683,7 @@ importers:
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+        version: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       jest-html-reporters:
         specifier: ^3.1.7
         version: 3.1.7
@@ -2750,7 +2780,7 @@ importers:
         version: 4.0.9
       '@types/ws':
         specifier: ^8.18.1
-        version: 8.18.1
+        version: 8.18.2
       chai-subset:
         specifier: ^1.6.0
         version: 1.6.0
@@ -2805,6 +2835,9 @@ importers:
       prettier:
         specifier: ^2.2.1
         version: 2.8.8
+      proxy-from-env:
+        specifier: ^2.1.0
+        version: 2.1.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -2816,7 +2849,7 @@ importers:
         version: 7.2.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       ws:
         specifier: ^8.21.0
-        version: 8.21.3
+        version: 8.22.0
 
   packages/data-connect-hub:
     dependencies:
@@ -2848,33 +2881,48 @@ importers:
 
   packages/data-connect-hub/frontend:
     dependencies:
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@emotion/styled':
+        specifier: ^11.14.0
+        version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../../plugin-core
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
+      '@patternfly/react-component-groups':
+        specifier: ~6.7.0
+        version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
         specifier: ^2.2.6
         version: 2.5.1
       mod-arch-core:
-        specifier: ^1.10.1
+        specifier: ^1.21.0
         version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
+      mod-arch-kubeflow:
+        specifier: ^1.21.0
+        version: 1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
+      mod-arch-shared:
+        specifier: ^1.21.0
+        version: 1.21.0(@types/eslint@9.6.1)(mod-arch-core@1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(mod-arch-kubeflow@1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       react:
         specifier: ^18
         version: 18.3.1
@@ -2891,6 +2939,9 @@ importers:
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(debug@4.4.3(supports-color@8.1.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
+      '@mui/material':
+        specifier: ^7.3.4
+        version: 7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../../app-config
@@ -2965,7 +3016,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
@@ -3101,7 +3152,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/data-registry:
     dependencies:
@@ -3134,23 +3185,23 @@ importers:
         specifier: ^5.9.1
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
         specifier: ^2.2.6
         version: 2.5.1
@@ -3250,7 +3301,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
@@ -3392,7 +3443,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/eslint-config:
     dependencies:
@@ -3523,23 +3574,23 @@ importers:
         specifier: ^0.21.4
         version: 0.21.6
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.101.4(react@18.3.1)
@@ -3548,7 +3599,7 @@ importers:
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -3666,7 +3717,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -3811,7 +3862,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/feature-store:
     dependencies:
@@ -3828,23 +3879,23 @@ importers:
         specifier: workspace:*
         version: link:../ui-core
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ^6
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-tokens':
-        specifier: ^6
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-topology':
-        specifier: ^6
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ~6.6.0
+        version: 6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -3923,23 +3974,23 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
       '@patternfly/chatbot':
-        specifier: ~6.5.0
-        version: 6.5.0(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)
+        specifier: ~6.7.1
+        version: 6.7.1(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.62.0
         version: 5.101.4(react@18.3.1)
@@ -3974,6 +4025,9 @@ importers:
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../../app-config
+      '@odh-dashboard/cypress':
+        specifier: workspace:*
+        version: link:../../cypress
       '@odh-dashboard/jest-config':
         specifier: workspace:*
         version: link:../../jest-config
@@ -4027,7 +4081,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+        version: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-environment-jsdom:
         specifier: ^29.7.0
         version: 29.7.0(supports-color@8.1.1)
@@ -4190,16 +4244,31 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.2.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3)
 
   packages/gpuaas:
     dependencies:
+      '@odh-dashboard/hardware-profiles':
+        specifier: workspace:*
+        version: link:../hardware-profiles
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
       '@odh-dashboard/k8s-core':
         specifier: workspace:*
         version: link:../k8s-core
+      '@odh-dashboard/kserve':
+        specifier: workspace:*
+        version: link:../kserve
+      '@odh-dashboard/llmd-serving':
+        specifier: workspace:*
+        version: link:../llmd-serving
+      '@odh-dashboard/model-serving':
+        specifier: workspace:*
+        version: link:../model-serving
+      '@odh-dashboard/model-training':
+        specifier: workspace:*
+        version: link:../model-training
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../plugin-core
@@ -4210,11 +4279,14 @@ importers:
         specifier: ^8
         version: 8.5.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      echarts:
+        specifier: ^5.6.0
+        version: 5.6.0
       react:
         specifier: ^18
         version: 18.3.1
@@ -4256,14 +4328,14 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-table':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lodash-es:
         specifier: ^4.17.21
         version: 4.18.1
@@ -4330,7 +4402,7 @@ importers:
         version: 29.7.0
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+        version: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-environment-jsdom:
         specifier: ^29.7.0
         version: 29.7.0(supports-color@8.1.1)
@@ -4403,8 +4475,8 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -4482,8 +4554,8 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -4577,32 +4649,32 @@ importers:
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
         specifier: ^2.2.6
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -4717,7 +4789,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -4865,7 +4937,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/mlflow:
     dependencies:
@@ -4916,11 +4988,11 @@ importers:
         specifier: ^5
         version: 5.0.1(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       js-yaml:
         specifier: 4.3.2
         version: 4.3.2
@@ -4959,32 +5031,32 @@ importers:
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-code-editor':
-        specifier: ~6.5.1
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ~6.5.1
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-templates':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames:
         specifier: ^2.2.6
         version: 2.5.1
       dompurify:
         specifier: ^3.4.8
-        version: 3.4.15
+        version: 3.4.16
       lodash-es:
         specifier: ^4.17.15
         version: 4.18.1
@@ -5096,7 +5168,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.4.2
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
@@ -5241,7 +5313,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/model-registry:
     dependencies:
@@ -5264,11 +5336,11 @@ importers:
         specifier: ^5
         version: 5.0.1(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -5319,17 +5391,17 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/react-code-editor':
-        specifier: ^6
-        version: 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-table':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       axios:
         specifier: ^1.17.0
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -5411,17 +5483,17 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/patternfly':
-        specifier: ~6.5.1
-        version: 6.5.2
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-core':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-table':
-        specifier: ~6.5.1
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -5509,7 +5581,7 @@ importers:
         version: 9.0.1
       jest:
         specifier: ^30.2.0
-        version: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+        version: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-environment-jsdom:
         specifier: ^30.2.0
         version: 30.4.1(supports-color@8.1.1)
@@ -5645,7 +5717,7 @@ importers:
         version: 14.2.6(supports-color@8.1.1)
       ts-jest:
         specifier: ^29.4.5
-        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3)
 
   packages/model-training:
     dependencies:
@@ -5668,20 +5740,20 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-log-viewer':
         specifier: ^6
         version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-table':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-tokens':
-        specifier: ^6
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       react:
         specifier: ^18
         version: 18.3.1
@@ -5738,11 +5810,11 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -5771,6 +5843,9 @@ importers:
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../app-config
+      '@odh-dashboard/contract-tests':
+        specifier: workspace:*
+        version: link:../contract-tests
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -5811,8 +5886,8 @@ importers:
         specifier: ^8
         version: 8.5.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/components':
         specifier: ^0.54.0-beta.10
         version: 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
@@ -5881,8 +5956,8 @@ importers:
         specifier: ^5
         version: 5.0.1(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lodash-es:
         specifier: ^4.18.1
         version: 4.18.1
@@ -5965,20 +6040,20 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@openshift/dynamic-plugin-sdk-extensions@1.4.1(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(redux@4.2.1))(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@patternfly/react-core':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ^6
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       '@patternfly/react-table':
-        specifier: ^6
-        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 6.6.1
+        version: 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-tokens':
-        specifier: ^6
-        version: 6.5.1
+        specifier: 6.6.1
+        version: 6.6.1
       axios:
         specifier: ^1.17.0
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -7295,8 +7370,8 @@ packages:
   '@fastify/merge-json-schemas@0.2.1':
     resolution: {integrity: sha512-OA3KGBCy6KtIvLf8DINC5880o5iBlDX4SxzLQS8HorJAbqluzLRn80UXU0bxZn7UOFhFgpRJDasfwn9nG4FG4A==}
 
-  '@fastify/proxy-addr@5.1.0':
-    resolution: {integrity: sha512-INS+6gh91cLUjB+PVHfu1UqcB76Sqtpyp7bnL+FYojhjygvOPA9ctiD/JDKsyD9Xgu4hUhCSJBPig/w7duNajw==}
+  '@fastify/proxy-addr@5.1.1':
+    resolution: {integrity: sha512-zv07Y9GEuDsJPegZoDFd4SDWaZOW8N2pa0GSrYmKpId/tjt1Hgo3BjZBVjdVpfVrHaA+Qv5jawtS2O50J5xM9g==}
 
   '@fastify/reply-from@12.6.5':
     resolution: {integrity: sha512-/4MP+iF6T2+UBEmVYveMU2Tbx3lR1Q7xsDo8GAGjNeQrLF/JqNRlOMhOksh8fXBA47KI8ifsIlUXYdMOUXGZNQ==}
@@ -7313,8 +7388,8 @@ packages:
   '@fastify/view@12.0.0':
     resolution: {integrity: sha512-Prcoim4yTwG6vPnIyGrWViDx6FFnchV0GQWeBgAgywlL1JflGhTLDhIsyd7EkOreYHyqALqxnmhhJhD4NrJTWw==}
 
-  '@fastify/websocket@11.3.0':
-    resolution: {integrity: sha512-g89ag4BCcD9YP5wBZXixzoLnuf5j89p/sXFcfpCiv2pdEkYYukBEoK3heVzqsp0EAtszVDc2BBZG0KZqeAShIA==}
+  '@fastify/websocket@11.3.1':
+    resolution: {integrity: sha512-3117Fteg0MC9zRl0ilNAQelRb+PNDvNuWe0yJ+jnLthaPPZnlml+GraGpesNUEQvLl8+3C+W4aKZz10XmQ10Mg==}
 
   '@fontsource/inter@5.3.0':
     resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
@@ -8385,21 +8460,21 @@ packages:
     resolution: {integrity: sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==}
     engines: {node: '>= 10.0.0'}
 
-  '@patternfly/chatbot@6.5.0':
-    resolution: {integrity: sha512-+n6v7/dbAlp5wpdlcQrx4u3sQT6FlMgiy8KRtNgzfYXc9ZZUP6RqeGvQ7qTSlp4xbfiS4U+uRS99Mv9wMahr/g==}
+  '@patternfly/chatbot@6.7.1':
+    resolution: {integrity: sha512-tncpwpECXzy8CsGwxB5o8eyuOa/XXUEgr4EeQ1sXXeAcT3AUr4NXTtGVmaQLbb9tM7RsoD347+iIadmQyXoZwQ==}
     peerDependencies:
       '@monaco-editor/react': ^4.7.0
       monaco-editor: ^0.54.0
       react: ^18 || ^19
       react-dom: ^18 || ^19
 
-  '@patternfly/patternfly@6.5.2':
-    resolution: {integrity: sha512-yZ71+1gt1VGzUN5amjDNd9NvttTnSOm9M0JeBL0YX1KaWXW1bmDPzTWEM+vQXuC4LVK0msHmR5hKB7KVpamAkA==}
+  '@patternfly/patternfly@6.6.1':
+    resolution: {integrity: sha512-8P9C1TmFk5y5s2/1XVjmP9JmSyDXDiNBwPZewhPizULtqlaRu+Evljx/X1HTSFrCNY0qgI1uDKy+NXiorIniyA==}
 
-  '@patternfly/quickstarts@6.5.0':
-    resolution: {integrity: sha512-JYunrOwYF45uIZpcuMNVtoLyUKu1oB+qsUveL7lIduBVcWinw8rBXve+YnQTG7scis5kQONwJ8ZZh8W/5A37aw==}
+  '@patternfly/quickstarts@6.6.0':
+    resolution: {integrity: sha512-4NQQknw5HHqTJdBQxsdpfR0KNl6aRP34HmAjs8EcBcf3jfQNBU1Tkv1DRuEo6bpOlushtsCWtBrbcljZYaaZLg==}
     peerDependencies:
-      '@patternfly/react-core': ^6.0.0
+      '@patternfly/react-core': 6.6.1
       marked: ^15.0.6
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
@@ -8471,33 +8546,94 @@ packages:
       victory-zoom-container:
         optional: true
 
-  '@patternfly/react-code-editor@6.5.1':
-    resolution: {integrity: sha512-Epd4iAX7/Uzo+Vl+6gX6f1BjhoX06DVV7pnZnQK4N4uknyXbfIGkmOJcE0Eq06z1cxiITV/h/JHI6WqzbOSaGA==}
+  '@patternfly/react-charts@8.6.1':
+    resolution: {integrity: sha512-HkYmBanA3KmP/+dw3sbCGITjCif+r1EDzYcfjzLUUshllp55zBMv4UraEpV+pSwSv3fz1SfMQm7Dt5UXL0CWzA==}
+    peerDependencies:
+      echarts: ^5.6.0 || ^6.0.0
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+      victory-area: ^37.3.6
+      victory-axis: ^37.3.6
+      victory-bar: ^37.3.6
+      victory-box-plot: ^37.3.6
+      victory-chart: ^37.3.6
+      victory-core: ^37.3.6
+      victory-create-container: ^37.3.6
+      victory-cursor-container: ^37.3.6
+      victory-group: ^37.3.6
+      victory-legend: ^37.3.6
+      victory-line: ^37.3.6
+      victory-pie: ^37.3.6
+      victory-scatter: ^37.3.6
+      victory-stack: ^37.3.6
+      victory-tooltip: ^37.3.6
+      victory-voronoi-container: ^37.3.6
+      victory-zoom-container: ^37.3.6
+    peerDependenciesMeta:
+      echarts:
+        optional: true
+      victory-area:
+        optional: true
+      victory-axis:
+        optional: true
+      victory-bar:
+        optional: true
+      victory-box-plot:
+        optional: true
+      victory-chart:
+        optional: true
+      victory-core:
+        optional: true
+      victory-create-container:
+        optional: true
+      victory-cursor-container:
+        optional: true
+      victory-group:
+        optional: true
+      victory-legend:
+        optional: true
+      victory-line:
+        optional: true
+      victory-pie:
+        optional: true
+      victory-scatter:
+        optional: true
+      victory-stack:
+        optional: true
+      victory-tooltip:
+        optional: true
+      victory-voronoi-container:
+        optional: true
+      victory-zoom-container:
+        optional: true
+
+  '@patternfly/react-code-editor@6.6.1':
+    resolution: {integrity: sha512-iHWbXsGTB179qmVLPTJCkYBqANAHqD37twiJ5jpfwZrH8HtJGuEECwoZE/obUh9rc73tkC1FIFrCUdCwh6Y/Ug==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-component-groups@6.5.0':
-    resolution: {integrity: sha512-uvrAuUixZW618gsQY06nOcQWZclsCtOa5mixi6KQKOyrpH9GgtrihJ/fVJsA1a5HcZzC4SKIdd3wkXArs/vxEg==}
+  '@patternfly/react-component-groups@6.7.0':
+    resolution: {integrity: sha512-uBxJel7Vi7gV/yRgxCfDMI3ztnK8L0SHUU2AVYomAjCs/zEXu9B9thqlYJaRgCTxD3B29Ne43cAx3Ysux33+qQ==}
     peerDependencies:
-      '@patternfly/react-drag-drop': ^6.0.0
+      '@patternfly/react-drag-drop': 6.6.1
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-core@6.5.1':
-    resolution: {integrity: sha512-fFZ0hcIyHJO27hxbf53W3m2R11l0O9WxR7CusJXuCEaNMP31ULrhf5Pv6ROdTrrs39Kl/yPv+2QuxQfe/4e72g==}
-    peerDependencies:
-      react: ^17 || ^18 || ^19
-      react-dom: ^17 || ^18 || ^19
-
-  '@patternfly/react-drag-drop@6.5.1':
-    resolution: {integrity: sha512-10mo7ETrD4voyIUpzjtX8Z+cuQYnXPOHV5vuqhInArgSUiVi7OOqSJFG6iBnn7OCSKAMMakHdHkHRtOLiOO1Mw==}
+  '@patternfly/react-core@6.6.1':
+    resolution: {integrity: sha512-1XEBj+RllMnx+nQNaQaEH08umNdW1/HoqiNiZVBrVACI7GAGqjNR/NOWCbfl3p/o6OggD3M3mlJPhCMmcoOaGg==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-icons@6.5.1':
-    resolution: {integrity: sha512-CnuPvTTs4MMWx8CAUkmnY690ouN1bbHjunsyXu3QxvGOmzbztP+wS4BdiLS8TIXOIH80Yb7KPhnF8VkA+CduOA==}
+  '@patternfly/react-drag-drop@6.6.1':
+    resolution: {integrity: sha512-1jTPGwDwaizcZpvTrJSZrBH9ztqyDdWLpdLcvJ2EQA/djKIV+44fBtWWJ1DSF+sKXnOKmh0eGEp3s9wWvInICg==}
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+
+  '@patternfly/react-icons@6.6.1':
+    resolution: {integrity: sha512-EUHnTliMlUMNfaueyGTaNcdCDGN4CjLtQpNdSg6iWcl5oloHtUDEAIltP0nbCWnepMJDoM2YgjMlyjwWlkNzXg==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
@@ -8508,26 +8644,26 @@ packages:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-styles@6.5.1':
-    resolution: {integrity: sha512-yQMzUbbf6qYM/v3JbPvaCJTgxRbOKoEw229XZmnnM8gDvp8ECiI7LqihrAOK/NA6T6M3DDgsRMd2JurUBhPDEw==}
+  '@patternfly/react-styles@6.6.1':
+    resolution: {integrity: sha512-hwByXA4wSpOIBJFtrYUdkFDIqvzHRP5yzvip/NHDlG0y/kXausOh5Z4m00SbTA6t7Hzudw5eU1lf+IOPCm5C6Q==}
 
-  '@patternfly/react-table@6.5.1':
-    resolution: {integrity: sha512-JpX66ctLsg5snRRheDhuF2fHvXDG4UDKYfP5403kCAQ4Dz2dPu3PhlHi4AJol+egEBD2HfS/U37j7noQ1Y7mpA==}
+  '@patternfly/react-table@6.6.1':
+    resolution: {integrity: sha512-owyLpkhFg28nQWkTA3jnhmbe8FOX5vXqZntbrjse4BfdaBTOzsBxPqtBzbf6o214Q8OQBzC2Atgz9C3j0yFscQ==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-templates@6.5.1':
-    resolution: {integrity: sha512-uzUZfWt5FpaFBz0/c8mhZJb9jdGdwUVAGsSUUW4cxADnLoMNq6p5uSFZvcFF6EAjBqA5BaORrDIJKTDe4344hQ==}
+  '@patternfly/react-templates@6.6.1':
+    resolution: {integrity: sha512-QpFOE5xFONDNT507hzVCnvpzCLt8j1jXoPBW7WZhgRayeLpZHKgYewOkPZMy9pi6MBf0Q9dybjjX7OC4l/dW/w==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-tokens@6.5.1':
-    resolution: {integrity: sha512-zwepLsIQTL0Lf4R2/PIBOk1m+pm0hYVT3lktf2H4+Y87eRIifwMRb19c+pr4hj4ckGvHs+WxwjTfTj2Qqwn5rw==}
+  '@patternfly/react-tokens@6.6.1':
+    resolution: {integrity: sha512-t7dDEJMnO3QkdIKyjbyKJznVYki9ONZG27Cn/9RXwaM0lDGCrgQEJXy2XoVUCdYhIdXZu+TGSEqXeNFYUyZECg==}
 
-  '@patternfly/react-topology@6.5.0':
-    resolution: {integrity: sha512-z86n2jXlv21Enwf/Km6mORbVX6lfTQ+/jvn75AUK/DXpXDdSFpxI23mS+yBPNSZ1dbWVv9a8tLKGum0WP50H9g==}
+  '@patternfly/react-topology@6.6.0':
+    resolution: {integrity: sha512-Ake5kYZMKwhe5DqCo3w4J0aX970wWNdWotwLNq65Ad0hBxnKw3e3FEhjyaw1OJJN+H9L/AV9VazU/u56qYeBZA==}
     peerDependencies:
       react: ^18.3.1
       react-dom: ^17 || ^18 || ^19
@@ -9345,33 +9481,33 @@ packages:
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
 
-  '@turbo/darwin-64@2.10.12':
-    resolution: {integrity: sha512-9nKgKoF6ZOUsM+or0OtNf+TTJSfGvDNP7ZFv/ZGWVwOSCkumyctQiTeHwB4UNljHTnC41AqylgbunLDHoccNrA==}
+  '@turbo/darwin-64@2.11.7':
+    resolution: {integrity: sha512-Z2LFOxwbiJueD1miByXJS/BrW21vv6YaQXZustty5jEX4vQYw6zyh101Sz1QO7WG0mqBzKagZ/DoAeeujI0/Sw==}
     cpu: [x64]
     os: [darwin]
 
-  '@turbo/darwin-arm64@2.10.12':
-    resolution: {integrity: sha512-H4Elb1jqTZVeIC9bbcNwjSzemZ6RegoTOVHeuV5Osirt2Z8UguTyisMEkvZjPVZgMeN9J4ERZBFad40tFnkb7w==}
+  '@turbo/darwin-arm64@2.11.7':
+    resolution: {integrity: sha512-Vhv8ybgIflosNDSSRD9fNXHlCFA60dsGyTqQmc7l28SEX5jOaweCCD4BBYNd8/p0WGkw3e7tZbfA9w6FsujGvw==}
     cpu: [arm64]
     os: [darwin]
 
-  '@turbo/linux-64@2.10.12':
-    resolution: {integrity: sha512-lr7KIotukvjZwEXiFSYAeOH3BWzjFVBbSzTbv0fuGFsNukYyH0+g1hB5ecqnJkgkYU+KHEMG1edOhnjiKON1wQ==}
+  '@turbo/linux-64@2.11.7':
+    resolution: {integrity: sha512-rAqRp3blQKk1+ylMGlZHAW0eJjVNuuGUm4ZrC6RU1Im8tLryvaO4a2zLQ/FQi1TRlmKqKV9YXBki2YeytlLbXA==}
     cpu: [x64]
     os: [android, linux]
 
-  '@turbo/linux-arm64@2.10.12':
-    resolution: {integrity: sha512-f0pZDTtvzB5SuNwuXBaKbZHUCMCukgc8nMlHEuvLmj91Fzec+MEbr3cAvGNor5htEDqZnO6Lxt9N/GPI/77oGA==}
+  '@turbo/linux-arm64@2.11.7':
+    resolution: {integrity: sha512-thVYGov7S+llXAxrl3kBb/efalav0xhrjl5NHCR6AfKx14JkbqaetvbVwyss4FvZ9rt+Pv3xsTb+8SIYix8DTg==}
     cpu: [arm64]
     os: [android, linux]
 
-  '@turbo/windows-64@2.10.12':
-    resolution: {integrity: sha512-SDOueJRjS/QcykWf2KCRtTLmIl5YMKsLbXkXQGhDwcTXvKXZiS5ih5lBl/gkwZIpYFjqA/rAlfMzlAFcVHNe0g==}
+  '@turbo/windows-64@2.11.7':
+    resolution: {integrity: sha512-ZIoKT7J7KutgYl4bGxmmgeUQjG+7E0nY8BF9dxUOiMH2vdTsM4JQ2uSwTYFkTR2Llbg6ghGjSmuZ8LQtkLEYjg==}
     cpu: [x64]
     os: [win32]
 
-  '@turbo/windows-arm64@2.10.12':
-    resolution: {integrity: sha512-0i0mVUa4kKk+/B3RwEwPMf9CB+T7ul56hn5FFHNA4VUNTOoLBEd6aNf3FaKfCatDNZ6cicCEf6if9QUTVyzzcA==}
+  '@turbo/windows-arm64@2.11.7':
+    resolution: {integrity: sha512-88Xv2f7SLGVJ68lRRx8o375dKmnZYNdDtvlKcPA0kZpcF93eAQd8l96BKQ0/AMHG0bMJA0Z5QqoqtetxzNsC+g==}
     cpu: [arm64]
     os: [win32]
 
@@ -9653,6 +9789,9 @@ packages:
   '@types/node@22.20.2':
     resolution: {integrity: sha512-xlvWf4Vs9n1PEVYwP1n4vvG07M6y8WgvJ2t0vbrWTmijsIHp1cS+uJ2kMIRdY3nHZK0nCYKrPeD171+SzF4/zw==}
 
+  '@types/node@22.20.5':
+    resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==}
+
   '@types/parse-json@4.0.2':
     resolution: {integrity: sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==}
 
@@ -9756,6 +9895,9 @@ packages:
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
+  '@types/ws@8.18.2':
+    resolution: {integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==}
+
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
 
@@ -9781,6 +9923,14 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/eslint-plugin@8.71.0':
+    resolution: {integrity: sha512-pqcS9c1HxZTHt7End4nXqd0s5lJrrFzrgCkKFJrsbUnaL6M3+6oBFZaslg6Gjsl3argl2DDRFROnXARaZ2e4Nw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      '@typescript-eslint/parser': ^8.71.0
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/parser@7.18.0':
     resolution: {integrity: sha512-4Z+L8I2OqhZV8qA132M4wNL30ypZGYOQVBfMgxDH/K5UX0PNqTu1c6za9ST5r9+tavvHiTWmBnKzpCJ/GlVFtg==}
     engines: {node: ^18.18.0 || >=20.0.0}
@@ -9798,8 +9948,21 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/parser@8.71.0':
+    resolution: {integrity: sha512-CG4nPk1f2zc8yw4pALqHsFYH2hdo+h1T9daSp21+Hnxi9LOE3GT9hAfTKJCBXVNM2GmYs1eMEP615wPoeOgk3A==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/project-service@8.67.0':
     resolution: {integrity: sha512-cvE8c7ulYeXN9fYuszhCeCsbzyVEXuhrRCybnBre7TUmqb5nRmBfQAwCj0O3WJFDeyAZt4VYv51vMCC9LHSdYw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.1.0'
+
+  '@typescript-eslint/project-service@8.71.0':
+    resolution: {integrity: sha512-aABjw5rjBacYONVPaPiWOCjJu0vEF4a25iQuodlmQYL1trtLZ0X/y+2Vzl3BKI1odM4LnwLE1oUDXYp1wzx1TQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       typescript: '>=4.8.4 <6.1.0'
@@ -9812,8 +9975,18 @@ packages:
     resolution: {integrity: sha512-EgvsleTwS4E+WzzSvem8fAUubLwatMNF1B5hHSLQxcvs7q2dtRhGyujHwLJSYlG41niJ7GP24Aha2+0mb1b2kg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@typescript-eslint/scope-manager@8.71.0':
+    resolution: {integrity: sha512-gWF0BhUcnjZxSpLE8ngS/59n2SB0J3YqRxvX1+2aoRJk9hNtHSLOV+TcarFiOr5ipXm3yc1QrI4c9YZc8zyCxw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
   '@typescript-eslint/tsconfig-utils@8.67.0':
     resolution: {integrity: sha512-vV+LUSv5njUWsknE71fqKTlXUva+R76SaeORd6Zojcunk/6DvKFXONU3BrAs2H49mbygUXt6gbYunzwqNwlhdg==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.1.0'
+
+  '@typescript-eslint/tsconfig-utils@8.71.0':
+    resolution: {integrity: sha512-Z1UlWHADEK2Mlb9NpWfDeSjqoZ5EyrOv4R3eQpbkzqn/EwaIdOpXXupEA1+0ZIOSJSZZDBHG0BrQyN8zUG6Pwg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       typescript: '>=4.8.4 <6.1.0'
@@ -9835,12 +10008,23 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/type-utils@8.71.0':
+    resolution: {integrity: sha512-i8uO1qbdxeKgRnS5sCRt6On3/nfo2d2DwQe3Yvjx543zLy7r8ySqRuPPiIIXAhS03U0v5NfAFx+rUgxFzKKwNw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/types@7.18.0':
     resolution: {integrity: sha512-iZqi+Ds1y4EDYUtlOOC+aUmxnE9xS/yCigkjA7XpTKV6nCBd3Hp/PRGGmdwnfkV2ThMyYldP1wRpm/id99spTQ==}
     engines: {node: ^18.18.0 || >=20.0.0}
 
   '@typescript-eslint/types@8.67.0':
     resolution: {integrity: sha512-sBtgslww8nsMYUjhdPBiSyUqSzT8uR6g93A2QXnQC8+cGdjz0CyaOdqHDRJb1AtORbZCNUJBBeFA/tNR2uQmww==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript-eslint/types@8.71.0':
+    resolution: {integrity: sha512-cJ4OoxPGWvFnBTnSZyaU+qJzGTqPTGJY+gDchj6cRyLRdmIdt4rcsE4twj+zPfrNiWuVi38wijHzShL++Z9atQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@typescript-eslint/typescript-estree@7.18.0':
@@ -9858,6 +10042,12 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/typescript-estree@8.71.0':
+    resolution: {integrity: sha512-PEEF4G5sLLWAS5BpPrUvms4ySZkiBQQZM4z+3ReI46axK5Vqr/vXBQatJQIZZOYdGyPUAKTtsrWzpqKuU+3DEw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/utils@7.18.0':
     resolution: {integrity: sha512-kK0/rNa2j74XuHVcoCZxdFBMF+aq/vH83CXAOHieC+2Gis4mF8jJXT5eAfyD3K0sAxtPuwxaIOIOvhwzVDt/kw==}
     engines: {node: ^18.18.0 || >=20.0.0}
@@ -9871,12 +10061,23 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/utils@8.71.0':
+    resolution: {integrity: sha512-pKR/tEMVrXZG23UFKUn5BQf3zfmfk7KQceI2cGzywZ5nxM5Eu3hEJU1utjWzydtzBbcJAQhHN8iPCxobHpPcZQ==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/visitor-keys@7.18.0':
     resolution: {integrity: sha512-cDF0/Gf81QpY3xYyJKDV14Zwdmid5+uuENhjH2EqFaF0ni+yAyq/LzMaIJdhNJXZI7uLzwIlA+V7oWoyn6Curg==}
     engines: {node: ^18.18.0 || >=20.0.0}
 
   '@typescript-eslint/visitor-keys@8.67.0':
     resolution: {integrity: sha512-fkv8dHRDqfGtTHuJeebdrQ7cX6Ad4WAS00rgHh9UGvMycF1mjBfsxry1XsLIFhWZ6Judlh6UdzK+TYlbpCXgnA==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript-eslint/visitor-keys@8.71.0':
+    resolution: {integrity: sha512-8eQ9R218XORK+KLosnf4bu/QsUXvUyVwTbArg7/0NMB1Pu87OJKvj4nhFblkYE8gQV73mW1dx1ptlPCkwRGa7A==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@uiw/codemirror-extensions-basic-setup@4.25.11':
@@ -11669,11 +11870,11 @@ packages:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
 
-  dompurify@3.4.13:
-    resolution: {integrity: sha512-2vmYIoqjze2d+kakP8S/nS5shfsl587kzwEjcGlTdiksUVgFHnFCsLYDVj/JNqJVOQZGSYBTmuycv0PodwmnMQ==}
-
   dompurify@3.4.15:
     resolution: {integrity: sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==}
+
+  dompurify@3.4.16:
+    resolution: {integrity: sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==}
 
   domutils@2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
@@ -12306,6 +12507,9 @@ packages:
   fast-uri@3.1.7:
     resolution: {integrity: sha512-dOvZVzjdZdz7phd9v6jCbwxrBW3fK6n8Rc0CtdmM4bumzMnxywBYhuph6J819RRw/ku+rLbelwfMunktuzVVHg==}
 
+  fast-uri@3.1.8:
+    resolution: {integrity: sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==}
+
   fastest-levenshtein@1.0.16:
     resolution: {integrity: sha512-eRnCtTTtGZFpQCwhJiUOuxPQWRXVKYDn0b2PeHfXL6/Zi53SLAzAHfVhVWK2AryC/WH05kGfxhFIPvTF0SXQzg==}
     engines: {node: '>= 4.9.1'}
@@ -12316,8 +12520,8 @@ packages:
   fastify-plugin@6.0.0:
     resolution: {integrity: sha512-fZOty7z3O7vOliF6d8bHE3wiEh1KcNnKEQensSgTk9C1DvN6nRLS++XVd86v33Hw/8u9Un8A1zDrQ8ujcQDHEg==}
 
-  fastify@5.12.4:
-    resolution: {integrity: sha512-zATD676fP6tBMsn+jQ7Q5/cO/Qo+149TXH0dUqUKel+1/hcZxwIbnflqtPa9EjlrvpY8eCZcL3M1UYrMc31Y7g==}
+  fastify@5.12.5:
+    resolution: {integrity: sha512-OB2k1dlxs5/NAABqeKV2FUHkSD2BbENsCak8yULVcymn3fHIPDVa9TI3SDnJSWYSllZmSYuZXy2gTnsT+Sut1A==}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
@@ -12983,6 +13187,10 @@ packages:
 
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
+    engines: {node: '>= 4'}
+
+  ignore@7.0.12:
+    resolution: {integrity: sha512-/8UvqAPU9DGTI9k4mxtf49U37Isfwr8Uts96+SBHIkFxPJnHS0Ew4f00sM4Scd8V8EjM0jUNtVDdv1kPdt35lg==}
     engines: {node: '>= 4'}
 
   ignore@7.0.6:
@@ -16656,8 +16864,8 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
-  turbo@2.10.12:
-    resolution: {integrity: sha512-AswgMPnpOoaVZHrrSBejETzEbuIA69OVGwfkHwfrY0A23VjWXBANzgq9+OymWOHAIArB7D1+1z498WY8fGg1Jw==}
+  turbo@2.11.7:
+    resolution: {integrity: sha512-RhXHbqfvY6o3xt/zSHCwSNwLrZlXiqHzewi4eAj9PtZ1T1CqgMJ2yIDb7SKPTG9IikTm925mfzL6hldQVdyNWw==}
     hasBin: true
 
   tweetnacl@0.14.5:
@@ -16738,8 +16946,8 @@ packages:
     resolution: {integrity: sha512-QW61P4cOX8dCNmrfpcUMjvU/MF/sFTC8/PlG9215W1gKDzZUBjRGdyYSO6ZcEUNsn491S2VpryJOHSIVSDqJrg==}
     engines: {node: '>= 4'}
 
-  typescript-eslint@8.67.0:
-    resolution: {integrity: sha512-S2udFs8tCKEKffuJ4TB1idGUZiXdCPGi3IPBGWXarbLQ5UPXORV8QEVzJ4gCRduURMb5EkpNCdjbk0eDIuI8Yg==}
+  typescript-eslint@8.71.0:
+    resolution: {integrity: sha512-fBdHYiqQ14RW6mOMXD14Svn82ZsCYAoQSzGRzyEjR59S5A2Krh/l7fGTOQ7iCr8gGy/mHVXtEF7s5fgjEdV0Pw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
@@ -17323,6 +17531,18 @@ packages:
 
   ws@8.21.3:
     resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
+  ws@8.22.0:
+    resolution: {integrity: sha512-Ydggc987+RO0AnWtZ/7Wq9FtNvcrL1b/RO0ud9mWjUPgDrsAAwQSF51sm2hm1XofbU/4jkpGEsLFsZZxU+1DOg==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -18962,7 +19182,7 @@ snapshots:
     dependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
-      fast-uri: 3.1.7
+      fast-uri: 3.1.8
 
   '@fastify/error@4.2.0': {}
 
@@ -18977,7 +19197,7 @@ snapshots:
       '@fastify/reply-from': 12.6.5
       fast-querystring: 1.1.2
       fastify-plugin: 6.0.0
-      ws: 8.21.3
+      ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -18986,7 +19206,7 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
-  '@fastify/proxy-addr@5.1.0':
+  '@fastify/proxy-addr@5.1.1':
     dependencies:
       '@fastify/forwarded': 3.0.2
       ipaddr.js: 2.5.0
@@ -19034,11 +19254,11 @@ snapshots:
       fastify-plugin: 5.1.0
       toad-cache: 3.7.4
 
-  '@fastify/websocket@11.3.0':
+  '@fastify/websocket@11.3.1':
     dependencies:
       duplexify: 4.1.3
       fastify-plugin: 6.0.0
-      ws: 8.21.3
+      ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -19133,7 +19353,7 @@ snapshots:
   '@jest/console@29.7.0':
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       jest-message-util: 29.7.0
       jest-util: 29.7.0
@@ -19142,46 +19362,11 @@ snapshots:
   '@jest/console@30.4.1':
     dependencies:
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       jest-message-util: 30.4.1
       jest-util: 30.4.1
       slash: 3.0.0
-
-  '@jest/core@29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)':
-    dependencies:
-      '@jest/console': 29.7.0
-      '@jest/reporters': 29.7.0(supports-color@8.1.1)
-      '@jest/test-result': 29.7.0
-      '@jest/transform': 29.7.0(supports-color@8.1.1)
-      '@jest/types': 29.6.3
-      '@types/node': 22.20.1
-      ansi-escapes: 4.3.2
-      chalk: 4.1.2
-      ci-info: 3.9.0
-      exit: 0.1.2
-      graceful-fs: 4.2.11
-      jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
-      jest-haste-map: 29.7.0
-      jest-message-util: 29.7.0
-      jest-regex-util: 29.6.3
-      jest-resolve: 29.7.0
-      jest-resolve-dependencies: 29.7.0(supports-color@8.1.1)
-      jest-runner: 29.7.0(supports-color@8.1.1)
-      jest-runtime: 29.7.0(supports-color@8.1.1)
-      jest-snapshot: 29.7.0(supports-color@8.1.1)
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      jest-watcher: 29.7.0
-      micromatch: 4.0.8
-      pretty-format: 29.7.0
-      slash: 3.0.0
-      strip-ansi: 6.0.1
-    transitivePeerDependencies:
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
 
   '@jest/core@29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))':
     dependencies:
@@ -19190,14 +19375,14 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0(supports-color@8.1.1)
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+      jest-config: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -19226,7 +19411,7 @@ snapshots:
       '@jest/test-result': 30.4.1
       '@jest/transform': 30.4.1(supports-color@8.1.1)
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 4.4.0
@@ -19234,7 +19419,7 @@ snapshots:
       fast-json-stable-stringify: 2.1.0
       graceful-fs: 4.2.11
       jest-changed-files: 30.4.1
-      jest-config: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+      jest-config: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       jest-haste-map: 30.4.1
       jest-message-util: 30.4.1
       jest-regex-util: 30.4.0
@@ -19262,7 +19447,7 @@ snapshots:
       '@jest/test-result': 30.4.1
       '@jest/transform': 30.4.1(supports-color@8.1.1)
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 4.4.0
@@ -19270,7 +19455,43 @@ snapshots:
       fast-json-stable-stringify: 2.1.0
       graceful-fs: 4.2.11
       jest-changed-files: 30.4.1
-      jest-config: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+      jest-config: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+      jest-haste-map: 30.4.1
+      jest-message-util: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-resolve-dependencies: 30.4.2(supports-color@8.1.1)
+      jest-runner: 30.4.2(supports-color@8.1.1)
+      jest-runtime: 30.4.2(supports-color@8.1.1)
+      jest-snapshot: 30.4.1(supports-color@8.1.1)
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      jest-watcher: 30.4.1
+      pretty-format: 30.4.1
+      slash: 3.0.0
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+
+  '@jest/core@30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))':
+    dependencies:
+      '@jest/console': 30.4.1
+      '@jest/pattern': 30.4.0
+      '@jest/reporters': 30.4.1(supports-color@8.1.1)
+      '@jest/test-result': 30.4.1
+      '@jest/transform': 30.4.1(supports-color@8.1.1)
+      '@jest/types': 30.4.1
+      '@types/node': 22.20.2
+      ansi-escapes: 4.3.2
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      exit-x: 0.2.2
+      fast-json-stable-stringify: 2.1.0
+      graceful-fs: 4.2.11
+      jest-changed-files: 30.4.1
+      jest-config: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       jest-haste-map: 30.4.1
       jest-message-util: 30.4.1
       jest-regex-util: 30.4.0
@@ -19298,7 +19519,7 @@ snapshots:
       '@jest/fake-timers': 30.4.1
       '@jest/types': 30.4.1
       '@types/jsdom': 21.1.7
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-mock: 30.4.1
       jest-util: 30.4.1
       jsdom: 26.1.0(supports-color@8.1.1)
@@ -19307,14 +19528,14 @@ snapshots:
     dependencies:
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-mock: 29.7.0
 
   '@jest/environment@30.4.1':
     dependencies:
       '@jest/fake-timers': 30.4.1
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-mock: 30.4.1
 
   '@jest/expect-utils@29.7.0':
@@ -19343,7 +19564,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@sinonjs/fake-timers': 10.3.0
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
       jest-util: 29.7.0
@@ -19352,7 +19573,7 @@ snapshots:
     dependencies:
       '@jest/types': 30.4.1
       '@sinonjs/fake-timers': 15.4.0
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-message-util: 30.4.1
       jest-mock: 30.4.1
       jest-util: 30.4.1
@@ -19379,7 +19600,7 @@ snapshots:
 
   '@jest/pattern@30.4.0':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-regex-util: 30.4.0
 
   '@jest/reporters@29.7.0(supports-color@8.1.1)':
@@ -19390,7 +19611,7 @@ snapshots:
       '@jest/transform': 29.7.0(supports-color@8.1.1)
       '@jest/types': 29.6.3
       '@jridgewell/trace-mapping': 0.3.31
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       collect-v8-coverage: 1.0.3
       exit: 0.1.2
@@ -19419,7 +19640,7 @@ snapshots:
       '@jest/transform': 30.4.1(supports-color@8.1.1)
       '@jest/types': 30.4.1
       '@jridgewell/trace-mapping': 0.3.31
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       collect-v8-coverage: 1.0.3
       exit-x: 0.2.2
@@ -19538,7 +19759,7 @@ snapshots:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
@@ -19548,7 +19769,7 @@ snapshots:
       '@jest/schemas': 30.4.1
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
@@ -19740,7 +19961,7 @@ snapshots:
       '@types/ws': 8.18.1
       byline: 5.0.0
       execa: 1.0.0
-      isomorphic-ws: 4.0.1(ws@8.21.3)
+      isomorphic-ws: 4.0.1(ws@8.22.0)
       js-yaml: 3.15.2
       jsonpath-plus: 10.4.0
       openid-client: 4.9.1
@@ -19752,7 +19973,7 @@ snapshots:
       tmp-promise: 3.0.3
       tslib: 1.14.1
       underscore: 1.13.8
-      ws: 8.21.3
+      ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -19842,14 +20063,14 @@ snapshots:
       axios: 1.19.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       chalk: 3.0.0
       fs-extra: 9.1.0
-      isomorphic-ws: 5.0.0(ws@8.21.3)
+      isomorphic-ws: 5.0.0(ws@8.22.0)
       koa: 3.2.1
       lodash.clonedeepwith: 4.5.0
       log4js: 6.9.1(supports-color@8.1.1)
       node-schedule: 2.1.1
       rambda: 9.4.2
       typescript: 5.9.3
-      ws: 8.21.3
+      ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -20473,14 +20694,14 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.6.0
     optional: true
 
-  '@patternfly/chatbot@6.5.0(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)':
+  '@patternfly/chatbot@6.7.1(@monaco-editor/react@4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.31)(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)':
     dependencies:
       '@monaco-editor/react': 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-code-editor': 6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
-      '@patternfly/react-table': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-code-editor': 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-table': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@segment/analytics-next': 1.84.1
       clsx: 2.1.1
       monaco-editor: 0.54.0
@@ -20501,12 +20722,12 @@ snapshots:
       - preact-render-to-string
       - supports-color
 
-  '@patternfly/patternfly@6.5.2': {}
+  '@patternfly/patternfly@6.6.1': {}
 
-  '@patternfly/quickstarts@6.5.0(@patternfly/react-core@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/quickstarts@6.6.0(@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(marked@15.0.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      dompurify: 3.4.15
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      dompurify: 3.4.16
       history: 5.3.0
       marked: 15.0.12
       react: 18.3.1
@@ -20514,15 +20735,15 @@ snapshots:
 
   '@patternfly/react-catalog-view-extension@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
   '@patternfly/react-charts@8.5.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))':
     dependencies:
-      '@patternfly/react-styles': 6.5.1
-      '@patternfly/react-tokens': 6.5.1
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
       hoist-non-react-statics: 3.3.2
       lodash: 4.18.1
       react: 18.3.1
@@ -20548,12 +20769,41 @@ snapshots:
       victory-voronoi-container: 37.3.6(react@18.3.1)
       victory-zoom-container: 37.3.6(react@18.3.1)
 
-  '@patternfly/react-code-editor@6.5.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-charts@8.6.1(echarts@5.6.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(victory-area@37.3.6(react@18.3.1))(victory-axis@37.3.6(react@18.3.1))(victory-bar@37.3.6(react@18.3.1))(victory-box-plot@37.3.6(react@18.3.1))(victory-chart@37.3.6(react@18.3.1))(victory-core@37.3.6(react@18.3.1))(victory-create-container@37.3.6(react@18.3.1))(victory-cursor-container@37.3.6(react@18.3.1))(victory-group@37.3.6(react@18.3.1))(victory-legend@37.3.6(react@18.3.1))(victory-line@37.3.6(react@18.3.1))(victory-pie@37.3.6(react@18.3.1))(victory-scatter@37.3.6(react@18.3.1))(victory-stack@37.3.6(react@18.3.1))(victory-tooltip@37.3.6(react@18.3.1))(victory-voronoi-container@37.3.6(react@18.3.1))(victory-zoom-container@37.3.6(react@18.3.1))':
+    dependencies:
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
+      hoist-non-react-statics: 3.3.2
+      lodash: 4.18.1
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      tslib: 2.8.1
+    optionalDependencies:
+      echarts: 5.6.0
+      victory-area: 37.3.6(react@18.3.1)
+      victory-axis: 37.3.6(react@18.3.1)
+      victory-bar: 37.3.6(react@18.3.1)
+      victory-box-plot: 37.3.6(react@18.3.1)
+      victory-chart: 37.3.6(react@18.3.1)
+      victory-core: 37.3.6(react@18.3.1)
+      victory-create-container: 37.3.6(react@18.3.1)
+      victory-cursor-container: 37.3.6(react@18.3.1)
+      victory-group: 37.3.6(react@18.3.1)
+      victory-legend: 37.3.6(react@18.3.1)
+      victory-line: 37.3.6(react@18.3.1)
+      victory-pie: 37.3.6(react@18.3.1)
+      victory-scatter: 37.3.6(react@18.3.1)
+      victory-stack: 37.3.6(react@18.3.1)
+      victory-tooltip: 37.3.6(react@18.3.1)
+      victory-voronoi-container: 37.3.6(react@18.3.1)
+      victory-zoom-container: 37.3.6(react@18.3.1)
+
+  '@patternfly/react-code-editor@6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@monaco-editor/react': 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-dropzone: 14.3.5(react@18.3.1)
@@ -20561,85 +20811,86 @@ snapshots:
     transitivePeerDependencies:
       - monaco-editor
 
-  '@patternfly/react-component-groups@6.5.0(@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-component-groups@6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-drag-drop': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
-      '@patternfly/react-table': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-drag-drop': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-table': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-jss: 10.10.0(react@18.3.1)
 
-  '@patternfly/react-core@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-core@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
-      '@patternfly/react-tokens': 6.5.1
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
       focus-trap: 7.6.6
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-dropzone: 14.4.1(react@18.3.1)
       tslib: 2.8.1
 
-  '@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       resize-observer-polyfill: 1.5.1
 
-  '@patternfly/react-icons@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-icons@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
+      tslib: 2.8.1
 
   '@patternfly/react-log-viewer@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
       memoize-one: 5.2.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@patternfly/react-styles@6.5.1': {}
+  '@patternfly/react-styles@6.6.1': {}
 
-  '@patternfly/react-table@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-table@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
-      '@patternfly/react-tokens': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       tslib: 2.8.1
 
-  '@patternfly/react-templates@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-templates@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
-      '@patternfly/react-tokens': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
+      '@patternfly/react-tokens': 6.6.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       tslib: 2.8.1
 
-  '@patternfly/react-tokens@6.5.1': {}
+  '@patternfly/react-tokens@6.6.1': {}
 
-  '@patternfly/react-topology@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-topology@6.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@dagrejs/dagre': 1.1.2
-      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-core': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.6.1
       '@types/d3': 7.4.3
       '@types/d3-force': 1.2.7
       d3: 7.9.0
@@ -20838,7 +21089,7 @@ snapshots:
       use-immer: 0.11.0(immer@10.2.0)(react@18.3.1)
       use-query-params: 2.2.2(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      yaml: 2.9.0
+      yaml: 2.9.1
       zustand: 4.5.7(@types/react@18.3.31)(immer@10.2.0)(react@18.3.1)
     transitivePeerDependencies:
       - '@babel/runtime'
@@ -21838,22 +22089,22 @@ snapshots:
 
   '@tsconfig/node16@1.0.4': {}
 
-  '@turbo/darwin-64@2.10.12':
+  '@turbo/darwin-64@2.11.7':
     optional: true
 
-  '@turbo/darwin-arm64@2.10.12':
+  '@turbo/darwin-arm64@2.11.7':
     optional: true
 
-  '@turbo/linux-64@2.10.12':
+  '@turbo/linux-64@2.11.7':
     optional: true
 
-  '@turbo/linux-arm64@2.10.12':
+  '@turbo/linux-arm64@2.11.7':
     optional: true
 
-  '@turbo/windows-64@2.10.12':
+  '@turbo/windows-64@2.11.7':
     optional: true
 
-  '@turbo/windows-arm64@2.10.12':
+  '@turbo/windows-arm64@2.11.7':
     optional: true
 
   '@tybys/wasm-util@0.10.3':
@@ -21892,17 +22143,17 @@ snapshots:
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/bonjour@3.5.13':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/cacheable-request@6.0.3':
     dependencies:
       '@types/http-cache-semantics': 4.2.0
       '@types/keyv': 3.1.4
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@types/responselike': 1.0.3
 
   '@types/caseless@0.12.5': {}
@@ -21918,7 +22169,7 @@ snapshots:
   '@types/connect-history-api-fallback@1.5.4':
     dependencies:
       '@types/express-serve-static-core': 4.19.9
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/connect@3.4.38':
     dependencies:
@@ -22053,7 +22304,7 @@ snapshots:
 
   '@types/dompurify@3.2.0':
     dependencies:
-      dompurify: 3.4.15
+      dompurify: 3.4.16
 
   '@types/ejs@3.1.5': {}
 
@@ -22077,7 +22328,7 @@ snapshots:
 
   '@types/express-serve-static-core@4.19.9':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@types/qs': 6.15.1
       '@types/range-parser': 1.2.7
       '@types/send': 1.2.1
@@ -22094,13 +22345,13 @@ snapshots:
   '@types/glob@7.2.0':
     dependencies:
       '@types/minimatch': 5.1.2
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/google-protobuf@3.15.12': {}
 
   '@types/graceful-fs@4.1.9':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/hast@3.0.5':
     dependencies:
@@ -22149,13 +22400,13 @@ snapshots:
 
   '@types/jsdom@20.0.1':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@types/tough-cookie': 4.0.5
       parse5: 7.3.0
 
   '@types/jsdom@21.1.7':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@types/tough-cookie': 4.0.5
       parse5: 7.3.0
 
@@ -22165,7 +22416,7 @@ snapshots:
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/lodash-es@4.17.12':
     dependencies:
@@ -22194,6 +22445,10 @@ snapshots:
       undici-types: 6.21.0
 
   '@types/node@22.20.2':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@22.20.5':
     dependencies:
       undici-types: 6.21.0
 
@@ -22232,13 +22487,13 @@ snapshots:
   '@types/request@2.48.13':
     dependencies:
       '@types/caseless': 0.12.5
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@types/tough-cookie': 4.0.5
       form-data: 4.0.6
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/retry@0.12.2': {}
 
@@ -22247,11 +22502,11 @@ snapshots:
   '@types/send@0.17.6':
     dependencies:
       '@types/mime': 1.3.5
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/send@1.2.1':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/serve-index@1.9.4':
     dependencies:
@@ -22260,7 +22515,7 @@ snapshots:
   '@types/serve-static@1.15.10':
     dependencies:
       '@types/http-errors': 1.8.2
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@types/send': 0.17.6
 
   '@types/showdown@2.0.6': {}
@@ -22271,13 +22526,13 @@ snapshots:
 
   '@types/sockjs@0.3.36':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/stack-utils@2.0.3': {}
 
   '@types/stream-buffers@3.0.8':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
 
   '@types/tapable@2.3.0':
     dependencies:
@@ -22305,7 +22560,11 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
+
+  '@types/ws@8.18.2':
+    dependencies:
+      '@types/node': 22.20.5
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -22347,16 +22606,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/eslint-plugin@8.67.0(@typescript-eslint/parser@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)':
+  '@typescript-eslint/eslint-plugin@8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
-      '@typescript-eslint/parser': 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
-      '@typescript-eslint/scope-manager': 8.67.0
-      '@typescript-eslint/type-utils': 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
-      '@typescript-eslint/visitor-keys': 8.67.0
+      '@typescript-eslint/parser': 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/scope-manager': 8.71.0
+      '@typescript-eslint/type-utils': 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/utils': 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/visitor-keys': 8.71.0
       eslint: 9.39.5(jiti@2.4.2)(supports-color@8.1.1)
-      ignore: 7.0.6
+      ignore: 7.0.12
       natural-compare: 1.4.0
       ts-api-utils: 2.5.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -22388,12 +22647,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/parser@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)':
+  '@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)':
     dependencies:
-      '@typescript-eslint/scope-manager': 8.67.0
-      '@typescript-eslint/types': 8.67.0
-      '@typescript-eslint/typescript-estree': 8.67.0(supports-color@8.1.1)(typescript@5.9.3)
-      '@typescript-eslint/visitor-keys': 8.67.0
+      '@typescript-eslint/scope-manager': 8.71.0
+      '@typescript-eslint/types': 8.71.0
+      '@typescript-eslint/typescript-estree': 8.71.0(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/visitor-keys': 8.71.0
       debug: 4.4.3(supports-color@8.1.1)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@8.1.1)
       typescript: 5.9.3
@@ -22409,6 +22668,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@typescript-eslint/project-service@8.71.0(supports-color@8.1.1)(typescript@5.9.3)':
+    dependencies:
+      '@typescript-eslint/tsconfig-utils': 8.71.0(typescript@5.9.3)
+      '@typescript-eslint/types': 8.71.0
+      debug: 4.4.3(supports-color@8.1.1)
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - supports-color
+
   '@typescript-eslint/scope-manager@7.18.0':
     dependencies:
       '@typescript-eslint/types': 7.18.0
@@ -22419,7 +22687,16 @@ snapshots:
       '@typescript-eslint/types': 8.67.0
       '@typescript-eslint/visitor-keys': 8.67.0
 
+  '@typescript-eslint/scope-manager@8.71.0':
+    dependencies:
+      '@typescript-eslint/types': 8.71.0
+      '@typescript-eslint/visitor-keys': 8.71.0
+
   '@typescript-eslint/tsconfig-utils@8.67.0(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
+
+  '@typescript-eslint/tsconfig-utils@8.71.0(typescript@5.9.3)':
     dependencies:
       typescript: 5.9.3
 
@@ -22447,11 +22724,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/type-utils@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)':
+  '@typescript-eslint/type-utils@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)':
     dependencies:
-      '@typescript-eslint/types': 8.67.0
-      '@typescript-eslint/typescript-estree': 8.67.0(supports-color@8.1.1)(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/types': 8.71.0
+      '@typescript-eslint/typescript-estree': 8.71.0(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/utils': 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
       debug: 4.4.3(supports-color@8.1.1)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@8.1.1)
       ts-api-utils: 2.5.0(typescript@5.9.3)
@@ -22462,6 +22739,8 @@ snapshots:
   '@typescript-eslint/types@7.18.0': {}
 
   '@typescript-eslint/types@8.67.0': {}
+
+  '@typescript-eslint/types@8.71.0': {}
 
   '@typescript-eslint/typescript-estree@7.18.0(supports-color@8.1.1)(typescript@5.9.3)':
     dependencies:
@@ -22493,6 +22772,21 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@typescript-eslint/typescript-estree@8.71.0(supports-color@8.1.1)(typescript@5.9.3)':
+    dependencies:
+      '@typescript-eslint/project-service': 8.71.0(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/tsconfig-utils': 8.71.0(typescript@5.9.3)
+      '@typescript-eslint/types': 8.71.0
+      '@typescript-eslint/visitor-keys': 8.71.0
+      debug: 4.4.3(supports-color@8.1.1)
+      minimatch: 10.2.6
+      semver: 7.8.5
+      tinyglobby: 0.2.17
+      ts-api-utils: 2.5.0(typescript@5.9.3)
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - supports-color
+
   '@typescript-eslint/utils@7.18.0(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)':
     dependencies:
       '@eslint-community/eslint-utils': 4.10.1(eslint@8.57.1(supports-color@8.1.1))
@@ -22515,12 +22809,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/utils@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)':
+  '@typescript-eslint/utils@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)':
     dependencies:
       '@eslint-community/eslint-utils': 4.10.1(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))
-      '@typescript-eslint/scope-manager': 8.67.0
-      '@typescript-eslint/types': 8.67.0
-      '@typescript-eslint/typescript-estree': 8.67.0(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/scope-manager': 8.71.0
+      '@typescript-eslint/types': 8.71.0
+      '@typescript-eslint/typescript-estree': 8.71.0(supports-color@8.1.1)(typescript@5.9.3)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@8.1.1)
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -22534,6 +22828,11 @@ snapshots:
   '@typescript-eslint/visitor-keys@8.67.0':
     dependencies:
       '@typescript-eslint/types': 8.67.0
+      eslint-visitor-keys: 5.0.1
+
+  '@typescript-eslint/visitor-keys@8.71.0':
+    dependencies:
+      '@typescript-eslint/types': 8.71.0
       eslint-visitor-keys: 5.0.1
 
   '@uiw/codemirror-extensions-basic-setup@4.25.11(@codemirror/autocomplete@6.20.3)(@codemirror/commands@6.11.0)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/view@6.43.9)':
@@ -22821,7 +23120,7 @@ snapshots:
   ajv@8.20.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.7
+      fast-uri: 3.1.8
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -23716,21 +24015,6 @@ snapshots:
       path-type: 4.0.0
       yaml: 1.10.3
 
-  create-jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
-    dependencies:
-      '@jest/types': 29.6.3
-      chalk: 4.1.2
-      exit: 0.1.2
-      graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
-      jest-util: 29.7.0
-      prompts: 2.4.2
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-
   create-jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
       '@jest/types': 29.6.3
@@ -23746,13 +24030,13 @@ snapshots:
       - supports-color
       - ts-node
 
-  create-jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+  create-jest@29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
     dependencies:
       '@jest/types': 29.6.3
       chalk: 4.1.2
       exit: 0.1.2
       graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-config: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-util: 29.7.0
       prompts: 2.4.2
     transitivePeerDependencies:
@@ -24535,11 +24819,11 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.4.13:
+  dompurify@3.4.15:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
-  dompurify@3.4.15:
+  dompurify@3.4.16:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -25038,11 +25322,11 @@ snapshots:
       - supports-color
     optional: true
 
-  eslint-module-utils@2.14.0(@typescript-eslint/parser@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-node@0.3.10(supports-color@8.1.1))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1):
+  eslint-module-utils@2.14.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-node@0.3.10(supports-color@8.1.1))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       debug: 3.2.7(supports-color@8.1.1)
     optionalDependencies:
-      '@typescript-eslint/parser': 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/parser': 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@8.1.1)
       eslint-import-resolver-node: 0.3.10(supports-color@8.1.1)
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)
@@ -25187,7 +25471,7 @@ snapshots:
       - supports-color
     optional: true
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -25198,7 +25482,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.39.5(jiti@2.4.2)(supports-color@8.1.1)
       eslint-import-resolver-node: 0.3.10(supports-color@8.1.1)
-      eslint-module-utils: 2.14.0(@typescript-eslint/parser@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-node@0.3.10(supports-color@8.1.1))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)
+      eslint-module-utils: 2.14.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-node@0.3.10(supports-color@8.1.1))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)
       hasown: 2.0.4
       is-core-module: 2.16.2
       is-glob: 4.0.3
@@ -25210,7 +25494,7 @@ snapshots:
       string.prototype.trimend: 1.0.10
       tsconfig-paths: 3.15.0
     optionalDependencies:
-      '@typescript-eslint/parser': 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/parser': 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
     transitivePeerDependencies:
       - eslint-import-resolver-typescript
       - eslint-import-resolver-webpack
@@ -25699,7 +25983,7 @@ snapshots:
       '@fastify/merge-json-schemas': 0.2.1
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
-      fast-uri: 3.1.7
+      fast-uri: 3.1.8
       json-schema-ref-resolver: 3.0.0
       rfdc: 1.4.1
 
@@ -25711,7 +25995,10 @@ snapshots:
 
   fast-safe-stringify@2.1.1: {}
 
-  fast-uri@3.1.7: {}
+  fast-uri@3.1.7:
+    optional: true
+
+  fast-uri@3.1.8: {}
 
   fastest-levenshtein@1.0.16: {}
 
@@ -25719,12 +26006,12 @@ snapshots:
 
   fastify-plugin@6.0.0: {}
 
-  fastify@5.12.4:
+  fastify@5.12.5:
     dependencies:
       '@fastify/ajv-compiler': 4.0.6
       '@fastify/error': 4.2.0
       '@fastify/fast-json-stringify-compiler': 5.1.0
-      '@fastify/proxy-addr': 5.1.0
+      '@fastify/proxy-addr': 5.1.1
       abstract-logging: 2.0.1
       avvio: 9.3.0
       fast-json-stringify: 7.0.1
@@ -26556,6 +26843,8 @@ snapshots:
 
   ignore@5.3.2: {}
 
+  ignore@7.0.12: {}
+
   ignore@7.0.6: {}
 
   image-dimensions@2.5.1: {}
@@ -26876,13 +27165,17 @@ snapshots:
 
   isobject@3.0.1: {}
 
-  isomorphic-ws@4.0.1(ws@8.21.3):
+  isomorphic-ws@4.0.1(ws@8.22.0):
     dependencies:
-      ws: 8.21.3
+      ws: 8.22.0
 
   isomorphic-ws@5.0.0(ws@8.21.3):
     dependencies:
       ws: 8.21.3
+
+  isomorphic-ws@5.0.0(ws@8.22.0):
+    dependencies:
+      ws: 8.22.0
 
   isstream@0.1.2: {}
 
@@ -27016,7 +27309,7 @@ snapshots:
       '@jest/expect': 29.7.0(supports-color@8.1.1)
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.7.2(babel-plugin-macros@3.1.0)
@@ -27042,7 +27335,7 @@ snapshots:
       '@jest/expect': 30.4.1(supports-color@8.1.1)
       '@jest/test-result': 30.4.1
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.7.2(babel-plugin-macros@3.1.0)
@@ -27061,25 +27354,6 @@ snapshots:
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
-
-  jest-cli@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
-    dependencies:
-      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
-      '@jest/test-result': 29.7.0
-      '@jest/types': 29.6.3
-      chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
-      exit: 0.1.2
-      import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      yargs: 17.7.3
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
 
   jest-cli@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
@@ -27100,16 +27374,16 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-cli@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+  jest-cli@29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
     dependencies:
-      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
       chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      create-jest: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       exit: 0.1.2
       import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-config: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       jest-util: 29.7.0
       jest-validate: 29.7.0
       yargs: 17.7.3
@@ -27138,7 +27412,7 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-cli@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)):
+  jest-cli@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       '@jest/test-result': 30.4.1
@@ -27146,7 +27420,7 @@ snapshots:
       chalk: 4.1.2
       exit-x: 0.2.2
       import-local: 3.2.0
-      jest-config: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+      jest-config: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       jest-util: 30.4.1
       jest-validate: 30.4.1
       yargs: 17.7.3
@@ -27157,35 +27431,24 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-config@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+  jest-cli@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)):
     dependencies:
-      '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@jest/test-sequencer': 29.7.0
-      '@jest/types': 29.6.3
-      babel-jest: 29.7.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      '@jest/core': 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
+      '@jest/test-result': 30.4.1
+      '@jest/types': 30.4.1
       chalk: 4.1.2
-      ci-info: 3.9.0
-      deepmerge: 4.3.1
-      glob: 7.2.3
-      graceful-fs: 4.2.11
-      jest-circus: 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
-      jest-environment-node: 29.7.0
-      jest-get-type: 29.6.3
-      jest-regex-util: 29.6.3
-      jest-resolve: 29.7.0
-      jest-runner: 29.7.0(supports-color@8.1.1)
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      micromatch: 4.0.8
-      parse-json: 5.2.0
-      pretty-format: 29.7.0
-      slash: 3.0.0
-      strip-json-comments: 3.1.1
-    optionalDependencies:
-      '@types/node': 22.20.1
+      exit-x: 0.2.2
+      import-local: 3.2.0
+      jest-config: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      yargs: 17.7.3
     transitivePeerDependencies:
+      - '@types/node'
       - babel-plugin-macros
+      - esbuild-register
       - supports-color
+      - ts-node
 
   jest-config@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
@@ -27218,7 +27481,7 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+  jest-config@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@jest/test-sequencer': 29.7.0
@@ -27244,6 +27507,37 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 22.20.2
+      ts-node: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
+  jest-config@29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+    dependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/test-sequencer': 29.7.0
+      '@jest/types': 29.6.3
+      babel-jest: 29.7.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      chalk: 4.1.2
+      ci-info: 3.9.0
+      deepmerge: 4.3.1
+      glob: 7.2.3
+      graceful-fs: 4.2.11
+      jest-circus: 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-environment-node: 29.7.0
+      jest-get-type: 29.6.3
+      jest-regex-util: 29.6.3
+      jest-resolve: 29.7.0
+      jest-runner: 29.7.0(supports-color@8.1.1)
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      micromatch: 4.0.8
+      parse-json: 5.2.0
+      pretty-format: 29.7.0
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 22.20.5
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -27312,6 +27606,38 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
+  jest-config@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
+    dependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/get-type': 30.1.0
+      '@jest/pattern': 30.4.0
+      '@jest/test-sequencer': 30.4.1
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      deepmerge: 4.3.1
+      glob: 10.5.0
+      graceful-fs: 4.2.11
+      jest-circus: 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-docblock: 30.4.0
+      jest-environment-node: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-runner: 30.4.2(supports-color@8.1.1)
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      parse-json: 5.2.0
+      pretty-format: 30.4.1
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 22.20.2
+      ts-node: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
   jest-config@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)):
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
@@ -27340,6 +27666,70 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.20.2
       ts-node: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
+  jest-config@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)):
+    dependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/get-type': 30.1.0
+      '@jest/pattern': 30.4.0
+      '@jest/test-sequencer': 30.4.1
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      deepmerge: 4.3.1
+      glob: 10.5.0
+      graceful-fs: 4.2.11
+      jest-circus: 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-docblock: 30.4.0
+      jest-environment-node: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-runner: 30.4.2(supports-color@8.1.1)
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      parse-json: 5.2.0
+      pretty-format: 30.4.1
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 22.20.2
+      ts-node: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
+  jest-config@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)):
+    dependencies:
+      '@babel/core': 7.29.7(supports-color@8.1.1)
+      '@jest/get-type': 30.1.0
+      '@jest/pattern': 30.4.0
+      '@jest/test-sequencer': 30.4.1
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      deepmerge: 4.3.1
+      glob: 10.5.0
+      graceful-fs: 4.2.11
+      jest-circus: 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-docblock: 30.4.0
+      jest-environment-node: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-runner: 30.4.2(supports-color@8.1.1)
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      parse-json: 5.2.0
+      pretty-format: 30.4.1
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 22.20.5
+      ts-node: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -27412,7 +27802,7 @@ snapshots:
       '@jest/environment': 29.7.0
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-mock: 29.7.0
       jest-util: 29.7.0
 
@@ -27421,7 +27811,7 @@ snapshots:
       '@jest/environment': 30.4.1
       '@jest/fake-timers': 30.4.1
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-mock: 30.4.1
       jest-util: 30.4.1
       jest-validate: 30.4.1
@@ -27436,7 +27826,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@types/graceful-fs': 4.1.9
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -27451,7 +27841,7 @@ snapshots:
   jest-haste-map@30.4.1:
     dependencies:
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -27520,13 +27910,13 @@ snapshots:
   jest-mock@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-util: 29.7.0
 
   jest-mock@30.4.1:
     dependencies:
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-util: 30.4.1
 
   jest-pnp-resolver@1.2.3(jest-resolve@29.7.0):
@@ -27585,7 +27975,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0(supports-color@8.1.1)
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       emittery: 0.13.1
       graceful-fs: 4.2.11
@@ -27611,7 +28001,7 @@ snapshots:
       '@jest/test-result': 30.4.1
       '@jest/transform': 30.4.1(supports-color@8.1.1)
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       emittery: 0.13.1
       exit-x: 0.2.2
@@ -27640,7 +28030,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0(supports-color@8.1.1)
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       cjs-module-lexer: 1.4.3
       collect-v8-coverage: 1.0.3
@@ -27667,7 +28057,7 @@ snapshots:
       '@jest/test-result': 30.4.1
       '@jest/transform': 30.4.1(supports-color@8.1.1)
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       cjs-module-lexer: 2.2.1
       collect-v8-coverage: 1.0.3
@@ -27739,7 +28129,7 @@ snapshots:
   jest-util@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       ci-info: 3.9.0
       graceful-fs: 4.2.11
@@ -27748,7 +28138,7 @@ snapshots:
   jest-util@30.4.1:
     dependencies:
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       chalk: 4.1.2
       ci-info: 4.4.0
       graceful-fs: 4.2.11
@@ -27776,7 +28166,7 @@ snapshots:
     dependencies:
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       emittery: 0.13.1
@@ -27787,7 +28177,7 @@ snapshots:
     dependencies:
       '@jest/test-result': 30.4.1
       '@jest/types': 30.4.1
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       emittery: 0.13.1
@@ -27796,36 +28186,24 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
   jest-worker@29.7.0:
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
   jest-worker@30.4.1:
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 22.20.2
       '@ungap/structured-clone': 1.3.3
       jest-util: 30.4.1
       merge-stream: 2.0.0
       supports-color: 8.1.1
-
-  jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
-    dependencies:
-      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
-      '@jest/types': 29.6.3
-      import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
 
   jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)):
     dependencies:
@@ -27839,12 +28217,12 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
+  jest@29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1):
     dependencies:
-      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      '@jest/core': 29.7.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
       '@jest/types': 29.6.3
       import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest-cli: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -27864,12 +28242,25 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)):
+  jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       '@jest/types': 30.4.1
       import-local: 3.2.0
-      jest-cli: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+      jest-cli: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+
+  jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)):
+    dependencies:
+      '@jest/core': 30.4.2(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
+      '@jest/types': 30.4.1
+      import-local: 3.2.0
+      jest-cli: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -29035,6 +29426,34 @@ snapshots:
       - supports-color
       - typescript
 
+  mod-arch-kubeflow@1.21.0(@mui/material@6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3):
+    dependencies:
+      '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    optionalDependencies:
+      '@typescript-eslint/eslint-plugin': 8.67.0(@typescript-eslint/parser@8.67.0(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/parser': 8.67.0(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      eslint: 8.57.1(supports-color@8.1.1)
+      eslint-config-prettier: 9.1.2(eslint@8.57.1(supports-color@8.1.1))
+      eslint-import-resolver-node: 0.3.10(supports-color@8.1.1)
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)
+      eslint-plugin-cypress: 3.6.0(eslint@8.57.1(supports-color@8.1.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.67.0(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)
+      eslint-plugin-jsx-a11y: 6.10.2(eslint@8.57.1(supports-color@8.1.1))
+      eslint-plugin-no-only-tests: 3.4.0
+      eslint-plugin-no-relative-import-paths: 1.6.1
+      eslint-plugin-prettier: 5.5.6(@types/eslint@9.6.1)(eslint-config-prettier@9.1.2(eslint@8.57.1(supports-color@8.1.1)))(eslint@8.57.1(supports-color@8.1.1))(prettier@3.9.6)
+      eslint-plugin-react: 7.37.5(eslint@8.57.1(supports-color@8.1.1))
+      eslint-plugin-react-hooks: 5.2.0(eslint@8.57.1(supports-color@8.1.1))
+    transitivePeerDependencies:
+      - '@types/eslint'
+      - eslint-import-resolver-webpack
+      - eslint-plugin-import-x
+      - prettier
+      - supports-color
+      - typescript
+
   mod-arch-kubeflow@1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3):
     dependencies:
       '@mui/material': 7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -29063,12 +29482,48 @@ snapshots:
       - supports-color
       - typescript
 
+  mod-arch-shared@1.21.0(@types/eslint@9.6.1)(mod-arch-core@1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(mod-arch-kubeflow@1.21.0(@mui/material@6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3):
+    dependencies:
+      '@patternfly/patternfly': 6.6.1
+      '@patternfly/react-drag-drop': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      classnames: 2.5.1
+      dompurify: 3.4.15
+      lodash-es: 4.18.1
+      mod-arch-core: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
+      mod-arch-kubeflow: 1.21.0(@mui/material@6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-router-dom: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      showdown: 2.1.0
+    optionalDependencies:
+      '@typescript-eslint/eslint-plugin': 8.67.0(@typescript-eslint/parser@8.67.0(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/parser': 8.67.0(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      eslint: 8.57.1(supports-color@8.1.1)
+      eslint-config-prettier: 9.1.2(eslint@8.57.1(supports-color@8.1.1))
+      eslint-import-resolver-node: 0.3.10(supports-color@8.1.1)
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)
+      eslint-plugin-cypress: 3.6.0(eslint@8.57.1(supports-color@8.1.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.67.0(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)
+      eslint-plugin-jsx-a11y: 6.10.2(eslint@8.57.1(supports-color@8.1.1))
+      eslint-plugin-no-only-tests: 3.4.0
+      eslint-plugin-no-relative-import-paths: 1.6.1
+      eslint-plugin-prettier: 5.5.6(@types/eslint@9.6.1)(eslint-config-prettier@9.1.2(eslint@8.57.1(supports-color@8.1.1)))(eslint@8.57.1(supports-color@8.1.1))(prettier@3.9.6)
+      eslint-plugin-react: 7.37.5(eslint@8.57.1(supports-color@8.1.1))
+      eslint-plugin-react-hooks: 5.2.0(eslint@8.57.1(supports-color@8.1.1))
+    transitivePeerDependencies:
+      - '@types/eslint'
+      - eslint-import-resolver-webpack
+      - eslint-plugin-import-x
+      - prettier
+      - supports-color
+      - typescript
+
   mod-arch-shared@1.21.0(@types/eslint@9.6.1)(mod-arch-core@1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(mod-arch-kubeflow@1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3):
     dependencies:
-      '@patternfly/patternfly': 6.5.2
-      '@patternfly/react-drag-drop': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/patternfly': 6.6.1
+      '@patternfly/react-drag-drop': 6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       classnames: 2.5.1
-      dompurify: 3.4.13
+      dompurify: 3.4.15
       lodash-es: 4.18.1
       mod-arch-core: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
       mod-arch-kubeflow: 1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
@@ -29107,7 +29562,7 @@ snapshots:
 
   monaco-editor@0.54.0:
     dependencies:
-      dompurify: 3.4.15
+      dompurify: 3.4.16
       marked: 14.0.0
 
   mrmime@2.0.1: {}
@@ -30032,7 +30487,7 @@ snapshots:
       '@posthog/core': 1.48.2
       '@posthog/types': 1.404.1
       core-js: 3.50.0
-      dompurify: 3.4.15
+      dompurify: 3.4.16
       fflate: 0.4.9
       preact: 10.29.8
       query-selector-shadow-dom: 1.0.1
@@ -31633,7 +32088,7 @@ snapshots:
       picomatch: 4.0.5
       typescript: 5.9.3
 
-  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3):
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
@@ -31654,33 +32109,12 @@ snapshots:
       esbuild: 0.25.12
       jest-util: 30.4.1
 
-  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.9
-      jest: 29.7.0(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
-      json5: 2.2.3
-      lodash.memoize: 4.1.2
-      make-error: 1.3.6
-      semver: 7.8.5
-      type-fest: 4.41.0
-      typescript: 5.9.3
-      yargs-parser: 21.1.1
-    optionalDependencies:
-      '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@jest/transform': 30.4.1(supports-color@8.1.1)
-      '@jest/types': 30.4.1
-      babel-jest: 30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
-      esbuild: 0.25.12
-      jest-util: 30.4.1
-
-  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.25.12)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
-    dependencies:
-      bs-logger: 0.2.6
-      fast-json-stable-stringify: 2.1.0
-      handlebars: 4.7.9
-      jest: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
@@ -31697,12 +32131,12 @@ snapshots:
       jest-util: 30.4.1
     optional: true
 
-  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.9
-      jest: 29.7.0(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
+      jest: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
@@ -31719,12 +32153,12 @@ snapshots:
       jest-util: 30.4.1
     optional: true
 
-  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3):
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.9
-      jest: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
+      jest: 30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
@@ -31741,12 +32175,12 @@ snapshots:
       jest-util: 30.4.1
     optional: true
 
-  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3)))(typescript@5.9.3):
+  ts-jest@29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3)))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.9
-      jest: 30.4.2(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.2)(typescript@5.9.3))
+      jest: 30.4.2(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3))
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
@@ -31814,6 +32248,27 @@ snapshots:
       '@swc/core': 1.16.0
     optional: true
 
+  ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.5)(typescript@5.9.3):
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node10': 1.0.13
+      '@tsconfig/node12': 1.0.11
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@types/node': 22.20.5
+      acorn: 8.18.0
+      acorn-walk: 8.3.5
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.4
+      make-error: 1.3.6
+      typescript: 5.9.3
+      v8-compile-cache-lib: 3.0.1
+      yn: 3.1.1
+    optionalDependencies:
+      '@swc/core': 1.16.0
+    optional: true
+
   tsconfig-paths-webpack-plugin@4.2.0:
     dependencies:
       chalk: 4.1.2
@@ -31856,14 +32311,14 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  turbo@2.10.12:
+  turbo@2.11.7:
     optionalDependencies:
-      '@turbo/darwin-64': 2.10.12
-      '@turbo/darwin-arm64': 2.10.12
-      '@turbo/linux-64': 2.10.12
-      '@turbo/linux-arm64': 2.10.12
-      '@turbo/windows-64': 2.10.12
-      '@turbo/windows-arm64': 2.10.12
+      '@turbo/darwin-64': 2.11.7
+      '@turbo/darwin-arm64': 2.11.7
+      '@turbo/linux-64': 2.11.7
+      '@turbo/linux-arm64': 2.11.7
+      '@turbo/windows-64': 2.11.7
+      '@turbo/windows-arm64': 2.11.7
 
   tweetnacl@0.14.5: {}
 
@@ -31942,12 +32397,12 @@ snapshots:
 
   typesafe-actions@4.4.2: {}
 
-  typescript-eslint@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3):
+  typescript-eslint@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.67.0(@typescript-eslint/parser@8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
-      '@typescript-eslint/parser': 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
-      '@typescript-eslint/typescript-estree': 8.67.0(supports-color@8.1.1)(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.67.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/eslint-plugin': 8.71.0(@typescript-eslint/parser@8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/parser': 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.71.0(supports-color@8.1.1)(typescript@5.9.3)
+      '@typescript-eslint/utils': 8.71.0(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@8.1.1)
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -32811,6 +33266,8 @@ snapshots:
       signal-exit: 4.1.0
 
   ws@8.21.3: {}
+
+  ws@8.22.0: {}
 
   wsl-utils@0.1.0:
     dependencies:

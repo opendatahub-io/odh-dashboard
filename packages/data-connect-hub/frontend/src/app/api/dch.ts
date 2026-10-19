@@ -2,15 +2,44 @@ import {
   APIOptions,
   handleRestFailures,
   isModArchResponse,
-  restENDPOINT,
-  restDELETE,
   restGET,
+  restCREATE,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { Connection, ConnectionType } from '~/app/types';
+import {
+  Connection,
+  ConnectionType,
+  CreateConnectionRequest,
+  TestCredentialsRequest,
+} from '~/app/types';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
+
+const getResponseErrorMessage = (body: string, status: number): string => {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (isRecord(parsed)) {
+      if (isRecord(parsed.error) && typeof parsed.error.message === 'string') {
+        return parsed.error.message;
+      }
+      if (typeof parsed.message === 'string') {
+        return parsed.message;
+      }
+    }
+  } catch {
+    // Fall back to the raw response for non-JSON errors.
+  }
+  return body || `Request failed with status ${status}`;
+};
+
+const requireNoContent = async (response: Response): Promise<void> => {
+  if (response.status === 204) {
+    return;
+  }
+  const body = await response.text();
+  throw new Error(getResponseErrorMessage(body, response.status));
+};
 
 const isConnection = (value: unknown): value is Connection => {
   if (
@@ -25,9 +54,18 @@ const isConnection = (value: unknown): value is Connection => {
     typeof value.metadata.id === 'string' &&
     value.metadata.id.length > 0 &&
     (value.metadata.tenant_id === undefined || typeof value.metadata.tenant_id === 'string') &&
+    (value.metadata.created_at === undefined || typeof value.metadata.created_at === 'string') &&
+    (value.metadata.updated_at === undefined || typeof value.metadata.updated_at === 'string') &&
     typeof value.resource.name === 'string' &&
     typeof value.resource.data_connection_type_id === 'string' &&
     (value.resource.format === 'tabular' || value.resource.format === 'binary') &&
+    isRecord(value.resource.credentials_ref) &&
+    typeof value.resource.credentials_ref.secret === 'string' &&
+    (value.resource.properties === undefined ||
+      (isRecord(value.resource.properties) &&
+        Object.entries(value.resource.properties).every(
+          ([key, propertyValue]) => typeof key === 'string' && typeof propertyValue === 'string',
+        ))) &&
     (value.status.state === 'ready' ||
       value.status.state === 'ingestion_not_ready' ||
       value.status.state === 'not_ready') &&
@@ -35,6 +73,21 @@ const isConnection = (value: unknown): value is Connection => {
     (value.status.updated_at === undefined || typeof value.status.updated_at === 'string')
   );
 };
+
+const isConnectionTypeField = (value: unknown): boolean =>
+  isRecord(value) &&
+  typeof value.name === 'string' &&
+  typeof value.label === 'string' &&
+  typeof value.required === 'boolean' &&
+  typeof value.type === 'string' &&
+  (value.description === undefined || typeof value.description === 'string') &&
+  (value.default_value === undefined || typeof value.default_value === 'string') &&
+  (value.enum_values === undefined ||
+    (Array.isArray(value.enum_values) &&
+      value.enum_values.every(
+        (item) =>
+          isRecord(item) && typeof item.value === 'string' && typeof item.label === 'string',
+      )));
 
 const isConnectionType = (value: unknown): value is ConnectionType =>
   isRecord(value) &&
@@ -45,11 +98,10 @@ const isConnectionType = (value: unknown): value is ConnectionType =>
   typeof value.resource.name === 'string' &&
   typeof value.resource.provider === 'string' &&
   (value.resource.description === undefined || typeof value.resource.description === 'string') &&
+  Array.isArray(value.resource.credentials_fields) &&
+  value.resource.credentials_fields.every(isConnectionTypeField) &&
   (value.status === undefined ||
-    (isRecord(value.status) &&
-      isRecord(value.status.capabilities) &&
-      typeof value.status.capabilities.flight === 'boolean' &&
-      typeof value.status.capabilities.rest === 'boolean'));
+    (isRecord(value.status) && typeof value.status.flight_ready === 'boolean'));
 
 export const getConnections =
   (hostPath: string) =>
@@ -67,6 +119,41 @@ export const getConnections =
       throw new Error('Invalid response format');
     });
 
+export const getConnection =
+  (hostPath: string) =>
+  async (opts: APIOptions, namespace: string, connectionId: string): Promise<Connection | null> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+        connectionId,
+      )}?${searchParams.toString()}`,
+      {
+        method: 'GET',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    const body = await response.text();
+
+    if (response.status === 404) {
+      return null;
+    }
+    if (!response.ok) {
+      throw new Error(getResponseErrorMessage(body, response.status));
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      throw new Error('Invalid response format');
+    }
+    if (isModArchResponse<unknown>(parsed) && isConnection(parsed.data)) {
+      return parsed.data;
+    }
+    throw new Error('Invalid response format');
+  };
+
 export const getConnectionTypes =
   (hostPath: string) =>
   (opts: APIOptions, namespace: string): Promise<ConnectionType[]> =>
@@ -83,6 +170,24 @@ export const getConnectionTypes =
         Array.isArray(response.data) &&
         response.data.every(isConnectionType)
       ) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const createConnection =
+  (hostPath: string) =>
+  (opts: APIOptions, namespace: string, request: CreateConnectionRequest): Promise<Connection> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isConnection(response.data)) {
         return response.data;
       }
       throw new Error('Invalid response format');
@@ -111,27 +216,52 @@ export const getConnectionType =
 
 export const verifyConnection =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string, connectionId: string): Promise<void> =>
-    handleRestFailures(
-      restENDPOINT(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
-          connectionId,
-        )}/readiness`,
-        { namespace },
-        { ...opts, parseJSON: false },
-      ),
-    ).then(() => undefined);
+  async (opts: APIOptions, namespace: string, connectionId: string): Promise<void> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+        connectionId,
+      )}/readiness?${searchParams.toString()}`,
+      {
+        method: 'POST',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    await requireNoContent(response);
+  };
+
+export const testCredentials =
+  (hostPath: string) =>
+  (opts: APIOptions, namespace: string, request: TestCredentialsRequest): Promise<void> =>
+    fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/test/credentials?${new URLSearchParams({
+        namespace,
+      }).toString()}`,
+      {
+        method: 'POST',
+        headers: {
+          ...opts.headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+        signal: opts.signal,
+      },
+    ).then(requireNoContent);
 
 export const deleteConnection =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string, connectionId: string): Promise<void> =>
-    handleRestFailures(
-      restDELETE(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(connectionId)}`,
-        {},
-        { namespace },
-        { ...opts, parseJSON: false },
-      ),
-    ).then(() => undefined);
+  async (opts: APIOptions, namespace: string, connectionId: string): Promise<void> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+        connectionId,
+      )}?${searchParams.toString()}`,
+      {
+        method: 'DELETE',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    await requireNoContent(response);
+  };

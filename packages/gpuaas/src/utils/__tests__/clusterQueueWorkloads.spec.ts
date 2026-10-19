@@ -46,6 +46,27 @@ import {
   workloadMatchesClusterQueue,
 } from '../clusterQueueWorkloads';
 
+describe('applyDisplayStatuses', () => {
+  const queuedRow = {
+    name: 'queued-wl',
+    namespace: 'dsp-1',
+    status: QuotaUsageWorkloadStatuses.Queued,
+    queuePosition: undefined,
+  } as never;
+
+  it('preserves queued status while queue positions are loading', () => {
+    expect(applyDisplayStatuses([queuedRow], false)[0].status).toBe(
+      QuotaUsageWorkloadStatuses.Queued,
+    );
+  });
+
+  it('maps queued rows without a position to pending after positions load', () => {
+    expect(applyDisplayStatuses([queuedRow], true)[0].status).toBe(
+      QuotaUsageWorkloadStatuses.Pending,
+    );
+  });
+});
+
 jest.mock('@odh-dashboard/internal/api/k8s/pendingWorkloads', () => ({
   getPendingWorkloads: jest.fn(),
 }));
@@ -960,6 +981,28 @@ describe('clusterQueueWorkloads', () => {
   });
 
   describe('fetchQueuePositions', () => {
+    it('should not request positions for a missing LocalQueue', async () => {
+      const positions = await fetchQueuePositions(
+        [
+          {
+            name: 'queued-wl',
+            namespace: NS,
+            project: 'DSP One',
+            clusterQueue: CQ,
+            type: QuotaUsageWorkloadTypes.Workbench,
+            status: QuotaUsageWorkloadStatuses.Queued,
+            localQueue: 'unavailable-workbench-lq',
+            accelerators: 1,
+            queuePosition: undefined,
+          },
+        ],
+        new Set(),
+      );
+
+      expect(getPendingWorkloadsMock).not.toHaveBeenCalled();
+      expect(positions).toEqual(new Map());
+    });
+
     it('returns 1-indexed positions for queued workloads', async () => {
       getPendingWorkloadsMock.mockResolvedValue({
         items: [

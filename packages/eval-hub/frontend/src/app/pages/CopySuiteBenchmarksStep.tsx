@@ -2,7 +2,6 @@ import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   Button,
-  Content,
   EmptyState,
   EmptyStateActions,
   EmptyStateBody,
@@ -64,7 +63,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   onBack,
   primaryActionLabel = 'Save and run',
   primaryActionTestId = 'copy-suite-save-and-run',
-  secondaryActionLabel = 'Add to my benchmark suites',
+  secondaryActionLabel = 'Add to my collections',
   showSecondaryAction = true,
   onCancel,
 }) => {
@@ -129,8 +128,6 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
             : undefined
         }
       >
-        <PageHeader />
-
         {hasBenchmarks ? (
           <Sidebar hasGutter className="evalhub-copy-suite-benchmarks-step__layout">
             <SidebarPanel
@@ -283,13 +280,6 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   );
 };
 
-const PageHeader: React.FC = () => (
-  <Content component="p" data-testid="copy-suite-benchmarks-description">
-    Choose the primary metric, benchmark parameters, and threshold used to calculate the result for
-    each benchmark.
-  </Content>
-);
-
 type EmptyBenchmarksStateProps = {
   onBack: () => void;
 };
@@ -300,7 +290,7 @@ const EmptyBenchmarksState: React.FC<EmptyBenchmarksStateProps> = ({ onBack }) =
     headingLevel="h3"
     titleText="No benchmarks added"
   >
-    <EmptyStateBody>No benchmarks have been added to this suite.</EmptyStateBody>
+    <EmptyStateBody>No benchmarks have been added to this collection.</EmptyStateBody>
     <EmptyStateFooter>
       <EmptyStateActions>
         <Button variant="primary" data-testid="copy-suite-empty-back-btn" onClick={onBack}>

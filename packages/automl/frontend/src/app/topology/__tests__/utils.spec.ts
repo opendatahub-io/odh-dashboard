@@ -13,7 +13,7 @@ jest.mock('@patternfly/react-topology', () => ({
 // eslint-disable-next-line import/first
 import { RunStatus } from '@patternfly/react-topology';
 // eslint-disable-next-line import/first
-import { NODE_PADDING, NODE_WIDTH } from '~/app/topology/const';
+import { NODE_PADDING, NODE_WIDTH } from '@odh-dashboard/autox-core/ui/utils';
 // eslint-disable-next-line import/first
 import type { PipelineTask } from '~/app/types/topology';
 // eslint-disable-next-line import/first

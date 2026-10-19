@@ -18,6 +18,7 @@ import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isProjectDetailsSettingsCardExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ApplicationsPage, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -40,6 +41,7 @@ import {
 } from '#~/concepts/projects/accessChecks';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { PermissionsContextProvider } from '#~/concepts/permissions/PermissionsContext';
+import useNotification from '#~/utilities/useNotification';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -50,6 +52,11 @@ import ProjectActions from './ProjectActions';
 
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { activeProject, selectProject } = useWorkingProject();
+  const notification = useNotification();
+  const unifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
   const displayName = getDisplayNameFromK8sResource(currentProject);
   const description = getDescriptionFromK8sResource(currentProject);
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
@@ -110,6 +117,43 @@ const ProjectDetails: React.FC = () => {
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
+      {unifiedProjectSelectorEnabled &&
+        activeProject &&
+        activeProject.name !== currentProject.metadata.name && (
+          <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
+            <Alert
+              data-testid="working-project-mismatch-alert"
+              variant="info"
+              isInline
+              title={
+                <span className="pf-v6-u-font-weight-normal">
+                  You are viewing the details of a project different than your current working
+                  project{' '}
+                  <strong className="pf-v6-u-font-weight-bold">
+                    {activeProject.displayName || activeProject.name}
+                  </strong>
+                  .
+                </span>
+              }
+            >
+              <Button
+                variant="link"
+                isInline
+                onClick={() => {
+                  selectProject({ name: currentProject.metadata.name });
+                  notification.info(
+                    'Working project updated',
+                    <>
+                      You&apos;re now working in <strong>{displayName}</strong>.
+                    </>,
+                  );
+                }}
+              >
+                Switch working project
+              </Button>
+            </Alert>
+          </Flex>
+        )}
       {isKueueDisabled && !isKueueAlertDismissed && (
         <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
           <Alert

@@ -4,6 +4,7 @@ import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboar
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 interface RestoreModalProps {
   onCancel: () => void;
@@ -53,7 +54,7 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
       fireFormTrackingEventForRestore({
         outcome: TrackingOutcome.submit,
         success: false,
-        error: e instanceof Error ? e.message : 'unknown error',
+        error: errorCategory(e),
       });
 
       setIsSubmitting(false);

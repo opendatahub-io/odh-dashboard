@@ -59,6 +59,18 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions(),
     }).as('getAllSubscriptions');
+    cy.interceptOdh('GET /maas/api/v1/api-keys-config', {
+      data: {
+        // eslint-disable-next-line camelcase
+        max_expiration_days: 365,
+        // eslint-disable-next-line camelcase
+        ephemeral_max_expiration: '1h',
+      },
+    }).as('getApiKeyConfig');
+    cy.interceptOdh('GET /maas/api/v1/gateway-url', {
+      data: { url: 'https://api.example.com/maas-api' },
+    }).as('getGatewayUrl');
+
     apiKeysPage.visit();
     cy.wait('@initialSearch');
   });
@@ -262,6 +274,7 @@ describe('API Keys Page', () => {
 
     deletedSubscriptionRow.findSubscription().should('contain.text', 'deleted-sub');
     deletedSubscriptionRow.findSubscriptionDetailLink().should('not.exist');
+    deletedSubscriptionRow.findSubscriptionGovernanceLink().should('not.exist');
   });
 
   it('should display all API keys when the status filter is cleared', () => {
@@ -302,6 +315,81 @@ describe('API Keys Page', () => {
       .findSubscriptionDetailLink()
       .should('have.attr', 'href')
       .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
+  });
+
+  it('should show View in MaaS governance under the subscription for admins when the CR exists', () => {
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow
+      .findSubscriptionGovernanceLink()
+      .should('contain.text', 'View in MaaS governance')
+      .and('have.attr', 'href')
+      .and('include', '/maas/maas-governance/subscriptions/view/premium-team-sub');
+  });
+
+  it('should not link My Subscriptions for a sub the admin cannot access, but still show governance link', () => {
+    const inaccessibleSubKey: APIKey = {
+      id: 'key-inaccessible-sub-001',
+      name: 'other-user-inaccessible-sub-key',
+      description: 'Key on a subscription the admin does not have in My Subscriptions',
+      creationDate: '2026-01-10T10:00:00Z',
+      status: 'active',
+      username: 'other-user',
+      subscription: 'negative-priority-sub',
+    };
+
+    // BFF admin enrichment includes the CR in search subscriptionDetails even when
+    // it is absent from My Subscriptions (GET /subscriptions).
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse([inaccessibleSubKey], {
+        ...mockSubscriptionDetails,
+        'negative-priority-sub': {
+          displayName: 'Negative Priority Subscription',
+          models: ['flan-t5-small'],
+        },
+      }),
+    ).as('searchInaccessibleSub');
+    // My Subscriptions: only premium/basic — not negative-priority-sub (no detail link)
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    });
+
+    apiKeysPage.visit();
+    cy.wait('@searchInaccessibleSub');
+
+    const row = apiKeysPage.getRow('other-user-inaccessible-sub-key');
+    row.findStatus().should('contain.text', 'Active');
+    row.findSubscription().should('contain.text', 'Negative Priority Subscription');
+    row.findSubscriptionDetailLink().should('not.exist');
+    row
+      .findSubscriptionGovernanceLink()
+      .should('have.attr', 'href')
+      .and('include', '/maas/maas-governance/subscriptions/view/negative-priority-sub');
+  });
+
+  it('should not show View in MaaS governance for non-admin users', () => {
+    asProjectAdminUser();
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(
+        mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
+        mockSubscriptionDetails,
+      ),
+    ).as('userSearch');
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    });
+
+    apiKeysPage.visit();
+    cy.wait('@userSearch');
+
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow
+      .findSubscriptionDetailLink()
+      .should('have.attr', 'href')
+      .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
+    prodRow.findSubscriptionGovernanceLink().should('not.exist');
   });
 
   it('should filter api keys by subscription and clear the filter', () => {
@@ -583,7 +671,7 @@ describe('API Keys Page', () => {
     });
   });
 
-  it('should create a new API key with the default 30 days expiration', () => {
+  it('should create a new API key with the default 1 day expiration', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
       data: mockCreateAPIKeyResponse(),
     }).as('createApiKey');
@@ -591,7 +679,8 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
     cy.wait('@getSubscriptions');
-    createApiKeyModal.findExpirationToggle().should('contain.text', '30 days');
+    createApiKeyModal.findExpirationModeToggle().should('contain.text', 'On date');
+    createApiKeyModal.findExpirationDateInput().should('exist');
     createApiKeyModal.findSubmitButton().should('be.disabled');
     createApiKeyModal.findSubscriptionToggle().click();
     createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
@@ -600,7 +689,7 @@ describe('API Keys Page', () => {
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
     cy.wait('@createApiKey').then((interception) => {
-      expect(interception.request.body?.data).to.include({ expiresIn: '30d' });
+      expect(interception.request.body?.data).to.include({ expiresIn: '1d' });
       expect(interception.response?.body?.data).to.include({
         name: 'production-backend',
         expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -609,7 +698,7 @@ describe('API Keys Page', () => {
 
     copyApiKeyModal.shouldBeOpen();
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
-    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '30 days');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
   });
 
   it('should show/hide the token when the visibility toggle is clicked', () => {
@@ -620,7 +709,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
     cy.wait('@getSubscriptions');
-    createApiKeyModal.findExpirationToggle().should('contain.text', '30 days');
+    createApiKeyModal.findExpirationDateInput().should('exist');
     createApiKeyModal.findSubmitButton().should('be.disabled');
     createApiKeyModal.findSubscriptionToggle().click();
     createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
@@ -629,7 +718,7 @@ describe('API Keys Page', () => {
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
     cy.wait('@createApiKey').then((interception) => {
-      expect(interception.request.body?.data).to.include({ expiresIn: '30d' });
+      expect(interception.request.body?.data).to.include({ expiresIn: '1d' });
       expect(interception.response?.body?.data).to.include({
         name: 'production-backend',
         expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -653,37 +742,29 @@ describe('API Keys Page', () => {
     copyApiKeyModal
       .findApiKeyTokenInput()
       .should('have.value', formatApiKeyHiddenPreview(createdApiKey));
+    copyApiKeyModal.findCloseButton().should('be.disabled');
+    copyApiKeyModal.findCopiedAcknowledgement().should('exist');
+    copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
+    copyApiKeyModal.findCloseButton().should('be.enabled').click();
+    copyApiKeyModal.shouldBeOpen(false);
   });
 
-  it('should show the custom days input when Custom (days) is selected and hide it when switching back', () => {
-    apiKeysPage.findCreateApiKeyButton().click();
-    createApiKeyModal.shouldBeOpen();
-
-    createApiKeyModal.findCustomDaysInput().should('not.exist');
-    createApiKeyModal.findExpirationToggle().click();
-    createApiKeyModal.findExpirationOption('custom').click();
-    createApiKeyModal.findCustomDaysInput().should('exist');
-
-    createApiKeyModal.findExpirationToggle().click();
-    createApiKeyModal.findExpirationOption('90d').click();
-    createApiKeyModal.findCustomDaysInput().should('not.exist');
-  });
-
-  it('should create an API key with a custom expiration and show the correct label in the success view', () => {
-    const created = mockCreateAPIKeyResponse();
+  it('should create an API key with an on-date expiration', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
-      data: created,
+      data: mockCreateAPIKeyResponse(),
     }).as('createApiKey');
 
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
     cy.wait('@getSubscriptions');
-    createApiKeyModal.findExpirationToggle().click();
-    createApiKeyModal.findExpirationOption('custom').click();
-    createApiKeyModal.findCustomDaysInput().type('45');
+
+    createApiKeyModal.findExpirationModeToggle().should('contain.text', 'On date');
+    createApiKeyModal.findExpirationDateInput().should('exist');
+    createApiKeyModal.findAfterDaysInput().should('not.exist');
+    createApiKeyModal.setExpirationDaysFromToday(45);
     createApiKeyModal.findSubscriptionToggle().click();
     createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
-    createApiKeyModal.findNameInput().type('my-key');
+    createApiKeyModal.findNameInput().type('on-date-key');
     createApiKeyModal.findSubmitButton().should('be.enabled');
     createApiKeyModal.findSubmitButton().click();
 
@@ -692,19 +773,200 @@ describe('API Keys Page', () => {
     });
 
     copyApiKeyModal.shouldBeOpen();
-    copyApiKeyModal.findApiKeyName().should('contain.text', 'my-key');
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'on-date-key');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '45 days');
   });
 
-  it('should show a validation error for an out-of-range custom days value', () => {
+  it('should create an API key with an after-days expiration', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();
-    createApiKeyModal.findExpirationToggle().click();
-    createApiKeyModal.findExpirationOption('custom').click();
-    createApiKeyModal.findCustomDaysInput().type('366').blur();
-    createApiKeyModal.find().contains('Enter a value between 1 and 365 days').should('exist');
+    cy.wait('@getSubscriptions');
+
+    createApiKeyModal.selectExpirationMode('after');
+    createApiKeyModal.findExpirationDatePicker().should('not.exist');
+    createApiKeyModal.findAfterDaysInput().should('have.value', '1');
+    createApiKeyModal.findExpirationHelper().should('contain.text', 'Enter a value between 1 and');
+    createApiKeyModal.setAfterDays(45);
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findNameInput().type('after-days-key');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
+
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '45d' });
+    });
+
+    copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'after-days-key');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '45 days');
+  });
+
+  it('should create an API key with the maximum expiration', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+
+    createApiKeyModal.selectExpirationMode('max');
+    createApiKeyModal.findExpirationDatePicker().should('not.exist');
+    createApiKeyModal.findAfterDaysInput().should('not.exist');
+    createApiKeyModal
+      .findExpirationModeToggle()
+      .should('contain.text', 'Use max value of 365 days');
+    createApiKeyModal.findExpirationHelper().should('contain.text', 'Expires in 365 days');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findNameInput().type('max-expiration-key');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
+
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '365d' });
+    });
+
+    copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'max-expiration-key');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '365 days (maximum)');
+  });
+
+  it('should display the correct information in the copy API key modal', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+    cy.interceptOdh('GET /maas/api/v1/models', {
+      data: {
+        object: 'list',
+        data: [
+          {
+            id: 'publishers/maas-models/models/granite-3-8b-instruct',
+            object: 'model',
+            created: 1714521600,
+            // eslint-disable-next-line camelcase
+            owned_by: 'ibm',
+            ready: true,
+            url: 'https://example.com/models/granite-3-8b-instruct',
+          },
+          {
+            id: 'publishers/maas-models/models/flan-t5-small',
+            object: 'model',
+            created: 1672531200,
+            // eslint-disable-next-line camelcase
+            owned_by: 'google',
+            ready: true,
+            url: 'https://example.com/models/flan-t5-small',
+          },
+        ],
+      },
+    }).as('getMaaSModels');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+    createApiKeyModal.findExpirationModeToggle().should('contain.text', 'On date');
+    createApiKeyModal.findExpirationDateInput().should('exist');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findNameInput().type('production-backend');
+    createApiKeyModal.findDescriptionInput().type('Production API key for backend service');
+    createApiKeyModal.findSubmitButton().should('be.enabled');
+    createApiKeyModal.findSubmitButton().click();
+    cy.wait('@createApiKey').then((interception) => {
+      expect(interception.request.body?.data).to.include({ expiresIn: '1d' });
+      expect(interception.response?.body?.data).to.include({
+        name: 'production-backend',
+        expiresAt: '2026-01-20T11:54:34.521671447-05:00',
+      });
+    });
+
+    copyApiKeyModal.shouldBeOpen();
+    cy.wait('@getMaaSModels');
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
+    copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
+
+    copyApiKeyModal.findAccessDetails().should('exist');
+    copyApiKeyModal.expandAccessDetails();
+    copyApiKeyModal.findSubscriptionID().should('have.value', 'premium-team-sub');
+    copyApiKeyModal.findModelID().should('have.value', 'granite-3-8b-instruct');
+    copyApiKeyModal.findAvailableModelsToggle().should('exist');
+    copyApiKeyModal
+      .findBaseURL()
+      .should('have.value', 'https://example.com/models/granite-3-8b-instruct');
+    copyApiKeyModal
+      .findUsageExample()
+      .should(
+        'contain.text',
+        'https://example.com/models/granite-3-8b-instruct/v1/chat/completions',
+      )
+      .and('contain.text', '"model":"publishers/maas-models/models/granite-3-8b-instruct"');
+    copyApiKeyModal
+      .findEndpointCompatibilityAlert()
+      .scrollIntoView()
+      .should('exist')
+      .and('contain.text', 'Endpoint compatibility');
+
+    copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Granite 3 8B Instruct');
+    copyApiKeyModal.selectAvailableModel('flan-t5-small');
+    copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Flan T5 Small');
+    copyApiKeyModal.findModelID().should('have.value', 'flan-t5-small');
+    copyApiKeyModal.findBaseURL().should('have.value', 'https://example.com/models/flan-t5-small');
+    copyApiKeyModal
+      .findUsageExample()
+      .should('contain.text', '"model":"publishers/maas-models/models/flan-t5-small"')
+      .and('contain.text', 'https://example.com/models/flan-t5-small/v1/chat/completions')
+      .and('contain.text', 'X-MAAS-SUBSCRIPTION: premium-team-sub');
+  });
+
+  it('should show a validation error for an out-of-range after-days value', () => {
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.setAfterDays(400);
     createApiKeyModal.findNameInput().type('my-key');
     createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.findExpirationHelper().should('contain.text', 'Enter a value between 1 and');
+  });
+
+  it('should respect a lower configured max expiration across modes', () => {
+    cy.interceptOdh('GET /maas/api/v1/api-keys-config', {
+      data: {
+        // eslint-disable-next-line camelcase
+        max_expiration_days: 90,
+        // eslint-disable-next-line camelcase
+        ephemeral_max_expiration: '1h',
+      },
+    }).as('getApiKeyConfig90');
+
+    apiKeysPage.visit();
+    cy.wait('@initialSearch');
+    cy.wait('@getApiKeyConfig90');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    createApiKeyModal.findExpirationModeToggle().click();
+    createApiKeyModal
+      .findExpirationModeOption('max')
+      .should('contain.text', 'Use max value of 90 days');
+    createApiKeyModal.findExpirationModeOption('max').click();
+    createApiKeyModal.findExpirationHelper().should('contain.text', 'Expires in 90 days');
+
+    createApiKeyModal.setAfterDays(91);
+    createApiKeyModal.findNameInput().type('my-key');
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal
+      .findExpirationHelper()
+      .should('contain.text', 'Enter a value between 1 and 90');
+
+    createApiKeyModal.setExpirationDaysFromToday(91);
+    createApiKeyModal.findSubmitButton().should('be.disabled');
+    createApiKeyModal.find().contains('Select a date').should('exist');
   });
 
   it('should display an inline error alert when API key creation fails', () => {

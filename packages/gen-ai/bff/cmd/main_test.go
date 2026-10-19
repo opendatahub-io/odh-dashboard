@@ -104,6 +104,15 @@ func TestGeneralBffConfiguration(t *testing.T) {
 	}
 }
 
+func TestDistributionNameDefault(t *testing.T) {
+	t.Setenv("DISTRIBUTION_NAME", "")
+	assert.NoError(t, os.Unsetenv("DISTRIBUTION_NAME"))
+	assert.Equal(t, "rh", distributionNameDefault())
+
+	t.Setenv("DISTRIBUTION_NAME", "custom")
+	assert.Equal(t, "custom", distributionNameDefault())
+}
+
 func TestValidateInsecureSkipVerify(t *testing.T) {
 	testCases := []struct {
 		name                  string

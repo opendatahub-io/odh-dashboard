@@ -1,16 +1,41 @@
-import type { SecretKind } from '@odh-dashboard/k8s-core';
+import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
+import type { SecretKind, ServiceAccountKind } from '@odh-dashboard/k8s-core';
 import type { SecretOps } from '@odh-dashboard/plugin-core';
+import { getServiceAccount } from '@odh-dashboard/k8s-core/api/serviceAccounts';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
-import { patchHfTokenSecretOwnerReference } from '../hfTokenSecretUtils';
+import { HF_TOKEN_ENV_NAME } from '../../shared/hfTokenConstants';
+import {
+  patchHfTokenSecretOwnerReference,
+  patchHfTokenServiceAccountOwnerReference,
+} from '../hfTokenSecretUtils';
+
+jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
+  k8sPatchResource: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/k8s-core/api/serviceAccounts', () => ({
+  getServiceAccount: jest.fn(),
+}));
+
+const mockGetServiceAccount = jest.mocked(getServiceAccount);
+const mockK8sPatchResource = jest.mocked(k8sPatchResource);
 
 const makeSecret = (name: string, labels?: Record<string, string>): SecretKind =>
   ({
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: { name, namespace: 'test-project', labels },
-    data: {},
+    data:
+      labels?.['opendatahub.io/dashboard'] === 'true' ? { [HF_TOKEN_ENV_NAME]: 'dG9rZW4=' } : {},
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
+
+const makeServiceAccount = (name: string, labels?: Record<string, string>): ServiceAccountKind => ({
+  apiVersion: 'v1',
+  kind: 'ServiceAccount',
+  metadata: { name, namespace: 'test-project', labels },
+  secrets: [{ name: 'hf-secret' }],
+});
 
 const makeOps = (): jest.Mocked<SecretOps> =>
   ({
@@ -87,5 +112,58 @@ describe('hfTokenSecretUtils', () => {
 
     expect(ops.getSecret).not.toHaveBeenCalled();
     expect(ops.patchSecretWithOwnerReference).not.toHaveBeenCalled();
+  });
+
+  it('should patch HF ServiceAccount owner reference after deploy', async () => {
+    const deployment = mockInferenceServiceK8sResource({ name: 'my-model' });
+    deployment.metadata.uid = 'deployment-uid';
+    mockGetServiceAccount.mockResolvedValue(
+      makeServiceAccount('my-model-hf-sa', { 'opendatahub.io/dashboard': 'true' }),
+    );
+    mockK8sPatchResource.mockResolvedValue(
+      makeServiceAccount('my-model-hf-sa', { 'opendatahub.io/dashboard': 'true' }),
+    );
+
+    await patchHfTokenServiceAccountOwnerReference(
+      'test-project',
+      deployment,
+      'my-model-hf-sa',
+      'deployment-uid',
+    );
+
+    expect(mockGetServiceAccount).toHaveBeenCalledWith('my-model-hf-sa', 'test-project');
+    expect(mockK8sPatchResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryOptions: { name: 'my-model-hf-sa', ns: 'test-project' },
+        patches: [
+          expect.objectContaining({
+            op: 'add',
+            path: '/metadata/ownerReferences',
+            value: [
+              expect.objectContaining({
+                uid: 'deployment-uid',
+                name: 'my-model',
+                kind: 'InferenceService',
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('should skip ServiceAccount owner patch when the SA is not dashboard-managed', async () => {
+    const deployment = mockInferenceServiceK8sResource({ name: 'my-model' });
+    deployment.metadata.uid = 'deployment-uid';
+    mockGetServiceAccount.mockResolvedValue(makeServiceAccount('my-model-hf-sa'));
+
+    await patchHfTokenServiceAccountOwnerReference(
+      'test-project',
+      deployment,
+      'my-model-hf-sa',
+      'deployment-uid',
+    );
+
+    expect(mockK8sPatchResource).not.toHaveBeenCalled();
   });
 });

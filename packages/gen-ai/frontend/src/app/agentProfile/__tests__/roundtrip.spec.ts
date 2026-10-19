@@ -184,6 +184,28 @@ describe('serialize → deserialize round-trip', () => {
     });
   });
 
+  it('should round-trip a registry MCP server without a ConfigMap reference', () => {
+    const server = makeMcpServer({
+      name: 'com.example/jira',
+      url: 'https://registry.example.com/jira',
+      source: 'registry',
+      version: '3',
+    });
+    const config: ChatbotConfiguration = {
+      ...DEFAULT_CONFIGURATION,
+      selectedMcpServerIds: [server.url],
+      mcpToolSelections: { default: { [server.url]: ['search_issues'] } },
+    };
+
+    const { config: restored, mcpToolsPending } = roundTrip(config, 'Test', {
+      model: makeModel(),
+      mcpServers: [server],
+    });
+
+    expect(restored.selectedMcpServerIds).toEqual([server.url]);
+    expect(mcpToolsPending).toEqual({ [server.url]: ['search_issues'] });
+  });
+
   it('should always produce cleared guardrail state (unsupported mapping)', () => {
     const config: ChatbotConfiguration = {
       ...DEFAULT_CONFIGURATION,

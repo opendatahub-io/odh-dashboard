@@ -25,6 +25,7 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {
@@ -39,7 +40,11 @@ import {
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
-import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
+import {
+  checkRequiredFieldsForNotebookStart,
+  formatContainerResourcesForTracking,
+  getPvcVolumeDetails,
+} from './spawnerUtils';
 import type { SelectedFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
 import { generateFeastMetadata } from './featureStore/utils';
 
@@ -134,11 +139,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       hardwareProfileFormData.selectedProfile?.spec.scheduling?.kueue?.localQueueName ||
       editNotebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
     const tep: FormTrackingEventProperties = {
-      containerResources: Object.entries(podSpecOptions.resources || {})
-        .map(([key, value]) =>
-          Object.entries(value).map(([k, v]) => `${key}.${k}: ${v?.toString() || ''}`),
-        )
-        .join(', '),
+      containerResources: formatContainerResourcesForTracking(podSpecOptions.resources),
       lastSelectedImage: image.imageVersion?.from
         ? `${image.imageVersion.from.name}`
         : `${image.imageStream?.metadata.name || 'unknown image'} - ${
@@ -180,7 +181,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: e instanceof K8sStatusError ? `k8s_${e.statusObject.code}` : 'unknown_error',
+        error: errorCategory(e),
         projectName,
         notebookName: name,
         ...getWorkbenchKueueTrackingProperties({

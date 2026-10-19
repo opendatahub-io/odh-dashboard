@@ -11,6 +11,7 @@ import {
   SearchInput,
   Stack,
   StackItem,
+  Title,
   Toolbar,
   ToolbarContent,
   ToolbarFilter,
@@ -207,9 +208,11 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
         aria-busy={isInteractionDisabled}
       >
         <div className="evalhub-copy-suite-benchmark-catalog__content">
-          <Content component="h2">Select benchmarks</Content>
+          <Title headingLevel="h1" size="2xl" data-testid="copy-suite-select-benchmarks-title">
+            Select benchmarks
+          </Title>
           <Content component="p">
-            Search and select up to {MAX_BENCHMARKS} benchmarks to include in your suite.
+            Search and select up to {MAX_BENCHMARKS} benchmarks to include in your collection.
           </Content>
 
           <Stack hasGutter>
@@ -363,7 +366,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                     </strong>
                   ) : (
                     <>
-                      You can select a maximum of {MAX_BENCHMARKS} benchmarks for this suite.{' '}
+                      You can select a maximum of {MAX_BENCHMARKS} benchmarks for this collection.{' '}
                       <strong>
                         {remainingSelections} out of {MAX_BENCHMARKS} remaining
                       </strong>

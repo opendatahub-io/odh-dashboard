@@ -1,0 +1,26 @@
+/**
+ * Returns which required keys are missing from the available keys.
+ */
+export function getMissingRequiredKeys(
+  requiredKeys: readonly string[],
+  availableKeys: readonly string[],
+): string[] {
+  if (!requiredKeys.length) {
+    return [];
+  }
+  const availableSet = new Set(availableKeys);
+  return requiredKeys.filter((requiredKey) => !availableSet.has(requiredKey));
+}
+
+/**
+ * Formats a user-facing message for missing required keys on a secret.
+ */
+export function formatMissingKeysMessage(missingKeys: string[]): string {
+  if (missingKeys.length === 0) {
+    return '';
+  }
+  const keyList = missingKeys.map((key) => `"${key}"`).join(', ');
+  return missingKeys.length === 1
+    ? `Required key ${keyList} is not set in this secret`
+    : `Required keys ${keyList} are not set in this secret`;
+}

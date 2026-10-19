@@ -12,15 +12,31 @@ import {
   EmptyStateFooter,
   PageSection,
   Spinner,
+  Title,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useFetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getCollection } from '~/app/api/k8s';
-import { evaluationCuratedBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
+import {
+  evaluationBenchmarkSuitesNavigationState,
+  evaluationCollectionSelectionNavigationState,
+  evaluationBenchmarkSuitesRoute,
+  evaluationCollectionsRoute,
+  evaluationCuratedBenchmarkSuitesRoute,
+  evaluationEvaluateNavigationState,
+  evaluationEvaluateRoute,
+  evaluationGalleryRoute,
+  evaluationsBaseRoute,
+} from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
-import { CURATED_SUITE_PAGE_CONFIG, isCuratedEvaluationTarget } from '~/app/curatedSuiteConfig';
+import {
+  CURATED_COLLECTION_PREREQUISITES,
+  CURATED_SUITE_PAGE_CONFIG,
+  isCuratedEvaluationTarget,
+  type CuratedEvaluationTarget,
+} from '~/app/curatedSuiteConfig';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
@@ -32,7 +48,7 @@ import { useCopySuiteForm } from './useCopySuiteForm';
 import './CopySuitePage.scss';
 
 type CopySuiteStep = 'settings' | 'selectBenchmarks' | 'benchmarks';
-type SuiteEditorMode = 'copy' | 'create';
+type SuiteEditorMode = 'copy' | 'create' | 'edit';
 
 type SuiteEditorPageProps = {
   mode: SuiteEditorMode;
@@ -40,6 +56,7 @@ type SuiteEditorPageProps = {
 
 const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   const isCreateMode = mode === 'create';
+  const isEditMode = mode === 'edit';
   const { namespace, collectionId } = useParams<{
     namespace: string;
     collectionId: string;
@@ -70,22 +87,58 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     { initialPromisePurity: true },
   );
   const sourceCollection = isCreateMode ? undefined : fetchedCollection;
+  const prerequisite =
+    mode === 'copy' && sourceCollection && !sourceCollection.resource.tenant
+      ? CURATED_COLLECTION_PREREQUISITES[sourceCollection.resource.id]
+      : undefined;
 
   const navigationState = location.state;
+  const isEvaluateOrigin =
+    navigationState &&
+    typeof navigationState === 'object' &&
+    'source' in navigationState &&
+    navigationState.source === evaluationEvaluateNavigationState.source;
+  const isGalleryOrigin =
+    navigationState &&
+    typeof navigationState === 'object' &&
+    'source' in navigationState &&
+    navigationState.source === 'gallery';
+  const isBenchmarkSuitesOrigin =
+    navigationState &&
+    typeof navigationState === 'object' &&
+    'source' in navigationState &&
+    navigationState.source === evaluationBenchmarkSuitesNavigationState.source;
+  const isCollectionSelectionOrigin =
+    navigationState &&
+    typeof navigationState === 'object' &&
+    'source' in navigationState &&
+    navigationState.source === evaluationCollectionSelectionNavigationState.source;
   const navigationEvaluationTarget =
     navigationState &&
     typeof navigationState === 'object' &&
     'sourceEvaluationTarget' in navigationState &&
-    typeof navigationState.sourceEvaluationTarget === 'string'
+    typeof navigationState.sourceEvaluationTarget === 'string' &&
+    isCuratedEvaluationTarget(navigationState.sourceEvaluationTarget)
       ? navigationState.sourceEvaluationTarget
       : undefined;
-  const sourceEvaluationTarget = [
-    navigationEvaluationTarget,
-    sourceCollection?.evaluation_targets?.[0],
-  ].find(isCuratedEvaluationTarget);
-  const cancelRoute = sourceEvaluationTarget
-    ? evaluationCuratedBenchmarkSuitesRoute(namespace, sourceEvaluationTarget)
-    : evaluationsBaseRoute(namespace);
+  const hasExplicitOrigin =
+    isEvaluateOrigin ||
+    isGalleryOrigin ||
+    isBenchmarkSuitesOrigin ||
+    isCollectionSelectionOrigin ||
+    navigationEvaluationTarget !== undefined;
+  const sourceEvaluationTarget: CuratedEvaluationTarget | undefined = hasExplicitOrigin
+    ? navigationEvaluationTarget
+    : [sourceCollection?.evaluation_targets?.[0]].find(isCuratedEvaluationTarget);
+  const cancelRoute = isCollectionSelectionOrigin
+    ? evaluationCollectionsRoute(namespace)
+    : isGalleryOrigin
+      ? evaluationGalleryRoute(namespace)
+      : isBenchmarkSuitesOrigin
+        ? evaluationBenchmarkSuitesRoute(namespace)
+        : sourceEvaluationTarget
+          ? evaluationCuratedBenchmarkSuitesRoute(namespace, sourceEvaluationTarget)
+          : evaluationEvaluateRoute(namespace);
 
   const {
     providers,
@@ -151,15 +204,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
           </EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button
-                variant="primary"
-                component={(props) => (
-                  <Link
-                    {...props}
-                    to={{ pathname: evaluationsBaseRoute(namespace), search: '?tab=evaluate' }}
-                  />
-                )}
-              >
+              <Button variant="primary" component={(props) => <Link {...props} to={cancelRoute} />}>
                 Return to evaluations
               </Button>
             </EmptyStateActions>
@@ -172,7 +217,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   if ((!isCreateMode && !loaded) || !providersLoaded) {
     return (
       <Bullseye>
-        <Spinner aria-label="Loading benchmark suite" />
+        <Spinner aria-label="Loading collection" />
       </Bullseye>
     );
   }
@@ -180,6 +225,27 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   const curatedSuitePage = sourceEvaluationTarget
     ? CURATED_SUITE_PAGE_CONFIG[sourceEvaluationTarget]
     : undefined;
+  const isBenchmarksStep = currentStep === 'benchmarks';
+  const showPageHeader = currentStep !== 'selectBenchmarks';
+  const pageTitle = isBenchmarksStep
+    ? 'Benchmarks'
+    : isCreateMode
+      ? 'Create benchmark collection'
+      : isEditMode
+        ? 'Edit collection'
+        : 'Copy collection';
+  const pageDescription = isBenchmarksStep
+    ? 'Choose the primary metric, number of samples, random seed, threshold, and weight used to calculate the result for each benchmark.'
+    : isCreateMode
+      ? 'Create a benchmark collection by choosing its metadata, benchmarks, thresholds, and metrics.'
+      : isEditMode
+        ? 'Edit this collection by updating its metadata, benchmarks, thresholds, and metrics.'
+        : 'Customize benchmarks, thresholds, and metrics before adding this collection to your dashboard.';
+  const settingsBreadcrumbLabel = isCreateMode
+    ? 'Create benchmark collection'
+    : isEditMode
+      ? 'Edit collection'
+      : 'Customize collection';
 
   const breadcrumbItems: React.ReactElement[] = [
     <BreadcrumbItem
@@ -194,7 +260,56 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     />,
   ];
 
-  if (curatedSuitePage && sourceEvaluationTarget) {
+  if (isCollectionSelectionOrigin) {
+    breadcrumbItems.push(
+      <BreadcrumbItem
+        key="collectionSelection"
+        render={() =>
+          renderBreadcrumbLink(
+            evaluationCollectionsRoute(namespace),
+            'Select collection',
+            'copy-suite-breadcrumb-select-collection',
+          )
+        }
+      />,
+    );
+  } else if (isGalleryOrigin) {
+    breadcrumbItems.push(
+      <BreadcrumbItem
+        key="gallery"
+        render={() =>
+          renderBreadcrumbLink(
+            evaluationGalleryRoute(namespace),
+            'Gallery',
+            'copy-suite-breadcrumb-gallery',
+          )
+        }
+      />,
+    );
+  } else if (isBenchmarkSuitesOrigin) {
+    breadcrumbItems.push(
+      <BreadcrumbItem
+        key="benchmarkSuites"
+        render={() =>
+          renderBreadcrumbLink(
+            evaluationEvaluateRoute(namespace),
+            'Benchmark collections',
+            'copy-suite-breadcrumb-benchmark-suites',
+          )
+        }
+      />,
+      <BreadcrumbItem
+        key="myBenchmarkSuites"
+        render={() =>
+          renderBreadcrumbLink(
+            evaluationBenchmarkSuitesRoute(namespace),
+            'My benchmark collections',
+            'copy-suite-breadcrumb-my-benchmark-suites',
+          )
+        }
+      />,
+    );
+  } else if (curatedSuitePage && sourceEvaluationTarget) {
     breadcrumbItems.push(
       <BreadcrumbItem
         key="curatedSuites"
@@ -207,12 +322,25 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
         }
       />,
     );
+  } else {
+    breadcrumbItems.push(
+      <BreadcrumbItem
+        key="benchmarkSuites"
+        render={() =>
+          renderBreadcrumbLink(
+            evaluationEvaluateRoute(namespace),
+            'Benchmark collections',
+            'copy-suite-breadcrumb-benchmark-suites',
+          )
+        }
+      />,
+    );
   }
 
   if (currentStep === 'settings') {
     breadcrumbItems.push(
       <BreadcrumbItem key="settings" isActive>
-        {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
+        {settingsBreadcrumbLabel}
       </BreadcrumbItem>,
     );
   } else {
@@ -232,7 +360,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             isDisabled={isPageInteractionDisabled}
             data-testid="copy-suite-breadcrumb-settings"
           >
-            {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
+            {settingsBreadcrumbLabel}
           </Button>
         )}
       />,
@@ -291,23 +419,32 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             className="evalhub-copy-suite-page__editor"
             data-testid="copy-suite-editor"
           >
-            <Content
-              component="h1"
-              data-testid="app-page-title"
-              className="pf-v6-u-mt-0 pf-v6-u-mb-0"
-            >
-              {isCreateMode ? 'Create suite' : 'Copy suite'}
-            </Content>
-            <Content component="p" data-testid="copy-suite-description">
-              {isCreateMode
-                ? 'Create a benchmark suite by choosing its metadata, benchmarks, thresholds, and metrics.'
-                : 'Customize benchmarks, thresholds, and metrics before adding this suite to your dashboard.'}
-            </Content>
+            {showPageHeader ? (
+              <>
+                <Title
+                  headingLevel="h1"
+                  size="2xl"
+                  data-testid="app-page-title"
+                  className="pf-v6-u-mt-0 pf-v6-u-mb-0"
+                >
+                  {pageTitle}
+                </Title>
+                <Content
+                  component="p"
+                  data-testid="copy-suite-description"
+                  className={isBenchmarksStep ? 'pf-v6-u-mb-xl' : undefined}
+                >
+                  {pageDescription}
+                </Content>
+              </>
+            ) : null}
 
             {currentStep === 'settings' ? (
               <CopySuiteSettingsStep
                 onNext={() => setCurrentStep('selectBenchmarks')}
                 onCancel={form.handleCancel}
+                prerequisite={prerequisite}
+                sourceCollectionName={mode === 'copy' ? sourceCollection?.name : undefined}
               />
             ) : currentStep === 'selectBenchmarks' ? (
               <CopySuiteBenchmarkSelectionStep
@@ -336,7 +473,14 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
                 onBack={() => setCurrentStep('selectBenchmarks')}
                 onSaveAndRun={form.handleSaveAndRun}
                 onSaveOnly={form.handleSaveOnly}
-                primaryActionTestId={isCreateMode ? 'create-suite-submit' : undefined}
+                primaryActionTestId={
+                  isCreateMode
+                    ? 'create-suite-submit'
+                    : isEditMode
+                      ? 'edit-suite-save-and-run'
+                      : undefined
+                }
+                secondaryActionLabel={isEditMode ? 'Save changes' : undefined}
                 onCancel={form.handleCancel}
               />
             )}
@@ -352,13 +496,19 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             defaultEvaluationName={form.suiteName}
             defaultSourceMode={suiteEvaluatesToSourceMode(form.suiteEvaluates)}
             modalId={
-              isCreateMode ? 'create-suite-run-evaluation-modal' : 'copy-suite-run-evaluation-modal'
+              isCreateMode
+                ? 'create-suite-run-evaluation-modal'
+                : isEditMode
+                  ? 'edit-suite-run-evaluation-modal'
+                  : 'copy-suite-run-evaluation-modal'
             }
             resolveCollection={
               isCreateMode ? form.createCollectionForRun : form.cloneCollectionForRun
             }
             onClonePendingChange={setIsClonePending}
-            trackingSource={isCreateMode ? 'create_suite' : 'copy_suite'}
+            trackingSource={
+              isCreateMode ? 'create_suite' : isEditMode ? 'edit_suite' : 'copy_suite'
+            }
             onSuccess={() => {
               setIsRunModalOpen(false);
               navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
@@ -373,5 +523,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
 const CopySuitePage: React.FC = () => <SuiteEditorPage mode="copy" />;
 
 export const CreateSuitePage: React.FC = () => <SuiteEditorPage mode="create" />;
+
+export const EditSuitePage: React.FC = () => <SuiteEditorPage mode="edit" />;
 
 export default CopySuitePage;

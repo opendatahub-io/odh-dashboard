@@ -28,14 +28,20 @@ jest.mock('mod-arch-core', () => ({
 }));
 
 const mockUsePipelineRunQuery = jest.fn();
-jest.mock('~/app/hooks/queries', () => ({
+jest.mock('~/app/hooks/usePipelineRunQuery', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
 }));
 
 const mockGetSecretsQueryFn = jest.fn();
-const mockGetSecrets = jest.fn().mockReturnValue(mockGetSecretsQueryFn);
-jest.mock('~/app/api/k8s', () => ({
-  getSecrets: () => (namespace: string, type?: string) => mockGetSecrets(namespace, type),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useSecretsQuery: (namespace?: string, type?: string) =>
+    jest.requireActual('@tanstack/react-query').useQuery({
+      queryKey: ['secrets', namespace, type],
+      queryFn: () => mockGetSecretsQueryFn(),
+      enabled: Boolean(namespace),
+      retry: false,
+    }),
 }));
 
 const mockNotification = {
@@ -54,9 +60,9 @@ jest.mock('~/app/components/common/AutomlHeader/AutomlHeader', () => ({
   default: () => <span>AutoML</span>,
 }));
 
-jest.mock('~/app/components/empty-states/InvalidPipelineRun', () => ({
-  __esModule: true,
-  default: () => <div data-testid="invalid-run">Invalid Run</div>,
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
+  InvalidPipelineRun: () => <div data-testid="invalid-run">Invalid Run</div>,
 }));
 
 jest.mock('~/app/components/empty-states/InvalidProject', () => ({
@@ -721,7 +727,7 @@ describe('AutomlReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      expect(mockGetSecrets).toHaveBeenCalledWith('test-ns', 'storage');
+      expect(mockGetSecretsQueryFn).toHaveBeenCalled();
     });
   });
 });

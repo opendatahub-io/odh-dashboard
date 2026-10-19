@@ -24,6 +24,7 @@ const extensions: Extension[] = [
       section: 'ai-hub',
       objectType: 'data-registry',
       label: 'Tech Preview',
+      hidePageTitleOnPaths: ['browse/assets', 'browse/collections'],
     },
   },
   {
@@ -35,7 +36,7 @@ const extensions: Extension[] = [
       pageId: 'data-tab-page',
       id: 'browse',
       title: 'Browse',
-      singleTabTitle: 'Data',
+      singleTabTitle: 'Data assets',
       objectType: 'data-registry',
       component: () => import('./DataRegistryWrapper'),
     },

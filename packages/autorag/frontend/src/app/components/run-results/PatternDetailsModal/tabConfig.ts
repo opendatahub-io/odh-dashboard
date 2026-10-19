@@ -19,13 +19,14 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     component: PatternInformationTab,
   },
   {
-    key: 'vector_store_binding',
-    label: 'Vector store binding',
+    key: 'store_binding',
+    label: 'Store binding',
     tooltip:
-      'Vector store settings define where embedded document chunks are stored for retrieval at query time.',
-    description: 'Shows the vector store datasource type and collection name used by this pattern.',
+      'Store binding identifies the provider and non-secret retrieval-store settings used by this pattern.',
+    description:
+      'Shows the provider, collection, and other non-secret binding settings used by this pattern.',
     section: 'Pattern configuration',
-    component: createKeyValueTab('vector_store_binding'),
+    component: createKeyValueTab('store_binding'),
   },
   {
     key: 'chunking',

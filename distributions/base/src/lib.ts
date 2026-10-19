@@ -6,3 +6,4 @@ export { ThemeProvider, useThemeContext } from './ThemeContext';
 export { ErrorBoundary } from './ErrorBoundary';
 export { createDistribution } from './createDistribution';
 export type { DistributionConfig } from './createDistribution';
+export { K8sSdkProvider } from './K8sSdkProvider';

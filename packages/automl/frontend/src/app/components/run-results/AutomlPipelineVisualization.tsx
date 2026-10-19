@@ -10,9 +10,13 @@ import {
   Title,
 } from '@patternfly/react-core';
 import React from 'react';
+import AutomlIcon from '~/app/images/icons/AutomlIcon';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
-import { canShowModelsExpandToggle } from '~/app/topology/tree-view/branchExpand';
+import {
+  canShowModelsExpandToggle,
+  countModelBranches,
+} from '~/app/topology/tree-view/branchExpand';
 import { ModelsExpandProvider } from '~/app/topology/tree-view/ModelsExpandContext';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import {
@@ -67,6 +71,10 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
     () => canShowModelsExpandToggle(treeViewData.stageMapNodes),
     [treeViewData.stageMapNodes],
   );
+  const modelCount = React.useMemo(
+    () => countModelBranches(treeViewData.stageMapNodes),
+    [treeViewData.stageMapNodes],
+  );
 
   const winnerResolved = statusFilter === 'completed' && !!treeViewData.selectedModel;
 
@@ -85,9 +93,10 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
     () => ({
       modelsExpanded,
       showToggle: showModelsToggle,
+      modelCount,
       onToggle: () => setModelsExpanded((prev) => !prev),
     }),
-    [modelsExpanded, showModelsToggle],
+    [modelsExpanded, showModelsToggle, modelCount],
   );
 
   const showTreeLoadingState = treeLoadingMode != null;
@@ -137,7 +146,15 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
       >
         <FlexItem>
-          <Flex>
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <div
+                className="automl-pipeline-visualization__header-icon"
+                data-testid="run-title-icon"
+              >
+                <AutomlIcon />
+              </div>
+            </FlexItem>
             <FlexItem>
               <Title headingLevel="h3" size="lg">
                 {runTitle}
@@ -177,7 +194,6 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
           <DrawerContent
             panelContent={
               <DrawerPanelContent
-                isResizable
                 minSize="320px"
                 defaultSize="320px"
                 className="automl-pipeline-visualization__drawer-panel"

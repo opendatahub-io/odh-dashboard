@@ -17,8 +17,6 @@ export enum DeploymentTrackingEvent {
   STATUS_MODAL_ACTION_CLICKED = 'Model Deploying Status Modal Action Clicked',
 }
 
-export type DeploymentKind = 'inferenceService' | 'llmInferenceService';
-
 export type DeploymentStatusTab = 'progress' | 'resources';
 
 export type DeploymentStatusModalAction = 'edit' | 'stop' | 'start' | 'close';
@@ -30,9 +28,11 @@ export type DeploymentKueueTrackingProperties = {
   hasKueueEnabled: boolean;
   primaryDeploymentStatus: string;
   admittedReplicaCount: number;
-  deploymentKind?: DeploymentKind;
+  deploymentKind?: string;
   numReplicas?: number;
 };
+
+export type ServingRuntimeSource = 'preinstalled' | 'created-from-catalog';
 
 export type DeploymentTrackingBaseProperties = FormTrackingEventProperties & {
   modelType?: string;
@@ -47,7 +47,8 @@ export type DeploymentTrackingBaseProperties = FormTrackingEventProperties & {
   hasKueueEnabled?: boolean;
   primaryDeploymentStatus?: string;
   admittedReplicaCount?: number;
-  deploymentKind?: DeploymentKind;
+  deploymentKind?: string;
+  servingRuntimeSource?: ServingRuntimeSource;
 };
 
 export type DeploymentTrackingProperties = DeploymentTrackingBaseProperties &
@@ -62,16 +63,6 @@ export const fireModelDeployed = (
     ? DeploymentTrackingEvent.MODEL_UPDATED
     : DeploymentTrackingEvent.MODEL_DEPLOYED;
   trackEvent(eventName, properties);
-};
-
-export const getDeploymentKind = (deployment: Deployment): DeploymentKind | undefined => {
-  if (deployment.model.kind === 'InferenceService') {
-    return 'inferenceService';
-  }
-  if (deployment.model.kind === 'LLMInferenceService') {
-    return 'llmInferenceService';
-  }
-  return undefined;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -106,7 +97,7 @@ export const getDeploymentKueueTrackingProperties = (
     hasKueueEnabled: Boolean(kueueStatus || kueueQueueName),
     primaryDeploymentStatus: deployment.status?.state ?? 'Unknown',
     admittedReplicaCount: kueueStatus?.podAdmissionCounts?.admitted ?? 0,
-    deploymentKind: getDeploymentKind(deployment),
+    deploymentKind: deployment.model.kind,
     numReplicas: getDeploymentReplicaCount(deployment),
   };
 };

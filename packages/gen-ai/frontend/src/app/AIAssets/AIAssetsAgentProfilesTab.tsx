@@ -4,10 +4,17 @@ import NoData from '~/app/EmptyStates/NoData';
 import useFetchAgentProfiles from '~/app/hooks/useFetchAgentProfiles';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import AgentProfilesTable from '~/app/AIAssets/components/agentprofiles/AgentProfilesTable';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
+import useFetchAgentDeployments from './hooks/useFetchAgentDeployments';
 
 const AIAssetsAgentProfilesTab: React.FC = () => {
   const { data: profiles = [], loaded, error, refresh } = useFetchAgentProfiles();
   const { api, apiAvailable } = useGenAiAPI();
+  const { enabled: agentDeploymentsEnabled } = useGenAiAgentDeploymentEnabled();
+  const { data: deployments = [], loaded: deploymentsLoaded } = useFetchAgentDeployments(
+    undefined,
+    { includeAll: true, enabled: agentDeploymentsEnabled },
+  );
 
   const handleDelete = React.useCallback(
     async (profileId: string) => {
@@ -47,7 +54,15 @@ const AIAssetsAgentProfilesTab: React.FC = () => {
     );
   }
 
-  return <AgentProfilesTable profiles={profiles} onDelete={handleDelete} onRefresh={refresh} />;
+  return (
+    <AgentProfilesTable
+      profiles={profiles}
+      deployments={deployments}
+      deploymentsLoaded={deploymentsLoaded}
+      onDelete={handleDelete}
+      onRefresh={refresh}
+    />
+  );
 };
 
 export default AIAssetsAgentProfilesTab;

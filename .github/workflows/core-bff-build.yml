@@ -1,6 +1,7 @@
 name: Test / Core BFF Tests
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'distributions/core-bff/**'
       - '.github/actions/pnpm-setup/**'

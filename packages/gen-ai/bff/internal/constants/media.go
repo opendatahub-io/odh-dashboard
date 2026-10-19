@@ -25,8 +25,11 @@ var MediaTypeConfigs = map[string]MediaConfig{
 	},
 	MediaTypeAudio: {
 		AllowedMIME: map[string]bool{
-			"audio/wav":  true,
-			"audio/mpeg": true,
+			"audio/wav":      true,
+			"audio/wave":     true,
+			"audio/x-wav":    true,
+			"audio/x-pn-wav": true,
+			"audio/mpeg":     true,
 		},
 		MaxBodySize: AudioUploadMaxBodySize,
 		OGXPurpose:  "user_data",

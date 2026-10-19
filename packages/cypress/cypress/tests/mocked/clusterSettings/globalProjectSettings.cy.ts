@@ -7,6 +7,8 @@ import { mockDsc } from '@odh-dashboard/internal/__mocks__/mockDsc';
 import { clusterSettings, globalProjectSettings } from '../../../pages/clusterSettings';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
 import { DataScienceClusterModel, ProjectModel } from '../../../utils/models';
+import { captureTracking, expectSafeTracking } from '../../../utils/analytics';
+import { toastNotifications } from '../../../pages/components/ToastNotifications';
 
 describe('Global Project Settings', () => {
   beforeEach(() => {
@@ -70,6 +72,23 @@ describe('Global Project Settings', () => {
     cy.wait('@saveClusterSettings').then((interception) => {
       expect(interception.request.body.globalMLflowNamespaces).to.eql(['project-alpha']);
     });
+  });
+
+  it('should keep failed save diagnostics out of telemetry', () => {
+    const message = 'Private cluster diagnostic 95482';
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ globalProjectPrompts: true }));
+    cy.interceptOdh('PUT /api/cluster-settings', { success: false, error: message }).as('save');
+    clusterSettings.visit();
+    globalProjectSettings.selectProject('Project Alpha');
+    captureTracking();
+    clusterSettings.findSubmitButton().click();
+    cy.wait('@save');
+    toastNotifications.findToastNotificationList().should('contain.text', message);
+    expectSafeTracking(
+      'Cluster Settings Global Project Selected',
+      { success: false, error: 'unknown_error' },
+      message,
+    );
   });
 
   describe('clear warning modal', () => {

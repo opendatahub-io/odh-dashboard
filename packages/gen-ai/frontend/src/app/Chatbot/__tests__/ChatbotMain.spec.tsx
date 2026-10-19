@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { FetchStateObject, Namespace } from 'mod-arch-core';
 import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -7,6 +7,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import { useChatbotConfigStore, DEFAULT_CONFIGURATION } from '~/app/Chatbot/store';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import ChatbotPlayground from '~/app/Chatbot/ChatbotPlayground';
@@ -25,6 +26,7 @@ jest.mock('react-router-dom', () => ({
 }));
 
 jest.mock('~/app/hooks/useFetchBFFConfig');
+jest.mock('~/app/hooks/useGenAiAgentDeploymentEnabled');
 jest.mock('~/app/hooks/useFetchMCPServers');
 jest.mock('~/app/hooks/useMCPServerStatuses');
 jest.mock('~/app/utilities');
@@ -69,7 +71,12 @@ jest.mock('~/app/Chatbot/ChatbotHeaderActions', () => ({
 
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal', () => ({
   __esModule: true,
-  default: () => null,
+  default: ({ onUpdateInitiated }: { onUpdateInitiated?: () => void }) =>
+    onUpdateInitiated ? (
+      <button type="button" data-testid="mock-update-initiated-button" onClick={onUpdateInitiated}>
+        Trigger update
+      </button>
+    ) : null,
 }));
 
 jest.mock('~/app/Chatbot/components/DeletePlaygroundModal', () => ({
@@ -100,9 +107,26 @@ jest.mock('mod-arch-shared', () => ({
 
 jest.mock('~/app/EmptyStates/NoData', () => ({
   __esModule: true,
-  default: ({ title, 'data-testid': dataTestId }: { title: string; 'data-testid'?: string }) => (
+  default: ({
+    title,
+    'data-testid': dataTestId,
+    handleActionButtonClick,
+  }: {
+    title: string;
+    'data-testid'?: string;
+    handleActionButtonClick?: () => void;
+  }) => (
     <div data-testid={dataTestId || 'chatbot-empty-state'}>
       <div data-testid="empty-state-title">{title}</div>
+      {handleActionButtonClick && (
+        <button
+          type="button"
+          data-testid="empty-state-action-button"
+          onClick={handleActionButtonClick}
+        >
+          Action
+        </button>
+      )}
     </div>
   ),
 }));
@@ -114,6 +138,7 @@ const mockIsLlamaModelEnabled = isLlamaModelEnabled as jest.MockedFunction<
   typeof isLlamaModelEnabled
 >;
 const mockUseFetchBFFConfig = useFetchBFFConfig as jest.MockedFunction<typeof useFetchBFFConfig>;
+const mockUseGenAiAgentDeploymentEnabled = jest.mocked(useGenAiAgentDeploymentEnabled);
 const mockUseFetchMCPServers = jest.mocked(useFetchMCPServers);
 const mockUseMCPServerStatuses = jest.mocked(useMCPServerStatuses);
 const mockChatbotPlayground = jest.mocked(ChatbotPlayground);
@@ -151,11 +176,12 @@ describe('ChatbotMain - Empty State Logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseFetchBFFConfig.mockReturnValue({
-      data: { isCustomLSD: false },
+      data: { isCustomLSD: false, sandboxesAvailable: true },
       loaded: false,
       error: undefined,
       refresh: jest.fn(),
     } as FetchStateObject<BFFConfig | null>);
+    mockUseGenAiAgentDeploymentEnabled.mockReturnValue({ enabled: false, loaded: true });
     mockIsLlamaModelEnabled.mockReturnValue(true);
     mockUseFetchMCPServers.mockReturnValue({
       data: [],
@@ -394,5 +420,134 @@ describe('ChatbotMain - Empty State Logic', () => {
     mockUseFetchBFFConfig.mockReturnValue({ data: null } as FetchStateObject<BFFConfig | null>);
     act(() => actualStore.getState().updateGuardrail('default', 'test-model'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+  });
+});
+
+describe('ChatbotMain - Playground update state', () => {
+  const createLsdStatus = (
+    phase: 'Initializing' | 'Ready' | 'Failed',
+  ): LlamaStackDistributionModel => ({
+    name: 'lsd-playground',
+    phase,
+    version: '0.1.0',
+    distributionConfig: {
+      activeDistribution: 'rh',
+      providers: [],
+      availableDistributions: {},
+    },
+  });
+
+  const buildChatbotContext = (lsdStatus: LlamaStackDistributionModel | null) => ({
+    lsdStatus,
+    modelsLoaded: true,
+    lsdStatusLoaded: true,
+    lsdStatusError: undefined,
+    refresh: jest.fn(),
+    // eslint-disable-next-line camelcase
+    aiModels: [{ model_name: 'test-model', model_id: 'test-model' } as AAModelResponse],
+    aiModelsLoaded: true,
+    aiModelsError: undefined,
+    maasModels: [] as AAModelResponse[],
+    maasModelsLoaded: true,
+    maasModelsError: undefined,
+    models: [],
+    modelsError: undefined,
+    nemoGuardrailsStatus: null,
+    nemoGuardrailsStatusLoaded: true,
+    nemoGuardrailsStatusError: undefined,
+    lastInput: '',
+    setLastInput: jest.fn(),
+  });
+
+  const genAiContext = {
+    namespace: { name: 'test-namespace' } as Namespace,
+    apiState: { apiAvailable: false, api: null as unknown as never },
+    refreshAPIState: jest.fn(),
+  };
+
+  const renderChatbotMain = (lsdStatus: LlamaStackDistributionModel | null) =>
+    render(
+      <ChatbotContext.Provider value={buildChatbotContext(lsdStatus)}>
+        <GenAiContext.Provider value={genAiContext}>
+          <ChatbotMain />
+        </GenAiContext.Provider>
+      </ChatbotContext.Provider>,
+    );
+
+  const initiateUpdate = () => {
+    // Open the configure playground modal via the empty state action, then
+    // simulate the modal reporting that an update was submitted
+    fireEvent.click(screen.getByTestId('empty-state-action-button'));
+    fireEvent.click(screen.getByTestId('mock-update-initiated-button'));
+  };
+
+  it('should show "Creating playground" when no update was initiated', () => {
+    renderChatbotMain(createLsdStatus('Initializing'));
+
+    expect(screen.getByText('Creating playground')).toBeInTheDocument();
+  });
+
+  it('should show "Updating playground" while the service restarts after an update', () => {
+    const { rerender } = renderChatbotMain(null);
+    initiateUpdate();
+
+    rerender(
+      <ChatbotContext.Provider value={buildChatbotContext(createLsdStatus('Initializing'))}>
+        <GenAiContext.Provider value={genAiContext}>
+          <ChatbotMain />
+        </GenAiContext.Provider>
+      </ChatbotContext.Provider>,
+    );
+
+    expect(screen.getByText('Updating playground')).toBeInTheDocument();
+    expect(screen.queryByText('Creating playground')).not.toBeInTheDocument();
+  });
+
+  it('should show "Playground update failed" when the restart fails after an update', () => {
+    const { rerender } = renderChatbotMain(null);
+    initiateUpdate();
+
+    rerender(
+      <ChatbotContext.Provider value={buildChatbotContext(createLsdStatus('Failed'))}>
+        <GenAiContext.Provider value={genAiContext}>
+          <ChatbotMain />
+        </GenAiContext.Provider>
+      </ChatbotContext.Provider>,
+    );
+
+    expect(screen.getByText('Playground update failed')).toBeInTheDocument();
+  });
+
+  it('should reset to "Creating playground" after the restarted playground becomes ready', () => {
+    const { rerender } = renderChatbotMain(null);
+    initiateUpdate();
+
+    rerender(
+      <ChatbotContext.Provider value={buildChatbotContext(createLsdStatus('Initializing'))}>
+        <GenAiContext.Provider value={genAiContext}>
+          <ChatbotMain />
+        </GenAiContext.Provider>
+      </ChatbotContext.Provider>,
+    );
+    expect(screen.getByText('Updating playground')).toBeInTheDocument();
+
+    // Playground becomes ready again — the update flag is cleared
+    rerender(
+      <ChatbotContext.Provider value={buildChatbotContext(createLsdStatus('Ready'))}>
+        <GenAiContext.Provider value={genAiContext}>
+          <ChatbotMain />
+        </GenAiContext.Provider>
+      </ChatbotContext.Provider>,
+    );
+
+    // A later creation shows create wording again
+    rerender(
+      <ChatbotContext.Provider value={buildChatbotContext(createLsdStatus('Initializing'))}>
+        <GenAiContext.Provider value={genAiContext}>
+          <ChatbotMain />
+        </GenAiContext.Provider>
+      </ChatbotContext.Provider>,
+    );
+    expect(screen.getByText('Creating playground')).toBeInTheDocument();
   });
 });

@@ -25,11 +25,18 @@ import {
 import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useCollectionDetail } from '~/app/hooks/useCollectionDetail';
+import { useAssets } from '~/app/hooks/useAssets';
+import { useCollections } from '~/app/hooks/useCollections';
+import { useLabels } from '~/app/hooks/useLabels';
 import { browseUrl } from '~/app/utilities/routes';
+import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import DeleteCollectionModal from '~/app/components/DeleteCollectionModal';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
+import ManageLabelsModal from '~/app/components/ManageLabelsModal';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import type { CollectionInfo } from '~/app/hooks/useCollections';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import CollectionDetailView from './CollectionDetailView';
 
 const CollectionDetailPage: React.FC = () => {
@@ -38,12 +45,43 @@ const CollectionDetailPage: React.FC = () => {
     collection: string;
   }>();
   const navigate = useNavigate();
+  const trackEvent = useDataRegistryTrackEvent();
 
   const [collectionDetail, loaded, loadError, refresh] = useCollectionDetail(project, collection);
+  const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] = useAssets(
+    project || '',
+  );
+  const [, , collectionsError] = useCollections(project || '', assets, collectionNames);
+  const [labels, , , labelsRefresh] = useLabels(project || '');
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isManageCollectionsOpen, setIsManageCollectionsOpen] = React.useState(false);
+  const [isManageLabelsOpen, setIsManageLabelsOpen] = React.useState(false);
   const [isRegisterDataOpen, setIsRegisterDataOpen] = React.useState(false);
+  const [returnToRegisterData, setReturnToRegisterData] = React.useState(false);
+
+  const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, loadError, collectionsError);
+
+  const handleRefresh = React.useCallback(async () => {
+    await Promise.all([refresh(), assetsRefresh(), labelsRefresh()]);
+  }, [assetsRefresh, labelsRefresh, refresh]);
+
+  const handleCollectionsModalClose = React.useCallback(async () => {
+    setIsManageCollectionsOpen(false);
+    if (returnToRegisterData) {
+      await assetsRefresh();
+      setReturnToRegisterData(false);
+      setIsRegisterDataOpen(true);
+    }
+  }, [assetsRefresh, returnToRegisterData]);
+
+  const handleLabelsModalClose = React.useCallback(() => {
+    setIsManageLabelsOpen(false);
+    if (returnToRegisterData) {
+      setReturnToRegisterData(false);
+      setIsRegisterDataOpen(true);
+    }
+  }, [returnToRegisterData]);
 
   const handleDeleted = React.useCallback(() => {
     navigate(browseUrl(project));
@@ -99,26 +137,39 @@ const CollectionDetailPage: React.FC = () => {
         <DropdownList>
           <DropdownItem
             key="register-data"
-            onClick={() => setIsRegisterDataOpen(true)}
+            onClick={() => {
+              if (project) {
+                trackEvent({
+                  eventName: DATA_REGISTRY_EVENT_NAMES.registrationStarted,
+                  properties: { project },
+                });
+              }
+              setReturnToRegisterData(false);
+              setIsRegisterDataOpen(true);
+            }}
+            isDisabled={!hasWriteAccess}
             data-testid="collection-action-register-data"
           >
             Register data
           </DropdownItem>
           <Tooltip
             content={
-              hasAssets
-                ? 'Cannot delete a collection that contains data assets'
-                : 'Delete this collection'
+              !hasWriteAccess
+                ? 'You do not have permission to modify data registry resources'
+                : hasAssets
+                  ? 'Cannot delete a collection that contains data assets'
+                  : 'Delete this collection'
             }
           >
             <DropdownItem
               key="delete"
               onClick={() => {
-                if (!hasAssets) {
+                if (!hasAssets && hasWriteAccess) {
                   setIsDeleteModalOpen(true);
                 }
               }}
               isAriaDisabled={hasAssets}
+              isDisabled={!hasWriteAccess}
               data-testid="collection-action-delete"
             >
               Delete collection
@@ -126,7 +177,11 @@ const CollectionDetailPage: React.FC = () => {
           </Tooltip>
           <DropdownItem
             key="manage-collections"
-            onClick={() => setIsManageCollectionsOpen(true)}
+            onClick={() => {
+              setReturnToRegisterData(false);
+              setIsManageCollectionsOpen(true);
+            }}
+            isDisabled={!hasWriteAccess}
             data-testid="collection-action-manage-collections"
           >
             Manage collections
@@ -146,25 +201,48 @@ const CollectionDetailPage: React.FC = () => {
         <ManageCollectionsModal
           isOpen={isManageCollectionsOpen}
           project={project}
-          onRefresh={refresh}
+          onRefresh={handleRefresh}
+          onClose={handleCollectionsModalClose}
+        />
+      ) : null}
+      {project && collection ? (
+        <RegisterDataModal
+          key={project}
+          isOpen={isRegisterDataOpen}
+          project={project}
+          collections={collectionNames}
+          hasExistingDchConnectionReferences={
+            assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'dch')
+          }
+          hasExistingRhaiConnectionReferences={
+            assetsLoaded &&
+            assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'secret')
+          }
+          onCreated={handleRefresh}
+          onManageCollections={() => {
+            setIsRegisterDataOpen(false);
+            setReturnToRegisterData(true);
+            setIsManageCollectionsOpen(true);
+          }}
+          onManageLabels={() => {
+            setIsRegisterDataOpen(false);
+            setReturnToRegisterData(true);
+            setIsManageLabelsOpen(true);
+          }}
           onClose={() => {
-            setIsManageCollectionsOpen(false);
+            setIsRegisterDataOpen(false);
+            setReturnToRegisterData(false);
           }}
         />
       ) : null}
-      {isRegisterDataOpen && project && collection ? (
-        <RegisterDataModal
-          isOpen={isRegisterDataOpen}
+      {project ? (
+        <ManageLabelsModal
+          isOpen={isManageLabelsOpen}
+          onClose={handleLabelsModalClose}
           project={project}
-          collections={[collection]}
-          onCreated={refresh}
-          onManageCollections={() => {
-            setIsRegisterDataOpen(false);
-            setIsManageCollectionsOpen(true);
-          }}
-          onClose={() => {
-            setIsRegisterDataOpen(false);
-          }}
+          labels={labels}
+          assets={assets}
+          onRefresh={handleRefresh}
         />
       ) : null}
     </>
@@ -225,7 +303,21 @@ const CollectionDetailPage: React.FC = () => {
         <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>
           <TabContent id="overview-tab">
             {collectionDetail ? (
-              <CollectionDetailView collection={collectionDetail} project={project} />
+              <CollectionDetailView
+                collection={collectionDetail}
+                project={project}
+                onRegisterData={() => {
+                  if (project) {
+                    trackEvent({
+                      eventName: DATA_REGISTRY_EVENT_NAMES.registrationStarted,
+                      properties: { project },
+                    });
+                  }
+                  setReturnToRegisterData(false);
+                  setIsRegisterDataOpen(true);
+                }}
+                isRegisterDataDisabled={!hasWriteAccess}
+              />
             ) : null}
           </TabContent>
         </Tab>

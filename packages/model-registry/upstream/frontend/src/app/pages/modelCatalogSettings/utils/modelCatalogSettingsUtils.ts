@@ -135,7 +135,12 @@ export const getPayloadForConfig = (
 
   if (sourceConfig.type === CatalogSourceType.HUGGING_FACE && !sourceConfig.apiKey) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { apiKey, ...rest } = sourceConfig;
+    const { apiKey, hasConfiguredApiKey, ...rest } = sourceConfig;
+    return rest;
+  }
+  if (sourceConfig.type === CatalogSourceType.HUGGING_FACE) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { hasConfiguredApiKey, ...rest } = sourceConfig;
     return rest;
   }
   return sourceConfig;

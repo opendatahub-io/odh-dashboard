@@ -15,24 +15,12 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import {
-  InfoCircleIcon,
-  OutlinedQuestionCircleIcon,
-  PlusCircleIcon,
-  EllipsisVIcon,
-} from '@patternfly/react-icons';
+import { InfoCircleIcon, OutlinedQuestionCircleIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import CapabilityBadges from '~/app/components/CapabilityBadges';
-import {
-  AIModel,
-  ExternalVectorStoreSummary,
-  LlamaModel,
-  LlamaStackDistributionModel,
-  VectorStore,
-} from '~/app/types';
-import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
+import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 import { isPlaygroundModelMatchForAIModel, isASRModel } from '~/app/utilities/utils';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
@@ -43,33 +31,24 @@ import EndpointDetailModal from './EndpointDetailModal';
 type AIModelTableRowProps = {
   lsdStatus: LlamaStackDistributionModel | null;
   model: AIModel;
-  allModels: AIModel[];
   playgroundModels: LlamaModel[];
   onDelete?: (modelId: string) => Promise<void>;
   showActionColumn?: boolean;
   showPlaygroundColumn?: boolean;
-  allCollections: ExternalVectorStoreSummary[];
-  collectionsLoaded: boolean;
-  existingCollections: VectorStore[];
 };
 
 const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   lsdStatus,
   model,
-  allModels,
   playgroundModels,
   onDelete,
   showActionColumn = false,
   showPlaygroundColumn = false,
-  allCollections,
-  collectionsLoaded,
-  existingCollections,
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const isVectorStoresEnabled = useAiAssetVectorStoresEnabled();
   const enabledModel = playgroundModels.find((m) => isPlaygroundModelMatchForAIModel(m, model));
-  const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
@@ -145,7 +124,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             }
           })()}
         </Td>
-        <Td dataLabel="Endpoints">
+        <Td dataLabel="Access details">
           {model.externalEndpoint || model.internalEndpoint ? (
             <Button
               data-testid="endpoint-view-button"
@@ -179,62 +158,47 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               >
                 Used in Playground settings
               </span>
-            ) : enabledModel ? (
-              <>
-                {model.model_type === 'embedding' && isVectorStoresEnabled ? (
-                  <Button
-                    data-testid="see-vector-stores-button"
-                    variant={ButtonVariant.link}
-                    onClick={() => {
-                      fireMiscTrackingEvent('Available Endpoints See Vector Stores Clicked', {
-                        modelId: model.model_id,
-                      });
-                      if (namespace?.name) {
-                        navigate(genAiAiAssetsTabRoute(namespace.name, 'vectorstores'));
-                      }
-                    }}
-                  >
-                    See vector stores
-                  </Button>
-                ) : (
-                  <Button
-                    data-testid="try-playground-button"
-                    variant={ButtonVariant.secondary}
-                    onClick={() => {
-                      fireMiscTrackingEvent('Available Endpoints Playground Launched', {
-                        assetType,
-                        assetId: model.model_id,
-                      });
-                      navigate(genAiChatPlaygroundRoute(namespace?.name), {
-                        state: {
-                          model: enabledModel.id,
-                        },
-                      });
-                    }}
-                    // Embedding/transcription models cannot be tried in the chat playground directly
-                    // Custom endpoint models are always available if they're in the list
-                    isDisabled={
-                      model.model_type === 'embedding' ||
-                      model.model_type === 'transcription' ||
-                      (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
-                    }
-                  >
-                    Try in playground
-                  </Button>
-                )}
-              </>
+            ) : model.model_type === 'embedding' && isVectorStoresEnabled ? (
+              <Button
+                data-testid="see-vector-stores-button"
+                variant={ButtonVariant.link}
+                onClick={() => {
+                  fireMiscTrackingEvent('Available Endpoints See Vector Stores Clicked', {
+                    modelId: model.model_id,
+                  });
+                  if (namespace?.name) {
+                    navigate(genAiAiAssetsTabRoute(namespace.name, 'vectorstores'));
+                  }
+                }}
+              >
+                See vector stores
+              </Button>
             ) : (
               <Button
-                variant={ButtonVariant.link}
-                icon={<PlusCircleIcon />}
-                onClick={() => setIsConfigurationModalOpen(true)}
-                // Add stays enabled for embedding models (may be used in RAG configurations)
+                data-testid="try-playground-button"
+                variant={ButtonVariant.secondary}
+                onClick={() => {
+                  fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                    assetType,
+                    assetId: model.model_id,
+                  });
+                  navigate(genAiChatPlaygroundRoute(namespace?.name), {
+                    state: {
+                      model: enabledModel?.id,
+                    },
+                  });
+                }}
+                // Disabled until a playground is created for the project.
+                // Embedding/transcription models cannot be tried in the chat playground directly.
                 // Custom endpoint models are always available if they're in the list
                 isDisabled={
-                  model.model_source_type !== 'custom_endpoint' && model.status !== 'Running'
+                  !lsdStatus ||
+                  model.model_type === 'embedding' ||
+                  model.model_type === 'transcription' ||
+                  (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
                 }
               >
-                Add to playground
+                Try in playground
               </Button>
             )}
           </Td>
@@ -278,18 +242,6 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
       </Tr>
       {isEndpointModalOpen && (
         <EndpointDetailModal model={model} onClose={() => setIsEndpointModalOpen(false)} />
-      )}
-      {isConfigurationModalOpen && (
-        <ChatbotConfigurationModal
-          onClose={() => setIsConfigurationModalOpen(false)}
-          lsdStatus={lsdStatus}
-          aiModels={allModels}
-          existingModels={playgroundModels}
-          redirectToPlayground
-          allCollections={allCollections}
-          collectionsLoaded={collectionsLoaded}
-          existingCollections={existingCollections}
-        />
       )}
       {isDeleteModalOpen && (
         <Modal

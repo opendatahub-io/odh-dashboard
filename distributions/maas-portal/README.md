@@ -1,0 +1,192 @@
+# MaaS Portal Distribution
+
+Portal for MaaS API key management and AI asset endpoints. Bundles the `maas` and `gen-ai` packages.
+
+For production lifecycle, routing, federation, RBAC, migration, and rollout, see
+[MaaS Portal](../../docs/maas-portal.md). Custom Perses services must meet the
+operator's [Perses service requirements](../../docs/dashboard-operator.md#perses-service-requirements).
+
+## Browser Path Rollout
+
+Deploy the `/maas-portal` HTTPRoute together with a Core-BFF image containing a portal frontend built for `/maas-portal/`. Build the image from this revision using `distributions/core-bff/Dockerfile.workspace`; the bundle is served from `/static/maas-portal` through the `maas-portal` Service. See the [production rollout requirements](../../docs/maas-portal.md#upgrade-migration-and-rollout).
+
+The no-slash URL `/maas-portal` redirects to `/maas-portal/`. Check the portal root, deep links, static assets, API requests, Kubernetes watches, Perses, and logout with the core dashboard both Managed and Removed.
+
+## Run MaaS Portal Locally with AUTH_TOKEN
+
+Run the MaaS portal and both BFFs locally using either setup below.
+
+### Federated with AUTH_TOKEN
+
+Log in to your deployed MaaS portal and copy the token from `/debug/headers`, without
+the `Bearer ` prefix. Provide your MaaS gateway hostname without `https://` or a path.
+
+```bash
+cd distributions/maas-portal
+AUTH_TOKEN='<fresh-raw-jwt>' \
+GATEWAY_DOMAIN='<maas-gateway-hostname>' \
+make grid-start-federated
+```
+
+### Mock data
+
+No token or cluster is needed.
+
+```bash
+cd distributions/maas-portal
+make grid-start-mock
+```
+
+Open http://localhost:4020/maas-portal/ for either setup. Stop with `Ctrl+C` or
+`make grid-stop` before switching modes. View saved logs with `make grid-logs`.
+
+## Running locally
+
+### Mode A: Mock data (no cluster needed)
+
+**Terminal 1 — MAAS mock BFF (port 8081):**
+
+```bash
+cd packages/maas
+make dev-bff-federated-mock
+```
+
+**Terminal 2 — Gen-AI mock BFF (port 8080):**
+
+```bash
+cd packages/gen-ai/bff
+make run MOCK_K8S_CLIENT=true MOCK_LS_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true
+```
+
+Note: do NOT use `make dev-bff-mock` — it sets `AUTH_METHOD=disabled`, which skips identity extraction. The portal's proxy injects auth headers, so the BFF needs the default `AUTH_METHOD=user_token`.
+
+**Terminal 3 — Dev server (port 4020):**
+
+```bash
+cd distributions/maas-portal
+OC_PROJECT= ODH_APP= ODH_DASHBOARD_HOST= MOCK_USER=user@example.com MAAS_BFF_TARGET=http://localhost:8081 pnpm run dev
+```
+
+`MOCK_USER` sets the identity header the mock BFF expects (`kubeflow-userid`). Use `user@example.com` — that is the mock user’s identity with RBAC bindings in the maas mock client.
+
+For certificate-verified cluster proxying, set `ODH_DASHBOARD_CA_FILE` to the PEM file for the CA that issued the Dashboard certificate. By default, external-cluster mode follows the main frontend dev proxy and does not verify the cluster certificate.
+
+### Mode B: External-cluster development (no port-forwards)
+
+Serve the portal locally and proxy its API requests through the deployed portal's HTTPRoute. The proxy preserves `/maas-portal`, so this works when the core dashboard operand is removed. Log in with `oc` first, then run:
+
+```bash
+cd distributions/maas-portal
+OC_PROJECT=redhat-ods-applications pnpm run start:dev:ext
+```
+
+`EXT_CLUSTER=true` defaults the namespace to `opendatahub` when `OC_PROJECT` is omitted. Set `ODH_DASHBOARD_HOST` only if automatic Gateway/Route discovery does not find the portal host. Set `ODH_DASHBOARD_CA_FILE` to enable certificate verification with your cluster CA.
+
+For older clusters that serve APIs through the root dashboard route, use `DEV_LEGACY=true` and select the root operand with `ODH_APP=rhods-dashboard` (or `odh-dashboard` for ODH). This explicitly strips the portal prefix and requires the core dashboard operand.
+
+### Mode C: Real cluster data via port-forwards
+
+**Terminals 1–3 — Port-forward the MaaS, GenAI, and Core BFF services:**
+
+Log in once, then choose the dashboard namespace and service name for your distribution. Set these variables in each of the three port-forward terminals:
+
+```bash
+# RHOAI
+export NS=redhat-ods-applications APP=rhods-dashboard
+# ODH
+# export NS=opendatahub APP=odh-dashboard
+```
+
+Run each command in its own terminal. MaaS and GenAI run as separate services; Core BFF is exposed by the dashboard service.
+
+```bash
+# Forward the MaaS BFF running in the cluster
+oc port-forward -n "$NS" svc/odh-dashboard-maas-ui 8243:8243
+```
+
+```bash
+# Forward the GenAI BFF running in the cluster
+oc port-forward -n "$NS" svc/odh-dashboard-gen-ai-ui 8143:8143
+```
+
+```bash
+# Forward the Core BFF running in the cluster
+oc port-forward -n "$NS" svc/"$APP" 8943:8943
+```
+
+**Terminal 4 — Dev server (port 4020):**
+
+```bash
+cd distributions/maas-portal
+MAAS_BFF_TARGET=https://localhost:8243 \
+GENAI_BFF_TARGET=https://localhost:8143 \
+CORE_BFF_TARGET=https://localhost:8943 \
+pnpm run dev
+```
+
+All three BFF targets use `https://` because on-cluster BFFs serve over TLS. The Core BFF target is used for the operator subscription status request.
+
+For a portal-only deployment, forward `svc/maas-portal 8943:8443` instead of `svc/"$APP" 8943:8943`. Keep `CORE_BFF_TARGET=https://localhost:8943`; Kubernetes API requests and watches will use the portal's Core BFF.
+
+#### Optional: Run the Core BFF locally
+
+Instead of forwarding the cluster's Core BFF service, you can run the Core BFF from this checkout. Log in to the cluster first so your local kubeconfig and the portal's `oc` token are available. In a separate terminal, start the real-cluster federated BFF:
+
+```bash
+cd distributions/core-bff
+make dev-bff-federated
+```
+
+This runs the Core BFF on `http://localhost:8082` with user-token authentication and a real Kubernetes client. In the portal's dev-server command, set `CORE_BFF_TARGET=http://localhost:8082` and skip the `oc port-forward svc/"$APP" 8943:8943` command. The portal dev proxy obtains the token from the active `oc` login and forwards it to the local BFF. The Core BFF handles Kubernetes API proxy requests, including SSARs, and the operator subscription status request. MaaS, GenAI, and Perses use their own targets.
+
+For isolated local testing without a cluster, `cd distributions/core-bff && make dev-bff` starts a mock Core BFF on port `4000` with authentication disabled. Use `CORE_BFF_TARGET=http://localhost:4000` for that mode; it does not return live cluster data.
+
+#### Optional: Connect to the cluster observability dashboards
+
+Observability is optional; the MaaS and GenAI portal works without Perses. To load dashboards and metrics from the connected cluster, first log in with `oc` as a user authorized to view the dashboards and metrics, then forward the cluster's Perses service in an additional terminal:
+
+```bash
+oc -n redhat-ods-monitoring port-forward svc/data-science-perses 9005:8080
+```
+
+Keep the tunnel running. For the local Core BFF setup above, add `PERSES_TARGET` to the dev-server command. If you are forwarding the cluster Core BFF instead, use `CORE_BFF_TARGET=https://localhost:8943`.
+
+```bash
+cd distributions/maas-portal
+MAAS_BFF_TARGET=https://localhost:8243 \
+GENAI_BFF_TARGET=https://localhost:8143 \
+CORE_BFF_TARGET=http://localhost:8082 \
+PERSES_TARGET=http://127.0.0.1:9005 \
+pnpm run dev
+```
+
+The local Rspack dev proxy sends portal Perses API requests directly to `PERSES_TARGET`; the Core BFF target does not provide Perses. If you run the BFFs locally instead of port-forwarding them, point their respective target variables at the local endpoints. Without `PERSES_TARGET` and a reachable Perses service, MaaS and GenAI remain usable, but the observability dashboard cannot load. This setup uses cluster Perses and its configured Prometheus/Thanos datasources; it does not require a local Perses or Prometheus container.
+
+## Key files
+
+| File | Purpose |
+|------|---------|
+| `distribution.yaml` | Feature flags, bundled packages, extension paths |
+| `src/bootstrap.tsx` | App entry — mounts providers via `createDistribution` |
+| `src/extensions.ts` | Distribution nav (`app.suppress` / `app.patch`), redirects, user dropdown |
+| `src/PortalContextProvider.tsx` | Composes the standalone MaaS BFF and portal authorization providers |
+| `src/MaaSAuthzProvider.tsx` | Publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility |
+| `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
+| `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package |
+
+## Grid migration flag
+
+The temporary `grid` feature flag controls all Grid-aware MaaS Consumer Portal behavior in the
+`@odh-dashboard/maas` and `@odh-dashboard/gen-ai` packages. It defaults to `false`, preserving the
+existing Kubernetes-backed behavior while the MaaS Gateway API integration is developed.
+
+For local testing, enable it on the portal URL:
+
+```text
+http://localhost:4020/maas-portal/?devFeatureFlags=grid=true
+```
+
+The value is persisted in session storage and is sent to the existing dashboard configuration
+endpoint as a feature-flag override. Use `?devFeatureFlags=grid=false` to disable it again. The
+flag and the legacy Kubernetes paths are temporary and should be removed after the migration is
+complete.

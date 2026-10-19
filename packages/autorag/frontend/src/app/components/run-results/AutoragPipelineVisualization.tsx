@@ -10,9 +10,13 @@ import {
   Title,
 } from '@patternfly/react-core';
 import React from 'react';
+import AutoragIcon from '~/app/images/icons/AutoragIcon';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
-import { canShowPatternsExpandToggle } from '~/app/topology/tree-view/branchExpand';
+import {
+  canShowPatternsExpandToggle,
+  countPatternBranches,
+} from '~/app/topology/tree-view/branchExpand';
 import { PatternsExpandProvider } from '~/app/topology/tree-view/PatternsExpandContext';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import {
@@ -67,6 +71,10 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
     () => canShowPatternsExpandToggle(treeViewData.stageMapNodes),
     [treeViewData.stageMapNodes],
   );
+  const patternCount = React.useMemo(
+    () => countPatternBranches(treeViewData.stageMapNodes),
+    [treeViewData.stageMapNodes],
+  );
 
   const winnerResolved = statusFilter === 'completed' && !!treeViewData.selectedPattern;
 
@@ -85,9 +93,10 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
     () => ({
       patternsExpanded,
       showToggle: showPatternsToggle,
+      patternCount,
       onToggle: () => setPatternsExpanded((prev) => !prev),
     }),
-    [patternsExpanded, showPatternsToggle],
+    [patternsExpanded, showPatternsToggle, patternCount],
   );
 
   const showTreeLoadingState = treeLoadingMode != null;
@@ -137,7 +146,15 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
       >
         <FlexItem>
-          <Flex>
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <div
+                className="autorag-pipeline-visualization__header-icon"
+                data-testid="run-title-icon"
+              >
+                <AutoragIcon />
+              </div>
+            </FlexItem>
             <FlexItem>
               <Title headingLevel="h3" size="lg">
                 {runTitle}
@@ -177,7 +194,6 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
           <DrawerContent
             panelContent={
               <DrawerPanelContent
-                isResizable
                 minSize="320px"
                 defaultSize="320px"
                 className="autorag-pipeline-visualization__drawer-panel"

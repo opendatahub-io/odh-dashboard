@@ -3,6 +3,10 @@
  */
 import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
+const connectionId = '550e8400-e29b-41d4-a716-446655440001';
+const unknownResourceId = '550e8400-e29b-41d4-a716-446655440099';
+const postgresqlConnectionTypeId = '550e8400-e29b-41d4-a716-446655440003';
+
 describe('Data Connect Hub BFF Contract Tests', () => {
   const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
   const apiClient = new ContractApiClient({
@@ -52,6 +56,64 @@ describe('Data Connect Hub BFF Contract Tests', () => {
         status: 200,
       });
     });
+
+    it('should create a connection for a project', async () => {
+      const result = await apiClient.post('/api/v1/connections?namespace=default', {
+        name: 'warehouse',
+        // eslint-disable-next-line camelcase
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials: {
+          secret: 'warehouse',
+          properties: { URI: 'postgres://example' },
+        },
+        properties: {},
+      });
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionResponse/content/application~1json/schema',
+        status: 201,
+      });
+    });
+  });
+
+  describe('Connection Endpoint', () => {
+    it('should retrieve a connection for a project', async () => {
+      const result = await apiClient.get(`/api/v1/connections/${connectionId}?namespace=default`);
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return not found for an unknown connection', async () => {
+      const result = await apiClient.get(
+        `/api/v1/connections/${unknownResourceId}?namespace=default`,
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          bffSchema,
+          {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          },
+        );
+      }
+    });
+  });
+
+  describe('Test Credentials Endpoint', () => {
+    it('should verify credentials for a connection type', async () => {
+      const result = await apiClient.post('/api/v1/test/credentials?namespace=default', {
+        // eslint-disable-next-line camelcase
+        data_connection_type_id: postgresqlConnectionTypeId,
+        credentials: { URI: 'postgres://example' },
+      });
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/schemas/NoContent',
+        status: 204,
+      });
+    });
   });
 
   describe('Connection Types Endpoint', () => {
@@ -61,20 +123,40 @@ describe('Data Connect Hub BFF Contract Tests', () => {
         ref: '#/components/responses/ConnectionTypesResponse/content/application~1json/schema',
         status: 200,
       });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.data).toHaveProperty('data.0.resource.tags', [
+          'domain: database',
+          'engine: postgresql',
+          'access: sql',
+        ]);
+      }
     });
   });
 
   describe('Connection Type Endpoint', () => {
     it('should retrieve a connection type for a project', async () => {
-      const result = await apiClient.get('/api/v1/connection-types/postgresql?namespace=default');
+      const result = await apiClient.get(
+        `/api/v1/connection-types/${postgresqlConnectionTypeId}?namespace=default`,
+      );
       expect(result).toMatchContract(bffSchema, {
         ref: '#/components/responses/ConnectionTypeResponse/content/application~1json/schema',
         status: 200,
       });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.data).toHaveProperty('data.resource.tags', [
+          'domain: database',
+          'engine: postgresql',
+          'access: sql',
+        ]);
+      }
     });
 
     it('should return not found for an unknown connection type', async () => {
-      const result = await apiClient.get('/api/v1/connection-types/unknown?namespace=default');
+      const result = await apiClient.get(
+        `/api/v1/connection-types/${unknownResourceId}?namespace=default`,
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect({ status: result.error.status, data: result.error.data }).toMatchContract(
@@ -88,7 +170,7 @@ describe('Data Connect Hub BFF Contract Tests', () => {
     });
 
     it('should return bad request when namespace is missing', async () => {
-      const result = await apiClient.get('/api/v1/connection-types/postgresql');
+      const result = await apiClient.get(`/api/v1/connection-types/${postgresqlConnectionTypeId}`);
       expect(result.success).toBe(false);
       if (!result.success) {
         expect({ status: result.error.status, data: result.error.data }).toMatchContract(
@@ -105,7 +187,7 @@ describe('Data Connect Hub BFF Contract Tests', () => {
   describe('Connection Readiness Endpoint', () => {
     it('should verify a connection', async () => {
       const result = await apiClient.post(
-        '/api/v1/connections/connection-1/readiness?namespace=default',
+        `/api/v1/connections/${connectionId}/readiness?namespace=default`,
         {},
       );
       expect(result).toMatchContract(bffSchema, {
@@ -117,7 +199,9 @@ describe('Data Connect Hub BFF Contract Tests', () => {
 
   describe('Delete Connection Endpoint', () => {
     it('should delete a connection', async () => {
-      const result = await apiClient.delete('/api/v1/connections/connection-1?namespace=default');
+      const result = await apiClient.delete(
+        `/api/v1/connections/${connectionId}?namespace=default`,
+      );
       expect(result).toMatchContract(bffSchema, {
         ref: '#/components/schemas/NoContent',
         status: 204,

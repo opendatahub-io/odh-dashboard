@@ -141,7 +141,7 @@ const InfrastructurePage: React.FC = () => {
   const adminTabsEnabled = adminAccessLoaded && canAccessAdminTabs;
   const metrics = useInfrastructureMetrics(adminTabsEnabled);
   const { refresh: refreshMetrics } = metrics;
-  const quotaHierarchy = useQuotaHierarchy(undefined, adminTabsEnabled);
+  const quotaHierarchy = useQuotaHierarchy(canAccessAdminTabs, adminAccessLoaded);
   const { refresh: refreshQuotaHierarchy } = quotaHierarchy;
   const borrowingLendingRefreshRef = React.useRef<(() => void) | undefined>(undefined);
   const quotaWorkloadRefreshRef = React.useRef<(() => Promise<unknown>) | undefined>(undefined);
@@ -393,7 +393,12 @@ const InfrastructurePage: React.FC = () => {
 
   const renderTabPanel = (tabId: InfrastructureTabId): React.ReactNode => {
     if (tabId === 'workloads') {
-      return <InfrastructureWorkloadsSection />;
+      return (
+        <InfrastructureWorkloadsSection
+          kueueAvailable={isKueueAvailable}
+          canAccessAdminMetrics={canAccessAdminTabs}
+        />
+      );
     }
     const tabInfo = INFRASTRUCTURE_TABS.find((entry) => entry.id === tabId);
     if (tabInfo?.layout === 'viewport') {
@@ -472,7 +477,9 @@ const InfrastructurePage: React.FC = () => {
             className={
               tabInfo.layout === 'viewport'
                 ? 'pf-v6-u-px-lg gpuaas-infrastructure-tab--viewport'
-                : 'pf-v6-u-px-lg'
+                : tabInfo.id === 'workloads'
+                ? 'pf-v6-u-px-lg gpuaas-infrastructure-tab--workloads'
+                : 'pf-v6-u-px-lg gpuaas-infrastructure-tab--page'
             }
             key={tabInfo.id}
             id={getTabPanelId(tabInfo.id)}

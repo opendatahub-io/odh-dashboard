@@ -18,6 +18,9 @@ import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
+  evaluationBenchmarkSuitesNavigationState,
+  evaluationEditSuiteRoute,
+  evaluationEvaluateRoute,
   evaluationsBaseRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
@@ -27,11 +30,18 @@ const BenchmarkSuitesPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
-  const { selectedCollection, benchmarkDetailsMap, selectCollection, closeDrawer } =
-    useCollectionDrawer(namespace ?? '');
+  const {
+    selectedCollection,
+    benchmarkDetailsMap,
+    benchmarkNameMap,
+    selectCollection,
+    closeDrawer,
+  } = useCollectionDrawer(namespace ?? '');
 
   const handleCreateSuite = React.useCallback(() => {
-    navigate(evaluationCreateSuiteRoute(namespace));
+    navigate(evaluationCreateSuiteRoute(namespace), {
+      state: evaluationBenchmarkSuitesNavigationState,
+    });
   }, [navigate, namespace]);
 
   const handleRunCollection = React.useCallback((collection: Collection) => {
@@ -40,7 +50,18 @@ const BenchmarkSuitesPage: React.FC = () => {
 
   const handleDuplicateCollection = React.useCallback(
     (collection: Collection) => {
-      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id));
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
+        state: evaluationBenchmarkSuitesNavigationState,
+      });
+    },
+    [navigate, namespace],
+  );
+
+  const handleEditCollection = React.useCallback(
+    (collection: Collection) => {
+      navigate(evaluationEditSuiteRoute(namespace, collection.resource.id), {
+        state: evaluationBenchmarkSuitesNavigationState,
+      });
     },
     [navigate, namespace],
   );
@@ -60,21 +81,21 @@ const BenchmarkSuitesPage: React.FC = () => {
               benchmarkDetailsMap={benchmarkDetailsMap}
               onClose={closeDrawer}
               onRunCollection={handleRunCollection}
-              primaryActionLabel="Run benchmark suite"
+              primaryActionLabel="Run"
             />
           }
         >
           <DrawerContentBody>
             <ApplicationsPage
-              title="My benchmark suites"
-              description="View, run, and manage all benchmark suites you have created or saved."
+              title="My benchmark collections"
+              description="View, run, and manage all benchmark collections you have created or saved."
               headerAction={
                 <Button
                   variant="primary"
                   onClick={handleCreateSuite}
                   data-testid="create-benchmark-suite-button"
                 >
-                  Create benchmark suite
+                  Create collection
                 </Button>
               }
               breadcrumb={
@@ -82,7 +103,12 @@ const BenchmarkSuitesPage: React.FC = () => {
                   <BreadcrumbItem
                     render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
                   />
-                  <BreadcrumbItem isActive>My benchmark suites</BreadcrumbItem>
+                  <BreadcrumbItem
+                    render={() => (
+                      <Link to={evaluationEvaluateRoute(namespace)}>Benchmark collections</Link>
+                    )}
+                  />
+                  <BreadcrumbItem isActive>My benchmark collections</BreadcrumbItem>
                 </Breadcrumb>
               }
               loaded
@@ -92,11 +118,13 @@ const BenchmarkSuitesPage: React.FC = () => {
                 <Stack className="evalhub-benchmark-suites-page__content">
                   <BenchmarkSuitesGallery
                     namespace={namespace ?? ''}
+                    benchmarkNameMap={benchmarkNameMap}
                     showCreateSuiteCard={false}
                     showFilters
                     showPagination
                     onCreateSuite={handleCreateSuite}
                     onPrimaryAction={handleRunCollection}
+                    onEditCollection={handleEditCollection}
                     onDuplicateCollection={handleDuplicateCollection}
                     onSelectCollection={selectCollection}
                   />

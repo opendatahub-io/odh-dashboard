@@ -26,6 +26,10 @@ export const huggingFaceApiKeyFieldSchema = z.object({
 export const isHuggingFaceApiKeyConfigured = (data?: HuggingFaceApiKeyFieldData): boolean =>
   Boolean(data?.configuredSecretName);
 
+/** True when deploy should attach HF Secret/SA ownerRefs (new token or existing configured secret). */
+export const shouldAttachHfTokenOwnerRefs = (data?: HuggingFaceApiKeyFieldData): boolean =>
+  Boolean(data?.token.trim()) || isHuggingFaceApiKeyConfigured(data);
+
 export const requiredHuggingFaceApiKeySchema = huggingFaceApiKeyFieldSchema.superRefine(
   (data, ctx) => {
     if (isHuggingFaceApiKeyConfigured(data)) {

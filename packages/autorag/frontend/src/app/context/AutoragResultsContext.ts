@@ -12,7 +12,7 @@ export type AutoragResultsContextProps = {
   patternsLoading?: boolean;
   patternsError?: boolean;
   patternsLoadError?: Error;
-  onRetryPatterns?: () => void;
+  onRetryPatterns?: () => Promise<void>;
   parameters?: AutoragRuntimeParameters;
   ragPatternsBasePath?: string;
   ogxCredentials?: LegacyRunCredentials;
@@ -60,7 +60,7 @@ export function getAutoragContext({
   patternsLoading?: boolean;
   patternsError?: boolean;
   patternsLoadError?: Error;
-  onRetryPatterns?: () => void;
+  onRetryPatterns?: () => Promise<void>;
   ragPatternsBasePath?: string;
   ogxCredentials?: LegacyRunCredentials;
   componentStageMap?: ComponentStageMap;

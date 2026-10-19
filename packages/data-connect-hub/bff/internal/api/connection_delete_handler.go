@@ -10,8 +10,6 @@ import (
 	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
 )
 
-const ConnectionDeletePath = ApiPathPrefix + "/connections/:id"
-
 func (app *App) DeleteConnectionHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
 	if err := validateNamespace(namespace); err != nil {
@@ -24,6 +22,10 @@ func (app *App) DeleteConnectionHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	if !app.authorizeNamespace(w, r, namespace, identity, "delete", "data-connections") {
+		return
+	}
+	if err := validateID("path parameter", "id", params.ByName("id")); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 

@@ -8,9 +8,10 @@ import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { projectDetails } from '../../../../pages/projects';
 import { ProjectModel } from '../../../../utils/models';
 import { connectionsPage, addConnectionModal } from '../../../../pages/connections';
+import { captureTracking, expectSafeTracking } from '../../../../utils/analytics';
 
 const testConnectionType = mockConnectionTypeConfigMap({
-  name: 'test-type',
+  name: 'uri-test-type',
   displayName: 'Test Connection Type',
   fields: [
     {
@@ -39,7 +40,6 @@ const initIntercepts = () => {
     'GET /api/config',
     mockDashboardConfig({
       disableConnectionTypes: false,
-      connectionTest: true,
     }),
   );
   cy.interceptOdh('GET /api/connection-types', [testConnectionType]);
@@ -81,6 +81,32 @@ describe('Test Connection - Modal', () => {
     addConnectionModal.findTestConnectionButton().should('be.disabled');
   });
 
+  it('should disable Test connection button for a connection type that cannot be verified', () => {
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        name: 'postgres',
+        displayName: 'PostgreSQL',
+        fields: [
+          {
+            name: 'Host',
+            type: ConnectionTypeFieldType.ShortText,
+            envVar: 'HOST',
+            required: false,
+            properties: {},
+          },
+        ],
+      }),
+    ]);
+
+    projectDetails.visitSection('test-project', 'connections');
+    connectionsPage.findCreateConnectionButton().click();
+    addConnectionModal.findTestConnectionButton().should('have.attr', 'aria-disabled', 'true');
+    addConnectionModal.findTestConnectionButton().trigger('mouseenter');
+    addConnectionModal
+      .findTestConnectionUnsupportedTooltip()
+      .should('contain.text', 'Verification is not available for this connection type.');
+  });
+
   it('should show success alert and Verified label after successful test', () => {
     cy.intercept('POST', '/core-bff/api/v1/connections/test', {
       body: { data: { success: true, message: 'Connection is reachable' } },
@@ -100,9 +126,10 @@ describe('Test Connection - Modal', () => {
   });
 
   it('should show failure alert and Failed label after failed test', () => {
+    const message = 'Unable to connect to private-host-95482';
     cy.intercept('POST', '/core-bff/api/v1/connections/test', {
       body: {
-        data: { success: false, error: 'CONNECTION_FAILED', message: 'Unable to connect to host' },
+        data: { success: false, error: 'CONNECTION_FAILED', message },
       },
     }).as('testConnection');
 
@@ -112,11 +139,17 @@ describe('Test Connection - Modal', () => {
     addConnectionModal.find().findByTestId('field HOST').fill('badhost');
     addConnectionModal.find().findByTestId('field API_KEY').fill('secret-key');
 
+    captureTracking();
     addConnectionModal.findTestConnectionButton().click();
     cy.wait('@testConnection');
 
-    addConnectionModal.findTestFailureAlert().should('exist');
+    addConnectionModal.findTestFailureAlert().should('contain.text', message);
     addConnectionModal.findTestStatusFailed().should('exist');
+    expectSafeTracking(
+      'Connection Test Completed',
+      { success: false, errorType: 'unknown' },
+      message,
+    );
   });
 
   it('should reset status to Not tested when a credential field changes', () => {
@@ -192,6 +225,31 @@ describe('Test Connection - Table', () => {
     projectDetails.visitSection('test-project', 'connections');
     connectionsPage.getConnectionRow('Connection 1').findKebab().click();
     cy.findByTestId('test-connection-action').should('exist');
+  });
+
+  it('should disable Verify in the kebab menu for a connection type that cannot be verified', () => {
+    initIntercepts();
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockSecretK8sResource({
+          name: 'conn-1',
+          displayName: 'Connection 1',
+          connectionType: 'postgres',
+        }),
+        mockSecretK8sResource({ name: 'conn-2', displayName: 'Connection 2' }),
+      ]),
+    );
+
+    projectDetails.visitSection('test-project', 'connections');
+    connectionsPage
+      .getConnectionRow('Connection 2')
+      .findKebabAction('Verify')
+      .should('not.have.attr', 'aria-disabled');
+    connectionsPage
+      .getConnectionRow('Connection 1')
+      .findKebabAction('Verify')
+      .should('have.attr', 'aria-disabled', 'true');
   });
 
   it('should have connection name as a clickable link', () => {

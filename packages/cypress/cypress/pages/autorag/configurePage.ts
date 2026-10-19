@@ -1,3 +1,5 @@
+import { getExactDatabaseOptionRegex } from '../../utils/autoragDatabaseOptionRegex';
+
 export const normalizeVisibleOptionLabel = (label: string): string =>
   label.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 
@@ -5,6 +7,20 @@ export const getExactVisibleOptionRegex = (label: string): RegExp => {
   const normalizedLabel = normalizeVisibleOptionLabel(label);
   const escapedLabel = normalizedLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`^${escapedLabel.replace(/ /g, '\\s+')}$`, 'i');
+};
+
+const getMetricOptionTestId = (value: string): string => {
+  const separator = value.indexOf(':');
+  const evaluator = separator === -1 ? undefined : value.slice(0, separator);
+  const name = separator === -1 ? value : value.slice(separator + 1);
+  const identity = [name.trim().toLowerCase(), evaluator?.trim().toLowerCase()]
+    .filter(Boolean)
+    .join('-')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return `metric-option-${identity || 'metric'}`;
 };
 
 class AutoragConfigurePage {
@@ -16,6 +32,14 @@ class AutoragConfigurePage {
   private wait() {
     cy.findByTestId('app-page-title');
     cy.testA11y();
+  }
+
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findPageBody() {
+    return cy.get('body');
   }
 
   // Step 1 - Create
@@ -153,21 +177,25 @@ class AutoragConfigurePage {
     return cy.findByTestId('experiment-settings-save');
   }
 
-  // Step 2 - Vector database secret
-  findVectorStoreSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
-    return cy.findByTestId('vector-db-secret-selector', options);
+  // Step 2 - Database connection
+  findDatabaseSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy.findByTestId('database-secret-selector', options);
   }
 
-  findAddVectorDbConnectionButton() {
-    return cy.findByTestId('add-vector-db-connection-button');
+  findAddDatabaseConnectionButton() {
+    return cy.findByTestId('add-database-connection-button');
   }
 
-  findAddVectorDbDropdownToggle() {
-    return cy.findByTestId('add-vector-db-dropdown-toggle');
+  findAddDatabaseDropdownToggle() {
+    return cy.findByTestId('add-database-dropdown-toggle');
   }
 
   findAddPgvectorConnectionOption() {
     return cy.findByTestId('add-pgvector-connection-option');
+  }
+
+  findAddNeo4jConnectionOption() {
+    return cy.findByTestId('add-neo4j-connection-option');
   }
 
   findPgvectorConnectionNameInput() {
@@ -188,7 +216,7 @@ class AutoragConfigurePage {
   }
 
   findMetricOption(value: string) {
-    return cy.findByTestId(`metric-option-${value}`);
+    return cy.findByTestId(getMetricOptionTestId(value));
   }
 
   findMaxRagPatternsInput() {
@@ -214,6 +242,13 @@ class AutoragConfigurePage {
 
   findSelectOption(name: string) {
     return cy.findByRole('option', { name: getExactVisibleOptionRegex(name) });
+  }
+
+  findDatabaseOption(name: string) {
+    return cy
+      .findAllByRole('option', { name: getExactDatabaseOptionRegex(name) })
+      .filter(':not([aria-disabled="true"])')
+      .should('have.length', 1);
   }
 
   // Evaluation dataset — PF FileUpload renders input with id from field.name

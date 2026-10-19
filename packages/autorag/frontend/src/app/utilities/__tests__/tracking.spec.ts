@@ -29,10 +29,12 @@ import {
   fireAutoragRunStopped,
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
+  fireAutoragStarterKitDownloaded,
   fireAutoragVectorStoreConfigured,
-  getVectorStoreProviderTypeFromSecretData,
+  getVectorStoreProviderTypeFromDatabaseProviders,
   isAutoragResultsNavigationState,
   mapOptimizationMetric,
+  mapOptimizationMetricEvaluator,
   toVectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
@@ -272,35 +274,35 @@ describe('toVectorStoreProviderType', () => {
   });
 });
 
-describe('getVectorStoreProviderTypeFromSecretData', () => {
-  it('should infer Milvus from redacted key metadata', () => {
-    expect(getVectorStoreProviderTypeFromSecretData({ MILVUS_URI: '[REDACTED]' })).toBe('milvus');
+describe('getVectorStoreProviderTypeFromDatabaseProviders', () => {
+  it('should map authoritative Milvus metadata', () => {
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['milvus'])).toBe('milvus');
   });
 
   it('should infer PGVector from its complete redacted key metadata', () => {
-    expect(
-      getVectorStoreProviderTypeFromSecretData({
-        PGVECTOR_HOST: '[REDACTED]',
-        PGVECTOR_PORT: '[REDACTED]',
-        PGVECTOR_DB: '[REDACTED]',
-        PGVECTOR_USER: '[REDACTED]',
-        PGVECTOR_PASSWORD: '[REDACTED]',
-      }),
-    ).toBe('pgvector');
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['pgvector'])).toBe('pgvector');
   });
 
   it('should omit provider type for ambiguous or incomplete metadata', () => {
-    expect(
-      getVectorStoreProviderTypeFromSecretData({
-        MILVUS_URI: '[REDACTED]',
-        PGVECTOR_HOST: '[REDACTED]',
-        PGVECTOR_PORT: '[REDACTED]',
-        PGVECTOR_DB: '[REDACTED]',
-        PGVECTOR_USER: '[REDACTED]',
-        PGVECTOR_PASSWORD: '[REDACTED]',
-      }),
-    ).toBeUndefined();
-    expect(getVectorStoreProviderTypeFromSecretData({})).toBeUndefined();
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['milvus', 'pgvector'])).toBeUndefined();
+    expect(getVectorStoreProviderTypeFromDatabaseProviders([])).toBeUndefined();
+  });
+
+  it('should omit provider type when Neo4j credentials are mixed with vector credentials', () => {
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['milvus', 'neo4j'])).toBeUndefined();
+  });
+
+  it('should reject Neo4j URI-only and legacy Milvus metadata', () => {
+    expect(getVectorStoreProviderTypeFromDatabaseProviders([])).toBeUndefined();
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(undefined)).toBeUndefined();
+  });
+
+  it('should infer Neo4j from complete metadata mixed with the legacy Milvus key', () => {
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['neo4j'])).toBe('neo4j');
+  });
+
+  it('should infer PGVector from complete metadata mixed with the legacy Milvus key', () => {
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['pgvector'])).toBe('pgvector');
   });
 });
 
@@ -327,16 +329,30 @@ describe('fireAutoragVectorStoreConfigured', () => {
 });
 
 describe('mapOptimizationMetric', () => {
-  it('should map all four schema values to their camelCase taxonomy', () => {
-    expect(mapOptimizationMetric('overall_score')).toBe('overallScore');
-    expect(mapOptimizationMetric('faithfulness')).toBe('answerFaithfulness');
-    expect(mapOptimizationMetric('answer_correctness')).toBe('answerCorrectness');
-    expect(mapOptimizationMetric('context_correctness')).toBe('contextCorrectness');
+  it('should map qualified schema values to their camelCase taxonomy', () => {
+    expect(mapOptimizationMetric('custom:overall_score')).toBe('overallScore');
+    expect(mapOptimizationMetric('unitxt:faithfulness')).toBe('answerFaithfulness');
+    expect(mapOptimizationMetric('unitxt:answer_correctness')).toBe('answerCorrectness');
+    expect(mapOptimizationMetric('ragas:context_precision')).toBe('contextPrecision');
   });
 
   it('should return undefined for an unrecognized metric', () => {
     expect(mapOptimizationMetric('answer_relevance')).toBeUndefined();
     expect(mapOptimizationMetric('')).toBeUndefined();
+  });
+});
+
+describe('mapOptimizationMetricEvaluator', () => {
+  it('should distinguish Unitxt and RAGAS faithfulness evaluators', () => {
+    expect(mapOptimizationMetricEvaluator('unitxt:faithfulness')).toBe('unitxt');
+    expect(mapOptimizationMetricEvaluator('ragas:faithfulness')).toBe('ragas');
+  });
+
+  it('should map custom overall score and reject unqualified metrics', () => {
+    expect(mapOptimizationMetricEvaluator('custom:overall_score')).toBe('custom');
+    expect(mapOptimizationMetricEvaluator('faithfulness')).toBeUndefined();
+    expect(mapOptimizationMetricEvaluator('custom:unsupported')).toBeUndefined();
+    expect(mapOptimizationMetricEvaluator('')).toBeUndefined();
   });
 });
 
@@ -346,6 +362,7 @@ describe('fireAutoragRunTriggered', () => {
       knowledgeSourceType: 's3',
       evaluationSourceType: 'upload',
       optimizationMetric: 'overallScore',
+      optimizationMetricEvaluator: 'custom',
       vectorDatabase: 'milvus',
       countOfModels: 3,
       countOfKnowledgeDocuments: 1,
@@ -361,6 +378,7 @@ describe('fireAutoragRunTriggered', () => {
       knowledgeSourceType: 's3',
       evaluationSourceType: 'upload',
       optimizationMetric: 'overallScore',
+      optimizationMetricEvaluator: 'custom',
       vectorDatabase: 'milvus',
       countOfModels: 3,
       countOfKnowledgeDocuments: 1,
@@ -770,6 +788,16 @@ describe('fireAutoragNotebookDownloaded', () => {
       });
     },
   );
+});
+
+describe('fireAutoragStarterKitDownloaded', () => {
+  it('should fire AutoRAG Starter Kit Downloaded with the starter kit type', () => {
+    fireAutoragStarterKitDownloaded();
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, {
+      downloadType: 'starterKit',
+    });
+  });
 });
 
 describe('fireAutoragResultsColumnToggled', () => {

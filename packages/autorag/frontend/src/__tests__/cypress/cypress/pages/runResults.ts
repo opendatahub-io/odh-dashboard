@@ -3,6 +3,15 @@ class AutoragRunResultsPage {
     cy.visit(`/gen-ai-studio/autorag/results/${namespace}/${runId}`);
   }
 
+  // Breadcrumb
+  findResultsBreadcrumbRunName() {
+    return cy.findByTestId('results-breadcrumb-run-name');
+  }
+
+  findRunDetailsButton() {
+    return cy.findByTestId('run-details-button');
+  }
+
   findLeaderboardTable() {
     return cy.findByTestId('leaderboard-table');
   }
@@ -52,8 +61,8 @@ class AutoragRunResultsPage {
     });
   }
 
-  findMetricDescriptionTooltip() {
-    return cy.findByRole('tooltip');
+  findMetricDescriptionPopover() {
+    return cy.findByRole('dialog');
   }
 
   findPatternLink(rank: number) {
@@ -72,7 +81,8 @@ class AutoragRunResultsPage {
     return cy.findByTestId('ci-scores-info');
   }
 
-  findCIMetricHelp(metricKey: string) {
+  findCIMetricHelp(metricName: string, evaluator?: string) {
+    const metricKey = evaluator ? `${metricName}-${evaluator}` : metricName;
     return cy.findByTestId(`ci-metric-help-${metricKey}`);
   }
 

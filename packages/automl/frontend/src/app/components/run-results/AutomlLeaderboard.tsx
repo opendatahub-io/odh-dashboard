@@ -10,11 +10,10 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
   Label,
   Skeleton,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
@@ -32,9 +31,18 @@ import {
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
-import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
+import { RunInProgress } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ManageColumnsModal } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import emptyStateImage from '~/app/bgimages/empty-state.svg';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import {
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+  TASK_TYPE_REGRESSION,
+  TASK_TYPE_TIMESERIES,
+} from '~/app/utilities/const';
+import { automlExperimentsPathname } from '~/app/utilities/routes';
 import {
   formatMetricName,
   formatMetricValue,
@@ -43,8 +51,34 @@ import {
   resolveEvalMetric,
 } from '~/app/utilities/utils';
 import { fireAutomlLeaderboardSorted, type ModelActionSource } from '~/app/utilities/tracking';
-import ManageColumnsModal from './ManageColumnsModal';
 import './AutomlLeaderboard.scss';
+
+const RunInProgressIcon = () => <img src={emptyStateImage} alt="Run in progress" />;
+
+const DEFAULT_VISIBLE_METRIC_KEYS_BY_TASK_TYPE: Record<string, readonly string[]> = {
+  [TASK_TYPE_BINARY]: ['accuracy', 'precision', 'recall', 'f1'],
+  [TASK_TYPE_MULTICLASS]: [
+    'accuracy',
+    'balanced_accuracy',
+    'mcc',
+    'f1_macro',
+    'precision_macro',
+    'recall_macro',
+  ],
+  [TASK_TYPE_REGRESSION]: [
+    'r2',
+    'root_mean_squared_error',
+    'mean_absolute_error',
+    'median_absolute_error',
+  ],
+  [TASK_TYPE_TIMESERIES]: [
+    'mean_absolute_scaled_error',
+    'mean_absolute_error',
+    'root_mean_squared_error',
+    'weighted_quantile_loss',
+  ],
+};
+const EMPTY_METRIC_KEYS: readonly string[] = [];
 
 type LeaderboardEntry = {
   rank: number;
@@ -463,16 +497,29 @@ function AutomlLeaderboard({
     [nonOptimizedMetricKeys, optimizedMetric],
   );
 
-  // Column visibility and ordering state — whitelist approach so new columns are hidden by default
+  // Column visibility and ordering state — default metrics depend on the run's task type.
+  const defaultMetricKeys = DEFAULT_VISIBLE_METRIC_KEYS_BY_TASK_TYPE[taskType] ?? EMPTY_METRIC_KEYS;
   const DEFAULT_VISIBLE_IDS = React.useMemo(
-    () => new Set(['rank', 'model', 'optimized-metric']),
-    [],
+    () =>
+      new Set([
+        'rank',
+        'model',
+        'optimized-metric',
+        ...defaultMetricKeys.map((key) => `metric:${key}`),
+      ]),
+    [defaultMetricKeys],
   );
   const [visibleColumnIds, setVisibleColumnIds] = React.useState<Set<string>>(
     () => new Set(DEFAULT_VISIBLE_IDS),
   );
   const [columnOrder, setColumnOrder] = React.useState<string[] | null>(null);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setVisibleColumnIds(new Set(DEFAULT_VISIBLE_IDS));
+    setColumnOrder(null);
+    setActiveSort({ id: 'rank', direction: 'asc' });
+  }, [DEFAULT_VISIBLE_IDS]);
 
   // Default columns in original order with default visibility — used by "Reset to default"
   const defaultColumns: ColumnManagementModalColumn[] = React.useMemo(
@@ -791,7 +838,14 @@ function AutomlLeaderboard({
     if (!namespace) {
       return null;
     }
-    return <AutomlRunInProgress namespace={namespace} />;
+    return (
+      <RunInProgress
+        productName="AutoML"
+        icon={RunInProgressIcon}
+        viewRunsRoute={`${automlExperimentsPathname}/${namespace}`}
+        data-testid="automl-run-in-progress"
+      />
+    );
   }
 
   // Show loading state with 5 rows and 8 columns
@@ -846,7 +900,10 @@ function AutomlLeaderboard({
           <EmptyStateBody>An error occurred while loading model results.</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="link" onClick={onRetryModels}>
+              <Button
+                variant="link"
+                onClick={() => void Promise.resolve(onRetryModels?.()).catch(() => undefined)}
+              >
                 Retry
               </Button>
             </EmptyStateActions>
@@ -925,26 +982,33 @@ function AutomlLeaderboard({
   return (
     <Card>
       <CardBody>
-        <Content component={ContentVariants.h3}>Results</Content>
-        <Toolbar hasNoPadding>
-          <ToolbarContent alignItems="center">
-            <ToolbarItem>
-              <Content component={ContentVariants.small} data-testid="columns-selected-count">
-                {visibleColumns.length}/{columnDefs.length} columns selected
-              </Content>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button
-                variant="link"
-                icon={<ColumnsIcon />}
-                onClick={() => setIsManageColumnsOpen(true)}
-                data-testid="manage-columns-button"
-              >
-                Manage columns
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        >
+          <FlexItem>
+            <Content component={ContentVariants.h3}>Results</Content>
+          </FlexItem>
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+              <FlexItem>
+                <Content component={ContentVariants.small} data-testid="columns-selected-count">
+                  {visibleColumns.length}/{columnDefs.length} columns selected
+                </Content>
+              </FlexItem>
+              <FlexItem>
+                <Button
+                  variant="link"
+                  icon={<ColumnsIcon />}
+                  onClick={() => setIsManageColumnsOpen(true)}
+                  data-testid="manage-columns-button"
+                >
+                  Manage columns
+                </Button>
+              </FlexItem>
+            </Flex>
+          </FlexItem>
+        </Flex>
         <InnerScrollContainer>
           <Table
             aria-label="AutoML Model Leaderboard"

@@ -1,8 +1,10 @@
 /* eslint-disable camelcase, @typescript-eslint/no-require-imports */
 import * as React from 'react';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, render, screen, within, act } from '@testing-library/react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
+import AudioAttachmentTile from '~/app/Chatbot/components/AudioAttachmentTile';
+import { CreateResponseRequest, DocumentAttachment, SimplifiedResponseData } from '~/app/types';
 import {
   mockModelId,
   mockSuccessResponse,
@@ -15,6 +17,9 @@ import {
 jest.mock('@patternfly/chatbot', () => ({}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 jest.mock('~/app/utilities/utils', () => {
   let idCounter = 0;
   return {
@@ -42,6 +47,7 @@ const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useC
 // Import after mocking
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 // Create a properly typed mock for createResponse
 const mockCreateResponse = jest.fn<
@@ -87,6 +93,7 @@ const createDefaultHookProps = (overrides?: {
   knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
   subscription?: string;
+  documentAttachments?: DocumentAttachment[];
 }) => ({
   ...defaultMcpProps,
   configId: 'default',
@@ -120,6 +127,49 @@ describe('useChatbotMessages', () => {
   });
 
   describe('handleMessageSend', () => {
+    it('tracks zero document attachments on a plain query', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello');
+      });
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Playground Query Submitted',
+        expect.objectContaining({
+          hasDocumentAttachments: false,
+          documentAttachmentCount: 0,
+          documentFileTypes: [],
+        }),
+      );
+    });
+
+    it('tracks a query routed to a custom external endpoint', async () => {
+      mockUseContext.mockReturnValue({
+        namespace: mockNamespace,
+        aiModels: [
+          {
+            // eslint-disable-next-line camelcase
+            model_id: mockModelId,
+            // eslint-disable-next-line camelcase
+            model_source_type: 'custom_endpoint',
+          },
+        ],
+      });
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('Hello');
+      });
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Playground Query Submitted',
+        expect.objectContaining({ externalProviderRouted: true }),
+      );
+    });
+
     it('should use file search queries as tool call arguments', async () => {
       mockCreateResponse.mockImplementation((_request, opts) => {
         opts?.onToolCall?.({
@@ -309,6 +359,53 @@ describe('useChatbotMessages', () => {
   });
 
   describe('error handling', () => {
+    it('includes persisted document attachments in each Responses request', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document',
+          filename: 'notes.txt',
+          text: 'Extracted document content',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(
+          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Summarize these notes');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachments: [
+            {
+              file_id: 'file-document',
+              filename: 'notes.txt',
+              text: 'Extracted document content',
+            },
+          ],
+        }),
+        expect.objectContaining({ abortSignal: expect.any(Object) }),
+      );
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Playground Query Submitted',
+        expect.objectContaining({
+          hasDocumentAttachments: true,
+          documentAttachmentCount: 1,
+          documentFileTypes: ['txt'],
+          externalProviderRouted: false,
+          contextWindowWarningShown: false,
+          contentTruncated: false,
+        }),
+      );
+    });
+
     it('should handle missing modelId', async () => {
       const { result } = renderHook(() =>
         useChatbotMessages(createDefaultHookProps({ modelId: '' })),
@@ -589,6 +686,38 @@ describe('useChatbotMessages', () => {
       expect(secondCall.chat_context![1]).toMatchObject({
         role: 'assistant',
         content: 'This is a bot response',
+      });
+    });
+
+    it('should include sent document text in conversation history for follow-up messages', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document',
+          filename: 'notes.txt',
+          text: 'The project owner is Ada.',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(
+          createDefaultHookProps({ isRagEnabled: false, documentAttachments: attachments }),
+        ),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('Summarize these notes');
+      });
+      await act(async () => {
+        await result.current.handleMessageSend('Who owns the project?');
+      });
+
+      const secondCall = mockCreateResponse.mock.calls[1][0];
+      expect(secondCall.chat_context![0]).toMatchObject({
+        role: 'user',
+        content: 'Summarize these notes\n\nThe project owner is Ada.',
       });
     });
 
@@ -904,11 +1033,22 @@ describe('useChatbotMessages', () => {
       const mockGetId = jest.requireMock('~/app/utilities/utils').getId as jest.Mock;
       let idCounter = 0;
       mockGetId.mockImplementation(() => `msg-${idCounter++}`);
+      const attachments: DocumentAttachment[] = [
+        {
+          file_id: 'file-document-789',
+          filename: 'notes.txt',
+          text: 'The project owner is Ada.',
+          content_type: 'text/plain',
+          size: 42,
+        },
+      ];
 
       try {
         mockCreateResponse.mockResolvedValue(mockSuccessResponse);
 
-        const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+        const { result } = renderHook(() =>
+          useChatbotMessages(createDefaultHookProps({ documentAttachments: attachments })),
+        );
 
         // First turn: multimodal message with image
         await act(async () => {
@@ -931,6 +1071,7 @@ describe('useChatbotMessages', () => {
           content: [
             { type: 'input_text', text: 'What is in this image?' },
             { type: 'input_image', file_id: 'file-img-789' },
+            { type: 'input_text', text: 'The project owner is Ada.' },
           ],
         });
         expect(secondPayload.chat_context![1]).toMatchObject({
@@ -1023,6 +1164,275 @@ describe('useChatbotMessages', () => {
       const userMessage = result.current.messages[0];
       expect(userMessage.content).toBe('Hello, bot!');
       expect(userMessage.extraContent).toBeUndefined();
+    });
+  });
+
+  describe('inline audio playback', () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const createObjectURL = jest.fn(() => 'blob:audio-preview');
+    const revokeObjectURL = jest.fn();
+
+    beforeEach(() => {
+      URL.createObjectURL = createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL;
+    });
+
+    afterEach(() => {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+    });
+
+    it('should show audio without transcript text and keep the transcript in later context', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+          '',
+        );
+      });
+
+      const userMessage = result.current.messages[0];
+      const player = userMessage.extraContent?.beforeMainContent as React.ReactElement<{
+        src: string;
+      }>;
+      expect(userMessage.content).toBe('');
+      expect(userMessage.attachments).toBeUndefined();
+      expect(player.type).toBe(AudioAttachmentTile);
+      render(player);
+      const tile = screen.getByTestId('sent-audio-tile');
+      expect(tile).toHaveStyle({ width: '18.75rem', maxWidth: '100%' });
+      expect(within(tile).getByText('recording.wav')).toBeInTheDocument();
+      expect(within(tile).getByText('WAV')).toBeInTheDocument();
+      expect(within(tile).getByTestId('sent-audio-player')).toHaveAttribute(
+        'src',
+        'blob:audio-preview',
+      );
+      expect(within(tile).getByLabelText('Play recording.wav')).toHaveAttribute('controls');
+      expect(within(tile).getByTestId('sent-audio-player')).toHaveStyle({ width: '100%' });
+      expect(within(tile).queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
+      expect(createObjectURL).toHaveBeenCalledWith(file);
+      expect(mockCreateResponse.mock.calls[0][0].input).toBe('Transcribed speech');
+
+      await act(async () => {
+        await result.current.handleMessageSend('What sound was that?');
+      });
+      expect(mockCreateResponse.mock.calls[1][0].chat_context).toEqual([
+        { role: 'user', content: 'Transcribed speech' },
+        { role: 'assistant', content: 'This is a bot response' },
+      ]);
+
+      act(() => result.current.clearConversation());
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:audio-preview');
+    });
+
+    it('should show only the typed question while keeping audio transcription in the request', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech\n\nWhat sound was that?',
+          undefined,
+          undefined,
+          undefined,
+          file,
+          'What sound was that?',
+        );
+      });
+
+      expect(result.current.messages[0].content).toBe('What sound was that?');
+      expect(mockCreateResponse.mock.calls[0][0].input).toBe(
+        'Transcribed speech\n\nWhat sound was that?',
+      );
+      await act(async () => {
+        await result.current.handleMessageSend('Tell me more');
+      });
+      expect(mockCreateResponse.mock.calls[1][0].chat_context?.[0]).toEqual({
+        role: 'user',
+        content: 'Transcribed speech\n\nWhat sound was that?',
+      });
+      act(() => result.current.clearConversation());
+    });
+
+    it('should retain a playable audio attachment for each sent turn', async () => {
+      createObjectURL
+        .mockReturnValueOnce('blob:first-audio')
+        .mockReturnValueOnce('blob:second-audio');
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const firstFile = new File(['first-audio'], 'first.wav', { type: 'audio/wav' });
+      const secondFile = new File(['second-audio'], 'second.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'First transcription',
+          undefined,
+          undefined,
+          undefined,
+          firstFile,
+          '',
+        );
+      });
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Second transcription',
+          undefined,
+          undefined,
+          undefined,
+          secondFile,
+          '',
+        );
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledTimes(2);
+      expect(mockCreateResponse.mock.calls[1][0]).toMatchObject({
+        input: 'Second transcription',
+        chat_context: [
+          { role: 'user', content: 'First transcription' },
+          { role: 'assistant', content: 'This is a bot response' },
+        ],
+      });
+      expect(result.current.messages[0].content).toBe('');
+      expect(result.current.messages[2].content).toBe('');
+      render(result.current.messages[0].extraContent?.beforeMainContent);
+      render(result.current.messages[2].extraContent?.beforeMainContent);
+      const tiles = screen.getAllByTestId('sent-audio-tile');
+      expect(within(tiles[0]).getByText('first.wav')).toBeInTheDocument();
+      expect(within(tiles[0]).getByTestId('sent-audio-player')).toHaveAttribute(
+        'src',
+        'blob:first-audio',
+      );
+      expect(within(tiles[1]).getByText('second.wav')).toBeInTheDocument();
+      expect(within(tiles[1]).getByTestId('sent-audio-player')).toHaveAttribute(
+        'src',
+        'blob:second-audio',
+      );
+      act(() => result.current.clearConversation());
+    });
+
+    it('should keep document and image attachments alongside the audio tile', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+      const document: DocumentAttachment = {
+        file_id: 'file-document-1',
+        filename: 'notes.txt',
+        text: 'Notes',
+        content_type: 'text/plain',
+        size: 5,
+      };
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ documentAttachments: [document] })),
+      );
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          'file-image-1',
+          { previewUrl: 'blob:image-preview', fileName: 'photo.png' },
+          file,
+        );
+      });
+
+      expect(result.current.messages[0].attachments).toEqual([
+        { id: document.file_id, name: document.filename },
+      ]);
+      render(result.current.messages[0].extraContent?.beforeMainContent);
+      expect(screen.getByRole('img', { name: 'photo.png' })).toBeInTheDocument();
+      expect(screen.getByTestId('sent-audio-tile')).toBeInTheDocument();
+      expect(result.current.messages[0].documentAttachments).toEqual([document]);
+      act(() => result.current.clearConversation());
+    });
+
+    it('should keep each pane audio URL until that pane unmounts', async () => {
+      createObjectURL
+        .mockReturnValueOnce('blob:first-pane')
+        .mockReturnValueOnce('blob:second-pane');
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const firstPane = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const secondPane = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.mp3', { type: 'audio/mpeg' });
+
+      await act(async () => {
+        await firstPane.result.current.handleMessageSend(
+          'Speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+        );
+        await secondPane.result.current.handleMessageSend(
+          'Speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+        );
+      });
+
+      firstPane.unmount();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:first-pane');
+      expect(revokeObjectURL).not.toHaveBeenCalledWith('blob:second-pane');
+
+      secondPane.unmount();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:second-pane');
+    });
+
+    it('should clear audio URL tracking when URL.revokeObjectURL is unavailable', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          'file-image-1',
+          { previewUrl: 'blob:image-preview', fileName: 'photo.png' },
+          file,
+        );
+      });
+
+      URL.revokeObjectURL = undefined as unknown as typeof URL.revokeObjectURL;
+      act(() => result.current.clearConversation());
+
+      await act(async () => {
+        await result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          undefined,
+          undefined,
+          file,
+        );
+      });
+      expect(createObjectURL).toHaveBeenCalledTimes(2);
+    });
+
+    it('should unmount with audio when URL.revokeObjectURL is unavailable', async () => {
+      mockCreateResponse.mockResolvedValue(mockSuccessResponse);
+      const hook = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await hook.result.current.handleMessageSend(
+          'Transcribed speech',
+          undefined,
+          undefined,
+          undefined,
+          new File(['audio-data'], 'recording.wav', { type: 'audio/wav' }),
+        );
+      });
+
+      URL.revokeObjectURL = undefined as unknown as typeof URL.revokeObjectURL;
+      expect(hook.unmount).not.toThrow();
     });
   });
 

@@ -19,6 +19,7 @@ import {
   mockArgoWorkflowPipelineVersion,
 } from '@odh-dashboard/internal/__mocks__';
 import { getCorePipelineSpec } from '@odh-dashboard/internal/concepts/pipelines/getCorePipelineSpec';
+import { toastNotifications } from '../../../../pages/components/ToastNotifications';
 import {
   createRunPage,
   duplicateRunPage,
@@ -1002,6 +1003,13 @@ describe('Pipeline create runs', () => {
       // verify the modal is closed and we have not been redirected
       pipelineVersionImportModal.find().should('not.exist');
       verifyRelativeURL(`/develop-train/pipelines/runs/${projectName}/runs/create`);
+
+      toastNotifications
+        .findToastNotification(0)
+        .should(
+          'contain.text',
+          `Pipeline version ${newPipelineVersion.display_name} successfully imported`,
+        );
 
       // populate arbitrary parameters
       const runParameters = createRunParams.runtime_config.parameters;

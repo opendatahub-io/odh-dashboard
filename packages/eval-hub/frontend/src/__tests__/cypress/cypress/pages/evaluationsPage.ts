@@ -1,7 +1,15 @@
 class EvaluationsPage {
-  visit(namespace: string, tab?: 'evaluate' | 'runs') {
+  visit(namespace: string, tab?: 'gallery' | 'evaluate' | 'runs') {
     cy.visit(`/evaluation/${namespace}${tab ? `?tab=${tab}` : ''}`);
-    this.waitForLoad();
+    this.waitForLoad(tab ?? 'gallery');
+  }
+
+  visitGallery(namespace: string) {
+    this.visit(namespace, 'gallery');
+  }
+
+  visitEvaluate(namespace: string) {
+    this.visit(namespace, 'evaluate');
   }
 
   visitRuns(namespace: string) {
@@ -10,26 +18,57 @@ class EvaluationsPage {
 
   visitBenchmarkSuites(namespace: string) {
     cy.visit(`/evaluation/${namespace}/collections`);
-    this.waitForLoad();
+    this.waitForPageHeader();
+    cy.get(
+      '[data-testid="benchmark-suites-gallery"], [data-testid="benchmark-suites-empty-state"], [data-testid="benchmark-suites-load-error"]',
+    )
+      .filter(':visible')
+      .should('have.length.at.least', 1);
+    cy.testA11y();
   }
 
   visitInvalidProject(namespace: string) {
     cy.visit(`/evaluation/${namespace}`);
-    this.waitForLoad();
+    this.waitForPageHeader();
+    this.findInvalidProjectState().should('be.visible');
+    cy.testA11y();
   }
 
   visitNoProjects() {
     cy.visit('/evaluation/any');
-    this.waitForLoad();
+    this.waitForPageHeader();
+    this.findNoProjectsState().should('be.visible');
+    cy.testA11y();
   }
 
   visitRoot() {
     cy.visit('/evaluation');
   }
 
-  private waitForLoad() {
-    cy.findByTestId('app-page-title').should('exist');
-    cy.testA11y();
+  private waitForLoad(tab: 'gallery' | 'evaluate' | 'runs') {
+    this.waitForPageHeader();
+    cy.wait('@evalHubHealth').then((interception) => {
+      const responseBody = interception.response?.body as {
+        data?: { available?: boolean };
+        available?: boolean;
+      };
+      const isAvailable = responseBody.data?.available ?? responseBody.available;
+
+      if (isAvailable === false) {
+        return;
+      }
+
+      if (tab === 'runs') {
+        cy.wait('@evalHubJobs');
+      }
+      cy.findByTestId(`${tab}-tab`).should('be.visible');
+      cy.findByTestId(`${tab}-tab-content`).should('be.visible');
+      cy.testA11y();
+    });
+  }
+
+  private waitForPageHeader() {
+    cy.findByTestId('app-page-title').should('be.visible');
   }
 
   findTitle() {
@@ -42,6 +81,14 @@ class EvaluationsPage {
 
   findEvaluateTab() {
     return cy.findByTestId('evaluate-tab');
+  }
+
+  findGalleryTab() {
+    return cy.findByTestId('gallery-tab');
+  }
+
+  findGalleryContent() {
+    return cy.findByTestId('gallery-tab-content');
   }
 
   findRunsTab() {
@@ -84,6 +131,28 @@ class EvaluationsPage {
     return cy.findByTestId('collection-drawer-panel');
   }
 
+  findCollectionDrawerPrerequisite() {
+    return cy.findByTestId('collection-drawer-prerequisite');
+  }
+
+  findCollectionDrawerCustomizeButton() {
+    return cy.findByTestId('customize-benchmark-suite-button');
+  }
+
+  findCollectionDrawerCloseFooter() {
+    return cy.findByTestId('collection-drawer-close-footer');
+  }
+
+  findCollectionDrawerSection(section: 'metrics' | 'modalities' | 'tasks' | 'tags' | 'benchmarks') {
+    return cy.findByTestId(`collection-drawer-${section}-section`);
+  }
+
+  findCollectionDrawerSectionToggle(
+    section: 'metrics' | 'modalities' | 'tasks' | 'tags' | 'benchmarks',
+  ) {
+    return this.findCollectionDrawerSection(section).find('button[aria-expanded]').first();
+  }
+
   findBenchmarkSuiteMenu(collectionId: string) {
     return cy.findByTestId(`benchmark-suite-card-menu-${collectionId}`);
   }
@@ -104,12 +173,38 @@ class EvaluationsPage {
     return cy.findByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
   }
 
+  findBenchmarkSuitePrerequisite(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-prerequisite-${collectionId}`);
+  }
+
+  findBenchmarkSuiteDropdownToggleInCard(collectionId: string) {
+    return this.findBenchmarkSuiteCard(collectionId).find(
+      `[data-testid="benchmark-suite-card-dropdown-toggle-${collectionId}"]`,
+    );
+  }
+
+  findBenchmarkSuiteDropdownToggle(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`);
+  }
+
+  findBenchmarkSuiteDropdownAction(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-dropdown-action-${collectionId}`);
+  }
+
+  findCuratedSuiteRunModal() {
+    return cy.findByTestId('curated-suite-start-evaluation-run-modal');
+  }
+
   findBenchmarkSuitesNameFilter() {
     return cy.findByTestId('benchmark-suites-name-filter');
   }
 
   findBenchmarkSuitesCategoryFilter() {
     return cy.findByTestId('benchmark-suites-category-filter');
+  }
+
+  findBenchmarkSuitesCategoryFilterBadge() {
+    return cy.findByTestId('benchmark-suites-category-filter-badge');
   }
 
   findBenchmarkSuitesEvaluatesFilter() {
@@ -120,8 +215,33 @@ class EvaluationsPage {
     return cy.findByTestId('benchmark-suites-industry-filter');
   }
 
-  findBenchmarkSuitesFilterOption(filter: 'category' | 'evaluates' | 'industry', value: string) {
-    return cy.findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
+  findBenchmarkSuitesTagsFilter() {
+    return cy.findByTestId('benchmark-suites-tags-filter');
+  }
+
+  findBenchmarkSuitesTaskFilter() {
+    return cy.findByTestId('benchmark-suites-task-filter');
+  }
+
+  findBenchmarkSuitesModalityFilter() {
+    return cy.findByTestId('benchmark-suites-modality-filter');
+  }
+
+  findBenchmarkSuitesMoreFiltersToggle() {
+    return cy.findByTestId('benchmark-suites-more-filters-toggle');
+  }
+
+  findBenchmarkSuitesPagination() {
+    return cy.findByTestId('benchmark-suites-pagination-top');
+  }
+
+  findBenchmarkSuitesFilterOption(
+    filter: 'category' | 'evaluates' | 'industry' | 'tags' | 'task' | 'modality',
+    value: string,
+  ) {
+    return cy
+      .findByTestId(`benchmark-suites-${filter}-filter-select`)
+      .findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
   }
 
   findBenchmarkSuitesSummary() {
@@ -158,6 +278,18 @@ class EvaluationsPage {
 
   findFilterTypeToggle() {
     return cy.findByTestId('filter-type-toggle');
+  }
+
+  findFilterTypeOption(type: 'name' | 'evaluation' | 'evaluated' | 'status') {
+    return cy.findByTestId(`filter-option-${type}`).find('button');
+  }
+
+  findStatusFilterToggle() {
+    return cy.findByTestId('filter-status-toggle');
+  }
+
+  findStatusFilterOption(status: string) {
+    return cy.findByTestId(`filter-status-option-${status}`).find('button');
   }
 
   findFilterTextField() {

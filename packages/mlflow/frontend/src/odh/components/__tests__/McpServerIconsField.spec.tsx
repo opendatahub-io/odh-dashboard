@@ -353,7 +353,7 @@ describe('McpServerIconsField', () => {
       expect(onStatusChange).toHaveBeenCalledWith(expect.objectContaining({ settled: false }));
 
       firePreviewLoad('light');
-      expect(onStatusChange.mock.calls.at(-1)?.[0]).toEqual(
+      expect(onStatusChange.mock.calls[onStatusChange.mock.calls.length - 1]?.[0]).toEqual(
         expect.objectContaining({ settled: false }),
       );
 

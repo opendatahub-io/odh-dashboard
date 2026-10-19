@@ -138,6 +138,9 @@ spec:
                     featureStoreAdmin:
                       type: boolean
                       description: 'When true, enables the Feature Store admin UI (create wizard, manage page).'
+                    dataRegistry:
+                      type: boolean
+                      description: 'When true, enables the Data Registry UI and features.'
                     genAiStudio:
                       type: boolean
                       description: 'When true, enables the Gen AI Studio plugin for generative AI features.'
@@ -171,6 +174,15 @@ spec:
                     agentConfigManagement:
                       type: boolean
                       description: 'When true, enables agent configuration management features in the Gen AI Studio.'
+                    genAiAgentDeployment:
+                      type: boolean
+                      description: 'When true, enables agent deployment features in the Gen AI Studio.'
+                    genAiImageUpload:
+                      type: boolean
+                      description: 'When true, enables image upload in the Gen AI Studio Playground.'
+                    genAiAudioUpload:
+                      type: boolean
+                      description: 'When true, enables audio upload and transcription settings in the Gen AI Studio Playground.'
                     mlflow:
                       type: boolean
                       description: 'DEPRECATED: MLflow is now always enabled when the operator component is present. This field will be removed in a future version.'
@@ -180,6 +192,9 @@ spec:
                     mcpRegistry:
                       type: boolean
                       description: 'When true, enables the MCP (Model Context Protocol) Registry tab within the MCP Servers page.'
+                    skillRegistry:
+                      type: boolean
+                      description: 'When true, enables the Skills page (MLflow Skill Registry) in the AI hub.'
                     genAiMcpRegistryServers:
                       type: boolean
                       description: 'When true, enables MCP Registry servers in the Gen AI Studio playground.'
@@ -234,12 +249,12 @@ spec:
                     gpuaas:
                       type: boolean
                       description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'
-                    connectionTest:
-                      type: boolean
-                      description: 'When true, enables connection test functionality to verify credentials and connectivity for S3, URI, and OCI connections.'
                     nimWizard:
                       type: boolean
                       description: 'When true, replaces global NIM accounts with project NIM accounts and replaces the NIM deployment modal with the model deployment wizard.'
+                    dataConnectHub:
+                      type: boolean
+                      description: 'When true, enables the Data Connect Hub features.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'

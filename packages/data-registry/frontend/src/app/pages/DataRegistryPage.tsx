@@ -10,7 +10,7 @@ import {
   Spinner,
   Flex,
   FlexItem,
-  Content,
+  Alert,
 } from '@patternfly/react-core';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useNamespaceSelector, type UseNamespaceSelectorArgs } from 'mod-arch-core';
@@ -20,8 +20,10 @@ import NewProjectButton from '~/app/components/NewProjectButton';
 import './DataRegistryPage.scss';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useAssets } from '~/app/hooks/useAssets';
+import { useConnections } from '~/app/hooks/useConnections';
 import { useLabels } from '~/app/hooks/useLabels';
 import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
+import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import RegistryTable from '~/app/components/RegistryTable';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
 import ManageLabelsModal from '~/app/components/ManageLabelsModal';
@@ -29,7 +31,10 @@ import RegisterDataModal from '~/app/components/RegisterDataModal';
 import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
+import { shouldDisplayConnectionWarning } from '~/app/utilities/connectionUtils';
 import noProjectsImage from '~/images/RHOAI-Registerdata-Noprojects-RGB.png';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
 const HIDDEN_NS_PREFIXES = ['openshift-', 'kube-'];
@@ -63,7 +68,7 @@ const NoProjectsPage: React.FC<NoProjectsPageProps> = ({ onProjectCreated }) => 
       variant={EmptyStateVariant.lg}
       data-testid="no-projects-empty-state"
     >
-      <EmptyStateBody>To browse data assets, first create a project.</EmptyStateBody>
+      <EmptyStateBody>To create and use data assets, first create a project.</EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton onProjectCreated={onProjectCreated} />
       </EmptyStateFooter>
@@ -100,10 +105,13 @@ const ProjectCreationErrorPage: React.FC<ProjectCreationErrorPageProps> = ({
 const DataRegistryPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const trackEvent = useDataRegistryTrackEvent();
   const requestedProject = searchParams.get('project') || '';
   const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
+  const [returnToRegisterData, setReturnToRegisterData] = React.useState(false);
+  const returnToEditRef = React.useRef<(() => void) | undefined>(undefined);
   const [projectCreationFailure, setProjectCreationFailure] = React.useState<string>();
 
   const { preferredNamespace, updatePreferredNamespace } =
@@ -172,6 +180,26 @@ const DataRegistryPage: React.FC = () => {
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
+  const [
+    connections,
+    connectionsLoaded,
+    connectionsError,
+    ,
+    connectionWarnings,
+    fetchedConnectionDisplayData,
+  ] = useConnections(selectedProject);
+  const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
+  const hasExistingDchConnectionReferences =
+    assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'dch');
+  const hasExistingRhaiConnectionReferences =
+    assetsLoaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'secret');
+  const visibleConnectionWarnings = connectionWarnings.filter((warning) =>
+    shouldDisplayConnectionWarning(
+      warning,
+      hasExistingDchConnectionReferences,
+      hasExistingRhaiConnectionReferences,
+    ),
+  );
   const [, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
     selectedProject,
     assets,
@@ -179,17 +207,47 @@ const DataRegistryPage: React.FC = () => {
   );
   const [labels, , , labelsRefresh] = useLabels(selectedProject);
 
-  const hasWriteAccess = !is403Error(assetsError) && !is403Error(collectionsError);
+  const hasWriteAccess = hasDataRegistryWriteAccess(assetsError, collectionsError);
 
-  const handleRefresh = React.useCallback(() => {
-    assetsRefresh();
-    collectionsRefresh();
-    labelsRefresh();
+  const handleRefresh = React.useCallback(async () => {
+    await Promise.all([assetsRefresh(), collectionsRefresh(), labelsRefresh()]);
   }, [assetsRefresh, collectionsRefresh, labelsRefresh]);
+
+  const handleCollectionsModalClose = React.useCallback(async () => {
+    setIsCollectionsModalOpen(false);
+    if (returnToRegisterData) {
+      await assetsRefresh();
+      setReturnToRegisterData(false);
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    const returnToEdit = returnToEditRef.current;
+    returnToEditRef.current = undefined;
+    returnToEdit?.();
+  }, [assetsRefresh, returnToRegisterData]);
+
+  const handleLabelsModalClose = React.useCallback(() => {
+    setIsLabelsModalOpen(false);
+    if (returnToRegisterData) {
+      setReturnToRegisterData(false);
+      setIsRegisterModalOpen(true);
+      return;
+    }
+    const returnToEdit = returnToEditRef.current;
+    returnToEditRef.current = undefined;
+    returnToEdit?.();
+  }, [returnToRegisterData]);
 
   const handleProjectSelect = React.useCallback(
     (projectName: string) => {
       const namespace = projectNamespaces.find((project) => project.name === projectName);
+      if (namespace && selectedProject && projectName !== selectedProject) {
+        trackEvent({
+          eventName: DATA_REGISTRY_EVENT_NAMES.projectSwitched,
+          properties: { previousProject: selectedProject, selectedProject: projectName },
+        });
+      }
+      returnToEditRef.current = undefined;
       if (namespace) {
         updatePreferredNamespace(namespace);
       }
@@ -202,7 +260,7 @@ const DataRegistryPage: React.FC = () => {
         { replace: true },
       );
     },
-    [projectNamespaces, setSearchParams, updatePreferredNamespace],
+    [projectNamespaces, selectedProject, setSearchParams, trackEvent, updatePreferredNamespace],
   );
 
   const handleProjectCreated = React.useCallback(
@@ -309,55 +367,92 @@ const DataRegistryPage: React.FC = () => {
         </PageSection>
       ) : (
         <>
-          <PageSection hasBodyWrapper={false} className="odh-data-registry__header">
-            <span className="odh-data-registry__tab">Registry</span>
-          </PageSection>
-          <PageSection hasBodyWrapper={false}>
-            <Content component="p">
-              View and manage data assets registered in the selected project. The data registry
-              provides a structured and organized way to discover, share, version, and connect
-              schemas, datasets, and data sources.
-            </Content>
-          </PageSection>
+          {connectionsError ? (
+            <PageSection hasBodyWrapper={false}>
+              <Alert
+                variant="warning"
+                isInline
+                title="Unable to load connections"
+                data-testid="connections-error"
+              >
+                {connectionsError.message}
+              </Alert>
+            </PageSection>
+          ) : null}
+          {visibleConnectionWarnings.length > 0 ? (
+            <PageSection hasBodyWrapper={false}>
+              {visibleConnectionWarnings.map((warning) => (
+                <Alert key={warning.code} variant="warning" isInline title={warning.message} />
+              ))}
+            </PageSection>
+          ) : null}
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError ?? collectionsError}
             labels={labels}
+            connections={connections}
+            connectionDisplayData={connectionDisplayData}
+            connectionsLoaded={connectionsLoaded}
+            connectionsError={connectionsError}
             project={selectedProject}
-            onManageCollections={() => {
+            onManageCollections={(onReturnToEdit) => {
+              setReturnToRegisterData(false);
               if (!collectionsError) {
+                returnToEditRef.current = onReturnToEdit;
                 setIsCollectionsModalOpen(true);
+              } else {
+                onReturnToEdit?.();
               }
             }}
-            onManageLabels={() => setIsLabelsModalOpen(true)}
-            onRegisterData={() => setIsRegisterModalOpen(true)}
+            onManageLabels={(onReturnToEdit) => {
+              returnToEditRef.current = onReturnToEdit;
+              setReturnToRegisterData(false);
+              setIsLabelsModalOpen(true);
+            }}
+            onRegisterData={() => {
+              trackEvent({
+                eventName: DATA_REGISTRY_EVENT_NAMES.registrationStarted,
+                properties: { project: selectedProject },
+              });
+              setReturnToRegisterData(false);
+              setIsRegisterModalOpen(true);
+            }}
             onRetry={handleRefresh}
             hasWriteAccess={hasWriteAccess}
           />
           <ManageCollectionsModal
             isOpen={isCollectionsModalOpen}
-            onClose={() => setIsCollectionsModalOpen(false)}
+            onClose={handleCollectionsModalClose}
             project={selectedProject}
             onRefresh={handleRefresh}
           />
           <ManageLabelsModal
             isOpen={isLabelsModalOpen}
-            onClose={() => setIsLabelsModalOpen(false)}
+            onClose={handleLabelsModalClose}
             project={selectedProject}
             labels={labels}
             assets={assets}
             onRefresh={handleRefresh}
           />
           <RegisterDataModal
+            key={selectedProject}
             isOpen={isRegisterModalOpen}
             onClose={() => setIsRegisterModalOpen(false)}
             project={selectedProject}
             collections={collectionNames}
+            hasExistingDchConnectionReferences={hasExistingDchConnectionReferences}
+            hasExistingRhaiConnectionReferences={hasExistingRhaiConnectionReferences}
             onCreated={handleRefresh}
             onManageCollections={() => {
               setIsRegisterModalOpen(false);
+              setReturnToRegisterData(true);
               setIsCollectionsModalOpen(true);
+            }}
+            onManageLabels={() => {
+              setIsRegisterModalOpen(false);
+              setReturnToRegisterData(true);
+              setIsLabelsModalOpen(true);
             }}
           />
         </>

@@ -97,6 +97,7 @@ type LLMInferenceServiceSpec = {
     scheduler?: object;
   };
   template?: {
+    serviceAccountName?: string;
     containers?: LLMdContainer[];
     imagePullSecrets?: ImagePullSecret[];
   };

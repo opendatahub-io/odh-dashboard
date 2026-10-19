@@ -74,16 +74,19 @@ jest.mock('mod-arch-core', () => ({
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('~/app/hooks/useCreatePipelineRunMutation', () => ({
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
+}));
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'data.csv' }),
   })),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
+jest.mock('~/app/hooks/useS3GetFileSchemaQuery', () => ({
   useS3GetFileSchemaQuery: jest.fn(() => ({
     data: [
       { name: 'column1', type: 'string', task_type: 'binary', values: ['yes', 'no'] },
@@ -93,6 +96,7 @@ jest.mock('~/app/hooks/queries', () => ({
     isLoading: false,
     isFetching: false,
     error: null,
+    resetSchemaCache: jest.fn(),
   })),
 }));
 
@@ -184,9 +188,9 @@ jest.mock('~/app/components/empty-states/InvalidProject', () => ({
 }));
 
 // Mock SecretSelector component
-jest.mock('~/app/components/common/SecretSelector', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
   __esModule: true,
-  default: ({
+  SecretSelector: ({
     onChange,
     value,
     dataTestId,

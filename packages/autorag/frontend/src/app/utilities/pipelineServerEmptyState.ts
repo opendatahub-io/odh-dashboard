@@ -1,6 +1,6 @@
 import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 
-import { parseErrorStatus } from '~/app/utilities/utils';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 
 /**
  * True when the error indicates no DSPipelineApplication CR exists in the namespace.
@@ -53,4 +53,11 @@ export function shouldShowPipelineServerNotReady(error: unknown): boolean {
     return true;
   }
   return false;
+}
+
+export function getPipelineErrorCode(error: unknown): number | undefined {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+  return getGenericErrorCode(error) ?? parseErrorStatus(error);
 }

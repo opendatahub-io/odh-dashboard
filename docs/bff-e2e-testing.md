@@ -171,6 +171,7 @@ BFFs listen on their `module-federation.local.port` so the backend proxy can rea
 | mlflow | 9110 | /healthcheck |
 | agent-ops | 9111 | /healthcheck |
 | core-bff | 9112 | /healthcheck |
+| notebooks | 9105 | /api/v1/healthcheck |
 
 ## Turbo Task Definitions
 

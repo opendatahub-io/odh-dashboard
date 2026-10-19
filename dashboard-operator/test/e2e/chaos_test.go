@@ -18,6 +18,7 @@ func TestE2EOperatorChaos(t *testing.T) {
 	if os.Getenv("TEST_ENABLE_CHAOS") != "true" {
 		t.Skip("set TEST_ENABLE_CHAOS=true to run destructive live-cluster chaos tests")
 	}
+	requireManagedFixture(t)
 
 	target, err := discoverChaosTarget(context.Background())
 	require.NoError(t, err)

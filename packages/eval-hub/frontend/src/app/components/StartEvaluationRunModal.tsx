@@ -32,6 +32,7 @@ import FormGroupLabel from '~/app/components/FormGroupLabel';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
+import HardwareProfileField from '~/app/components/HardwareProfileField';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import {
   DEFAULT_EXPERIMENT_NAME,
@@ -43,7 +44,7 @@ import {
   SOURCE_OPTIONS,
   suiteEvaluatesToSourceMode,
 } from '~/app/utilities/startEvaluationRunUtils';
-import type { Collection, FlatBenchmark, SourceMode } from '~/app/types';
+import type { Collection, CollectionResolution, FlatBenchmark, SourceMode } from '~/app/types';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import './StartEvaluationRunModal.scss';
 
@@ -57,10 +58,17 @@ type StartEvaluationRunModalProps = {
   defaultEvaluationName?: string;
   defaultSourceMode?: SourceMode;
   modalId?: string;
-  resolveCollection?: (signal?: AbortSignal) => Promise<Collection | undefined>;
+  resolveCollection?: (
+    signal?: AbortSignal,
+  ) => Promise<Collection | CollectionResolution | undefined>;
   onClonePendingChange?: (isPending: boolean) => void;
   trackingSource?: string;
   onSuccess?: () => void;
+  description?: React.ReactNode;
+  onRunFailure?: (
+    error: unknown,
+    collection?: Collection,
+  ) => unknown | void | Promise<unknown | void>;
 };
 
 const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
@@ -77,6 +85,8 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   onClonePendingChange,
   trackingSource,
   onSuccess,
+  description,
+  onRunFailure,
 }) => {
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
   const [isCloning, setIsCloning] = React.useState(false);
@@ -115,6 +125,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     benchmark,
     collection,
     isCollectionFlow,
+    allowDeferredCollection: isCollectionFlow && !collection && !!resolveCollection,
     experiments,
     experimentsLoaded,
     defaultEvaluationName,
@@ -122,6 +133,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     trackingSource,
     onSuccess,
     onCancel: onClose,
+    onRunFailure,
   });
 
   const isSubmitting = form.isSubmitting || isCloning;
@@ -199,21 +211,28 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
 
     try {
       let activeCollection = collection;
+      let activeCollectionWasCreated: boolean | undefined;
       if (resolveCollection) {
         const cloneAbortController = new AbortController();
         cloneAbortControllerRef.current = cloneAbortController;
         setIsCloning(true);
         onClonePendingChange?.(true);
         try {
-          const cloned = await resolveCollection(cloneAbortController.signal);
+          const resolvedCollection = await resolveCollection(cloneAbortController.signal);
           if (
             startAttempt !== startAttemptRef.current ||
             cloneAbortController.signal.aborted ||
-            !cloned
+            !resolvedCollection
           ) {
             return;
           }
-          activeCollection = cloned;
+          if ('collection' in resolvedCollection) {
+            activeCollection = resolvedCollection.collection;
+            activeCollectionWasCreated = resolvedCollection.wasCreated;
+          } else {
+            activeCollection = resolvedCollection;
+            activeCollectionWasCreated = true;
+          }
         } finally {
           if (cloneAbortControllerRef.current === cloneAbortController) {
             cloneAbortControllerRef.current = null;
@@ -234,7 +253,10 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
         return;
       }
 
-      await form.handleSubmit({ collection: activeCollection });
+      await form.handleSubmit({
+        collection: activeCollection,
+        collectionWasCreated: activeCollectionWasCreated,
+      });
     } catch {
       // Collection resolvers own request-error feedback. A rejected resolver must not submit.
     } finally {
@@ -261,7 +283,16 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
             className="evalhub-start-evaluation-run-modal__suite-name"
             data-testid="start-evaluation-run-collection-name"
           >
-            Benchmark suite: {collection.name}
+            Collection: {collection.name}
+          </Content>
+        ) : null}
+        {description ? (
+          <Content
+            component="p"
+            className="evalhub-start-evaluation-run-modal__description"
+            data-testid="start-evaluation-run-description"
+          >
+            {description}
           </Content>
         ) : null}
         <FormProvider {...form.form}>
@@ -483,6 +514,18 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                   markTouched={form.markTouched}
                 />
               ) : null}
+
+              <HardwareProfileField
+                availability={form.kueueAvailability}
+                profiles={form.hardwareProfiles}
+                loaded={form.hardwareProfilesLoaded}
+                error={form.hardwareProfilesError}
+                compatibilityError={form.hardwareProfileCompatibilityError}
+                selectedProfile={form.hardwareProfile}
+                onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+                isRequired={form.requiresHardwareProfile}
+                disabled={isCloning}
+              />
 
               <ExpandableSection
                 className="evalhub-start-evaluation-run-modal__advanced"

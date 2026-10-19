@@ -68,6 +68,7 @@ type DashboardFeatureFlags struct {
 	DisableAdminConnectionTypes  bool `json:"disableAdminConnectionTypes"`
 	DisableFeatureStore          bool `json:"disableFeatureStore"`
 	FeatureStoreAdmin            bool `json:"featureStoreAdmin"`
+	DataRegistry                 bool `json:"dataRegistry"`
 	DisableFineTuning            bool `json:"disableFineTuning"`
 	DisableKueue                 bool `json:"disableKueue"`
 	DisableLMEval                bool `json:"disableLMEval"`
@@ -83,6 +84,7 @@ type DashboardFeatureFlags struct {
 	McpCatalog                   bool `json:"mcpCatalog"`
 	McpRegistry                  bool `json:"mcpRegistry"`
 	GenAiMcpRegistryServers      bool `json:"genAiMcpRegistryServers"`
+	SkillRegistry                bool `json:"skillRegistry"`
 	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
@@ -91,13 +93,15 @@ type DashboardFeatureFlags struct {
 	DeploymentWizardYAMLViewer   bool `json:"deploymentWizardYAMLViewer"`
 	ExternalVectorStores         bool `json:"externalVectorStores"`
 	AgentConfigManagement        bool `json:"agentConfigManagement"`
+	GenAiAgentDeployment         bool `json:"genAiAgentDeployment"`
+	GenAiImageUpload             bool `json:"genAiImageUpload"`
+	GenAiAudioUpload             bool `json:"genAiAudioUpload"`
 	VLLMDeploymentOnMaaS         bool `json:"vLLMDeploymentOnMaaS"`
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
-	ConnectionTest               bool `json:"connectionTest"`
 	ModelCapabilities            bool `json:"modelCapabilities"`
-	RuntimeCatalog               bool `json:"runtimeCatalog"`
+	Grid                         bool `json:"grid"`
 }
 
 type NotebookController struct {
@@ -166,6 +170,7 @@ var BlankDashboardCR = DashboardConfig{
 			DisableAdminConnectionTypes:  false,
 			DisableFeatureStore:          false,
 			FeatureStoreAdmin:            false,
+			DataRegistry:                 false,
 			DisableFineTuning:            true,
 			DisableKueue:                 true,
 			DisableLMEval:                true,
@@ -181,6 +186,7 @@ var BlankDashboardCR = DashboardConfig{
 			McpCatalog:                   false,
 			McpRegistry:                  false,
 			GenAiMcpRegistryServers:      false,
+			SkillRegistry:                false,
 			AgentsCatalog:                false,
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
@@ -188,13 +194,15 @@ var BlankDashboardCR = DashboardConfig{
 			RoleManagement:               true,
 			DeploymentWizardYAMLViewer:   false,
 			ExternalVectorStores:         false,
+			GenAiAgentDeployment:         false,
+			GenAiImageUpload:             false,
+			GenAiAudioUpload:             false,
 			VLLMDeploymentOnMaaS:         false,
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
-			ConnectionTest:               false,
 			ModelCapabilities:            false,
-			RuntimeCatalog:               false,
+			Grid:                         false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,
