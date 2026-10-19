@@ -15,7 +15,7 @@ This skill operates independently of the [jira-triage pipeline](../jira-triage/S
 
 The user provides one or more of:
 
-- **Jira issue key** (required) — e.g., `RHOAIENG-12345`
+- **Jira issue key** (required) — e.g., `RHAI-12345`
 - **PR number or URL** (optional) — e.g., `#4567` or `https://github.com/opendatahub-io/odh-dashboard/pull/4567`. If omitted, the skill auto-detects from the current git branch.
 - **Repository** (optional) — defaults to `opendatahub-io/odh-dashboard`
 
@@ -176,7 +176,7 @@ Present the report in this format:
 ```markdown
 ## Jira Evaluation Review
 
-**Issue:** [RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345) — {summary}
+**Issue:** [RHAI-12345](https://redhat.atlassian.net/browse/RHAI-12345) — {summary}
 **PR:** [#{number}]({url}) — {title}
 **Status:** {N}/{total} criteria satisfied{, M partial if any}
 
@@ -219,7 +219,7 @@ Present the report in this format:
 
 ### Report Rules
 
-- Every issue key in the report is a clickable link: `[RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345)`
+- Every issue key in the report is a clickable link: `[RHAI-12345](https://redhat.atlassian.net/browse/RHAI-12345)`
 - PR references are clickable links when a PR exists: `[#4567](https://github.com/opendatahub-io/odh-dashboard/pull/4567)`. When evaluating from a local branch diff, show the branch name instead (e.g., `_(no PR)_ — branch \`feature-branch\``)
 - File references use backtick-wrapped paths: `` `frontend/src/pages/Foo.tsx` ``
 - Code citations reference specific files and line ranges with a fenced code block. Format: `` `frontend/src/pages/Foo.tsx` lines 12–18: `` followed by a fenced block with the appropriate language tag (e.g., `` ```tsx ``). Alternatively, place the file/line reference as a comment inside the fence: `` ```tsx `` then `// frontend/src/pages/Foo.tsx:12-18` on the next line

@@ -1,12 +1,12 @@
 ---
-description: Guidelines for creating Jira issues in the RHOAIENG project with proper formatting and field configuration
+description: Guidelines for creating Jira issues in the RHAI project with proper formatting and field configuration
 globs: 
 alwaysApply: false
 ---
 
-# Creating Jira Issues in RHOAIENG Project
+# Creating Jira Issues in RHAI Project
 
-Guidelines for creating Jira issues in the RHOAIENG project with proper formatting and field configuration.
+Guidelines for creating Jira issues in the RHAI project with proper formatting and field configuration.
 
 ## Trigger
 
@@ -14,9 +14,12 @@ User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bu
 
 ## General Information & Best Practices
 
-* **Project Key**: `RHOAIENG` (This is the primary project for Dashboard-related issues).
+* **Project Key**: `RHAI` (Red Hat AI All — the primary project for **new** Dashboard-related issues).
+  * `RHOAIENG` is the **legacy** project: pre-migration Dashboard issues live there. Do **not** create new issues in `RHOAIENG` — link to existing ones instead (issue links and epic-child links work cross-project).
+  * To search the Dashboard backlog across both projects, use JQL: `project in (RHAI, RHOAIENG)`.
 * **Team Field** (`customfield_10001`):
   * Each scrum team has its own Jira Team value. When the user specifies a scrum team, use the corresponding ID from the table below. If no scrum team is specified, **ask the user** which team the issue belongs to — do not silently default.
+  * The field and team IDs are identical in `RHAI` and legacy `RHOAIENG` (same Jira instance, shared field — verified: issues moved between the projects keep their Team value).
   * When setting the team, also add the corresponding `dashboard-{team}-scrum` label.
 
   | Scrum Team | Jira Team Name | Team ID | Label |
@@ -31,7 +34,7 @@ User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bu
   | Monarch | RHAI Monarch | `6cb9996b-0281-4bee-b062-611b1d2d1baa` | `dashboard-monarch-scrum` |
   | *(fallback)* | RHOAI Dashboard | `ec74d716-af36-4b3c-950f-f79213d08f71-1809` | — |
 * **Component**: `'AI Core Dashboard'` (This string value should be used for the components field).
-* **Epic Link Custom Field ID** (for Stories/Tasks under an Epic): `customfield_12311140`.
+* **Epic Link** (for Stories/Tasks under an Epic): prefer the `atlassian_jira_link_to_epic` tool (`{issue_key, epic_key}`) — it sets the `parent` field and works cross-project. Alternatives: `additional_fields` on `create_issue` accepts `{"epicKey": "EPIC-123"}` or `{"epic_link": "EPIC-123"}`, or the classic Epic Link custom field `customfield_12311140`.
 * **Verify Information**: Always confirm specific details like summaries, descriptions, parent epic keys, and any ambiguous fields with the user.
 * **Team Value is a plain string**: Pass `{"customfield_10001": "<TEAM_ID>"}` in `additional_fields`, where `<TEAM_ID>` is the UUID from the scrum team table above. Do NOT wrap in `{"id": "..."}` — the mcp-atlassian server expects the bare team ID string.
 * **Component is a STRING argument**: The `components` parameter is a direct top-level argument in the tool call.
@@ -169,7 +172,7 @@ A defect in the product — e.g., something should be working but it is not. Thi
 ### Tool call possible params
 
 ```python
-project_key="RHOAIENG",
+project_key="RHAI",
 issue_type="Bug",
 summary="BUG: [User-provided summary]",
 description="[Formatted markdown string including Description, Steps, Actual, Expected, Reproducibility, and Acceptance Criteria]",
@@ -219,7 +222,7 @@ A user-impact addition/change to the product — e.g., feature work to add parti
 ### Tool call possible params
 
 ```python
-project_key="RHOAIENG",
+project_key="RHAI",
 issue_type="Story",
 summary="[User-provided summary]",
 description="[Formatted markdown string including Description of enhancement, Acceptance Criteria, and Additional info]",
@@ -268,7 +271,7 @@ A non-user facing change to the product — e.g., add a test, fix a test, or a r
 ### Tool call possible params
 
 ```python
-project_key="RHOAIENG",
+project_key="RHAI",
 issue_type="Task",
 summary="[User-provided summary]",
 description="[Formatted markdown string including Description of task, Acceptance Criteria, and Additional info]",
@@ -290,7 +293,7 @@ A user-impact Story that is part of a larger Epic. Follows Story definition abov
 
 ### Information Gathering
 
-1. **Parent Epic Key**: (e.g., `RHOAIENG-123`). From user or context. **REQUIRED**.
+1. **Parent Epic Key**: (e.g., `RHAI-123`; legacy `RHOAIENG-123`). From user or context. **REQUIRED**.
 2. **Summary**: From user.
 3. **Description**: From user (as per updated Story guidelines, including formatted markdown for Description, AC, Additional Info).
 4. **Priority**: Determine based on guidelines in Appendix A.
@@ -299,11 +302,11 @@ A user-impact Story that is part of a larger Epic. Follows Story definition abov
 ### Tool call possible params
 
 ```python
-# Infer PROJECT_KEY from PARENT_EPIC_KEY (e.g., "RHOAIENG" from "RHOAIENG-123")
-# PARENT_EPIC_KEY is the full key like "RHOAIENG-XXXX"
+# Always create new issues in RHAI, regardless of where the parent Epic lives.
+# PARENT_EPIC_KEY is the full key like "RHAI-XXXX" (current) or "RHOAIENG-XXXX" (legacy)
 # EPIC_LINK_FIELD_ID is "customfield_12311140"
 
-project_key="RHOAIENG",  # Can be inferred if PARENT_EPIC_KEY is for RHOAIENG
+project_key="RHAI",
 issue_type="Story",
 summary="[User-provided summary]",
 description="[Formatted markdown string for Story description, AC, and Additional Info]",
@@ -328,7 +331,7 @@ A non-user facing Task that is part of a larger Epic. Follows Task definition ab
 
 ### Information Gathering
 
-1. **Parent Epic Key**: (e.g., `RHOAIENG-123`). From user or context. **REQUIRED**.
+1. **Parent Epic Key**: (e.g., `RHAI-123`; legacy `RHOAIENG-123`). From user or context. **REQUIRED**.
 2. **Summary**: From user.
 3. **Description**: From user (as per updated Task guidelines, including formatted markdown for Description, AC, Additional Info).
 4. **Priority**: Determine based on guidelines in Appendix A.
@@ -337,11 +340,11 @@ A non-user facing Task that is part of a larger Epic. Follows Task definition ab
 ### Tool call possible params
 
 ```python
-# Infer PROJECT_KEY from PARENT_EPIC_KEY
-# PARENT_EPIC_KEY is the full key like "RHOAIENG-XXXX"
+# Always create new issues in RHAI, regardless of where the parent Epic lives.
+# PARENT_EPIC_KEY is the full key like "RHAI-XXXX" (current) or "RHOAIENG-XXXX" (legacy)
 # EPIC_LINK_FIELD_ID is "customfield_12311140"
 
-project_key="RHOAIENG",  # Can be inferred
+project_key="RHAI",
 issue_type="Task",
 summary="[User-provided summary]",
 description="[Formatted markdown string for Task description, AC, and Additional Info]",
@@ -363,7 +366,8 @@ additional_fields={
 
 ### Context
 
-* Epics in `RHOAIENG` are typically cloned from the template: [https://issues.redhat.com/browse/RHOAIENG-8770](https://issues.redhat.com/browse/RHOAIENG-8770).
+* **Feature epics** are typically cloned from the template (lives in legacy `RHOAIENG`; cloning cross-project works): [RHOAIENG-8770](https://redhat.atlassian.net/browse/RHOAIENG-8770).
+* **Tech-debt / infrastructure epics** do not need the template — create them directly via the API with the standard fields (Team, `dashboard-{team}-scrum` + `tech-debt` + `dashboard-area-*` labels, component `AI Core Dashboard`) and a Description / Why / Acceptance Criteria description. Precedents: [RHOAIENG-79819](https://redhat.atlassian.net/browse/RHOAIENG-79819) (webpack → rspack), [RHAI-10811](https://redhat.atlassian.net/browse/RHAI-10811) (client-node 0.12 → 2.0).
   * **Recommendation**: For creating new Epic shells, it's often safest to have the user clone the template manually in the Jira UI first. You can then assist with structuring and creating its child issues.
 * The Epic itself should primarily define **what the Epic aims to accomplish** at a high level.
 
@@ -395,7 +399,7 @@ additional_fields={
 ### Tool Call (Example for Epic Shell Creation - use with caution, prefer manual clone by user)
 
 ```python
-project_key="RHOAIENG",
+project_key="RHAI",
 issue_type="Epic",
 summary="[User-provided Epic Name]",
 description="[User-provided concise, high-level description of what the Epic aims to accomplish]",
@@ -410,7 +414,7 @@ additional_fields={
 
 ### Creating Child Issues for the Epic
 
-* Once the Epic exists (either cloned by user or created via API) and its key is known (e.g., `RHOAIENG-XXXX`):
+* Once the Epic exists (either cloned by user or created via API) and its key is known (e.g., `RHAI-XXXX`):
 * For each agreed-upon decomposed piece of work, create a child Story or Task using the guidelines in:
   * **Section IV: Creating a Story under an Epic**
   * **Section V: Creating a Task under an Epic**
@@ -428,7 +432,7 @@ These steps are typically for issues already created, but the principles guide f
    * If unclear ask/reproduction: Add label `needs-info` and prompt user for details.
    * If solution unclear for devs: Consider label `needs-advisor`.
    * If UX direction unclear: Consider label `needs-ux`.
-   * New feature (not an addition, potentially different project): If the ask is a completely new feature outside current scope, it might belong to `RHOAIRFE`. This decision usually needs PM input. For AI-assisted creation, assume `RHOAIENG` unless specified.
+   * New feature (not an addition, potentially different project): If the ask is a completely new feature outside current scope, it might belong to `RHAIRFE` (Red Hat AI RFE project; `RHOAIRFE` is the legacy key). This decision usually needs PM input. For AI-assisted creation, assume `RHAI` unless specified.
 
 2. **Severity (for Bugs)**
    * Determines urgency and impact. Guides Priority setting.

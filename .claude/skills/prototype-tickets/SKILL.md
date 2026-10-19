@@ -10,12 +10,12 @@ Reads a designer's fork diff, identifies features and interactive flows, generat
 ## Arguments
 
 ```text
-/prototype-tickets <url> --fork <ssh-url> [--project RHOAIENG] [--parent RHAISTRAT-XXXXX | RHOAIENG-XXXXX] [--base 3.5]
+/prototype-tickets <url> --fork <ssh-url> [--project RHAI] [--parent RHAISTRAT-XXXXX | RHAI-XXXXX | RHOAIENG-XXXXX] [--base 3.5]
 ```
 
 - `<url>` — deployed prototype URL
 - `--fork <ssh-url>` — designer's forked repo SSH clone URL
-- `--project <key>` — Jira project key (default: `RHOAIENG`)
+- `--project <key>` — Jira project key (default: `RHAI`; `RHOAIENG` is the legacy project)
 - `--parent <key>` — parent ticket for context:
   - **Epic** → link children under it (no new Epic)
   - **RHAISTRAT-\* or other** → read for context, create new Epic
@@ -28,7 +28,7 @@ See **Prerequisites** in `.claude/rules/prototype-fork-ops.md`.
 
 ## Step 0: Validate arguments
 
-Parse: URL (`http`), `--fork`, `--project` (default `RHOAIENG`), `--parent`, `--base`. Order doesn't matter.
+Parse: URL (`http`), `--fork`, `--project` (default `RHAI`), `--parent`, `--base`. Order doesn't matter.
 
 - No URL → stop: "Prototype URL required."
 - No `--fork` → stop: "Fork URL required."
@@ -170,9 +170,9 @@ Link failures are non-critical — report and continue.
 
 ```text
 | # | Key | Type | Summary | Depends on |
-| 0 | RHOAIENG-XXXXX | Epic | [title] | — |
-| 1 | RHOAIENG-XXXXX | Task | [summary] | — |
-| 2 | RHOAIENG-XXXXX | Story | [summary] | #1 |
+| 0 | RHAI-XXXXX | Epic | [title] | — |
+| 1 | RHAI-XXXXX | Task | [summary] | — |
+| 2 | RHAI-XXXXX | Story | [summary] | #1 |
 
-Next step: /prototype-spec <url> --fork <ssh> --ticket RHOAIENG-XXXXX
+Next step: /prototype-spec <url> --fork <ssh> --ticket RHAI-XXXXX
 ```

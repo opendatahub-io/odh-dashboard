@@ -106,7 +106,7 @@ Parse from `$ARGUMENTS`:
 
 ## Phase 1: Clone Tracking Epic
 
-**Goal**: Create a Jira epic to track the full onboarding workflow by cloning the [RHOAIENG-37060](https://issues.redhat.com/browse/RHOAIENG-37060) template epic and all its subtasks.
+**Goal**: Create a Jira epic in `RHAI` to track the full onboarding workflow by cloning the [RHOAIENG-37060](https://issues.redhat.com/browse/RHOAIENG-37060) template epic (the template lives in legacy `RHOAIENG` — clone cross-project, do not create the new epic there) and all its subtasks.
 
 Skip if: `--skip-jira` flag is set.
 
@@ -117,7 +117,7 @@ If `--jira <EPIC-KEY>` was provided, use that existing epic and skip to Phase 2.
 Create a new epic with the component name in the title:
 
 ```python
-project_key="RHOAIENG",
+project_key="RHAI",
 issue_type="Epic",
 summary="Konflux Onboarding: <name>",
 description="Konflux CI/CD onboarding tracking epic for the <name> component.\n\nCloned from template: [RHOAIENG-37060|https://issues.redhat.com/browse/RHOAIENG-37060]",
@@ -134,7 +134,7 @@ additional_fields={
 Create the following subtasks under the new epic.
 
 **Critical API notes**:
-- `parent` must be a **plain string** (e.g., `"RHOAIENG-XXXXX"`), NOT an object like `{"key": "..."}` — the API will reject the object form.
+- `parent` must be a **plain string** (e.g., `"RHAI-XXXXX"`), NOT an object like `{"key": "..."}` — the API will reject the object form.
 - Do **NOT** set `customfield_10001` (team) on subtasks — they inherit team from the parent epic automatically. Setting it causes an API error.
 
 | # | Summary | Priority | Description |
@@ -151,7 +151,7 @@ Create the following subtasks under the new epic.
 For each subtask:
 
 ```python
-project_key="RHOAIENG",
+project_key="RHAI",
 issue_type="Sub-task",
 summary="<name>: <title from table>",
 description="<description from table adapted with component name and relevant links>",

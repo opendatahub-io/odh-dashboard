@@ -58,7 +58,7 @@ Write `cypress_found_bugs.json` and `cypress_classified.json` only under `$WORK_
 Query Jira for all issues with the `cypress_found_bug` label. Use `jira_search` with pagination (`limit=50`, walk `start_at` / next page until exhausted). Fetch list fields only: key, summary, priority, labels, created, fixVersions. **Order by `key ASC`** (the repo pagination contract). Do not paginate on `created DESC` — equal timestamps can shift rows between pages. Sort by created/priority later in memory for ranking.
 
 ```text
-JQL=project = RHOAIENG AND labels = cypress_found_bug ORDER BY key ASC
+JQL=project in (RHAI, RHOAIENG) AND labels = cypress_found_bug ORDER BY key ASC
 ```
 
 Apply `--since` filter if provided (append `AND created >= -Nd` to JQL).
