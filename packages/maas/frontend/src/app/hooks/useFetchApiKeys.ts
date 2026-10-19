@@ -8,11 +8,12 @@ import {
 } from 'mod-arch-core';
 import { type APIKeyListResponse, type APIKeySearchRequest } from '~/app/types/api-key';
 import { searchApiKeys, searchTenantApiKeys } from '~/app/api/api-keys';
+import { useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
 
 export const useFetchApiKeys = (
   searchRequest: APIKeySearchRequest,
-  isGridEnabled = false,
 ): FetchState<APIKeyListResponse> => {
+  const isGridEnabled = useGridFeatureFlag();
   const callback = React.useCallback<FetchStateCallbackPromise<APIKeyListResponse>>(
     (opts: APIOptions) =>
       (isGridEnabled ? searchTenantApiKeys() : searchApiKeys())(opts, searchRequest),

@@ -10,7 +10,7 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
-type MeEnvelope Envelope[*models.MaasMe, None]
+type MeEnvelope Envelope[*models.MaaSCallerIdentity, None]
 
 // GetMeHandler handles GET /api/v1/me.
 func GetMeHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

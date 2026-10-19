@@ -37,7 +37,7 @@ type KeysAndSubsProviderProps = {
 
 export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ children }) => {
   const isGridEnabled = useGridFeatureFlag();
-  const user = useUser();
+  const { orgAdmin } = useUser();
 
   const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<UserSubscription[]>>(
     (opts: APIOptions) => listUserSubscriptions()(opts),
@@ -47,9 +47,9 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
   const isMaasAdminCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(
     (opts: APIOptions) =>
       isGridEnabled
-        ? Promise.resolve(Boolean(user.clusterAdmin))
+        ? Promise.resolve(Boolean(orgAdmin))
         : getIsMaasAdmin()(opts).then((result) => result.allowed),
-    [isGridEnabled, user.clusterAdmin],
+    [isGridEnabled, orgAdmin],
   );
 
   const hasAnyApiKeysCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(

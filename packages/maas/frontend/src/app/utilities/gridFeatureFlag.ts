@@ -58,14 +58,15 @@ export const isGridFeatureFlagEnabledFromDevStorage = (): boolean => {
 
 export const useGridFeatureFlag = (): boolean => {
   const dashboardConfig = React.useContext(DashboardConfigContext);
+  if (typeof window !== 'undefined' && typeof window.__MAAS_CONSUMER_PORTAL_GRID__ === 'boolean') {
+    return window.__MAAS_CONSUMER_PORTAL_GRID__;
+  }
   const isDashboardGridEnabled =
     dashboardConfig === null ? false : dashboardConfig.dashboardConfig.grid === true;
-  const isPortalGridEnabled =
-    typeof window === 'undefined' ? false : window.__MAAS_CONSUMER_PORTAL_GRID__ === true;
-  return isDashboardGridEnabled || isPortalGridEnabled || isGridFeatureFlagEnabledFromDevStorage();
+  return isDashboardGridEnabled || isGridFeatureFlagEnabledFromDevStorage();
 };
 
 export const getMaaSMeDisplayName = (me: MaaSMe): string => me.name || me.email || me.sub;
 
-export const isMaaSMeAdmin = (me: MaaSMe): boolean =>
+export const isOrgAdmin = (me: MaaSMe): boolean =>
   me[MAAS_ORGS_CLAIM].some((org) => org.roles.includes('admins'));

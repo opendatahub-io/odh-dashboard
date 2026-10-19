@@ -1,16 +1,16 @@
 package models
 
-const MaasOrgsClaim = "https://redhat.com/maas/orgs"
+const MaaSOrgsClaim = "https://redhat.com/maas/orgs"
 
-type MaasOrg struct {
+type MaaSOrg struct {
 	OrganizationID   string   `json:"organization_id"`
 	OrganizationName string   `json:"organization_name,omitempty"`
 	Roles            []string `json:"roles"`
 }
 
-type MaasMe struct {
+type MaaSCallerIdentity struct {
 	Sub   string    `json:"sub"`
 	Email string    `json:"email,omitempty"`
 	Name  string    `json:"name,omitempty"`
-	Orgs  []MaasOrg `json:"https://redhat.com/maas/orgs"`
+	Orgs  []MaaSOrg `json:"https://redhat.com/maas/orgs"`
 }

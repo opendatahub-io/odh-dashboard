@@ -96,7 +96,7 @@ func TestGetMeHandler(t *testing.T) {
 				t.Fatalf("status = %d, want %d; body = %s", rr.Code, tt.wantStatus, rr.Body.String())
 			}
 			if tt.wantStatus == http.StatusOK {
-				var body Envelope[models.MaasMe, None]
+				var body Envelope[models.MaaSCallerIdentity, None]
 				if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
 					t.Fatalf("decode success response: %v", err)
 				}

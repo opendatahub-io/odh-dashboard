@@ -23,7 +23,6 @@ import {
   MaaSEvents,
 } from '~/app/types/event-tracking';
 import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
-import { useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
 import { useFetchApiKeys } from './useFetchApiKeys';
 
 type SortDirection = 'asc' | 'desc';
@@ -75,7 +74,6 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   const [localUsername, setLocalUsername] = React.useState('');
   const [isFetching, setIsFetching] = React.useState(false);
   const pendingUsernameSearch = React.useRef(false);
-  const isGridEnabled = useGridFeatureFlag();
 
   // The API has no concept of "inactive" — it only knows active | revoked | expired.
   // "Inactive" is a client-side display status for active keys whose subscription was
@@ -112,7 +110,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     ],
   );
 
-  const [rawResponse, loaded, error, refresh] = useFetchApiKeys(searchRequest, isGridEnabled);
+  const [rawResponse, loaded, error, refresh] = useFetchApiKeys(searchRequest);
 
   const { subscriptions } = useKeysAndSubsContext();
 

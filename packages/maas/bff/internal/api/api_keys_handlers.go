@@ -190,14 +190,18 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 // SearchTenantAPIKeysHandler handles POST /api/v1/api-keys/search/tenant.
 // It uses MaaS API data only and does not perform Kubernetes-backed enrichment.
 func SearchTenantAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var request Envelope[models.APIKeySearchRequest, None]
+	var request Envelope[*models.APIKeySearchRequest, None]
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	if request.Data == nil {
+		app.badRequestResponse(w, r, errors.New("data is required"))
+		return
+	}
 
-	response, err := app.repositories.APIKeys.SearchAPIKeys(r.Context(), request.Data)
+	response, err := app.repositories.APIKeys.SearchAPIKeys(r.Context(), *request.Data)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
