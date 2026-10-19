@@ -42,7 +42,7 @@ pnpm --filter @odh-dashboard/model-registry test:contract
 
 The automated upstream-sync workflow updates the vendored OpenAPI document from upstream `main` and runs these tests in the resulting sync PR, which surfaces upstream drift without requiring a live service.
 
-Pull requests that change the BFF OpenAPI document also run a static compatibility check through the shared [contract-tests](https://github.com/red-hat-data-services/contract-tests) workflow. The descriptor is stored in `.rhoai/contracts.yaml`, and the workflow compares the Model Catalog path prefix against the pull-request base.
+Pull requests that change the BFF OpenAPI document also run a static compatibility check through the shared [api-contract-tests](https://github.com/red-hat-data-services/api-contract-tests) workflow. The descriptor is stored in `.rhoai/contracts.yaml`, and the workflow compares the Model Catalog path prefix against the pull-request base.
 
 ## ODH Integration Point
 
