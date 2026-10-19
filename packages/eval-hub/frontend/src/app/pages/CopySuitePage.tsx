@@ -41,7 +41,6 @@ import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
 import CopySuiteSettingsStep from '~/app/pages/CopySuiteSettingsStep';
-import { suiteEvaluatesToSourceMode } from '~/app/utilities/startEvaluationRunUtils';
 import type { Collection } from '~/app/types';
 import { useCopySuiteForm } from './useCopySuiteForm';
 
@@ -494,7 +493,6 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             collection={pendingCollection}
             isCollectionFlow
             defaultEvaluationName={form.suiteName}
-            defaultSourceMode={suiteEvaluatesToSourceMode(form.suiteEvaluates)}
             modalId={
               isCreateMode
                 ? 'create-suite-run-evaluation-modal'
