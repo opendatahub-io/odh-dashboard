@@ -90,6 +90,21 @@ describe('Gen AI API Contract Tests', () => {
       }
       expect(result.response.data).toEqual({ data: null });
     });
+
+    it('should return a documented error when namespace is missing', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/lsd/status');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({
+          status: result.error.status,
+          headers: result.error.headers,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
   });
 
   describe('AAA Models Endpoint', () => {
