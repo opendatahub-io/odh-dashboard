@@ -121,6 +121,10 @@ class ModelDetailsPage {
     return cy.findByTestId('security-insights-empty-state');
   }
 
+  findSecurityInsightsEmptyStateLink() {
+    return cy.findByTestId('security-insights-empty-state-link');
+  }
+
   findQualityInsightsTab() {
     return cy.findByTestId('quality-insights-tab');
   }
@@ -131,6 +135,10 @@ class ModelDetailsPage {
 
   findQualityInsightsEmptyState() {
     return cy.findByTestId('quality-insights-empty-state');
+  }
+
+  findQualityInsightsEmptyStateLink() {
+    return cy.findByTestId('quality-insights-empty-state-link');
   }
 
   clickPerformanceInsightsTab() {

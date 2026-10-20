@@ -218,15 +218,14 @@ describe('Model Catalog Security and Quality Insights tabs (model-registry exten
 
     modelDetailsPage.findSecurityInsightsTab().should('exist');
     modelDetailsPage.findSecurityInsightsEmptyState().should('exist');
-    cy.findByTestId('security-insights-empty-state-link').should('exist');
+    modelDetailsPage.findSecurityInsightsEmptyStateLink().should('exist');
     cy.wait('@getSecurityArtifacts');
   });
 
   it('should hide the security insights tab when no security artifacts exist', () => {
     interceptShouldShowSecurityArtifacts(false);
 
-    cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
-    modelDetailsPage.findPageTitle().should('exist');
+    modelDetailsPage.visit(SOURCE_ID, ENCODED_MODEL_NAME);
     cy.wait('@shouldShowSecurityArtifacts');
     modelDetailsPage.findSecurityInsightsTab().should('not.exist');
   });
@@ -240,7 +239,7 @@ describe('Model Catalog Security and Quality Insights tabs (model-registry exten
     cy.wait('@shouldShowSecurityArtifacts');
     modelDetailsPage.findSecurityInsightsTab().should('exist');
     modelDetailsPage.findSecurityInsightsEmptyState().should('exist');
-    cy.findByTestId('security-insights-empty-state-link').should('not.exist');
+    modelDetailsPage.findSecurityInsightsEmptyStateLink().should('not.exist');
     cy.wait('@getSecurityArtifacts');
   });
 
@@ -287,8 +286,7 @@ describe('Model Catalog Security and Quality Insights tabs (model-registry exten
   it('should hide quality insights when no evaluation artifacts exist', () => {
     interceptShouldShowQualityArtifacts(false);
 
-    cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
-    modelDetailsPage.findPageTitle().should('exist');
+    modelDetailsPage.visit(SOURCE_ID, ENCODED_MODEL_NAME);
     cy.wait('@shouldShowQualityArtifacts');
     modelDetailsPage.findQualityInsightsTab().should('not.exist');
   });
@@ -301,7 +299,7 @@ describe('Model Catalog Security and Quality Insights tabs (model-registry exten
     modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
     modelDetailsPage.findQualityInsightsTab().should('exist');
     modelDetailsPage.findQualityInsightsEmptyState().should('exist');
-    cy.findByTestId('quality-insights-empty-state-link').should('not.exist');
+    modelDetailsPage.findQualityInsightsEmptyStateLink().should('not.exist');
     cy.wait('@shouldShowQualityArtifacts');
     cy.wait('@getQualityArtifacts');
   });
@@ -310,8 +308,7 @@ describe('Model Catalog Security and Quality Insights tabs (model-registry exten
     interceptShouldShowQualityArtifacts(false);
     interceptShouldShowSecurityArtifacts(true);
 
-    cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/quality-insights`);
-    modelDetailsPage.findPageTitle().should('exist');
+    modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
     cy.wait('@shouldShowQualityArtifacts');
     cy.location('pathname').should('match', /\/overview$/);
   });

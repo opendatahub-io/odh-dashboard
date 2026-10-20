@@ -399,9 +399,14 @@ Visibility behavior is intentionally conservative while an asynchronous predicat
   tab to the first visible tab.
 - A tab without `shouldShow` is always visible.
 
-Consumers should memoize `componentProps` so stable props can reuse predicate results. Predicates
-must treat the props object as the input for that evaluation; results from an earlier props object
-are never applied to the current detail page.
+Predicate results are reused across renders while the component props are considered unchanged.
+Reuse is decided by a shallow comparison: the current and cached props must have the same key set,
+and each top-level value must be identical per `Object.is`. Memoizing `componentProps` (for example
+with `React.useMemo`) keeps the object identity — and therefore the comparison — stable, but it is
+not required for reuse. Because the comparison is shallow, mutating a nested value (for example
+`props.filters.name = 'x'` on an otherwise unchanged object) is **not** detected: predicates receive
+the props object as their input and should treat nested structures as immutable. Results from an
+earlier, non-equal props object are never applied to the current detail page.
 
 ## Best Practices
 
