@@ -63,6 +63,17 @@ describe('Gen AI API Contract Tests', () => {
         ref: '#/components/responses/LlamaStackDistributionStatusResponse/content/application~1json/schema',
         status: 200,
       });
+      expect(result.success).toBe(true);
+      if (!result.success) {
+        throw new Error(result.error.message);
+      }
+      expect(result.response.data).toEqual({
+        data: expect.objectContaining({
+          name: 'mock-lsd',
+          phase: 'Ready',
+          version: 'v0.2.0',
+        }),
+      });
     });
 
     it('should return null data when no LlamaStack Distribution exists', async () => {
