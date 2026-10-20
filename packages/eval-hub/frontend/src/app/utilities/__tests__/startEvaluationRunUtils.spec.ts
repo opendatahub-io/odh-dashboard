@@ -1,7 +1,10 @@
 import {
+  getSourceOptions,
   getEvaluatingFieldLabel,
   suiteEvaluatesToSourceMode,
 } from '~/app/utilities/startEvaluationRunUtils';
+
+const PROVIDER_ID_KEY = 'provider_id';
 
 describe('startEvaluationRunUtils', () => {
   describe('suiteEvaluatesToSourceMode', () => {
@@ -26,6 +29,35 @@ describe('startEvaluationRunUtils', () => {
       expect(getEvaluatingFieldLabel('model')).toBe('Model');
       expect(getEvaluatingFieldLabel('agent')).toBe('Agent');
       expect(getEvaluatingFieldLabel('prerecorded')).toBe('Pre-recorded responses');
+    });
+  });
+
+  describe('getSourceOptions', () => {
+    it('should only offer prerecorded responses for IBM CLEAR benchmarks', () => {
+      expect(getSourceOptions({ providerId: 'ibm-clear' })).toContainEqual({
+        value: 'prerecorded',
+        label: 'Pre-recorded responses',
+      });
+      expect(getSourceOptions({ providerId: 'lm_evaluation_harness' })).not.toContainEqual({
+        value: 'prerecorded',
+        label: 'Pre-recorded responses',
+      });
+    });
+
+    it('should only offer prerecorded responses for all-IBM-CLEAR collections', () => {
+      expect(
+        getSourceOptions(undefined, {
+          benchmarks: [{ id: 'agentic-evaluation', [PROVIDER_ID_KEY]: 'ibm-clear' }],
+        }),
+      ).toContainEqual({ value: 'prerecorded', label: 'Pre-recorded responses' });
+      expect(
+        getSourceOptions(undefined, {
+          benchmarks: [
+            { id: 'agentic-evaluation', [PROVIDER_ID_KEY]: 'ibm-clear' },
+            { id: 'arc_easy', [PROVIDER_ID_KEY]: 'lm_evaluation_harness' },
+          ],
+        }),
+      ).not.toContainEqual({ value: 'prerecorded', label: 'Pre-recorded responses' });
     });
   });
 });

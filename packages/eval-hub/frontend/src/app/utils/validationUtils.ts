@@ -1,5 +1,10 @@
 import type { SourceMode } from '~/app/types';
 
+export const parseS3Url = (url: string): { bucket: string; key: string } | undefined => {
+  const match = url.match(/^s3:\/\/([^/]+)\/(.+)$/);
+  return match ? { bucket: match[1], key: match[2] } : undefined;
+};
+
 export const isValidUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
