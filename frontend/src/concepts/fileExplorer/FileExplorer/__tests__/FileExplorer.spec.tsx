@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Button, Popover } from '@patternfly/react-core';
 import * as React from 'react';
 import type { ExplorerFile, ExplorerFiles } from '#~/concepts/fileExplorer/types';
@@ -71,7 +72,8 @@ describe('FileExplorer', () => {
         ),
       ).not.toBeInTheDocument();
     });
-    it('should render modal-description popover content inside the modal focus-trap subtree', () => {
+    it('should render modal-description popover content inside the modal focus-trap subtree', async () => {
+      const user = userEvent.setup();
       render(
         <FileExplorer
           {...defaultProps}
@@ -90,11 +92,10 @@ describe('FileExplorer', () => {
         />,
       );
 
-      fireEvent.click(screen.getByRole('button', { name: 'Open description popover' }));
+      await user.click(screen.getByRole('button', { name: 'Open description popover' }));
 
       const popoverBody = screen.getByText('Test description popover body');
-      const modal = document.querySelector('.pf-v6-c-modal-box');
-      expect(modal).not.toBeNull();
+      const modal = screen.getByRole('dialog', { name: 'Select file or folder' });
       expect(modal).toContainElement(popoverBody);
     });
   });
@@ -209,13 +210,14 @@ describe('FileExplorer', () => {
       fireEvent.click(folderLink);
       expect(onFolderClick).toHaveBeenCalledWith(folder);
     });
-    it('should keep unselectable folders navigable', () => {
+    it('should keep unselectable folders navigable', async () => {
+      const user = userEvent.setup();
       const folder = mockFolder({ name: 'browse-only', selectable: false });
       const onFolderClick = jest.fn();
       render(<FileExplorer {...defaultProps} files={[folder]} onFolderClick={onFolderClick} />);
 
       const row = screen.getByTestId('file-explorer-row--test-folder');
-      fireEvent.click(within(row).getByRole('button', { name: 'browse-only' }));
+      await user.click(within(row).getByRole('button', { name: 'browse-only' }));
 
       expect(onFolderClick).toHaveBeenCalledWith(folder);
       expect(within(row).getByTestId('file-explorer-icon')).not.toHaveClass(
@@ -224,6 +226,26 @@ describe('FileExplorer', () => {
       expect(within(row).getByTestId('file-explorer-name')).not.toHaveClass(
         'pf-v6-u-text-color-disabled',
       );
+    });
+    it('should navigate without selecting when clicking an unselectable folder row outside its name', async () => {
+      const user = userEvent.setup();
+      const folder = mockFolder({ name: 'row-browse-only', selectable: false });
+      const onFolderClick = jest.fn();
+      const onSelectFile = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={[folder]}
+          onFolderClick={onFolderClick}
+          onSelectFile={onSelectFile}
+        />,
+      );
+
+      await user.click(screen.getByText('Folder'));
+
+      expect(onFolderClick).toHaveBeenCalledWith(folder);
+      expect(onSelectFile).not.toHaveBeenCalled();
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
     });
     it('should not render hidden files', () => {
       const files: ExplorerFiles = [

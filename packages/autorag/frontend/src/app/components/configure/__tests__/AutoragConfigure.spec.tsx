@@ -743,7 +743,7 @@ describe('AutoragConfigure', () => {
       expect(screen.getByRole('heading', { name: 'Select file or folder' })).toBeInTheDocument();
       expect(
         screen.getAllByText(
-          'Audio upload and automatic transcription are supported. Select a file or folder from this bucket to use as the knowledge for your experiment.',
+          'Select or upload documents to use as the knowledge for your experiment.',
         ).length,
       ).toBeGreaterThan(0);
     });

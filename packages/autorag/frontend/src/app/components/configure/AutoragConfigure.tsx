@@ -540,8 +540,7 @@ function AutoragConfigure({
               <CardHeader>
                 <Content component="h3">Knowledge setup</Content>
                 <Content component="p">
-                  Audio upload and automatic transcription are supported. Select a file or folder
-                  from this bucket to use as the knowledge for your experiment.
+                  Select or upload documents to use as the knowledge for your experiment.
                 </Content>
               </CardHeader>
               <CardBody>

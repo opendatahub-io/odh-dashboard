@@ -559,11 +559,14 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         event.nativeEvent instanceof KeyboardEvent &&
                         event.nativeEvent.code === 'Space';
 
-                      if (
-                        !isUnselectable &&
-                        (!clickedInteractiveDescendant || clickedRadioOrCheckboxWithKeyboard)
-                      ) {
-                        onSelect(event, selection === 'checkbox' ? !isSelected : true);
+                      if (!clickedInteractiveDescendant || clickedRadioOrCheckboxWithKeyboard) {
+                        if (isFolder(file) && isUnselectable) {
+                          if (!isExplicitlyDisabled) {
+                            onFolderClick?.(file);
+                          }
+                        } else if (!isUnselectable) {
+                          onSelect(event, selection === 'checkbox' ? !isSelected : true);
+                        }
                       }
                     }}
                   >
