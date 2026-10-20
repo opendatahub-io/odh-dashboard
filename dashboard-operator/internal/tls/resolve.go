@@ -185,8 +185,11 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 	if err != nil {
 		return result, fmt.Errorf("invalid cluster TLS profile: %w", err)
 	}
-	if ciphers != nil && len(ciphers) == 0 {
-		return result, fmt.Errorf("custom TLS profile specified ciphers but none are supported by Go")
+	// A sub-TLS-1.3 profile must enable at least one usable cipher suite; an
+	// empty or all-unsupported set must fail closed rather than leave CipherSuites
+	// unset (which would fall back to Go's defaults and broaden policy).
+	if minVersion < tls.VersionTLS13 && len(ciphers) == 0 {
+		return result, fmt.Errorf("TLS profile with minimum version below 1.3 resolved to no usable cipher suites")
 	}
 	if curves != nil && len(curves) == 0 {
 		return result, fmt.Errorf("custom TLS profile specified groups but none are supported by Go")
@@ -225,7 +228,12 @@ func parseProfile(apiServer *unstructured.Unstructured) (uint16, []uint16, []tls
 		return tls.VersionTLS12, IntermediateCiphers, nil, nil
 	}
 
-	profileType, _, _ := unstructured.NestedString(spec, "type")
+	profileType, _, err := unstructured.NestedString(spec, "type")
+	if err != nil {
+		// A non-string discriminator is malformed; fail closed rather than
+		// letting it coerce to "" and silently select Intermediate.
+		return 0, nil, nil, fmt.Errorf("reading spec.tlsSecurityProfile.type: %w", err)
+	}
 
 	switch profileType {
 	case "Intermediate", "":
@@ -247,7 +255,7 @@ func parseCustomProfile(spec map[string]interface{}) (uint16, []uint16, []tls.Cu
 		return 0, nil, nil, fmt.Errorf("reading custom TLS profile block: %w", err)
 	}
 	if !found || custom == nil {
-		return 0, nil, nil, fmt.Errorf("Custom TLS profile type specified but custom block is missing")
+		return 0, nil, nil, fmt.Errorf("custom TLS profile type specified but custom block is missing")
 	}
 
 	minTLSStr, _, _ := unstructured.NestedString(custom, "minTLSVersion")

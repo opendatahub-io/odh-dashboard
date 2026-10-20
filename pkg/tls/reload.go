@@ -45,7 +45,10 @@ type configResolver func(ctx context.Context) (*tls.Config, error)
 func ServeTLSWithReload(ctx context.Context, logger *slog.Logger, factory ServerFactory, certFile, keyFile string) error {
 	return serveTLSWithReload(ctx, logger, factory, certFile, keyFile, DefaultReloadInterval,
 		func(c context.Context) (*tls.Config, error) {
-			return ServerTLSConfig(c, logger)
+			// Strict resolution: a transient read error retains the running
+			// configuration (watchForReload keeps current on resolver error)
+			// rather than downgrading the listener to Intermediate defaults.
+			return ServerTLSConfigStrict(c, logger)
 		})
 }
 

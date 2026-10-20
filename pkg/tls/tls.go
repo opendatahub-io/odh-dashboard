@@ -197,6 +197,21 @@ var wellKnownProfiles = map[string]tlsProfileSpec{
 // unexpected error (e.g., REST client creation failure), the error is likewise
 // returned (fail-closed).
 func ServerTLSConfig(ctx context.Context, logger *slog.Logger) (*tls.Config, error) {
+	return serverTLSConfig(ctx, logger, false)
+}
+
+// ServerTLSConfigStrict is like ServerTLSConfig but also fails closed on
+// transient API errors (service-unavailable, timeout, throttling) instead of
+// returning Intermediate defaults. It is used for reload polling, where a
+// transient read must NOT downgrade an already-running listener: the caller
+// treats the returned error as "keep the current configuration". Genuinely
+// non-OpenShift clusters (API group absent / resource NotFound) still resolve to
+// Intermediate so that reload polling on such clusters is stable.
+func ServerTLSConfigStrict(ctx context.Context, logger *slog.Logger) (*tls.Config, error) {
+	return serverTLSConfig(ctx, logger, true)
+}
+
+func serverTLSConfig(ctx context.Context, logger *slog.Logger, strict bool) (*tls.Config, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		if stderrors.Is(err, rest.ErrNotInCluster) {
@@ -212,12 +227,13 @@ func ServerTLSConfig(ctx context.Context, logger *slog.Logger) (*tls.Config, err
 
 	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	return serverTLSConfigFromREST(fetchCtx, cfg, logger)
+	return serverTLSConfigFromREST(fetchCtx, cfg, logger, strict)
 }
 
 // serverTLSConfigFromREST is the internal implementation that accepts a REST config,
-// making it testable.
-func serverTLSConfigFromREST(ctx context.Context, restCfg *rest.Config, logger *slog.Logger) (*tls.Config, error) {
+// making it testable. When strict is true, transient API errors are returned
+// rather than resolving to Intermediate defaults (see ServerTLSConfigStrict).
+func serverTLSConfigFromREST(ctx context.Context, restCfg *rest.Config, logger *slog.Logger, strict bool) (*tls.Config, error) {
 	// Use a copy to avoid mutating the caller's config.
 	cfg := rest.CopyConfig(restCfg)
 	cfg.APIPath = "/apis"
@@ -253,6 +269,11 @@ func serverTLSConfigFromREST(ctx context.Context, restCfg *rest.Config, logger *
 			errors.IsTooManyRequests(err),
 			stderrors.Is(err, context.DeadlineExceeded),
 			stderrors.Is(err, context.Canceled):
+			if strict {
+				// During reload polling a transient error must not downgrade the
+				// running policy; signal the caller to keep the current config.
+				return nil, fmt.Errorf("transient error reading APIServer 'cluster' TLS profile: %w", err)
+			}
 			logger.Info("Transient API error reading TLS profile, using Intermediate TLS defaults",
 				"error", err)
 		case errors.IsForbidden(err), errors.IsUnauthorized(err):
@@ -301,8 +322,11 @@ func tlsConfigFromProfile(profile *tlsSecurityProfile, logger *slog.Logger) (*tl
 			logger.Info("some ciphers from cluster TLS profile are not supported by Go, dropped",
 				"dropped", dropped)
 		}
-		if len(spec.Ciphers) > 0 && len(ciphers) == 0 {
-			return nil, fmt.Errorf("custom TLS profile specified %d ciphers but none are supported by Go", len(spec.Ciphers))
+		// A sub-TLS-1.3 profile must enumerate at least one usable cipher suite.
+		// Reject both an empty allowlist and one whose entries are all unusable,
+		// rather than falling back to Go's defaults (which would broaden policy).
+		if len(ciphers) == 0 {
+			return nil, fmt.Errorf("TLS profile with minimum version %q resolved to no usable cipher suites (requested %d)", spec.MinTLSVersion, len(spec.Ciphers))
 		}
 		tlsCfg.CipherSuites = ciphers
 	}

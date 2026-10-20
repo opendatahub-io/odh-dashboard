@@ -42,18 +42,25 @@ import (
 
 // resolveServerTLSConfig derives the HTTPS listener TLS configuration from the
 // OpenShift cluster TLS security profile, replacing the previously hardcoded
-// TLS 1.3. A nil result means plaintext. Fatal resolution errors (e.g. an
-// all-unsupported custom cipher set) are returned so startup fails closed.
-func resolveServerTLSConfig(ctx context.Context, kubeconfig *rest.Config) (*tls.Config, map[string]any, error) {
+// TLS 1.3. It fails closed: a fatal resolution error (e.g. an all-unsupported
+// custom cipher set) or a degraded result (denied/transient read or a malformed
+// profile, where the resolver substituted defaults because of a problem) returns
+// an error so the listener does not start/reload with a policy we cannot prove.
+// apiAvailable reports whether the OpenShift APIServer config API exists, so the
+// caller only registers the profile watcher on OpenShift clusters.
+func resolveServerTLSConfig(ctx context.Context, kubeconfig *rest.Config) (cfg *tls.Config, profile map[string]any, apiAvailable bool, err error) {
 	result, err := tlsprofile.Resolve(ctx, kubeconfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, false, err
 	}
-	cfg := &tls.Config{}
+	if result.Degraded {
+		return nil, nil, result.APIAvailable, fmt.Errorf("cluster TLS profile could not be authoritatively resolved (degraded); refusing to serve an unverified policy")
+	}
+	tlsCfg := &tls.Config{}
 	for _, opt := range result.TLSOpts {
-		opt(cfg)
+		opt(tlsCfg)
 	}
-	return cfg, result.Profile, nil
+	return tlsCfg, result.Profile, result.APIAvailable, nil
 }
 
 //	@title			Kubeflow Notebooks API
@@ -286,9 +293,10 @@ func run() (status int) {
 	// (replaces the previously hardcoded TLS 1.3). Only when TLS is enabled.
 	var serverTLSConfig *tls.Config
 	var initialTLSProfile map[string]any
+	var tlsAPIAvailable bool
 	tlsEnabled := certFile != "" && keyFile != ""
 	if tlsEnabled {
-		serverTLSConfig, initialTLSProfile, err = resolveServerTLSConfig(context.Background(), kubeconfig)
+		serverTLSConfig, initialTLSProfile, tlsAPIAvailable, err = resolveServerTLSConfig(context.Background(), kubeconfig)
 		if err != nil {
 			logger.Error("failed to resolve cluster TLS profile", "error", err)
 			return 1
@@ -306,19 +314,24 @@ func run() (status int) {
 	}
 
 	// Watch the cluster TLS profile and gracefully restart the HTTPS listener
-	// when it changes, so policy updates apply without a pod restart.
-	if tlsEnabled {
+	// when it changes, so policy updates apply without a pod restart. Only
+	// register the watcher on OpenShift clusters where the APIServer config API
+	// exists; on plain Kubernetes it is absent and the controller would fail.
+	if tlsEnabled && tlsAPIAvailable {
 		watcher := &tlsprofile.ProfileWatcher{
 			Client:         mgr.GetClient(),
 			InitialProfile: initialTLSProfile,
-			OnProfileChange: func(ctx context.Context) {
-				newCfg, _, resolveErr := resolveServerTLSConfig(ctx, kubeconfig)
+			OnProfileChange: func(ctx context.Context) error {
+				newCfg, _, _, resolveErr := resolveServerTLSConfig(ctx, kubeconfig)
 				if resolveErr != nil {
-					logger.Error("failed to re-resolve TLS profile on change; keeping current configuration", "error", resolveErr)
-					return
+					// Keep the running configuration and let the watcher retry
+					// rather than downgrading on a transient/denied re-read.
+					logger.Error("failed to re-resolve TLS profile on change; keeping current configuration and retrying", "error", resolveErr)
+					return resolveErr
 				}
 				logger.Info("cluster TLS profile changed, reloading HTTPS listener")
 				svr.ReloadTLSConfig(newCfg)
+				return nil
 			},
 		}
 		if err := watcher.SetupWithManager(mgr); err != nil {

@@ -119,6 +119,31 @@ func TestResolve_CustomBlockMissingFailsClosed(t *testing.T) {
 	}
 }
 
+func TestResolve_NonStringTypeFailsClosed(t *testing.T) {
+	// A non-string profile discriminator is malformed and must fail closed
+	// rather than coerce to "" and select Intermediate.
+	apiServer := newAPIServer(map[string]interface{}{"type": int64(123)})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for non-string profile type, got nil")
+	}
+}
+
+func TestResolve_CustomEmptyCiphersTLS12FailsClosed(t *testing.T) {
+	// A sub-TLS-1.3 Custom profile with no ciphers must fail closed rather than
+	// leave CipherSuites unset (Go defaults).
+	apiServer := newAPIServer(map[string]interface{}{
+		"type": "Custom",
+		"custom": map[string]interface{}{
+			"minTLSVersion": "VersionTLS12",
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for TLS 1.2 Custom profile with no ciphers, got nil")
+	}
+}
+
 func TestResolve_CustomBadMinVersionFailsClosed(t *testing.T) {
 	apiServer := newAPIServer(map[string]interface{}{
 		"type": "Custom",
