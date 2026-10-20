@@ -146,20 +146,31 @@ const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue
   typeof value === 'boolean' ||
   React.isValidElement(value);
 
-const getFileIcon = (fileName: string, testId: string, isDisabled: boolean): ReactNode => {
-  const extension = fileName.split('.').pop()?.toLowerCase();
+type FileExplorerIconProps = {
+  file: ExplorerFile | Folder;
+};
+
+const FileExplorerIcon: React.FC<FileExplorerIconProps> = ({ file }) => {
+  const isExplicitlyDisabled = file.disabled === true || typeof file.disabled === 'string';
+  const isDisabled = isExplicitlyDisabled || (file.selectable === false && !isFolder(file));
   const props = {
     'aria-hidden': true,
-    'data-testid': testId,
     color: isDisabled ? DisabledColor.var : undefined,
   };
+
+  if (isFolder(file)) {
+    return <FolderIcon {...props} data-testid="file-explorer-folder-icon" />;
+  }
+
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  const fileProps = { ...props, 'data-testid': 'file-explorer-file-icon' };
 
   switch (extension) {
     case 'json':
     case 'html':
     case 'htm':
     case 'xhtml':
-      return <FileCodeIcon {...props} data-testid="file-explorer-code-icon" />;
+      return <FileCodeIcon {...fileProps} data-testid="file-explorer-code-icon" />;
     case 'md':
     case 'markdown':
     case 'txt':
@@ -168,29 +179,29 @@ const getFileIcon = (fileName: string, testId: string, isDisabled: boolean): Rea
     case 'qmd':
     case 'rmd':
     case 'eml':
-      return <FileAltIcon {...props} data-testid="file-explorer-file-alt-icon" />;
+      return <FileAltIcon {...fileProps} data-testid="file-explorer-file-alt-icon" />;
     case 'csv':
-      return <FileCsvIcon {...props} data-testid="file-explorer-csv-icon" />;
+      return <FileCsvIcon {...fileProps} data-testid="file-explorer-csv-icon" />;
     case 'pdf':
-      return <FilePdfIcon {...props} data-testid="file-explorer-pdf-icon" />;
+      return <FilePdfIcon {...fileProps} data-testid="file-explorer-pdf-icon" />;
     case 'docx':
-      return <FileWordIcon {...props} data-testid="file-explorer-word-icon" />;
+      return <FileWordIcon {...fileProps} data-testid="file-explorer-word-icon" />;
     case 'pptx':
-      return <FilePowerpointIcon {...props} data-testid="file-explorer-powerpoint-icon" />;
+      return <FilePowerpointIcon {...fileProps} data-testid="file-explorer-powerpoint-icon" />;
     case 'jpg':
     case 'jpeg':
     case 'png':
     case 'tif':
     case 'tiff':
-      return <FileImageIcon {...props} data-testid="file-explorer-image-icon" />;
+      return <FileImageIcon {...fileProps} data-testid="file-explorer-image-icon" />;
     case 'm4a':
     case 'mp3':
     case 'flac':
     case 'ogg':
     case 'wav':
-      return <FileAudioIcon {...props} data-testid="file-explorer-audio-icon" />;
+      return <FileAudioIcon {...fileProps} data-testid="file-explorer-audio-icon" />;
     default:
-      return <FileIcon {...props} />;
+      return <FileIcon {...fileProps} />;
   }
 };
 
@@ -595,15 +606,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                             }
                             data-testid="file-explorer-icon"
                           >
-                            {isFolder(file) ? (
-                              <FolderIcon
-                                aria-hidden
-                                color={isSelectionDisabled ? DisabledColor.var : undefined}
-                                data-testid="file-explorer-folder-icon"
-                              />
-                            ) : (
-                              getFileIcon(file.name, 'file-explorer-file-icon', isSelectionDisabled)
-                            )}
+                            <FileExplorerIcon file={file} />
                           </Icon>
                         </FlexItem>
                         <FlexItem
