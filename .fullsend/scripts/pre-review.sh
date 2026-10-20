@@ -302,15 +302,15 @@ run_adapter() {
 
 # Adapters are independent, so they run at once and the review waits only for
 # the slowest (CodeRabbit, up to 20 minutes). Each one's output is buffered and
-# printed whole, in registry order. An adapter that exits non-zero gets an
-# `error` envelope in place of whatever it left, so the review reports it as
-# errored instead of missing. The review itself carries on, as it did when the
+# printed whole, in registry order. An adapter that exits non-zero, or exits
+# zero without writing its envelope, gets an `error` envelope in place of
+# whatever it left, so the review reports it as errored instead of missing. The review itself carries on, as it did when the
 # adapters were separate jobs: every adapter row is failure_severity "info".
 write_adapter_failure_envelope() {
-  local id="$1" output="$2" producer_file="$3" code="$4" destination
+  local id="$1" output="$2" producer_file="$3" reason="$4" destination
   destination="${_SCRIPT_DIR}/../${producer_file}"
   mkdir -p "$(dirname "${destination}")"
-  jq -n --arg id "${id}" --arg output "${output}" --arg reason "adapter-exited-${code}" '
+  jq -n --arg id "${id}" --arg output "${output}" --arg reason "${reason}" '
     {id: $id, dimension: $id, kind: "cli-adapter", output: $output,
      status: "error", reason: $reason}
     + (if $output == "findings" then {findings: []} else {} end)
@@ -345,11 +345,14 @@ run_pre_review_adapters() {
   for ((i = 0; i < ${#ids[@]}; i++)); do
     code=0
     wait "${pids[i]}" || code=$?
-    if [[ "${code}" -eq 0 ]]; then
-      echo "::group::${ids[i]} adapter"
-    else
+    if [[ "${code}" -ne 0 ]]; then
       echo "::group::${ids[i]} adapter (exited ${code})"
-      write_adapter_failure_envelope "${ids[i]}" "${outputs[i]}" "${producer_files[i]}" "${code}"
+      write_adapter_failure_envelope "${ids[i]}" "${outputs[i]}" "${producer_files[i]}" "adapter-exited-${code}"
+    elif [[ ! -s "${_SCRIPT_DIR}/../${producer_files[i]}" ]]; then
+      echo "::group::${ids[i]} adapter (wrote no envelope)"
+      write_adapter_failure_envelope "${ids[i]}" "${outputs[i]}" "${producer_files[i]}" "adapter-wrote-no-output"
+    else
+      echo "::group::${ids[i]} adapter"
     fi
     cat "${log_dir}/${ids[i]}.log"
     echo "::endgroup::"
@@ -587,6 +590,10 @@ run_self_test() {
     # and its partial output is replaced.
     jq -e '.id == "d" and .status == "error" and .reason == "adapter-exited-3"
       and (.findings | length == 0)' "${temp_dir}/.run/d.json" >/dev/null || exit 1
+    # Exiting zero without an envelope is reported too (the stub runners only
+    # write their env dumps).
+    jq -e '.id == "a" and .status == "error" and .reason == "adapter-wrote-no-output"
+      and (has("findings") | not)' "${temp_dir}/.run/a.json" >/dev/null || exit 1
     # A row that claims a reserved name fails capture and validation, and
     # capture unsets nothing first. The fixture itself validates.
     validate_adapter_registry || exit 1
