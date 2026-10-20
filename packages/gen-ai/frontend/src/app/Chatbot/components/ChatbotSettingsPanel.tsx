@@ -174,6 +174,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
   const hasWarnings = !!loadedProfileWarnings?.length;
 
+  // Loading an agent profile supersedes the revert — drop the stale toast
+  React.useEffect(() => {
+    if (profileApplied) {
+      setShowRevertedAlert(false);
+    }
+  }, [profileApplied]);
+
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
 

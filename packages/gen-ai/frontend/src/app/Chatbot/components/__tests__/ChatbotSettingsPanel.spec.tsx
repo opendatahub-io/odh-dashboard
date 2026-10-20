@@ -332,6 +332,25 @@ describe('ChatbotSettingsPanel', () => {
     expect(screen.queryByTestId('settings-reverted-alert')).not.toBeInTheDocument();
   });
 
+  it('should hide the default-settings toast when an agent profile is loaded', () => {
+    mockAgentConfigManagementEnabled = true;
+    render(
+      <ChatbotSettingsPanel
+        {...defaultProps}
+        isDefaultConfigDirty
+        onRevertToDefaults={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('settings-panel-reset-button'));
+    fireEvent.click(screen.getByTestId('reset-agent-confirm-button'));
+    expect(screen.getByTestId('settings-reverted-alert')).toBeInTheDocument();
+    act(() => {
+      useChatbotConfigStore.getState().applyAgentProfile({}, 'agent-id', 'Agent', '');
+    });
+    expect(screen.queryByTestId('settings-reverted-alert')).not.toBeInTheDocument();
+  });
+
   it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {
     const user = userEvent.setup();
     const mockOnCloseClick = jest.fn();

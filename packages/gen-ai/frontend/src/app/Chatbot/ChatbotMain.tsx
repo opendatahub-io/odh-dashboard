@@ -183,11 +183,15 @@ const ChatbotMain: React.FunctionComponent = () => {
   // neither flagged as dirty nor discarded by Revert.
   const defaultConfigBaselineRef = React.useRef<ChatbotConfiguration | null>(null);
   const configurations = useChatbotConfigStore((s) => s.configurations);
+  const hasBaseline = defaultConfigBaselineRef.current !== null;
   // Mask values the app manages automatically (default guardrail, inline-mode vector
-  // store, conversation images) so they don't read as user edits
+  // store, conversation images) so they don't read as user edits. MCP tool selections
+  // are also masked until the baseline exists — the store pre-loads them from
+  // sessionStorage before initialization captures the baseline.
   const serializeConfigForDirtyCheck = (config: ChatbotConfiguration): string =>
     JSON.stringify({
       ...config,
+      mcpToolSelections: hasBaseline ? config.mcpToolSelections : {},
       guardrail:
         config.guardrail ===
         models.find((model) =>
