@@ -21,7 +21,7 @@ import (
 
 func TestGetOperatorSubscriptionStatusHandler(t *testing.T) {
 	dsc := &unstructured.Unstructured{Object: map[string]any{
-		"apiVersion": "datasciencecluster.opendatahub.io/v3",
+		"apiVersion": "datasciencecluster.opendatahub.io/v2",
 		"kind":       "DataScienceCluster",
 		"metadata":   map[string]any{"name": "default-dsc"},
 		"status": map[string]any{

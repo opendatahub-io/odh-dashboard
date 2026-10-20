@@ -21,7 +21,7 @@ const (
 	kueueManagedLabel       = "kueue.x-k8s.io/managed"
 	legacyKueueManagedLabel = "kueue.openshift.io/managed"
 	dscGroup                = "datasciencecluster.opendatahub.io"
-	dscVersion              = "v3"
+	dscVersion              = "v2"
 	dscResource             = "datascienceclusters"
 	kueueOperatorGroup      = "kueue.openshift.io"
 	kueueOperatorVersion    = "v1"

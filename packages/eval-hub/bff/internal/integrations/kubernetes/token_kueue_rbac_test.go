@@ -28,8 +28,8 @@ func TestTokenKubernetesClientUsesServiceAccountForKueueDiscovery(t *testing.T) 
 			fmt.Fprint(w, `{"apiVersion":"v1","kind":"Namespace","metadata":{"name":"rbac-discovery-test"}}`)
 		case "/apis/kueue.openshift.io/v1/kueues":
 			fmt.Fprint(w, `{"apiVersion":"kueue.openshift.io/v1","kind":"KueueList","items":[]}`)
-		case "/apis/datasciencecluster.opendatahub.io/v3/datascienceclusters":
-			fmt.Fprint(w, `{"apiVersion":"datasciencecluster.opendatahub.io/v3","kind":"DataScienceClusterList","items":[]}`)
+		case "/apis/datasciencecluster.opendatahub.io/v2/datascienceclusters":
+			fmt.Fprint(w, `{"apiVersion":"datasciencecluster.opendatahub.io/v2","kind":"DataScienceClusterList","items":[]}`)
 		default:
 			t.Errorf("unexpected Kubernetes request: %s", r.URL.Path)
 			http.NotFound(w, r)
