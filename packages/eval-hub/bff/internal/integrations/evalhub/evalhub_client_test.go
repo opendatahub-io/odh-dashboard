@@ -234,7 +234,7 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 				},
 				Name:              "Safety Suite",
 				Description:       "Safety benchmarks",
-				Domains:           []string{"safety"},
+				Domains:           []string{"trustworthiness"},
 				Tasks:             []string{"classification"},
 				Modalities:        []string{"text"},
 				Industries:        []string{"healthcare"},
@@ -279,7 +279,7 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	assert.Equal(t, "col-1", result.Items[0].Resource.ID)
 	assert.Equal(t, "Safety Suite", result.Items[0].Name)
 	assert.Equal(t, 3, result.Items[0].Resource.VersionCounter)
-	assert.Equal(t, []string{"safety"}, result.Items[0].Domains)
+	assert.Equal(t, []string{"trustworthiness"}, result.Items[0].Domains)
 	assert.Equal(t, []string{"classification"}, result.Items[0].Tasks)
 	assert.Equal(t, []string{"text"}, result.Items[0].Modalities)
 	assert.Equal(t, []string{"healthcare"}, result.Items[0].Industries)
@@ -449,7 +449,7 @@ func TestEvalHubClient_CreateCollection(t *testing.T) {
 	request := CreateCollectionRequest{
 		Name:              "My New Suite",
 		Description:       "A custom suite",
-		Domains:           []string{"safety"},
+		Domains:           []string{"trustworthiness"},
 		Tasks:             []string{"classification"},
 		Modalities:        []string{"text"},
 		Industries:        []string{"technology"},
@@ -469,7 +469,7 @@ func TestEvalHubClient_CreateCollection(t *testing.T) {
 		assert.JSONEq(t, `{
 			"name": "My New Suite",
 			"description": "A custom suite",
-			"domains": ["safety"],
+			"domains": ["trustworthiness"],
 			"tasks": ["classification"],
 			"modalities": ["text"],
 			"industries": ["technology"],
@@ -883,7 +883,7 @@ func TestEvalHubClient_GetEvaluationJobLogs_RejectsOversizedResponse(t *testing.
 }
 
 func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
-	domains := []string{"safety", "reasoning"}
+	domains := []string{"trustworthiness", "knowledge_and_reasoning"}
 	tasks := []string{"classification"}
 	modalities := []string{"text"}
 	industries := []string{"technology"}
@@ -924,7 +924,7 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 			"description": "Custom collection settings",
 			"category": "Safety",
 			"tags": ["custom", "agent"],
-			"domains": ["safety", "reasoning"],
+			"domains": ["trustworthiness", "knowledge_and_reasoning"],
 			"tasks": ["classification"],
 			"modalities": ["text"],
 			"industries": ["technology"],
@@ -964,7 +964,7 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "collection-001-clone", result.Resource.ID)
 	assert.Equal(t, []string{"custom", "agent"}, result.Tags)
-	assert.Equal(t, []string{"safety", "reasoning"}, result.Domains)
+	assert.Equal(t, []string{"trustworthiness", "knowledge_and_reasoning"}, result.Domains)
 	assert.Equal(t, []string{"classification"}, result.Tasks)
 	assert.Equal(t, []string{"text"}, result.Modalities)
 	assert.Equal(t, []string{"technology"}, result.Industries)

@@ -35,6 +35,7 @@ const provider = mockProvider({
 const sourceCollection = mockCollection({
   id: 'source-suite',
   name: 'Source suite',
+  domains: ['trustworthiness'],
   benchmarkIds: ['bench-alpha'],
 });
 

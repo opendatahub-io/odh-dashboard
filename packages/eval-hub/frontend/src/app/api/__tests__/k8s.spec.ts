@@ -352,7 +352,7 @@ describe('getCollection', () => {
       data: {
         name: 'Test',
         resource: { id: 'col-1' },
-        domains: ['safety', 123],
+        domains: ['trustworthiness', 123],
         evaluation_targets: 'model',
         industries: [null, 'healthcare'],
       },
@@ -362,7 +362,7 @@ describe('getCollection', () => {
     const result = await getCollection('', 'test-ns', 'col-1')({});
 
     expect(result).toMatchObject({
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       evaluation_targets: undefined,
       industries: ['healthcare'],
     });
@@ -587,14 +587,14 @@ describe('createCollection', () => {
   it('should create a collection with metadata and evaluation target arrays', async () => {
     const request: CreateCollectionRequest = {
       name: 'New suite',
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       evaluation_targets: ['model'],
       benchmarks: [{ id: 'benchmark-001' }],
     };
     const collection: Collection = {
       resource: { id: 'created-collection' },
       name: 'New suite',
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       evaluation_targets: ['model'],
       benchmarks: [{ id: 'benchmark-001' }],
     };
@@ -714,7 +714,7 @@ describe('getCollections', () => {
       {
         resource: { id: 'col-1' },
         name: 'Collection',
-        domains: ['safety', 123],
+        domains: ['trustworthiness', 123],
         evaluation_targets: 'model',
         industries: [null, 'healthcare'],
       },
@@ -724,7 +724,7 @@ describe('getCollections', () => {
 
     const result = await getCollections('', { namespace: 'ns' })({});
 
-    expect(result.items[0].domains).toEqual(['safety']);
+    expect(result.items[0].domains).toEqual(['trustworthiness']);
     expect(result.items[0].evaluation_targets).toBeUndefined();
     expect(result.items[0].industries).toEqual(['healthcare']);
   });
@@ -736,7 +736,7 @@ describe('getCollections', () => {
         name: 'Collection',
         category: 123,
         tags: ['curated', null],
-        domains: ['safety', 123],
+        domains: ['trustworthiness', 123],
         tasks: ['question_answering', false],
         modalities: ['text', {}],
         industries: ['healthcare', undefined],
@@ -758,7 +758,7 @@ describe('getCollections', () => {
     expect(result.items[0]).toMatchObject({
       category: undefined,
       tags: ['curated'],
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       tasks: ['question_answering'],
       modalities: ['text'],
       industries: ['healthcare'],
