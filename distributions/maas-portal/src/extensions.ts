@@ -64,6 +64,15 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
+  // Hide the AAE page
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'app.navigation/href',
+      targetId: 'ai-assets',
+    },
+  } satisfies SuppressExtension,
+
   // Patch package-owned nav items: clear section (flatten) and set top-level group order
   {
     type: 'app.patch',
@@ -108,6 +117,23 @@ const extensions: Extension[] = [
       patch: { section: null, group: '5_maas_governance' },
     },
   } satisfies PatchExtension<NavPatch>,
+  {
+    type: 'app.route',
+    properties: {
+      path: '/maas/models/*',
+      component: () => import('@odh-dashboard/gen-ai/MaaSModelsPageProvider'),
+    },
+  } satisfies RouteExtension,
+  {
+    type: 'app.navigation/href',
+    properties: {
+      id: 'maas-models',
+      title: 'Models endpoints',
+      href: '/maas/models',
+      path: '/maas/models/*',
+      group: '1_models',
+    },
+  },
 ];
 
 export default extensions;

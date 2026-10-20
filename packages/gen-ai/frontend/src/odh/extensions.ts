@@ -5,7 +5,6 @@ import type {
   AreaExtension,
   TaskGroupExtension,
   TaskItemExtension,
-  HrefNavItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import {
   aiAssetsRootPath,
@@ -313,26 +312,6 @@ const extensions: (
       order: '2_ai_assets',
     },
   },
-  // MaaSModelsPage
-  {
-    type: 'app.navigation/href',
-    flags: { required: [GRID] },
-    properties: {
-      id: 'maas-models',
-      title: 'Models',
-      href: '/maas/models',
-      path: '/maas/models',
-      group: '0_models',
-    },
-  } satisfies HrefNavItemExtension,
-  {
-    type: 'app.route',
-    flags: { required: [GRID] },
-    properties: {
-      path: '/maas/models',
-      component: () => import('../app/pages/MaaSModelsPageProvider'),
-    },
-  } satisfies RouteExtension,
 ];
 
 export default extensions;
