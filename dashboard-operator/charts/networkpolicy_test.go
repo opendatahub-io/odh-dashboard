@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"sigs.k8s.io/yaml"
@@ -170,4 +171,40 @@ func TestOperatorNetworkPolicyDisabled(t *testing.T) {
 	if strings.Contains(output, "kind: NetworkPolicy") {
 		t.Fatal("expected no NetworkPolicy when networkPolicy.enabled=false")
 	}
+}
+
+// TestDeploymentMetricsContainerPort guards the stale 8080 -> 8443 fix: the manager binds secure
+// metrics on :8443, so the Deployment's named metrics port must match what the NetworkPolicy allows.
+func TestDeploymentMetricsContainerPort(t *testing.T) {
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm not installed")
+	}
+
+	output, err := renderChartTemplate("../charts/dashboard", "--namespace", "opendatahub")
+	if err != nil {
+		t.Fatalf("render chart: %v", err)
+	}
+
+	for _, doc := range strings.Split(output, "---") {
+		doc = strings.TrimSpace(doc)
+		if doc == "" || !strings.Contains(doc, "kind: Deployment") {
+			continue
+		}
+		var deployment appsv1.Deployment
+		if err := yaml.Unmarshal([]byte(doc), &deployment); err != nil {
+			t.Fatalf("parse Deployment: %v", err)
+		}
+		for _, container := range deployment.Spec.Template.Spec.Containers {
+			for _, port := range container.Ports {
+				if port.Name == "metrics" {
+					if port.ContainerPort != 8443 {
+						t.Fatalf("metrics containerPort must be 8443, got %d", port.ContainerPort)
+					}
+					return
+				}
+			}
+		}
+		t.Fatal("expected a container port named metrics")
+	}
+	t.Fatal("expected a Deployment in rendered chart output")
 }

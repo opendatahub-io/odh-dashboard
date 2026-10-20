@@ -89,6 +89,7 @@ func operatorOwnedResources() map[string]bool {
 		"ConfigMap/" + resolveDistributionConfigMapName(): true, // dashboard.configMapName
 		"ClusterRole/" + base + "-role":                   true,
 		"ClusterRoleBinding/" + base + "-rolebinding":     true,
+		"NetworkPolicy/" + base + "-metrics":              true, // charts/.../networkpolicy.yaml (protects the running controller pod)
 	}
 }
 
