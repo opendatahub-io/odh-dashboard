@@ -507,15 +507,19 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
 
   const hiddenToken = createdToken ? formatApiKeyHiddenPreview(createdToken) : '';
   const subscriptionIdHeader = selectedSubscription?.subscription_id_header ?? '';
-  const selectedModelRef = selectedSubscription?.model_refs.find(
-    (ref) => ref.name === effectiveSelectedModel,
-  );
-  const selectedMaaSModel = findMaaSModelBySubscriptionRef(maasModels, {
-    refName: effectiveSelectedModel,
-    refNamespace: selectedModelRef?.namespace,
-    catalogModelId: selectedModelRef?.model_name,
-    subscriptionId: subscriptionIdHeader,
-  });
+  const selectedModelRef =
+    availableModelOptions.length > 0
+      ? selectedSubscription?.model_refs.find((ref) => ref.name === effectiveSelectedModel)
+      : undefined;
+  const selectedMaaSModel =
+    availableModelOptions.length > 0
+      ? findMaaSModelBySubscriptionRef(maasModels, {
+          refName: effectiveSelectedModel,
+          refNamespace: selectedModelRef?.namespace,
+          catalogModelId: selectedModelRef?.model_name,
+          subscriptionId: subscriptionIdHeader,
+        })
+      : undefined;
   const usageExampleModelId = selectedMaaSModel?.id ?? '';
   const usageExampleBaseUrl = selectedMaaSModel?.url;
   const usageExampleKind = resolveApiKeyUsageExampleKind(

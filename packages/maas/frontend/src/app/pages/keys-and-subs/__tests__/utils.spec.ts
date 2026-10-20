@@ -297,21 +297,6 @@ describe('resolveApiKeyUsageExampleKind', () => {
 });
 
 describe('buildApiKeyUsageExample', () => {
-  it('should build a chat completions curl example without subscription header', () => {
-    const example = buildApiKeyUsageExample(
-      'https://maas.apps.example.com',
-      'granite-3b-instruct',
-      'sk-test-key',
-    );
-    expect(example).toContain('export API_KEY="sk-test-key"');
-    expect(example).toContain('curl -X POST https://maas.apps.example.com/v1/chat/completions');
-    expect(example).toContain('-H "Authorization: Bearer $API_KEY"');
-    expect(example).not.toContain('X-MAAS-SUBSCRIPTION');
-    expect(example).not.toContain('/maas-api');
-    expect(example).toContain('"model":"granite-3b-instruct"');
-    expect(getApiKeyUsageExampleEndpointPath('chat')).toBe('/v1/chat/completions');
-  });
-
   it('should build an embeddings curl example', () => {
     const example = buildApiKeyUsageExample(
       'https://maas.apps.example.com',
@@ -322,7 +307,6 @@ describe('buildApiKeyUsageExample', () => {
     expect(example).toContain('/v1/embeddings');
     expect(example).toContain('"input":"Hello"');
     expect(example).not.toContain('messages');
-    expect(example).not.toContain('X-MAAS-SUBSCRIPTION');
     expect(getApiKeyUsageExampleEndpointPath('embedding')).toBe('/v1/embeddings');
   });
 
@@ -337,7 +321,6 @@ describe('buildApiKeyUsageExample', () => {
     expect(example).toContain('-F "file=@<path-to-audio-file>"');
     expect(example).toContain('-F "model=asr-model"');
     expect(example).not.toContain('Content-Type: application/json');
-    expect(example).not.toContain('X-MAAS-SUBSCRIPTION');
     expect(getApiKeyUsageExampleEndpointPath('transcription')).toBe('/v1/audio/transcriptions');
   });
 

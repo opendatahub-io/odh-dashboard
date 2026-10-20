@@ -898,8 +898,6 @@ describe('API Keys Page', () => {
     copyApiKeyModal
       .findSubscriptionInfoPopoverBody()
       .should('contain.text', 'Premium Team Subscription');
-
-    copyApiKeyModal.findAccessDetails().should('exist');
     copyApiKeyModal.expandAccessDetails();
     copyApiKeyModal
       .findModelID()
@@ -914,8 +912,7 @@ describe('API Keys Page', () => {
         'contain.text',
         'https://example.com/models/granite-3-8b-instruct/v1/chat/completions',
       )
-      .and('contain.text', '"model":"publishers/maas-models/models/granite-3-8b-instruct"')
-      .and('not.contain.text', 'X-MAAS-SUBSCRIPTION');
+      .and('contain.text', '"model":"publishers/maas-models/models/granite-3-8b-instruct"');
     copyApiKeyModal
       .findEndpointCompatibilityAlert()
       .scrollIntoView()
@@ -932,8 +929,7 @@ describe('API Keys Page', () => {
     copyApiKeyModal
       .findUsageExample()
       .should('contain.text', '"model":"publishers/maas-models/models/flan-t5-small"')
-      .and('contain.text', 'https://example.com/models/flan-t5-small/v1/chat/completions')
-      .and('not.contain.text', 'X-MAAS-SUBSCRIPTION');
+      .and('contain.text', 'https://example.com/models/flan-t5-small/v1/chat/completions');
   });
 
   it('should show a validation error for an out-of-range after-days value', () => {

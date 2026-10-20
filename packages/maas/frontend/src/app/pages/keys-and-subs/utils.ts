@@ -234,12 +234,6 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
     if (entitled.length === 1) {
       return entitled[0];
     }
-    const bySubscriptionAndOwnedBy = entitled.find((model) =>
-      ownedByMatchesRef(model.owned_by, refName),
-    );
-    if (bySubscriptionAndOwnedBy) {
-      return bySubscriptionAndOwnedBy;
-    }
   }
 
   return models.find(
