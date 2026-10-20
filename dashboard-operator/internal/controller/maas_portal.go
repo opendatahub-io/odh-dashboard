@@ -407,17 +407,19 @@ func (r *DashboardReconciler) deleteLabeledMaaSPortalNamespacedResources(ctx con
 		&corev1.ServiceList{},
 		&corev1.ServiceAccountList{},
 		&networkingv1.NetworkPolicyList{},
-		&corev1.ConfigMapList{},
 	} {
-		errs = append(errs, r.deleteLabeledMaaSPortalResourceList(ctx, list, client.InNamespace(r.ApplicationsNamespace)))
+		errs = append(errs, r.deleteLabeledMaaSPortalResourceList(ctx, r, list, client.InNamespace(r.ApplicationsNamespace)))
 	}
+	errs = append(errs, r.deleteLabeledMaaSPortalResourceList(
+		ctx, r.apiReader(), &corev1.ConfigMapList{}, client.InNamespace(r.ApplicationsNamespace),
+	))
 	return errors.Join(errs...)
 }
 
 func (r *DashboardReconciler) deleteLabeledMaaSPortalRBACResources(ctx context.Context) error {
 	return errors.Join(
-		r.deleteLabeledMaaSPortalResourceList(ctx, &rbacv1.ClusterRoleList{}),
-		r.deleteLabeledMaaSPortalResourceList(ctx, &rbacv1.ClusterRoleBindingList{}),
+		r.deleteLabeledMaaSPortalResourceList(ctx, r, &rbacv1.ClusterRoleList{}),
+		r.deleteLabeledMaaSPortalResourceList(ctx, r, &rbacv1.ClusterRoleBindingList{}),
 		r.deleteLabeledMaaSPortalOperatorSubscriptionRBACResources(ctx),
 	)
 }
@@ -448,8 +450,8 @@ func (r *DashboardReconciler) deleteLabeledMaaSPortalCustomResources(ctx context
 	return errors.Join(errs...)
 }
 
-func (r *DashboardReconciler) deleteLabeledMaaSPortalResourceList(ctx context.Context, list client.ObjectList, options ...client.ListOption) error {
-	if err := r.List(ctx, list, append(options, client.MatchingLabels{labels.PlatformPartOf: maasPortalPartOf})...); err != nil {
+func (r *DashboardReconciler) deleteLabeledMaaSPortalResourceList(ctx context.Context, reader client.Reader, list client.ObjectList, options ...client.ListOption) error {
+	if err := reader.List(ctx, list, append(options, client.MatchingLabels{labels.PlatformPartOf: maasPortalPartOf})...); err != nil {
 		return err
 	}
 	return r.deleteMaaSPortalObjects(ctx, extractItems(list)...)

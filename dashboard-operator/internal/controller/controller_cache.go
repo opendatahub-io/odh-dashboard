@@ -22,9 +22,10 @@ import (
 )
 
 // ManagerCacheOptions limits the shared manager cache to resources owned by the
-// Dashboard controller. ConfigMaps and Secrets intentionally remain absent: the
-// manager client reads them directly from the API server, while ConfigMap event
-// handling uses the dedicated caches configured in controller_configmaps.go.
+// Dashboard controller and rejects reads for resources without a registered
+// informer. ConfigMaps and Secrets intentionally remain absent: the manager
+// client reads them directly from the API server, while ConfigMap event handling
+// uses the dedicated caches configured in controller_configmaps.go.
 func ManagerCacheOptions(applicationsNamespace string, mapper meta.RESTMapper) (cache.Options, error) {
 	ownedRequirement, err := k8slabels.NewRequirement(
 		platformlabels.PlatformPartOf,
@@ -74,7 +75,10 @@ func ManagerCacheOptions(applicationsNamespace string, mapper meta.RESTMapper) (
 		}
 	}
 
-	return cache.Options{ByObject: byObject}, nil
+	return cache.Options{
+		ByObject:                    byObject,
+		ReaderFailOnMissingInformer: true,
+	}, nil
 }
 
 // NewManagerCache builds the cache after the manager has initialized its REST
@@ -87,6 +91,7 @@ func NewManagerCache(applicationsNamespace string) cache.NewCacheFunc {
 			return nil, err
 		}
 		options.ByObject = scoped.ByObject
+		options.ReaderFailOnMissingInformer = scoped.ReaderFailOnMissingInformer
 		return cache.New(config, options)
 	}
 }

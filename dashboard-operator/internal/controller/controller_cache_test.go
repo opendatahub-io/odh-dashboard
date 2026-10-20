@@ -33,6 +33,7 @@ func TestManagerCacheOptions(t *testing.T) {
 	options, err := ManagerCacheOptions(applicationsNamespace, mapper)
 	require.NoError(t, err)
 	require.Len(t, options.ByObject, 11)
+	assert.True(t, options.ReaderFailOnMissingInformer)
 
 	for _, object := range []client.Object{
 		&appsv1.Deployment{},
@@ -73,6 +74,7 @@ func TestManagerCacheOptionsWithoutOptionalAPIs(t *testing.T) {
 	options, err := ManagerCacheOptions("applications", meta.NewDefaultRESTMapper(nil))
 	require.NoError(t, err)
 	assert.Len(t, options.ByObject, 9)
+	assert.True(t, options.ReaderFailOnMissingInformer)
 	for object := range options.ByObject {
 		assert.NotEqual(t, reflect.TypeOf(&gatewayv1.HTTPRoute{}), reflect.TypeOf(object))
 		_, unstructuredObject := object.(*unstructured.Unstructured)

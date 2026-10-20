@@ -993,8 +993,8 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	// the webhook Service breaks the failurePolicy: Fail ValidatingWebhookConfiguration).
 	operatorResources := operatorOwnedResources()
 
-	deleteTyped := func(list client.ObjectList, kind string, opts ...client.ListOption) error {
-		if err := r.List(ctx, list, opts...); err != nil {
+	deleteTyped := func(reader client.Reader, list client.ObjectList, kind string, opts ...client.ListOption) error {
+		if err := reader.List(ctx, list, opts...); err != nil {
 			return fmt.Errorf("listing %s: %w", kind, err)
 		}
 
@@ -1016,7 +1016,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	// supported platforms, so a missing HTTPRoute mapping must not block teardown.
 	httpRoutes := &unstructured.UnstructuredList{}
 	httpRoutes.SetGroupVersionKind(gatewayv1.SchemeGroupVersion.WithKind("HTTPRouteList"))
-	if err := deleteTyped(httpRoutes, "HTTPRoute", matchLabels, inNamespace); err != nil && !meta.IsNoMatchError(err) {
+	if err := deleteTyped(r, httpRoutes, "HTTPRoute", matchLabels, inNamespace); err != nil && !meta.IsNoMatchError(err) {
 		return err
 	}
 
@@ -1036,12 +1036,12 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 
 	var services corev1.ServiceList
-	if err := deleteTyped(&services, "Service", matchLabels, inNamespace); err != nil {
+	if err := deleteTyped(r, &services, "Service", matchLabels, inNamespace); err != nil {
 		return err
 	}
 
 	var configmaps corev1.ConfigMapList
-	if err := deleteTyped(&configmaps, "ConfigMap", matchLabels, inNamespace); err != nil {
+	if err := deleteTyped(r.apiReader(), &configmaps, "ConfigMap", matchLabels, inNamespace); err != nil {
 		return err
 	}
 
@@ -1061,22 +1061,22 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 
 	var secrets corev1.SecretList
-	if err := deleteTyped(&secrets, "Secret", matchLabels, inNamespace); err != nil {
+	if err := deleteTyped(r.apiReader(), &secrets, "Secret", matchLabels, inNamespace); err != nil {
 		return err
 	}
 
 	var networkPolicies networkingv1.NetworkPolicyList
-	if err := deleteTyped(&networkPolicies, "NetworkPolicy", matchLabels, inNamespace); err != nil {
+	if err := deleteTyped(r, &networkPolicies, "NetworkPolicy", matchLabels, inNamespace); err != nil {
 		return err
 	}
 
 	var roles rbacv1.RoleList
-	if err := deleteTyped(&roles, "Role", matchLabels, inNamespace); err != nil {
+	if err := deleteTyped(r, &roles, "Role", matchLabels, inNamespace); err != nil {
 		return err
 	}
 
 	var roleBindings rbacv1.RoleBindingList
-	if err := deleteTyped(&roleBindings, "RoleBinding", matchLabels, inNamespace); err != nil {
+	if err := deleteTyped(r, &roleBindings, "RoleBinding", matchLabels, inNamespace); err != nil {
 		return err
 	}
 

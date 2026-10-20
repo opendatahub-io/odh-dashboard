@@ -501,6 +501,7 @@ func newManifestReconciler(manifests string) *ctrlpkg.DashboardReconciler {
 func newReconcilerWithClient(cli client.Client, manifests string) *ctrlpkg.DashboardReconciler {
 	return &ctrlpkg.DashboardReconciler{
 		Client:                cli,
+		APIReader:             cli,
 		Scheme:                cli.Scheme(),
 		ManifestsBasePath:     manifests,
 		Platform:              cluster.OpenDataHub,
