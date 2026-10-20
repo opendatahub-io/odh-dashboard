@@ -38,7 +38,7 @@ frontmatter added retroactively.
 4. **Link related decisions.** Cite related ADRs in Context. When a new ADR
    replaces an accepted decision, link the old ADR from the new one, set the
    old status to `Superseded`, and add a link from the old ADR to the new one.
-   For legacy ADRs without frontmatter, update their `## Status` section only.
+   For legacy ADRs without frontmatter, update their ## Status section and add a cross-reference to the new ADR outside the original sections.
 5. **Update current documentation.** Once accepted, make focused updates to
    `docs/architecture-decisions.md` and any directly affected architecture
    docs so they describe the current decision and link to its ADR.
