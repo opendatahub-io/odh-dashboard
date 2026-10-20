@@ -24,8 +24,10 @@ import { EllipsisVIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CollectionDetail, CollectionAsset } from '~/app/hooks/useCollectionDetail';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
 import { assetDetailUrl } from '~/app/utilities/routes';
 import { FORMAT_OPTIONS, getUnstructuredFormatLabel } from '~/app/utilities/formatUtils';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 
 type CollectionDetailViewProps = {
   collection: CollectionDetail;
@@ -43,6 +45,7 @@ type AssetRowProps = {
 
 const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, project }) => {
   const navigate = useNavigate();
+  const trackEvent = useDataRegistryTrackEvent();
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
   const formatLabel =
     asset.assetType === 'volume'
@@ -62,7 +65,23 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
 
   return (
     <Tr>
-      <Td dataLabel="Name">{detailUrl ? <Link to={detailUrl}>{asset.name}</Link> : asset.name}</Td>
+      <Td dataLabel="Name">
+        {detailUrl ? (
+          <Link
+            to={detailUrl}
+            onClick={() => {
+              trackEvent({
+                eventName: DATA_REGISTRY_EVENT_NAMES.assetOpened,
+                properties: { project: project || '' },
+              });
+            }}
+          >
+            {asset.name}
+          </Link>
+        ) : (
+          asset.name
+        )}
+      </Td>
       <Td dataLabel="Type">{assetType}</Td>
       <Td dataLabel="Format">
         <Label isCompact variant="outline">
@@ -93,6 +112,10 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
               key="view"
               onClick={() => {
                 if (detailUrl) {
+                  trackEvent({
+                    eventName: DATA_REGISTRY_EVENT_NAMES.assetOpened,
+                    properties: { project: project || '' },
+                  });
                   navigate(detailUrl);
                 }
               }}

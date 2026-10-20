@@ -21,6 +21,7 @@ import {
   fireMiscTrackingEvent,
   fireFormTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
@@ -793,7 +794,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               success: false,
               fileType: file.type || 'unknown',
               fileSizeBytes: file.size,
-              error: error.message,
+              error: errorCategory(error),
             });
           }
         })

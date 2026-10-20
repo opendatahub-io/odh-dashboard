@@ -20,6 +20,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -401,7 +402,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
       {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: e.message,
+        error: errorCategory(e),
         namespace: namespace?.name,
       },
     );
