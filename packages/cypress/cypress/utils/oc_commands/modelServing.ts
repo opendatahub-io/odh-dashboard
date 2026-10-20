@@ -725,6 +725,48 @@ export type LLMInferenceServiceGatewayRef = {
 const gatewayRefKey = (ref: LLMInferenceServiceGatewayRef): string =>
   `${ref.namespace}/${ref.name}`;
 
+/** Single-quote for safe inclusion in cy.exec shell strings. */
+const shQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`;
+
+/**
+ * Creates a project-scoped Gateway selectable in the llm-d wizard (non-MaaS).
+ * Copies gatewayClassName from openshift-ai-inference so it matches the cluster.
+ */
+export const createProjectGatewayForLlmdTest = (
+  projectNamespace: string,
+  gatewayName: string,
+  fixturePath = 'resources/yaml/llmd-project-gateway.yaml',
+): Cypress.Chainable<Cypress.Exec> => {
+  const getClassCmd = `oc get gateway openshift-ai-inference -n openshift-ingress -o jsonpath='{.spec.gatewayClassName}'`;
+  return cy.exec(getClassCmd, { failOnNonZeroExit: false }).then((classResult) => {
+    const gatewayClassName = classResult.stdout.trim();
+    if (classResult.exitCode !== 0 || !gatewayClassName) {
+      throw new Error(
+        `Unable to resolve gatewayClassName from openshift-ai-inference: ${classResult.stderr}`,
+      );
+    }
+
+    return cy.fixture(fixturePath).then((yamlContent: string) => {
+      const resourceYaml = yamlContent
+        .replace(/name:\s*cypress-llmd-multi-gw/, `name: ${gatewayName}`)
+        .replace('PLACEHOLDER_GATEWAY_CLASS', gatewayClassName);
+      const tempFilePath = `/tmp/temp_llmd_gw_${Date.now()}.yaml`;
+      cy.writeFile(tempFilePath, resourceYaml);
+      const applyCmd = `oc apply -f ${shQuote(tempFilePath)} -n ${shQuote(projectNamespace)}`;
+      cy.log(`Creating project Gateway: ${applyCmd}`);
+      return cy.exec(applyCmd, { failOnNonZeroExit: false }).then((result) => {
+        cy.exec(`rm -f ${shQuote(tempFilePath)}`, { failOnNonZeroExit: false });
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `Failed to create Gateway "${gatewayName}" in "${projectNamespace}": ${result.stderr}`,
+          );
+        }
+        cy.log(`✅ Created Gateway "${gatewayName}" in "${projectNamespace}"`);
+      });
+    });
+  });
+};
+
 /**
  * Sets the main container image on an LLMInferenceService (CPU workaround for non-GPU clusters).
  * Prefer this over the YAML viewer when subsequent form fields (e.g. gateway) must be applied —
@@ -739,7 +781,9 @@ export const patchLLMInferenceServiceContainerImage = (
   const jqFilter =
     '.spec.template.containers = ((.spec.template.containers // [{name:"main"}]) | map(if .name == "main" then . + {image: $img} else . end))';
   const ocCommand = [
-    `oc get LLMInferenceService ${llmInferenceServiceName} -n ${namespace} -o json`,
+    `oc get LLMInferenceService ${shQuote(llmInferenceServiceName)} -n ${shQuote(
+      namespace,
+    )} -o json`,
     `jq --arg img ${imageArg} '${jqFilter}'`,
     `oc apply -f -`,
   ].join(' | ');
@@ -763,7 +807,9 @@ export const verifyLLMInferenceServiceGatewayRefs = (
   llmInferenceServiceName: string,
   expectedRefs: LLMInferenceServiceGatewayRef[],
 ): Cypress.Chainable<Cypress.Exec> => {
-  const ocCommand = `oc get LLMInferenceService ${llmInferenceServiceName} -n ${namespace} -o json`;
+  const ocCommand = `oc get LLMInferenceService ${shQuote(llmInferenceServiceName)} -n ${shQuote(
+    namespace,
+  )} -o json`;
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
@@ -773,15 +819,19 @@ export const verifyLLMInferenceServiceGatewayRefs = (
       );
     }
 
-    const gateway: { refs?: LLMInferenceServiceGatewayRef[] } =
-      JSON.parse(result.stdout).spec?.router?.gateway ?? {};
+    const parsed = JSON.parse(result.stdout);
+    const hasGatewayProperty =
+      parsed.spec?.router != null &&
+      Object.prototype.hasOwnProperty.call(parsed.spec.router, 'gateway');
+    const gateway: { refs?: LLMInferenceServiceGatewayRef[] } = parsed.spec?.router?.gateway ?? {};
     const actualRefs = Array.isArray(gateway.refs) ? gateway.refs : [];
 
     if (expectedRefs.length === 0) {
-      if (actualRefs.length > 0 || Object.keys(gateway).length > 0) {
+      // Require an explicit gateway: {} — omitting gateway entirely is the wrong shape.
+      if (!hasGatewayProperty || actualRefs.length > 0 || Object.keys(gateway).length > 0) {
         throw new Error(
           `Expected empty gateway ({}) on LLMInferenceService "${llmInferenceServiceName}", got: ${JSON.stringify(
-            gateway,
+            hasGatewayProperty ? gateway : parsed.spec?.router,
           )}`,
         );
       }

@@ -18,13 +18,13 @@ connectionNameSuffix: '-connection'
 deploymentMethod: 'llm-inference-service-llmd'
 servingRuntime: 'Distributed inference with llm-d'
 
-# Gateway refs for MultiSelection (UI label built as `${name} | ${namespace}`)
-# Must be selectable for a project namespace (allowedRoutes from: All).
-# data-science-gateway is cluster-scoped to openshift-ingress/opendatahub only, so it
-# does not appear in the wizard for project deploys — use maas-default-gateway instead.
+# Gateway refs for MultiSelection (UI label built as `${name} | ${namespace}`).
+# Must be selectable in Project members mode (do NOT use maas-default-gateway — MaaS hides it).
+# gatewayA: shared cluster gateway. gatewayB: provisioned in the test project at runtime
+# (namespace is replaced with the project name in the suite).
 gatewayA:
   name: openshift-ai-inference
   namespace: openshift-ingress
 gatewayB:
-  name: maas-default-gateway
-  namespace: openshift-ingress
+  name: cypress-llmd-multi-gw
+  namespace: PLACEHOLDER_PROJECT

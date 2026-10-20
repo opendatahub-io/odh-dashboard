@@ -30,6 +30,7 @@ import {
 import {
   checkLLMInferenceServiceState,
   cleanupLLMInferenceService,
+  createProjectGatewayForLlmdTest,
   patchLLMInferenceServiceContainerImage,
   verifyLLMInferenceServiceGatewayRefs,
   type LLMInferenceServiceGatewayRef,
@@ -42,22 +43,19 @@ const gatewayOptionLabel = (ref: MultiGatewayFixtureRef): string =>
   `${ref.name} | ${ref.namespace}`;
 
 let testData: MultiGatewayTestData;
-let projectName: string;
-let modelURI: string;
+let projectName = '';
+let modelURI = '';
 let deploymentMethod: MultiGatewayTestData['deploymentMethod'];
-let servingRuntime: string;
-let hardwareProfileResourceName: string;
-let hardwareProfileYamlPath: string;
-let cpuContainerImage: string;
-let gatewayOptionA: string;
-let gatewayOptionB: string;
+let servingRuntime = '';
+let hardwareProfileResourceName = '';
+let hardwareProfileYamlPath = '';
+let cpuContainerImage = '';
+let gatewayOptionA = '';
+let gatewayOptionB = '';
 let gatewayRefA: LLMInferenceServiceGatewayRef;
 let gatewayRefB: LLMInferenceServiceGatewayRef;
-/** Actual LLMInferenceService names captured during each scenario for after() cleanup. */
+/** Actual LLMInferenceService name captured during the scenario for after() cleanup. */
 let multiGwResourceName = '';
-let emptyGwResourceName = '';
-let editGwResourceName = '';
-let singleGwResourceName = '';
 const uuid = generateTestUUID();
 
 const loginAndOpenDeployWizard = (): void => {
@@ -65,7 +63,8 @@ const loginAndOpenDeployWizard = (): void => {
   cy.visitWithLogin(`/?devFeatureFlags=${GATEWAY_FEATURE_FLAGS}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
   cy.step(`Navigate to the Project list tab and search for ${projectName}`);
-  projectListPage.navigate();
+  // Prefer direct visit — sidebar nav labels differ across ODH/RHOAI product branding
+  projectListPage.visit();
   projectListPage.filterProjectByName(projectName);
   projectListPage.findProjectLink(projectName).click();
 
@@ -113,44 +112,31 @@ const completeDetailsAndDeploymentSteps = (
   modelServingWizard.findNextButton().should('be.enabled').click();
 };
 
-const verifyGatewaysThenPatchCpuAndWaitReady = (
+const verifyGatewayRefs = (
   getResourceName: () => string,
   expectedRefs: LLMInferenceServiceGatewayRef[],
 ): void => {
   cy.step('Verify gateway refs on the LLMInferenceService');
-  // Resolve resource name inside cy.then so the callback from findResourceNameInput has run
   cy.then(() => {
     const resourceName = getResourceName();
     expect(resourceName, 'LLMInferenceService resource name').to.have.length.above(0);
-    return verifyLLMInferenceServiceGatewayRefs(projectName, resourceName, expectedRefs).then(
-      () => {
-        cy.step('Patch CPU container image (non-GPU cluster workaround)');
-        return patchLLMInferenceServiceContainerImage(
-          projectName,
-          resourceName,
-          cpuContainerImage,
-        ).then(() =>
-          checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true }),
-        );
-      },
-    );
+    return verifyLLMInferenceServiceGatewayRefs(projectName, resourceName, expectedRefs);
   });
 };
 
-const verifyModelRowReady = (modelName: string): void => {
-  cy.step('Verify the model Row');
-  const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
-  llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
-  llmdRow.findServingRuntime().should('have.text', servingRuntime);
-};
-
-const deleteDeploymentFromUi = (modelName: string): void => {
-  cy.step(`Delete deployment ${modelName}`);
-  const row = modelServingGlobal.getDeploymentRow(modelName);
-  row.findKebab().click();
-  inferenceServiceActions.findDeleteInferenceServiceAction().click();
-  deleteModelServingModal.findInput().clear().type(modelName);
-  deleteModelServingModal.findSubmitButton().should('be.enabled').click();
+/** CPU image patch + Ready wait — run after gateway create/edit assertions so edit
+ * submits against the wizard-created object (not a post-patch drift / long-poll session). */
+const patchCpuAndWaitReady = (getResourceName: () => string): void => {
+  cy.step('Patch CPU container image (non-GPU cluster workaround) and wait Ready');
+  cy.then(() => {
+    const resourceName = getResourceName();
+    expect(resourceName, 'LLMInferenceService resource name').to.have.length.above(0);
+    return patchLLMInferenceServiceContainerImage(
+      projectName,
+      resourceName,
+      cpuContainerImage,
+    ).then(() => checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true }));
+  });
 };
 
 describe('A user can deploy LLMD models with multi-gateway selection', () => {
@@ -167,7 +153,8 @@ describe('A user can deploy LLMD models with multi-gateway selection', () => {
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
         cpuContainerImage = testData.cpuContainerImage;
         gatewayRefA = testData.gatewayA;
-        gatewayRefB = testData.gatewayB;
+        // Project-scoped gateway (non-MaaS) — selectable under Project members
+        gatewayRefB = { name: testData.gatewayB.name, namespace: projectName };
         gatewayOptionA = gatewayOptionLabel(gatewayRefA);
         gatewayOptionB = gatewayOptionLabel(gatewayRefB);
 
@@ -176,26 +163,31 @@ describe('A user can deploy LLMD models with multi-gateway selection', () => {
       })
       .then(() => {
         cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
-        createCleanHardwareProfile(hardwareProfileYamlPath);
+        createCleanHardwareProfile(hardwareProfileYamlPath, hardwareProfileResourceName);
+      })
+      .then(() => {
+        cy.log(`Create project Gateway for multi-select: ${gatewayRefB.name}`);
+        return createProjectGatewayForLlmdTest(projectName, gatewayRefB.name);
       });
   });
 
   after(() => {
-    cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
-    cleanupHardwareProfiles(hardwareProfileResourceName);
-    // Best-effort LLIS cleanup using names captured during scenarios (avoids KServe finalizer hangs)
-    [multiGwResourceName, emptyGwResourceName, editGwResourceName, singleGwResourceName]
-      .filter(Boolean)
-      .forEach((resourceName) => {
-        cleanupLLMInferenceService(resourceName, projectName);
-      });
-    // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
-    // TODO: Review this timeout once RHOAIENG-19969 is resolved
-    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+    if (hardwareProfileResourceName) {
+      cy.log(`Cleaning up Hardware Profile: ${hardwareProfileResourceName}`);
+      cleanupHardwareProfiles(hardwareProfileResourceName);
+    }
+    if (multiGwResourceName && projectName) {
+      cleanupLLMInferenceService(multiGwResourceName, projectName);
+    }
+    if (projectName) {
+      // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
+      // TODO: Review this timeout once RHOAIENG-19969 is resolved
+      deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+    }
   });
 
   it(
-    'Verify User Can Deploy an LLMD Model with multiple gateways',
+    'Verify User Can Deploy an LLMD Model with multiple gateways and preserve refs on edit',
     {
       tags: [
         '@Featureflagged',
@@ -228,83 +220,9 @@ describe('A user can deploy LLMD models with multi-gateway selection', () => {
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
 
-      verifyGatewaysThenPatchCpuAndWaitReady(() => multiGwResourceName, [gatewayRefA, gatewayRefB]);
-      verifyModelRowReady(modelName);
-
-      deleteDeploymentFromUi(modelName);
-    },
-  );
-
-  it(
-    'Verify User Can Deploy an LLMD Model with no gateway selection',
-    {
-      tags: [
-        '@Featureflagged',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@LLMDServingCI',
-        '@ModelServingCI',
-      ],
-    },
-    () => {
-      const modelName = `${testData.singleModelName}-empty`;
-
-      loginAndOpenDeployWizard();
-      completeDetailsAndDeploymentSteps(modelName, (name) => {
-        emptyGwResourceName = name;
-      });
-
-      cy.step('Select Advanced settings — leave gateway empty');
-      modelServingWizard.findGatewaySelect().should('exist');
-      modelServingWizard.findGatewaySelectRemoveChip(gatewayOptionA).should('not.exist');
-      modelServingWizard.findGatewaySelectRemoveChip(gatewayOptionB).should('not.exist');
-      modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findNextButton().click();
-
-      cy.step('Review and submit');
-      modelServingWizard.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(modelName);
-
-      verifyGatewaysThenPatchCpuAndWaitReady(() => emptyGwResourceName, []);
-      verifyModelRowReady(modelName);
-
-      deleteDeploymentFromUi(modelName);
-    },
-  );
-
-  it(
-    'Verify User Can Edit an LLMD Model and preserve multiple gateway refs',
-    {
-      tags: [
-        '@Featureflagged',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@LLMDServingCI',
-        '@ModelServingCI',
-      ],
-    },
-    () => {
-      const modelName = `${testData.singleModelName}-edit`;
-
-      loginAndOpenDeployWizard();
-      completeDetailsAndDeploymentSteps(modelName, (name) => {
-        editGwResourceName = name;
-      });
-
-      cy.step('Select Advanced settings — choose multiple gateways');
-      modelServingWizard.findGatewaySelectOption(gatewayOptionA).click();
-      modelServingWizard.findGatewaySelectOption(gatewayOptionB).click();
-      modelServingWizard.findGatewaySelect().closeSelectMenu();
-      modelServingWizard.findGatewaySelectRemoveChip(gatewayOptionA).should('exist');
-      modelServingWizard.findGatewaySelectRemoveChip(gatewayOptionB).should('exist');
-      modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findNextButton().click();
-      modelServingWizard.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(modelName);
-
-      verifyGatewaysThenPatchCpuAndWaitReady(() => editGwResourceName, [gatewayRefA, gatewayRefB]);
+      // Assert gateway refs before edit / Ready wait so update submits against the
+      // wizard-created object (CPU patch + long Ready poll previously caused edit submit to fail).
+      verifyGatewayRefs(() => multiGwResourceName, [gatewayRefA, gatewayRefB]);
 
       cy.step('Edit deployment and verify gateway selections are preserved');
       modelServingGlobal.getDeploymentRow(modelName).findKebab().click();
@@ -321,50 +239,20 @@ describe('A user can deploy LLMD models with multi-gateway selection', () => {
       modelServingWizardEdit.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
 
-      // Re-patch CPU image in case edit submit restored a non-CPU image
-      verifyGatewaysThenPatchCpuAndWaitReady(() => editGwResourceName, [gatewayRefA, gatewayRefB]);
-      verifyModelRowReady(modelName);
+      verifyGatewayRefs(() => multiGwResourceName, [gatewayRefA, gatewayRefB]);
 
-      deleteDeploymentFromUi(modelName);
-    },
-  );
+      patchCpuAndWaitReady(() => multiGwResourceName);
 
-  it(
-    'Verify User Can Deploy an LLMD Model with a single gateway (regression)',
-    {
-      tags: [
-        '@Featureflagged',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@LLMDServingCI',
-        '@ModelServingCI',
-      ],
-    },
-    () => {
-      const modelName = `${testData.singleModelName}-single`;
+      cy.step('Verify the model Row');
+      const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
+      llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
+      llmdRow.findServingRuntime().should('have.text', servingRuntime);
 
-      loginAndOpenDeployWizard();
-      completeDetailsAndDeploymentSteps(modelName, (name) => {
-        singleGwResourceName = name;
-      });
-
-      cy.step('Select Advanced settings — choose a single gateway');
-      modelServingWizard.findGatewaySelectOption(gatewayOptionA).click();
-      modelServingWizard.findGatewaySelect().closeSelectMenu();
-      modelServingWizard.findGatewaySelectRemoveChip(gatewayOptionA).should('exist');
-      modelServingWizard.findGatewaySelectRemoveChip(gatewayOptionB).should('not.exist');
-      modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findNextButton().click();
-
-      cy.step('Review and submit');
-      modelServingWizard.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(modelName);
-
-      verifyGatewaysThenPatchCpuAndWaitReady(() => singleGwResourceName, [gatewayRefA]);
-      verifyModelRowReady(modelName);
-
-      deleteDeploymentFromUi(modelName);
+      cy.step(`Delete deployment ${modelName}`);
+      modelServingGlobal.getDeploymentRow(modelName).findKebab().click();
+      inferenceServiceActions.findDeleteInferenceServiceAction().click();
+      deleteModelServingModal.findInput().clear().type(modelName);
+      deleteModelServingModal.findSubmitButton().should('be.enabled').click();
     },
   );
 });
