@@ -471,9 +471,11 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   Array.isArray(selectedFiles) && selectedFiles.some((f) => f.path === file.path);
                 const isFileBeingViewed =
                   Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
-                const isUnselectable = file.selectable === false;
                 const isExplicitlyDisabled =
                   file.disabled === true || typeof file.disabled === 'string';
+                const isUnselectable = file.selectable === false || isExplicitlyDisabled;
+                const isSelectionDisabled =
+                  isUnselectable && (!isFolder(file) || isExplicitlyDisabled);
 
                 const onSelect = (_event: unknown, isSelecting: boolean) => {
                   if (selection === 'radio') {
@@ -585,34 +587,40 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         <FlexItem>
                           <Icon
                             size="lg"
-                            className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
+                            className={
+                              isSelectionDisabled ? 'pf-v6-u-text-color-disabled' : undefined
+                            }
                             data-testid="file-explorer-icon"
                           >
                             {isFolder(file) ? (
                               <FolderIcon
                                 aria-hidden
-                                color={isUnselectable ? DisabledColor.var : undefined}
+                                color={isSelectionDisabled ? DisabledColor.var : undefined}
                                 data-testid="file-explorer-folder-icon"
                               />
                             ) : (
-                              getFileIcon(file.name, 'file-explorer-file-icon', isUnselectable)
+                              getFileIcon(file.name, 'file-explorer-file-icon', isSelectionDisabled)
                             )}
                           </Icon>
                         </FlexItem>
                         <FlexItem
-                          className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
+                          className={
+                            isSelectionDisabled ? 'pf-v6-u-text-color-disabled' : undefined
+                          }
                           data-testid="file-explorer-name"
                         >
                           {isFolder(file) && !isExplicitlyDisabled ? (
                             <Button
-                              className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
+                              className={
+                                isSelectionDisabled ? 'pf-v6-u-text-color-disabled' : undefined
+                              }
                               variant="link"
                               isInline
                               onClick={() => onFolderClick?.(file)}
                             >
                               <Truncate content={file.name} />
                             </Button>
-                          ) : isUnselectable ? (
+                          ) : isSelectionDisabled ? (
                             <Content className="pf-v6-u-text-color-disabled">
                               <Truncate content={file.name} />
                             </Content>

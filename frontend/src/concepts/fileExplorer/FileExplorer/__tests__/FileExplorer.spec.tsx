@@ -191,6 +191,12 @@ describe('FileExplorer', () => {
       fireEvent.click(within(row).getByRole('button', { name: 'browse-only' }));
 
       expect(onFolderClick).toHaveBeenCalledWith(folder);
+      expect(within(row).getByTestId('file-explorer-icon')).not.toHaveClass(
+        'pf-v6-u-text-color-disabled',
+      );
+      expect(within(row).getByTestId('file-explorer-name')).not.toHaveClass(
+        'pf-v6-u-text-color-disabled',
+      );
     });
     it('should not render hidden files', () => {
       const files: ExplorerFiles = [
@@ -555,6 +561,13 @@ describe('FileExplorer', () => {
 
       expect(checkbox).toBeChecked();
       expect(onSelectFile).toHaveBeenCalledWith(files[0], true);
+    });
+    it('should disable selection when an item is explicitly disabled', () => {
+      const files = [mockFile({ name: 'disabled.json', path: '/d.json', disabled: true })];
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row = screen.getByTestId('file-explorer-row--d-json');
+      expect(within(row).getByRole('checkbox')).toBeDisabled();
     });
     it('should call onSelectFile when selecting radio via Space key on input', () => {
       const files = mockFiles(3);
