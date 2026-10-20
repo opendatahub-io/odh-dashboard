@@ -1363,9 +1363,27 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 		},
 	}
 
+	// The operator's own metrics NetworkPolicy (shipped by the Helm chart) carries the
+	// part-of=dashboard label too, so it must survive teardown; an operand policy must not.
+	operatorNetpol := &networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opDep + "-metrics",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardNetpol := &networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dashboard-allow-ports",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA, operatorCR, dashboardCR, operatorCRB, dashboardCRB).
+		WithObjects(dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA, operatorCR, dashboardCR, operatorCRB, dashboardCRB, operatorNetpol, dashboardNetpol).
 		WithStatusSubresource(dashboard).
 		Build()
 
@@ -1422,6 +1440,15 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 	}
 	assert.Contains(t, crbNames, opCRB, "operator ClusterRoleBinding must survive teardown")
 	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
+
+	var netpols networkingv1.NetworkPolicyList
+	require.NoError(t, cli.List(ctx, &netpols, client.InNamespace(testNamespace)))
+	var netpolNames []string
+	for i := range netpols.Items {
+		netpolNames = append(netpolNames, netpols.Items[i].Name)
+	}
+	assert.Contains(t, netpolNames, opDep+"-metrics", "operator metrics NetworkPolicy must survive teardown")
+	assert.NotContains(t, netpolNames, "dashboard-allow-ports", "operand NetworkPolicies must be deleted")
 }
 
 func TestCleanupLegacyResources(t *testing.T) {

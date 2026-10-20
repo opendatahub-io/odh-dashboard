@@ -8,13 +8,16 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
@@ -39,14 +42,14 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Service{}).
+		Owns(&corev1.Service{}, builder.WithPredicates(serviceChangedPredicate())).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Owns(&policyv1.PodDisruptionBudget{}).
+		Owns(&policyv1.PodDisruptionBudget{}, builder.WithPredicates(podDisruptionBudgetChangedPredicate())).
 		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(r.mapMaaSPortalOperatorNamespaceToDashboard), builder.WithPredicates(r.maasPortalOperatorNamespacePredicate()))
 	if err := addConfigMapWatches(mgr, controllerBuilder, r); err != nil {
 		return err
@@ -59,6 +62,36 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		return err
 	}
 	return addOdhDashboardConfigWatch(mgr, dashboardController, r)
+}
+
+func serviceChangedPredicate() predicate.Predicate {
+	return predicate.Funcs{UpdateFunc: func(e event.UpdateEvent) bool {
+		oldService, oldOK := e.ObjectOld.(*corev1.Service)
+		newService, newOK := e.ObjectNew.(*corev1.Service)
+		if !oldOK || !newOK {
+			return true
+		}
+		return !equality.Semantic.DeepEqual(oldService.Spec, newService.Spec) || objectMetadataChanged(oldService, newService)
+	}}
+}
+
+func podDisruptionBudgetChangedPredicate() predicate.Predicate {
+	return predicate.Funcs{UpdateFunc: func(e event.UpdateEvent) bool {
+		oldPDB, oldOK := e.ObjectOld.(*policyv1.PodDisruptionBudget)
+		newPDB, newOK := e.ObjectNew.(*policyv1.PodDisruptionBudget)
+		if !oldOK || !newOK {
+			return true
+		}
+		return !equality.Semantic.DeepEqual(oldPDB.Spec, newPDB.Spec) || objectMetadataChanged(oldPDB, newPDB)
+	}}
+}
+
+func objectMetadataChanged(oldObject, newObject client.Object) bool {
+	return !equality.Semantic.DeepEqual(oldObject.GetLabels(), newObject.GetLabels()) ||
+		!equality.Semantic.DeepEqual(oldObject.GetAnnotations(), newObject.GetAnnotations()) ||
+		!equality.Semantic.DeepEqual(oldObject.GetOwnerReferences(), newObject.GetOwnerReferences()) ||
+		!equality.Semantic.DeepEqual(oldObject.GetFinalizers(), newObject.GetFinalizers()) ||
+		!equality.Semantic.DeepEqual(oldObject.GetDeletionTimestamp(), newObject.GetDeletionTimestamp())
 }
 
 func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *builder.Builder) error {
