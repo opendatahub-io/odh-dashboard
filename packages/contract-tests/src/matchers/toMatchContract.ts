@@ -179,23 +179,21 @@ export function toMatchContract(
     return n;
   };
 
+  let targetSchema: unknown = schema;
+  if (ref) {
+    const maybe = getByPointer(schema, ref.startsWith('#') ? ref : `#${ref}`);
+    if (maybe === undefined) {
+      throw new Error(`Schema reference ${ref} was not found`);
+    }
+    targetSchema = maybe;
+  }
+
   // Schema validation (resolve ref against OAS3 if provided, otherwise treat schema as JSON Schema)
   let pass = false;
   let lastErrors: ErrorObject[] | undefined;
   try {
     const ajv = new Ajv2020({ allErrors: true, strict: false });
     addFormats(ajv);
-    let targetSchema: unknown = schema;
-    if (ref) {
-      const maybe = getByPointer(schema, ref.startsWith('#') ? ref : `#${ref}`);
-      if (maybe === undefined) {
-        return {
-          pass: false,
-          message: () => `Schema reference ${ref} was not found`,
-        };
-      }
-      targetSchema = maybe;
-    }
     // If this looks like OAS3 (has components.schemas), deref $refs that point to components
     const componentsSchemas =
       isRecord(schema) && isRecord((schema as Record<string, unknown>).components)

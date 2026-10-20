@@ -20,4 +20,15 @@ describe('Contract matcher nullable references', () => {
       ref: '#/components/schemas/NullableEnumIncludingNull',
     });
   });
+
+  it('should reject missing schema references for positive and negated assertions', () => {
+    const options = { ref: '#/components/schemas/Missing' };
+
+    expect(() => expect('ready').toMatchContract(apiSchema, options)).toThrow(
+      'Schema reference #/components/schemas/Missing was not found',
+    );
+    expect(() => expect('ready').not.toMatchContract(apiSchema, options)).toThrow(
+      'Schema reference #/components/schemas/Missing was not found',
+    );
+  });
 });
