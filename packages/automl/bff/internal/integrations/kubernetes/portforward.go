@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -23,6 +24,13 @@ import (
 
 const portForwardStartupTimeout = 30 * time.Second
 
+// portForwardRetryCooldown bounds how quickly a new forward for the same key
+// may be attempted after a failed startup. A stalled SPDY upgrade keeps its
+// negotiation goroutine alive until the peer eventually responds, so repeated
+// requests against an unresponsive target would otherwise accumulate one
+// abandoned connection and goroutine per attempt.
+const portForwardRetryCooldown = 5 * time.Second
+
 // PortForwardManager manages on-demand port-forwards to in-cluster services.
 //
 // LOCAL DEVELOPMENT ONLY — this component must never be instantiated in production.
@@ -34,12 +42,19 @@ const portForwardStartupTimeout = 30 * time.Second
 // If a forward dies (pod restart, network blip), the next call to ForwardURL
 // detects the failure and re-establishes the forward transparently.
 type PortForwardManager struct {
-	mu         sync.Mutex
-	forwards   map[string]*activeForward
-	sfGroup    singleflight.Group
-	restConfig *rest.Config
-	clientset  kubernetes.Interface
-	logger     *slog.Logger
+	mu             sync.Mutex
+	forwards       map[string]*activeForward
+	recentFailures map[string]time.Time
+	sfGroup        singleflight.Group
+	restConfig     *rest.Config
+	clientset      kubernetes.Interface
+	logger         *slog.Logger
+	closeOnce      sync.Once
+	// closed is shut by Close to abort SPDY upgrades still stalled in their
+	// (uninterruptible) response wait. It is nil when the manager was built
+	// via a struct literal (tests) — receiving from a nil channel simply
+	// never fires.
+	closed chan struct{}
 }
 
 type activeForward struct {
@@ -52,18 +67,65 @@ type activeForward struct {
 // SPDY dialer upgrades the port-forward connection.
 type contextDialer struct {
 	ctx      context.Context
+	shutdown <-chan struct{}
 	upgrader spdy.Upgrader
 	client   *http.Client
 	method   string
 	url      *url.URL
 }
 
+// negotiationResult carries the outcome of an SPDY upgrade attempt that may
+// still be in flight when Dial has already given up on it.
+type negotiationResult struct {
+	conn     httpstream.Connection
+	protocol string
+	err      error
+}
+
+// Dial upgrades the port-forward connection, racing the negotiation against
+// the startup deadline and manager shutdown.
+//
+// spdy.Negotiate reads the upgrade response via a plain (non-context-aware)
+// http.ReadResponse, so a server that accepts the connection but never sends
+// response headers would block the negotiation — and with it the whole
+// port-forward worker — indefinitely. When the deadline or shutdown fires
+// first, Dial returns promptly and hands the still-running negotiation to a
+// watcher that closes the tunnel if the peer ever completes it. The
+// negotiation goroutine itself can only exit once the peer responds or the
+// connection breaks; that residual is bounded by the manager's retry cooldown.
 func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string, error) {
 	req, err := http.NewRequestWithContext(d.ctx, d.method, d.url.String(), nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("creating port-forward request: %w", err)
 	}
-	return spdy.Negotiate(d.upgrader, d.client, req, protocols...)
+
+	result := make(chan negotiationResult, 1)
+	go func() {
+		conn, protocol, err := spdy.Negotiate(d.upgrader, d.client, req, protocols...)
+		result <- negotiationResult{conn: conn, protocol: protocol, err: err}
+	}()
+
+	select {
+	case r := <-result:
+		return r.conn, r.protocol, r.err
+	case <-d.ctx.Done():
+		d.abandon(result)
+		return nil, "", fmt.Errorf("abandoning stalled port-forward upgrade negotiation (%v); the API server did not complete the SPDY upgrade", d.ctx.Err())
+	case <-d.shutdown:
+		d.abandon(result)
+		return nil, "", errors.New("abandoning stalled port-forward upgrade negotiation: port-forward manager is closed")
+	}
+}
+
+// abandon watches an already-abandoned negotiation so a tunnel the peer
+// completes late is closed instead of lingering. The buffered result channel
+// guarantees the negotiation goroutine never blocks sending to it.
+func (d *contextDialer) abandon(result <-chan negotiationResult) {
+	go func() {
+		if r := <-result; r.conn != nil {
+			r.conn.Close()
+		}
+	}()
 }
 
 // NewPortForwardManager creates a manager using the provided rest.Config and clientset.
@@ -71,10 +133,12 @@ func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string
 // port-forwards are long-lived and shared across requests.
 func NewPortForwardManager(restConfig *rest.Config, clientset kubernetes.Interface, logger *slog.Logger) *PortForwardManager {
 	return &PortForwardManager{
-		forwards:   make(map[string]*activeForward),
-		restConfig: restConfig,
-		clientset:  clientset,
-		logger:     logger,
+		forwards:       make(map[string]*activeForward),
+		recentFailures: make(map[string]time.Time),
+		closed:         make(chan struct{}),
+		restConfig:     restConfig,
+		clientset:      clientset,
+		logger:         logger,
 	}
 }
 
@@ -153,6 +217,13 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 			m.mu.Unlock()
 			return fwd.localPort, nil
 		}
+		// Pace retries after a failed startup: a stalled SPDY negotiation
+		// outlives its deadline, and back-to-back attempts would accumulate
+		// abandoned connections and goroutines.
+		if lastFailed, failed := m.recentFailures[key]; failed && time.Since(lastFailed) < portForwardRetryCooldown {
+			m.mu.Unlock()
+			return nil, fmt.Errorf("port-forward %s failed to start recently; retrying after a %s cooldown", key, portForwardRetryCooldown)
+		}
 		m.mu.Unlock()
 
 		m.logger.Info("establishing port-forward", "key", key)
@@ -164,16 +235,19 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 
 		podName, err := m.resolvePod(startupCtx, namespace, serviceName)
 		if err != nil {
+			m.noteForwardFailure(key)
 			return nil, fmt.Errorf("resolving pod for %s/%s: %w", namespace, serviceName, err)
 		}
 
 		fwd, err := m.createForward(startupCtx, namespace, podName, remotePort)
 		if err != nil {
+			m.noteForwardFailure(key)
 			return nil, fmt.Errorf("creating port-forward %s: %w", key, err)
 		}
 
 		m.mu.Lock()
 		m.forwards[key] = fwd
+		delete(m.recentFailures, key)
 		m.mu.Unlock()
 
 		m.logger.Info("port-forward established",
@@ -184,6 +258,18 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 		return 0, err
 	}
 	return val.(uint16), nil
+}
+
+// noteForwardFailure arms the retry cooldown for a key after a failed startup
+// attempt, pacing retries against a target whose SPDY upgrade stalls. Safe on
+// a nil map (lazy initialization) for managers built via struct literal.
+func (m *PortForwardManager) noteForwardFailure(key string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.recentFailures == nil {
+		m.recentFailures = make(map[string]time.Time)
+	}
+	m.recentFailures[key] = time.Now()
 }
 
 // resolvePod finds a ready pod backing the given service.
@@ -225,6 +311,7 @@ func (m *PortForwardManager) createForward(ctx context.Context, namespace, podNa
 	}
 	dialer := &contextDialer{
 		ctx:      ctx,
+		shutdown: m.closed,
 		upgrader: upgrader,
 		client:   client,
 		method:   http.MethodPost,
@@ -275,12 +362,20 @@ func (m *PortForwardManager) createForward(ctx context.Context, namespace, podNa
 
 // Close tears down all active port-forwards. Call on BFF shutdown.
 func (m *PortForwardManager) Close() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.closeOnce.Do(func() {
+		m.mu.Lock()
+		defer m.mu.Unlock()
 
-	for key, fwd := range m.forwards {
-		close(fwd.stopChan)
-		m.logger.Debug("closed port-forward", "key", key)
-	}
-	m.forwards = make(map[string]*activeForward)
+		// Abort SPDY upgrades still stalled in their response wait so the
+		// pending workers unwind instead of lingering until the peer responds.
+		if m.closed != nil {
+			close(m.closed)
+		}
+
+		for key, fwd := range m.forwards {
+			close(fwd.stopChan)
+			m.logger.Debug("closed port-forward", "key", key)
+		}
+		m.forwards = make(map[string]*activeForward)
+	})
 }

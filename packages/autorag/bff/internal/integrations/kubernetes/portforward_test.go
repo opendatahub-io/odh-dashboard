@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -21,6 +22,7 @@ import (
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/transport/spdy"
 )
 
 func newTestPortForwardManager(clientset kubernetes.Interface) *PortForwardManager {
@@ -556,6 +558,12 @@ func TestPortForwardManager_FailedCreationRetryAfterCompletionStartsFreshCreatio
 	if err := <-firstResult; err == nil || !strings.Contains(err.Error(), "initial port-forward failure") {
 		t.Fatalf("initial creation error = %v, want initial failure", err)
 	}
+	// The failed creation armed the retry cooldown. Elapse it so the retry
+	// below exercises the registry-lookup freshness this test is about,
+	// rather than cooldown pacing.
+	manager.mu.Lock()
+	delete(manager.recentFailures, "team-a/milvus:19530")
+	manager.mu.Unlock()
 	// The retry was paused before its atomic registry lookup. The first
 	// creation has completed and been removed, so releasing the retry must
 	// start a new creation rather than join the obsolete one.
@@ -804,5 +812,238 @@ func TestPortForwardManager_EvictsIdleForwardAndStopsTunnel(t *testing.T) {
 	}
 	if got := manager.forwards["team-a/milvus:19530"]; got == forward {
 		t.Fatal("idle forward remained cached")
+	}
+}
+
+// === Stalled SPDY upgrade regression tests ===
+//
+// An API server that accepts the SPDY upgrade request but never sends response
+// headers blocks spdy.Negotiate in a plain (non-context-aware)
+// http.ReadResponse. Before the abandonment fix, that stall hung the
+// port-forward worker, the createForward wait() on its exit, and Close()
+// itself, and each retry accumulated another abandoned connection and
+// goroutine.
+
+// newStalledForwardServer returns a test server that mimics an API server
+// whose SPDY upgrade never completes: Endpoints lookups succeed, but
+// portforward POSTs are accepted (connection hijacked) and never answered.
+func newStalledForwardServer(t *testing.T) (kubernetes.Interface, *rest.Config, chan struct{}) {
+	t.Helper()
+	requestSeen := make(chan struct{}, 1)
+	hold := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/portforward") {
+			select {
+			case requestSeen <- struct{}{}:
+			default:
+			}
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				return
+			}
+			defer conn.Close()
+			<-hold
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"kind":"Endpoints","apiVersion":"v1","metadata":{"name":"milvus","namespace":"team-a"},"subsets":[{"addresses":[{"targetRef":{"kind":"Pod","name":"milvus-0"}}]}]}`)
+	}))
+	t.Cleanup(func() {
+		// Release the hijacked connections so the abandoned negotiations and
+		// the server itself can drain before the test ends.
+		close(hold)
+		server.Close()
+	})
+	cfg := &rest.Config{Host: server.URL}
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		t.Fatalf("NewForConfig() error = %v", err)
+	}
+	return clientset, cfg, requestSeen
+}
+
+// TestContextDialer_AbandonsStalledUpgrade verifies the dialer gives up on a
+// stalled upgrade when the startup deadline fires instead of blocking on the
+// peer's missing response headers.
+func TestContextDialer_AbandonsStalledUpgrade(t *testing.T) {
+	_, cfg, requestSeen := newStalledForwardServer(t)
+
+	transport, upgrader, err := spdy.RoundTripperFor(cfg)
+	if err != nil {
+		t.Fatalf("RoundTripperFor() error = %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	target, err := url.Parse(cfg.Host + "/api/v1/namespaces/team-a/pods/milvus-0/portforward")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := &contextDialer{
+		ctx:      ctx,
+		upgrader: upgrader,
+		client:   &http.Client{Transport: transport},
+		method:   http.MethodPost,
+		url:      target,
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, _, dialErr := d.Dial("SPDY/3.1")
+		done <- dialErr
+	}()
+
+	select {
+	case <-requestSeen:
+	case <-time.After(10 * time.Second):
+		t.Fatal("stalled upgrade request was not observed")
+	}
+
+	select {
+	case dialErr := <-done:
+		if dialErr == nil {
+			t.Fatal("expected dial against a stalled upgrade to fail")
+		}
+		if !strings.Contains(dialErr.Error(), "abandon") {
+			t.Fatalf("dial error = %v, want abandoned negotiation error", dialErr)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("dial against stalled upgrade did not return — the abandoned negotiation leaks the worker goroutine")
+	}
+}
+
+// TestCreateForward_StalledUpgradeFailsFast verifies the full createForward
+// path — including the ctx.Done branch's wait() on the worker's exit —
+// returns at the startup deadline instead of hanging on the stalled upgrade.
+func TestCreateForward_StalledUpgradeFailsFast(t *testing.T) {
+	clientset, cfg, _ := newStalledForwardServer(t)
+	manager := newTestPortForwardManager(clientset)
+	manager.restConfig = cfg
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		_, createErr := manager.createForward(ctx, "team-a", "milvus-0", 19530)
+		done <- createErr
+	}()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected createForward against a stalled upgrade to fail")
+		}
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("createForward() error = %v, want deadline exceeded", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("createForward() did not return after the startup deadline — the stalled upgrade hangs the worker and its waiters")
+	}
+}
+
+// TestPortForwardManager_CloseAbortsStalledCreation verifies Close() unwinds
+// a creation that is stalled mid-upgrade. Previously the stalled dial was
+// uninterruptible, so Close() blocked forever waiting for the creation.
+func TestPortForwardManager_CloseAbortsStalledCreation(t *testing.T) {
+	clientset, cfg, requestSeen := newStalledForwardServer(t)
+	manager := newTestPortForwardManager(clientset)
+	manager.restConfig = cfg
+
+	result := make(chan error, 1)
+	go func() {
+		_, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+		result <- err
+	}()
+
+	select {
+	case <-requestSeen:
+	case <-time.After(10 * time.Second):
+		t.Fatal("stalled upgrade request was not observed")
+	}
+
+	closed := make(chan struct{})
+	go func() {
+		manager.Close()
+		close(closed)
+	}()
+
+	// The 30s startup deadline is far away — only the lifecycle cancellation
+	// wired through Close() can return control this quickly.
+	select {
+	case <-closed:
+	case <-time.After(10 * time.Second):
+		t.Fatal("Close() did not return — a stalled creation cannot be aborted on shutdown")
+	}
+	select {
+	case err := <-result:
+		if err == nil {
+			t.Fatal("stalled creation unexpectedly succeeded")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("stalled creation did not finish after Close()")
+	}
+}
+
+// TestPortForwardManager_FailedCreationArmsCooldown verifies a failed startup
+// arms the retry cooldown for the key.
+func TestPortForwardManager_FailedCreationArmsCooldown(t *testing.T) {
+	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
+	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+		return nil, errors.New("upgrade stalled")
+	}
+
+	_, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+	if err == nil || !strings.Contains(err.Error(), "upgrade stalled") {
+		t.Fatalf("initial creation error = %v, want startup failure", err)
+	}
+
+	manager.mu.Lock()
+	failedAt, armed := manager.recentFailures["team-a/milvus:19530"]
+	manager.mu.Unlock()
+	if !armed {
+		t.Fatal("failed creation did not arm the retry cooldown")
+	}
+	if elapsed := time.Since(failedAt); elapsed < 0 || elapsed > 5*time.Second {
+		t.Fatalf("cooldown armed %s ago, want ~now", elapsed)
+	}
+}
+
+// TestPortForwardManager_CooldownGatesNewCreation verifies a recently failed
+// key is rejected before any creation attempt.
+func TestPortForwardManager_CooldownGatesNewCreation(t *testing.T) {
+	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
+	manager.recentFailures = map[string]time.Time{"team-a/milvus:19530": time.Now()}
+	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+		t.Fatal("cooldown must reject before starting a new creation")
+		return nil, nil
+	}
+
+	_, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+	if err == nil || !strings.Contains(err.Error(), "cooldown") {
+		t.Fatalf("getOrCreateForward() error = %v, want cooldown rejection", err)
+	}
+}
+
+// TestPortForwardManager_CooldownExpiresAndAllowsRetry verifies an expired
+// cooldown lets a new creation proceed and a successful creation clears it.
+func TestPortForwardManager_CooldownExpiresAndAllowsRetry(t *testing.T) {
+	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
+	manager.recentFailures = map[string]time.Time{"team-a/milvus:19530": time.Now().Add(-portForwardRetryCooldown - time.Second)}
+	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+		return &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
+	}
+
+	port, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+	if err != nil || port != 4567 {
+		t.Fatalf("getOrCreateForward() = %d, %v; want creation after cooldown expiry", port, err)
+	}
+
+	manager.mu.Lock()
+	_, armed := manager.recentFailures["team-a/milvus:19530"]
+	manager.mu.Unlock()
+	if armed {
+		t.Fatal("successful creation did not clear the retry cooldown")
 	}
 }
