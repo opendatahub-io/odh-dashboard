@@ -18,7 +18,6 @@ export const ADMISSION_TIME_WINDOW_OPTIONS: SimpleSelectOption[] = [
   { key: '30d', label: 'Last 30 days' },
 ];
 
-const ADMISSION_TOOLTIP_DATE_TIME_WINDOWS = new Set(['7d', '30d']);
 const ADMISSION_DATE_ONLY_WINDOWS = new Set(['7d', '30d']);
 const ADMISSION_TIME_ONLY_WINDOWS = new Set(['24h']);
 const ADMISSION_TICK_INTERVALS: Record<string, number> = {
@@ -69,18 +68,6 @@ export const formatAdmissionTimestamp = (
         minute: '2-digit',
         hour12: true,
       });
-};
-
-export const formatAdmissionTooltipTimestamp = (timestamp: number, timeWindow = '1h'): string => {
-  const date = new Date(timestamp);
-  const timeOptions: Intl.DateTimeFormatOptions = {
-    hour: 'numeric',
-    minute: '2-digit',
-  };
-
-  return ADMISSION_TOOLTIP_DATE_TIME_WINDOWS.has(timeWindow)
-    ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-    : date.toLocaleTimeString([], timeOptions);
 };
 
 export const formatAdmissionMetricValue = (metricId: string, value: number): string => {

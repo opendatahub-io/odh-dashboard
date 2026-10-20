@@ -18,7 +18,6 @@ import {
   ADMISSION_TIME_WINDOW_OPTIONS,
   buildAdmissionMetrics,
   formatAdmissionMetricHeadline,
-  formatAdmissionTooltipTimestamp,
   formatAdmissionTimestamp,
   formatAdmissionMetricValue,
   getAdmissionMetricHeadlineValue,
@@ -151,9 +150,10 @@ const AdmissionMetricChartComponent: React.FC<{
               ? `${formattedValue} active`
               : formattedValue;
 
-          return `${formatAdmissionTooltipTimestamp(
+          return `${formatAdmissionTimestamp(
             Number(value[0]),
             timeWindow,
+            xDomain,
           )}<br/>${tooltipValue}`;
         },
       },

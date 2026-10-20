@@ -11,7 +11,6 @@ import {
   formatAdmissionMetricValue,
   formatAdmissionMetricHeadline,
   formatAdmissionTimestamp,
-  formatAdmissionTooltipTimestamp,
   getAdmissionMetricsXDomain,
   getAdmissionMetricHeadlineValue,
   getAdmissionMetricYInterval,
@@ -182,18 +181,6 @@ describe('mapAdmissionLeadTimeSeries', () => {
   });
 });
 
-describe('formatAdmissionTooltipTimestamp', () => {
-  const timestamp = new Date(2026, 9, 15, 22, 0).getTime();
-
-  it.each(['1h', '24h'])('uses time-only formatting for %s', (timeWindow) => {
-    expect(formatAdmissionTooltipTimestamp(timestamp, timeWindow)).toBe('10:00 PM');
-  });
-
-  it('includes the date for multi-day windows', () => {
-    expect(formatAdmissionTooltipTimestamp(timestamp, '7d')).toBe('15 Oct');
-  });
-});
-
 describe('formatAdmissionTimestamp', () => {
   const timestamp = new Date(2026, 9, 15, 22, 0).getTime();
 
@@ -254,6 +241,30 @@ describe('formatAdmissionTimestamp', () => {
     },
   ])('uses $name', ({ timeWindow, domain, expected }) => {
     expect(formatAdmissionTimestamp(timestamp, timeWindow, domain)).toBe(expected);
+  });
+});
+
+describe('admission chart tooltip timestamps', () => {
+  const timestamp = new Date(2026, 9, 15, 22, 0).getTime();
+
+  it.each([
+    ['1h', [new Date(2026, 9, 15, 21, 0).getTime(), timestamp] as [number, number]],
+    ['24h', [new Date(2026, 9, 15, 8, 0).getTime(), timestamp] as [number, number]],
+  ])('uses 12-hour AM/PM time for the %s tooltip', (timeWindow, domain) => {
+    expect(formatAdmissionTimestamp(timestamp, timeWindow, domain)).toBe('10:00 PM');
+  });
+
+  it.each([
+    ['7d', [timestamp, new Date(2026, 9, 22, 22, 0).getTime()] as [number, number]],
+    [
+      '30d',
+      [new Date(2026, 9, 1, 22, 0).getTime(), new Date(2026, 9, 31, 22, 0).getTime()] as [
+        number,
+        number,
+      ],
+    ],
+  ])('uses date-only formatting for the %s tooltip', (timeWindow, domain) => {
+    expect(formatAdmissionTimestamp(timestamp, timeWindow, domain)).toBe('Oct 15');
   });
 });
 

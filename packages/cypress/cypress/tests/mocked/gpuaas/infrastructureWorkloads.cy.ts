@@ -340,7 +340,7 @@ describe('GPUaaS Infrastructure Workloads', () => {
   });
 
   it('should open status modals for workbench, training, and inference workloads', () => {
-    initWorkloadsIntercepts();
+    initWorkloadsIntercepts(true, false, false, false, {}, true);
     infrastructurePage.visit(false);
     infrastructurePage.findWorkloadsTab().click();
     infrastructurePage.selectProjectByName('Project-A');
