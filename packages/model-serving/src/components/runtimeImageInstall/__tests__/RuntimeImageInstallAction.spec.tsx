@@ -28,7 +28,6 @@ const createTarget = (id: RuntimeImageInstallTargetId): RuntimeImageInstallTarge
     description: id,
     installTargetName: id,
     selectedState: { listName: id, description: id },
-    configureStepLabel: id,
     component: () => Promise.resolve({ default: () => null }),
   },
 });
