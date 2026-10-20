@@ -187,6 +187,10 @@ class MaaSTokenMiddleware:
             sanitized_headers = [
                 *(header for header in scope["headers"] if header[0].lower() != b"x-ogx-provider-data"),
             ]
+            # provider_data carries per-request credentials keyed by provider type:
+            # openai_api_key serves the remote::openai LLM provider, passthrough_api_key
+            # serves remote::passthrough embedding providers (AGENT_EMBEDDING_API_KEY).
+            provider_data = {}
             if AGENT_MODEL_SOURCE_TYPE == "maas":
                 try:
                     api_key = await _get_maas_api_key(user_token)
@@ -194,18 +198,19 @@ class MaaSTokenMiddleware:
                     print(f"[MaaSTokenMiddleware] token exchange failed: {e}")
                     await _send_json(send, 401, {"detail": "Unauthorized"})
                     return
-                provider_data = json.dumps({"openai_api_key": api_key}).encode()
-                sanitized_headers.append((b"x-ogx-provider-data", provider_data))
+                provider_data["openai_api_key"] = api_key
             elif AGENT_MODEL_SOURCE_TYPE == "custom_endpoint":
                 if api_key := os.environ.get("AGENT_MODEL_API_KEY"):
-                    provider_data = json.dumps({"openai_api_key": api_key}).encode()
-                    sanitized_headers.append((b"x-ogx-provider-data", provider_data))
+                    provider_data["openai_api_key"] = api_key
             elif AGENT_MODEL_SOURCE_TYPE == "namespace":
-                provider_data = json.dumps({"openai_api_key": user_token}).encode()
-                sanitized_headers.append((b"x-ogx-provider-data", provider_data))
+                provider_data["openai_api_key"] = user_token
             else:
                 await _send_json(send, 500, {"detail": "Unsupported model source type"})
                 return
+            if embedding_api_key := os.environ.get("AGENT_EMBEDDING_API_KEY"):
+                provider_data["passthrough_api_key"] = embedding_api_key
+            if provider_data:
+                sanitized_headers.append((b"x-ogx-provider-data", json.dumps(provider_data).encode()))
             scope = {**scope, "headers": sanitized_headers}
 
         await self.app(scope, receive, send)
