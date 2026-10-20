@@ -6,6 +6,7 @@ import {
 import {
   filterBenchmarks,
   getAvailableCategories,
+  getAvailableEvaluates,
   getAvailableFrameworks,
   getAvailableMetrics,
   hasActiveBenchmarkFilters,
@@ -22,6 +23,7 @@ const benchmarks: BenchmarkFilterable[] = [
     category: 'Reasoning',
     metrics: ['accuracy', 'f1'],
     framework: 'Garak',
+    targetTypes: ['model'],
   },
   {
     id: 'inspect/arc',
@@ -29,6 +31,7 @@ const benchmarks: BenchmarkFilterable[] = [
     category: 'Reasoning',
     metrics: ['accuracy'],
     framework: 'Garak',
+    targetTypes: ['agent', 'model'],
   },
   {
     id: 'truthfulqa_mc1',
@@ -36,6 +39,7 @@ const benchmarks: BenchmarkFilterable[] = [
     category: 'Knowledge',
     metrics: ['accuracy'],
     framework: 'Inspect',
+    targetTypes: ['model'],
   },
 ];
 
@@ -96,6 +100,15 @@ describe('filterBenchmarks', () => {
     });
 
     expect(filtered.map((b) => b.id)).toEqual(['truthfulqa_mc1']);
+  });
+
+  it('should filter benchmarks by evaluates target', () => {
+    const filtered = filterBenchmarks(benchmarks, {
+      ...initialBenchmarkFilterData,
+      [BenchmarkFilterOptions.evaluates]: ['agent'],
+    });
+
+    expect(filtered.map((b) => b.id)).toEqual(['inspect/arc']);
   });
 
   it('should filter benchmarks by metrics', () => {
@@ -194,6 +207,12 @@ describe('getAvailableMetrics', () => {
 describe('getAvailableFrameworks', () => {
   it('should return sorted unique frameworks', () => {
     expect(getAvailableFrameworks(benchmarks)).toEqual(['Garak', 'Inspect']);
+  });
+});
+
+describe('getAvailableEvaluates', () => {
+  it('should return sorted unique evaluates targets', () => {
+    expect(getAvailableEvaluates(benchmarks)).toEqual(['agent', 'model']);
   });
 });
 

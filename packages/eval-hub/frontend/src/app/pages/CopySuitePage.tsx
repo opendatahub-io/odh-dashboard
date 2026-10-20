@@ -449,6 +449,8 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
               <CopySuiteBenchmarkSelectionStep
                 providers={providers}
                 selectedBenchmarkKeys={form.selectedBenchmarkKeys}
+                collectionCategories={form.suiteDomains}
+                prefilterProviders={!isCreateMode}
                 isInteractionDisabled={isPageInteractionDisabled}
                 onNext={(selectedKeys) => {
                   form.applyBenchmarkSelection(selectedKeys);

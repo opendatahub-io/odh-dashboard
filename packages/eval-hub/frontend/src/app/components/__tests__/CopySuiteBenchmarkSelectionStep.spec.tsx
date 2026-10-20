@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import type { Provider } from '~/app/types';
 
@@ -118,6 +118,227 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(
       screen.queryByTestId('copy-suite-add-benchmarks-catalog-drawer'),
     ).not.toBeInTheDocument();
+  });
+
+  it('should format underscore-separated target type labels', () => {
+    renderSelectionStep({
+      providers: [
+        {
+          resource: { id: 'provider-target-types' },
+          name: 'provider-target-types',
+          agent: {
+            evaluates: ['Reading_comprehension', 'Instruction_following'],
+            target_type: 'model',
+          },
+          benchmarks: [
+            {
+              id: 'target-types',
+              name: 'Target type labels',
+              category: 'general',
+              metrics: ['accuracy'],
+            },
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: ['provider-target-types:target-types'],
+    });
+
+    expect(screen.getByText('Reading comprehension')).toBeInTheDocument();
+    expect(screen.getByText('Instruction following')).toBeInTheDocument();
+    expect(screen.getByText(/model/i)).toBeInTheDocument();
+    expect(screen.queryByText('Reading_comprehension')).not.toBeInTheDocument();
+
+    const evaluatesCell = screen.getByText('Instruction following').closest('td');
+    expect(
+      Array.from(evaluatesCell?.querySelectorAll('.pf-v6-c-label__text') ?? []).map(
+        (label) => label.textContent,
+      ),
+    ).toEqual(['Instruction following', 'Model', 'Reading comprehension']);
+  });
+
+  it('should include model when provider metadata declares another target', () => {
+    renderSelectionStep({
+      providers: [
+        {
+          resource: { id: 'provider-agent-target' },
+          name: 'provider-agent-target',
+          agent: { evaluates: ['agent'] },
+          benchmarks: [
+            {
+              id: 'agent-target',
+              name: 'Agent target benchmark',
+              category: 'general',
+              metrics: ['accuracy'],
+            },
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: ['provider-agent-target:agent-target'],
+    });
+
+    expect(screen.getByText('Agent')).toBeInTheDocument();
+    expect(screen.getByText('Model')).toBeInTheDocument();
+  });
+
+  it('should default to model when provider target metadata is absent', () => {
+    renderSelectionStep({
+      providers: [
+        {
+          resource: { id: 'provider-without-target-type' },
+          name: 'provider-without-target-type',
+          benchmarks: [
+            {
+              id: 'benchmark-without-target-type',
+              name: 'Benchmark without target type',
+              category: 'general',
+              metrics: ['accuracy'],
+            },
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: ['provider-without-target-type:benchmark-without-target-type'],
+    });
+
+    expect(screen.getByText('Model')).toBeInTheDocument();
+    expect(screen.queryByText('Unspecified')).not.toBeInTheDocument();
+  });
+
+  it('should filter benchmarks by evaluates target', () => {
+    renderSelectionStep({
+      providers: [
+        {
+          resource: { id: 'provider-agent' },
+          name: 'provider-agent',
+          agent: { evaluates: ['agent'] },
+          benchmarks: [
+            {
+              id: 'agent-benchmark',
+              name: 'Agent benchmark',
+              category: 'general',
+              metrics: ['accuracy'],
+            },
+          ],
+        },
+        {
+          resource: { id: 'provider-model' },
+          name: 'provider-model',
+          agent: { evaluates: ['model'] },
+          benchmarks: [
+            {
+              id: 'model-benchmark',
+              name: 'Model benchmark',
+              category: 'general',
+              metrics: ['accuracy'],
+            },
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: [],
+    });
+
+    fireEvent.click(screen.getByTestId('benchmark-catalog-evaluates-filter'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Agent' }));
+
+    expect(screen.getByTestId('benchmark-catalog-evaluates-filter-badge')).toHaveTextContent('1');
+    expect(screen.getByTestId('benchmark-catalog-checkbox-agent-benchmark')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-catalog-checkbox-model-benchmark'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should preselect benchmark categories mapped from the collection categories', () => {
+    renderSelectionStep({
+      providers: [
+        {
+          resource: { id: 'provider-one' },
+          name: 'provider-one',
+          benchmarks: [
+            { id: 'code', name: 'Code benchmark', category: 'Code', metrics: ['accuracy'] },
+            {
+              id: 'reasoning',
+              name: 'Reasoning benchmark',
+              category: 'Reasoning',
+              metrics: ['accuracy'],
+            },
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: [],
+      collectionCategories: ['software'],
+    });
+
+    expect(screen.getByTestId('benchmark-catalog-category-filter-badge')).toHaveTextContent('1');
+    expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-catalog-checkbox-reasoning')).not.toBeInTheDocument();
+  });
+
+  it('should preselect providers represented by existing benchmarks', () => {
+    renderSelectionStep({
+      providers: [
+        {
+          resource: { id: 'provider-one' },
+          name: 'provider-one',
+          title: 'Provider One',
+          benchmarks: [
+            { id: 'code', name: 'Code benchmark', category: 'Code', metrics: ['accuracy'] },
+          ],
+        },
+        {
+          resource: { id: 'provider-two' },
+          name: 'provider-two',
+          title: 'Provider Two',
+          benchmarks: [
+            {
+              id: 'reasoning',
+              name: 'Reasoning benchmark',
+              category: 'Reasoning',
+              metrics: ['accuracy'],
+            },
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: ['provider-one:code'],
+      collectionCategories: [],
+      prefilterProviders: true,
+    });
+
+    expect(screen.getByTestId('benchmark-catalog-framework-filter-badge')).toHaveTextContent('1');
+    expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-catalog-checkbox-reasoning')).not.toBeInTheDocument();
+  });
+
+  it('should apply mapped benchmark categories when collection categories arrive after mount', async () => {
+    const props: React.ComponentProps<typeof CopySuiteBenchmarkSelectionStep> = {
+      providers: [
+        {
+          resource: { id: 'provider-one' },
+          name: 'provider-one',
+          benchmarks: [
+            { id: 'code', name: 'Code benchmark', category: 'Code', metrics: ['accuracy'] },
+            {
+              id: 'reasoning',
+              name: 'Reasoning benchmark',
+              category: 'Reasoning',
+              metrics: ['accuracy'],
+            },
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: [],
+      collectionCategories: [],
+      onNext: jest.fn(),
+      onBack: jest.fn(),
+      onCancel: jest.fn(),
+    };
+    const { rerender } = render(<CopySuiteBenchmarkSelectionStep {...props} />);
+
+    rerender(<CopySuiteBenchmarkSelectionStep {...props} collectionCategories={['software']} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('benchmark-catalog-category-filter-badge')).toHaveTextContent('1');
+      expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
+      expect(screen.queryByTestId('benchmark-catalog-checkbox-reasoning')).not.toBeInTheDocument();
+    });
   });
 
   it('should show selected benchmarks first with each group sorted alphabetically', () => {

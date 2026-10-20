@@ -22,7 +22,6 @@ import {
 import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import {
-  capitalizeFirst,
   formatCategory,
   getCategoryColor,
   getMetricDisplayName,
@@ -38,11 +37,13 @@ import {
 import {
   filterBenchmarks,
   getAvailableCategories,
+  getAvailableEvaluates,
   getAvailableFrameworks,
   getAvailableMetrics,
   hasActiveBenchmarkFilters,
   sortBenchmarksByName,
 } from '~/app/utilities/benchmarkListFilters';
+import { getBenchmarkCategoryFiltersForAvailableCategories } from '~/app/utilities/collectionBenchmarkCategoryMap';
 import {
   buildFlatBenchmarkByKey,
   toggleBenchmarkSelectionKey,
@@ -67,6 +68,8 @@ type CatalogBenchmark = {
 export type CopySuiteBenchmarkSelectionStepProps = {
   providers: Provider[];
   selectedBenchmarkKeys: string[];
+  collectionCategories?: readonly string[];
+  prefilterProviders?: boolean;
   isInteractionDisabled?: boolean;
   onNext: (selectedKeys: string[]) => void;
   onBack: () => void;
@@ -74,18 +77,24 @@ export type CopySuiteBenchmarkSelectionStepProps = {
 };
 
 const getTargetTypes = (provider: Provider): string[] => {
-  if (provider.agent?.evaluates?.length) {
-    return provider.agent.evaluates;
-  }
-  if (provider.agent?.target_type) {
-    return [provider.agent.target_type];
-  }
-  return ['model'];
+  const targetTypes = [
+    ...(provider.agent?.evaluates ?? []),
+    ...(provider.agent?.target_type ? [provider.agent.target_type] : []),
+  ].filter((targetType, index, values) => values.indexOf(targetType) === index);
+
+  return (targetTypes.includes('model') ? targetTypes : [...targetTypes, 'model']).toSorted(
+    (left, right) =>
+      formatCategory(left).localeCompare(formatCategory(right), undefined, {
+        sensitivity: 'base',
+      }),
+  );
 };
 
 const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepProps> = ({
   providers,
   selectedBenchmarkKeys,
+  collectionCategories = [],
+  prefilterProviders = false,
   isInteractionDisabled = false,
   onNext,
   onBack,
@@ -93,9 +102,6 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
 }) => {
   const [draftSelectedBenchmarkKeys, setDraftSelectedBenchmarkKeys] =
     React.useState(selectedBenchmarkKeys);
-  const [filterData, setFilterData] = React.useState<BenchmarkFilterDataType>(
-    initialBenchmarkFilterData,
-  );
   const [page, setPage] = React.useState(1);
   const [detailsBenchmarkKey, setDetailsBenchmarkKey] = React.useState<string | undefined>();
 
@@ -136,6 +142,10 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     () => getAvailableCategories(catalogBenchmarks),
     [catalogBenchmarks],
   );
+  const availableEvaluates = React.useMemo(
+    () => getAvailableEvaluates(catalogBenchmarks),
+    [catalogBenchmarks],
+  );
   const availableFrameworks = React.useMemo(
     () => getAvailableFrameworks(catalogBenchmarks),
     [catalogBenchmarks],
@@ -144,6 +154,75 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     () => getAvailableMetrics(catalogBenchmarks),
     [catalogBenchmarks],
   );
+  const selectedProviderIds = React.useMemo(
+    () =>
+      new Set(
+        selectedBenchmarkKeys
+          .map((key) => key.slice(0, key.indexOf(':')))
+          .filter((providerId) => providerId.length > 0),
+      ),
+    [selectedBenchmarkKeys],
+  );
+  const initialFrameworkFilters = React.useMemo(() => {
+    if (!prefilterProviders) {
+      return [];
+    }
+
+    const selectedFrameworks = new Set(
+      catalogBenchmarks
+        .filter((benchmark) => selectedProviderIds.has(benchmark.providerId))
+        .map((benchmark) => benchmark.framework),
+    );
+
+    return availableFrameworks.filter((framework) => selectedFrameworks.has(framework));
+  }, [availableFrameworks, catalogBenchmarks, prefilterProviders, selectedProviderIds]);
+  const collectionCategoryKey = collectionCategories.toSorted().join('\u0000');
+  const normalizedCollectionCategories = React.useMemo(
+    () => (collectionCategoryKey ? collectionCategoryKey.split('\u0000') : []),
+    [collectionCategoryKey],
+  );
+  const initialCategoryFilters = React.useMemo(
+    () =>
+      getBenchmarkCategoryFiltersForAvailableCategories(
+        normalizedCollectionCategories,
+        availableCategories,
+      ),
+    [availableCategories, normalizedCollectionCategories],
+  );
+  const initialFilterData = React.useMemo(
+    () => ({
+      ...initialBenchmarkFilterData,
+      [BenchmarkFilterOptions.category]: initialCategoryFilters,
+      [BenchmarkFilterOptions.framework]: initialFrameworkFilters,
+    }),
+    [initialCategoryFilters, initialFrameworkFilters],
+  );
+  const [filterData, setFilterData] = React.useState<BenchmarkFilterDataType>(initialFilterData);
+  React.useEffect(() => {
+    setFilterData((currentFilterData) => {
+      const currentCategoryFilters = currentFilterData[BenchmarkFilterOptions.category];
+      const currentFrameworkFilters = currentFilterData[BenchmarkFilterOptions.framework];
+      const categoryFiltersAreUnchanged =
+        currentCategoryFilters.length === initialCategoryFilters.length &&
+        currentCategoryFilters.every(
+          (category, index) => category === initialCategoryFilters[index],
+        );
+      const frameworkFiltersAreUnchanged =
+        currentFrameworkFilters.length === initialFrameworkFilters.length &&
+        currentFrameworkFilters.every(
+          (framework, index) => framework === initialFrameworkFilters[index],
+        );
+
+      return categoryFiltersAreUnchanged && frameworkFiltersAreUnchanged
+        ? currentFilterData
+        : {
+            ...currentFilterData,
+            [BenchmarkFilterOptions.category]: initialCategoryFilters,
+            [BenchmarkFilterOptions.framework]: initialFrameworkFilters,
+          };
+    });
+    setPage(1);
+  }, [initialCategoryFilters, initialFrameworkFilters]);
   const filteredBenchmarks = React.useMemo(
     () => filterBenchmarks(catalogBenchmarks, filterData),
     [catalogBenchmarks, filterData],
@@ -311,6 +390,33 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                         testIdPrefix="benchmark-catalog-framework"
                       />
                       <SearchableMultiSelectFilter
+                        categoryName="Evaluates"
+                        options={availableEvaluates}
+                        selected={filterData[BenchmarkFilterOptions.evaluates]}
+                        formatLabel={formatCategory}
+                        onToggleOption={(value) => {
+                          setFilterData((prev) => ({
+                            ...prev,
+                            [BenchmarkFilterOptions.evaluates]: prev[
+                              BenchmarkFilterOptions.evaluates
+                            ].includes(value)
+                              ? prev[BenchmarkFilterOptions.evaluates].filter(
+                                  (item) => item !== value,
+                                )
+                              : [...prev[BenchmarkFilterOptions.evaluates], value],
+                          }));
+                          setPage(1);
+                        }}
+                        onClearAll={() => {
+                          setFilterData((prev) => ({
+                            ...prev,
+                            [BenchmarkFilterOptions.evaluates]: [],
+                          }));
+                          setPage(1);
+                        }}
+                        testIdPrefix="benchmark-catalog-evaluates"
+                      />
+                      <SearchableMultiSelectFilter
                         categoryName="Metrics"
                         options={availableMetrics}
                         selected={filterData[BenchmarkFilterOptions.metrics]}
@@ -389,7 +495,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                       <Th screenReaderText="Select benchmark" />
                       <Th>Benchmark</Th>
                       <Th>Category</Th>
-                      <Th>Target type</Th>
+                      <Th>Evaluates</Th>
                       <Th>Metrics</Th>
                     </Tr>
                   </Thead>
@@ -450,14 +556,16 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                             </Label>
                           ) : null}
                         </Td>
-                        <Td dataLabel="Target type">
-                          <LabelGroup isCompact>
-                            {benchmark.targetTypes.map((targetType) => (
-                              <Label key={targetType} isCompact>
-                                {capitalizeFirst(targetType)}
-                              </Label>
-                            ))}
-                          </LabelGroup>
+                        <Td dataLabel="Evaluates">
+                          {benchmark.targetTypes.length > 0 ? (
+                            <LabelGroup isCompact>
+                              {benchmark.targetTypes.map((targetType) => (
+                                <Label key={targetType} isCompact>
+                                  {formatCategory(targetType)}
+                                </Label>
+                              ))}
+                            </LabelGroup>
+                          ) : null}
                         </Td>
                         <Td dataLabel="Metrics">
                           <LabelGroup isCompact numLabels={3}>
