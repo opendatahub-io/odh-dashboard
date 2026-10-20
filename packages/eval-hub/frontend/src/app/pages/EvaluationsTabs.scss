@@ -108,6 +108,9 @@
 }
 
 .evalhub-create-suite-card__icon {
+  align-items: center;
+  display: flex;
+  justify-content: center;
   width: calc(var(--pf-t--global--spacer--xl) + var(--pf-t--global--spacer--sm));
   height: calc(var(--pf-t--global--spacer--xl) + var(--pf-t--global--spacer--sm));
   flex-shrink: 0;

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bullseye, Button, Card, CardBody, Content, Title } from '@patternfly/react-core';
+import { Button, Card, CardBody, Content, Title } from '@patternfly/react-core';
 import { PlusIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 
@@ -21,9 +21,9 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
     data-testid="create-suite-card"
   >
     <CardBody className="evalhub-create-suite-card__body">
-      <Bullseye className="evalhub-create-suite-card__icon" aria-hidden="true">
+      <div className="evalhub-create-suite-card__icon" aria-hidden="true">
         <PlusIcon />
-      </Bullseye>
+      </div>
       <Title headingLevel="h3" size="md" className="evalhub-create-suite-card__title">
         Create your own collection
       </Title>
