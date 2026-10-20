@@ -309,10 +309,14 @@ func (m *PortForwardManager) createForward(ctx context.Context, namespace, podNa
 		return nil, fmt.Errorf("creating SPDY round tripper: %w", err)
 	}
 
+	client := &http.Client{Transport: transport, Timeout: portForwardStartupTimeout}
+	if deadline, ok := ctx.Deadline(); ok {
+		client.Timeout = time.Until(deadline)
+	}
 	dialer := &contextDialer{
 		ctx:      ctx,
 		upgrader: upgrader,
-		client:   &http.Client{Transport: transport},
+		client:   client,
 		method:   http.MethodPost,
 		url:      reqURL,
 	}
