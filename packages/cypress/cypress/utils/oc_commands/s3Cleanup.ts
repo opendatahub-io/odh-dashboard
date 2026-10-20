@@ -1,10 +1,7 @@
-import { applyOpenShiftYaml } from './baseCommands';
+import { applyOpenShiftYaml, shellQuote } from './baseCommands';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import type { AWSS3Buckets } from '../../types';
-import { AWS_BUCKETS } from '../s3Buckets';
-
-/** Shell-escape a value by wrapping in single quotes (handles embedded quotes). */
-const shQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
+import { AWS_BUCKETS, resolveAutoXS3Endpoint } from '../s3Buckets';
 
 /** Pinned AWS CLI image so the cleanup pod cannot drift to a mutated :latest tag. */
 const AWS_CLI_IMAGE =
@@ -68,10 +65,13 @@ export const runAwsCliInCluster = ({
   });
 
   const deleteCredentials = () =>
-    cy.exec(`oc delete secret ${shQuote(secretName)} -n ${shQuote(namespace)} --ignore-not-found`, {
-      failOnNonZeroExit: false,
-      log: false,
-    });
+    cy.exec(
+      `oc delete secret ${shellQuote(secretName)} -n ${shellQuote(namespace)} --ignore-not-found`,
+      {
+        failOnNonZeroExit: false,
+        log: false,
+      },
+    );
 
   // `--overrides` replaces `spec.containers` wholesale, so it must carry image and args.
   const podOverrides = JSON.stringify({
@@ -100,10 +100,10 @@ export const runAwsCliInCluster = ({
     // non-zero oc run. Re-throw after deletion when the caller asked to fail.
     return cy
       .exec(
-        `oc run ${shQuote(podName)} -n ${shQuote(namespace)} ` +
-          `--image=${shQuote(AWS_CLI_IMAGE)} ` +
+        `oc run ${shellQuote(podName)} -n ${shellQuote(namespace)} ` +
+          `--image=${shellQuote(AWS_CLI_IMAGE)} ` +
           `--restart=Never --rm --attach --tty=false ` +
-          `--overrides=${shQuote(podOverrides)}`,
+          `--overrides=${shellQuote(podOverrides)}`,
         { failOnNonZeroExit: false, log: false, timeout },
       )
       .then((result) =>
@@ -155,6 +155,7 @@ export const deleteS3TestFiles = (
 
   const bucketConfig = getAwsPipelines()[bucketKey];
   const podName = `s3-cleanup-${Date.now()}`;
+  const s3Endpoint = resolveAutoXS3Endpoint(bucketConfig.ENDPOINT);
 
   runAwsCliInCluster({
     namespace,
@@ -166,7 +167,7 @@ export const deleteS3TestFiles = (
       `s3://${bucketConfig.NAME}/`,
       '--recursive',
       '--endpoint-url',
-      bucketConfig.ENDPOINT,
+      s3Endpoint,
       '--exclude',
       '*',
       '--include',
