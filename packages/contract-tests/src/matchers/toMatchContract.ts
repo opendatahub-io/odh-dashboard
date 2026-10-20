@@ -165,7 +165,7 @@ export function toMatchContract(
         const name = refPath.split('/').pop() || '';
         const target = componentsSchemas[name];
         const resolved = derefSchema(target, componentsSchemas);
-        return nullable ? makeNullable(resolved) : resolved;
+        return resolved;
       }
     }
     if (nullable && typeof n.type === 'string') {
@@ -177,10 +177,6 @@ export function toMatchContract(
       }
     }
     return n;
-  };
-
-  const makeNullable = (resolvedSchema: unknown): unknown => {
-    return { anyOf: [resolvedSchema, { type: 'null' }] };
   };
 
   // Schema validation (resolve ref against OAS3 if provided, otherwise treat schema as JSON Schema)
