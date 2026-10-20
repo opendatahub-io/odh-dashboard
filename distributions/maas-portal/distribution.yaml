@@ -17,7 +17,7 @@ packages:
         mySubscriptions: true
         grid: false
     - package: '@odh-dashboard/gen-ai'
-      extensionsPath: './extensions/maas-portal'
+      extensionsPath: './extensions/static'
       featureFlags:
         genAiStudio: true
         plugin-gen-ai: true

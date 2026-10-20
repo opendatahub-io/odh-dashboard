@@ -1,11 +1,15 @@
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
+import { PluginStore } from '@odh-dashboard/plugin-core';
 import extensions, {
   GEN_AI_AGENT_DEPLOYMENT,
   GEN_AI_AUDIO_UPLOAD,
   GEN_AI_IMAGE_UPLOAD,
+  GEN_AI_STUDIO,
   GEN_AI_TRACING,
+  GRID,
   GUARDRAILS,
   MODEL_AS_SERVICE_CAMEL,
+  PLUGIN_GEN_AI,
   PROMPT_MANAGEMENT,
   PROMPT_MODEL_ASSOCIATIONS,
 } from '~/odh/extensions';
@@ -26,6 +30,78 @@ const makeDscStatus = (conditions: K8sCondition[]) =>
     conditions,
     components: {},
   }) as never;
+
+describe('MaaS Models extensions', () => {
+  const findModelsExtensions = (store: PluginStore) =>
+    store
+      .getExtensions()
+      .filter(
+        (extension) =>
+          (extension.type === 'app.route' && extension.properties.path === '/maas/models') ||
+          (extension.type === 'app.navigation/href' && extension.properties.id === 'maas-models'),
+      );
+
+  it('should expose the Models navigation and route when only grid is enabled', () => {
+    const store = new PluginStore({ genAi: extensions });
+    store.setFeatureFlags({ [GRID]: true });
+
+    expect(findModelsExtensions(store)).toHaveLength(2);
+    expect(findModelsExtensions(store)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'app.navigation/href',
+          properties: {
+            id: 'maas-models',
+            title: 'Models',
+            href: '/maas/models',
+            path: '/maas/models',
+            group: '0_models',
+          },
+        }),
+        expect.objectContaining({
+          type: 'app.route',
+          properties: {
+            path: '/maas/models',
+            component: expect.any(Function),
+          },
+        }),
+      ]),
+    );
+  });
+
+  it.each([undefined, false])('should hide the navigation and route when grid is %s', (grid) => {
+    const store = new PluginStore({ genAi: extensions });
+    if (grid !== undefined) {
+      store.setFeatureFlags({ [GRID]: grid });
+    }
+
+    expect(findModelsExtensions(store)).toHaveLength(0);
+  });
+
+  it('should remove both navigation and route when grid is disabled after being enabled', () => {
+    const store = new PluginStore({ genAi: extensions });
+    store.setFeatureFlags({ [GRID]: true });
+    expect(findModelsExtensions(store)).toHaveLength(2);
+
+    store.setFeatureFlags({ [GRID]: false });
+    expect(findModelsExtensions(store)).toHaveLength(0);
+  });
+
+  it.each([true, false])(
+    'should respect grid=%s when Gen AI and modelAsService are enabled',
+    (grid) => {
+      const store = new PluginStore({ genAi: extensions });
+      store.setFeatureFlags({
+        [GRID]: grid,
+        [GEN_AI_STUDIO]: true,
+        [PLUGIN_GEN_AI]: true,
+        [MODEL_AS_SERVICE_CAMEL]: true,
+      });
+
+      expect(findModelsExtensions(store)).toHaveLength(grid ? 2 : 0);
+    },
+  );
+});
 
 describe('modelAsService area extension', () => {
   it('should have a customCondition defined', () => {
