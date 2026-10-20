@@ -35,6 +35,10 @@ import { NODE_HEIGHT, NODE_WIDTH } from './const';
 const MAX_TIP_ITEMS = 6;
 const EXPANDED_TOGGLE_OFFSET_FROM_CENTER = NODE_WIDTH / 2 - 42.5;
 
+type ControlBounds = { x: number; y: number; width: number; height: number };
+
+type ExpandedControlBounds = { details: ControlBounds; toggle: ControlBounds };
+
 type PipelinesDefaultGroupProps = {
   element: GraphElement<PipelineNodeModelExpanded>;
 } & WithSelectionProps;
@@ -46,11 +50,13 @@ type PipelinesDefaultGroupInnerProps = Omit<PipelinesDefaultGroupProps, 'element
 type AccessibleTaskGroupPillLabelProps = React.ComponentProps<typeof TaskGroupPillLabel> & {
   groupLabel: string;
   onActionChange: (handler: ((event: React.MouseEvent) => void) | undefined) => void;
+  onLabelLayoutChange: (label: SVGGElement) => void;
 };
 
 const AccessibleTaskGroupPillLabel: React.FC<AccessibleTaskGroupPillLabelProps> = ({
   groupLabel,
   onActionChange,
+  onLabelLayoutChange,
   ...props
 }) => {
   const labelRef = React.useRef<SVGGElement>(null);
@@ -68,11 +74,20 @@ const AccessibleTaskGroupPillLabel: React.FC<AccessibleTaskGroupPillLabelProps> 
       return undefined;
     }
 
-    hideSvgTaskLabelsFromKeyboard(label);
-    const labelObserver = new MutationObserver(() => hideSvgTaskLabelsFromKeyboard(label));
-    labelObserver.observe(label, { childList: true, subtree: true });
+    const updateLabel = () => {
+      hideSvgTaskLabelsFromKeyboard(label);
+      onLabelLayoutChange(label);
+    };
+    updateLabel();
+    const labelObserver = new MutationObserver(updateLabel);
+    labelObserver.observe(label, {
+      attributes: true,
+      attributeFilter: ['transform', 'x', 'y', 'width', 'height'],
+      childList: true,
+      subtree: true,
+    });
     return () => labelObserver.disconnect();
-  }, []);
+  }, [onLabelLayoutChange]);
 
   return (
     <g ref={labelRef} data-testid={`pipeline-group-label-${groupLabel}`}>
@@ -89,6 +104,8 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
     const combinedRef = useCombineRefs(hoverRef, groupRef);
     const [popoverOpen, setPopoverOpen] = React.useState(false);
     const [toggleFocused, setToggleFocused] = React.useState(false);
+    const [expandedControlBounds, setExpandedControlBounds] =
+      React.useState<ExpandedControlBounds | null>(null);
     const popoverRef = React.useRef<HTMLButtonElement>(null);
     const toggleRef = React.useRef<HTMLButtonElement>(null);
     const expandedActionRef = React.useRef<((event: React.MouseEvent) => void) | undefined>();
@@ -98,6 +115,48 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       },
       [],
     );
+    const updateExpandedControlBounds = React.useCallback((label: SVGGElement) => {
+      const group = groupRef.current;
+      const actionIcon = label.querySelector<SVGGElement>('.pf-topology__node__action-icon');
+      const matrix = group?.getScreenCTM();
+      if (!actionIcon || !matrix) {
+        return;
+      }
+
+      const inverse = matrix.inverse();
+      const labelRect = label.getBoundingClientRect();
+      const actionRect = actionIcon.getBoundingClientRect();
+      if (!labelRect.width || !actionRect.width) {
+        return;
+      }
+      const toLocal = (rect: DOMRect): ControlBounds => {
+        const start = new DOMPoint(rect.left, rect.top).matrixTransform(inverse);
+        const end = new DOMPoint(rect.right, rect.bottom).matrixTransform(inverse);
+        return { x: start.x, y: start.y, width: end.x - start.x, height: end.y - start.y };
+      };
+      const details = toLocal(
+        new DOMRect(
+          labelRect.left,
+          labelRect.top,
+          actionRect.left - labelRect.left,
+          labelRect.height,
+        ),
+      );
+      const toggle = toLocal(actionRect);
+      setExpandedControlBounds((previous) => {
+        const next = { details, toggle };
+        const sameBounds = (a: ControlBounds, b: ControlBounds) =>
+          Math.abs(a.x - b.x) < 0.1 &&
+          Math.abs(a.y - b.y) < 0.1 &&
+          Math.abs(a.width - b.width) < 0.1 &&
+          Math.abs(a.height - b.height) < 0.1;
+        return previous &&
+          sameBounds(previous.details, details) &&
+          sameBounds(previous.toggle, toggle)
+          ? previous
+          : next;
+      });
+    }, []);
     const focusToggleAfterCollapse = React.useRef(false);
     const detailsLevel = element.getGraph().getDetailsLevel();
     const isCollapsed = element.isCollapsed();
@@ -243,19 +302,32 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         }, ${groupStatusLabel}`
       : `${groupLabel} task group, ${childCount} ${childCount === 1 ? 'task' : 'tasks'}`;
     const bounds = element.getBounds();
-    // PatternFly centers the expanded pill on the group, even when the group widens.
-    const expandedToggleX = bounds.x + bounds.width / 2 + EXPANDED_TOGGLE_OFFSET_FROM_CENTER;
+    const expandedCenterX = bounds.x + bounds.width / 2;
+    const fallbackExpandedToggle: ControlBounds = {
+      x: expandedCenterX + EXPANDED_TOGGLE_OFFSET_FROM_CENTER,
+      y: bounds.y - 13,
+      width: 28.25,
+      height: 26,
+    };
+    const expandedToggle = expandedControlBounds?.toggle ?? fallbackExpandedToggle;
+    const expandedDetails = expandedControlBounds?.details ?? {
+      x: expandedCenterX - NODE_WIDTH / 2,
+      y: bounds.y - 13,
+      width: NODE_WIDTH / 2 + EXPANDED_TOGGLE_OFFSET_FROM_CENTER,
+      height: 26,
+    };
     const GroupLabelComponent = React.useCallback(
       (props: React.ComponentProps<typeof TaskGroupPillLabel>) => (
         <AccessibleTaskGroupPillLabel
           {...props}
           groupLabel={groupLabel}
           onActionChange={setExpandedAction}
+          onLabelLayoutChange={updateExpandedControlBounds}
           badge={badgeText}
           customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
         />
       ),
-      [badgeText, groupLabel, setExpandedAction, status],
+      [badgeText, groupLabel, setExpandedAction, status, updateExpandedControlBounds],
     );
 
     const groupNode = (
@@ -323,12 +395,33 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
             </Popover>
           </foreignObject>
         ) : null}
+        {!isCollapsed && !isHidden ? (
+          <foreignObject {...expandedDetails} overflow="visible">
+            <button
+              type="button"
+              className="odh-pipeline-node-button pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
+              aria-label={`View details for ${groupAriaLabel}`}
+              onFocus={(event) => {
+                setToggleFocused(true);
+                panFocusedControlIntoView(element, event.currentTarget);
+              }}
+              onBlur={() => setToggleFocused(false)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelect?.(event);
+              }}
+              onKeyDown={activateNodeButtonOnKeyDown}
+              data-pipeline-node-id={element.getId()}
+              data-testid={`pipeline-expanded-group-details-${groupLabel}`}
+            />
+          </foreignObject>
+        ) : null}
         {!isHidden ? (
           <foreignObject
-            x={isCollapsed ? bounds.width - 12 : expandedToggleX}
-            y={isCollapsed ? 0 : bounds.y - 13}
-            width={28.25}
-            height={isCollapsed ? bounds.height : 26}
+            x={isCollapsed ? bounds.width - 12 : expandedToggle.x}
+            y={isCollapsed ? 0 : expandedToggle.y}
+            width={isCollapsed ? 28.25 : expandedToggle.width}
+            height={isCollapsed ? bounds.height : expandedToggle.height}
             overflow="visible"
           >
             <button

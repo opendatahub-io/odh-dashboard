@@ -62,11 +62,23 @@ const mockGroupedVersion = buildMockPipelineVersion({
   display_name: 'grouped-pipeline-version',
 });
 mockGroupedVersion.pipeline_spec = mockParallelForPipelineSpec;
-const mockWideGroupedVersion = buildMockPipelineVersion({
+const longGroupName = 'for-loop-with-many-iterations';
+const mockLongNamedGroupedVersion = buildMockPipelineVersion({
   pipeline_id: mockPipeline.pipeline_id,
-  display_name: 'wide-grouped-pipeline-version',
+  display_name: 'long-named-grouped-pipeline-version',
 });
-mockWideGroupedVersion.pipeline_spec = mockParallelForWithArtifactsPipelineSpec;
+mockLongNamedGroupedVersion.pipeline_spec = structuredClone(
+  mockParallelForWithArtifactsPipelineSpec,
+);
+const longNamedGroupTasks = mockLongNamedGroupedVersion.pipeline_spec.root?.dag.tasks;
+if (!longNamedGroupTasks) {
+  throw new Error('Expected grouped pipeline tasks');
+}
+longNamedGroupTasks[longGroupName] = {
+  ...longNamedGroupTasks['for-loop-2'],
+  taskInfo: { name: longGroupName },
+};
+delete longNamedGroupTasks['for-loop-2'];
 const mockRun = buildMockRunKF({
   display_name: 'test-pipeline-run',
   run_id: 'test-pipeline-run-id',
@@ -424,6 +436,24 @@ describe('Pipeline topology', () => {
       pipelineDetails.findGroupButton('for-loop-2').should('be.focused');
     });
 
+    it('opens expanded group details directly from the keyboard', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findExpandedGroupDetails('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+      pipelineDetails.findDrawerCloseButton().click();
+      pipelineDetails.findExpandedGroupDetails('for-loop-2').should('be.focused');
+      pipelineDetails.findTaskButton('simple-task').should('exist');
+    });
+
     it('uses PatternFly collapse behavior from the keyboard accessible control', () => {
       initIntercepts(mockGroupedVersion);
       pipelineDetails.visit(
@@ -471,30 +501,38 @@ describe('Pipeline topology', () => {
       pipelineDetails.findGroupToggle('for-loop-2').should('be.focused');
     });
 
-    it('keeps the expanded group toggle aligned with its SVG action', () => {
-      initIntercepts(mockWideGroupedVersion);
+    it('keeps the expanded group toggle aligned with its SVG action for a long label', () => {
+      initIntercepts(mockLongNamedGroupedVersion);
       pipelineDetails.visit(
         projectId,
         mockPipeline.pipeline_id,
-        mockWideGroupedVersion.pipeline_version_id,
+        mockLongNamedGroupedVersion.pipeline_version_id,
       );
 
-      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      pipelineDetails.findGroupToggle(longGroupName).focus();
       cy.press(Cypress.Keyboard.Keys.ENTER);
       pipelineDetails.findTaskButton('create-features').should('exist');
-      pipelineDetails.findGroupActionIcon('for-loop-2').should('have.length', 1);
-      pipelineDetails.findGroupToggle('for-loop-2').then(($toggle) => {
-        pipelineDetails.findGroupActionIcon('for-loop-2').then(($action) => {
-          const toggle = $toggle[0].getBoundingClientRect();
-          const action = $action[0].getBoundingClientRect();
-          expect(
-            Math.min(toggle.right, action.right) - Math.max(toggle.left, action.left),
-          ).to.be.greaterThan(0);
-          expect(
-            Math.min(toggle.bottom, action.bottom) - Math.max(toggle.top, action.top),
-          ).to.be.greaterThan(0);
+      const assertToggleAlignment = () => {
+        pipelineDetails.findGroupActionIcon(longGroupName).should('have.length', 1);
+        pipelineDetails.findGroupToggle(longGroupName).then(($toggle) => {
+          pipelineDetails.findGroupActionIcon(longGroupName).then(($action) => {
+            const toggle = $toggle[0].getBoundingClientRect();
+            const action = $action[0].getBoundingClientRect();
+            expect(
+              Math.min(toggle.right, action.right) - Math.max(toggle.left, action.left),
+            ).to.be.greaterThan(0);
+            expect(
+              Math.min(toggle.bottom, action.bottom) - Math.max(toggle.top, action.top),
+            ).to.be.greaterThan(0);
+          });
         });
-      });
+      };
+      assertToggleAlignment();
+      for (let i = 0; i < 5; i++) {
+        pipelineDetails.findZoomOutButton().click();
+      }
+      pipelineDetails.findGroupToggle(longGroupName).focus();
+      assertToggleAlignment();
     });
 
     it('keeps the expanded group label out of keyboard navigation', () => {
@@ -536,6 +574,22 @@ describe('Pipeline topology', () => {
       // eslint-disable-next-line cypress/no-unnecessary-waiting
       cy.wait(600);
       pipelineRunDetails.findDrawerTaskTitle().should('not.be.focused');
+    });
+
+    it('does not reclaim focus after the user tabs away from a selected task', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findGraphButtons().then(($buttons) => {
+        cy.wrap($buttons[0]).focus();
+        cy.press(Cypress.Keyboard.Keys.ENTER);
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.wrap($buttons[1]).should('be.focused');
+        // The drawer focus effect waits 550 ms. Fake timers break Monaco in run details.
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(600);
+        cy.wrap($buttons[1]).should('be.focused');
+      });
     });
 
     it('returns focus to the graph step after closing its details', () => {

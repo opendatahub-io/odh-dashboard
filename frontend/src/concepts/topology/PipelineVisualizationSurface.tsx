@@ -148,7 +148,17 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     if (!focusReturnTarget.current && !hiddenAtSelection) {
       return undefined;
     }
+    const focusedAtSelection = document.activeElement;
     const focusTimeout = setTimeout(() => {
+      // A user may already have tabbed away while the drawer was opening. Only reclaim focus
+      // from the original trigger, or from the body after a popover trigger was removed.
+      const { activeElement } = document;
+      if (
+        activeElement !== focusedAtSelection &&
+        !(activeElement === document.body && !focusedAtSelection?.isConnected)
+      ) {
+        return;
+      }
       const drawer = controlBarRef.current
         ?.closest('.pipeline-visualization')
         ?.querySelector('[data-testid="pipeline-topology-drawer"]');
