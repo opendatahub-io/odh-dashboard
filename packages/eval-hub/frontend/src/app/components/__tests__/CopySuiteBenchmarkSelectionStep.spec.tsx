@@ -268,8 +268,28 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     });
 
     expect(screen.getByTestId('benchmark-catalog-category-filter-badge')).toHaveTextContent('1');
+    const prefilterAlert = screen.getByTestId('benchmark-catalog-prefilter-alert');
+    expect(prefilterAlert).toHaveTextContent(
+      'Filters were applied automatically to show benchmarks matching the selected collection category.',
+    );
+    expect(prefilterAlert).toHaveClass('pf-m-plain');
+    expect(prefilterAlert.closest('.pf-v6-c-toolbar')).toBeInTheDocument();
+    expect(prefilterAlert).not.toHaveTextContent('Clear all filters');
     expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-catalog-checkbox-reasoning')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    expect(screen.queryByTestId('benchmark-catalog-prefilter-alert')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning')).toBeInTheDocument();
+
+    // restore the original prefilter by re-selecting the category — the alert must stay hidden
+    fireEvent.click(screen.getByTestId('benchmark-catalog-category-filter'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Code' }));
+
+    expect(screen.getByTestId('benchmark-catalog-category-filter-badge')).toHaveTextContent('1');
+    expect(screen.queryByTestId('benchmark-catalog-checkbox-reasoning')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-catalog-prefilter-alert')).not.toBeInTheDocument();
   });
 
   it('should preselect providers represented by existing benchmarks', () => {
@@ -303,8 +323,15 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     });
 
     expect(screen.getByTestId('benchmark-catalog-framework-filter-badge')).toHaveTextContent('1');
+    // framework-only prefilter (no collection categories) must still surface the alert
+    expect(screen.getByTestId('benchmark-catalog-prefilter-alert')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-catalog-checkbox-reasoning')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    expect(screen.queryByTestId('benchmark-catalog-prefilter-alert')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning')).toBeInTheDocument();
   });
 
   it('should apply mapped benchmark categories when collection categories arrive after mount', async () => {
