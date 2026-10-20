@@ -25,7 +25,7 @@ class RuntimeCatalogDetailsPage {
     return this.findPage().findByRole('heading', { name });
   }
 
-  findInstallAction() {
+  findCreateAction() {
     return this.findPage().findByTestId('runtime-image-install');
   }
 

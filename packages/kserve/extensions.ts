@@ -382,7 +382,6 @@ const extensions: (
         description: 'and the inference service deployment wizard.',
       },
       installTargetName: 'serving runtime template',
-      configureStepLabel: 'Configure template',
       component: () => import('./src/runtimeImageInstall/ServingRuntimeInstallTarget'),
     },
   },
