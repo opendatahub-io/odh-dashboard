@@ -1,9 +1,13 @@
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
 import extensions, {
   GEN_AI_AGENT_DEPLOYMENT,
+  GEN_AI_AUDIO_UPLOAD,
+  GEN_AI_IMAGE_UPLOAD,
   GEN_AI_TRACING,
   GUARDRAILS,
   MODEL_AS_SERVICE_CAMEL,
+  PROMPT_MANAGEMENT,
+  PROMPT_MODEL_ASSOCIATIONS,
 } from '~/odh/extensions';
 
 const findArea = (id: string) => {
@@ -111,6 +115,25 @@ describe('genAiAgentDeployment area extension', () => {
 
     expect(area.properties.reliantAreas).toEqual(['plugin-gen-ai']);
     expect(area.properties.featureFlags).toEqual([GEN_AI_AGENT_DEPLOYMENT]);
+  });
+});
+
+describe.each([GEN_AI_IMAGE_UPLOAD, GEN_AI_AUDIO_UPLOAD])('%s area extension', (featureFlag) => {
+  it('should be controlled by its feature flag', () => {
+    const area = findArea(featureFlag);
+
+    expect(area.properties.reliantAreas).toEqual(['plugin-gen-ai']);
+    expect(area.properties.featureFlags).toEqual([featureFlag]);
+  });
+});
+
+describe('promptModelAssociations area extension', () => {
+  it('should rely on promptManagement and be gated only by the promptModelAssociations dev flag', () => {
+    const area = findArea(PROMPT_MODEL_ASSOCIATIONS);
+
+    expect(area.properties.reliantAreas).toEqual([PROMPT_MANAGEMENT]);
+    expect(area.properties.devFlags).toEqual([PROMPT_MODEL_ASSOCIATIONS]);
+    expect(area.properties.featureFlags).toBeUndefined();
   });
 });
 

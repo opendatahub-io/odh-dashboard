@@ -110,7 +110,7 @@ describe('CuratedSuiteRunModal', () => {
     renderModal();
 
     const props = getRunModalProps();
-    expect(props.description).toContain('An unchanged copy of this benchmark suite');
+    expect(props.description).toContain('An unchanged copy of this collection');
     expect(props.resolveCollection).toEqual(expect.any(Function));
     expect(props.onRunFailure).toEqual(expect.any(Function));
     expect(props.modalId).toBe('curated-suite-start-evaluation-run-modal');
@@ -163,7 +163,7 @@ describe('CuratedSuiteRunModal', () => {
     renderModal();
 
     await expect(getRunModalProps().resolveCollection?.()).resolves.toBeUndefined();
-    expect(notification.error).toHaveBeenCalledWith('Failed to copy suite', 'clone failed');
+    expect(notification.error).toHaveBeenCalledWith('Failed to copy collection', 'clone failed');
   });
 
   it('reports lookup failures without attempting to clone', async () => {
@@ -181,7 +181,7 @@ describe('CuratedSuiteRunModal', () => {
 
     await expect(getRunModalProps().resolveCollection?.()).rejects.toThrow('lookup failed');
     expect(notification.error).toHaveBeenCalledWith(
-      'Failed to find existing suite copy',
+      'Failed to find existing collection copy',
       'lookup failed',
     );
     expect(mockCloneCollection).not.toHaveBeenCalled();
@@ -230,7 +230,7 @@ describe('CuratedSuiteRunModal', () => {
     const result = await onRunFailure(new Error('run failed'), copiedCollection, true);
 
     expect(result).toEqual(
-      new Error('The copied suite "Copied suite" could not be removed. delete failed'),
+      new Error('The copied collection "Copied suite" could not be removed. delete failed'),
     );
   });
 });

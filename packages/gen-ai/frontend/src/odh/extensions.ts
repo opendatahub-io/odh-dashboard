@@ -18,17 +18,21 @@ import type { AIAssetsTabExtension } from '~/odh/extension-points';
 export const PLUGIN_GEN_AI = 'plugin-gen-ai';
 export const CHAT_PLAYGROUND = 'chatPlayground';
 export const GEN_AI_STUDIO = 'genAiStudio';
+export const GEN_AI_IMAGE_UPLOAD = 'genAiImageUpload';
+export const GEN_AI_AUDIO_UPLOAD = 'genAiAudioUpload';
 export const GEN_AI_TRACING = 'genAiTracing';
 export const MODEL_AS_SERVICE = 'model-as-service';
 export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
 export const GUARDRAILS = 'guardrails';
 export const PROMPT_MANAGEMENT = 'promptManagement';
+export const PROMPT_MODEL_ASSOCIATIONS = 'promptModelAssociations';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
 export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
 export const GEN_AI_AGENT_DEPLOYMENT = 'genAiAgentDeployment';
 export const MCP_REGISTRY = 'mcpRegistry';
 export const GEN_AI_MCP_REGISTRY_SERVERS = 'genAiMcpRegistryServers';
+export const GRID = 'grid';
 const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
 
 const extensions: (
@@ -61,6 +65,22 @@ const extensions: (
   {
     type: 'app.area',
     properties: {
+      id: GEN_AI_IMAGE_UPLOAD,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GEN_AI_IMAGE_UPLOAD],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: GEN_AI_AUDIO_UPLOAD,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GEN_AI_AUDIO_UPLOAD],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
       id: GUARDRAILS,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [GUARDRAILS],
@@ -84,6 +104,14 @@ const extensions: (
       id: PROMPT_MANAGEMENT,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [PROMPT_MANAGEMENT],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: PROMPT_MODEL_ASSOCIATIONS,
+      reliantAreas: [PROMPT_MANAGEMENT],
+      devFlags: [PROMPT_MODEL_ASSOCIATIONS],
     },
   },
   {

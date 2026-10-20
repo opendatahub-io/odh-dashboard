@@ -35,6 +35,8 @@ import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
 import ManageLabelsModal from '~/app/components/ManageLabelsModal';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import type { CollectionInfo } from '~/app/hooks/useCollections';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import CollectionDetailView from './CollectionDetailView';
 
 const CollectionDetailPage: React.FC = () => {
@@ -43,6 +45,7 @@ const CollectionDetailPage: React.FC = () => {
     collection: string;
   }>();
   const navigate = useNavigate();
+  const trackEvent = useDataRegistryTrackEvent();
 
   const [collectionDetail, loaded, loadError, refresh] = useCollectionDetail(project, collection);
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] = useAssets(
@@ -135,6 +138,12 @@ const CollectionDetailPage: React.FC = () => {
           <DropdownItem
             key="register-data"
             onClick={() => {
+              if (project) {
+                trackEvent({
+                  eventName: DATA_REGISTRY_EVENT_NAMES.registrationStarted,
+                  properties: { project },
+                });
+              }
               setReturnToRegisterData(false);
               setIsRegisterDataOpen(true);
             }}
@@ -298,6 +307,12 @@ const CollectionDetailPage: React.FC = () => {
                 collection={collectionDetail}
                 project={project}
                 onRegisterData={() => {
+                  if (project) {
+                    trackEvent({
+                      eventName: DATA_REGISTRY_EVENT_NAMES.registrationStarted,
+                      properties: { project },
+                    });
+                  }
                   setReturnToRegisterData(false);
                   setIsRegisterDataOpen(true);
                 }}

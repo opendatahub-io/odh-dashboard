@@ -28,7 +28,7 @@ const NewEvaluationRunPage: React.FC = () => {
   return (
     <ApplicationsPage
       title="Select evaluation type"
-      description="Select the type of evaluation to run: a single benchmark or a benchmark suite."
+      description="Select the type of evaluation to run: a single benchmark or a collection."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
@@ -81,7 +81,7 @@ const NewEvaluationRunPage: React.FC = () => {
                 style={{ width: 36, height: 36 }}
               />
             </CardHeader>
-            <CardTitle id="evaluation-collections-title">Benchmark suite</CardTitle>
+            <CardTitle id="evaluation-collections-title">Collection</CardTitle>
             <CardBody>
               <Content component="p">
                 Select a predefined group of benchmarks that aligns with your industry or use case.

@@ -415,6 +415,26 @@ export type AcceleratorTestData = DataScienceProjectData & {
   replaceTargetString: string;
 };
 
+export type RuntimeLibraryInstallTestData = {
+  searchTerm: string;
+  resourceNamePrefix: string;
+  displayNamePrefix: string;
+  resourceKind: string;
+  resourceApiVersion: string;
+  listPath: string;
+};
+
+export type RuntimeLibraryTemplateTestData = RuntimeLibraryInstallTestData & {
+  templateKind: string;
+  templateApiVersion: string;
+  modelServingSupport: string[];
+};
+
+export type RuntimeLibraryAcceleratorTestData = RuntimeLibraryInstallTestData & {
+  editedVersion: string;
+  configType: string;
+};
+
 export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
   servingRuntimeId: string;
   servingRuntimeDisplayName: string;
@@ -878,6 +898,43 @@ export type CustomEndpointTestData = {
     image: string;
     serverDescription: string;
     testQuestion: string;
+  };
+};
+
+export type ExternalVectorStoreTestData = {
+  model: {
+    id: string;
+    displayName: string;
+    endpointUrl: string;
+  };
+  provider: {
+    id: string;
+    type: string;
+    resourceName: string;
+    credentialsSecretName: string;
+    database: string;
+    user: string;
+    password: string;
+  };
+  vectorStore: {
+    id: string;
+    name: string;
+    description: string;
+    embeddingModel: string;
+    embeddingModelId: string;
+    embeddingDimension: number;
+  };
+  seed: {
+    id: string;
+    fileId: string;
+    fileName: string;
+    content: string;
+    question: string;
+    expectedContentFragment: string;
+  };
+  llamaStack: {
+    deploymentName: string;
+    serviceName: string;
   };
 };
 

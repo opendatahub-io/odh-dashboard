@@ -124,7 +124,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
             }
           })()}
         </Td>
-        <Td dataLabel="Endpoints">
+        <Td dataLabel="Access details">
           {model.externalEndpoint || model.internalEndpoint ? (
             <Button
               data-testid="endpoint-view-button"

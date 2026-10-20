@@ -22,6 +22,8 @@ import { CreateVolumeRequest, CreateGenericTableRequest, ConnectionRef } from '~
 import { useConnections } from '~/app/hooks/useConnections';
 import { confirmConnection } from '~/app/utilities/connectionUtils';
 import { isStructuredFormat, isUnstructuredFormat } from '~/app/utilities/formatUtils';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES, getRegistrationErrorCategory } from '~/app/utilities/tracking';
 import {
   registerDataSchema,
   registerDataDefaults,
@@ -156,6 +158,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   const connectionDisplayData = fetchedConnectionDisplayData ?? connections;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
+  const trackEvent = useDataRegistryTrackEvent();
 
   const form = useForm<RegisterDataFormData>({
     resolver: zodResolver(registerDataSchema),
@@ -171,18 +174,36 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   }, [form, onClose]);
 
   const handleClose = React.useCallback(() => {
+    if (isSubmitting) {
+      return;
+    }
+    trackEvent({
+      eventName: DATA_REGISTRY_EVENT_NAMES.registrationCanceled,
+      properties: { cancelMethod: 'close_x', project },
+    });
     resetAndClose();
-  }, [resetAndClose]);
+  }, [isSubmitting, project, resetAndClose, trackEvent]);
+
+  const handleCancel = React.useCallback(() => {
+    if (isSubmitting) {
+      return;
+    }
+    trackEvent({
+      eventName: DATA_REGISTRY_EVENT_NAMES.registrationCanceled,
+      properties: { cancelMethod: 'cancel_button', project },
+    });
+    resetAndClose();
+  }, [isSubmitting, project, resetAndClose, trackEvent]);
 
   const handleSubmit = React.useCallback(
     async (data: RegisterDataFormData) => {
       setIsSubmitting(true);
       setError('');
+      const labels = getValidLabels(data.labels);
       try {
         const connectionRef = data.connection
           ? await confirmConnection(data.connection, refreshConnections)
           : undefined;
-        const labels = getValidLabels(data.labels);
         if (labels.length > 0) {
           await Promise.all(
             labels.map((label) =>
@@ -204,28 +225,63 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
             buildTableRequest(data, connectionRef),
           );
         }
+      } catch (err) {
+        trackEvent({
+          eventName: DATA_REGISTRY_EVENT_NAMES.registered,
+          properties: {
+            success: false,
+            assetType: data.assetType,
+            format: data.format,
+            hasConnection: Boolean(data.connection),
+            hasCollection: Boolean(data.collection),
+            labelCount: labels.length,
+            project,
+            error: getRegistrationErrorCategory(err),
+          },
+        });
+        setError(err instanceof Error ? err.message : 'Failed to register data asset');
+        setIsSubmitting(false);
+        return;
+      }
+
+      trackEvent({
+        eventName: DATA_REGISTRY_EVENT_NAMES.registered,
+        properties: {
+          success: true,
+          assetType: data.assetType,
+          format: data.format,
+          hasConnection: Boolean(data.connection),
+          hasCollection: Boolean(data.collection),
+          labelCount: labels.length,
+          project,
+        },
+      });
+      try {
         form.reset(registerDataDefaults);
         onCreated();
         onClose();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to register data asset');
       } finally {
         setIsSubmitting(false);
       }
     },
-    [project, form, onCreated, onClose, refreshConnections],
+    [project, form, onCreated, onClose, refreshConnections, trackEvent],
   );
 
   const assetType = form.watch('assetType');
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} variant="medium" data-testid="register-data-modal">
+    <Modal
+      isOpen={isOpen}
+      onClose={isSubmitting ? undefined : handleClose}
+      variant="medium"
+      data-testid="register-data-modal"
+    >
       <ModalHeader
         title="Create data asset"
         description={
           <Content component="p">
-            A data asset points to the exact location within a connection where the information is
-            located. It can also record information about the structure of the data.
+            A data asset is a metadata record that helps users discover and understand external
+            data. It stores information like location, format, and schema, but not the data itself.
           </Content>
         }
       />
@@ -239,6 +295,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           <Form className="odh-data-registry-registration-form">
             <RegistrationIdentitySection />
             <DataLocationSection
+              project={project}
               connections={connections}
               connectionDisplayData={connectionDisplayData}
               connectionsLoaded={connectionsLoaded}
@@ -248,9 +305,10 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
               showRhaiLookupWarning={hasExistingRhaiConnectionReferences}
               isConnectionDisabled={isSubmitting}
             />
-            <RegistrationAssetFormatSection />
+            <RegistrationAssetFormatSection project={project} />
             {assetType === 'structured' ? <SchemaSection /> : null}
             <RegistrationOrganizationSection
+              project={project}
               collections={collections}
               onManageCollections={onManageCollections}
               onManageLabels={onManageLabels}
@@ -263,9 +321,10 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
         <DashboardModalFooter
           submitLabel="Register"
           onSubmit={form.handleSubmit(handleSubmit)}
-          onCancel={handleClose}
+          onCancel={handleCancel}
           isSubmitDisabled={isSubmitting}
           isSubmitLoading={isSubmitting}
+          isCancelDisabled={isSubmitting}
           submitButtonTestId="register-data-submit"
         />
       </ModalFooter>

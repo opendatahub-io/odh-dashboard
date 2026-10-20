@@ -29,7 +29,7 @@ const MCPServerColumns: SortableData<MCPServer>[] = [
   },
   {
     field: 'endpoint',
-    label: 'Endpoint',
+    label: 'Access details',
     sortable: false,
     width: 15,
   },

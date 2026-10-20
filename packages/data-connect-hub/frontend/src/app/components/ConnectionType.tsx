@@ -4,6 +4,7 @@ import React from 'react';
 import {
   Card,
   CardBody,
+  CardFooter,
   CardHeader,
   CardTitle,
   Content,
@@ -18,6 +19,7 @@ import {
   Level,
   LevelItem,
   LabelColor,
+  LabelGroup,
 } from '@patternfly/react-core';
 import type { IconComponentProps } from '@patternfly/react-core';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
@@ -38,8 +40,6 @@ import RhUiAiExperienceIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-a
 import RhUiContainerIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-container-icon';
 import RhUiSearchIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-search-icon';
 import RhUiStorageIcon from '@patternfly/react-icons/dist/esm/icons/rh-ui-storage-icon';
-
-import './ConnectionType.scss';
 
 // Types ---------------------------------------------------------------------->
 
@@ -177,10 +177,6 @@ const renderedConnectionTypeValues: Record<string, RenderedConnectionTypeValue> 
   },
 };
 
-const localFeatureFlags = {
-  tags: false,
-};
-
 // Private -------------------------------------------------------------------->
 
 // Classes -------------------------------------------------------------------->
@@ -202,6 +198,13 @@ class ConnectionTypeInstance implements ConnectionType {
     this.original = connectionType;
   }
 
+  get uniqueTags(): typeof this.resource.tags {
+    if (Array.isArray(this.resource.tags)) {
+      return [...new Set(this.resource.tags)];
+    }
+    return this.resource.tags;
+  }
+
   isFullIntegration() {
     return Boolean(this.status?.flight_ready);
   }
@@ -217,9 +220,18 @@ class ConnectionTypeInstance implements ConnectionType {
     return searchableText.includes(searchTerm.trim().toLowerCase());
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Depends on labels being added by API: Return true for now
   matchesLabels(labels: string | string[]) {
-    return true;
+    if (this.resource.tags?.length) {
+      return this.resource.tags.some((tag) => {
+        if (typeof labels === 'string') {
+          return tag === labels;
+        } else if (Array.isArray(labels)) {
+          return labels.some((label) => label === tag);
+        }
+        return false;
+      });
+    }
+    return false;
   }
 
   toJSON() {
@@ -277,7 +289,6 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       isClickable={!isSelectable}
       isSelectable={isSelectable}
       isSelected={isSelectable ? isSelected : undefined}
-      className="dch-connection-type-card"
     >
       <CardHeader
         selectableActions={{
@@ -300,8 +311,19 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
       </CardHeader>
       <CardTitle id={`${rootId}-card-title`}>{connectionType.resource.name}</CardTitle>
       <CardBody>
-        <TruncatedText maxLines={6} content={connectionType.resource.description} />
+        <TruncatedText maxLines={5} content={connectionType.resource.description} />
       </CardBody>
+      {Boolean(connectionType.uniqueTags?.length) && (
+        <CardFooter>
+          <LabelGroup>
+            {connectionType.uniqueTags?.map((tag) => (
+              <Label key={tag} variant="outline">
+                {tag}
+              </Label>
+            ))}
+          </LabelGroup>
+        </CardFooter>
+      )}
     </Card>
   );
 };
@@ -350,7 +372,7 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
           </div>
         </Card>
       </GridItem>
-      {localFeatureFlags.tags && (
+      {Boolean(connectionType.uniqueTags?.length) && (
         <GridItem span={4}>
           <Card className="pf-v6-u-p-xs" isFullHeight>
             <div className="dch-u-overflow-auto">
@@ -358,7 +380,13 @@ const ConnectionTypeValues: React.FC<ConnectionTypeValuesProps> = ({ connectionT
                 <Content component="h3">Labels</Content>
               </CardHeader>
               <CardBody>
-                <Label>Example</Label>
+                <LabelGroup>
+                  {connectionType.uniqueTags?.map((tag) => (
+                    <Label key={tag} variant="outline">
+                      {tag}
+                    </Label>
+                  ))}
+                </LabelGroup>
               </CardBody>
             </div>
           </Card>

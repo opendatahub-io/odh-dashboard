@@ -534,7 +534,7 @@ export const waitForEvalHubKueueWorkload = (
  * The first poll requires a Job to exist so an empty namespace cannot be treated as
  * a completed evaluation. Once a Job has been observed, an empty list is accepted
  * because the Kubernetes TTL controller may delete completed Jobs before the next poll.
- * Works for both single-benchmark runs (1 Job) and benchmark suite runs (N Jobs).
+ * Works for both single-benchmark runs (1 Job) and benchmark collection runs (N Jobs).
  */
 export const waitForEvaluationJobComplete = (
   namespace: string,

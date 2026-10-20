@@ -21,8 +21,14 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import { useLabels } from '~/app/hooks/useLabels';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import {
   DEFAULT_FORMATS,
   STRUCTURED_FORMAT_OPTIONS,
@@ -33,6 +39,7 @@ type AssetFormData = RegisterDataFormData | EditAssetFormData;
 
 type EditModeProps = {
   isEditMode?: boolean;
+  project?: string;
 };
 
 export const RegistrationIdentitySection: React.FC<EditModeProps> = ({ isEditMode = false }) => {
@@ -101,8 +108,12 @@ export const RegistrationIdentitySection: React.FC<EditModeProps> = ({ isEditMod
   );
 };
 
-export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEditMode = false }) => {
+export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({
+  isEditMode = false,
+  project,
+}) => {
   const { control, setValue, watch } = useFormContext<AssetFormData>();
+  const trackEvent = useDataRegistryTrackEvent();
   const assetType = watch('assetType');
   const [isAssetTypeOpen, setIsAssetTypeOpen] = React.useState(false);
   const [isFormatOpen, setIsFormatOpen] = React.useState(false);
@@ -144,6 +155,16 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
                 selected={field.value}
                 onSelect={(_event, value) => {
                   const newType = String(value);
+                  if (
+                    project &&
+                    newType !== field.value &&
+                    (newType === 'structured' || newType === 'unstructured')
+                  ) {
+                    trackEvent({
+                      eventName: DATA_REGISTRY_EVENT_NAMES.assetTypeSelected,
+                      properties: { assetType: newType, project },
+                    });
+                  }
                   field.onChange(newType);
                   setValue('format', DEFAULT_FORMATS[newType]);
                   setValue('schemaFields', []);
@@ -193,7 +214,14 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
               isOpen={isFormatOpen}
               selected={field.value}
               onSelect={(_event, value) => {
-                field.onChange(String(value));
+                const newFormat = String(value);
+                if (!isEditMode && project && newFormat !== field.value) {
+                  trackEvent({
+                    eventName: DATA_REGISTRY_EVENT_NAMES.formatSelected,
+                    properties: { format: newFormat, project },
+                  });
+                }
+                field.onChange(newFormat);
                 setIsFormatOpen(false);
               }}
               onOpenChange={setIsFormatOpen}
@@ -233,12 +261,14 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
 };
 
 type RegistrationOrganizationSectionProps = EditModeProps & {
+  project: string;
   collections?: string[];
   onManageCollections?: () => void;
   onManageLabels?: () => void;
 };
 
 export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationSectionProps> = ({
+  project,
   collections = [],
   isEditMode = false,
   onManageCollections,
@@ -251,10 +281,14 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
     setValue,
     watch,
   } = useFormContext<AssetFormData>();
+  const [availableLabels] = useLabels(project);
+  const trackEvent = useDataRegistryTrackEvent();
   const labels = watch('labels');
   const [isCollectionOpen, setIsCollectionOpen] = React.useState(false);
+  const [createdLabels, setCreatedLabels] = React.useState<string[]>([]);
   const labelIdsRef = React.useRef<string[]>([]);
   const nextLabelIdRef = React.useRef(0);
+  const initialLabelsRef = React.useRef(labels.filter(Boolean));
 
   while (labelIdsRef.current.length < labels.length) {
     labelIdsRef.current.push(`label-${nextLabelIdRef.current}`);
@@ -263,6 +297,17 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
   if (labelIdsRef.current.length > labels.length) {
     labelIdsRef.current.length = labels.length;
   }
+
+  const labelOptions = React.useMemo<TypeaheadSelectOption[]>(
+    () =>
+      [...new Set([...availableLabels, ...initialLabelsRef.current, ...createdLabels])].map(
+        (label) => ({
+          value: label,
+          content: label,
+        }),
+      ),
+    [availableLabels, createdLabels],
+  );
 
   const handleAddLabel = React.useCallback(() => {
     labelIdsRef.current.push(`label-${nextLabelIdRef.current}`);
@@ -288,10 +333,9 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         Optionally organize and annotate this data asset so it is easier to find later.
       </Content>
 
-      <FormGroup label="Collection" fieldId="data-collection">
+      <FormGroup label="Collection" fieldId="data-collection" isStack>
         <Content component="p">
-          Organize this data asset into a collection. To manage collections for the entire project,
-          go to{' '}
+          Organize this data into a collection.{' '}
           <Button
             variant="link"
             isInline
@@ -300,7 +344,6 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
           >
             Manage collections
           </Button>
-          .
         </Content>
         {isEditMode ? (
           <TextInput
@@ -323,7 +366,18 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
                     onManageCollections?.();
                     return;
                   }
-                  field.onChange(String(value));
+                  const newCollection = String(value);
+                  if (newCollection !== field.value) {
+                    trackEvent({
+                      eventName: DATA_REGISTRY_EVENT_NAMES.collectionSelectionChanged,
+                      properties: {
+                        initialCollection: 'none',
+                        selectedCollection: newCollection === 'default' ? 'default' : 'custom',
+                        project,
+                      },
+                    });
+                  }
+                  field.onChange(newCollection);
                   setIsCollectionOpen(false);
                 }}
                 onOpenChange={setIsCollectionOpen}
@@ -364,10 +418,9 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         ) : null}
       </FormGroup>
 
-      <FormGroup label="Labels" fieldId="data-labels">
+      <FormGroup label="Labels" fieldId="data-labels" isStack>
         <Content component="p">
-          Optionally add labels to this data asset to make it easier to find later. To manage labels
-          for the entire project, go to{' '}
+          Optionally add labels to this data asset to make it easier to find later.{' '}
           <Button variant="link" isInline isDisabled={!onManageLabels} onClick={onManageLabels}>
             Manage labels
           </Button>
@@ -381,21 +434,50 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
             className="pf-v6-u-mb-xs"
           >
             <FlexItem grow={{ default: 'grow' }}>
-              <TextInput
-                id={`data-labels-input-${index}`}
-                aria-label={`Label ${index + 1}`}
-                value={label}
-                onChange={(_event, value) => {
+              <TypeaheadSelect
+                selectOptions={labelOptions}
+                selected={label}
+                isCreatable
+                isRequired={false}
+                placeholder="e.g. gold, team a"
+                createOptionMessage={(newValue) => `Create "${newValue}"`}
+                maxMenuHeight="20rem"
+                onSelect={(_event, value) => {
+                  const selectedLabel = String(value);
                   const currentLabels = getValues('labels');
+                  const isDuplicate = currentLabels.some(
+                    (currentLabel, currentIndex) =>
+                      currentIndex !== index &&
+                      currentLabel.trim().toLocaleLowerCase() ===
+                        selectedLabel.trim().toLocaleLowerCase(),
+                  );
+                  if (
+                    !isEditMode &&
+                    selectedLabel.trim() &&
+                    selectedLabel !== currentLabels[index] &&
+                    !isDuplicate
+                  ) {
+                    trackEvent({
+                      eventName: DATA_REGISTRY_EVENT_NAMES.labelAdded,
+                      properties: { project },
+                    });
+                  }
+                  if (!labelOptions.some((option) => option.value === selectedLabel)) {
+                    setCreatedLabels((existingCreatedLabels) =>
+                      existingCreatedLabels.includes(selectedLabel)
+                        ? existingCreatedLabels
+                        : [...existingCreatedLabels, selectedLabel],
+                    );
+                  }
                   setValue(
                     'labels',
                     currentLabels.map((currentLabel, currentIndex) =>
-                      currentIndex === index ? value : currentLabel,
+                      currentIndex === index ? selectedLabel : currentLabel,
                     ),
                   );
                 }}
-                placeholder="e.g. production, gold, pii"
-                data-testid={`data-labels-input-${index}`}
+                dataTestId={`data-labels-input-${index}`}
+                toggleProps={{ 'aria-label': `Label ${index + 1}` }}
               />
             </FlexItem>
             <FlexItem>
@@ -414,6 +496,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
           variant="link"
           icon={<PlusCircleIcon />}
           onClick={handleAddLabel}
+          className="odh-data-registry-registration-form__add-label"
           data-testid="data-add-label-button"
         >
           Add label
