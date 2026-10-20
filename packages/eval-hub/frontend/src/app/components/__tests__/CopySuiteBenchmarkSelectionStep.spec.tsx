@@ -320,6 +320,26 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning')).toBeChecked();
   });
 
+  it('should keep selected benchmarks without a category visible under the initial prefilter', () => {
+    renderSelectionStep({
+      providers: [
+        {
+          resource: { id: 'provider-one' },
+          name: 'provider-one',
+          benchmarks: [
+            { id: 'code', name: 'Code benchmark', category: 'Code', metrics: ['accuracy'] },
+            { id: 'uncategorized', name: 'Uncategorized benchmark', metrics: ['accuracy'] },
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: ['provider-one:uncategorized'],
+      collectionCategories: ['software'],
+    });
+
+    expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-catalog-checkbox-uncategorized')).toBeChecked();
+  });
+
   it('should preselect providers represented by existing benchmarks', () => {
     renderSelectionStep({
       providers: [
@@ -393,6 +413,55 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
       expect(screen.getByTestId('benchmark-catalog-category-filter-badge')).toHaveTextContent('1');
       expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
       expect(screen.queryByTestId('benchmark-catalog-checkbox-reasoning')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should preserve user filters and page when initial filters change', async () => {
+    const props: React.ComponentProps<typeof CopySuiteBenchmarkSelectionStep> = {
+      providers: [
+        {
+          resource: { id: 'provider-one' },
+          name: 'provider-one',
+          benchmarks: [
+            ...Array.from({ length: 6 }, (_, index) => ({
+              id: `code-${index}`,
+              name: `Code ${index}`,
+              category: 'Code',
+              metrics: ['accuracy'],
+            })),
+            ...Array.from({ length: 5 }, (_, index) => ({
+              id: `reasoning-${index}`,
+              name: `Reasoning ${index}`,
+              category: 'Reasoning',
+              metrics: ['accuracy'],
+            })),
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: [],
+      collectionCategories: ['software'],
+      onNext: jest.fn(),
+      onBack: jest.fn(),
+      onCancel: jest.fn(),
+    };
+    const { rerender } = render(<CopySuiteBenchmarkSelectionStep {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
+    expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning-4')).toBeInTheDocument();
+
+    rerender(
+      <CopySuiteBenchmarkSelectionStep
+        {...props}
+        collectionCategories={['knowledge_and_reasoning']}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning-4')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('benchmark-catalog-category-filter-badge'),
+      ).not.toBeInTheDocument();
     });
   });
 

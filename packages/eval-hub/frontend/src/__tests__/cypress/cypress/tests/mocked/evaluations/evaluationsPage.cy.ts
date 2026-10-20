@@ -262,9 +262,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('finance-evaluation-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('guardrails-compliance-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
-    evaluationsPage
-      .findBenchmarkSuitesSummary()
-      .should('contain.text', 'View all my benchmark collections');
+    evaluationsPage.findBenchmarkSuitesViewAllButton().should('contain.text', 'View all');
   });
 
   it('should filter benchmark suites by industry client-side and clear the filter', () => {

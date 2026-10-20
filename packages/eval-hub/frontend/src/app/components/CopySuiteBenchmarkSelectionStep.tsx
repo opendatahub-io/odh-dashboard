@@ -212,6 +212,10 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     [],
   );
   React.useEffect(() => {
+    if (hasUserAdjustedFilters) {
+      return;
+    }
+
     setFilterData((currentFilterData) => {
       const currentCategoryFilters = currentFilterData[BenchmarkFilterOptions.category];
       const currentFrameworkFilters = currentFilterData[BenchmarkFilterOptions.framework];
@@ -235,11 +239,22 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
           };
     });
     setPage(1);
-  }, [initialCategoryFilters, initialFrameworkFilters]);
-  const filteredBenchmarks = React.useMemo(
-    () => filterBenchmarks(catalogBenchmarks, filterData),
-    [catalogBenchmarks, filterData],
-  );
+  }, [hasUserAdjustedFilters, initialCategoryFilters, initialFrameworkFilters]);
+  const filteredBenchmarks = React.useMemo(() => {
+    const matchingBenchmarks = filterBenchmarks(catalogBenchmarks, filterData);
+    if (hasUserAdjustedFilters) {
+      return matchingBenchmarks;
+    }
+
+    const matchingBenchmarkKeys = new Set(matchingBenchmarks.map((benchmark) => benchmark.key));
+    const selectedBenchmarkKeySet = new Set(selectedBenchmarkKeys);
+    const selectedBenchmarks = catalogBenchmarks.filter(
+      (benchmark) =>
+        selectedBenchmarkKeySet.has(benchmark.key) && !matchingBenchmarkKeys.has(benchmark.key),
+    );
+
+    return [...matchingBenchmarks, ...selectedBenchmarks];
+  }, [catalogBenchmarks, filterData, hasUserAdjustedFilters, selectedBenchmarkKeys]);
   const sortedBenchmarks = React.useMemo(
     () => [
       ...sortBenchmarksByName(

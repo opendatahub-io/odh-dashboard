@@ -244,8 +244,8 @@ class EvaluationsPage {
       .findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
   }
 
-  findBenchmarkSuitesSummary() {
-    return cy.findByTestId('benchmark-suites-summary');
+  findBenchmarkSuitesViewAllButton() {
+    return cy.findByTestId('benchmark-suites-view-all');
   }
 
   findCuratedSuiteCategories() {

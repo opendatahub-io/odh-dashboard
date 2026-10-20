@@ -14,7 +14,6 @@ import {
   Pagination,
   SearchInput,
   Spinner,
-  StackItem,
   Title,
   Toolbar,
   ToolbarContent,
@@ -36,11 +35,9 @@ import {
   TagsIcon,
   TasksIcon,
 } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
-import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
 import type { CuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import BenchmarkSuiteCard, { isPopularCollection } from '~/app/components/BenchmarkSuiteCard';
 import BenchmarkSuiteCardSkeleton from '~/app/components/BenchmarkSuiteCardSkeleton';
@@ -161,6 +158,36 @@ const sortCollectionsByName = (collections: Collection[]): Collection[] =>
     return nameComparison || first.resource.id.localeCompare(second.resource.id);
   });
 
+const getCollectionCreatedAt = (collection: Collection): number | undefined => {
+  if (!collection.resource.created_at) {
+    return undefined;
+  }
+
+  const timestamp = Date.parse(collection.resource.created_at);
+  return Number.isNaN(timestamp) ? undefined : timestamp;
+};
+
+const sortCollectionsByCreatedAt = (collections: Collection[]): Collection[] =>
+  [...collections].toSorted((first, second) => {
+    const firstCreatedAt = getCollectionCreatedAt(first);
+    const secondCreatedAt = getCollectionCreatedAt(second);
+
+    if (firstCreatedAt == null && secondCreatedAt != null) {
+      return 1;
+    }
+    if (firstCreatedAt != null && secondCreatedAt == null) {
+      return -1;
+    }
+    if (firstCreatedAt != null && secondCreatedAt != null && firstCreatedAt !== secondCreatedAt) {
+      return secondCreatedAt - firstCreatedAt;
+    }
+
+    const nameComparison = first.name.localeCompare(second.name, undefined, {
+      sensitivity: 'base',
+    });
+    return nameComparison || first.resource.id.localeCompare(second.resource.id);
+  });
+
 const areStringArraysEqual = (first: string[], second: string[]): boolean =>
   first.length === second.length && first.every((value, index) => value === second[index]);
 
@@ -212,7 +239,6 @@ type BenchmarkSuitesGalleryProps = {
   namespace: string;
   benchmarkNameMap?: BenchmarkNameMap;
   maxVisibleCollections?: number;
-  showSummary?: boolean;
   showCreateSuiteCard?: boolean;
   showFilters?: boolean;
   showEvaluatesFilter?: boolean;
@@ -236,6 +262,7 @@ type BenchmarkSuitesGalleryProps = {
   createSuiteRoute?: string;
   createSuiteRouteState?: unknown;
   onCreateSuite?: () => void;
+  onCollectionCountChange?: (count: number) => void;
   onPrimaryAction: (collection: Collection) => void;
   onDropdownAction?: (collection: Collection) => void;
   onEditCollection?: (collection: Collection) => void;
@@ -247,7 +274,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   namespace,
   benchmarkNameMap,
   maxVisibleCollections,
-  showSummary = false,
   showCreateSuiteCard = true,
   showFilters = false,
   showEvaluatesFilter = true,
@@ -269,6 +295,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   createSuiteRoute,
   createSuiteRouteState,
   onCreateSuite,
+  onCollectionCountChange,
   onPrimaryAction,
   onDropdownAction,
   onEditCollection,
@@ -332,7 +359,9 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     ? requireCuratedIndex || isClientSideFiltering || !showPaginationControls
       ? COLLECTION_FETCH_LIMIT
       : pageSize
-    : maxVisibleCollections;
+    : maxVisibleCollections
+      ? COLLECTION_FETCH_LIMIT
+      : undefined;
   const queryOffset =
     showPaginationControls && showPagination && !isClientSideFiltering && !requireCuratedIndex
       ? (page - 1) * pageSize
@@ -341,6 +370,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   // User-selected gallery filters are applied locally against the fetched collection set. When a
   // filter is active, that set is intentionally capped at COLLECTION_FETCH_LIMIT until filtering
   // and filter-option discovery move fully to the API.
+  // TODO: Use API-side filtering and created_at ordering here; fetching 200 and sorting client-side
+  // is only a temporary approximation and may miss newer collections beyond this limit.
   const { data, isLoading, isFetching, error, refetch } = useCollectionsQuery(
     namespace,
     scope,
@@ -393,7 +424,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   ]);
   const sourceCollections = React.useMemo(() => {
     const orderedCollections =
-      scope === 'tenant' ? sortCollectionsByName(collections) : collections;
+      scope === 'tenant'
+        ? maxVisibleCollections
+          ? sortCollectionsByCreatedAt(collections)
+          : sortCollectionsByName(collections)
+        : collections;
     return maxVisibleCollections
       ? orderedCollections.slice(0, maxVisibleCollections)
       : orderedCollections;
@@ -416,6 +451,15 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const totalCount = hasApiCollections
     ? (data?.total_count ?? collections.length)
     : collections.length;
+  // TODO: The preview count is capped at COLLECTION_FETCH_LIMIT until the API supports filtering
+  // and ordering by created_at.
+  const displayedCollectionCount = maxVisibleCollections
+    ? Math.min(totalCount, COLLECTION_FETCH_LIMIT)
+    : totalCount;
+
+  React.useEffect(() => {
+    onCollectionCountChange?.(displayedCollectionCount);
+  }, [displayedCollectionCount, onCollectionCountChange]);
 
   // All filter dropdowns use the same helper so their options stay in sync with the collection
   // fields returned by the API or the temporary mock fallback.
@@ -663,7 +707,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     tagOptions.length > 0 ||
     taskOptions.length > 0,
   );
-
   React.useEffect(() => {
     if (page > maxPage) {
       setPage(maxPage);
@@ -678,7 +721,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     industryFilter,
     metricFilter,
     modalityFilter,
-    maxVisibleCollections,
     nameFilter,
     namespace,
     tagFilter,
@@ -1199,13 +1241,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             </Bullseye>
           )}
         </div>
-      )}
-      {showSummary && !isLoading && !shouldShowLoadError && totalCount > 0 && (
-        <StackItem className="evalhub-evaluate-tab__summary" data-testid="benchmark-suites-summary">
-          <Link to={evaluationBenchmarkSuitesRoute(namespace)}>
-            View all my benchmark collections
-          </Link>
-        </StackItem>
       )}
       {collectionToDelete && (
         <DeleteConfirmationModal
