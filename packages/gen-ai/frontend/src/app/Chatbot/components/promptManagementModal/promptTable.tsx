@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   Button,
@@ -49,6 +50,7 @@ import {
 } from '@patternfly/react-table';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
+import { PROMPT_MODEL_ASSOCIATIONS } from '~/odh/extensions';
 import { usePromptsList, usePromptVersions } from './usePromptQueries';
 import PromptDrawer from './promptDrawer';
 
@@ -62,7 +64,7 @@ const filterTypeLabels: Record<FilterType, string> = {
   [FilterType.MODEL]: 'Model',
 };
 
-const filterTypes = Object.values(FilterType);
+const allFilterTypes = Object.values(FilterType);
 
 const compareModelNames = (
   a: MLflowPrompt,
@@ -101,6 +103,8 @@ export default function PromptTable({
   const [filterType, setFilterType] = useState<FilterType>(FilterType.NAME);
   const [filterModel, setFilterModel] = useState<string | null>(null);
   const [modelSortDirection, setModelSortDirection] = useState<SortByDirection | undefined>();
+  const [modelAssociationsEnabled] = useFeatureFlag(PROMPT_MODEL_ASSOCIATIONS);
+  const filterTypes = modelAssociationsEnabled ? allFilterTypes : [FilterType.NAME];
 
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -285,7 +289,7 @@ export default function PromptTable({
 
   const columns = isDrawerOpen
     ? ['Name', 'Last Modified']
-    : ['Name', 'Version', 'Model', 'Last Modified', 'Tags'];
+    : ['Name', 'Version', ...(modelAssociationsEnabled ? ['Model'] : []), 'Last Modified', 'Tags'];
 
   function renderModelCell(row: MLflowPrompt) {
     const modelName = row.model_config?.model_name;
@@ -367,26 +371,28 @@ export default function PromptTable({
               onClear={clearNameFilter}
             />
           </ToolbarFilter>
-          <ToolbarFilter
-            labels={filterModel ? [filterModel] : []}
-            deleteLabel={() => handleModelFilterChange(null)}
-            deleteLabelGroup={() => handleModelFilterChange(null)}
-            categoryName={filterTypeLabels[FilterType.MODEL]}
-            showToolbarItem={filterType === FilterType.MODEL}
-            style={{ width: '300px' }}
-          >
-            <SimpleSelect
-              dataTestId="prompt-model-filter-select"
-              ariaLabel="Filter by model"
-              placeholder={modelOptions.length === 0 ? 'No models available' : 'Filter by model'}
-              options={modelOptions}
-              value={filterModel ?? undefined}
-              onChange={(key) => handleModelFilterChange(key)}
-              autoSelectOnlyOption={false}
-              isFullWidth
-              isScrollable
-            />
-          </ToolbarFilter>
+          {modelAssociationsEnabled && (
+            <ToolbarFilter
+              labels={filterModel ? [filterModel] : []}
+              deleteLabel={() => handleModelFilterChange(null)}
+              deleteLabelGroup={() => handleModelFilterChange(null)}
+              categoryName={filterTypeLabels[FilterType.MODEL]}
+              showToolbarItem={filterType === FilterType.MODEL}
+              style={{ width: '300px' }}
+            >
+              <SimpleSelect
+                dataTestId="prompt-model-filter-select"
+                ariaLabel="Filter by model"
+                placeholder={modelOptions.length === 0 ? 'No models available' : 'Filter by model'}
+                options={modelOptions}
+                value={filterModel ?? undefined}
+                onChange={(key) => handleModelFilterChange(key)}
+                autoSelectOnlyOption={false}
+                isFullWidth
+                isScrollable
+              />
+            </ToolbarFilter>
+          )}
         </ToolbarGroup>
         <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
           {renderPagination('top', true)}
@@ -467,7 +473,7 @@ export default function PromptTable({
                   isRowSelected={selectedRow?.name === row.name}
                   onClick={() => handleRowClick(row)}
                 >
-                  <Td dataLabel={columns[0]}>
+                  <Td dataLabel="Name">
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <div
                         data-testid="prompt-table-row-name"
@@ -488,7 +494,7 @@ export default function PromptTable({
                     </Flex>
                   </Td>
                   {isDrawerOpen ? (
-                    <Td dataLabel={columns[1]}>
+                    <Td dataLabel="Last Modified">
                       <Timestamp
                         date={new Date(row.creation_timestamp)}
                         dateFormat={TimestampFormat.full}
@@ -496,17 +502,19 @@ export default function PromptTable({
                     </Td>
                   ) : (
                     <>
-                      <Td dataLabel={columns[1]}>{row.latest_version}</Td>
-                      <Td dataLabel={columns[2]} data-testid="prompt-model-name">
-                        {renderModelCell(row)}
-                      </Td>
-                      <Td dataLabel={columns[3]}>
+                      <Td dataLabel="Version">{row.latest_version}</Td>
+                      {modelAssociationsEnabled && (
+                        <Td dataLabel="Model" data-testid="prompt-model-name">
+                          {renderModelCell(row)}
+                        </Td>
+                      )}
+                      <Td dataLabel="Last Modified">
                         <Timestamp
                           date={new Date(row.creation_timestamp)}
                           dateFormat={TimestampFormat.full}
                         />
                       </Td>
-                      <Td dataLabel={columns[4]}>
+                      <Td dataLabel="Tags">
                         <LabelGroup numLabels={3}>
                           {Object.entries(row.tags ?? {}).map(([key, value]) => (
                             <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>

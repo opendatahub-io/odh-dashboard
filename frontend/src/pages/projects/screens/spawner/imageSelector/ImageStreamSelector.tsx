@@ -29,7 +29,9 @@ import {
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '#~/k8sTypes';
 import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';
+import DeprecatedImageHelperText from '#~/concepts/notebooks/DeprecatedImageHelperText';
 import { ScopedType } from '#~/pages/modelServing/screens/const.ts';
+import { isImageStreamDeprecated } from '#~/utilities/imageStreamUtils';
 import { compareImageStreamTier, getImageStreamTier } from './imageTierUtils';
 
 type ImageStreamSelectorProps = {
@@ -91,6 +93,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           <ImageStreamDropdownLabel
             displayName={getImageStreamDisplayName(imageStream)}
             tier={tier}
+            isDeprecated={isImageStreamDeprecated(imageStream)}
             compatible={
               !!compatibleIdentifiers?.some((identifier) =>
                 isCompatibleWithIdentifier(identifier, imageStream),
@@ -113,6 +116,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
     dropdownLabel: (
       <ImageStreamDropdownLabel
         tier={getImageStreamTier(imageStream)}
+        isDeprecated={isImageStreamDeprecated(imageStream)}
         compatible={
           !!compatibleIdentifiers?.some((identifier) =>
             isCompatibleWithIdentifier(identifier, imageStream),
@@ -219,6 +223,11 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           ) : null}
         </>
       )}
+      {selectedImageStream && isImageStreamDeprecated(selectedImageStream) ? (
+        <FormHelperText data-testid="deprecated-image-helper-text">
+          <DeprecatedImageHelperText isLiveRegion />
+        </FormHelperText>
+      ) : null}
     </FormGroup>
   );
 };

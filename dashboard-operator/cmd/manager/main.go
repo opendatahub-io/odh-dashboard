@@ -7,11 +7,13 @@ import (
 	"os"
 
 	routev1 "github.com/openshift/api/route/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -92,13 +94,17 @@ func main() {
 		metricsOpts.CertDir = "/tmp/k8s-metrics-server/serving-certs"
 		metricsOpts.TLSOpts = tlsOpts
 	}
-
 	mgrOpts := ctrl.Options{
 		Scheme:                 scheme,
+		NewCache:               controller.NewManagerCache(applicationsNamespace),
 		Metrics:                metricsOpts,
 		HealthProbeBindAddress: healthProbeAddr,
 		LeaderElection:         leaderElect,
 		LeaderElectionID:       "dashboard.components.platform.opendatahub.io",
+		Client: client.Options{Cache: &client.CacheOptions{DisableFor: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+		}}},
 	}
 	if enableWebhook {
 		mgrOpts.WebhookServer = ctrlwebhook.NewServer(ctrlwebhook.Options{

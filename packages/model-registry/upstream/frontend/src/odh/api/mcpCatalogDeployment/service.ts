@@ -33,6 +33,24 @@ export const getMcpServerDeployReadiness =
       throw new Error('Invalid response format');
     });
 
+/** Deploy readiness for an image, for deploy entry points without a catalog server ID. */
+export const getMcpDeployReadiness =
+  (hostPath: string, queryParams: Record<string, unknown> = {}) =>
+  (opts: APIOptions, image: string): Promise<McpServerDeployReadiness> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/mcp_deploy_readiness`,
+        { ...queryParams, image },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<McpServerDeployReadiness>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
 export const getMcpServerConverter =
   (hostPath: string, queryParams: Record<string, unknown> = {}) =>
   (opts: APIOptions, serverId: string): Promise<MCPServerCR> =>

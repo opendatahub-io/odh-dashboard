@@ -17,6 +17,7 @@ This service exposes the following endpoints:
 - GET `/api/v1/pipeline-runs` – query merged pipeline runs from all auto-discovered AutoML pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoML pipeline run
+- GET `/api/v1/pipeline-server/status` – get the DSPA pipeline-server readiness status (`ready`, `starting`, or `not-found`) for a namespace
 - GET `/api/v1/model-registries` – list Model Registry instances (Kubernetes CRs) with `id` and `server_url` for routing
 - POST `/api/v1/model-registries/:registryId/models` – register a model binary in a specific Model Registry instance
 

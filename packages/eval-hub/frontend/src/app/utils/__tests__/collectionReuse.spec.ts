@@ -17,7 +17,7 @@ const sourceCollection: Collection = {
   resource: { id: 'curated-suite', created_at: '2026-10-01T12:00:00Z' },
   name: 'Knowledge & Reasoning v1',
   category: 'knowledge',
-  description: 'Knowledge and reasoning benchmark suite.',
+  description: 'Knowledge and reasoning collection.',
   tags: ['curated', 'reasoning'],
   domains: ['knowledge'],
   tasks: ['question_answering'],
@@ -142,7 +142,7 @@ describe('getAllTenantCollections', () => {
     );
 
     await expect(getAllTenantCollections('test-namespace')).rejects.toThrow(
-      'benchmark suite page repeated before all benchmark suites were fetched',
+      'collection page repeated before all collections were fetched',
     );
 
     expect(mockGetCollections).toHaveBeenCalledTimes(2);
@@ -161,7 +161,7 @@ describe('getAllTenantCollections', () => {
     );
 
     await expect(getAllTenantCollections('test-namespace')).rejects.toThrow(
-      'benchmark suite page ended before all benchmark suites were fetched',
+      'collection page ended before all collections were fetched',
     );
 
     expect(mockGetCollections).toHaveBeenCalledTimes(1);

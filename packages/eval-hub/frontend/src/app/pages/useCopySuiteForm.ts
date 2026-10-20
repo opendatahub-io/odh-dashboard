@@ -19,7 +19,11 @@ import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
 // import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
-import { MODEL_EVALUATION_TARGETS, type SuiteEvaluatesOption } from '~/app/pages/const';
+import {
+  isCollectionCategory,
+  MODEL_EVALUATION_TARGETS,
+  type SuiteEvaluatesOption,
+} from '~/app/pages/const';
 import {
   copySuiteDefaultValues,
   getCopySuiteSchema,
@@ -39,7 +43,7 @@ import type {
 const DEFAULT_SUITE_THRESHOLD = 70;
 const MIN_WEIGHT_PERCENT = 5;
 export const MAX_BENCHMARKS = 20;
-const EDIT_AFTER_RUN_ERROR = 'Benchmark suites cannot be edited after they have been run.';
+const EDIT_AFTER_RUN_ERROR = 'Collections cannot be edited after they have been run.';
 
 export type CopySuiteBenchmark = CopySuiteFormValues['benchmarks'][number];
 
@@ -558,7 +562,8 @@ const buildInitialFormValues = (
   suiteName: mode === 'edit' ? sourceCollection.name : buildDefaultSuiteName(sourceCollection.name),
   suiteDescription: sourceCollection.description ?? '',
   suiteDomains: uniqueCollectionMetadata(
-    sourceCollection.domains ?? (sourceCollection.category ? [sourceCollection.category] : []),
+    sourceCollection.domains ??
+      (isCollectionCategory(sourceCollection.category) ? [sourceCollection.category] : []),
   ),
   suiteTasks: uniqueCollectionMetadata(sourceCollection.tasks),
   suiteModalities: uniqueCollectionMetadata(sourceCollection.modalities),
@@ -923,7 +928,7 @@ export function useCopySuiteForm({
       }
 
       if (isEditMode && (sourceCollection.state?.run_count ?? 0) > 0) {
-        notification.error('Failed to update suite', EDIT_AFTER_RUN_ERROR);
+        notification.error('Failed to update collection', EDIT_AFTER_RUN_ERROR);
         return undefined;
       }
 
@@ -965,7 +970,7 @@ export function useCopySuiteForm({
         if (!controller.signal.aborted) {
           const message = e instanceof Error ? e.message : 'An unknown error occurred.';
           notification.error(
-            isEditMode ? 'Failed to update suite' : 'Failed to copy suite',
+            isEditMode ? 'Failed to update collection' : 'Failed to copy collection',
             message,
           );
         }
@@ -1032,7 +1037,7 @@ export function useCopySuiteForm({
       } catch (e) {
         if (!controller.signal.aborted) {
           const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-          notification.error('Failed to create suite', message);
+          notification.error('Failed to create collection', message);
         }
         return undefined;
       } finally {
@@ -1063,7 +1068,7 @@ export function useCopySuiteForm({
 
     try {
       if (isEditMode && (sourceCollection?.state?.run_count ?? 0) > 0) {
-        notification.error('Failed to update suite', EDIT_AFTER_RUN_ERROR);
+        notification.error('Failed to update collection', EDIT_AFTER_RUN_ERROR);
         return;
       }
 
@@ -1090,10 +1095,14 @@ export function useCopySuiteForm({
             )({ signal: controller.signal });
 
       notification.success(
-        isCreateMode ? 'Suite created' : isEditMode ? 'Suite updated' : 'Suite saved',
+        isCreateMode
+          ? 'Collection created'
+          : isEditMode
+            ? 'Collection updated'
+            : 'Collection saved',
         isEditMode
           ? `"${savedCollection.name}" has been updated.`
-          : `"${savedCollection.name}" has been added to your benchmark suites.`,
+          : `"${savedCollection.name}" has been added to your collections.`,
       );
       refreshCollections();
       navigate(evaluationBenchmarkSuitesRoute(namespace));
@@ -1102,10 +1111,10 @@ export function useCopySuiteForm({
         const message = e instanceof Error ? e.message : 'An unknown error occurred.';
         notification.error(
           isCreateMode
-            ? 'Failed to create suite'
+            ? 'Failed to create collection'
             : isEditMode
-              ? 'Failed to update suite'
-              : 'Failed to copy suite',
+              ? 'Failed to update collection'
+              : 'Failed to copy collection',
           message,
         );
       }

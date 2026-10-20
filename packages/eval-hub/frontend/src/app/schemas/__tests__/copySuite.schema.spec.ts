@@ -42,7 +42,7 @@ describe('copySuiteSchema', () => {
     const result = copySuiteSchema.safeParse({
       ...validValues(),
       suiteEvaluates: ['model', 'agent'],
-      suiteDomains: ['safety', 'knowledge_and_reasoning'],
+      suiteDomains: ['trustworthiness', 'knowledge_and_reasoning'],
       suiteTasks: ['reasoning'],
       suiteModalities: ['text', 'vision'],
       suiteIndustries: ['health'],
@@ -63,7 +63,7 @@ describe('copySuiteSchema', () => {
         expect.arrayContaining([
           expect.objectContaining({
             path: ['suiteName'],
-            message: 'Suite name must be different from the source benchmark suite name.',
+            message: 'Collection name must be different from the source collection name.',
           }),
         ]),
       );

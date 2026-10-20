@@ -1,3 +1,8 @@
+import { appChrome } from './appChrome';
+import type { UserAuthConfig } from '../types';
+
+const HARDWARE_FILTER_TEST_ID_PREFIX = 'runtime-catalog-filter-hardware-';
+
 const RUNTIME_CATALOG_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
 
@@ -9,8 +14,29 @@ class RuntimeCatalogPage {
     }
   }
 
+  // Visits the library without waiting for it to render, for checking users who cannot reach it.
+  visitAs(credentials: UserAuthConfig) {
+    cy.visitWithLogin(RUNTIME_CATALOG_PATH, credentials);
+  }
+
+  navigate() {
+    appChrome
+      .findNavItem({
+        name: 'Model deployment settings',
+        rootSection: 'Settings',
+        subSection: 'Model resources and operations',
+      })
+      .click();
+    this.findTab().click();
+    this.wait();
+  }
+
   private wait() {
     cy.findByTestId('runtime-catalog-page').should('exist');
+  }
+
+  findTab() {
+    return cy.findByTestId('tab-serving-runtime-catalog');
   }
 
   findPage() {
@@ -18,7 +44,27 @@ class RuntimeCatalogPage {
   }
 
   findSearchInput() {
-    return cy.findByTestId('runtime-catalog-search-input');
+    return cy.findByTestId('runtime-catalog-search-input').findByRole('textbox');
+  }
+
+  findSearchButton() {
+    return cy
+      .get('body')
+      .then(($body) =>
+        $body.find('[data-testid="runtime-catalog-search-button"]').length > 0
+          ? cy.findByTestId('runtime-catalog-search-button')
+          : cy
+              .findByTestId('runtime-catalog-search-input')
+              .findByRole('button', { name: 'Search' }),
+      );
+  }
+
+  findFirstCardName() {
+    return this.findPage().find('[data-testid^="runtime-catalog-card-name-"]').first();
+  }
+
+  findCardDetailLinks() {
+    return this.findPage().find('a[data-testid^="runtime-catalog-card-detail-link-"]');
   }
 
   findSidebar() {
@@ -63,6 +109,35 @@ class RuntimeCatalogPage {
 
   findCardHardware(cardKey: string) {
     return cy.findByTestId(`runtime-catalog-card-hardware-${cardKey}`);
+  }
+
+  findHardwareFilterCheckboxes() {
+    return this.findHardwareFilter().find('input[type="checkbox"]');
+  }
+
+  // Reads the hardware value a filter checkbox selects from its data-testid. closest() checks the
+  // input itself first, then its wrappers, so this holds wherever PatternFly places the test ID.
+  getHardwareFilterValue($checkbox: JQuery<HTMLElement>): string {
+    return (
+      $checkbox.closest(`[data-testid^="${HARDWARE_FILTER_TEST_ID_PREFIX}"]`).attr('data-testid') ??
+      ''
+    ).replace(HARDWARE_FILTER_TEST_ID_PREFIX, '');
+  }
+
+  findHardwareFilter() {
+    return cy.findByTestId('runtime-catalog-filter-hardware');
+  }
+
+  findHardwareFilterCheckbox(hardware: string) {
+    return cy.findByTestId(`runtime-catalog-filter-hardware-${hardware}`);
+  }
+
+  findHardwareFilterChip(hardware: string) {
+    return cy.findByTestId(`runtime-catalog-filter-chip-hardware-${hardware}`);
+  }
+
+  findHardwareFilterChips() {
+    return cy.findAllByTestId(/^runtime-catalog-filter-chip-hardware-/);
   }
 
   findEmptyState() {

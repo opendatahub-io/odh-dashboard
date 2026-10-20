@@ -125,14 +125,14 @@ export const getComparableRunsForJob = (job: EvaluationJob): ComparableRun[] => 
 export const isBenchmarkSuiteRun = (job: EvaluationJob): boolean =>
   getJobBenchmarks(job).length > 1;
 
-export type CompareRunType = 'Single benchmark' | 'Benchmark suite';
+export type CompareRunType = 'Single benchmark' | 'Collection';
 
 export const COMPARE_RUNS_PAGE_TITLE = 'Compare runs';
 
 export const COMPARE_CHILD_RUN_TYPE = 'Benchmark';
 
 export const getCompareRunType = (job: EvaluationJob): CompareRunType =>
-  isBenchmarkSuiteRun(job) ? 'Benchmark suite' : 'Single benchmark';
+  isBenchmarkSuiteRun(job) ? 'Collection' : 'Single benchmark';
 
 /** Evaluation run column for parent rows. */
 export const getCompareParentEvaluationRunLabel = (job: EvaluationJob): string =>

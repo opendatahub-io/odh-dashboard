@@ -48,10 +48,6 @@ export const inferSourceMode = (
     return { sourceMode: 'model', modelSelection: 'cluster' };
   }
 
-  if (job.model.url) {
-    return { sourceMode: 'agent', modelSelection: 'external' };
-  }
-
   return { sourceMode: 'model', modelSelection: 'external' };
 };
 

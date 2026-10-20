@@ -77,6 +77,30 @@ The BFF supports three platform modes via `ODH_PLATFORM_TYPE`:
 
 When `ODH_PLATFORM_TYPE` is set explicitly, the configured value is always trusted. For explicit `OpenShift`, the ClusterVersion probe still runs and a warning is logged if the detected platform does not match. For explicit `XKS`, the probe is skipped entirely (no OpenShift API calls are made), so no mismatch warning can occur. When the probe returns an ambiguous error (not clearly "resource unavailable"), auto-detect defaults to OpenShift.
 
+## Response security headers and cache policy
+
+Every normal HTTP reply gets browser security headers via response-writer middleware:
+
+| Header | Value |
+| --- | --- |
+| `X-Content-Type-Options` | `nosniff` |
+| `Cross-Origin-Opener-Policy` | `same-origin` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `X-Frame-Options` | `DENY` |
+| `X-DNS-Prefetch-Control` | `off` |
+
+`Cache-Control` is selective:
+
+- **API paths** (`/api`, `/wss`, module `/…/api/…`) and **SPA document** responses use `no-cache, no-store, must-revalidate`.
+- **Module API proxies** also force `no-store` via `ModifyResponse` (parity with the Node `rewriteNoStoreCacheHeaders` helper).
+- **Host static assets** use filename-based policies (immutable for content-hashed bundles, `no-cache` for unhashed scripts, short TTL for media).
+
+Informational `1xx` writes are forwarded without committing the response so a later final status (for example `404` after `103`) is preserved.
+
+### WebSocket 101 upgrade responses
+
+`SetSecurityHeaders` does **not** cover WebSocket upgrades — `gorilla/websocket`'s `Upgrade` writes the `101 Switching Protocols` response directly. `X-Content-Type-Options: nosniff` is passed via the upgrader's `responseHeader` (see `clientUpgradeResponseHeader` in `ws_proxy.go`), along with the negotiated `Sec-WebSocket-Protocol` when present. Unrelated queued headers are not copied onto the 101.
+
 ## Endpoints
 
 ### Sample local calls

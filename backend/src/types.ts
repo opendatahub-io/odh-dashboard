@@ -62,6 +62,7 @@ export type DashboardConfig = K8sResourceCommon & {
       workbenchesV2: boolean;
       mcpCatalog: boolean;
       mcpRegistry: boolean;
+      skillRegistry: boolean;
       genAiMcpRegistryServers: boolean;
       agentOps: boolean;
       agentsCatalog: boolean;
@@ -74,12 +75,15 @@ export type DashboardConfig = K8sResourceCommon & {
       externalVectorStores: boolean;
       agentConfigManagement: boolean;
       genAiAgentDeployment: boolean;
+      genAiImageUpload: boolean;
+      genAiAudioUpload: boolean;
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
       globalProjectPrompts: boolean;
       gpuaas: boolean;
       modelCapabilities: boolean;
+      grid: boolean;
       observabilityDashboard: boolean;
       nimWizard: boolean;
     };

@@ -22,8 +22,13 @@ export const MLFLOW_INSTALLATION_DOCS_URL =
 
 export const MLFLOW_NOT_CONFIGURED_TITLE = 'Admin configuration required';
 export const MLFLOW_NOT_CONFIGURED_MESSAGE =
-  'MLflow supports experiment tracking, prompt management, and agent observability. Ask your administrator to enable MLflow for this cluster.';
+  'MLflow supports experiment tracking, prompt management, and agent traces. Ask your administrator to enable MLflow for this cluster.';
 
-export const AGENT_OBSERVABILITY_PAGE_TITLE = 'Agent observability';
+export const AGENT_OBSERVABILITY_PAGE_TITLE = 'Agent traces';
 export const AGENT_OBSERVABILITY_NO_PROJECTS_MESSAGE =
-  'To view agent observability, first create a project.';
+  'To view agent traces, first create a project.';
+
+export const SKILL_REGISTRY_PAGE_TITLE = 'Skills';
+export const SKILL_REGISTRY_DESCRIPTION =
+  'Discover and register agent skills, and manage their versions in this project.';
+export const SKILL_REGISTRY_NO_PROJECTS_MESSAGE = 'To register skills, first create a project.';

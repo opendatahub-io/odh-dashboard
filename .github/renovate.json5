@@ -69,8 +69,11 @@
   // New PRs only in the Monday-morning window (parity with Dependabot's weekly
   // cadence). The runner executes daily; on other days it only rebases existing
   // PRs, closes superseded ones, and refreshes the Dependency Dashboard.
+  // The window itself is set by the runner (.github/workflows/renovate.yml,
+  // RENOVATE_SCHEDULE) instead of here, so that manual dispatches can override
+  // it via the force_updates input — repo config would take precedence over
+  // the runner environment and block that.
   "timezone": "UTC",
-  "schedule": ["before 4am on Monday"],
 
   // Flood control for the first scans: at most 10 Renovate PRs open at a time.
   // No hourly limit — the Monday-only PR window already throttles creation, and

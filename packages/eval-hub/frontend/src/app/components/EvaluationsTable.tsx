@@ -631,7 +631,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  popover: 'The benchmark or benchmark suite used for this evaluation.',
+                  popover: 'The benchmark or collection used for this evaluation.',
                 }}
               >
                 Evaluation
@@ -651,7 +651,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 modifier="nowrap"
                 info={{
                   popover:
-                    'The primary metric score for this evaluation run. For benchmark suites, this is the weighted average of all benchmark scores.',
+                    'The primary metric score for this evaluation run. For collections, this is the weighted average of all benchmark scores.',
                 }}
               >
                 Result

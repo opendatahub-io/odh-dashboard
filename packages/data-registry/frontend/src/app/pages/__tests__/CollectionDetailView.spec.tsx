@@ -1,8 +1,13 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import type { CollectionDetail } from '~/app/hooks/useCollectionDetail';
+import * as trackingHook from '~/app/hooks/useDataRegistryTrackEvent';
 import CollectionDetailView from '~/app/pages/CollectionDetailView';
+
+jest.mock('~/app/hooks/useDataRegistryTrackEvent');
+
+const mockTrackEvent = jest.fn();
 
 const mockCollectionDetail: CollectionDetail = {
   name: 'test-collection',
@@ -20,6 +25,11 @@ const mockCollectionDetail: CollectionDetail = {
 };
 
 describe('CollectionDetailView', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.mocked(trackingHook.useDataRegistryTrackEvent).mockReturnValue(mockTrackEvent);
+  });
+
   it('should render collection details card', () => {
     render(
       <BrowserRouter>
@@ -87,7 +97,7 @@ describe('CollectionDetailView', () => {
     expect(screen.getByText('No data assets')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.',
+        'To help users in your organization discover and understand external data, create a data asset. Data assets are metadata records that store information like location, format, and schema, but not the data itself.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByTestId('collection-empty-register-data-button')).toBeInTheDocument();
@@ -120,6 +130,24 @@ describe('CollectionDetailView', () => {
       'href',
       '/ai-hub/data/browse/assets/volume/demo-user-1/test-collection/volume1',
     );
+  });
+
+  it('should track asset opens from the link and View details action', () => {
+    render(
+      <BrowserRouter>
+        <CollectionDetailView collection={mockCollectionDetail} project="demo-user-1" />
+      </BrowserRouter>,
+    );
+
+    fireEvent.click(screen.getByText('table1'));
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Asset Opened',
+      properties: { project: 'demo-user-1' },
+    });
+
+    fireEvent.click(screen.getByTestId('asset-kebab-table1'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'View details' }));
+    expect(mockTrackEvent).toHaveBeenCalledTimes(2);
   });
 
   it('should display created timestamp with user', () => {

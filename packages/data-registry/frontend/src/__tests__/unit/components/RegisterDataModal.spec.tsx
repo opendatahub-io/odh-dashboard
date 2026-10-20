@@ -5,16 +5,22 @@ import userEvent from '@testing-library/user-event';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
 import * as connectionsHook from '~/app/hooks/useConnections';
+import * as labelsHook from '~/app/hooks/useLabels';
+import * as trackingHook from '~/app/hooks/useDataRegistryTrackEvent';
 import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
 jest.mock('~/app/api/dataRegistry');
 jest.mock('~/app/hooks/useConnections');
+jest.mock('~/app/hooks/useLabels');
+jest.mock('~/app/hooks/useDataRegistryTrackEvent');
 
 const mockCreateVolume = jest.mocked(dataRegistryApi.createVolume);
 const mockCreateGenericTable = jest.mocked(dataRegistryApi.createGenericTable);
 const mockUseConnections = jest.mocked(connectionsHook.useConnections);
+const mockUseLabels = jest.mocked(labelsHook.useLabels);
+const mockTrackEvent = jest.fn();
 
 const mockConnections = [
   mockRhaiConnection(),
@@ -39,6 +45,7 @@ describe('RegisterDataModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(trackingHook.useDataRegistryTrackEvent).mockReturnValue(mockTrackEvent);
     mockRefreshConnections.mockResolvedValue(mockConnections);
     mockUseConnections.mockReturnValue([
       mockConnections,
@@ -47,6 +54,7 @@ describe('RegisterDataModal', () => {
       mockRefreshConnections,
       [],
     ]);
+    mockUseLabels.mockReturnValue([['gold', 'team a', 'production'], true, undefined, jest.fn()]);
   });
 
   it('should render modal with all form fields', () => {
@@ -60,7 +68,13 @@ describe('RegisterDataModal', () => {
     expect(screen.getByTestId('data-collection-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-path-input')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Asset type info' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'PII information' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Personally identifiable information details' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Key-value pairs')).toBeInTheDocument();
+    expect(
+      screen.getByText('Optionally define custom properties using key-value pairs.'),
+    ).toBeInTheDocument();
   });
 
   it('should default to Unstructured asset type', () => {
@@ -69,6 +83,57 @@ describe('RegisterDataModal', () => {
     const assetTypeToggle = screen.getByTestId('asset-type-toggle');
     expect(assetTypeToggle.textContent).toBe('Unstructured');
     expect(assetTypeToggle.className).not.toContain('pf-m-disabled');
+  });
+
+  it('should track explicit create-form selections and deduplicate labels case-insensitively', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Structured'));
+    await user.click(screen.getByTestId('data-format-toggle'));
+    await user.click(screen.getByText('Apache Parquet'));
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    await user.click(screen.getByText('My S3 Connection'));
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    await user.type(
+      within(screen.getByTestId('data-labels-input-0')).getByRole('combobox'),
+      'Finance',
+    );
+    await user.click(await screen.findByText('Create "Finance"'));
+    await user.click(screen.getByTestId('data-add-label-button'));
+    await user.type(
+      within(screen.getByTestId('data-labels-input-1')).getByRole('combobox'),
+      'finance',
+    );
+    await user.click(await screen.findByRole('option', { name: 'Finance' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Asset Type Selected',
+      properties: { assetType: 'structured', project: 'test-project' },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Format Selected',
+      properties: { format: 'parquet', project: 'test-project' },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Collection Selection Changed',
+      properties: {
+        initialCollection: 'none',
+        selectedCollection: 'custom',
+        project: 'test-project',
+      },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Connection Selected',
+      properties: { project: 'test-project' },
+    });
+    expect(
+      mockTrackEvent.mock.calls.filter(([event]) => event.eventName === 'Data Label Added'),
+    ).toHaveLength(1);
   });
 
   it('should not show schema section for unstructured type', () => {
@@ -158,6 +223,18 @@ describe('RegisterDataModal', () => {
     expect(mockCreateGenericTable).not.toHaveBeenCalled();
     expect(defaultProps.onCreated).toHaveBeenCalled();
     expect(defaultProps.onClose).toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registered',
+      properties: {
+        success: true,
+        assetType: 'unstructured',
+        format: 'other',
+        hasConnection: false,
+        hasCollection: true,
+        labelCount: 0,
+        project: 'test-project',
+      },
+    });
   });
 
   it('should submit as generic table when asset type is structured', async () => {
@@ -207,6 +284,19 @@ describe('RegisterDataModal', () => {
 
     expect(defaultProps.onCreated).not.toHaveBeenCalled();
     expect(defaultProps.onClose).not.toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registered',
+      properties: {
+        success: false,
+        assetType: 'unstructured',
+        format: 'other',
+        hasConnection: false,
+        hasCollection: true,
+        labelCount: 0,
+        project: 'test-project',
+        error: 'http_409',
+      },
+    });
   });
 
   it('should reset form fields on close', async () => {
@@ -217,6 +307,29 @@ describe('RegisterDataModal', () => {
 
     await user.click(screen.getByText('Cancel'));
     expect(defaultProps.onClose).toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registration Canceled',
+      properties: { cancelMethod: 'cancel_button', project: 'test-project' },
+    });
+  });
+
+  it('should classify close-X as cancellation and leave collection management out of the funnel', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Manage collections' }));
+    expect(defaultProps.onManageCollections).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).not.toHaveBeenCalledWith({
+      eventName: 'Data Registration Canceled',
+      properties: { cancelMethod: 'close_x', project: 'test-project' },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registration Canceled',
+      properties: { cancelMethod: 'close_x', project: 'test-project' },
+    });
   });
 
   it('should show "Create new collection" in collection dropdown', async () => {
@@ -259,7 +372,7 @@ describe('RegisterDataModal', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
     await user.click(screen.getByTestId('data-add-label-button'));
-    const labelInput = screen.getByTestId('data-labels-input-0');
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
     await user.type(labelInput, 'production');
 
     expect(labelInput).toHaveValue('production');
@@ -267,6 +380,46 @@ describe('RegisterDataModal', () => {
 
     await user.click(screen.getByTestId('data-label-remove-0'));
     expect(screen.queryByTestId('data-labels-input-0')).not.toBeInTheDocument();
+  });
+
+  it('should offer existing labels and allow new labels through typeahead', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.click(labelInput);
+
+    expect(screen.getByRole('option', { name: 'gold' })).toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: 'gold' }));
+    expect(labelInput).toHaveValue('gold');
+
+    await user.clear(labelInput);
+    await user.type(labelInput, 'team b');
+    const createOption = await screen.findByText('Create "team b"');
+    await user.click(createOption);
+    expect(labelInput).toHaveValue('team b');
+  });
+
+  it('should not submit an uncommitted label typed into the typeahead', async () => {
+    const user = userEvent.setup();
+    mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'test-volume' }));
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.type(labelInput, 'uncommitted-label');
+    await user.click(screen.getByTestId('data-name-input'));
+
+    expect(labelInput).toHaveValue('');
+
+    await user.type(screen.getByTestId('data-name-input'), 'test-volume');
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() => expect(mockCreateVolume).toHaveBeenCalled());
+    expect(mockCreateVolume.mock.calls[0][2]).not.toHaveProperty('labels');
   });
 
   it('should use a minus control for custom property rows', async () => {

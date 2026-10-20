@@ -5,6 +5,7 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { deleteProject } from '#~/api';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;
@@ -46,7 +47,7 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
             fireFormTrackingEvent(deleteProjectEventType, {
               outcome: TrackingOutcome.submit,
               success: false,
-              error: e,
+              error: errorCategory(e),
             });
             setError(e);
             setDeleting(false);

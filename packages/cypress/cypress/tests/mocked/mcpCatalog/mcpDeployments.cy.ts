@@ -1,4 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
@@ -43,6 +44,10 @@ const initBaseIntercepts = (dscStatus: ReturnType<typeof mockDscStatus> = mockDs
   );
 
   cy.interceptOdh('GET /api/dsc/status', dscStatus);
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: 'odh-model-registries' }),
+  );
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
 
@@ -662,15 +667,30 @@ describe('MCP Deploy from Catalog', () => {
       mcpServerDetailsPage
         .findDeployButton()
         .should('be.visible')
-        .and('have.attr', 'aria-disabled', 'true')
-        .trigger('mouseenter');
-      cy.findByRole('tooltip').should('contain.text', NO_GATEWAY_TOOLTIP);
-      mcpServerDetailsPage.findDeployButton().trigger('mouseleave');
+        .and('have.attr', 'aria-disabled', 'true');
+      // The docs link is in the popover, not next to the button.
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+      // Screen readers get the explanation with the button, before the popover opens.
+      // The button is also aria-disabled while readiness loads, so retry until it is described.
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('have.attr', 'aria-describedby')
+        .then((id) => {
+          cy.get(`[id="${String(id)}"]`).should('have.text', NO_GATEWAY_TOOLTIP);
+        });
 
-      // The explanation is also reachable by keyboard.
+      mcpServerDetailsPage.findDeployButton().trigger('mouseover');
+      mcpServerDetailsPage
+        .findGatewayPopover()
+        .should('be.visible')
+        .and('contain.text', 'MCP gateway required')
+        .and('contain.text', NO_GATEWAY_TOOLTIP);
+      mcpServerDetailsPage.findDeployButton().trigger('mouseout');
+      mcpServerDetailsPage.findGatewayPopover().should('not.exist');
+
+      // The explanation and the docs link are also reachable by keyboard.
       mcpServerDetailsPage.findDeployButton().focus();
-      cy.findByRole('tooltip').should('contain.text', NO_GATEWAY_TOOLTIP);
-
+      mcpServerDetailsPage.findGatewayPopover().should('contain.text', NO_GATEWAY_TOOLTIP);
       mcpServerDetailsPage
         .findGatewayDocsLink()
         .should('be.visible')
@@ -690,8 +710,10 @@ describe('MCP Deploy from Catalog', () => {
 
       // The first load, then the immediate re-check when polling switches on.
       cy.wait(['@getDeployReadiness', '@getDeployReadiness']);
-      mcpServerDetailsPage.findDeployButton().should('have.attr', 'aria-disabled', 'true');
-      mcpServerDetailsPage.findGatewayDocsLink().should('be.visible');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('have.attr', 'aria-disabled', 'true')
+        .and('have.attr', 'aria-describedby');
 
       cy.intercept(
         'GET',
@@ -703,7 +725,10 @@ describe('MCP Deploy from Catalog', () => {
       cy.tick(30000);
 
       cy.wait('@getDeployReadinessReady');
-      mcpServerDetailsPage.findDeployButton().should('not.have.attr', 'aria-disabled', 'true');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('not.have.attr', 'aria-disabled', 'true')
+        .and('not.have.attr', 'aria-describedby');
       mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
     });
 
@@ -727,6 +752,31 @@ describe('MCP Deploy from Catalog', () => {
         'Unable to check the deployment prerequisites for this MCP server. Try again later.',
       );
       mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+    });
+
+    it('should show the server-side gateway rejection in the deploy modal', () => {
+      // The BFF re-checks the gateway when creating, so a gateway that disappears after the
+      // page loaded (or a changed image) is rejected and the modal explains why.
+      const rejection =
+        'This MCP server requires an MCP gateway. No MCP gateway is available on this cluster.';
+      initDeployIntercepts({ readiness: { gatewayRequired: true, deployable: true } });
+      cy.intercept('POST', `${MCP_DEPLOYMENTS_API}*`, {
+        statusCode: 409,
+        body: { error: { code: '409', message: rejection } },
+      }).as('createDeploymentRejected');
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+      mcpServerDetailsPage.clickDeployButton();
+      cy.wait('@getConverter');
+      mcpDeployModal.shouldBeOpen();
+      mcpDeployModal.findNameInput().type('OpenShift MCP');
+      mcpDeployModal.selectProject('Test Project');
+      mcpDeployModal.findSubmitButton().click();
+
+      cy.wait('@createDeploymentRejected');
+      mcpDeployModal.findSubmitError().should('contain.text', rejection);
+      mcpDeployModal.shouldBeOpen();
+      cy.testA11y();
     });
   });
 

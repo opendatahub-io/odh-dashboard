@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { MLflowPromptVersion } from '~/app/types';
 import * as chatbotStore from '~/app/Chatbot/store';
@@ -366,6 +366,70 @@ describe('PromptAssistantFormGroup', () => {
       render(<PromptAssistantFormGroup {...defaultProps} />);
 
       expect(screen.getByTestId('system-instructions-input')).not.toHaveAttribute('readonly');
+    });
+  });
+
+  describe('Prompt instructions resizing', () => {
+    it('should resize a loaded prompt when its hidden tab becomes visible without replacing the observer on edits', () => {
+      jest.mocked(chatbotStore.selectActivePrompt).mockReturnValue(() => mockProjectPrompt);
+      const observe = jest.fn();
+      const disconnect = jest.fn();
+      let onIntersect!: IntersectionObserverCallback;
+      const observerConstructor = jest.fn((callback: IntersectionObserverCallback) => {
+        onIntersect = callback;
+        return { observe, disconnect };
+      });
+      const originalObserver = window.IntersectionObserver;
+      Object.defineProperty(window, 'IntersectionObserver', {
+        configurable: true,
+        value: observerConstructor,
+      });
+
+      try {
+        const { rerender, unmount } = render(
+          <div role="tabpanel" style={{ display: 'none' }}>
+            <PromptAssistantFormGroup
+              {...defaultProps}
+              systemInstruction={mockProjectPrompt.template ?? ''}
+            />
+          </div>,
+        );
+        const field = screen.getByTestId('system-instructions-input') as HTMLTextAreaElement;
+        let measuredHeight = 0;
+        Object.defineProperty(field, 'scrollHeight', { get: () => measuredHeight });
+        expect(field).toHaveValue(mockProjectPrompt.template);
+        expect(observe).toHaveBeenCalledWith(field.closest('[role="tabpanel"]'));
+
+        measuredHeight = 80;
+        act(() =>
+          onIntersect(
+            [{ isIntersecting: true } as IntersectionObserverEntry],
+            {} as IntersectionObserver,
+          ),
+        );
+        expect(parseFloat(field.parentElement?.style.height ?? '0')).toBeGreaterThanOrEqual(80);
+
+        measuredHeight = 120;
+        rerender(
+          <div role="tabpanel">
+            <PromptAssistantFormGroup
+              {...defaultProps}
+              systemInstruction="Edited prompt instructions"
+            />
+          </div>,
+        );
+        expect(parseFloat(field.parentElement?.style.height ?? '0')).toBeGreaterThanOrEqual(120);
+        expect(observerConstructor).toHaveBeenCalledTimes(1);
+        expect(disconnect).not.toHaveBeenCalled();
+
+        unmount();
+        expect(disconnect).toHaveBeenCalledTimes(1);
+      } finally {
+        Object.defineProperty(window, 'IntersectionObserver', {
+          configurable: true,
+          value: originalObserver,
+        });
+      }
     });
   });
 });

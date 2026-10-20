@@ -6,12 +6,15 @@ import {
 } from '@odh-dashboard/plugin-core/areas';
 
 export const techPreviewFlags = {
+  genAiImageUpload: false,
+  genAiAudioUpload: false,
   genAiTracing: false,
   guardrails: false,
   modelAsService: true,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
   mcpRegistry: false,
+  skillRegistry: false,
   genAiMcpRegistryServers: false,
   toolCalling: false,
   modelCapabilities: false,
@@ -29,6 +32,9 @@ export const techPreviewFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
+  // Temporary Grid migration switch: enables MaaS Gateway API paths for the MaaS and Gen AI
+  // packages while grid-aware screens are migrated away from Kubernetes APIs.
+  grid: false,
   disableKueue: true,
   disableProjectScoped: true,
   nimServiceOperator: false,
@@ -264,6 +270,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['mcpRegistry'],
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
+  [SupportedArea.SKILL_REGISTRY]: {
+    featureFlags: ['skillRegistry'],
+    requiredComponents: [DataScienceStackComponent.MLFLOW],
+  },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
   },
@@ -300,7 +310,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
-    requiredComponents: [DataScienceStackComponent.KUEUE],
   },
   [SupportedArea.MODEL_CAPABILITIES]: {
     featureFlags: ['modelCapabilities'],

@@ -14,7 +14,7 @@ class ModelsTabRow {
   }
 
   findEndpointCell(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Endpoints"]');
+    return this.find().find('[data-label="Access details"]');
   }
 
   findModelTypeCell(): Cypress.Chainable<JQuery<HTMLElement>> {
