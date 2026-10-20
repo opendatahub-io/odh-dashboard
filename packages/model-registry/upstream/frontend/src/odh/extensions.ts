@@ -5,6 +5,7 @@ import type {
   RouteExtension,
   AreaExtension,
   TabRouteTabExtension,
+  DetailTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import {
   CATALOG_SETTINGS_PAGE_TITLE,
@@ -32,6 +33,7 @@ const extensions: (
   | RouteExtension
   | AreaExtension
   | TabRouteTabExtension
+  | DetailTabExtension
   | Extension
 )[] = [
   {
@@ -343,6 +345,21 @@ const extensions: (
       label: 'Deploy',
       group: 'mcp-registry.server-deploy',
       component: () => import('./components/McpRegistryServerDeployAction'),
+    },
+  },
+  // Safety and security insights tab on the catalog model details page. Gated on
+  // MODEL_CATALOG (so it ships with the model-registry module), not on the eval-hub
+  // module / TrustyAI. Reads the model catalog BFF's security_artifacts endpoint directly.
+  {
+    type: 'core.detail/tab',
+    flags: {
+      required: [SupportedArea.MODEL_CATALOG],
+    },
+    properties: {
+      id: 'security-insights',
+      title: 'Safety and security insights',
+      group: 'model-catalog.details',
+      component: () => import('./pages/modelCatalog/securityInsights/SecurityInsightsTab'),
     },
   },
 ];

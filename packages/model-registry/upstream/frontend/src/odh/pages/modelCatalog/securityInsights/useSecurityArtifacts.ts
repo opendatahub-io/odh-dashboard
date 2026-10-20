@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { useFetchState, FetchStateCallbackPromise, APIOptions } from 'mod-arch-core';
-import { getCatalogSecurityArtifacts } from '~/app/api/k8s';
+import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { getCatalogSecurityArtifacts } from './getCatalogSecurityArtifacts';
 import {
   CatalogSecurityArtifactList,
   SecurityInsight,
   mapArtifactToInsight,
-} from '~/app/pages/modelCatalog/securityInsightsTypes';
+} from './securityInsightsTypes';
+
+const MODEL_CATALOG_HOST_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
 
 type UseSecurityArtifactsResult = {
   insights: SecurityInsight[];
@@ -23,7 +26,13 @@ const useSecurityArtifacts = (
 ): UseSecurityArtifactsResult => {
   const callback = React.useCallback<FetchStateCallbackPromise<CatalogSecurityArtifactList>>(
     (opts: APIOptions) =>
-      getCatalogSecurityArtifacts('', sourceId, modelName, namespace, pageSize)(opts),
+      getCatalogSecurityArtifacts(MODEL_CATALOG_HOST_PATH)(
+        opts,
+        sourceId,
+        modelName,
+        namespace,
+        pageSize,
+      ),
     [sourceId, modelName, namespace, pageSize],
   );
 

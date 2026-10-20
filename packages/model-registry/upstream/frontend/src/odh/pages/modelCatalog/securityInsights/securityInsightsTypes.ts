@@ -1,3 +1,7 @@
+// Moved from packages/eval-hub so the Safety and security insights tab is owned by the
+// model-registry module and no longer depends on the eval-hub module (TrustyAI). The data
+// still comes from the model catalog BFF's security_artifacts endpoint.
+
 type MetadataStringValue = {
   metadataType: 'MetadataStringValue';
   string_value: string;
@@ -42,10 +46,6 @@ export type CatalogSecurityArtifact = {
 
 export type CatalogSecurityArtifactList = {
   items: CatalogSecurityArtifact[];
-};
-
-export type CatalogSecurityArtifactListEnvelope = {
-  data: CatalogSecurityArtifactList;
 };
 
 export type SecurityInsightsViewProps = {
