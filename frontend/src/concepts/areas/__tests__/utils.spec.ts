@@ -605,6 +605,23 @@ describe('isAreaAvailable', () => {
       expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
     });
 
+    it('should not be available when Feature Store is Removed even if both UI flags allow it', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: true }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Removed' },
+          },
+        }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ featureStoreAdmin: 'on' });
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
+    });
+
     it('should not affect FEATURE_STORE browse area when admin flag is false', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.FEATURE_STORE,

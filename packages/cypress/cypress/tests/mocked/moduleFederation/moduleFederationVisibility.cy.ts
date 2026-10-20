@@ -159,6 +159,27 @@ describe('Module federation visibility', () => {
       cy.visitWithLogin('/develop-train/feature-store');
       pageNotfound.findPage().should('exist');
     });
+
+    it('should hide Feature store browse and admin routes when its lifecycle is Removed', () => {
+      initIntercepts(
+        { disableFeatureStore: false, featureStoreAdmin: true },
+        { [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Removed' } },
+      );
+
+      navSidebar.visit();
+      navSidebar
+        .findNavItem({
+          name: 'Feature views',
+          rootSection: 'Develop & train',
+          subSection: 'Feature store',
+        })
+        .should('not.exist');
+
+      cy.visitWithLogin('/develop-train/feature-store');
+      pageNotfound.findPage().should('exist');
+      cy.visitWithLogin('/settings/environment-setup/feature-stores');
+      pageNotfound.findPage().should('exist');
+    });
   });
 
   describe('Mixed state — some modules present, others absent', () => {
