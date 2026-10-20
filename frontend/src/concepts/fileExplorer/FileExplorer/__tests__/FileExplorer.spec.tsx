@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import type { ExplorerFile, ExplorerFiles } from '#~/concepts/fileExplorer/types';
 import FileExplorer, {
@@ -62,6 +63,42 @@ describe('FileExplorer', () => {
     });
   });
   describe('file table', () => {
+    it.each([
+      {
+        description: 'short file names',
+        createFile: () => mockFile({ name: 'short.csv', path: '/short.csv' }),
+      },
+      {
+        description: 'long file names',
+        createFile: () =>
+          mockFile({
+            name: 'a-very-long-file-name-that-needs-to-be-truncated.csv',
+            path: '/a-very-long-file-name-that-needs-to-be-truncated.csv',
+          }),
+      },
+      {
+        description: 'short folder names',
+        createFile: () => mockFolder({ name: 'data', path: '/data' }),
+      },
+      {
+        description: 'long folder names',
+        createFile: () =>
+          mockFolder({
+            name: 'a-very-long-folder-name-that-needs-to-be-truncated',
+            path: '/a-very-long-folder-name-that-needs-to-be-truncated',
+          }),
+      },
+    ])('should show a tooltip for $description', async ({ createFile }) => {
+      const user = userEvent.setup();
+      const file = createFile();
+      render(<FileExplorer {...defaultProps} files={[file]} />);
+
+      const row = screen.getByTestId(`file-explorer-row-${sanitizeId(file.path)}`);
+      await user.hover(within(row).getByText(file.name));
+
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(file.name);
+    });
+
     it('should render file rows', () => {
       const files = mockFiles(3);
       render(<FileExplorer {...defaultProps} files={files} />);
