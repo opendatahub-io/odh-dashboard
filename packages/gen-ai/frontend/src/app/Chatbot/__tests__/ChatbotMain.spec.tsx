@@ -420,6 +420,27 @@ describe('ChatbotMain - Empty State Logic', () => {
     mockUseFetchBFFConfig.mockReturnValue({ data: null } as FetchStateObject<BFFConfig | null>);
     act(() => actualStore.getState().updateGuardrail('default', 'test-model'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+
+    // Initialized settings (route-provided MCP servers) are part of the baseline — not dirty
+    act(() => actualStore.getState().resetConfiguration({ selectedMcpServerIds: ['server-1'] }));
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    // Revert restores the effective starting configuration, not raw defaults
+    act(() => actualStore.getState().updateTemperature('default', 0.5));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedMcpServerIds).toEqual([
+      'server-1',
+    ]);
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    // Edits to the compare-mode secondary pane mark the configuration dirty
+    act(() => actualStore.getState().duplicateConfiguration('default'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    const secondaryConfigId = useChatbotConfigStore.getState().configIds[1];
+    act(() => actualStore.getState().updateTemperature(secondaryConfigId, 0.9));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() => actualStore.getState().resetConfiguration());
   });
 });
 

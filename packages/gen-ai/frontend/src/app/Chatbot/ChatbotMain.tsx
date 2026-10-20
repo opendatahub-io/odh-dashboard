@@ -49,6 +49,7 @@ import {
   selectSelectedModel,
   DEFAULT_CONFIG_ID,
   DEFAULT_CONFIGURATION,
+  ChatbotConfiguration,
 } from './store';
 import { usePlaygroundStore } from './store/usePlaygroundStore';
 import PromptManagementModal from './components/promptManagementModal';
@@ -176,26 +177,38 @@ const ChatbotMain: React.FunctionComponent = () => {
   );
 
   const isProfileDirty = useIsProfileDirty(primaryConfigId, availableMcpServers, mcpConfigMapName);
-  const defaultModelRef = React.useRef('');
-  const defaultConfig = useChatbotConfigStore((s) => s.configurations[primaryConfigId]);
-  const isDefaultConfigDirty =
-    !profileApplied &&
-    !!defaultConfig &&
-    (JSON.stringify({
-      ...defaultConfig,
-      selectedModel: '',
+  // Effective starting configuration, captured once ChatbotPlayground finishes initializing
+  // (route-provided values, stored MCP selections, initial model). Dirty checks and Revert
+  // compare against this baseline instead of raw defaults so initialized settings are
+  // neither flagged as dirty nor discarded by Revert.
+  const defaultConfigBaselineRef = React.useRef<ChatbotConfiguration | null>(null);
+  const configurations = useChatbotConfigStore((s) => s.configurations);
+  // Mask values the app manages automatically (default guardrail, inline-mode vector
+  // store, conversation images) so they don't read as user edits
+  const serializeConfigForDirtyCheck = (config: ChatbotConfiguration): string =>
+    JSON.stringify({
+      ...config,
       guardrail:
-        defaultConfig.guardrail ===
+        config.guardrail ===
         models.find((model) =>
           isLlamaModelEnabled(model.id, aiModels, maasModels, bffConfig?.isCustomLSD ?? false),
         )?.id
           ? ''
-          : defaultConfig.guardrail,
+          : config.guardrail,
       selectedVectorStoreId:
-        defaultConfig.knowledgeMode === 'inline' ? null : defaultConfig.selectedVectorStoreId,
+        config.knowledgeMode === 'inline' ? null : config.selectedVectorStoreId,
       hasVisionImage: false,
-    }) !== JSON.stringify(DEFAULT_CONFIGURATION) ||
-      defaultConfig.selectedModel !== defaultModelRef.current);
+    });
+  const baselineSnapshot = serializeConfigForDirtyCheck(
+    defaultConfigBaselineRef.current ?? DEFAULT_CONFIGURATION,
+  );
+  // Compare every pane so edits to either side of compare mode count
+  const isDefaultConfigDirty =
+    !profileApplied &&
+    configIds.some((configId) => {
+      const config = configurations[configId];
+      return !!config && serializeConfigForDirtyCheck(config) !== baselineSnapshot;
+    });
   useSafeBrowserUnloadBlocker(isProfileDirty || isDefaultConfigDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
@@ -340,7 +353,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, [models, mcpServers, namespace?.name]);
 
   const handleNewAgentConfiguration = React.useCallback(() => {
-    defaultModelRef.current = '';
+    // Drop the baseline until the playground re-initializes and captures a new one
+    defaultConfigBaselineRef.current = null;
     useChatbotConfigStore.getState().resetConfiguration();
     setSearchParams(
       (prev) => {
@@ -629,13 +643,17 @@ const ChatbotMain: React.FunctionComponent = () => {
               onResetToLastSaved={handleResetToLastSaved}
               isDefaultConfigDirty={isDefaultConfigDirty}
               onInitialModelSelected={(model) => {
-                defaultModelRef.current = model;
+                const config = useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID];
+                if (config) {
+                  // The model is written to the store right after this callback — patch it
+                  // in so the baseline matches the effective starting configuration
+                  defaultConfigBaselineRef.current = { ...config, selectedModel: model };
+                }
               }}
               onRevertToDefaults={() => {
-                useChatbotConfigStore.getState().resetConfiguration({
-                  ...DEFAULT_CONFIGURATION,
-                  selectedModel: defaultModelRef.current,
-                });
+                useChatbotConfigStore
+                  .getState()
+                  .resetConfiguration(defaultConfigBaselineRef.current ?? DEFAULT_CONFIGURATION);
                 setActivePaneConfigId(DEFAULT_CONFIG_ID);
               }}
               mcpServers={availableMcpServers}
