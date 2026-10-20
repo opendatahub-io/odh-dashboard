@@ -8,6 +8,7 @@ import { createCustomError } from './requestUtils';
 
 export const normalizeV3DscStatus = (dsc: DataScienceClusterKind): DataScienceClusterKindStatus => {
   const components = dsc.status.components ?? {};
+  const data = dsc.spec.components?.data;
 
   return {
     ...dsc.status,
@@ -15,8 +16,9 @@ export const normalizeV3DscStatus = (dsc: DataScienceClusterKind): DataScienceCl
       ...components,
       // Keep the dashboard's established component keys while consuming the v3 DSC contract.
       modelregistry: components.aiHub ?? {},
-      featureStore: dsc.spec.components?.data?.featureStore ?? {},
-      dataRegistry: dsc.spec.components?.data?.dataRegistry ?? {},
+      // Missing child states mean Removed, including for the About dialog's installed list.
+      featureStore: { managementState: data?.featureStore?.managementState ?? 'Removed' },
+      dataRegistry: { managementState: data?.dataRegistry?.managementState ?? 'Removed' },
     },
   };
 };

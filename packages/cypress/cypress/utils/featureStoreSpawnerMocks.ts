@@ -90,20 +90,20 @@ type InitFeatureStoreSpawnerInterceptsOptions = {
     | typeof mockWorkbenchIntegrationResponse
     | typeof mockEmptyWorkbenchIntegrationResponse;
   workbenchIntegrationLoadError?: boolean;
-  feastOperatorState?: 'Managed' | 'Removed';
+  featureStoreState?: 'Managed' | 'Removed';
 };
 
 export const initFeatureStoreSpawnerIntercepts = ({
   workbenchIntegration = mockWorkbenchIntegrationResponse,
   workbenchIntegrationLoadError = false,
-  feastOperatorState = 'Managed',
+  featureStoreState = 'Managed',
 }: InitFeatureStoreSpawnerInterceptsOptions = {}): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
       components: {
         [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
-        [DataScienceStackComponent.FEATURE_STORE]: { managementState: feastOperatorState },
+        [DataScienceStackComponent.FEATURE_STORE]: { managementState: featureStoreState },
       },
     }),
   );

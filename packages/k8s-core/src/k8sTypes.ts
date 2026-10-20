@@ -374,6 +374,8 @@ export enum DataScienceStackComponent {
   K_SERVE = 'kserve',
   KUEUE = 'kueue',
   MODEL_REGISTRY = 'modelregistry',
+  // Shared operand release metadata, not an individual data feature's availability.
+  DATA = 'data',
   FEATURE_STORE = 'featureStore',
   DATA_REGISTRY = 'dataRegistry',
   RAY = 'ray',
