@@ -72,8 +72,7 @@ func TestE2EModuleLifecycle(t *testing.T) {
 		// TS2: DSC component availability gates.
 		{name: "TS2_01_removed_component", components: components("modelregistry", "Removed"), want: unavailable("modelRegistry")},
 		{name: "TS2_02_multiple_removed_components", components: components("modelregistry", "Removed", "mlflowoperator", "Removed"), want: mergeExpectations(unavailable("modelRegistry"), unavailable("mlflow"))},
-		// Data Registry is controlled by OdhDashboardConfig rather than the DSC snapshot.
-		{name: "TS2_03_absent_component_in_non_nil_map", components: components("trustyai", "Managed"), want: mergeExpectations(unavailable("modelRegistry"), unavailable("mlflow"), unavailable("automl", "autorag"))},
+		{name: "TS2_03_absent_component_in_non_nil_map", components: components("trustyai", "Managed"), want: mergeExpectations(unavailable("modelRegistry"), unavailable("mlflow"), unavailable("automl", "autorag", "dataRegistry"))},
 		{name: "TS2_04_managed_component", components: components("modelregistry", "Managed"), want: present("modelRegistry")},
 		{name: "TS2_05_unmanaged_component", components: components("modelregistry", "Unmanaged"), want: present("modelRegistry")},
 		{name: "TS2_06_override_wins_over_component", modules: disabledModules("modelRegistry"), components: components("modelregistry", "Managed"), want: disabled("modelRegistry")},
