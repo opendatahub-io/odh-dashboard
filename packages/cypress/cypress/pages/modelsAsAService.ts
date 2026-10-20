@@ -547,8 +547,19 @@ class CopyApiKeyModal extends Modal {
     this.findAvailableModelsOption(value).click();
   }
 
+  findSubscriptionInfoButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-subscription-info-button');
+  }
+
+  findSubscriptionInfoPopoverBody(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-subscription-info-popover-body');
+  }
+
   findSubscriptionID(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('#api-key-subscription-id');
+    return this.findSubscriptionInfoPopoverBody()
+      .findByTestId('api-key-subscription-id-copy')
+      .find('input, textarea')
+      .first();
   }
 
   findModelID(): Cypress.Chainable<JQuery<HTMLElement>> {

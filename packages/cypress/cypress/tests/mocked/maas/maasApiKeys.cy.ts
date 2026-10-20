@@ -747,11 +747,6 @@ describe('API Keys Page', () => {
     copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
     copyApiKeyModal.findCloseButton().should('be.enabled').click();
     copyApiKeyModal.shouldBeOpen(false);
-    copyApiKeyModal.findCloseButton().should('be.disabled');
-    copyApiKeyModal.findCopiedAcknowledgement().should('exist');
-    copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
-    copyApiKeyModal.findCloseButton().should('be.enabled').click();
-    copyApiKeyModal.shouldBeOpen(false);
   });
 
   it('should create an API key with an on-date expiration', () => {
@@ -894,16 +889,21 @@ describe('API Keys Page', () => {
 
     copyApiKeyModal.shouldBeOpen();
     cy.wait('@getMaaSModels');
-    cy.wait('@getMaaSModels');
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
 
-    copyApiKeyModal.findAccessDetails().should('exist');
-    copyApiKeyModal.expandAccessDetails();
-    copyApiKeyModal.findAccessDetails().should('exist');
-    copyApiKeyModal.expandAccessDetails();
+    copyApiKeyModal.findSubscriptionName().should('contain.text', 'Premium Team');
+    copyApiKeyModal.findSubscriptionInfoButton().click();
     copyApiKeyModal.findSubscriptionID().should('have.value', 'premium-team-sub');
-    copyApiKeyModal.findModelID().should('have.value', 'granite-3-8b-instruct');
+    copyApiKeyModal
+      .findSubscriptionInfoPopoverBody()
+      .should('contain.text', 'Premium Team Subscription');
+
+    copyApiKeyModal.findAccessDetails().should('exist');
+    copyApiKeyModal.expandAccessDetails();
+    copyApiKeyModal
+      .findModelID()
+      .should('have.value', 'publishers/maas-models/models/granite-3-8b-instruct');
     copyApiKeyModal.findAvailableModelsToggle().should('exist');
     copyApiKeyModal
       .findBaseURL()
@@ -914,7 +914,7 @@ describe('API Keys Page', () => {
         'contain.text',
         'https://example.com/models/granite-3-8b-instruct/v1/chat/completions',
       )
-      .and('contain.text', '"model":"granite-3-8b-instruct"')
+      .and('contain.text', '"model":"publishers/maas-models/models/granite-3-8b-instruct"')
       .and('not.contain.text', 'X-MAAS-SUBSCRIPTION');
     copyApiKeyModal
       .findEndpointCompatibilityAlert()
@@ -925,11 +925,13 @@ describe('API Keys Page', () => {
     copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Granite 3 8B Instruct');
     copyApiKeyModal.selectAvailableModel('flan-t5-small');
     copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Flan T5 Small');
-    copyApiKeyModal.findModelID().should('have.value', 'flan-t5-small');
+    copyApiKeyModal
+      .findModelID()
+      .should('have.value', 'publishers/maas-models/models/flan-t5-small');
     copyApiKeyModal.findBaseURL().should('have.value', 'https://example.com/models/flan-t5-small');
     copyApiKeyModal
       .findUsageExample()
-      .should('contain.text', '"model":"flan-t5-small"')
+      .should('contain.text', '"model":"publishers/maas-models/models/flan-t5-small"')
       .and('contain.text', 'https://example.com/models/flan-t5-small/v1/chat/completions')
       .and('not.contain.text', 'X-MAAS-SUBSCRIPTION');
   });

@@ -2,15 +2,20 @@ import {
   Alert,
   Button,
   Checkbox,
+  ClipboardCopy,
   ClipboardCopyButton,
   CodeBlock,
   CodeBlockAction,
   CodeBlockCode,
+  Content,
+  ContentVariants,
   DatePicker,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Flex,
+  FlexItem,
   Form,
   FormGroup,
   FormHelperText,
@@ -28,6 +33,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalVariant,
+  Popover,
   Select,
   SelectList,
   SelectOption,
@@ -41,7 +47,7 @@ import {
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
-import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
+import { EyeIcon, EyeSlashIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { z } from 'zod';
 import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
@@ -155,6 +161,56 @@ type CreateApiKeyModalProps = {
   maxExpirationDays: number;
   apiKeyConfigError?: Error;
 };
+
+const SubscriptionInfoPopover: React.FC<{
+  displayName: string;
+  subscriptionId: string;
+  description?: string;
+}> = ({ displayName, subscriptionId, description }) => (
+  <Popover
+    headerContent={displayName}
+    bodyContent={
+      <div data-testid="api-key-subscription-info-popover-body">
+        <Content
+          component={ContentVariants.small}
+          className="pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
+        >
+          Subscription ID
+        </Content>
+        <ClipboardCopy
+          isReadOnly
+          hoverTip="Copy"
+          clickTip="Copied"
+          data-testid="api-key-subscription-id-copy"
+        >
+          {subscriptionId}
+        </ClipboardCopy>
+        {description ? (
+          <>
+            <Content
+              component={ContentVariants.small}
+              className="pf-v6-u-mt-sm pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
+            >
+              Description
+            </Content>
+            <Content component={ContentVariants.p} className="pf-v6-u-mt-0">
+              {description}
+            </Content>
+          </>
+        ) : null}
+      </div>
+    }
+  >
+    <Button
+      variant="plain"
+      aria-label={`More info about ${displayName}`}
+      className="pf-v6-u-p-0"
+      data-testid="api-key-subscription-info-button"
+    >
+      <OutlinedQuestionCircleIcon />
+    </Button>
+  </Popover>
+);
 
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   onClose,
@@ -587,9 +643,30 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                 <DescriptionListGroup>
                   <DescriptionListTerm>Subscription</DescriptionListTerm>
                   <DescriptionListDescription data-testid="api-key-display-subscription">
-                    {selectedSubscription?.display_name ??
-                      selectedSubscription?.subscription_id_header ??
-                      formData.subscription}
+                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem>
+                        {selectedSubscription?.display_name ??
+                          selectedSubscription?.subscription_id_header ??
+                          formData.subscription}
+                      </FlexItem>
+                      {(selectedSubscription?.subscription_id_header || formData.subscription) && (
+                        <FlexItem>
+                          <SubscriptionInfoPopover
+                            displayName={
+                              selectedSubscription?.display_name ??
+                              selectedSubscription?.subscription_id_header ??
+                              formData.subscription
+                            }
+                            subscriptionId={
+                              selectedSubscription?.subscription_id_header ?? formData.subscription
+                            }
+                            description={
+                              selectedSubscription?.subscription_description || undefined
+                            }
+                          />
+                        </FlexItem>
+                      )}
+                    </Flex>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
@@ -617,11 +694,6 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       helperText="Universal MaaS gateway base URL (shared across models)."
                     />
                   )}
-                  <CopyableDisabledField
-                    id="api-key-subscription-id"
-                    label="Subscription ID"
-                    value={selectedSubscription?.subscription_id_header ?? ''}
-                  />
                   <FormGroup label="Available models" fieldId="api-key-available-models">
                     <Select
                       id="api-key-available-models"
