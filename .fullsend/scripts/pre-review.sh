@@ -208,16 +208,17 @@ aggregate_cli_adapters() {
   fi
 }
 
-# Adapter credentials arrive through env.runner (FULLSEND_GITHUB_RUNNER_SECRETS,
-# ADR 0136), so they sit in this script's environment and would reach every
-# child it starts. Move each name a registry row declares into an unexported
-# shell variable and unset it; only the jq that reads the registry runs
-# first. run_adapter then hands an adapter only its own row's values. Bash 3.2 has no associative arrays,
-# hence the _ADAPTER_CRED_<NAME> variables.
 # The shim sends this for a credential whose secret is not set: `fullsend run`
 # refuses both an unset env.runner reference and an empty value.
 ADAPTER_CREDENTIAL_UNSET="odh-adapter-credential-unset"
 
+# Adapter credentials arrive through env.runner (FULLSEND_GITHUB_RUNNER_SECRETS,
+# ADR 0136), so they sit in this script's environment and would reach every
+# child it starts. Move each name a registry row declares into an unexported
+# shell variable and unset it; only the jq that reads the registry runs
+# first. run_adapter then hands an adapter only its own row's values. Bash 3.2
+# has no associative arrays, hence the _ADAPTER_CRED_<NAME> variables.
+#
 # A reserved or malformed name fails the review here, before anything is
 # unset, rather than leaving the run without a variable it needs. The unset
 # placeholder is stored as empty.
