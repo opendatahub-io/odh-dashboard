@@ -331,6 +331,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                           }))
                         }
                         categoryName="Search"
+                        className="evalhub-copy-suite-benchmark-catalog__search"
                       >
                         <SearchInput
                           aria-label="Search benchmarks"
