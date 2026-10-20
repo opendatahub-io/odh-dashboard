@@ -8,15 +8,13 @@ const distribution = YAML.parse(
 const genAiPackage = require('../../../../packages/gen-ai/package.json');
 
 describe('MaaS Portal Gen AI registration', () => {
-  it('should use the portal-only extension entry point with grid disabled by default', () => {
+  it('should use the shared extension entry point with grid disabled by default', () => {
     const genAi = distribution.packages.bundled.find(
       (entry) => entry.package === '@odh-dashboard/gen-ai',
     );
-    expect(genAi.extensionsPath).toBe('./extensions/maas-portal');
+    expect(genAi.extensionsPath).toBe('./extensions/static');
     expect(genAi.featureFlags.grid).toBe(false);
-    expect(genAiPackage.exports[genAi.extensionsPath]).toBe(
-      './frontend/src/odh/maasPortalExtensions.ts',
-    );
+    expect(genAiPackage.exports[genAi.extensionsPath]).toBe('./frontend/src/odh/extensions.ts');
   });
 
   it('should keep the MaaS and Gen AI grid defaults consistent', () => {
@@ -30,7 +28,7 @@ describe('MaaS Portal Gen AI registration', () => {
     expect(genAi.featureFlags.grid).toBe(maas.featureFlags.grid);
   });
 
-  it('should retain the separate default extension entry point for RHOAI', () => {
+  it('should expose the shared Gen AI extension entry point', () => {
     expect(genAiPackage.exports['./extensions/static']).toBe('./frontend/src/odh/extensions.ts');
   });
 });
