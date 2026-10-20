@@ -30,7 +30,7 @@ export const expectSafeTracking = (
     );
     expect(events.length, eventName).to.be.greaterThan(0);
     events.forEach((event) => {
-      expect(event).to.containSubset(properties);
+      expect(event).to.deep.include(properties);
       expect(JSON.stringify(event)).not.to.contain(rawMessage);
     });
   });

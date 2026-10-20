@@ -770,7 +770,7 @@ describe('ChatbotConfigurationModal form tracking', () => {
         expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Setup', {
           outcome: 'submit',
           success: false,
-          error: 'install failed',
+          error: 'unknown_error',
           namespace: 'test-namespace',
         });
       });

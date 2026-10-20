@@ -12,6 +12,34 @@ Deploy the `/maas-portal` HTTPRoute together with a Core-BFF image containing a 
 
 The no-slash URL `/maas-portal` redirects to `/maas-portal/`. Check the portal root, deep links, static assets, API requests, Kubernetes watches, Perses, and logout with the core dashboard both Managed and Removed.
 
+## Run MaaS Portal Locally with AUTH_TOKEN
+
+Run the MaaS portal and both BFFs locally using either setup below.
+
+### Federated with AUTH_TOKEN
+
+Log in to your deployed MaaS portal and copy the token from `/debug/headers`, without
+the `Bearer ` prefix. Provide your MaaS gateway hostname without `https://` or a path.
+
+```bash
+cd distributions/maas-portal
+AUTH_TOKEN='<fresh-raw-jwt>' \
+GATEWAY_DOMAIN='<maas-gateway-hostname>' \
+make grid-start-federated
+```
+
+### Mock data
+
+No token or cluster is needed.
+
+```bash
+cd distributions/maas-portal
+make grid-start-mock
+```
+
+Open http://localhost:4020/maas-portal/ for either setup. Stop with `Ctrl+C` or
+`make grid-stop` before switching modes. View saved logs with `make grid-logs`.
+
 ## Running locally
 
 ### Mode A: Mock data (no cluster needed)
