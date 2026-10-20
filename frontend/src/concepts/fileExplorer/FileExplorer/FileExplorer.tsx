@@ -78,6 +78,7 @@ import {
   ActionsColumn,
   type IAction,
 } from '@patternfly/react-table';
+import { t_global_text_color_disabled as DisabledColor } from '@patternfly/react-tokens';
 import {
   EllipsisVIcon,
   FileAudioIcon,
@@ -145,9 +146,13 @@ const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue
   typeof value === 'boolean' ||
   React.isValidElement(value);
 
-const getFileIcon = (fileName: string, testId: string): ReactNode => {
+const getFileIcon = (fileName: string, testId: string, isDisabled: boolean): ReactNode => {
   const extension = fileName.split('.').pop()?.toLowerCase();
-  const props = { 'aria-hidden': true, 'data-testid': testId };
+  const props = {
+    'aria-hidden': true,
+    'data-testid': testId,
+    color: isDisabled ? DisabledColor.var : undefined,
+  };
 
   switch (extension) {
     case 'json':
@@ -575,15 +580,20 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         alignItems={{ default: 'alignItemsCenter' }}
                         flexWrap={{ default: 'nowrap' }}
                       >
-                        <FlexItem
-                          className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
-                          data-testid="file-explorer-icon"
-                        >
-                          <Icon size="lg">
+                        <FlexItem>
+                          <Icon
+                            size="lg"
+                            className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
+                            data-testid="file-explorer-icon"
+                          >
                             {isFolder(file) ? (
-                              <FolderIcon aria-hidden data-testid="file-explorer-folder-icon" />
+                              <FolderIcon
+                                aria-hidden
+                                color={isUnselectable ? DisabledColor.var : undefined}
+                                data-testid="file-explorer-folder-icon"
+                              />
                             ) : (
-                              getFileIcon(file.name, 'file-explorer-file-icon')
+                              getFileIcon(file.name, 'file-explorer-file-icon', isUnselectable)
                             )}
                           </Icon>
                         </FlexItem>
