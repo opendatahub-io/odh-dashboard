@@ -2455,6 +2455,14 @@ components:
         - $ref: "#/components/schemas/BaseArtifactCreate"
         - $ref: "#/components/schemas/ModelArtifactUpdate"
     Error:
+      description: BFF error response envelope.
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+    ErrorDetail:
       description: Error code and message.
       required:
         - code
