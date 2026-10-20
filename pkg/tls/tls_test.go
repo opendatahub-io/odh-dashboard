@@ -259,6 +259,25 @@ func TestTLSConfigFromCustomAllUnsupportedCiphers(t *testing.T) {
 	}
 }
 
+func TestTLSConfigFromCustomEmptyCiphersTLS12FailsClosed(t *testing.T) {
+	// A sub-TLS-1.3 Custom profile with no ciphers must fail closed rather than
+	// fall back to Go's default cipher set (which would broaden policy).
+	profile := &tlsSecurityProfile{
+		Type: "Custom",
+		Custom: &struct {
+			tlsProfileSpec
+		}{
+			tlsProfileSpec: tlsProfileSpec{
+				MinTLSVersion: "VersionTLS12",
+				Ciphers:       []string{},
+			},
+		},
+	}
+	if _, err := tlsConfigFromProfile(profile, testLogger()); err == nil {
+		t.Fatal("expected error for TLS 1.2 Custom profile with no ciphers")
+	}
+}
+
 func TestTLSConfigFromOldProfile(t *testing.T) {
 	profile := &tlsSecurityProfile{Type: "Old"}
 	cfg, err := tlsConfigFromProfile(profile, testLogger())
@@ -314,7 +333,7 @@ func TestServerTLSConfigFromRESTBuildsClient(t *testing.T) {
 
 	// Intentionally leave NegotiatedSerializer unset, mirroring InClusterConfig.
 	cfg := &rest.Config{Host: srv.URL}
-	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger())
+	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -332,7 +351,7 @@ func TestServerTLSConfigFromRESTNotFoundFailsOpen(t *testing.T) {
 	defer srv.Close()
 
 	cfg := &rest.Config{Host: srv.URL}
-	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger())
+	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -352,7 +371,7 @@ func TestServerTLSConfigFromRESTForbiddenFailsClosed(t *testing.T) {
 	defer srv.Close()
 
 	cfg := &rest.Config{Host: srv.URL}
-	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger()); err == nil {
+	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false); err == nil {
 		t.Fatal("expected error on 403 (fail-closed), got nil")
 	}
 }
@@ -365,8 +384,60 @@ func TestServerTLSConfigFromRESTUnauthorizedFailsClosed(t *testing.T) {
 	defer srv.Close()
 
 	cfg := &rest.Config{Host: srv.URL}
-	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger()); err == nil {
+	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false); err == nil {
 		t.Fatal("expected error on 401 (fail-closed), got nil")
+	}
+}
+
+// TestServerTLSConfigFromRESTTransientLenientFailsOpen verifies that at startup
+// (lenient) a 503 falls back to Intermediate defaults.
+func TestServerTLSConfigFromRESTTransientLenientFailsOpen(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"ServiceUnavailable","code":503}`, http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false)
+	if err != nil {
+		t.Fatalf("unexpected error (lenient should fail open on 503): %v", err)
+	}
+	if tlsCfg.MinVersion != tls.VersionTLS12 {
+		t.Errorf("expected Intermediate defaults on transient error, got MinVersion %d", tlsCfg.MinVersion)
+	}
+}
+
+// TestServerTLSConfigFromRESTTransientStrictFailsClosed verifies that during
+// reload polling (strict) a 503 returns an error so the caller keeps the running
+// policy rather than downgrading to Intermediate.
+func TestServerTLSConfigFromRESTTransientStrictFailsClosed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"ServiceUnavailable","code":503}`, http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), true); err == nil {
+		t.Fatal("expected error on 503 when strict (reload must keep current config), got nil")
+	}
+}
+
+// TestServerTLSConfigFromRESTNotFoundStrictStillFailsOpen verifies that a
+// genuinely non-OpenShift cluster (NotFound) resolves to Intermediate even in
+// strict mode, so reload polling on such clusters is stable.
+func TestServerTLSConfigFromRESTNotFoundStrictStillFailsOpen(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"NotFound","code":404}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), true)
+	if err != nil {
+		t.Fatalf("unexpected error (NotFound should fail open even when strict): %v", err)
+	}
+	if tlsCfg.MinVersion != tls.VersionTLS12 {
+		t.Errorf("expected Intermediate defaults on NotFound, got MinVersion %d", tlsCfg.MinVersion)
 	}
 }
 

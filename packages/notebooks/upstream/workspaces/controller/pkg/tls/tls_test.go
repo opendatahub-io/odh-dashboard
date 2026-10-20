@@ -155,7 +155,7 @@ func TestParseProfile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMinVersion, gotCiphers := parseProfile(tt.apiServer)
+			gotMinVersion, gotCiphers, _, _ := parseProfile(tt.apiServer)
 
 			if gotMinVersion != tt.wantMinVersion {
 				t.Errorf("parseProfile() minVersion = %d, want %d", gotMinVersion, tt.wantMinVersion)
@@ -307,8 +307,9 @@ func TestProfileWatcher_DetectsChange(t *testing.T) {
 	w := &ProfileWatcher{
 		Client:         fc,
 		InitialProfile: map[string]any{fieldType: profileTypeIntermediate},
-		OnProfileChange: func(_ context.Context) {
+		OnProfileChange: func(_ context.Context) error {
 			changed = true
+			return nil
 		},
 	}
 	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
@@ -330,7 +331,7 @@ func TestProfileWatcher_IgnoresNonCluster(t *testing.T) {
 	called := false
 	w := &ProfileWatcher{
 		Client:          fc,
-		OnProfileChange: func(_ context.Context) { called = true },
+		OnProfileChange: func(_ context.Context) error { called = true; return nil },
 	}
 	_, err := w.Reconcile(context.Background(), reconcile.Request{
 		NamespacedName: client.ObjectKey{Name: "not-cluster"},
@@ -353,8 +354,9 @@ func TestProfileWatcher_NoChangeNoCallback(t *testing.T) {
 	w := &ProfileWatcher{
 		Client:         fc,
 		InitialProfile: profile,
-		OnProfileChange: func(_ context.Context) {
+		OnProfileChange: func(_ context.Context) error {
 			called = true
+			return nil
 		},
 	}
 	w.lastProfile = profile
@@ -381,8 +383,9 @@ func TestProfileWatcher_NilProfileTreatedAsIntermediate(t *testing.T) {
 	w := &ProfileWatcher{
 		Client:         fc,
 		InitialProfile: map[string]any{fieldType: profileTypeIntermediate},
-		OnProfileChange: func(_ context.Context) {
+		OnProfileChange: func(_ context.Context) error {
 			called = true
+			return nil
 		},
 	}
 	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
@@ -395,6 +398,117 @@ func TestProfileWatcher_NilProfileTreatedAsIntermediate(t *testing.T) {
 	}
 	if called {
 		t.Error("should NOT restart when nil profile matches Intermediate")
+	}
+}
+
+func TestResolve_ForbiddenMarksDegraded(t *testing.T) {
+	gr := schema.GroupResource{Group: "config.openshift.io", Resource: "apiservers"}
+	fc := &errorClient{err: apierrors.NewForbidden(gr, apiServerName, nil)}
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (controller stays fail-open)", err)
+	}
+	// Controller stays fail-open (APIAvailable true), but the result is flagged
+	// degraded so fail-closed consumers (the backend listener) can reject it.
+	if !result.Degraded {
+		t.Error("expected Degraded = true on Forbidden read")
+	}
+}
+
+func TestResolve_UnknownTypeMarksDegraded(t *testing.T) {
+	apiServer := newAPIServer(map[string]any{fieldType: "SuperSecure"})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (controller stays fail-open)", err)
+	}
+	if !result.Degraded {
+		t.Error("expected Degraded = true for unknown profile type")
+	}
+}
+
+func TestResolve_SuccessNotDegraded(t *testing.T) {
+	apiServer := newAPIServer(map[string]any{fieldType: profileTypeModern})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	if result.Degraded {
+		t.Error("expected Degraded = false for a cleanly resolved profile")
+	}
+}
+
+func TestResolve_CustomGroupsAppliedToCurvePreferences(t *testing.T) {
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName12,
+			fieldCiphers:       []any{openSSLCipherECDHEECDSAAES128GCMSHA256},
+			fieldGroups:        []any{"P-384", "P-256", "BOGUS"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	if len(cfg.CurvePreferences) != 2 {
+		t.Fatalf("expected 2 curve preferences (BOGUS dropped), got %d", len(cfg.CurvePreferences))
+	}
+	if cfg.CurvePreferences[0] != tls.CurveP384 || cfg.CurvePreferences[1] != tls.CurveP256 {
+		t.Errorf("curve preferences not honored in order: %v", cfg.CurvePreferences)
+	}
+}
+
+func TestResolve_CustomAllUnsupportedGroupsFailsClosed(t *testing.T) {
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName12,
+			fieldCiphers:       []any{openSSLCipherECDHEECDSAAES128GCMSHA256},
+			fieldGroups:        []any{"BOGUS-1", "BOGUS-2"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error when all custom groups are unsupported")
+	}
+}
+
+func TestProfileWatcher_CallbackErrorDoesNotAdvanceLastProfile(t *testing.T) {
+	apiServer := newAPIServer(map[string]any{fieldType: profileTypeModern})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+
+	calls := 0
+	w := &ProfileWatcher{
+		Client:         fc,
+		InitialProfile: map[string]any{fieldType: profileTypeIntermediate},
+		OnProfileChange: func(_ context.Context) error {
+			calls++
+			return context.DeadlineExceeded // simulate a failed re-resolve
+		},
+	}
+	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
+
+	// First reconcile: callback fails, so the request is requeued (error) and
+	// lastProfile must NOT advance.
+	if _, err := w.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: client.ObjectKey{Name: apiServerName},
+	}); err == nil {
+		t.Fatal("expected Reconcile to return the callback error for requeue")
+	}
+	// Second reconcile (the retry): the change is still pending, so the callback
+	// fires again rather than being lost.
+	_, _ = w.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: client.ObjectKey{Name: apiServerName},
+	})
+	if calls < 2 {
+		t.Errorf("expected callback retried after failure, got %d calls", calls)
 	}
 }
 

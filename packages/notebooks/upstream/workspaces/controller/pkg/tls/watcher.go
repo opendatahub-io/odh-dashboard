@@ -35,8 +35,11 @@ import (
 // openshift/api.
 type ProfileWatcher struct {
 	client.Client
-	InitialProfile  map[string]any
-	OnProfileChange func(ctx context.Context)
+	InitialProfile map[string]any
+	// OnProfileChange is invoked when the profile changes. Returning an error
+	// leaves lastProfile unchanged and requeues the request so the change is
+	// retried (e.g. when an in-process re-resolution failed transiently).
+	OnProfileChange func(ctx context.Context) error
 	lastProfile     map[string]any
 }
 
@@ -59,8 +62,11 @@ func (w *ProfileWatcher) Reconcile(
 	current = normalizeProfileMap(current)
 	if w.OnProfileChange != nil &&
 		!reflect.DeepEqual(w.lastProfile, current) {
+		if err := w.OnProfileChange(ctx); err != nil {
+			// Leave lastProfile unchanged so the change is retried on requeue.
+			return reconcile.Result{}, err
+		}
 		w.lastProfile = current
-		w.OnProfileChange(ctx)
 	}
 
 	return reconcile.Result{}, nil
