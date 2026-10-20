@@ -846,22 +846,24 @@ describe('API Keys Page', () => {
         object: 'list',
         data: [
           {
-            id: 'publishers/maas-models/models/granite-3-8b-instruct',
+            id: 'granite-3-8b-instruct',
             object: 'model',
             created: 1714521600,
             // eslint-disable-next-line camelcase
-            owned_by: 'ibm',
+            owned_by: 'maas-models/granite-3-8b-instruct',
             ready: true,
             url: 'https://example.com/models/granite-3-8b-instruct',
+            subscriptions: [{ name: 'premium-team-sub' }],
           },
           {
-            id: 'publishers/maas-models/models/flan-t5-small',
+            id: 'flan-t5-small',
             object: 'model',
             created: 1672531200,
             // eslint-disable-next-line camelcase
-            owned_by: 'google',
+            owned_by: 'maas-models/flan-t5-small',
             ready: true,
             url: 'https://example.com/models/flan-t5-small',
+            subscriptions: [{ name: 'premium-team-sub' }],
           },
         ],
       },
@@ -906,7 +908,8 @@ describe('API Keys Page', () => {
         'contain.text',
         'https://example.com/models/granite-3-8b-instruct/v1/chat/completions',
       )
-      .and('contain.text', '"model":"publishers/maas-models/models/granite-3-8b-instruct"');
+      .and('contain.text', '"model":"granite-3-8b-instruct"')
+      .and('not.contain.text', 'X-MAAS-SUBSCRIPTION');
     copyApiKeyModal
       .findEndpointCompatibilityAlert()
       .scrollIntoView()
@@ -920,9 +923,9 @@ describe('API Keys Page', () => {
     copyApiKeyModal.findBaseURL().should('have.value', 'https://example.com/models/flan-t5-small');
     copyApiKeyModal
       .findUsageExample()
-      .should('contain.text', '"model":"publishers/maas-models/models/flan-t5-small"')
+      .should('contain.text', '"model":"flan-t5-small"')
       .and('contain.text', 'https://example.com/models/flan-t5-small/v1/chat/completions')
-      .and('contain.text', 'X-MAAS-SUBSCRIPTION: premium-team-sub');
+      .and('not.contain.text', 'X-MAAS-SUBSCRIPTION');
   });
 
   it('should show a validation error for an out-of-range after-days value', () => {

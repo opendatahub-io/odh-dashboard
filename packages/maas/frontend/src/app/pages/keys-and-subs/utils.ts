@@ -157,16 +157,51 @@ export const getModelDocumentationUrl = (
   }
 };
 
+export type FindMaaSModelBySubscriptionRefOptions = {
+  /** Short subscription model-ref name (MaaSModelRef / CR name). */
+  refName: string;
+  refNamespace?: string;
+  /** Catalog id from subscription `model_refs[].model_name` when present. */
+  catalogModelId?: string;
+  /** Subscription id header — used with catalog `subscriptions[].name`. */
+  subscriptionId?: string;
+};
+
+type CatalogModelMatchFields = {
+  id: string;
+  owned_by?: string;
+  subscriptions?: { name: string }[];
+};
+
+const ownedByMatchesRef = (ownedBy: string | undefined, refName: string): boolean => {
+  if (!ownedBy || !refName) {
+    return false;
+  }
+  return ownedBy === refName || ownedBy.endsWith(`/${refName}`);
+};
+
 /**
- * Resolve a MaaS catalog model from a subscription model-ref name.
- * Catalog `id` values are often path-style (e.g. publishers/maas-models/models/maas-model)
- * while subscription refs use the short MaaSModelRef name (e.g. maas-model).
+ * Resolve a MaaS catalog model from a subscription model-ref.
+ * Prefer catalog id (`model_name`) and owned_by / subscription membership —
+ * path-style catalog ids (e.g. publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct)
+ * often do not share a last segment with the short ref name (qwen2-5-0-5b-instruct).
  */
-export const findMaaSModelBySubscriptionRef = <T extends { id: string }>(
+export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields>(
   models: T[],
-  refName: string,
-  refNamespace?: string,
+  options: FindMaaSModelBySubscriptionRefOptions,
 ): T | undefined => {
+  const { refName, refNamespace, catalogModelId, subscriptionId } = options;
+  if (!refName && !catalogModelId) {
+    return undefined;
+  }
+
+  if (catalogModelId) {
+    const byCatalogId = models.find((model) => model.id === catalogModelId);
+    if (byCatalogId) {
+      return byCatalogId;
+    }
+  }
+
   if (!refName) {
     return undefined;
   }
@@ -184,6 +219,26 @@ export const findMaaSModelBySubscriptionRef = <T extends { id: string }>(
     );
     if (byPublisherPath) {
       return byPublisherPath;
+    }
+  }
+
+  const byOwnedBy = models.find((model) => ownedByMatchesRef(model.owned_by, refName));
+  if (byOwnedBy) {
+    return byOwnedBy;
+  }
+
+  if (subscriptionId) {
+    const entitled = models.filter((model) =>
+      model.subscriptions?.some((sub) => sub.name === subscriptionId),
+    );
+    if (entitled.length === 1) {
+      return entitled[0];
+    }
+    const bySubscriptionAndOwnedBy = entitled.find((model) =>
+      ownedByMatchesRef(model.owned_by, refName),
+    );
+    if (bySubscriptionAndOwnedBy) {
+      return bySubscriptionAndOwnedBy;
     }
   }
 
@@ -230,11 +285,10 @@ export const getApiKeyUsageExampleEndpointPath = (kind: ApiKeyUsageExampleKind):
 export const buildApiKeyUsageExample = (
   baseURL: string | undefined,
   modelID: string,
-  subscriptionId: string,
   apiKey: string,
   kind: ApiKeyUsageExampleKind = 'chat',
 ): string => {
-  if (!baseURL || !modelID || !subscriptionId || !apiKey) {
+  if (!baseURL || !modelID || !apiKey) {
     return '';
   }
 
@@ -264,20 +318,16 @@ export const buildApiKeyUsageExample = (
         .replaceAll('`', '\\`');
 
     const shellSafeKey = escapeDoubleQuotedShell(apiKey);
-    const shellSafeSubscription = escapeDoubleQuotedShell(subscriptionId);
     const shellSafeModelId = escapeDoubleQuotedShell(modelID);
     const requestURLString = requestURL.toString();
-    const authAndSubscriptionHeaders = [
-      '  -H "Authorization: Bearer $API_KEY" \\',
-      `  -H "X-MAAS-SUBSCRIPTION: ${shellSafeSubscription}" \\`,
-    ];
+    const authHeader = '  -H "Authorization: Bearer $API_KEY" \\';
 
     if (kind === 'transcription') {
       return [
         `export API_KEY="${shellSafeKey}"`,
         '',
         `curl -X POST ${requestURLString} \\`,
-        ...authAndSubscriptionHeaders,
+        authHeader,
         '  -F "file=@<path-to-audio-file>" \\',
         `  -F "model=${shellSafeModelId}"`,
       ].join('\n');
@@ -293,7 +343,7 @@ export const buildApiKeyUsageExample = (
       `export API_KEY="${shellSafeKey}"`,
       `curl -X POST ${requestURLString} \\`,
       '  -H "Content-Type: application/json" \\',
-      ...authAndSubscriptionHeaders,
+      authHeader,
       `  -d '${shellSafeBody}'`,
     ].join('\n');
   } catch {

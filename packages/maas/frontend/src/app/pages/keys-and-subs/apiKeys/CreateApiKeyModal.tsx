@@ -174,8 +174,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     [hasKnownMaxExpiration],
   );
 
-  const { subscriptions, subscriptionsLoaded, subscriptionsError, gatewayUrl } =
-    useKeysAndSubsContext();
+  const { subscriptions, subscriptionsLoaded, subscriptionsError } = useKeysAndSubsContext();
 
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
@@ -454,14 +453,14 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   const selectedModelRef = selectedSubscription?.model_refs.find(
     (ref) => ref.name === effectiveSelectedModel,
   );
-  const selectedMaaSModel = findMaaSModelBySubscriptionRef(
-    maasModels,
-    effectiveSelectedModel,
-    selectedModelRef?.namespace,
-  );
-  const usageExampleModelId =
-    selectedMaaSModel?.id ?? (availableModelOptions.length > 0 ? effectiveSelectedModel : '');
-  const usageExampleBaseUrl = selectedMaaSModel?.url || gatewayUrl;
+  const selectedMaaSModel = findMaaSModelBySubscriptionRef(maasModels, {
+    refName: effectiveSelectedModel,
+    refNamespace: selectedModelRef?.namespace,
+    catalogModelId: selectedModelRef?.model_name,
+    subscriptionId: subscriptionIdHeader,
+  });
+  const usageExampleModelId = selectedMaaSModel?.id ?? '';
+  const usageExampleBaseUrl = selectedMaaSModel?.url;
   const usageExampleKind = resolveApiKeyUsageExampleKind(
     selectedMaaSModel?.modelDetails?.modelCapabilities,
   );
@@ -472,14 +471,12 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   const usageExampleForCopy = buildApiKeyUsageExample(
     usageExampleBaseUrl,
     usageExampleModelId,
-    subscriptionIdHeader,
     createdToken ?? '',
     usageExampleKind,
   );
   const usageExampleDisplay = buildApiKeyUsageExample(
     usageExampleBaseUrl,
     usageExampleModelId,
-    subscriptionIdHeader,
     isUsageExampleKeyVisible ? (createdToken ?? '') : hiddenToken,
     usageExampleKind,
   );
@@ -670,11 +667,11 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       </HelperText>
                     </FormHelperText>
                   </FormGroup>
-                  {availableModelOptions.length > 0 && (
+                  {usageExampleModelId && (
                     <CopyableDisabledField
                       id="api-key-model-id"
                       label="Model ID"
-                      value={effectiveSelectedModel}
+                      value={usageExampleModelId}
                     />
                   )}
                   {usageExampleDisplay && (
