@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { bulkRevokeApiKeys } from '~/app/api/api-keys';
 import useUser from '~/app/hooks/useUser';
 import {
@@ -54,7 +55,7 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
       fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: message,
+        error: errorCategory(err),
         bulkMode: ApiKeyBulkRevokeMode.ALL_MY_KEYS,
         keyCount,
         isAdmin: false,

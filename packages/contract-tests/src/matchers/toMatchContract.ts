@@ -180,10 +180,7 @@ export function toMatchContract(
   };
 
   const makeNullable = (resolvedSchema: unknown): unknown => {
-    if (!isRecord(resolvedSchema) || typeof resolvedSchema.type !== 'string') {
-      return { anyOf: [resolvedSchema, { type: 'null' }] };
-    }
-    return { ...resolvedSchema, type: [resolvedSchema.type, 'null'] };
+    return { anyOf: [resolvedSchema, { type: 'null' }] };
   };
 
   // Schema validation (resolve ref against OAS3 if provided, otherwise treat schema as JSON Schema)

@@ -54,6 +54,7 @@ export enum ProjectObjectType {
   skillRegistry = 'skill-registry',
   agentsCatalog = 'agents-catalog',
   agentOps = 'agent-ops',
+  agentObservability = 'agent-observability',
   taskAssistant = 'task-assistant',
   apiKeys = 'api-keys',
   dataRegistry = 'data-registry',

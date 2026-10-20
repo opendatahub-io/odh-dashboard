@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { ChatbotSourceSettings, FileModel } from '~/app/types';
 import { FILE_UPLOAD_CONFIG } from '~/app/Chatbot/const';
@@ -231,7 +232,7 @@ const useSourceManagement = ({
               fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
                 outcome: TrackingOutcome.submit,
                 success: false,
-                error: result.error,
+                error: errorCategory(result.error),
               });
               errors.push(`${file.name}: ${result.error}`);
               failureCount++;

@@ -3,6 +3,7 @@ import {
   fireMiscTrackingEvent,
   fireFormTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { uploadMediaFile, transcribeAudio } from '~/app/services/llamaStackService';
 import { AUDIO_TRANSCRIPTION_TIMEOUT_MS } from '~/app/Chatbot/const';
@@ -272,14 +273,13 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
             return;
           }
 
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
           if (transcribeStartTimeRef.current > 0) {
             fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: false,
               modelName: asrModelId,
               durationMs: Date.now() - transcribeStartTimeRef.current,
-              error: errorMsg,
+              error: errorCategory(error),
             });
           } else {
             fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED, {
@@ -287,7 +287,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
               success: false,
               fileType: file.type || 'unknown',
               fileSizeBytes: file.size,
-              error: errorMsg,
+              error: errorCategory(error),
             });
           }
 

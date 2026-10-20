@@ -953,6 +953,35 @@ describe('ChatbotPlayground — document upload and messaging', () => {
       });
     };
 
+    it('should exclude image upload diagnostics from analytics', async () => {
+      const { uploadMediaFile } = require('~/app/services/llamaStackService') as {
+        uploadMediaFile: jest.Mock;
+      };
+      const message = 'Private image upload diagnostic';
+      uploadMediaFile.mockImplementation(() => ({
+        promise: Promise.reject(new Error(message)),
+        xhr: { abort: jest.fn() },
+      }));
+      renderPlayground();
+      const input = screen.getByTestId('vision-file-input') as HTMLInputElement;
+      Object.defineProperty(input, 'files', {
+        value: createFileList([new File(['pixels'], 'photo.png', { type: 'image/png' })]),
+        configurable: true,
+      });
+      await act(async () => {
+        fireEvent.change(input);
+      });
+      expect(mockOnShowErrorAlert).toHaveBeenCalledWith(
+        'photo.png failed to upload. Please try again.',
+        'Image Upload Error',
+      );
+      expect(fireFormTrackingEvent).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ success: false, error: 'unknown_error' }),
+      );
+      expect(JSON.stringify(jest.mocked(fireFormTrackingEvent).mock.calls)).not.toContain(message);
+    });
+
     it('sets alwaysShowSendButton=true when image is uploaded', async () => {
       renderPlayground();
       await triggerImageUpload();
