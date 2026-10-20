@@ -57,12 +57,27 @@ describe('Gen AI API Contract Tests', () => {
   });
 
   describe('LSD Status Endpoint', () => {
-    it('should retrieve LlamaStack Distribution status', async () => {
-      const result = await apiClient.get('/gen-ai/api/v1/lsd/status?namespace=default');
+    it('should retrieve an installed LlamaStack Distribution status', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/lsd/status?namespace=test-namespace');
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/LlamaStackDistributionStatusResponse/content/application~1json/schema',
         status: 200,
       });
+    });
+
+    it('should return null data when no LlamaStack Distribution exists', async () => {
+      const result = await apiClient.get(
+        '/gen-ai/api/v1/lsd/status?namespace=mock-test-namespace-1',
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/LlamaStackDistributionStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (!result.success) {
+        throw new Error(result.error.message);
+      }
+      expect(result.response.data).toEqual({ data: null });
     });
   });
 
