@@ -203,7 +203,11 @@ describe('serving runtime catalog hooks', () => {
   });
 
   it('should fetch filter options only after the API becomes available', async () => {
-    const filters = { filters: { hardware: { type: 'string', values: ['cpu'] } } };
+    const filters = {
+      filters: {
+        'capabilities.supportedAccelerators': { type: 'string', values: ['nvidia.com/gpu'] },
+      },
+    };
     api.getServingRuntimeFilterOptionList.mockResolvedValue(filters);
     jest.mocked(useServingRuntimeCatalogAPI).mockReturnValue({ ...apiState, apiAvailable: false });
     const { result, rerender } = renderHook(() => useServingRuntimeFilterOptionList());

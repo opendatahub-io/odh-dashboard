@@ -1,6 +1,8 @@
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
 import extensions, {
   GEN_AI_AGENT_DEPLOYMENT,
+  GEN_AI_AUDIO_UPLOAD,
+  GEN_AI_IMAGE_UPLOAD,
   GEN_AI_TRACING,
   GUARDRAILS,
   MODEL_AS_SERVICE_CAMEL,
@@ -113,6 +115,15 @@ describe('genAiAgentDeployment area extension', () => {
 
     expect(area.properties.reliantAreas).toEqual(['plugin-gen-ai']);
     expect(area.properties.featureFlags).toEqual([GEN_AI_AGENT_DEPLOYMENT]);
+  });
+});
+
+describe.each([GEN_AI_IMAGE_UPLOAD, GEN_AI_AUDIO_UPLOAD])('%s area extension', (featureFlag) => {
+  it('should be controlled by its feature flag', () => {
+    const area = findArea(featureFlag);
+
+    expect(area.properties.reliantAreas).toEqual(['plugin-gen-ai']);
+    expect(area.properties.featureFlags).toEqual([featureFlag]);
   });
 });
 

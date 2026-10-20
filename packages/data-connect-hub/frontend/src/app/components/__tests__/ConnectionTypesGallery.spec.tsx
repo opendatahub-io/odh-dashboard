@@ -9,22 +9,64 @@ jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
   default: ({ content }: { content?: string | null }) => <>{content}</>,
 }));
 
+const mockPSQLConnectionType = mockConnectionType({
+  metadata: { id: '550e8400-e29b-41d4-a716-446655440003' },
+  resource: {
+    name: 'PostgreSQL',
+    description: 'A relational database.',
+    tags: ['production', 'finance'],
+  },
+});
+const mockS3ConnectionType = mockConnectionType({
+  metadata: { id: '550e8400-e29b-41d4-a716-446655440004' },
+  resource: {
+    name: 'S3',
+    provider: 's3',
+    description: 'Binary object storage.',
+    tags: ['storage', 'production'],
+  },
+});
+const mockOCIConnectionType = mockConnectionType({
+  metadata: { id: '550e8400-e29b-41d4-a716-446655440005' },
+  resource: {
+    name: 'OCI',
+    provider: 'oci-v1',
+    description: 'Container credentials.',
+    tags: ['storage', 'containers'],
+  },
+  status: { flight_ready: false },
+});
+
 describe('ConnectionTypesGallery', () => {
   const getConnectionTypes = () => [
-    mockConnectionType({
-      metadata: { id: '550e8400-e29b-41d4-a716-446655440003' },
-      resource: { name: 'PostgreSQL', description: 'A relational database.' },
-    }),
-    mockConnectionType({
-      metadata: { id: '550e8400-e29b-41d4-a716-446655440004' },
-      resource: { name: 'S3', provider: 's3', description: 'Binary object storage.' },
-    }),
-    mockConnectionType({
-      metadata: { id: '550e8400-e29b-41d4-a716-446655440005' },
-      resource: { name: 'OCI', provider: 'oci-v1', description: 'Container credentials.' },
-      status: { flight_ready: false },
-    }),
+    mockPSQLConnectionType,
+    mockS3ConnectionType,
+    mockOCIConnectionType,
   ];
+
+  it('should render the empty state when no connection types are passed in', () => {
+    render(<ConnectionTypesGallery connectionTypes={[]} onConnectionTypeClick={jest.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'No data connection types' })).toBeTruthy();
+    expect(screen.getByText('No data connection types available')).toBeTruthy();
+    expect(screen.queryByText('No data connection types match your search or filter')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+  });
+
+  it('should keep the empty state when searching with no connection types available', async () => {
+    const user = userEvent.setup();
+    render(<ConnectionTypesGallery connectionTypes={[]} onConnectionTypeClick={jest.fn()} />);
+
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search data connection types by name' }),
+      'does-not-exist',
+    );
+
+    expect(screen.getAllByRole('heading', { name: 'No data connection types' })).toHaveLength(1);
+    expect(screen.getByText('No data connection types available')).toBeTruthy();
+    expect(screen.queryByText('No data connection types match your search or filter')).toBeNull();
+  });
 
   it('should call the custom action with the selected connection type', async () => {
     const user = userEvent.setup();
@@ -155,6 +197,8 @@ describe('ConnectionTypesGallery', () => {
     );
 
     expect(screen.getByText('No matching data connection types')).toBeTruthy();
+    expect(screen.getByText('No data connection types match your search or filter')).toBeTruthy();
+    expect(screen.queryByText('No data connection types available')).toBeNull();
     expect(screen.queryByText('PostgreSQL')).toBeNull();
     expect(screen.queryByText('S3')).toBeNull();
   });
@@ -192,20 +236,83 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.queryByText('OCI')).toBeNull();
   });
 
-  // TODO: Labels are waiting on API changes; re-enable this test when label filtering is enabled.
-  it.skip('should support selecting and clearing multiple label filters', async () => {
+  it('should offer sorted, unique labels from all connection type groups', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConnectionTypesGallery
+        connectionTypes={[
+          ...getConnectionTypes(),
+          mockConnectionType({ metadata: { id: 'untagged' } }),
+        ]}
+        onConnectionTypeClick={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTestId('connection-types-gallery-dropdown'));
+    await user.click(
+      within(screen.getByTestId('connection-types-gallery-dropdown-labels')).getByRole('option', {
+        name: 'Labels',
+      }),
+    );
+    await user.click(screen.getByTestId('connection-types-gallery-labels-dropdown'));
+
+    expect(screen.getAllByRole('menuitem').map((option) => option.textContent)).toEqual([
+      'containers',
+      'finance',
+      'production',
+      'storage',
+    ]);
+  });
+
+  it.each([undefined, []])('should hide the labels filter when tags are %p', async (tags) => {
+    const user = userEvent.setup();
+    render(
+      <ConnectionTypesGallery
+        connectionTypes={[mockConnectionType({ resource: { tags } })]}
+        onConnectionTypeClick={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTestId('connection-types-gallery-dropdown'));
+
+    expect(screen.getByTestId('connection-types-gallery-dropdown-capability')).toBeTruthy();
+    expect(screen.queryByTestId('connection-types-gallery-dropdown-labels')).toBeNull();
+  });
+
+  it('should filter by any selected label and restore groups when filters are cleared', async () => {
     const user = userEvent.setup();
 
-    render(<ConnectionTypesGallery connectionTypes={[]} onConnectionTypeClick={jest.fn()} />);
+    render(
+      <ConnectionTypesGallery
+        connectionTypes={[
+          ...getConnectionTypes(),
+          mockConnectionType({ metadata: { id: 'untagged' }, resource: { name: 'Untagged' } }),
+        ]}
+        onConnectionTypeClick={jest.fn()}
+      />,
+    );
 
     await user.click(screen.getByTestId('connection-types-gallery-dropdown'));
     const labelsFilterOption = screen.getByTestId('connection-types-gallery-dropdown-labels');
     await user.click(within(labelsFilterOption).getByRole('option', { name: 'Labels' }));
     await user.click(screen.getByTestId('connection-types-gallery-labels-dropdown'));
-    const firstLabelOption = screen.getByTestId('connection-types-gallery-labels-label-01');
-    const secondLabelOption = screen.getByTestId('connection-types-gallery-labels-label-02');
+    const firstLabelOption = screen.getByTestId('connection-types-gallery-labels-finance');
+    const secondLabelOption = screen.getByTestId('connection-types-gallery-labels-storage');
     await user.click(within(firstLabelOption).getByRole('checkbox'));
+
+    expect(screen.getByText('PostgreSQL')).toBeTruthy();
+    expect(screen.queryByText('S3')).toBeNull();
+    expect(screen.queryByText('OCI')).toBeNull();
+    expect(screen.queryByText('Untagged')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+
     await user.click(within(secondLabelOption).getByRole('checkbox'));
+
+    expect(screen.getByText('PostgreSQL')).toBeTruthy();
+    expect(screen.getByText('S3')).toBeTruthy();
+    expect(screen.getByText('OCI')).toBeTruthy();
+    expect(screen.queryByText('Untagged')).toBeNull();
 
     const labelsToggle = screen.getByTestId('connection-types-gallery-labels-dropdown');
     expect(labelsToggle.textContent).toContain('2');
@@ -213,14 +320,81 @@ describe('ConnectionTypesGallery', () => {
     await user.click(labelsToggle);
 
     const toolbar = screen.getByTestId('connection-types-gallery-toolbar');
-    expect(within(toolbar).getByText('Label 01')).toBeTruthy();
-    expect(within(toolbar).getByText('Label 02')).toBeTruthy();
+    expect(within(toolbar).getByText('finance')).toBeTruthy();
+    expect(within(toolbar).getByText('storage')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
 
     expect(labelsToggle.textContent).not.toContain('2');
-    expect(within(toolbar).queryByText('Label 01')).toBeNull();
-    expect(within(toolbar).queryByText('Label 02')).toBeNull();
+    expect(within(toolbar).queryByText('finance')).toBeNull();
+    expect(within(toolbar).queryByText('storage')).toBeNull();
+    expect(screen.getByText('Untagged')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Full integration' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Credentials only' })).toBeTruthy();
+  });
+
+  it('should combine labels, capability, and search with AND behavior', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConnectionTypesGallery
+        connectionTypes={getConnectionTypes()}
+        onConnectionTypeClick={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTestId('connection-types-gallery-dropdown'));
+    await user.click(
+      within(screen.getByTestId('connection-types-gallery-dropdown-labels')).getByRole('option', {
+        name: 'Labels',
+      }),
+    );
+    await user.click(screen.getByTestId('connection-types-gallery-labels-dropdown'));
+    await user.click(
+      within(screen.getByTestId('connection-types-gallery-labels-storage')).getByRole('checkbox'),
+    );
+    await user.click(screen.getByTestId('connection-types-gallery-labels-dropdown'));
+
+    expect(screen.getByText('S3')).toBeTruthy();
+    expect(screen.getByText('OCI')).toBeTruthy();
+    expect(screen.queryByText('PostgreSQL')).toBeNull();
+
+    await user.click(screen.getByTestId('connection-types-gallery-dropdown'));
+    await user.click(
+      within(screen.getByTestId('connection-types-gallery-dropdown-capability')).getByRole(
+        'option',
+        { name: 'Capability' },
+      ),
+    );
+    await user.click(screen.getByTestId('connection-types-gallery-capability-dropdown'));
+    await user.click(
+      within(screen.getByTestId('connection-types-gallery-capability-full-integration')).getByRole(
+        'option',
+        { name: 'Full integration' },
+      ),
+    );
+
+    expect(screen.getByText('S3')).toBeTruthy();
+    expect(screen.queryByText('OCI')).toBeNull();
+    expect(screen.queryByText('PostgreSQL')).toBeNull();
+
+    const search = screen.getByRole('textbox', {
+      name: 'Search data connection types by name',
+    });
+    await user.type(search, 'binary');
+    expect(screen.getByText('S3')).toBeTruthy();
+
+    await user.clear(search);
+    await user.type(search, 'relational');
+
+    expect(screen.getByText('No matching data connection types')).toBeTruthy();
+    expect(screen.queryByText('S3')).toBeNull();
+    expect(screen.queryByText('PostgreSQL')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    expect(screen.getByText('PostgreSQL')).toBeTruthy();
+    expect(screen.queryByText('S3')).toBeNull();
+    expect(screen.getByDisplayValue('relational')).toBe(search);
   });
 
   it('should search names and descriptions and clear the search', async () => {
@@ -263,7 +437,32 @@ describe('ConnectionTypesGallery', () => {
     );
 
     expect(screen.getByText('No matching data connection types')).toBeTruthy();
+    expect(screen.getByText('No data connection types match your search or filter')).toBeTruthy();
+    expect(screen.queryByText('No data connection types available')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+    expect(
+      screen.queryByTestId(`${mockPSQLConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId(`${mockS3ConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId(`${mockOCIConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
+
+    expect(screen.queryByText('No matching data connection types')).toBeNull();
+    expect(screen.queryByText('No data connection types match your search or filter')).toBeNull();
+    expect(
+      screen.queryByTestId(`${mockPSQLConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId(`${mockS3ConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId(`${mockOCIConnectionType.metadata.id}--ConnectionTypeCard`),
+    ).toBeTruthy();
   });
 });

@@ -73,11 +73,29 @@ describe('ConnectionTypeInstance', () => {
     },
   );
 
-  it('should currently accept string and array label filters', () => {
-    const connectionType = mockConnectionType();
+  it.each([
+    { labels: 'production', expected: true },
+    { labels: 'finance', expected: true },
+    { labels: 'development', expected: false },
+    { labels: 'Production', expected: false },
+    { labels: 'prod', expected: false },
+    { labels: ['development', 'finance'], expected: true },
+    { labels: ['production', 'finance'], expected: true },
+    { labels: ['development', 'storage'], expected: false },
+    { labels: [], expected: false },
+  ])('should match exact tags with OR behavior for $labels', ({ labels, expected }) => {
+    const connectionType = mockConnectionType({
+      resource: { tags: ['production', 'finance'] },
+    });
 
-    expect(connectionType.matchesLabels('production')).toBe(true);
-    expect(connectionType.matchesLabels(['production', 'finance'])).toBe(true);
+    expect(connectionType.matchesLabels(labels)).toBe(expected);
+  });
+
+  it.each([undefined, []])('should reject label filters when tags are %p', (tags) => {
+    const connectionType = mockConnectionType({ resource: { tags } });
+
+    expect(connectionType.matchesLabels('production')).toBe(false);
+    expect(connectionType.matchesLabels(['production', 'finance'])).toBe(false);
   });
 });
 
@@ -129,6 +147,50 @@ describe('ConnectionType', () => {
     );
 
     expect(screen.getByText('Credentials only')).toBeTruthy();
+  });
+
+  it('should render tags on the connection type card', () => {
+    render(
+      <ConnectionTypeCard
+        connectionType={mockConnectionType({ resource: { tags: ['production', 'finance'] } })}
+        onClick={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('production')).toBeTruthy();
+    expect(screen.getByText('finance')).toBeTruthy();
+  });
+
+  it.each([undefined, []])('should render a card without a tag list when tags are %p', (tags) => {
+    render(
+      <ConnectionTypeCard
+        connectionType={mockConnectionType({ resource: { tags } })}
+        onClick={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('PostgreSQL')).toBeTruthy();
+    expect(screen.queryByRole('list')).toBeNull();
+  });
+
+  it('should render tags in the details labels section', () => {
+    render(
+      <ConnectionTypeValues
+        connectionType={mockConnectionType({ resource: { tags: ['production', 'finance'] } })}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Labels' })).toBeTruthy();
+    expect(screen.getByText('production')).toBeTruthy();
+    expect(screen.getByText('finance')).toBeTruthy();
+  });
+
+  it.each([undefined, []])('should omit the details labels section when tags are %p', (tags) => {
+    render(<ConnectionTypeValues connectionType={mockConnectionType({ resource: { tags } })} />);
+
+    expect(screen.getByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Labels' })).toBeNull();
+    expect(screen.queryByRole('list')).toBeNull();
   });
 
   it('should render the description, provider, capability, and timestamps in the details values', () => {

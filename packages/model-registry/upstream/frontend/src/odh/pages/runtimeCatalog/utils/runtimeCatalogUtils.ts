@@ -1,14 +1,34 @@
 import { stringFiltersToFilterQuery } from '~/app/shared/components/catalog';
 import { RUNTIME_CATALOG_TAB_PATH } from '~/odh/routes/runtimeCatalog/runtimeCatalog';
-import type { ServingRuntime } from '~/odh/types/servingRuntimeCatalogTypes';
+import type {
+  ServingRuntime,
+  ServingRuntimeFilterOptionsList,
+} from '~/odh/types/servingRuntimeCatalogTypes';
 import {
+  RUNTIME_CATALOG_FILTER_FIELDS,
   RUNTIME_CATALOG_FILTER_KEYS,
   RUNTIME_CATALOG_HARDWARE_LABELS,
   type RuntimeCatalogFiltersState,
 } from '~/odh/pages/runtimeCatalog/const';
 
 export function runtimeCatalogFiltersToFilterQuery(filters: RuntimeCatalogFiltersState): string {
-  return stringFiltersToFilterQuery(filters, {});
+  return stringFiltersToFilterQuery(filters, RUNTIME_CATALOG_FILTER_FIELDS);
+}
+
+/** Re-keys the catalog's filter_options by UI filter key (for example `hardware`). */
+export function getRuntimeCatalogFilterOptions(
+  filterOptions: ServingRuntimeFilterOptionsList | null,
+): ServingRuntimeFilterOptionsList['filters'] {
+  const catalogFilters = filterOptions?.filters;
+  if (!catalogFilters) {
+    return undefined;
+  }
+  return Object.fromEntries(
+    RUNTIME_CATALOG_FILTER_KEYS.flatMap((key) => {
+      const field = RUNTIME_CATALOG_FILTER_FIELDS[key];
+      return field in catalogFilters ? [[key, catalogFilters[field]]] : [];
+    }),
+  );
 }
 
 export function hasRuntimeCatalogFiltersApplied(

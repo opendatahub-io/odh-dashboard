@@ -343,7 +343,7 @@ describe('useFileManagement', () => {
       expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(DELETE_EVENT_NAME, {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: errorMessage,
+        error: 'unknown_error',
       });
       // File should still be in the list since delete failed
       expect(result.current.files).toHaveLength(1);
@@ -375,7 +375,7 @@ describe('useFileManagement', () => {
       expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(DELETE_EVENT_NAME, {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: 'Failed to delete file',
+        error: 'unknown_error',
       });
     });
 

@@ -21,6 +21,7 @@ import {
   fireMiscTrackingEvent,
   fireFormTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
@@ -51,6 +52,8 @@ import {
 } from '~/app/utilities/utils';
 import useCapabilityOnboarding from '~/app/hooks/useCapabilityOnboarding';
 import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
+import useGenAiAudioUploadEnabled from '~/app/hooks/useGenAiAudioUploadEnabled';
+import useGenAiImageUploadEnabled from '~/app/hooks/useGenAiImageUploadEnabled';
 import { DocumentAttachment, TokenInfo, MCPServerFromAPI } from '~/app/types';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import type { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
@@ -281,6 +284,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const { data: bffConfig } = useFetchBFFConfig();
   const { api, apiAvailable } = useGenAiAPI();
   const isDarkMode = useDarkMode();
+  const imageUploadEnabled = useGenAiImageUploadEnabled();
+  const audioUploadEnabled = useGenAiAudioUploadEnabled();
 
   // Store state
   const configIds = useChatbotConfigStore(selectConfigIds);
@@ -789,7 +794,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               success: false,
               fileType: file.type || 'unknown',
               fileSizeBytes: file.size,
-              error: error.message,
+              error: errorCategory(error),
             });
           }
         })
@@ -1396,6 +1401,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     (!hasVisionModel || !allModelsHaveVision)
                   }
                   isDarkMode={isDarkMode}
+                  showImageUpload={imageUploadEnabled}
                   onImageUpload={handleImageUpload}
                   imageUploadState={imageUploadState}
                   onRemoveImage={handleRemoveImage}
@@ -1404,6 +1410,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     hasImageInConversation ? 'Only one image per conversation.' : undefined
                   }
                   showImageCapabilityAlert={Boolean(primarySelectedModel) && !allModelsHaveVision}
+                  showAudioUpload={audioUploadEnabled}
                   isAudioUploadDisabled={false}
                   onAudioUpload={handleAudioUpload}
                   audioTranscriptionState={audioTranscription.state}
