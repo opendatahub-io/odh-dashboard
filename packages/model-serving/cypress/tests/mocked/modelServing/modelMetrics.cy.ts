@@ -749,6 +749,21 @@ describe('KServe NIM metrics', () => {
     cy.interceptK8s(ServingRuntimeModel, runtime);
   };
 
+  it('should hide NIM metrics and redirect its direct route when KServe metrics is disabled', () => {
+    initNimIntercepts({
+      disableNIMModelServing: false,
+      disableKServeMetrics: true,
+      disablePerformanceMetrics: false,
+      hasServingData: false,
+      hasBiasData: false,
+    });
+    modelMetricsKserveNim.visit('test-project', 'test-inference-service', 'nim');
+    modelMetricsPerformance.findTab().should('be.visible');
+    modelMetricsKserveNim.findTab().should('not.exist');
+    modelMetricsKserve.findKserveAreaDisabledCard().should('be.visible');
+    cy.location('pathname').should('match', /\/metrics\/test-inference-service\/performance$/);
+  });
+
   it('should not offer NIM metrics for a non-NIM runtime even with the wizard enabled', () => {
     initIntercepts({
       disableNIMModelServing: false,

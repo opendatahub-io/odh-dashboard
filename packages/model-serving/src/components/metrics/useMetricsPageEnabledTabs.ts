@@ -15,6 +15,7 @@ const useMetricsPageEnabledTabs = (model: InferenceServiceKind): MetricsPageEnab
   const performanceMetricsAreaAvailable = useIsAreaAvailable(
     SupportedArea.PERFORMANCE_METRICS,
   ).status;
+  const kserveMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const { isNIMModel, loading, error } = useIsNIMModel(model);
   const enabledTabs: MetricsTabKeys[] = [];
   if (performanceMetricsAreaAvailable) {
@@ -23,13 +24,13 @@ const useMetricsPageEnabledTabs = (model: InferenceServiceKind): MetricsPageEnab
   if (biasMetricsAreaAvailable) {
     enabledTabs.push(MetricsTabKeys.BIAS);
   }
-  if (isNIMModel) {
+  if (kserveMetricsAreaAvailable && isNIMModel) {
     enabledTabs.push(MetricsTabKeys.NIM);
   }
   return {
     enabledTabs,
-    loading,
-    error,
+    loading: kserveMetricsAreaAvailable && loading,
+    error: kserveMetricsAreaAvailable ? error : undefined,
   };
 };
 

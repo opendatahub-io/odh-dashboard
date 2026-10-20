@@ -47,6 +47,7 @@ const renderPage = (
   nimEnabled = true,
   performanceEnabled = true,
   tab = 'nim',
+  kserveMetricsEnabled = true,
 ) => {
   jest.mocked(useIsNIMModel).mockReturnValue({
     isNIMModel: nimEnabled,
@@ -60,6 +61,7 @@ const renderPage = (
         dsciStatus: null,
         areasStatus: {
           [SupportedArea.PERFORMANCE_METRICS]: areaStatus(performanceEnabled),
+          [SupportedArea.K_SERVE_METRICS]: areaStatus(kserveMetricsEnabled),
           // No wizard, project, or integration provider is needed to identify NIM.
         },
       }}
@@ -95,6 +97,18 @@ describe('MetricsPageTabs NIM identity', () => {
     expect(screen.getByTestId('nim-content')).toBeInTheDocument();
     expect(screen.getByTestId('current-path')).toHaveTextContent('/metrics/nim');
   });
+  it.each([{}, { isNIMModel: false, loading: true }, { error: new Error('Forbidden') }])(
+    'should redirect away from NIM when KServe metrics is disabled regardless of detection state (%o)',
+    (state) => {
+      renderPage(state, true, true, 'nim', false);
+      expect(screen.queryByTestId('nim-tab')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('nim-content')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metrics-tabs-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('performance-content')).toBeInTheDocument();
+      expect(screen.getByTestId('current-path')).toHaveTextContent('/metrics/performance');
+    },
+  );
+
   it('should reject a plain KServe runtime', () => {
     renderPage({ isNIMModel: false });
     expect(screen.queryByTestId('nim-tab')).not.toBeInTheDocument();
