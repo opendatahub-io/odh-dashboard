@@ -11,7 +11,7 @@ import {
 import { ApplicationsPage } from 'mod-arch-shared';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
 import { LlamaModel } from '~/app/types';
-import useFetchAIModels from '../hooks/useFetchAIModels';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 
 const NO_PLAYGROUND_MODELS: LlamaModel[] = [];
 
