@@ -2,14 +2,21 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/transport/spdy"
 )
 
 // === ForwardURL ===
@@ -469,5 +476,305 @@ func TestContextDialer_CanceledContext(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("dial with canceled context did not return — context is not propagated into the upgrade request")
+	}
+}
+
+// === Stalled SPDY upgrade regression tests ===
+//
+// An API server that accepts the SPDY upgrade request but never sends response
+// headers blocks spdy.Negotiate in a plain (non-context-aware)
+// http.ReadResponse. Before the abandonment fix, that stall hung the
+// port-forward worker and every request coalesced behind it, Close() could not
+// reach the pending attempt, and each retry accumulated another abandoned
+// connection and goroutine.
+
+// newStalledClusterSimulator returns a test server that mimics an API server
+// whose SPDY upgrade never completes: Endpoints lookups succeed, but
+// portforward POSTs are accepted (connection hijacked) and never answered.
+func newStalledClusterSimulator(t *testing.T) (*kubernetes.Clientset, *rest.Config, chan struct{}) {
+	t.Helper()
+	requestSeen := make(chan struct{}, 1)
+	hold := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/portforward") {
+			select {
+			case requestSeen <- struct{}{}:
+			default:
+			}
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				return
+			}
+			defer conn.Close()
+			<-hold
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"kind":"Endpoints","apiVersion":"v1","metadata":{"name":"milvus","namespace":"team-a"},"subsets":[{"addresses":[{"targetRef":{"kind":"Pod","name":"milvus-0"}}]}]}`)
+	}))
+	t.Cleanup(func() {
+		// Release the hijacked connections so the abandoned negotiations and
+		// the server itself can drain before the test ends.
+		close(hold)
+		server.Close()
+	})
+	cfg := &rest.Config{Host: server.URL}
+	return kubernetes.NewForConfigOrDie(cfg), cfg, requestSeen
+}
+
+// TestContextDialer_AbandonsStalledUpgrade verifies the dialer gives up on a
+// stalled upgrade when the startup deadline fires instead of blocking on the
+// peer's missing response headers.
+func TestContextDialer_AbandonsStalledUpgrade(t *testing.T) {
+	_, cfg, requestSeen := newStalledClusterSimulator(t)
+
+	transport, upgrader, err := spdy.RoundTripperFor(cfg)
+	if err != nil {
+		t.Fatalf("RoundTripperFor() error: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	target, err := url.Parse(cfg.Host + "/api/v1/namespaces/team-a/pods/milvus-0/portforward")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := &contextDialer{
+		ctx:      ctx,
+		upgrader: upgrader,
+		client:   &http.Client{Transport: transport},
+		method:   http.MethodPost,
+		url:      target,
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, _, dialErr := d.Dial("SPDY/3.1")
+		done <- dialErr
+	}()
+
+	select {
+	case <-requestSeen:
+	case <-time.After(10 * time.Second):
+		t.Fatal("stalled upgrade request was not observed")
+	}
+
+	select {
+	case dialErr := <-done:
+		if dialErr == nil {
+			t.Fatal("expected dial against a stalled upgrade to fail")
+		}
+		if !strings.Contains(dialErr.Error(), "abandon") {
+			t.Fatalf("dial error = %v, want abandoned negotiation error", dialErr)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("dial against stalled upgrade did not return — the abandoned negotiation leaks the worker goroutine")
+	}
+}
+
+// TestContextDialer_ShutdownAbortsStalledUpgrade verifies the manager's
+// shutdown channel aborts a stalled upgrade even without a startup deadline.
+func TestContextDialer_ShutdownAbortsStalledUpgrade(t *testing.T) {
+	_, cfg, requestSeen := newStalledClusterSimulator(t)
+
+	transport, upgrader, err := spdy.RoundTripperFor(cfg)
+	if err != nil {
+		t.Fatalf("RoundTripperFor() error: %v", err)
+	}
+
+	shutdown := make(chan struct{})
+	target, err := url.Parse(cfg.Host + "/api/v1/namespaces/team-a/pods/milvus-0/portforward")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := &contextDialer{
+		ctx:      context.Background(), // no deadline — only shutdown may abort
+		shutdown: shutdown,
+		upgrader: upgrader,
+		client:   &http.Client{Transport: transport},
+		method:   http.MethodPost,
+		url:      target,
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, _, dialErr := d.Dial("SPDY/3.1")
+		done <- dialErr
+	}()
+
+	select {
+	case <-requestSeen:
+	case <-time.After(10 * time.Second):
+		t.Fatal("stalled upgrade request was not observed")
+	}
+	close(shutdown)
+
+	select {
+	case dialErr := <-done:
+		if dialErr == nil {
+			t.Fatal("expected dial to fail after manager shutdown")
+		}
+		if !strings.Contains(dialErr.Error(), "manager is closed") {
+			t.Fatalf("dial error = %v, want manager-closed abandonment error", dialErr)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("dial did not abort on manager shutdown — Close() cannot reach a stalled upgrade")
+	}
+}
+
+// TestCreateForward_StalledUpgradeFailsFast verifies the full createForward
+// path returns at the startup deadline instead of hanging on the stalled
+// upgrade.
+func TestCreateForward_StalledUpgradeFailsFast(t *testing.T) {
+	clientset, cfg, _ := newStalledClusterSimulator(t)
+	pfm := &PortForwardManager{
+		forwards:   make(map[string]*activeForward),
+		restConfig: cfg,
+		clientset:  clientset,
+		logger:     slog.Default(),
+		closed:     make(chan struct{}),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := pfm.createForward(ctx, "team-a", "milvus-0", 19530)
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected createForward against a stalled upgrade to fail")
+		}
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("createForward() error = %v, want deadline exceeded", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("createForward() did not return after the startup deadline — the stalled upgrade hangs the worker and every request coalesced behind it")
+	}
+}
+
+// TestGetOrCreateForward_StalledStartupIsBoundedAndCooledDown verifies the
+// manager-level view: a stalled startup fails at the caller's deadline, and
+// the cooldown prevents an immediate second abandoned attempt.
+func TestGetOrCreateForward_StalledStartupIsBoundedAndCooledDown(t *testing.T) {
+	clientset, cfg, _ := newStalledClusterSimulator(t)
+	pfm := &PortForwardManager{
+		forwards:   make(map[string]*activeForward),
+		restConfig: cfg,
+		clientset:  clientset,
+		logger:     slog.Default(),
+		closed:     make(chan struct{}),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+
+	result := make(chan error, 1)
+	go func() {
+		_, err := pfm.getOrCreateForward(ctx, "team-a", "milvus", 19530)
+		result <- err
+	}()
+
+	select {
+	case err := <-result:
+		if err == nil {
+			t.Fatal("expected stalled port-forward startup to fail")
+		}
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("getOrCreateForward() error = %v, want deadline exceeded", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("getOrCreateForward() did not return after the startup deadline — a stalled SPDY upgrade hangs the request and everything coalesced behind it")
+	}
+
+	// The failed attempt must arm the cooldown: an immediate retry must be
+	// rejected without starting another abandoned upgrade.
+	_, err := pfm.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+	if err == nil || !strings.Contains(err.Error(), "cooldown") {
+		t.Fatalf("immediate retry error = %v, want cooldown rejection", err)
+	}
+}
+
+// TestGetOrCreateForward_CooldownGatesRetryAfterFailure verifies a recently
+// failed key is rejected before any cluster interaction.
+func TestGetOrCreateForward_CooldownGatesRetryAfterFailure(t *testing.T) {
+	pfm := &PortForwardManager{
+		forwards:       make(map[string]*activeForward),
+		recentFailures: map[string]time.Time{"ns/svc:8080": time.Now()},
+		logger:         slog.Default(),
+	}
+
+	// The clientset is nil on purpose: if the cooldown gate failed to reject
+	// here, resolvePod would panic on the nil clientset, failing the test.
+	_, err := pfm.getOrCreateForward(context.Background(), "ns", "svc", 8080)
+	if err == nil || !strings.Contains(err.Error(), "cooldown") {
+		t.Fatalf("getOrCreateForward() error = %v, want cooldown rejection", err)
+	}
+}
+
+// TestGetOrCreateForward_CooldownExpiresAndAllowsRetry verifies an expired
+// cooldown lets a new attempt through and a failed attempt re-arms it.
+func TestGetOrCreateForward_CooldownExpiresAndAllowsRetry(t *testing.T) {
+	pfm := &PortForwardManager{
+		forwards:       make(map[string]*activeForward),
+		recentFailures: map[string]time.Time{"ns/svc:8080": time.Now().Add(-portForwardRetryCooldown - time.Second)},
+		logger:         slog.Default(),
+		clientset:      fake.NewSimpleClientset(),
+	}
+
+	// An expired cooldown lets the attempt through; resolvePod fails cleanly
+	// on the empty fake cluster and re-arms the cooldown for the next retry.
+	_, err := pfm.getOrCreateForward(context.Background(), "ns", "svc", 8080)
+	if err == nil || strings.Contains(err.Error(), "cooldown") {
+		t.Fatalf("getOrCreateForward() error = %v, want a non-cooldown startup failure", err)
+	}
+	pfm.mu.Lock()
+	_, armed := pfm.recentFailures["ns/svc:8080"]
+	pfm.mu.Unlock()
+	if !armed {
+		t.Fatal("startup failure did not re-arm the retry cooldown")
+	}
+}
+
+// TestClose_AbortsStalledStartup verifies Close() aborts a startup that is
+// stalled mid-upgrade — previously the pending attempt was unreachable by
+// shutdown and lingered until the peer responded.
+func TestClose_AbortsStalledStartup(t *testing.T) {
+	clientset, cfg, requestSeen := newStalledClusterSimulator(t)
+	pfm := &PortForwardManager{
+		forwards:   make(map[string]*activeForward),
+		restConfig: cfg,
+		clientset:  clientset,
+		logger:     slog.Default(),
+		closed:     make(chan struct{}),
+	}
+
+	result := make(chan error, 1)
+	go func() {
+		_, err := pfm.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+		result <- err
+	}()
+
+	select {
+	case <-requestSeen:
+	case <-time.After(10 * time.Second):
+		t.Fatal("stalled upgrade request was not observed")
+	}
+	pfm.Close()
+
+	// The 30s startup deadline is far away — only the shutdown wiring can
+	// return control this quickly.
+	select {
+	case err := <-result:
+		if err == nil {
+			t.Fatal("stalled port-forward startup unexpectedly succeeded")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("stalled startup did not finish after Close() — shutdown cannot abort a pending SPDY upgrade")
 	}
 }

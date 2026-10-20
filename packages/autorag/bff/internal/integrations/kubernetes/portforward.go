@@ -26,6 +26,13 @@ const (
 	portForwardStartupTimeout = 30 * time.Second
 	maxCachedForwards         = 32
 	forwardIdleTTL            = 5 * time.Minute
+
+	// portForwardRetryCooldown bounds how quickly a new forward for the same
+	// key may be attempted after a failed startup. A stalled SPDY upgrade
+	// keeps its negotiation goroutine alive until the peer eventually
+	// responds, so repeated requests against an unresponsive target would
+	// otherwise accumulate one abandoned connection and goroutine per attempt.
+	portForwardRetryCooldown = 5 * time.Second
 )
 
 type requestNamespaceContextKey struct{}
@@ -48,6 +55,7 @@ type PortForwardManager struct {
 	forwards           map[string]*activeForward
 	creations          map[string]*forwardCreation
 	pendingCreations   map[*forwardCreation]struct{}
+	recentFailures     map[string]time.Time
 	closeOnce          sync.Once
 	closed             bool
 	lifecycleCtx       context.Context
@@ -146,12 +154,55 @@ type contextDialer struct {
 	url      *url.URL
 }
 
+// negotiationResult carries the outcome of an SPDY upgrade attempt that may
+// still be in flight when Dial has already given up on it.
+type negotiationResult struct {
+	conn     httpstream.Connection
+	protocol string
+	err      error
+}
+
+// Dial upgrades the port-forward connection, racing the negotiation against
+// the startup deadline (and, through the creation context, manager shutdown).
+//
+// spdy.Negotiate reads the upgrade response via a plain (non-context-aware)
+// http.ReadResponse, so a server that accepts the connection but never sends
+// response headers would block the negotiation — and with it the whole
+// port-forward worker — indefinitely. When the context fires first, Dial
+// returns promptly and hands the still-running negotiation to a watcher that
+// closes the tunnel if the peer ever completes it. The negotiation goroutine
+// itself can only exit once the peer responds or the connection breaks; that
+// residual is bounded by the manager's retry cooldown.
 func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string, error) {
 	req, err := http.NewRequestWithContext(d.ctx, d.method, d.url.String(), nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("creating port-forward request: %w", err)
 	}
-	return spdy.Negotiate(d.upgrader, d.client, req, protocols...)
+
+	result := make(chan negotiationResult, 1)
+	go func() {
+		conn, protocol, err := spdy.Negotiate(d.upgrader, d.client, req, protocols...)
+		result <- negotiationResult{conn: conn, protocol: protocol, err: err}
+	}()
+
+	select {
+	case r := <-result:
+		return r.conn, r.protocol, r.err
+	case <-d.ctx.Done():
+		d.abandon(result)
+		return nil, "", fmt.Errorf("abandoning stalled port-forward upgrade negotiation (%v); the API server did not complete the SPDY upgrade", d.ctx.Err())
+	}
+}
+
+// abandon watches an already-abandoned negotiation so a tunnel the peer
+// completes late is closed instead of lingering. The buffered result channel
+// guarantees the negotiation goroutine never blocks sending to it.
+func (d *contextDialer) abandon(result <-chan negotiationResult) {
+	go func() {
+		if r := <-result; r.conn != nil {
+			r.conn.Close()
+		}
+	}()
 }
 
 // NewPortForwardManager creates a manager using the provided rest.Config and clientset.
@@ -163,6 +214,7 @@ func NewPortForwardManager(restConfig *rest.Config, clientset kubernetes.Interfa
 		forwards:         make(map[string]*activeForward),
 		creations:        make(map[string]*forwardCreation),
 		pendingCreations: make(map[*forwardCreation]struct{}),
+		recentFailures:   make(map[string]time.Time),
 		lifecycleCtx:     lifecycleCtx,
 		lifecycleCancel:  lifecycleCancel,
 		restConfig:       restConfig,
@@ -279,6 +331,13 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 			m.mu.Unlock()
 			return 0, errors.New("port-forward cache capacity reached")
 		}
+		// Pace retries after a failed startup: a stalled SPDY negotiation
+		// outlives its deadline, and back-to-back attempts would accumulate
+		// abandoned connections and goroutines.
+		if lastFailed, failed := m.recentFailures[key]; failed && time.Since(lastFailed) < portForwardRetryCooldown {
+			m.mu.Unlock()
+			return 0, fmt.Errorf("port-forward %s failed to start recently; retrying after a %s cooldown", key, portForwardRetryCooldown)
+		}
 		creationCtx := lifecycleCtx
 		if creationCtx == nil {
 			creationCtx = context.Background()
@@ -320,6 +379,11 @@ func (m *PortForwardManager) runCreation(key, namespace, serviceName string, rem
 	var fwd *activeForward
 	var stoppedForward *activeForward
 	var err error
+	// createFailed tracks whether the startup attempt itself failed (pod
+	// resolution or forward creation). Only such failures arm the retry
+	// cooldown — shutdown and all-waiters-left cancellations stop a possibly
+	// healthy forward and must not throttle the next caller.
+	var createFailed bool
 
 	m.mu.Lock()
 	if m.closed || creation.waiters == 0 || creation.ctx.Err() != nil {
@@ -342,13 +406,18 @@ func (m *PortForwardManager) runCreation(key, namespace, serviceName string, rem
 		podName, resolveErr := m.resolvePod(startupCtx, namespace, serviceName)
 		if resolveErr != nil {
 			err = fmt.Errorf("resolving pod for %s/%s: %w", namespace, serviceName, resolveErr)
+			createFailed = true
 		} else if m.createForwardFn != nil {
 			fwd, err = m.createForwardFn(startupCtx, namespace, podName, remotePort)
 			if err != nil {
 				err = fmt.Errorf("creating port-forward %s: %w", key, err)
+				createFailed = true
 			}
 		} else {
 			fwd, err = m.createForward(startupCtx, namespace, podName, remotePort)
+			if err != nil {
+				createFailed = true
+			}
 		}
 	}
 
@@ -371,6 +440,7 @@ func (m *PortForwardManager) runCreation(key, namespace, serviceName string, rem
 	if err == nil && fwd != nil && m.forwards[key] == nil {
 		fwd.lastUsed = time.Now()
 		m.forwards[key] = fwd
+		delete(m.recentFailures, key)
 	}
 	if err == nil && fwd != nil {
 		m.logger.Info("port-forward established", "key", key, "localPort", fwd.localPort)
@@ -381,6 +451,11 @@ func (m *PortForwardManager) runCreation(key, namespace, serviceName string, rem
 			creation.result = fwd.localPort
 		}
 		creation.err = err
+	}
+	// Arm the cooldown before publishing the result so a waiter that wakes up
+	// and immediately retries deterministically observes the gate.
+	if createFailed {
+		m.noteForwardFailure(key, time.Now())
 	}
 	m.mu.Unlock()
 
@@ -417,6 +492,17 @@ func (m *PortForwardManager) evictIdleForwards(now time.Time) {
 	for _, fwd := range evicted {
 		fwd.wait()
 	}
+}
+
+// noteForwardFailure arms the retry cooldown for a key after a failed startup
+// attempt, pacing retries against a target whose SPDY upgrade stalls. The
+// caller must hold m.mu. Safe on a nil map (lazy initialization) for managers
+// built via struct literal in tests.
+func (m *PortForwardManager) noteForwardFailure(key string, failedAt time.Time) {
+	if m.recentFailures == nil {
+		m.recentFailures = make(map[string]time.Time)
+	}
+	m.recentFailures[key] = failedAt
 }
 
 func (m *PortForwardManager) releaseCreationWaiter(key string, creation *forwardCreation) {
