@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 
@@ -147,6 +148,7 @@ func TestIntegration_RHOAIControllerStartsWithoutOdhDashboardConfigCRD(t *testin
 	require.NoError(t, clientgoscheme.AddToScheme(s))
 	require.NoError(t, v1alpha1.AddToScheme(s))
 	require.NoError(t, apiextensionsv1.AddToScheme(s))
+	require.NoError(t, gatewayv1.Install(s))
 
 	localEnv := &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
@@ -156,14 +158,15 @@ func TestIntegration_RHOAIControllerStartsWithoutOdhDashboardConfigCRD(t *testin
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, localEnv.Stop()) })
 
+	const namespace = "startup-without-dashboard-config-crd"
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:                 s,
+		NewCache:               ctrlpkg.NewManagerCache(namespace),
 		Metrics:                metricsserver.Options{BindAddress: "0"},
 		HealthProbeBindAddress: "0",
 	})
 	require.NoError(t, err)
 
-	const namespace = "startup-without-dashboard-config-crd"
 	require.NoError(t, ctrlpkg.SetupWithManager(mgr, ctrlpkg.Options{
 		ManifestsBasePath:     createIntegrationManifests(t, nil),
 		Platform:              cluster.SelfManagedRhoai,
