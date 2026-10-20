@@ -90,8 +90,8 @@ func TestServingRuntimeCatalogLiveRoutes(t *testing.T) {
 				name, bffPath, upstreamPath, body string
 				query                             url.Values
 			}{
-				{"list", api.ServingRuntimeListPath, "/serving_runtimes", `{"items":[{"id":"live-1","name":"live-runtime"}],"size":1,"pageSize":2,"nextPageToken":"next"}`, url.Values{"q": {"runtime"}, "name": {"live%"}, "source": {"source-a,source-b"}, "sourceLabel": {"Red Hat"}, "filterQuery": {"hardware='cpu'"}, "pageSize": {"2"}, "nextPageToken": {"cursor"}, "orderBy": {"RECOMMENDED"}, "sortOrder": {"DESC"}}},
-				{"filters", api.ServingRuntimeFilterOptionsPath, "/serving_runtimes/filter_options", `{"filters":{"hardware":{"type":"string","values":["cpu"]}}}`, nil},
+				{"list", api.ServingRuntimeListPath, "/serving_runtimes", `{"items":[{"id":"live-1","name":"live-runtime"}],"size":1,"pageSize":2,"nextPageToken":"next"}`, url.Values{"q": {"runtime"}, "name": {"live%"}, "source": {"source-a,source-b"}, "sourceLabel": {"Red Hat"}, "filterQuery": {"capabilities.supportedAccelerators='nvidia.com/gpu'"}, "pageSize": {"2"}, "nextPageToken": {"cursor"}, "orderBy": {"RECOMMENDED"}, "sortOrder": {"DESC"}}},
+				{"filters", api.ServingRuntimeFilterOptionsPath, "/serving_runtimes/filter_options", `{"filters":{"capabilities.supportedAccelerators":{"type":"string","values":["nvidia.com/gpu"]}}}`, nil},
 				{"detail", api.ServingRuntimeListPath + "/live-1", "/serving_runtimes/live-1", `{"id":"live-1","name":"live-runtime"}`, nil},
 				{"versions", api.ServingRuntimeListPath + "/live-1/versions", "/serving_runtimes/live-1/versions", `{"items":[{"artifactType":"serving-runtime-version","version":"1.0","image":"example/image:1"}],"size":1,"pageSize":2,"nextPageToken":""}`, url.Values{"pageSize": {"2"}, "nextPageToken": {"cursor"}, "orderBy": {"CREATE_TIME"}, "sortOrder": {"ASC"}, "filterQuery": {"version='1.0'"}}},
 			} {

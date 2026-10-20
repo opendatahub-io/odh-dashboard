@@ -13,7 +13,13 @@ const RelativeTimestamp: React.FC<RelativeTimestampProps> = ({ datetime }) => {
   }
 
   return (
-    <Timestamp date={datetimeObject} tooltip={{ variant: TimestampTooltipVariant.default }}>
+    <Timestamp
+      date={datetimeObject}
+      tooltip={{ variant: TimestampTooltipVariant.default }}
+      dateFormat="medium"
+      timeFormat="medium"
+      is12Hour
+    >
       {relativeTime(Date.now(), datetimeObject.getTime())}
     </Timestamp>
   );

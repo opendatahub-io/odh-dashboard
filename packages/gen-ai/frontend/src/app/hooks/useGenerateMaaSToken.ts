@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { NotReadyError } from 'mod-arch-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { MaaSTokenRequest, MaaSTokenResponse } from '~/app/types';
 import { useGenAiAPI } from './useGenAiAPI';
@@ -56,7 +57,7 @@ const useGenerateMaaSToken = (): UseGenerateMaaSTokenReturn => {
           fireFormTrackingEvent('Available Endpoints MaaS Token Generated', {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: errorMessage,
+            error: errorCategory(err),
             assetType: 'maas_model',
             copyTarget: 'service_token',
           });
