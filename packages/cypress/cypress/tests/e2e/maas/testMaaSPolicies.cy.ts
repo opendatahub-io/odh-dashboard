@@ -256,7 +256,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       subscriptionsPage.findCreateSubscriptionButton().click();
       createSubscriptionPage.findDisplayNameInput().clear().type(subscriptionName);
       createSubscriptionPage.findDescriptionInput().clear().type(subscriptionDescription);
-      createSubscriptionPage.findPriorityInput().should('not.have.value', '');
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[0]);
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[1]);
       // Add a model to the subscription
@@ -265,6 +264,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
       addModelsToSubscriptionModal.findTable().should('exist');
       addModelsToSubscriptionModal.findToggleModelButton(modelName, projectName).click();
       addModelsToSubscriptionModal.findConfirmButton().click();
+      createSubscriptionPage.findPriorityInput().should('exist');
 
       // Edit token rate limits for the added model
       createSubscriptionPage.addTokenRateLimit(0);

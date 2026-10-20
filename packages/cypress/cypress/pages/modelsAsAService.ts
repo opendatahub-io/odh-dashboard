@@ -994,7 +994,7 @@ class EditSubscriptionPage {
   }
 
   findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText('Failed to update subscription');
+    return cy.findByTestId('subscription-submit-error');
   }
 }
 

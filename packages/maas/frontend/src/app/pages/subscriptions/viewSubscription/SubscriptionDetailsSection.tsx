@@ -8,6 +8,7 @@ import {
   StackItem,
   Timestamp,
   Title,
+  Button,
 } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
@@ -23,6 +24,8 @@ import {
   MaaSGovernanceStatusPopoverViewedProperties,
   convertStringToPopoverViewedStatus,
 } from '~/app/types/event-tracking';
+import { hasInternalModelKind } from '~/app/utilities/subscriptions';
+import InferencePriorityStatusModal from './InferencePriorityStatusModal';
 
 type SubscriptionDetailsSectionProps = {
   subscription: MaaSSubscription;
@@ -32,76 +35,102 @@ type SubscriptionDetailsSectionProps = {
 const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
   subscription,
   modelRefs,
-}) => (
-  <Stack hasGutter data-testid="subscription-details-section">
-    <StackItem>
-      <Title headingLevel="h2" size="xl">
-        Details
-      </Title>
-    </StackItem>
-    <StackItem>
-      <DescriptionList columnModifier={{ default: '2Col' }}>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Name</DescriptionListTerm>
-          <DescriptionListDescription>
-            {subscription.displayName?.trim() || subscription.name}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Status</DescriptionListTerm>
-          <DescriptionListDescription data-testid="subscription-phase">
-            <PhaseLabel
-              phase={subscription.phase}
-              statusMessage={subscription.statusMessage}
-              reason={subscription.reason}
-              status={subscription.status}
-              conditionType={subscription.conditionType}
-              lastTransitionTime={subscription.lastTransitionTime}
-              resourceType={PhaseResourceType.SUBSCRIPTION}
-              resourceName={subscription.displayName ?? subscription.name}
-              affectedModels={getAffectedModels(modelRefs)}
-              onClick={() => {
-                fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
-                  popoverType: EventTrackingPopoverType.STATUS,
-                  status: convertStringToPopoverViewedStatus(subscription.phase),
-                  location: PhaseLabelLocation.DETAIL_PAGE,
-                } satisfies MaaSGovernanceStatusPopoverViewedProperties);
-              }}
-            />
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Description</DescriptionListTerm>
-          <DescriptionListDescription>{subscription.description ?? '—'}</DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Resource name</DescriptionListTerm>
-          <DescriptionListDescription>{subscription.name}</DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Inference priority</DescriptionListTerm>
-          <DescriptionListDescription>
-            {subscription.inferencePriority ?? '0'}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Created</DescriptionListTerm>
-          <DescriptionListDescription>
-            {subscription.creationTimestamp ? (
-              <Timestamp
-                date={new Date(subscription.creationTimestamp)}
-                dateFormat="long"
-                timeFormat="short"
-                is12Hour
+}) => {
+  const hasInternalModel = hasInternalModelKind(modelRefs);
+  const [showInferencePriorityStatus, setShowInferencePriorityStatus] = React.useState(false);
+  return (
+    <Stack hasGutter data-testid="subscription-details-section">
+      <StackItem>
+        <Title headingLevel="h2" size="xl">
+          Details
+        </Title>
+      </StackItem>
+      <StackItem>
+        <DescriptionList columnModifier={{ default: '2Col' }}>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Name</DescriptionListTerm>
+            <DescriptionListDescription>
+              {subscription.displayName?.trim() || subscription.name}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Status</DescriptionListTerm>
+            <DescriptionListDescription data-testid="subscription-phase">
+              <PhaseLabel
+                phase={subscription.phase}
+                statusMessage={subscription.statusMessage}
+                reason={subscription.reason}
+                status={subscription.status}
+                conditionType={subscription.conditionType}
+                lastTransitionTime={subscription.lastTransitionTime}
+                resourceType={PhaseResourceType.SUBSCRIPTION}
+                resourceName={subscription.displayName ?? subscription.name}
+                affectedModels={getAffectedModels(modelRefs)}
+                onClick={() => {
+                  fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+                    popoverType: EventTrackingPopoverType.STATUS,
+                    status: convertStringToPopoverViewedStatus(subscription.phase),
+                    location: PhaseLabelLocation.DETAIL_PAGE,
+                  } satisfies MaaSGovernanceStatusPopoverViewedProperties);
+                }}
               />
-            ) : (
-              '—'
-            )}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      </DescriptionList>
-    </StackItem>
-  </Stack>
-);
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Description</DescriptionListTerm>
+            <DescriptionListDescription>
+              {subscription.description ?? '—'}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Resource name</DescriptionListTerm>
+            <DescriptionListDescription>{subscription.name}</DescriptionListDescription>
+          </DescriptionListGroup>
+          {hasInternalModel && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Inference priority</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Stack>
+                  <StackItem>{subscription.inferencePriority ?? '0'}</StackItem>
+                  <StackItem>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => setShowInferencePriorityStatus(true)}
+                    >
+                      View more details
+                    </Button>
+                  </StackItem>
+                </Stack>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          <DescriptionListGroup>
+            <DescriptionListTerm>Created</DescriptionListTerm>
+            <DescriptionListDescription>
+              {subscription.creationTimestamp ? (
+                <Timestamp
+                  date={new Date(subscription.creationTimestamp)}
+                  dateFormat="long"
+                  timeFormat="short"
+                  is12Hour
+                />
+              ) : (
+                '—'
+              )}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        </DescriptionList>
+      </StackItem>
+      {showInferencePriorityStatus ? (
+        <InferencePriorityStatusModal
+          subscription={subscription}
+          modelRefs={modelRefs}
+          onClose={() => setShowInferencePriorityStatus(false)}
+        />
+      ) : null}
+    </Stack>
+  );
+};
 
 export default SubscriptionDetailsSection;

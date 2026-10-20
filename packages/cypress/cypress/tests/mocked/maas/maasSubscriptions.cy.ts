@@ -99,21 +99,18 @@ describe('Subscriptions Page', () => {
     premiumRow.findName().should('contain.text', 'Premium Team Subscription');
     premiumRow.findGroups().should('contain.text', '1');
     premiumRow.findModels().should('contain.text', '2');
-    premiumRow.findPriority().should('contain.text', '10');
 
     const basicRow = subscriptionsPage.getRow('Basic Team Subscription');
     basicRow.findName().should('contain.text', 'Basic Team Subscription');
     basicRow.findPhase().should('contain.text', 'Ready');
     basicRow.findGroups().should('contain.text', '1');
     basicRow.findModels().should('contain.text', '1');
-    basicRow.findPriority().should('contain.text', '0');
 
     const negativePriorityRow = subscriptionsPage.getRow('negative-priority-sub');
     negativePriorityRow.findName().should('contain.text', 'negative-priority-sub');
     negativePriorityRow.findPhase().should('contain.text', 'Ready');
     negativePriorityRow.findGroups().should('contain.text', '1');
     negativePriorityRow.findModels().should('contain.text', '1');
-    negativePriorityRow.findPriority().should('contain.text', '-10000');
 
     const failedRow = subscriptionsPage.getRow('failed-sub');
     failedRow.findPhase().should('contain.text', 'Failed');
@@ -421,27 +418,6 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findDisplayNameInput().type('Test Subscription');
     createSubscriptionPage.findDescriptionInput().type('A test subscription');
 
-    // Testing out max and min priority values
-    createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('-2147483648');
-    createSubscriptionPage.findPriorityMinusButton().should('be.disabled');
-
-    createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('-2147483648123123'); // Out of range the input will snap to -2147483648
-    createSubscriptionPage.findPriorityInput().should('have.value', '-2147483648');
-
-    createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('2147483647');
-    createSubscriptionPage.findPriorityPlusButton().should('be.disabled');
-
-    createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('2147483647123'); // Out of range the input will snap to 2147483647
-    createSubscriptionPage.findPriorityInput().should('have.value', '2147483647');
-
-    // Set a priority
-    createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('5');
-
     // Select groups and add a custom one
     createSubscriptionPage.selectGroup('premium-users');
     createSubscriptionPage.typeCustomGroup('my-custom-group');
@@ -458,6 +434,26 @@ describe('Subscription Create Page', () => {
     // Verify the model appears in the subscription models table
     createSubscriptionPage.findModelsTable().should('exist');
     createSubscriptionPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
+
+    // Inference priority appears after an LLMInferenceService model is added
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('-2147483648');
+    createSubscriptionPage.findPriorityMinusButton().should('be.disabled');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('-2147483648123123'); // Out of range the input will snap to -2147483648
+    createSubscriptionPage.findPriorityInput().should('have.value', '-2147483648');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('2147483647');
+    createSubscriptionPage.findPriorityPlusButton().should('be.disabled');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('2147483647123'); // Out of range the input will snap to 2147483647
+    createSubscriptionPage.findPriorityInput().should('have.value', '2147483647');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('5');
 
     // Edit token rate limits for the added model
     createSubscriptionPage.findModelsTable().findByTestId('add-token-limit-0').click();
@@ -522,6 +518,68 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.selectGroup('system:authenticated');
     createSubscriptionPage.findSystemAuthenticatedWarning().should('exist');
   });
+
+  it('should create a subscription without inference priority and show 0 on the view page', () => {
+    const createdSubscription = {
+      ...mockCreateSubscriptionResponse().subscription,
+      inferencePriority: undefined,
+    };
+
+    cy.interceptOdh('POST /maas/api/v1/new-subscription', {
+      data: {
+        ...mockCreateSubscriptionResponse(),
+        subscription: createdSubscription,
+      },
+    }).as('createSubscriptionWithoutPriority');
+
+    createSubscriptionPage.visit();
+    createSubscriptionPage.findDisplayNameInput().type('Test Subscription');
+    createSubscriptionPage.findDescriptionInput().type('A test subscription');
+
+    createSubscriptionPage.selectGroup('premium-users');
+    createSubscriptionPage.findAddModelsButton().click();
+    addModelsToSubscriptionModal.shouldBeOpen();
+    addModelsToSubscriptionModal
+      .findToggleModelButton('granite-3-8b-instruct', 'maas-models')
+      .click();
+    addModelsToSubscriptionModal.findConfirmButton().click();
+
+    createSubscriptionPage.findPriorityInput().should('have.value', '');
+
+    createSubscriptionPage.findModelsTable().findByTestId('add-token-limit-0').click();
+    editRateLimitsModal.shouldBeOpen();
+    editRateLimitsModal.findCountInput(0).clear().type('5000');
+    editRateLimitsModal.findTimeInput(0).clear().type('1');
+    editRateLimitsModal.findSaveButton().click();
+
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: [createdSubscription],
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: createdSubscription.name } },
+      {
+        data: {
+          subscription: createdSubscription,
+          modelRefs: [],
+          authPolicies: [],
+        },
+      },
+    );
+
+    createSubscriptionPage.findCreateButton().should('be.enabled').click();
+    cy.wait('@createSubscriptionWithoutPriority')
+      .its('request.body.data')
+      .should('not.have.property', 'inferencePriority');
+
+    cy.url().should('include', '/maas/maas-governance/subscriptions');
+
+    subscriptionsPage.findViewDetailsButton('Test Subscription').click();
+    viewSubscriptionPage
+      .findDetailsSection()
+      .should('contain.text', 'Inference priority')
+      .and('contain.text', '0');
+  });
 });
 
 describe('Edit Subscription Page', () => {
@@ -562,6 +620,104 @@ describe('Edit Subscription Page', () => {
 
     cy.wait('@updateSubscription');
     cy.url().should('include', '/maas/maas-governance/subscriptions');
+  });
+
+  it('should set inference priority, then clear it and show 0 on the view page', () => {
+    const premiumName = 'premium-team-sub';
+    const premiumInfo = mockSubscriptionInfo(premiumName);
+    const clearedSubscription = {
+      ...premiumInfo.subscription,
+      inferencePriority: undefined,
+    };
+    const withPriority = {
+      ...premiumInfo.subscription,
+      inferencePriority: 25,
+    };
+
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: premiumName } },
+      { data: premiumInfo },
+    );
+    cy.interceptOdh(
+      'PUT /maas/api/v1/update-subscription/:name',
+      { path: { name: premiumName } },
+      { data: { subscription: withPriority } },
+    ).as('setPriorityUpdate');
+
+    editSubscriptionPage.visit(premiumName);
+    editSubscriptionPage.findPriorityInput().should('have.value', '10');
+    editSubscriptionPage.findPriorityInput().clear().type('25');
+    editSubscriptionPage.findPriorityInput().should('have.value', '25');
+
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: [withPriority],
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: premiumName } },
+      { data: { ...premiumInfo, subscription: withPriority } },
+    );
+
+    editSubscriptionPage.findSaveButton().click();
+    cy.wait('@setPriorityUpdate').its('request.body.data.inferencePriority').should('eq', 25);
+
+    cy.url().should('include', '/maas/maas-governance/subscriptions');
+    subscriptionsPage.findViewDetailsButton('Premium Team Subscription').click();
+    viewSubscriptionPage
+      .findDetailsSection()
+      .should('contain.text', 'Inference priority')
+      .and('contain.text', '25');
+
+    cy.interceptOdh(
+      'PUT /maas/api/v1/update-subscription/:name',
+      { path: { name: premiumName } },
+      { data: { subscription: clearedSubscription } },
+    ).as('clearPriorityUpdate');
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: [clearedSubscription],
+    });
+
+    editSubscriptionPage.visit(premiumName);
+    editSubscriptionPage.findPriorityInput().should('have.value', '25');
+    editSubscriptionPage.findPriorityInput().clear();
+    editSubscriptionPage.findPriorityInput().should('have.value', '');
+    editSubscriptionPage.findSaveButton().click();
+
+    cy.wait('@clearPriorityUpdate')
+      .its('request.body.data')
+      .should('not.have.property', 'inferencePriority');
+
+    cy.url().should('include', '/maas/maas-governance/subscriptions');
+    subscriptionsPage.findViewDetailsButton('Premium Team Subscription').click();
+    viewSubscriptionPage
+      .findDetailsSection()
+      .should('contain.text', 'Inference priority')
+      .and('contain.text', '0');
+  });
+
+  it('should surface a 409 stale-edit conflict on the form instead of overwriting', () => {
+    const conflictMessage =
+      'This subscription was modified by someone else. Refresh the page and try again.';
+
+    cy.intercept('PUT', `/maas/api/v1/update-subscription/${subscriptionName}`, {
+      statusCode: 409,
+      body: {
+        error: {
+          code: '409',
+          message: conflictMessage,
+        },
+      },
+    }).as('staleEditConflict');
+
+    editSubscriptionPage.visit(subscriptionName);
+    editSubscriptionPage.findDescriptionInput().clear().type('Stale edit attempt');
+    editSubscriptionPage.findSaveButton().click();
+
+    cy.wait('@staleEditConflict');
+    editSubscriptionPage.findSubmitError().should('contain.text', conflictMessage);
+    editSubscriptionPage.findSubmitError().should('contain.text', 'Unable to save subscription');
+    cy.url().should('include', `/maas/maas-governance/subscriptions/edit/${subscriptionName}`);
   });
 
   it('should show policy warning when groups are changed', () => {
