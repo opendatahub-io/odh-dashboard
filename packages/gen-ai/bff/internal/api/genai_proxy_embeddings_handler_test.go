@@ -344,6 +344,36 @@ var _ = Describe("GenAIProxyNSEmbeddingsHandler", func() {
 		assert.Equal(t, "team/embed", upstreamModel)
 	})
 
+	It("should fail closed on unprefixed provider-qualified references", func() {
+		t := GinkgoT()
+		// OGX never sends this form — it forwards provider_resource_id (the bare
+		// native ID) on every path — but if an unprefixed provider-qualified
+		// reference ("endpoint-1/embedding-model" meaning provider endpoint-1's
+		// model embedding-model) ever arrived, the native-ID lookup must miss and
+		// the request must fail closed with a 404 rather than being split-matched
+		// to the provider. A clean miss cannot misroute embeddings to another
+		// configured endpoint.
+		var upstreamHits int
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			upstreamHits++
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer upstream.Close()
+
+		app.kubernetesClientFactory = &proxyCredentialsK8sFactory{client: &proxyCredentialsK8sClient{
+			externalModelsConfig: customEndpointConfig(upstream.URL, "endpoint-1", "embedding-model", "", ""),
+		}}
+		app.httpClient = upstream.Client()
+
+		req := embeddingProxyRequest(`{"model":"endpoint-1/embedding-model","input":"test"}`, "test-token")
+		rr := httptest.NewRecorder()
+		app.GenAIProxyNSEmbeddingsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code,
+			"a provider-qualified reference is not a native model ID and must fail closed")
+		assert.Equal(t, 0, upstreamHits, "the provider must not receive a request for a provider-qualified reference")
+	})
+
 	It("should append /v1 to base URLs that do not already end in /v1", func() {
 		t := GinkgoT()
 		var upstreamPath string
