@@ -55,6 +55,11 @@ serviceAccount:
 rbac:
   create: true
 
+# Least-privilege ingress NetworkPolicy for the controller pod (metrics :8443 from monitoring
+# namespaces, health probes :8081). Satisfies HPSTRAT-104 / operand contract RHOAIENG-90747.
+networkPolicy:
+  enabled: true
+
 webhook:
   enabled: false
   port: 9443
