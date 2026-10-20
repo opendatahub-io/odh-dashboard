@@ -6,8 +6,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
 	"testing"
+	"time"
 )
 
 // === ForwardURL ===
@@ -428,5 +430,44 @@ func TestForwardURL_DeadForwardDetection(t *testing.T) {
 
 	if exists {
 		t.Error("dead forward was not removed from cache")
+	}
+}
+
+// === contextDialer ===
+
+// TestContextDialer_CanceledContext verifies the dialer propagates its context
+// into the SPDY upgrade request, so an expired startup deadline aborts the dial
+// instead of hanging indefinitely.
+func TestContextDialer_CanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	target, err := url.Parse("https://kubernetes.default.svc.cluster.local/api/v1/namespaces/test/pods/test-pod/portforward")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The upgrader is nil on purpose: with a canceled context, client.Do fails
+	// before negotiation, so the upgrader is never invoked.
+	d := &contextDialer{
+		ctx:    ctx,
+		client: &http.Client{Transport: http.DefaultTransport},
+		method: http.MethodPost,
+		url:    target,
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, _, dialErr := d.Dial("SPDY/3.1")
+		done <- dialErr
+	}()
+
+	select {
+	case dialErr := <-done:
+		if dialErr == nil {
+			t.Fatal("expected dial with canceled context to fail")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("dial with canceled context did not return — context is not propagated into the upgrade request")
 	}
 }

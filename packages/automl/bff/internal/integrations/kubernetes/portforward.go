@@ -9,15 +9,19 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/sync/singleflight"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
+
+const portForwardStartupTimeout = 30 * time.Second
 
 // PortForwardManager manages on-demand port-forwards to in-cluster services.
 //
@@ -42,6 +46,24 @@ type activeForward struct {
 	localPort uint16
 	stopChan  chan struct{}
 	errChan   chan error
+}
+
+// contextDialer preserves cancellation and startup deadlines while the Kubernetes
+// SPDY dialer upgrades the port-forward connection.
+type contextDialer struct {
+	ctx      context.Context
+	upgrader spdy.Upgrader
+	client   *http.Client
+	method   string
+	url      *url.URL
+}
+
+func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string, error) {
+	req, err := http.NewRequestWithContext(d.ctx, d.method, d.url.String(), nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating port-forward request: %w", err)
+	}
+	return spdy.Negotiate(d.upgrader, d.client, req, protocols...)
 }
 
 // NewPortForwardManager creates a manager using the provided rest.Config and clientset.
@@ -135,12 +157,17 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 
 		m.logger.Info("establishing port-forward", "key", key)
 
-		podName, err := m.resolvePod(ctx, namespace, serviceName)
+		// Bound the whole startup path: a forward that never becomes ready must
+		// not hang this request — and every request coalesced behind it — forever.
+		startupCtx, cancel := context.WithTimeout(ctx, portForwardStartupTimeout)
+		defer cancel()
+
+		podName, err := m.resolvePod(startupCtx, namespace, serviceName)
 		if err != nil {
 			return nil, fmt.Errorf("resolving pod for %s/%s: %w", namespace, serviceName, err)
 		}
 
-		fwd, err := m.createForward(namespace, podName, remotePort)
+		fwd, err := m.createForward(startupCtx, namespace, podName, remotePort)
 		if err != nil {
 			return nil, fmt.Errorf("creating port-forward %s: %w", key, err)
 		}
@@ -178,7 +205,8 @@ func (m *PortForwardManager) resolvePod(ctx context.Context, namespace, serviceN
 }
 
 // createForward establishes a port-forward to a pod and waits for it to be ready.
-func (m *PortForwardManager) createForward(namespace, podName string, remotePort int) (*activeForward, error) {
+// The context bounds startup only — once ready, the forward runs until stopped.
+func (m *PortForwardManager) createForward(ctx context.Context, namespace, podName string, remotePort int) (*activeForward, error) {
 	reqURL := m.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(namespace).
@@ -191,7 +219,17 @@ func (m *PortForwardManager) createForward(namespace, podName string, remotePort
 		return nil, fmt.Errorf("creating SPDY round tripper: %w", err)
 	}
 
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, reqURL)
+	client := &http.Client{Transport: transport, Timeout: portForwardStartupTimeout}
+	if deadline, ok := ctx.Deadline(); ok {
+		client.Timeout = time.Until(deadline)
+	}
+	dialer := &contextDialer{
+		ctx:      ctx,
+		upgrader: upgrader,
+		client:   client,
+		method:   http.MethodPost,
+		url:      reqURL,
+	}
 
 	stopChan := make(chan struct{})
 	readyChan := make(chan struct{})
@@ -209,7 +247,15 @@ func (m *PortForwardManager) createForward(namespace, podName string, remotePort
 	}()
 
 	select {
+	case <-ctx.Done():
+		close(stopChan)
+		return nil, fmt.Errorf("waiting for port-forward startup: %w", ctx.Err())
+
 	case <-readyChan:
+		if err := ctx.Err(); err != nil {
+			close(stopChan)
+			return nil, fmt.Errorf("waiting for port-forward startup: %w", err)
+		}
 		forwardedPorts, err := fw.GetPorts()
 		if err != nil || len(forwardedPorts) == 0 {
 			close(stopChan)
