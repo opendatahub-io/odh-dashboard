@@ -2684,13 +2684,6 @@ components:
         type: string
       required: false
       description: Kubernetes namespace to scope the request (optional)
-    catalogNamespace:
-      in: query
-      name: catalogNamespace
-      schema:
-        type: string
-      required: false
-      description: Namespace where the Model Catalog service is deployed; used for catalog service discovery
     namespaceRequired:
       in: query
       name: namespace

@@ -11,6 +11,7 @@ import type {
 jest.mock('@odh-dashboard/ui-core/hooks/useFetchState', () => ({
   __esModule: true,
   default: jest.fn(),
+  NotReadyError: class NotReadyError extends Error {},
 }));
 
 jest.mock('../../api', () => ({
@@ -122,5 +123,16 @@ describe('useSecurityArtifacts', () => {
       25,
       {},
     );
+  });
+
+  it('should keep loading without fetching while the namespace is unresolved', async () => {
+    testHook(useSecurityArtifacts)('my-source', 'my-model', '');
+
+    const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
+      (opts: unknown) => Promise<CatalogSecurityArtifactList>,
+    ];
+
+    await expect(fetchCallback({})).rejects.toThrow('Catalog instances namespace is not resolved');
+    expect(mockGetCatalogSecurityArtifacts).not.toHaveBeenCalled();
   });
 });

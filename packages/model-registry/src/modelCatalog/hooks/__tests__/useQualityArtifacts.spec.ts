@@ -11,6 +11,7 @@ import type {
 jest.mock('@odh-dashboard/ui-core/hooks/useFetchState', () => ({
   __esModule: true,
   default: jest.fn(),
+  NotReadyError: class NotReadyError extends Error {},
 }));
 
 jest.mock('../../api', () => ({
@@ -118,5 +119,38 @@ describe('useQualityArtifacts', () => {
       'Catalog quality artifacts pagination returned a repeated page token.',
     );
     expect(mockGetCatalogQualityArtifacts).toHaveBeenCalledTimes(2);
+  });
+
+  it('should reject when pagination exceeds the page limit without completing', async () => {
+    let page = 0;
+    mockGetCatalogQualityArtifacts.mockImplementation(() => {
+      page += 1;
+      return Promise.resolve({
+        items: [makeArtifact(`Benchmark ${page}`, 0.9)],
+        nextPageToken: `page-${page + 1}`,
+      });
+    });
+
+    testHook(useQualityArtifacts)('my-source', 'my-model', 'my-ns', 25);
+
+    const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
+      (opts: unknown) => Promise<CatalogQualityArtifactList>,
+    ];
+
+    await expect(fetchCallback({})).rejects.toThrow(
+      'Catalog quality artifacts pagination exceeded 100 pages without completing.',
+    );
+    expect(mockGetCatalogQualityArtifacts).toHaveBeenCalledTimes(100);
+  });
+
+  it('should keep loading without fetching while the namespace is unresolved', async () => {
+    testHook(useQualityArtifacts)('my-source', 'my-model', '');
+
+    const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
+      (opts: unknown) => Promise<CatalogQualityArtifactList>,
+    ];
+
+    await expect(fetchCallback({})).rejects.toThrow('Catalog instances namespace is not resolved');
+    expect(mockGetCatalogQualityArtifacts).not.toHaveBeenCalled();
   });
 });

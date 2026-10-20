@@ -23,8 +23,11 @@ const VISIBILITY_REQUEST_TIMEOUT_MS = 10_000;
 /**
  * Probes the model-registry BFF for catalog artifacts to decide whether an
  * insights tab should be shown. Returns false on 403/404 (no artifacts the user
- * can see) and fails closed while the namespace is unresolved — the predicate
- * re-runs when the component props change and the namespace resolves.
+ * can see). While the namespace is unresolved the predicate stays pending —
+ * ExtensibleDetailTabs keeps non-active tabs hidden and retains the active
+ * (deep-linked) tab while a predicate is pending, so an unresolved namespace
+ * cannot redirect a deep link away before the predicate re-runs once the
+ * namespace prop resolves.
  */
 const hasCatalogArtifacts = async (
   props: Record<string, unknown>,
@@ -37,9 +40,11 @@ const hasCatalogArtifacts = async (
   }
 
   if (typeof namespace !== 'string') {
-    // The namespace (AI Hub instances namespace) is not resolved yet — hide the tab for now.
-    // The predicate re-runs when the namespace prop changes and resolves.
-    return false;
+    // The namespace (AI Hub instances namespace) is not resolved yet — stay pending
+    // instead of resolving false so an active deep-linked tab is not redirected to
+    // another tab before the namespace resolves and the predicate re-runs.
+    // eslint-disable-next-line @typescript-eslint/no-empty-function -- an executor that never settles keeps the predicate pending
+    return new Promise<boolean>(() => {});
   }
 
   const controller = new AbortController();

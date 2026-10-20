@@ -70,18 +70,31 @@ describe('model catalog detail tab extensions', () => {
     );
   });
 
-  it('hides artifact visibility without a resolved namespace', async () => {
+  it('keeps artifact visibility pending while the namespace is unresolved', async () => {
     const fetchMock = jest.fn();
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
     const shouldShow = qualityInsightsExtension?.properties.shouldShow;
 
-    await expect(
-      shouldShow?.({
-        sourceId: 'source-1',
-        modelName: 'repo/model',
-      }),
-    ).resolves.toBe(false);
+    // The predicate must stay pending (not resolve false) so ExtensibleDetailTabs
+    // retains an active deep-linked tab instead of redirecting it away before the
+    // namespace resolves and the predicate re-runs.
+    const result = shouldShow?.({ sourceId: 'source-1', modelName: 'repo/model' });
+    expect(result).toBeInstanceOf(Promise);
 
+    let settled = false;
+    void (result as Promise<boolean>).then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    await new Promise((resolve) => {
+      setTimeout(resolve, 10);
+    });
+
+    expect(settled).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
