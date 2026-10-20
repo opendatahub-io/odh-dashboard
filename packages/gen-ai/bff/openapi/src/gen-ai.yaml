@@ -4809,6 +4809,7 @@ components:
     # LlamaStack Distribution Schema
     LlamaStackDistributionModel:
       type: object
+      nullable: true
       required:
         - name
         - phase
@@ -6669,7 +6670,6 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/LlamaStackDistributionModel'
-                nullable: true
             example:
               data:
                 name: 'test-lsd'
