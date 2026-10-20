@@ -47,6 +47,8 @@ type Service interface {
 
 	// DSPA
 	DiscoverReadyDSPA(ctx context.Context, namespace string) (*DiscoveredDSPA, error)
+	// GetDSPAStatus reports live (uncached) DSPA readiness — see status.go.
+	GetDSPAStatus(ctx context.Context, namespace string) (*DSPAStatus, error)
 
 	// Managed Pipelines
 	EnableManagedPipelines(ctx context.Context, namespace string) (*EnableManagedPipelinesResult, error)

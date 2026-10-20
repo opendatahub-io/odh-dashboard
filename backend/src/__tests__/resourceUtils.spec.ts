@@ -1,4 +1,5 @@
 import {
+  getAIHub,
   isRHOAI,
   clusterExtensionToSubscriptionStatus,
   getCSVForApp,
@@ -11,6 +12,7 @@ import {
   ClusterExtensionKind,
   OdhApplication,
   SubscriptionStatusData,
+  KubeFastifyInstance,
 } from '../types';
 
 describe('resourceUtils', () => {
@@ -282,6 +284,17 @@ describe('resourceUtils', () => {
         'redhat-ods-operator',
         'clusterserviceversions',
         'rhods-operator.v2.19.0',
+      );
+    });
+  });
+
+  describe('getAIHub', () => {
+    const mockFastify = { log: { debug: jest.fn() } } as unknown as KubeFastifyInstance;
+
+    it('returns undefined and logs at debug level when no AIHub CR is available', () => {
+      expect(getAIHub(mockFastify)).toBeUndefined();
+      expect(mockFastify.log.debug).toHaveBeenCalledWith(
+        'Tried to use AIHub before ResourceWatcher could successfully fetch it',
       );
     });
   });

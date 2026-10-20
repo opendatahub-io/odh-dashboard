@@ -16,10 +16,10 @@ describe('CuratedSuiteCategories', () => {
 
     expect(screen.getByTestId('curated-suite-categories')).toBeInTheDocument();
     expect(screen.queryByTestId('curated-suite-categories-logo')).not.toBeInTheDocument();
-    expect(screen.getByText('Red Hat validated benchmark suites')).toBeInTheDocument();
+    expect(screen.getByText('Red Hat validated collections')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Explore benchmark suites validated by Red Hat for evaluating models and agents.',
+        'Explore collections validated by Red Hat for evaluating models and agents.',
       ),
     ).toBeInTheDocument();
     // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.

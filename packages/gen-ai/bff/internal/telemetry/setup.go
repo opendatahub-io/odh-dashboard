@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -24,6 +25,26 @@ import (
 
 const defaultServiceName = "gen-ai-bff"
 
+// otlpTracesPath is the OTLP/HTTP signal path served by the OTel collector.
+const otlpTracesPath = "/v1/traces"
+
+// normalizeOTLPEndpointURL ensures the endpoint URL targets the OTLP traces
+// path. Since otel-go v1.45, a pathless URL passed to WithEndpointURL is
+// mapped to "/" instead of the default "/v1/traces" (see upstream
+// TestWithEndpointURLNoPathUsesRootPath), and collectors reject POST / with
+// 404 — silently dropping every BFF span batch. Append the signal path when
+// the endpoint has none; endpoints that already carry a path are kept as-is.
+func normalizeOTLPEndpointURL(endpoint string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil || u.Host == "" {
+		return endpoint
+	}
+	if u.Path == "" || u.Path == "/" {
+		u.Path = otlpTracesPath
+	}
+	return u.String()
+}
+
 // Setup initialises the OpenTelemetry TracerProvider with an OTLP/HTTP exporter.
 // The collector endpoint is resolved in this order:
 //  1. OTEL_EXPORTER_OTLP_ENDPOINT env var (local dev override)
@@ -43,6 +64,8 @@ func Setup(logger *slog.Logger) func(context.Context) error {
 		return func(context.Context) error { return nil }
 	}
 	ctx := context.Background()
+
+	endpoint = normalizeOTLPEndpointURL(endpoint)
 
 	exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
 	if err != nil {

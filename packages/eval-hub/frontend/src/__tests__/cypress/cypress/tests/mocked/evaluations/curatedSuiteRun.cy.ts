@@ -94,7 +94,7 @@ const prepareRunForm = () => {
     .findRunDescription()
     .should(
       'contain.text',
-      'An unchanged copy of this benchmark suite will be reused if one already exists in your project; otherwise, it will be copied before the evaluation starts.',
+      'An unchanged copy of this collection will be reused if one already exists in your project; otherwise, it will be copied before the evaluation starts.',
     );
   startEvaluationRunPage.findModelPickerToggle().click();
   startEvaluationRunPage.findExternalModelOption().click();
@@ -249,7 +249,7 @@ describe('Curated benchmark suite Run CTA', () => {
 
     cy.wait(['@cloneCuratedSuite', '@createCuratedSuiteRun', '@deleteCopiedSuite']);
     startEvaluationRunPage
-      .findNotificationTitle('Failed to start evaluation and remove copied suite')
+      .findNotificationTitle('Failed to start evaluation and remove copied collection')
       .should('exist');
     startEvaluationRunPage.findNotificationMessage(/Cleanup error:/).should('exist');
   });
@@ -320,7 +320,7 @@ describe('Curated benchmark suite Run CTA', () => {
 
     cy.wait('@tenantCollectionsFailure');
     startEvaluationRunPage
-      .findNotificationTitle('Failed to find existing suite copy')
+      .findNotificationTitle('Failed to find existing collection copy')
       .should('exist');
     cy.get('@unexpectedClone.all').should('have.length', 0);
     cy.get('@unexpectedRun.all').should('have.length', 0);

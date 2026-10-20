@@ -747,6 +747,11 @@ describe('API Keys Page', () => {
     copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
     copyApiKeyModal.findCloseButton().should('be.enabled').click();
     copyApiKeyModal.shouldBeOpen(false);
+    copyApiKeyModal.findCloseButton().should('be.disabled');
+    copyApiKeyModal.findCopiedAcknowledgement().should('exist');
+    copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
+    copyApiKeyModal.findCloseButton().should('be.enabled').click();
+    copyApiKeyModal.shouldBeOpen(false);
   });
 
   it('should create an API key with an on-date expiration', () => {
@@ -846,24 +851,22 @@ describe('API Keys Page', () => {
         object: 'list',
         data: [
           {
-            id: 'granite-3-8b-instruct',
+            id: 'publishers/maas-models/models/granite-3-8b-instruct',
             object: 'model',
             created: 1714521600,
             // eslint-disable-next-line camelcase
-            owned_by: 'maas-models/granite-3-8b-instruct',
+            owned_by: 'ibm',
             ready: true,
             url: 'https://example.com/models/granite-3-8b-instruct',
-            subscriptions: [{ name: 'premium-team-sub' }],
           },
           {
-            id: 'flan-t5-small',
+            id: 'publishers/maas-models/models/flan-t5-small',
             object: 'model',
             created: 1672531200,
             // eslint-disable-next-line camelcase
-            owned_by: 'maas-models/flan-t5-small',
+            owned_by: 'google',
             ready: true,
             url: 'https://example.com/models/flan-t5-small',
-            subscriptions: [{ name: 'premium-team-sub' }],
           },
         ],
       },
@@ -891,9 +894,12 @@ describe('API Keys Page', () => {
 
     copyApiKeyModal.shouldBeOpen();
     cy.wait('@getMaaSModels');
+    cy.wait('@getMaaSModels');
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
 
+    copyApiKeyModal.findAccessDetails().should('exist');
+    copyApiKeyModal.expandAccessDetails();
     copyApiKeyModal.findAccessDetails().should('exist');
     copyApiKeyModal.expandAccessDetails();
     copyApiKeyModal.findSubscriptionID().should('have.value', 'premium-team-sub');

@@ -9,8 +9,20 @@ class RuntimeCatalogDetailsPage {
     return cy.findByTestId('runtime-catalog-details');
   }
 
+  findRuntimeHeading() {
+    return this.findPage().findByRole('heading', { level: 1 });
+  }
+
   findHeading(name: string) {
     return this.findPage().findByRole('heading', { name });
+  }
+
+  findInstallAction() {
+    return this.findPage().findByTestId('runtime-image-install');
+  }
+
+  findInstallUnavailableTooltip() {
+    return cy.findByRole('tooltip');
   }
 
   findLatestBadge() {
@@ -66,6 +78,14 @@ class RuntimeCatalogDetailsPage {
       .findByTestId('runtime-container-image-copy')
       .findByRole('button', { name: 'Copy container image' })
       .click();
+  }
+
+  readServingRuntimeTemplateYAML() {
+    return this.findServingRuntimePanel().find('code').invoke('text');
+  }
+
+  readLlmInferenceServiceConfigYAML() {
+    return this.findLlmInferenceServicePanel().find('code').invoke('text');
   }
 
   copyServingRuntimeYaml() {

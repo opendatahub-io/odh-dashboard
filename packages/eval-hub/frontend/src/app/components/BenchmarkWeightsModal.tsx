@@ -132,7 +132,7 @@ const BenchmarkWeightsModal: React.FC<BenchmarkWeightsModalProps> = ({
     >
       <ModalHeader
         title="Adjust benchmark weights"
-        description="Set how much each benchmark counts toward the suite score."
+        description="Set how much each benchmark counts toward the collection score."
       />
       <ModalBody
         id="copy-suite-settings-benchmark-weights-body"

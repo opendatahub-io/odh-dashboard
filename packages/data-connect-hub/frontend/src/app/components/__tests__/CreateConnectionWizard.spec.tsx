@@ -22,11 +22,14 @@ jest.mock('~/app/api/dch', () => ({
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockTestCredentials = jest.mocked(testCredentials);
+const postgresqlConnectionTypeId = '550e8400-e29b-41d4-a716-446655440003';
+const ociConnectionTypeId = '550e8400-e29b-41d4-a716-446655440005';
+const unknownConnectionTypeId = '550e8400-e29b-41d4-a716-446655440009';
 
 const connectionTypes = [
   {
     metadata: {
-      id: 'postgresql',
+      id: postgresqlConnectionTypeId,
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-08T16:00:00Z',
     },
@@ -39,7 +42,7 @@ const connectionTypes = [
   },
   {
     metadata: {
-      id: 'oci-v1',
+      id: ociConnectionTypeId,
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-08T16:00:00Z',
     },
@@ -84,7 +87,7 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={jest.fn()}
-        initialFormData={{ data_connection_type_id: 'postgresql' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
       />,
     );
 
@@ -101,7 +104,7 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={jest.fn()}
-        initialFormData={{ data_connection_type_id: 'postgresql' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
       />,
     );
 
@@ -125,7 +128,7 @@ describe('CreateConnectionWizard', () => {
         onClose: jest.fn(),
         onCreate,
         initialFormData: {
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           credentials: {
             secret: '',
             properties: credentialProperties,
@@ -202,7 +205,7 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={jest.fn()}
-        initialFormData={{ data_connection_type_id: 'unknown' }}
+        initialFormData={{ data_connection_type_id: unknownConnectionTypeId }}
       />,
     );
 
@@ -221,7 +224,7 @@ describe('CreateConnectionWizard', () => {
         onClose={jest.fn()}
         initialFormData={{
           name: 'existing-connection',
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           credentials: {
             secret: 'existing-connection',
             properties: { URI: 'postgres://example' },
@@ -248,7 +251,7 @@ describe('CreateConnectionWizard', () => {
         onCreate={onCreate}
         initialFormData={{
           name: 'existing-connection',
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           credentials: {
             secret: 'existing-connection',
             properties: { URI: 'postgres://example' },
@@ -271,7 +274,7 @@ describe('CreateConnectionWizard', () => {
       expect(onCreate).toHaveBeenCalledWith(
         {
           name: 'existing-connection',
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           format: 'tabular',
           credentials: {
             secret: 'existing-connection',
@@ -309,7 +312,7 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={jest.fn()}
-        initialFormData={{ data_connection_type_id: 'postgresql', name: 'warehouse' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId, name: 'warehouse' }}
       />,
     );
 
@@ -326,7 +329,7 @@ describe('CreateConnectionWizard', () => {
     const props = {
       namespace: 'test-project',
       onClose,
-      initialFormData: { data_connection_type_id: 'postgresql' },
+      initialFormData: { data_connection_type_id: postgresqlConnectionTypeId },
     };
     const { rerender } = render(<CreateConnectionWizard {...props} isOpen />);
 
@@ -353,7 +356,7 @@ describe('CreateConnectionWizard', () => {
         isOpen={false}
         namespace="test-project"
         onClose={onClose}
-        initialFormData={{ data_connection_type_id: 'postgresql' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
       />,
     );
     rerender(
@@ -361,7 +364,7 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={onClose}
-        initialFormData={{ data_connection_type_id: 'postgresql' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
       />,
     );
 
@@ -373,7 +376,7 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={onClose}
-        initialFormData={{ data_connection_type_id: 'oci-v1', name: 'updated-prop' }}
+        initialFormData={{ data_connection_type_id: ociConnectionTypeId, name: 'updated-prop' }}
       />,
     );
 
@@ -390,7 +393,7 @@ describe('CreateConnectionWizard', () => {
         namespace="test-project"
         onClose={jest.fn()}
         initialFormData={{
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           properties: { region: 'east' },
         }}
       />,
@@ -424,9 +427,12 @@ describe('CreateConnectionWizard', () => {
     );
 
     await user.click(
-      within(screen.getByTestId('postgresql--ConnectionTypeCard')).getByRole('radio', {
-        hidden: true,
-      }),
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
     );
     await user.click(screen.getByRole('button', { name: 'Close wizard' }));
     expect(onClose).toHaveBeenCalled();
@@ -441,9 +447,12 @@ describe('CreateConnectionWizard', () => {
     render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
 
     await user.click(
-      within(screen.getByTestId('postgresql--ConnectionTypeCard')).getByRole('radio', {
-        hidden: true,
-      }),
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
     );
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
@@ -467,7 +476,7 @@ describe('CreateConnectionWizard', () => {
     render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
 
     await user.click(
-      within(screen.getByTestId('oci-v1--ConnectionTypeCard')).getByRole('radio', {
+      within(screen.getByTestId(`${ociConnectionTypeId}--ConnectionTypeCard`)).getByRole('radio', {
         hidden: true,
       }),
     );
@@ -491,9 +500,12 @@ describe('CreateConnectionWizard', () => {
     );
 
     await user.click(
-      within(screen.getByTestId('postgresql--ConnectionTypeCard')).getByRole('radio', {
-        hidden: true,
-      }),
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
     );
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.type(screen.getByTestId('connection-name-input'), 'warehouse');

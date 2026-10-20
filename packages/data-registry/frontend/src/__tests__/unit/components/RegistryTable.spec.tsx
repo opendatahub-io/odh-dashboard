@@ -1,11 +1,17 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import RegistryTable from '~/app/components/RegistryTable';
 import { RegistryAsset } from '~/app/hooks/useAssets';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
 import { mockRhaiConnection } from '~/__mocks__/mockConnection';
+import * as trackingHook from '~/app/hooks/useDataRegistryTrackEvent';
+
+jest.mock('~/app/hooks/useDataRegistryTrackEvent');
+jest.mock('~/app/components/EditAssetModal', () => () => null);
+const mockTrackEvent = jest.fn();
 
 const mockAssets: RegistryAsset[] = [
   {
@@ -38,33 +44,47 @@ const mockAssets: RegistryAsset[] = [
 
 const mockLabels = ['production', 'claims', 'source-docs'];
 
-const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>) =>
-  render(
+type RegistryTableProps = React.ComponentProps<typeof RegistryTable>;
+
+const renderTable = (props?: Partial<RegistryTableProps>) => {
+  const defaultProps: RegistryTableProps = {
+    assets: mockAssets,
+    loaded: true,
+    error: undefined,
+    labels: mockLabels,
+    project: 'test-project',
+    connections: [
+      mockRhaiConnection({
+        secret_name: 'minio-connection',
+        name: 'Minio connection',
+        connectionType: 's3',
+      }),
+    ],
+    connectionsLoaded: true,
+    onManageCollections: jest.fn(),
+    onManageLabels: jest.fn(),
+    onRegisterData: jest.fn(),
+    onRetry: jest.fn(),
+  };
+  const renderView = (nextProps: Partial<RegistryTableProps>) => (
     <MemoryRouter>
-      <RegistryTable
-        assets={mockAssets}
-        loaded
-        error={undefined}
-        labels={mockLabels}
-        project="test-project"
-        connections={[
-          mockRhaiConnection({
-            secret_name: 'minio-connection',
-            name: 'Minio connection',
-            connectionType: 's3',
-          }),
-        ]}
-        connectionsLoaded
-        onManageCollections={jest.fn()}
-        onManageLabels={jest.fn()}
-        onRegisterData={jest.fn()}
-        onRetry={jest.fn()}
-        {...props}
-      />
-    </MemoryRouter>,
+      <RegistryTable {...defaultProps} {...nextProps} />
+    </MemoryRouter>
   );
+  const rendered = render(renderView(props ?? {}));
+  return {
+    ...rendered,
+    rerenderTable: (nextProps: Partial<RegistryTableProps>) =>
+      rendered.rerender(renderView({ ...props, ...nextProps })),
+  };
+};
 
 describe('RegistryTable', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.mocked(trackingHook.useDataRegistryTrackEvent).mockReturnValue(mockTrackEvent);
+  });
+
   it('should render asset names', () => {
     renderTable();
     expect(screen.getByText('claims-data')).toBeTruthy();
@@ -75,6 +95,20 @@ describe('RegistryTable', () => {
     renderTable();
     expect(screen.getByText('Apache Parquet')).toBeTruthy();
     expect(screen.getByText('Documents')).toBeTruthy();
+    expect(screen.getByText('Structured')).toBeTruthy();
+    expect(screen.getByText('Unstructured')).toBeTruthy();
+  });
+
+  it('should explain the asset location column', () => {
+    renderTable();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Asset location information' }));
+
+    expect(
+      screen.getByText(
+        'This column shows the connection or path for each data asset. If both are specified, the connection is shown.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('should render labels', () => {
@@ -122,12 +156,13 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('registry-empty-state')).toBeTruthy();
     expect(screen.getByTestId('registry-empty-state-image')).toBeTruthy();
     expect(screen.getByTestId('registry-empty-state-description')).toHaveTextContent(
-      'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.',
+      'To help users in your organization discover and understand external data, create a data asset. Data assets are metadata records that store information like location, format, and schema, but not the data itself.',
     );
     expect(screen.getByRole('heading', { name: 'No data assets' })).toBeInTheDocument();
     expect(screen.getByTestId('registry-toolbar')).toHaveClass('pf-v6-u-display-none');
     expect(screen.queryByRole('columnheader', { name: 'Name' })).toBeNull();
     expect(screen.getByTestId('empty-register-data-button')).toBeTruthy();
+    expect(screen.getByTestId('registry-table')).toHaveClass('pf-m-no-border-rows');
   });
 
   it('should show the filtered empty state when filters match no assets', () => {
@@ -147,6 +182,9 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('filter-value')).toBeTruthy();
     expect(screen.getByTestId('asset-search')).toBeTruthy();
     expect(screen.getByTestId('register-data-button')).toBeTruthy();
+    expect(screen.getByTestId('asset-search')).toHaveClass(
+      'odh-data-registry-registry-table__search',
+    );
     expect(screen.getByTestId('registry-toolbar')).toContainElement(
       screen.getByTestId('registry-pagination'),
     );
@@ -230,6 +268,137 @@ describe('RegistryTable', () => {
     expect(screen.queryByText('claims-data')).toBeNull();
   });
 
+  it('should track settled search once with the count after active filters and clear immediately', () => {
+    jest.useFakeTimers();
+    try {
+      renderTable();
+      fireEvent.click(screen.getByTestId('filter-value'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'source-docs' }));
+      const searchInput = screen.getByTestId('asset-search').querySelector('input')!;
+
+      fireEvent.change(searchInput, { target: { value: 'docs' } });
+      act(() => jest.advanceTimersByTime(749));
+      expect(mockTrackEvent).not.toHaveBeenCalled();
+      act(() => jest.advanceTimersByTime(1));
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Data Registry Search Performed',
+        properties: { hasQuery: true, queryLength: 4, resultCount: 1, project: 'test-project' },
+      });
+
+      fireEvent.change(searchInput, { target: { value: '' } });
+      expect(mockTrackEvent).toHaveBeenCalledTimes(2);
+      expect(mockTrackEvent).toHaveBeenLastCalledWith({
+        eventName: 'Data Registry Search Performed',
+        properties: { hasQuery: false, queryLength: 0, resultCount: 1, project: 'test-project' },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should not track filter changes as search events', () => {
+    jest.useFakeTimers();
+    try {
+      renderTable();
+      fireEvent.click(screen.getByTestId('filter-value'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'source-docs' }));
+      act(() => jest.advanceTimersByTime(750));
+      expect(mockTrackEvent).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should count refreshed assets when the search debounce settles', () => {
+    jest.useFakeTimers();
+    try {
+      const { rerenderTable } = renderTable({ assets: [mockAssets[0]] });
+      fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+        target: { value: 'docs' },
+      });
+
+      rerenderTable({ assets: [mockAssets[1]] });
+      act(() => jest.advanceTimersByTime(750));
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Data Registry Search Performed',
+        properties: { hasQuery: true, queryLength: 4, resultCount: 1, project: 'test-project' },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should cancel a pending search event when the project changes', () => {
+    jest.useFakeTimers();
+    try {
+      const { rerenderTable } = renderTable();
+      fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+        target: { value: 'claims' },
+      });
+
+      rerenderTable({ project: 'other-project' });
+      act(() => jest.advanceTimersByTime(750));
+
+      expect(mockTrackEvent).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should count the active filters when the search debounce settles', () => {
+    jest.useFakeTimers();
+    try {
+      renderTable();
+      fireEvent.change(screen.getByTestId('asset-search').querySelector('input')!, {
+        target: { value: 'data' },
+      });
+      fireEvent.click(screen.getByTestId('filter-value'));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'source-docs' }));
+
+      act(() => jest.advanceTimersByTime(750));
+
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Data Registry Search Performed',
+        properties: { hasQuery: true, queryLength: 4, resultCount: 0, project: 'test-project' },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should track asset open, edit, and delete initiation without an asset name', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    await user.click(screen.getByRole('link', { name: 'claims-data' }));
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Asset Opened',
+      properties: { project: 'test-project' },
+    });
+
+    await user.click(screen.getByTestId('asset-actions-table-analytics-claims-data'));
+    expect(screen.getByTestId('asset-edit-table-analytics-claims-data')).toBeVisible();
+    await user.click(
+      within(screen.getByTestId('asset-edit-table-analytics-claims-data')).getByRole('menuitem'),
+    );
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Asset Edit Initiated',
+      properties: { project: 'test-project' },
+    });
+
+    await user.click(screen.getByTestId('asset-actions-table-analytics-claims-data'));
+    await user.click(
+      within(screen.getByTestId('asset-delete-table-analytics-claims-data')).getByRole('menuitem'),
+    );
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Asset Delete Initiated',
+      properties: { project: 'test-project' },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledTimes(3);
+  });
+
   it('should render kebab menu', () => {
     renderTable();
     expect(screen.getByTestId('registry-kebab')).toBeTruthy();
@@ -245,6 +414,16 @@ describe('RegistryTable', () => {
     );
     expect(screen.getByTestId('asset-delete-table-analytics-claims-data')).toHaveClass(
       'pf-m-disabled',
+    );
+  });
+
+  it('styles the per-asset delete action as dangerous', () => {
+    renderTable();
+
+    fireEvent.click(screen.getByTestId('asset-actions-table-analytics-claims-data'));
+
+    expect(screen.getByTestId('asset-delete-table-analytics-claims-data')).toHaveClass(
+      'pf-m-danger',
     );
   });
 });

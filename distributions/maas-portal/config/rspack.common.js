@@ -121,7 +121,10 @@ module.exports = (overrides = {}) =>
             ],
             type: 'asset/resource',
             generator: {
-              filename: 'fonts/[name][ext]',
+              filename:
+                overrides.mode === 'production'
+                  ? 'fonts/[name].[contenthash][ext]'
+                  : 'fonts/[name][ext]',
             },
           },
         ],

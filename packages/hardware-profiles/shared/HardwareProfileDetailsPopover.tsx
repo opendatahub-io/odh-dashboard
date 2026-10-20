@@ -25,7 +25,9 @@ import {
   formatIdentifierDetails,
   sortIdentifiers,
   getLocalQueueLabel,
+  getDRAHardwareProfileDetails,
 } from './utils';
+import DRAHardwareProfileDetailsSection from './DRAHardwareProfileDetailsSection';
 
 type HardwareProfileDetailsPopoverProps = {
   localQueueName?: string;
@@ -77,8 +79,17 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   );
 
   const description = hardwareProfile && getHardwareProfileDescription(hardwareProfile);
+  const draDetails = hardwareProfile && getDRAHardwareProfileDetails(hardwareProfile);
 
   const closePopover = (event: MouseEvent | KeyboardEvent) => {
+    // A click inside a nested popover (e.g. the claim template's resource name) is not an outside click.
+    if (
+      event instanceof MouseEvent &&
+      event.target instanceof Element &&
+      event.target.closest('[data-resource-name-popover]')
+    ) {
+      return;
+    }
     setIsPopoverVisible(false);
     if (event instanceof KeyboardEvent) {
       requestAnimationFrame(() => triggerRef.current?.focus());
@@ -129,6 +140,11 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
                     )}
                   </StackItem>
                 ))}
+              {draDetails && (
+                <StackItem>
+                  <DRAHardwareProfileDetailsSection details={draDetails} />
+                </StackItem>
+              )}
             </>
           ) : noHpTableView ? (
             <StackItem>

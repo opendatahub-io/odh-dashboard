@@ -1,7 +1,7 @@
 import { appChrome } from './appChrome';
 import { SearchSelector } from './components/subComponents/SearchSelector';
 
-const AGENT_OBSERVABILITY_PATH = '/observe-and-monitor/agent-observability';
+const AGENT_OBSERVABILITY_PATH = '/observe-and-monitor/agent-traces';
 
 class AgentObservability {
   projectDropdown = new SearchSelector('project-selector');
@@ -34,7 +34,7 @@ class AgentObservability {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'Agent observability',
+      name: 'Agent traces',
       rootSection: 'Observe & monitor',
     });
   }

@@ -48,7 +48,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
     >
       <StackItem>
         <Title headingLevel="h2" size="lg">
-          My benchmark suites
+          My benchmark collections
         </Title>
       </StackItem>
       <StackItem>
@@ -59,7 +59,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
           maxVisibleCollections={MAX_VISIBLE_BENCHMARK_SUITES}
           showSummary
           useMockFallback={false}
-          primaryActionLabel="Run benchmark suite"
+          primaryActionLabel="Run"
           createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
           createSuiteRouteState={evaluationEvaluateNavigationState}
           onPrimaryAction={onRunCollection}
