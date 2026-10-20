@@ -1,4 +1,4 @@
-import { isPercentageMetric, formatMetricValue } from '~/app/utilities/evaluationUtils';
+import { isPercentageMetric, formatMetricValue } from './utils';
 import { formatRate } from './securityInsightsTypes';
 
 type MetadataStringValue = {
@@ -56,7 +56,6 @@ export type QualityInsightsViewProps = {
   sourceId: string;
   modelName: string;
   namespace: string;
-  catalogNamespace?: string;
 };
 
 export type QualityInsight = {
@@ -68,21 +67,6 @@ export type QualityInsight = {
   benchmarkDescription: string;
   score: number | undefined;
   result: string;
-  createdAt?: string;
-};
-
-const getArtifactCreatedAt = (artifact: CatalogQualityArtifact): string | undefined => {
-  const customCreatedAt = artifact.customProperties?.created_at?.string_value;
-  if (customCreatedAt && !Number.isNaN(new Date(customCreatedAt).getTime())) {
-    return customCreatedAt;
-  }
-
-  if (!artifact.createTimeSinceEpoch) {
-    return undefined;
-  }
-
-  const date = new Date(Number(artifact.createTimeSinceEpoch));
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 };
 
 export const mapArtifactToQualityInsight = (artifact: CatalogQualityArtifact): QualityInsight => {
@@ -91,19 +75,17 @@ export const mapArtifactToQualityInsight = (artifact: CatalogQualityArtifact): Q
   const resultMetric = props?.result_metric?.string_value;
   const result = props?.result?.double_value;
   const validResult = typeof result === 'number' && Number.isFinite(result) ? result : undefined;
-  const createdAt = getArtifactCreatedAt(artifact);
 
   const formattedResult =
     validResult === undefined
       ? ''
       : isPercentageMetric(resultMetric)
-        ? formatRate(validResult)
-        : formatMetricValue(validResult, resultMetric);
+      ? formatRate(validResult)
+      : formatMetricValue(validResult, resultMetric);
 
   return {
     ...(id ? { id } : {}),
     ...(resultMetric ? { resultMetric } : {}),
-    ...(createdAt ? { createdAt } : {}),
     evaluation: props?.evaluation?.string_value ?? '',
     category: props?.category?.string_value ?? '',
     benchmarkName: props?.benchmark?.string_value ?? '',

@@ -1,9 +1,10 @@
 /* eslint-disable camelcase */
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import * as React from 'react';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import type { SecurityInsight } from '~/app/pages/modelCatalog/securityInsightsTypes';
+import { SECURITY_INSIGHTS_EVENTS } from '../tracking';
+import type { SecurityInsight } from '../securityInsightsTypes';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
@@ -37,7 +38,7 @@ let mockLoaded = true;
 let mockLoadError: Error | undefined;
 let mockInsightsData = mockInsights;
 
-jest.mock('~/app/hooks/useSecurityArtifacts', () => ({
+jest.mock('../hooks/useSecurityArtifacts', () => ({
   __esModule: true,
   default: () => ({
     insights: mockInsightsData,
@@ -55,7 +56,7 @@ jest.mock('@odh-dashboard/internal/components/table/TableRowTitleDescription', (
   };
 });
 
-jest.mock('~/app/pages/modelCatalog/SecurityInsightsEmptyState', () => {
+jest.mock('../SecurityInsightsEmptyState', () => {
   const { createElement } = require('react');
   return {
     __esModule: true,
@@ -65,17 +66,16 @@ jest.mock('~/app/pages/modelCatalog/SecurityInsightsEmptyState', () => {
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 
+import SecurityInsightsView from '../SecurityInsightsView';
+
 const renderView = (props?: Partial<{ sourceId: string; modelName: string; namespace: string }>) =>
-  import('~/app/pages/modelCatalog/SecurityInsightsView').then(
-    ({ default: SecurityInsightsView }) =>
-      render(
-        React.createElement(SecurityInsightsView, {
-          sourceId: 'src-1',
-          modelName: 'test-model',
-          namespace: 'test-ns',
-          ...props,
-        }),
-      ),
+  render(
+    React.createElement(SecurityInsightsView, {
+      sourceId: 'src-1',
+      modelName: 'test-model',
+      namespace: 'test-ns',
+      ...props,
+    }),
   );
 
 describe('SecurityInsightsView - Tracking Events', () => {
@@ -95,7 +95,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
     it('should fire viewed event when data loads successfully', async () => {
       await renderView();
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
+      expect(mockFireMisc).toHaveBeenCalledWith(SECURITY_INSIGHTS_EVENTS.VIEWED, {
         sourceId: 'src-1',
         modelName: 'test-model',
         insightCount: 3,
@@ -106,7 +106,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       await renderView();
 
       const viewedCalls = mockFireMisc.mock.calls.filter(
-        ([event]) => event === EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED,
+        ([event]) => event === SECURITY_INSIGHTS_EVENTS.VIEWED,
       );
       expect(viewedCalls).toHaveLength(1);
     });
@@ -116,7 +116,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       await renderView();
 
       expect(mockFireMisc).not.toHaveBeenCalledWith(
-        EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED,
+        SECURITY_INSIGHTS_EVENTS.VIEWED,
         expect.anything(),
       );
     });
@@ -125,7 +125,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       mockInsightsData = [];
       await renderView();
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
+      expect(mockFireMisc).toHaveBeenCalledWith(SECURITY_INSIGHTS_EVENTS.VIEWED, {
         sourceId: 'src-1',
         modelName: 'test-model',
         insightCount: 0,
@@ -150,13 +150,10 @@ describe('SecurityInsightsView - Tracking Events', () => {
 
       await selectFilterOption('Category');
 
-      expect(mockFireMisc).toHaveBeenCalledWith(
-        EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED,
-        {
-          previousFilterType: 'evaluation',
-          newFilterType: 'category',
-        },
-      );
+      expect(mockFireMisc).toHaveBeenCalledWith(SECURITY_INSIGHTS_EVENTS.FILTER_TYPE_CHANGED, {
+        previousFilterType: 'evaluation',
+        newFilterType: 'category',
+      });
     });
 
     it('should not fire when re-selecting the already active filter', async () => {
@@ -166,7 +163,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       await selectFilterOption('Evaluation Name');
 
       const filterChangeCalls = mockFireMisc.mock.calls.filter(
-        ([event]) => event === EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED,
+        ([event]) => event === SECURITY_INSIGHTS_EVENTS.FILTER_TYPE_CHANGED,
       );
       expect(filterChangeCalls).toHaveLength(0);
     });
@@ -179,7 +176,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       await selectFilterOption('Benchmark');
 
       const filterChangeCalls = mockFireMisc.mock.calls.filter(
-        ([event]) => event === EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED,
+        ([event]) => event === SECURITY_INSIGHTS_EVENTS.FILTER_TYPE_CHANGED,
       );
       expect(filterChangeCalls).toHaveLength(2);
       expect(filterChangeCalls[0][1]).toEqual({
@@ -199,11 +196,11 @@ describe('SecurityInsightsView - Tracking Events', () => {
       mockFireMisc.mockClear();
 
       const searchInput = screen.getByTestId('security-filter-text-field');
-      const input = searchInput.querySelector('input')!;
+      const input = searchInput.querySelector('input') as HTMLInputElement;
       fireEvent.change(input, { target: { value: 'Pipeline' } });
 
       expect(mockFireMisc).not.toHaveBeenCalledWith(
-        EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED,
+        SECURITY_INSIGHTS_EVENTS.FILTER_APPLIED,
         expect.anything(),
       );
 
@@ -211,7 +208,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
         jest.advanceTimersByTime(500);
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
+      expect(mockFireMisc).toHaveBeenCalledWith(SECURITY_INSIGHTS_EVENTS.FILTER_APPLIED, {
         filterType: 'evaluation',
         hasResults: true,
         resultCount: 1,
@@ -223,7 +220,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       mockFireMisc.mockClear();
 
       const searchInput = screen.getByTestId('security-filter-text-field');
-      const input = searchInput.querySelector('input')!;
+      const input = searchInput.querySelector('input') as HTMLInputElement;
       fireEvent.change(input, { target: { value: 'Pipeline' } });
 
       act(() => {
@@ -238,7 +235,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       });
 
       expect(mockFireMisc).not.toHaveBeenCalledWith(
-        EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED,
+        SECURITY_INSIGHTS_EVENTS.FILTER_APPLIED,
         expect.anything(),
       );
     });
@@ -248,14 +245,14 @@ describe('SecurityInsightsView - Tracking Events', () => {
       mockFireMisc.mockClear();
 
       const searchInput = screen.getByTestId('security-filter-text-field');
-      const input = searchInput.querySelector('input')!;
+      const input = searchInput.querySelector('input') as HTMLInputElement;
       fireEvent.change(input, { target: { value: 'nonexistent' } });
 
       act(() => {
         jest.advanceTimersByTime(500);
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
+      expect(mockFireMisc).toHaveBeenCalledWith(SECURITY_INSIGHTS_EVENTS.FILTER_APPLIED, {
         filterType: 'evaluation',
         hasResults: false,
         resultCount: 0,
@@ -269,10 +266,10 @@ describe('SecurityInsightsView - Tracking Events', () => {
       mockFireMisc.mockClear();
 
       const evaluationHeader = screen.getByRole('columnheader', { name: /^evaluation name$/i });
-      const sortButton = evaluationHeader.querySelector('button')!;
+      const sortButton = evaluationHeader.querySelector('button') as HTMLButtonElement;
       fireEvent.click(sortButton);
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED, {
+      expect(mockFireMisc).toHaveBeenCalledWith(SECURITY_INSIGHTS_EVENTS.SORT_CHANGED, {
         column: 'Evaluation',
         direction: expect.stringMatching(/^(asc|desc)$/),
       });
@@ -284,7 +281,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       await renderView();
 
       const nonViewedCalls = mockFireMisc.mock.calls.filter(
-        ([event]) => event !== EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED,
+        ([event]) => event !== SECURITY_INSIGHTS_EVENTS.VIEWED,
       );
       expect(nonViewedCalls).toHaveLength(0);
     });

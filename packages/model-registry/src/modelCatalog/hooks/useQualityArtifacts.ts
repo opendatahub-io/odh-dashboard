@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { useFetchState, FetchStateCallbackPromise, APIOptions } from 'mod-arch-core';
-import { getCatalogQualityArtifacts } from '~/app/api/k8s';
+import useFetchState, {
+  type FetchStateCallbackPromise,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { getCatalogQualityArtifacts } from '../api';
 import {
   CatalogQualityArtifactList,
   QualityInsight,
   mapArtifactToQualityInsight,
-} from '~/app/pages/modelCatalog/qualityInsightsTypes';
+} from '../qualityInsightsTypes';
 
 type UseQualityArtifactsResult = {
   insights: QualityInsight[];
@@ -43,22 +45,13 @@ const useQualityArtifacts = (
   modelName: string,
   namespace: string,
   pageSize?: number,
-  catalogNamespace?: string,
 ): UseQualityArtifactsResult => {
   const callback = React.useCallback<FetchStateCallbackPromise<CatalogQualityArtifactList>>(
-    (opts: APIOptions) =>
+    (opts) =>
       fetchAllQualityArtifacts((nextPageToken) =>
-        getCatalogQualityArtifacts(
-          '',
-          sourceId,
-          modelName,
-          namespace,
-          pageSize,
-          nextPageToken,
-          catalogNamespace,
-        )(opts),
+        getCatalogQualityArtifacts(sourceId, modelName, namespace, pageSize, nextPageToken, opts),
       ),
-    [sourceId, modelName, namespace, pageSize, catalogNamespace],
+    [sourceId, modelName, namespace, pageSize],
   );
 
   const [data, loaded, loadError] = useFetchState<CatalogQualityArtifactList>(

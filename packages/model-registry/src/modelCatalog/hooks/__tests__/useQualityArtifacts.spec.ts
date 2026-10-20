@@ -1,18 +1,19 @@
 /* eslint-disable camelcase */
-import { useFetchState } from 'mod-arch-core';
-import useQualityArtifacts from '~/app/hooks/useQualityArtifacts';
-import { getCatalogQualityArtifacts } from '~/app/api/k8s';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import useFetchState from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
+import useQualityArtifacts from '../useQualityArtifacts';
+import { getCatalogQualityArtifacts } from '../../api';
 import type {
   CatalogQualityArtifact,
   CatalogQualityArtifactList,
-} from '~/app/pages/modelCatalog/qualityInsightsTypes';
+} from '../../qualityInsightsTypes';
 
-jest.mock('mod-arch-core', () => ({
-  useFetchState: jest.fn(),
+jest.mock('@odh-dashboard/ui-core/hooks/useFetchState', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
-jest.mock('~/app/api/k8s', () => ({
+jest.mock('../../api', () => ({
   getCatalogQualityArtifacts: jest.fn(),
 }));
 
@@ -37,7 +38,7 @@ const makeArtifact = (benchmark: string, result: number): CatalogQualityArtifact
 describe('useQualityArtifacts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetCatalogQualityArtifacts.mockReturnValue(jest.fn());
+    mockGetCatalogQualityArtifacts.mockResolvedValue(emptyList);
     mockUseFetchState.mockReturnValue([emptyList, false, undefined, jest.fn()]);
   });
 
@@ -68,11 +69,9 @@ describe('useQualityArtifacts', () => {
   it('should fetch and combine all pages while preserving page size', async () => {
     const firstPage = makeArtifact('Benchmark 1', 0.92);
     const secondPage = makeArtifact('Benchmark 2', 0.81);
-    const fetchPage = jest
-      .fn()
+    mockGetCatalogQualityArtifacts
       .mockResolvedValueOnce({ items: [firstPage], nextPageToken: 'page-2' })
       .mockResolvedValueOnce({ items: [secondPage], nextPageToken: '' });
-    mockGetCatalogQualityArtifacts.mockReturnValue(fetchPage);
 
     testHook(useQualityArtifacts)('my-source', 'my-model', 'my-ns', 25);
 
@@ -83,25 +82,41 @@ describe('useQualityArtifacts', () => {
 
     expect(mockGetCatalogQualityArtifacts).toHaveBeenNthCalledWith(
       1,
-      '',
       'my-source',
       'my-model',
       'my-ns',
       25,
       undefined,
-      undefined,
+      {},
     );
     expect(mockGetCatalogQualityArtifacts).toHaveBeenNthCalledWith(
       2,
-      '',
       'my-source',
       'my-model',
       'my-ns',
       25,
       'page-2',
-      undefined,
+      {},
     );
     expect(result.items).toEqual([firstPage, secondPage]);
-    expect(fetchPage).toHaveBeenCalledTimes(2);
+    expect(mockGetCatalogQualityArtifacts).toHaveBeenCalledTimes(2);
+  });
+
+  it('should reject when pagination repeats a page token', async () => {
+    mockGetCatalogQualityArtifacts.mockResolvedValue({
+      items: [makeArtifact('Benchmark 1', 0.92)],
+      nextPageToken: 'page-2',
+    });
+
+    testHook(useQualityArtifacts)('my-source', 'my-model', 'my-ns', 25);
+
+    const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
+      (opts: unknown) => Promise<CatalogQualityArtifactList>,
+    ];
+
+    await expect(fetchCallback({})).rejects.toThrow(
+      'Catalog quality artifacts pagination returned a repeated page token.',
+    );
+    expect(mockGetCatalogQualityArtifacts).toHaveBeenCalledTimes(2);
   });
 });

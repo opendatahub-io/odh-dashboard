@@ -1,5 +1,6 @@
 import type { DetailTabExtension } from '@odh-dashboard/plugin-core/extension-points';
-import extensions from '~/odh/extensions';
+import { MODEL_CATALOG_API_PATH, QUALITY_ARTIFACT_TYPE, QUALITY_FILTER_QUERY } from '../api';
+import extensions from '../../../extensions';
 
 describe('model catalog detail tab extensions', () => {
   const securityInsightsExtension = extensions.find(
@@ -15,7 +16,7 @@ describe('model catalog detail tab extensions', () => {
     jest.restoreAllMocks();
   });
 
-  it('uses the catalog namespace for EvalHub security artifact visibility', async () => {
+  it('uses the catalog namespace for security artifact visibility', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ data: { items: [{ id: 'artifact-1' }] } }),
@@ -34,12 +35,12 @@ describe('model catalog detail tab extensions', () => {
     ).resolves.toBe(true);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/eval-hub/api/v1/catalog/sources/source-1/security_artifacts/repo%2Fmodel?pageSize=1&namespace=odh-model-registries',
+      `${MODEL_CATALOG_API_PATH}/source-1/security_artifacts/repo%2Fmodel?pageSize=1&namespace=odh-model-registries`,
       expect.objectContaining({ signal: expect.anything() }),
     );
   });
 
-  it('uses the catalog namespace for EvalHub quality artifact visibility', async () => {
+  it('uses the catalog namespace and evaluation-metrics filters for quality artifact visibility', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ data: { items: [{ id: 'artifact-1' }] } }),
@@ -57,8 +58,14 @@ describe('model catalog detail tab extensions', () => {
       }),
     ).resolves.toBe(true);
 
+    const params = new URLSearchParams({
+      pageSize: '1',
+      artifactType: QUALITY_ARTIFACT_TYPE,
+      filterQuery: QUALITY_FILTER_QUERY,
+      namespace: 'odh-model-registries',
+    });
     expect(fetchMock).toHaveBeenCalledWith(
-      '/eval-hub/api/v1/catalog/sources/source-1/quality_artifacts/repo%2Fmodel?pageSize=1&namespace=odh-model-registries',
+      `${MODEL_CATALOG_API_PATH}/source-1/artifacts/repo%2Fmodel?${params.toString()}`,
       expect.objectContaining({ signal: expect.anything() }),
     );
   });

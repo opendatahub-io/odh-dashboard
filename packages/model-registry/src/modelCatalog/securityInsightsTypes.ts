@@ -44,15 +44,10 @@ export type CatalogSecurityArtifactList = {
   items: CatalogSecurityArtifact[];
 };
 
-export type CatalogSecurityArtifactListEnvelope = {
-  data: CatalogSecurityArtifactList;
-};
-
 export type SecurityInsightsViewProps = {
   sourceId: string;
   modelName: string;
   namespace: string;
-  catalogNamespace?: string;
 };
 
 export type SecurityInsight = {

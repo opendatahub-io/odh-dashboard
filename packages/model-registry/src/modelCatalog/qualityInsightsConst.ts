@@ -1,4 +1,4 @@
-import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
+import { isPercentageMetric } from './utils';
 import { type QualityInsight } from './qualityInsightsTypes';
 
 export type QualityFilterOption = 'evaluation' | 'category' | 'benchmark';
@@ -24,8 +24,7 @@ export const QUALITY_COLUMN_NAMES: Record<number, string> = {
   0: 'Evaluation',
   1: 'Category',
   2: 'Benchmark',
-  3: 'Last run',
-  4: 'Evaluation score',
+  3: 'Evaluation score',
 };
 
 export const getQualityFilterValue = (
@@ -55,21 +54,14 @@ export const getQualitySortableValue = (
       return insight.category.toLowerCase();
     case 2:
       return insight.benchmarkName.toLowerCase();
-    case 4:
+    case 3:
       return insight.score === undefined
         ? undefined
         : isPercentageMetric(insight.resultMetric)
-          ? insight.score > 1
-            ? insight.score
-            : insight.score * 100
-          : insight.score;
-    case 3: {
-      if (!insight.createdAt) {
-        return undefined;
-      }
-      const time = Date.parse(insight.createdAt);
-      return Number.isNaN(time) ? undefined : time;
-    }
+        ? insight.score > 1
+          ? insight.score
+          : insight.score * 100
+        : insight.score;
     default:
       return '';
   }

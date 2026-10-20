@@ -7,14 +7,9 @@ import {
   Flex,
   FlexItem,
   Label,
-  MenuToggle,
-  MenuToggleElement,
   Pagination,
   PaginationVariant,
   SearchInput,
-  Select,
-  SelectList,
-  SelectOption,
   Spinner,
   Title,
   Toolbar,
@@ -25,15 +20,20 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td, ThProps } from '@patternfly/react-table';
+import SimpleSelect, {
+  type SimpleSelectOption,
+} from '@odh-dashboard/ui-core/components/SimpleSelect';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import useSecurityArtifacts from '~/app/hooks/useSecurityArtifacts';
+import useSecurityArtifacts from './hooks/useSecurityArtifacts';
 import {
   DEFAULT_TABLE_PER_PAGE,
   TABLE_PER_PAGE_OPTIONS,
-} from '~/app/utilities/tablePaginationConstants';
-import { getCategoryColor, capitalizeFirst, toTitleCase } from '~/app/components/benchmarkUtils';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+  getCategoryColor,
+  capitalizeFirst,
+  toTitleCase,
+} from './utils';
+import { SECURITY_INSIGHTS_EVENTS } from './tracking';
 import SecurityInsightsEmptyState from './SecurityInsightsEmptyState';
 import { type SecurityInsightsViewProps } from './securityInsightsTypes';
 import {
@@ -44,28 +44,29 @@ import {
   COLUMN_NAMES,
   getFilterValue,
   getSortableValue,
-} from './const';
+} from './securityInsightsConst';
 
 const SECURITY_ARTIFACTS_PAGE_SIZE = 100;
+
+const FILTER_TYPE_OPTIONS: SimpleSelectOption[] = (
+  ['evaluation', 'category', 'benchmark'] as const
+).map((key) => ({ key, label: FILTER_LABELS[key] }));
 
 const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   sourceId,
   modelName,
   namespace,
-  catalogNamespace,
 }) => {
   const { insights, loaded, loadError } = useSecurityArtifacts(
     sourceId,
     modelName,
     namespace,
     SECURITY_ARTIFACTS_PAGE_SIZE,
-    catalogNamespace,
   );
 
   const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
 
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('evaluation');
-  const [isFilterSelectOpen, setIsFilterSelectOpen] = React.useState(false);
   const [filterValue, setFilterValue] = React.useState('');
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ index: 1, direction: 'asc' });
   const [page, setPage] = React.useState(1);
@@ -101,7 +102,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   React.useEffect(() => {
     if (loaded && !viewTrackedRef.current) {
       viewTrackedRef.current = true;
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
+      fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.VIEWED, {
         sourceId,
         modelName,
         insightCount: insights.length,
@@ -115,7 +116,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     }
     const timer = setTimeout(() => {
       const currentFiltered = filteredRef.current;
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
+      fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.FILTER_APPLIED, {
         filterType: activeFilter,
         hasResults: currentFiltered.length > 0,
         resultCount: currentFiltered.length,
@@ -128,7 +129,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     sortBy: { index: sortConfig.index, direction: sortConfig.direction },
     onSort: (_event, index, direction) => {
       setSortConfig({ index, direction });
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED, {
+      fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.SORT_CHANGED, {
         column: COLUMN_NAMES[index] ?? String(index),
         direction,
       });
@@ -139,11 +140,10 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   const handleClearFilters = React.useCallback(() => setFilterValue(''), []);
 
   const handleFilterSelect = React.useCallback(
-    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
-      const key = String(value);
+    (key: string) => {
       if (key === 'evaluation' || key === 'category' || key === 'benchmark') {
         if (key !== activeFilter) {
-          fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED, {
+          fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.FILTER_TYPE_CHANGED, {
             previousFilterType: activeFilter,
             newFilterType: key,
           });
@@ -151,21 +151,8 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
         setActiveFilter(key);
       }
       setFilterValue('');
-      setIsFilterSelectOpen(false);
     },
     [activeFilter],
-  );
-
-  const filterToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
-    <MenuToggle
-      ref={toggleRef}
-      onClick={() => setIsFilterSelectOpen((prev) => !prev)}
-      isExpanded={isFilterSelectOpen}
-      icon={<FilterIcon />}
-      data-testid="security-filter-type-toggle"
-    >
-      {FILTER_LABELS[activeFilter]}
-    </MenuToggle>
   );
 
   if (loadError) {
@@ -216,31 +203,14 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
             <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
               <ToolbarGroup variant="filter-group">
                 <ToolbarItem>
-                  <Select
-                    isOpen={isFilterSelectOpen}
-                    onSelect={handleFilterSelect}
-                    onOpenChange={setIsFilterSelectOpen}
-                    toggle={filterToggle}
-                    data-testid="security-filter-type-select"
-                  >
-                    <SelectList>
-                      <SelectOption
-                        value="evaluation"
-                        data-testid="security-filter-option-evaluation"
-                      >
-                        Evaluation Name
-                      </SelectOption>
-                      <SelectOption value="category" data-testid="security-filter-option-category">
-                        Category
-                      </SelectOption>
-                      <SelectOption
-                        value="benchmark"
-                        data-testid="security-filter-option-benchmark"
-                      >
-                        Benchmark
-                      </SelectOption>
-                    </SelectList>
-                  </Select>
+                  <SimpleSelect
+                    options={FILTER_TYPE_OPTIONS}
+                    value={activeFilter}
+                    onChange={handleFilterSelect}
+                    icon={<FilterIcon />}
+                    dataTestId="security-filter-type-toggle"
+                    ariaLabel="Filter type"
+                  />
                 </ToolbarItem>
                 <ToolbarItem>
                   <SearchInput
@@ -261,7 +231,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                 page={page}
                 onSetPage={(_event, newPage) => {
                   setPage(newPage);
-                  fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+                  fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
                     page: newPage,
                     perPage,
                     totalItems: filtered.length,
@@ -270,7 +240,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                 onPerPageSelect={(_event, newPerPage, newPage) => {
                   setPerPage(newPerPage);
                   setPage(newPage);
-                  fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+                  fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
                     page: newPage,
                     perPage: newPerPage,
                     totalItems: filtered.length,
@@ -339,7 +309,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
           variant={PaginationVariant.bottom}
           onSetPage={(_event, newPage) => {
             setPage(newPage);
-            fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+            fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
               page: newPage,
               perPage,
               totalItems: filtered.length,
@@ -348,7 +318,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
           onPerPageSelect={(_event, newPerPage, newPage) => {
             setPerPage(newPerPage);
             setPage(newPage);
-            fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+            fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
               page: newPage,
               perPage: newPerPage,
               totalItems: filtered.length,

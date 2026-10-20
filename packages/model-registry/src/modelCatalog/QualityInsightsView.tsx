@@ -7,12 +7,7 @@ import {
   Flex,
   FlexItem,
   Label,
-  MenuToggle,
-  MenuToggleElement,
   SearchInput,
-  Select,
-  SelectList,
-  SelectOption,
   Spinner,
   Title,
   ToolbarGroup,
@@ -21,16 +16,19 @@ import {
 import { FilterIcon } from '@patternfly/react-icons';
 import { Td, ThProps, Tr } from '@patternfly/react-table';
 import { TableBase, type SortableData } from '@odh-dashboard/ui-core';
+import SimpleSelect, {
+  type SimpleSelectOption,
+} from '@odh-dashboard/ui-core/components/SimpleSelect';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import useQualityArtifacts from '~/app/hooks/useQualityArtifacts';
+import useQualityArtifacts from './hooks/useQualityArtifacts';
 import {
   DEFAULT_TABLE_PER_PAGE,
   TABLE_PER_PAGE_OPTIONS,
-} from '~/app/utilities/tablePaginationConstants';
-import { capitalizeFirst, getCategoryColor } from '~/app/components/benchmarkUtils';
-import { formatDate } from '~/app/utilities/evaluationUtils';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+  getCategoryColor,
+  capitalizeFirst,
+} from './utils';
+import { QUALITY_INSIGHTS_EVENTS } from './tracking';
 import QualityInsightsEmptyState from './QualityInsightsEmptyState';
 import { type QualityInsight, type QualityInsightsViewProps } from './qualityInsightsTypes';
 import {
@@ -45,11 +43,14 @@ import {
 
 const QUALITY_ARTIFACTS_PAGE_SIZE = 100;
 
+const FILTER_TYPE_OPTIONS: SimpleSelectOption[] = (
+  ['evaluation', 'category', 'benchmark'] as const
+).map((key) => ({ key, label: QUALITY_FILTER_LABELS[key] }));
+
 const QUALITY_COLUMNS: SortableData<QualityInsight>[] = [
   { field: 'evaluation', label: 'Evaluation', sortable: true, modifier: 'nowrap' },
   { field: 'category', label: 'Category', sortable: true, modifier: 'nowrap' },
   { field: 'benchmarkName', label: 'Benchmark', sortable: true },
-  { field: 'createdAt', label: 'Last run', sortable: true, modifier: 'nowrap' },
   { field: 'score', label: 'Evaluation score', sortable: true, modifier: 'nowrap' },
 ];
 
@@ -57,23 +58,20 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
   sourceId,
   modelName,
   namespace,
-  catalogNamespace,
 }) => {
   const { insights, loaded, loadError } = useQualityArtifacts(
     sourceId,
     modelName,
     namespace,
     QUALITY_ARTIFACTS_PAGE_SIZE,
-    catalogNamespace,
   );
 
   const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
   const [activeFilter, setActiveFilter] = React.useState<QualityFilterOption>('evaluation');
-  const [isFilterSelectOpen, setIsFilterSelectOpen] = React.useState(false);
   const [filterValue, setFilterValue] = React.useState('');
   const [sortConfig, setSortConfig] = React.useState<QualitySortConfig>({
-    index: 3,
-    direction: 'desc',
+    index: 1,
+    direction: 'asc',
   });
   const [page, setPage] = React.useState(1);
   const viewTrackedRef = React.useRef(false);
@@ -126,7 +124,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
   React.useEffect(() => {
     if (loaded && !viewTrackedRef.current) {
       viewTrackedRef.current = true;
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.QUALITY_INSIGHTS_VIEWED, {
+      fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.VIEWED, {
         sourceId,
         modelName,
         insightCount: insights.length,
@@ -140,7 +138,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
     }
     const timer = setTimeout(() => {
       const currentFiltered = filteredRef.current;
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.QUALITY_INSIGHTS_FILTER_APPLIED, {
+      fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.FILTER_APPLIED, {
         filterType: activeFilter,
         hasResults: currentFiltered.length > 0,
         resultCount: currentFiltered.length,
@@ -153,7 +151,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
     sortBy: { index: sortConfig.index, direction: sortConfig.direction },
     onSort: (_event, index, direction) => {
       setSortConfig({ index, direction });
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.QUALITY_INSIGHTS_SORT_CHANGED, {
+      fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.SORT_CHANGED, {
         column: QUALITY_COLUMN_NAMES[index] ?? String(index),
         direction,
       });
@@ -162,11 +160,10 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
   });
 
   const handleFilterSelect = React.useCallback(
-    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
-      const key = String(value);
+    (key: string) => {
       if (key === 'evaluation' || key === 'category' || key === 'benchmark') {
         if (key !== activeFilter) {
-          fireMiscTrackingEvent(EVAL_HUB_EVENTS.QUALITY_INSIGHTS_FILTER_TYPE_CHANGED, {
+          fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.FILTER_TYPE_CHANGED, {
             previousFilterType: activeFilter,
             newFilterType: key,
           });
@@ -174,21 +171,8 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
         setActiveFilter(key);
       }
       setFilterValue('');
-      setIsFilterSelectOpen(false);
     },
     [activeFilter],
-  );
-
-  const filterToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
-    <MenuToggle
-      ref={toggleRef}
-      onClick={() => setIsFilterSelectOpen((prev) => !prev)}
-      isExpanded={isFilterSelectOpen}
-      icon={<FilterIcon />}
-      data-testid="quality-filter-type-toggle"
-    >
-      {QUALITY_FILTER_LABELS[activeFilter]}
-    </MenuToggle>
   );
 
   const handleClearFilters = React.useCallback(() => setFilterValue(''), []);
@@ -251,25 +235,14 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
           toolbarContent={
             <ToolbarGroup variant="filter-group">
               <ToolbarItem>
-                <Select
-                  isOpen={isFilterSelectOpen}
-                  onSelect={handleFilterSelect}
-                  onOpenChange={setIsFilterSelectOpen}
-                  toggle={filterToggle}
-                  data-testid="quality-filter-type-select"
-                >
-                  <SelectList>
-                    <SelectOption value="evaluation" data-testid="quality-filter-option-evaluation">
-                      Evaluation name
-                    </SelectOption>
-                    <SelectOption value="category" data-testid="quality-filter-option-category">
-                      Category
-                    </SelectOption>
-                    <SelectOption value="benchmark" data-testid="quality-filter-option-benchmark">
-                      Benchmark
-                    </SelectOption>
-                  </SelectList>
-                </Select>
+                <SimpleSelect
+                  options={FILTER_TYPE_OPTIONS}
+                  value={activeFilter}
+                  onChange={handleFilterSelect}
+                  icon={<FilterIcon />}
+                  dataTestId="quality-filter-type-toggle"
+                  ariaLabel="Filter type"
+                />
               </ToolbarItem>
               <ToolbarItem>
                 <SearchInput
@@ -285,7 +258,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
           }
           onSetPage={(_event, newPage) => {
             setPage(newPage);
-            fireMiscTrackingEvent(EVAL_HUB_EVENTS.QUALITY_INSIGHTS_PAGINATION_CHANGED, {
+            fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
               page: newPage,
               perPage,
               totalItems: filtered.length,
@@ -294,7 +267,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
           onPerPageSelect={(_event, newPerPage, newPage) => {
             setPerPage(newPerPage);
             setPage(newPage);
-            fireMiscTrackingEvent(EVAL_HUB_EVENTS.QUALITY_INSIGHTS_PAGINATION_CHANGED, {
+            fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
               page: newPage,
               perPage: newPerPage,
               totalItems: filtered.length,
@@ -306,7 +279,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
                 insight.id ??
                 `${insight.benchmarkName}-${insight.evaluation}-${insight.category}-${
                   insight.score ?? insight.result
-                }-${insight.createdAt ?? ''}`
+                }`
               }
               data-testid="quality-insight-row"
             >
@@ -325,7 +298,6 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
                   truncateDescriptionLines={2}
                 />
               </Td>
-              <Td dataLabel="Last run">{formatDate(insight.createdAt)}</Td>
               <Td dataLabel="Evaluation score">{insight.result}</Td>
             </Tr>
           )}

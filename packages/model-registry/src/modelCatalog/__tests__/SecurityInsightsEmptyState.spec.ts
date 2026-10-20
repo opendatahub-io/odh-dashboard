@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import * as React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -6,7 +7,7 @@ let mockLoaded = true;
 let mockLoadError: Error | undefined;
 let mockInsightsData: unknown[] = [];
 
-jest.mock('~/app/hooks/useSecurityArtifacts', () => ({
+jest.mock('../hooks/useSecurityArtifacts', () => ({
   __esModule: true,
   default: () => ({
     insights: mockInsightsData,
@@ -28,20 +29,19 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
+import SecurityInsightsView from '../SecurityInsightsView';
+
 const renderView = () =>
-  import('~/app/pages/modelCatalog/SecurityInsightsView').then(
-    ({ default: SecurityInsightsView }) =>
-      render(
-        React.createElement(
-          MemoryRouter,
-          null,
-          React.createElement(SecurityInsightsView, {
-            sourceId: 'src-1',
-            modelName: 'test-model',
-            namespace: 'test-ns',
-          }),
-        ),
-      ),
+  render(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(SecurityInsightsView, {
+        sourceId: 'src-1',
+        modelName: 'test-model',
+        namespace: 'test-ns',
+      }),
+    ),
   );
 
 describe('SecurityInsightsView - Empty and Loading States', () => {

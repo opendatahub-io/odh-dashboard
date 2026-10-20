@@ -27,7 +27,7 @@
     "@EvalHubCI"
   ],
   "scripts": {
-    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-evalhub-client --mock-bff-clients' odh-ct-bff-consumer --bff-dir bff",
+    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-evalhub-client' odh-ct-bff-consumer --bff-dir bff",
     "cypress:mock:build": "pnpm run cypress:server:build",
     "cypress:mock:build:coverage": "pnpm run cypress:server:build:coverage",
     "cypress:mock:dev": "pnpm run cypress:server:dev",

@@ -39,8 +39,6 @@ import {
   VerifyConnectionRequest,
   VerifyConnectionResponse,
 } from '~/app/types';
-import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
-import { CatalogQualityArtifactList } from '~/app/pages/modelCatalog/qualityInsightsTypes';
 
 const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
   b != null &&
@@ -623,86 +621,6 @@ export const getInferenceServices =
       }
       throw new Error('Invalid response format');
     });
-
-export const getCatalogSecurityArtifacts =
-  (
-    hostPath: string,
-    sourceId: string,
-    modelName: string,
-    namespace?: string,
-    pageSize?: number,
-    catalogNamespace?: string,
-  ) =>
-  (opts: APIOptions): Promise<CatalogSecurityArtifactList> => {
-    const queryParams: Record<string, string> = {};
-    if (namespace) {
-      queryParams.namespace = namespace;
-    }
-    if (catalogNamespace) {
-      queryParams.catalogNamespace = catalogNamespace;
-    }
-    if (pageSize != null) {
-      queryParams.pageSize = String(pageSize);
-    }
-
-    return handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(
-          sourceId,
-        )}/security_artifacts/${encodeURIComponent(modelName)}`,
-        queryParams,
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<CatalogSecurityArtifactList>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-  };
-
-export const getCatalogQualityArtifacts =
-  (
-    hostPath: string,
-    sourceId: string,
-    modelName: string,
-    namespace?: string,
-    pageSize?: number,
-    nextPageToken?: string,
-    catalogNamespace?: string,
-  ) =>
-  (opts: APIOptions): Promise<CatalogQualityArtifactList> => {
-    const queryParams: Record<string, string> = {};
-    if (namespace) {
-      queryParams.namespace = namespace;
-    }
-    if (catalogNamespace) {
-      queryParams.catalogNamespace = catalogNamespace;
-    }
-    if (pageSize != null) {
-      queryParams.pageSize = String(pageSize);
-    }
-    if (nextPageToken) {
-      queryParams.nextPageToken = nextPageToken;
-    }
-
-    return handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(
-          sourceId,
-        )}/quality_artifacts/${encodeURIComponent(modelName)}`,
-        queryParams,
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<CatalogQualityArtifactList>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-  };
 
 export class LogFetchError extends Error {
   constructor(

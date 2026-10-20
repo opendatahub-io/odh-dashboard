@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { useFetchState, FetchStateCallbackPromise, APIOptions } from 'mod-arch-core';
-import { getCatalogSecurityArtifacts } from '~/app/api/k8s';
+import useFetchState, {
+  type FetchStateCallbackPromise,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { getCatalogSecurityArtifacts } from '../api';
 import {
   CatalogSecurityArtifactList,
   SecurityInsight,
   mapArtifactToInsight,
-} from '~/app/pages/modelCatalog/securityInsightsTypes';
+} from '../securityInsightsTypes';
 
 type UseSecurityArtifactsResult = {
   insights: SecurityInsight[];
@@ -20,19 +22,10 @@ const useSecurityArtifacts = (
   modelName: string,
   namespace: string,
   pageSize?: number,
-  catalogNamespace?: string,
 ): UseSecurityArtifactsResult => {
   const callback = React.useCallback<FetchStateCallbackPromise<CatalogSecurityArtifactList>>(
-    (opts: APIOptions) =>
-      getCatalogSecurityArtifacts(
-        '',
-        sourceId,
-        modelName,
-        namespace,
-        pageSize,
-        catalogNamespace,
-      )(opts),
-    [sourceId, modelName, namespace, pageSize, catalogNamespace],
+    (opts) => getCatalogSecurityArtifacts(sourceId, modelName, namespace, pageSize, opts),
+    [sourceId, modelName, namespace, pageSize],
   );
 
   const [data, loaded, loadError] = useFetchState<CatalogSecurityArtifactList>(

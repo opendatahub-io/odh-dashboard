@@ -10,30 +10,33 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { evalHubRootPath } from '~/app/utilities/routes';
 
-const SecurityInsightsEmptyState: React.FC = () => {
+// Root path of the Evaluations (Eval Hub) pages, linked from the empty state
+// only when the LM Eval area is available.
+const EVALUATION_ROOT_PATH = '/evaluation';
+
+const QualityInsightsEmptyState: React.FC = () => {
   const evaluationsAvailable = useIsAreaAvailable(SupportedArea.LM_EVAL).status;
 
   return (
     <EmptyState
       headingLevel="h3"
       icon={SearchIcon}
-      titleText="No safety and security insights"
+      titleText="No quality insights"
       variant={EmptyStateVariant.sm}
-      data-testid="security-insights-empty-state"
+      data-testid="quality-insights-empty-state"
     >
       <EmptyStateBody>
-        No safety and security evaluation data is available for this model yet. Run an evaluation to
-        generate safety and security insights.
+        No quality evaluation data is available for this model yet. Run an evaluation to generate
+        quality insights.
       </EmptyStateBody>
       {evaluationsAvailable && (
         <EmptyStateFooter>
           <EmptyStateActions>
             <Button
               variant="link"
-              component={(props) => <Link {...props} to={evalHubRootPath} />}
-              data-testid="security-insights-empty-state-link"
+              component={(props) => <Link {...props} to={EVALUATION_ROOT_PATH} />}
+              data-testid="quality-insights-empty-state-link"
             >
               Go to Evaluations
             </Button>
@@ -44,4 +47,4 @@ const SecurityInsightsEmptyState: React.FC = () => {
   );
 };
 
-export default SecurityInsightsEmptyState;
+export default QualityInsightsEmptyState;

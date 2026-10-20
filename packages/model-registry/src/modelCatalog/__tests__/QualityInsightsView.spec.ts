@@ -1,13 +1,14 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import * as React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import type { QualityInsight } from '~/app/pages/modelCatalog/qualityInsightsTypes';
+import type { QualityInsight } from '../qualityInsightsTypes';
 
 let mockLoaded = true;
 let mockLoadError: Error | undefined;
 let mockInsightsData: QualityInsight[] = [];
 
-jest.mock('~/app/hooks/useQualityArtifacts', () => ({
+jest.mock('../hooks/useQualityArtifacts', () => ({
   __esModule: true,
   default: () => ({
     insights: mockInsightsData,
@@ -29,23 +30,24 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
+import QualityInsightsView from '../QualityInsightsView';
+
 const renderView = () =>
-  import('~/app/pages/modelCatalog/QualityInsightsView').then(({ default: QualityInsightsView }) =>
-    render(
-      React.createElement(
-        MemoryRouter,
-        null,
-        React.createElement(QualityInsightsView, {
-          sourceId: 'src-1',
-          modelName: 'test-model',
-          namespace: 'test-ns',
-        }),
-      ),
+  render(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(QualityInsightsView, {
+        sourceId: 'src-1',
+        modelName: 'test-model',
+        namespace: 'test-ns',
+      }),
     ),
   );
 
 describe('QualityInsightsView', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     mockLoaded = true;
     mockLoadError = undefined;
     mockInsightsData = [];
@@ -96,45 +98,14 @@ describe('QualityInsightsView', () => {
     expect(screen.getAllByTestId('quality-table-row-title')[0]).toHaveTextContent('HumanEval');
     expect(screen.getAllByTestId('quality-table-row-title')[1]).toHaveTextContent('BBH');
 
-    fireEvent.change(screen.getByTestId('quality-filter-text-field').querySelector('input')!, {
-      target: { value: 'Python' },
-    });
+    fireEvent.change(
+      screen.getByTestId('quality-filter-text-field').querySelector('input') as HTMLInputElement,
+      {
+        target: { value: 'Python' },
+      },
+    );
     expect(screen.getAllByTestId('quality-table-row-title')).toHaveLength(1);
     expect(screen.getByTestId('quality-table-row-title')).toHaveTextContent('HumanEval');
-  });
-
-  it('distinguishes repeated runs with a Last run column sorted newest first', async () => {
-    mockInsightsData = [
-      {
-        evaluation: 'Python function generation',
-        category: 'code',
-        benchmarkName: 'HumanEval',
-        benchmarkDescription: 'Writes correct Python functions.',
-        score: 0.628,
-        result: '62.8%',
-        createdAt: '2026-01-15T10:00:00',
-      },
-      {
-        evaluation: 'Python function generation',
-        category: 'code',
-        benchmarkName: 'HumanEval',
-        benchmarkDescription: 'Writes correct Python functions.',
-        score: 0.701,
-        result: '70.1%',
-        createdAt: '2026-03-02T10:00:00',
-      },
-    ];
-
-    await renderView();
-    expect(screen.getAllByRole('columnheader').map((column) => column.textContent!.trim())).toEqual(
-      ['Evaluation', 'Category', 'Benchmark', 'Last run', 'Evaluation score'],
-    );
-    const rows = screen.getAllByTestId('quality-insight-row');
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent('70.1%');
-    expect(rows[1]).toHaveTextContent('62.8%');
-    expect(screen.getByText('03/02/2026, 10:00:00 AM')).toBeInTheDocument();
-    expect(screen.getByText('01/15/2026, 10:00:00 AM')).toBeInTheDocument();
   });
 
   it('sorts rows and paginates the result set', async () => {
@@ -153,7 +124,9 @@ describe('QualityInsightsView', () => {
     const firstRowBeforeSort = rows()[0].textContent;
 
     fireEvent.click(
-      screen.getByRole('columnheader', { name: 'Evaluation' }).querySelector('button')!,
+      screen
+        .getByRole('columnheader', { name: 'Evaluation' })
+        .querySelector('button') as HTMLButtonElement,
     );
 
     expect(rows()[0].textContent).not.toBe(firstRowBeforeSort);
@@ -185,7 +158,9 @@ describe('QualityInsightsView', () => {
 
     await renderView();
     fireEvent.click(
-      screen.getByRole('columnheader', { name: 'Evaluation score' }).querySelector('button')!,
+      screen
+        .getByRole('columnheader', { name: 'Evaluation score' })
+        .querySelector('button') as HTMLButtonElement,
     );
 
     expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Lower score');
@@ -213,7 +188,9 @@ describe('QualityInsightsView', () => {
 
     await renderView();
     fireEvent.click(
-      screen.getByRole('columnheader', { name: 'Evaluation score' }).querySelector('button')!,
+      screen
+        .getByRole('columnheader', { name: 'Evaluation score' })
+        .querySelector('button') as HTMLButtonElement,
     );
 
     expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent(
@@ -245,7 +222,9 @@ describe('QualityInsightsView', () => {
 
     await renderView();
     fireEvent.click(
-      screen.getByRole('columnheader', { name: 'Evaluation score' }).querySelector('button')!,
+      screen
+        .getByRole('columnheader', { name: 'Evaluation score' })
+        .querySelector('button') as HTMLButtonElement,
     );
 
     expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Raw score');
@@ -274,7 +253,7 @@ describe('QualityInsightsView', () => {
     await renderView();
     const scoreSortButton = screen
       .getByRole('columnheader', { name: 'Evaluation score' })
-      .querySelector('button')!;
+      .querySelector('button') as HTMLButtonElement;
 
     fireEvent.click(scoreSortButton);
     expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Scored result');

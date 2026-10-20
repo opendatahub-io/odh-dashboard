@@ -23,7 +23,7 @@ const SOURCE_ID = 'sample-source';
 const MODEL_NAME = 'repo1/model1';
 const ENCODED_MODEL_NAME = 'repo1%2Fmodel1';
 const REGISTRIES_NAMESPACE = 'team-a-model-registry';
-const EVAL_HUB_NAMESPACE = 'test-project';
+const PROJECT_NAMESPACE = 'test-project';
 
 const catalogModel = {
   source_id: SOURCE_ID,
@@ -40,7 +40,7 @@ const setupCommonIntercepts = ({
   nonAdmin = false,
 }: { disableLMEval?: boolean; nonAdmin?: boolean } = {}) => {
   if (nonAdmin) {
-    asProjectEditUser({ projects: [EVAL_HUB_NAMESPACE] });
+    asProjectEditUser({ projects: [PROJECT_NAMESPACE] });
   } else {
     asProductAdminUser();
   }
@@ -48,7 +48,7 @@ const setupCommonIntercepts = ({
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([
-      mockProjectK8sResource({ k8sName: EVAL_HUB_NAMESPACE, displayName: EVAL_HUB_NAMESPACE }),
+      mockProjectK8sResource({ k8sName: PROJECT_NAMESPACE, displayName: PROJECT_NAMESPACE }),
     ]),
   );
 
@@ -145,7 +145,9 @@ const interceptShouldShowSecurityArtifacts = (hasData = true) => {
   cy.intercept(
     {
       method: 'GET',
-      url: new RegExp(`/eval-hub/api/${API_VERSION}/catalog/sources/.*/security_artifacts/.*`),
+      url: new RegExp(
+        `/model-registry/api/${API_VERSION}/model_catalog/sources/.*/security_artifacts/.*`,
+      ),
       query: { pageSize: '1', namespace: REGISTRIES_NAMESPACE },
       times: 1,
     },
@@ -165,7 +167,7 @@ const interceptShouldShowSecurityArtifacts = (hasData = true) => {
 const interceptSecurityArtifacts = (items = mockSecurityArtifacts()) => {
   cy.intercept(
     'GET',
-    `**/eval-hub/api/${API_VERSION}/catalog/sources/${SOURCE_ID}/security_artifacts/**`,
+    `**/model-registry/api/${API_VERSION}/model_catalog/sources/${SOURCE_ID}/security_artifacts/**`,
     { body: mockSecurityArtifactsResponse(items) },
   ).as('getSecurityArtifacts');
 };
@@ -174,8 +176,13 @@ const interceptShouldShowQualityArtifacts = (hasData = true) => {
   cy.intercept(
     {
       method: 'GET',
-      url: new RegExp(`/eval-hub/api/${API_VERSION}/catalog/sources/.*/quality_artifacts/.*`),
-      query: { pageSize: '1', namespace: REGISTRIES_NAMESPACE },
+      url: new RegExp(`/model-registry/api/${API_VERSION}/model_catalog/sources/.*/artifacts/.*`),
+      query: {
+        pageSize: '1',
+        namespace: REGISTRIES_NAMESPACE,
+        artifactType: 'metrics-artifact',
+        filterQuery: 'metricsType.string_value="evaluation-metrics"',
+      },
       times: 1,
     },
     {
@@ -194,12 +201,12 @@ const interceptShouldShowQualityArtifacts = (hasData = true) => {
 const interceptQualityArtifacts = (items = mockQualityArtifacts()) => {
   cy.intercept(
     'GET',
-    `**/eval-hub/api/${API_VERSION}/catalog/sources/${SOURCE_ID}/quality_artifacts/**`,
+    `**/model-registry/api/${API_VERSION}/model_catalog/sources/${SOURCE_ID}/artifacts/**`,
     { body: mockQualityArtifactsResponse(items) },
   ).as('getQualityArtifacts');
 };
 
-describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
+describe('Model Catalog Security and Quality Insights tabs (model-registry extension)', () => {
   beforeEach(() => {
     setupCommonIntercepts();
   });
@@ -237,7 +244,7 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     cy.wait('@getSecurityArtifacts');
   });
 
-  it('should render security insights table content from the eval-hub API', () => {
+  it('should render security insights table content from the model-registry API', () => {
     interceptSecurityArtifacts();
     interceptShouldShowSecurityArtifacts(true);
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
