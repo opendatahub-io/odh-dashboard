@@ -143,6 +143,11 @@ func addOdhDashboardConfigWatch(
 				if err := startScopedOdhDashboardConfigWatch(ctx, mgr, dashboardController, r); err != nil {
 					return err
 				}
+				// A nil return during shutdown means the watch was not registered;
+				// only log success when the context is still live.
+				if ctx.Err() != nil {
+					return nil
+				}
 				logger.Info("Registered OdhDashboardConfig watch")
 				<-ctx.Done()
 				return nil
@@ -202,7 +207,12 @@ func startScopedOdhDashboardConfigWatch(
 		if err != nil {
 			return fmt.Errorf("starting scoped OdhDashboardConfig cache: %w", err)
 		}
-		// Start returns nil only after the context is cancelled (shutdown).
+		// Start returns nil only after the context is cancelled (shutdown). If it
+		// returns nil while the context is still live, the cache stopped
+		// unexpectedly and the watch was never registered — surface it.
+		if ctx.Err() == nil {
+			return fmt.Errorf("scoped OdhDashboardConfig cache stopped before the watch was registered")
+		}
 		return nil
 	case <-ctx.Done():
 		return nil

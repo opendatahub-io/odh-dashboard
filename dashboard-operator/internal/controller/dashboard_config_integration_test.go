@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -80,8 +81,14 @@ func TestIntegration_OdhDashboardConfigCacheIsScopedToTarget(t *testing.T) {
 	require.NoError(t, k8sClient.Create(ctx, decoyOtherName))
 	t.Cleanup(func() { deleteIgnoreNotFound(t, decoyOtherName) })
 
+	// Mirror the production cache.New options (Mapper + HTTPClient) so the test
+	// exercises the same configuration as the operator.
+	httpClient, err := rest.HTTPClientFor(restCfg)
+	require.NoError(t, err)
 	scopedCache, err := cache.New(restCfg, cache.Options{
+		HTTPClient:                  httpClient,
 		Scheme:                      k8sClient.Scheme(),
+		Mapper:                      k8sClient.RESTMapper(),
 		ReaderFailOnMissingInformer: true,
 		ByObject:                    ctrlpkg.ScopedOdhDashboardConfigByObject(integrationNamespace),
 	})
@@ -117,7 +124,11 @@ func TestIntegration_OdhDashboardConfigCacheIsScopedToTarget(t *testing.T) {
 	err = scopedCache.Get(cacheCtx, types.NamespacedName{
 		Namespace: decoyNamespace, Name: ctrlpkg.OdhDashboardConfigName,
 	}, otherNamespace)
-	assert.Error(t, err, "config in an unscoped namespace must not be cached")
+	// A single-namespace scoped cache rejects out-of-scope namespaces with a
+	// distinct error (not NotFound); assert on it so a namespace-scope regression
+	// cannot be masked by some other error.
+	assert.ErrorContains(t, err, "unknown namespace for the cache",
+		"config in an unscoped namespace must not be cached, got: %v", err)
 
 	// A cache-wide list returns only the single target object.
 	list := &unstructured.UnstructuredList{}
