@@ -131,7 +131,9 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_DATA_REGISTRY_IMAGE",
 		ManifestSlug:          "data-registry",
 		TLS:                   true,
-		RequiredDSCComponents: []string{"feastoperator"},
+		// Data Registry visibility is controlled by the OdhDashboardConfig
+		// feature flag. Its backend is independently managed and, in the v3
+		// DSC, is no longer projected as the legacy feastoperator component.
 		ProxyPaths:            []proxyRoute{{Path: "/data-registry/api", PathRewrite: "/api"}},
 	},
 	"dataConnectHub": {

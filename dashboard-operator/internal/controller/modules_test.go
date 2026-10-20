@@ -126,11 +126,10 @@ func TestResolveModuleStatuses(t *testing.T) {
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDisabled,
 				"genAi":         v1alpha1.ModulePhaseDeployed,
-				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
+				"dataRegistry":  v1alpha1.ModulePhaseDeployed,
 			},
 			wantReason: map[string]string{
 				"modelRegistry": "ComponentNotAvailable",
-				"dataRegistry":  "ComponentNotAvailable",
 			},
 		},
 		{
@@ -143,26 +142,11 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDeployed,
-				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
-			},
-			wantReason: map[string]string{
-				"dataRegistry": "ComponentNotAvailable",
+				"dataRegistry":  v1alpha1.ModulePhaseDeployed,
 			},
 		},
 		{
-			name:    "feastoperator Managed enables data registry",
-			wantLen: 11,
-			spec: v1alpha1.DashboardSpec{
-				Components: map[string]v1alpha1.ComponentAvailability{
-					"feastoperator": {ManagementState: "Managed"},
-				},
-			},
-			wantPhases: map[string]v1alpha1.ModulePhase{
-				"dataRegistry": v1alpha1.ModulePhaseDeployed,
-			},
-		},
-		{
-			name:    "feastoperator Removed disables data registry",
+			name:    "feastoperator availability does not gate data registry",
 			wantLen: 11,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
@@ -170,10 +154,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
-				"dataRegistry": v1alpha1.ModulePhaseDisabled,
-			},
-			wantReason: map[string]string{
-				"dataRegistry": "ComponentNotAvailable",
+				"dataRegistry": v1alpha1.ModulePhaseDeployed,
 			},
 		},
 		{
@@ -189,11 +170,10 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"genAi":         v1alpha1.ModulePhaseDeployed,
 				"maas":          v1alpha1.ModulePhaseDeployed,
 				"agentOps":      v1alpha1.ModulePhaseDeployed,
-				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
+				"dataRegistry":  v1alpha1.ModulePhaseDeployed,
 			},
 			wantReason: map[string]string{
 				"modelRegistry": "ComponentNotAvailable",
-				"dataRegistry":  "ComponentNotAvailable",
 			},
 		},
 		{
@@ -228,12 +208,11 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"automl":       v1alpha1.ModulePhaseDisabled,
 				"autorag":      v1alpha1.ModulePhaseDisabled,
 				"genAi":        v1alpha1.ModulePhaseDeployed,
-				"dataRegistry": v1alpha1.ModulePhaseDisabled,
+				"dataRegistry": v1alpha1.ModulePhaseDeployed,
 			},
 			wantReason: map[string]string{
 				"automl":       "ComponentNotAvailable",
 				"autorag":      "ComponentNotAvailable",
-				"dataRegistry": "ComponentNotAvailable",
 			},
 		},
 	}
