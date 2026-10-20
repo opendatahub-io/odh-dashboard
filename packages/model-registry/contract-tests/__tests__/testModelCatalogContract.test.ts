@@ -32,6 +32,9 @@ describe('Model Catalog BFF Contract', () => {
     expect(getResponseData(result)).toEqual({
       data: expect.objectContaining({
         items: expect.arrayContaining([expect.objectContaining({ name: expect.any(String) })]),
+        size: expect.any(Number),
+        pageSize: expect.any(Number),
+        nextPageToken: expect.any(String),
       }),
     });
   });
@@ -47,6 +50,9 @@ describe('Model Catalog BFF Contract', () => {
         items: expect.arrayContaining([
           expect.objectContaining({ id: expect.any(String), name: expect.any(String) }),
         ]),
+        size: expect.any(Number),
+        pageSize: expect.any(Number),
+        nextPageToken: expect.any(String),
       }),
     });
   });
@@ -76,6 +82,9 @@ describe('Model Catalog BFF Contract', () => {
     expect(getResponseData(result)).toEqual({
       data: expect.objectContaining({
         items: expect.arrayContaining([expect.any(Object)]),
+        size: expect.any(Number),
+        pageSize: expect.any(Number),
+        nextPageToken: expect.any(String),
       }),
     });
   });
@@ -104,7 +113,33 @@ describe('Model Catalog BFF Contract', () => {
     expect(getResponseData(result)).toEqual({
       data: expect.objectContaining({
         items: expect.arrayContaining([expect.objectContaining({ uri: expect.any(String) })]),
+        size: expect.any(Number),
+        pageSize: expect.any(Number),
+        nextPageToken: expect.any(String),
       }),
     });
+  });
+
+  it('should return a documented error when namespace is missing', async () => {
+    const result = await apiClient.get('/api/v1/model_catalog/models');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.status).toBe(400);
+      expect({
+        status: result.error.status,
+        data: result.error.data,
+      }).toMatchContract(apiSchema, {
+        ref: '#/components/responses/BadRequest/content/application~1json/schema',
+        status: 400,
+      });
+      expect(result.error.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            code: expect.any(String),
+            message: expect.any(String),
+          }),
+        }),
+      );
+    }
   });
 });
