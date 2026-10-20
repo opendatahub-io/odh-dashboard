@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { Button, Popover } from '@patternfly/react-core';
 import * as React from 'react';
 import type { ExplorerFile, ExplorerFiles } from '#~/concepts/fileExplorer/types';
 import FileExplorer, {
@@ -69,6 +70,32 @@ describe('FileExplorer', () => {
           'Select 1 file or folder from this bucket to use for your data collection and evaluation sources',
         ),
       ).not.toBeInTheDocument();
+    });
+    it('should render modal-description popover content inside the modal focus-trap subtree', () => {
+      render(
+        <FileExplorer
+          {...defaultProps}
+          modalDescription={
+            <Popover
+              aria-label="Test description popover"
+              headerContent="Test popover header"
+              bodyContent="Test description popover body"
+              appendTo="inline"
+            >
+              <Button variant="link" isInline>
+                Open description popover
+              </Button>
+            </Popover>
+          }
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open description popover' }));
+
+      const popoverBody = screen.getByText('Test description popover body');
+      const modal = document.querySelector('.pf-v6-c-modal-box');
+      expect(modal).not.toBeNull();
+      expect(modal).toContainElement(popoverBody);
     });
   });
   describe('file table', () => {
@@ -610,6 +637,23 @@ describe('FileExplorer', () => {
 
       // Should remain unchecked
       expect(checkbox).not.toBeChecked();
+    });
+    it('should reset selection state when the explorer closes via the isOpen prop', () => {
+      const files = mockFiles(3);
+      const { rerender } = render(<FileExplorer {...defaultProps} files={files} />);
+
+      fireEvent.click(
+        within(screen.getByTestId('file-explorer-row--file-1-json')).getByRole('radio'),
+      );
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeEnabled();
+
+      rerender(<FileExplorer {...defaultProps} files={files} isOpen={false} />);
+      rerender(<FileExplorer {...defaultProps} files={files} />);
+
+      expect(
+        within(screen.getByTestId('file-explorer-row--file-1-json')).getByRole('radio'),
+      ).not.toBeChecked();
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
     });
   });
   describe('keyboard row interactions', () => {

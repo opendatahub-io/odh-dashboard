@@ -25,6 +25,20 @@ describe('SupportedFileTypesPopover', () => {
     ).toBeInTheDocument();
   });
 
+  it('should render the link popover content inline so it stays within its host container', () => {
+    render(
+      <div data-testid="link-container">
+        <SupportedFileTypesLink />
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'View supported file types' }));
+
+    expect(screen.getByTestId('link-container')).toContainElement(
+      screen.getByText('Supported file types'),
+    );
+  });
+
   it('should expose an accessible question-circle trigger', () => {
     render(<SupportedFileTypesHelpButton />);
 

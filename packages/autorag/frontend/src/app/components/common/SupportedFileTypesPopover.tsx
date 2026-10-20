@@ -1,4 +1,4 @@
-import { Button, Content, Popover } from '@patternfly/react-core';
+import { Button, Content, Popover, type PopoverProps } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
@@ -23,18 +23,29 @@ export const SUPPORTED_FILE_TYPES_CONTENT = (
   </>
 );
 
-const SupportedFileTypesPopover: React.FC<{ children: React.ReactElement }> = ({ children }) => (
+type SupportedFileTypesPopoverProps = {
+  children: React.ReactElement;
+  /** Renders the popover content next to its trigger instead of portaling to document.body. */
+  appendTo?: PopoverProps['appendTo'];
+};
+
+const SupportedFileTypesPopover: React.FC<SupportedFileTypesPopoverProps> = ({
+  children,
+  appendTo,
+}) => (
   <Popover
     aria-label="Supported file types help"
     headerContent="Supported file types"
     bodyContent={SUPPORTED_FILE_TYPES_CONTENT}
+    appendTo={appendTo}
   >
     {children}
   </Popover>
 );
 
 export const SupportedFileTypesLink: React.FC = () => (
-  <SupportedFileTypesPopover>
+  /* Inline appending keeps the popover content within the file-explorer modal's focus trap. */
+  <SupportedFileTypesPopover appendTo="inline">
     <Button variant="link" isInline>
       View supported file types
     </Button>

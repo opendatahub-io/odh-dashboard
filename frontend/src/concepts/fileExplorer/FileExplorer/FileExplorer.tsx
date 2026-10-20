@@ -1167,10 +1167,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     setSearchQuery('');
   }, []);
 
+  // Reset only on an open-to-closed transition so a closed initial mount does not
+  // schedule a pointless render with fresh (but already empty) state arrays.
+  const wasOpenRef = useRef(isOpen);
   useEffect(() => {
-    if (!isOpen) {
+    if (wasOpenRef.current && !isOpen) {
       resetState();
     }
+    wasOpenRef.current = isOpen;
   }, [isOpen, resetState]);
 
   const isIndeterminate = itemCount === undefined;
