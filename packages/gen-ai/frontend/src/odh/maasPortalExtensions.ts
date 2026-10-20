@@ -25,7 +25,7 @@ const maasPortalExtensions: Extension[] = [
     flags: { required: [GRID] },
     properties: {
       path: '/maas/models',
-      component: () => import('../app/pages/MaaSModelsPage'),
+      component: () => import('../app/pages/MaaSModelsPageProvider'),
     },
   } satisfies RouteExtension,
 ];

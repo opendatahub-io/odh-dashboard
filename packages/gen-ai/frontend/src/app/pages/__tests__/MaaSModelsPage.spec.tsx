@@ -3,11 +3,11 @@ import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { mockMaaSModel } from '~/__mocks__/mockMaaSModel';
-import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
+import useFetchAIModels from '~/app/hooks/useFetchAIModels';
 import { convertMaaSModelToAIModel } from '~/app/utilities/utils';
 import MaaSModelsPage from '~/app/pages/MaaSModelsPage';
 
-jest.mock('~/app/hooks/useFetchMaaSModels');
+jest.mock('~/app/hooks/useFetchAIModels');
 jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
   __esModule: true,
   default: () => true,
@@ -27,7 +27,7 @@ const renderPage = () =>
 describe('MaaSModelsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(useFetchMaaSModels).mockReturnValue({
+    jest.mocked(useFetchAIModels).mockReturnValue({
       data: [],
       loaded: true,
       error: undefined,
@@ -48,7 +48,7 @@ describe('MaaSModelsPage', () => {
   });
 
   it('should show loading feedback', () => {
-    jest.mocked(useFetchMaaSModels).mockReturnValue({
+    jest.mocked(useFetchAIModels).mockReturnValue({
       data: [],
       loaded: false,
       error: undefined,
@@ -68,7 +68,7 @@ describe('MaaSModelsPage', () => {
 
   it('should show API errors before loading feedback and allow retrying', () => {
     const refresh = jest.fn();
-    jest.mocked(useFetchMaaSModels).mockReturnValue({
+    jest.mocked(useFetchAIModels).mockReturnValue({
       data: [],
       loaded: false,
       error: new Error('Request failed'),
@@ -82,7 +82,7 @@ describe('MaaSModelsPage', () => {
   });
 
   it('should reuse the models table without playground actions or model-status help', () => {
-    jest.mocked(useFetchMaaSModels).mockReturnValue({
+    jest.mocked(useFetchAIModels).mockReturnValue({
       data: [mockMaaSModel(), mockMaaSModel({ model_id: 'granite', display_name: 'Granite' })].map(
         convertMaaSModelToAIModel,
       ),

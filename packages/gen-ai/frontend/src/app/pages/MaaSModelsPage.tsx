@@ -10,13 +10,13 @@ import {
 } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
-import useFetchMaaSModels from '~/app/hooks/useFetchMaaSModels';
 import { LlamaModel } from '~/app/types';
+import useFetchAIModels from '../hooks/useFetchAIModels';
 
 const NO_PLAYGROUND_MODELS: LlamaModel[] = [];
 
 const MaaSModelsPage: React.FC = () => {
-  const { data: models, loaded, error, refresh } = useFetchMaaSModels();
+  const { data: models, loaded, error, refresh } = useFetchAIModels();
 
   return (
     <ApplicationsPage
