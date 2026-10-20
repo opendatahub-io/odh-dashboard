@@ -151,11 +151,17 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     const focusedAtSelection = document.activeElement;
     const focusTimeout = setTimeout(() => {
       // A user may already have tabbed away while the drawer was opening. Only reclaim focus
-      // from the original trigger, or from the body after a popover trigger was removed.
+      // from the original trigger, or from the body/group button after a popover trigger was removed.
       const { activeElement } = document;
+      const triggerWasRemoved = !focusedAtSelection?.isConnected;
+      const focusReturnedToGroup =
+        triggerWasRemoved &&
+        activeElement instanceof HTMLButtonElement &&
+        activeElement.dataset.pipelineNodeId === selectedId;
       if (
         activeElement !== focusedAtSelection &&
-        !(activeElement === document.body && !focusedAtSelection?.isConnected)
+        !(triggerWasRemoved && activeElement === document.body) &&
+        !focusReturnedToGroup
       ) {
         return;
       }
