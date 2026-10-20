@@ -6,7 +6,7 @@ import {
 import {
   isHiddenByCollapsedAncestor,
   orderNodesForKeyboard,
-  panGroupControlIntoView,
+  panFocusedControlIntoView,
 } from '#~/concepts/topology/a11yUtils';
 
 describe('orderNodesForKeyboard', () => {
@@ -100,7 +100,7 @@ describe('isHiddenByCollapsedAncestor', () => {
   });
 });
 
-describe('panGroupControlIntoView', () => {
+describe('panFocusedControlIntoView', () => {
   it('pans an offscreen group control into the topology viewport', () => {
     const controller = new Visualization();
     controller.registerElementFactory(pipelineElementFactory);
@@ -136,10 +136,22 @@ describe('panGroupControlIntoView', () => {
     } as DOMRect);
 
     const positionBefore = controller.getGraph().getPosition().clone();
-    panGroupControlIntoView(group, button);
+    panFocusedControlIntoView(group, button);
 
     expect(controller.getGraph().getPosition().x).toBe(positionBefore.x + 40);
     expect(controller.getGraph().getPosition().y).toBe(positionBefore.y + 80);
+
+    // A partly clipped control should also move fully inside the padded viewport.
+    jest.spyOn(button, 'getBoundingClientRect').mockReturnValue({
+      left: 110,
+      right: 240,
+      top: 360,
+      bottom: 390,
+    } as DOMRect);
+    const positionBeforePartialPan = controller.getGraph().getPosition().clone();
+    panFocusedControlIntoView(group, button);
+    expect(controller.getGraph().getPosition().x).toBe(positionBeforePartialPan.x + 10);
+    expect(controller.getGraph().getPosition().y).toBe(positionBeforePartialPan.y - 10);
     viewport.remove();
   });
 });

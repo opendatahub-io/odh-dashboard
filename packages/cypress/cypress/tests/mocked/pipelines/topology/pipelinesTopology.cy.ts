@@ -19,7 +19,10 @@ import {
   RecurringRunStatus,
   RuntimeStateKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
-import { mockParallelForPipelineSpec } from '@odh-dashboard/internal/concepts/pipelines/topology/__tests__/mockParallelForPipelineSpec';
+import {
+  mockParallelForPipelineSpec,
+  mockParallelForWithArtifactsPipelineSpec,
+} from '@odh-dashboard/internal/concepts/pipelines/topology/__tests__/mockParallelForPipelineSpec';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { SecretModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
 import {
@@ -59,6 +62,11 @@ const mockGroupedVersion = buildMockPipelineVersion({
   display_name: 'grouped-pipeline-version',
 });
 mockGroupedVersion.pipeline_spec = mockParallelForPipelineSpec;
+const mockWideGroupedVersion = buildMockPipelineVersion({
+  pipeline_id: mockPipeline.pipeline_id,
+  display_name: 'wide-grouped-pipeline-version',
+});
+mockWideGroupedVersion.pipeline_spec = mockParallelForWithArtifactsPipelineSpec;
 const mockRun = buildMockRunKF({
   display_name: 'test-pipeline-run',
   run_id: 'test-pipeline-run-id',
@@ -440,6 +448,55 @@ describe('Pipeline topology', () => {
       pipelineDetails.findTaskButton('simple-task').should('not.exist');
     });
 
+    it('keeps focus on the group toggle when hiding a selected child', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findTaskButton('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.clock();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findTaskButton('simple-task').should('not.exist');
+      pipelineDetails.findGroupToggle('for-loop-2').should('be.focused');
+      cy.tick(600);
+      pipelineDetails.findGroupToggle('for-loop-2').should('be.focused');
+    });
+
+    it('keeps the expanded group toggle aligned with its SVG action', () => {
+      initIntercepts(mockWideGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockWideGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findTaskButton('create-features').should('exist');
+      pipelineDetails.findGroupActionIcon('for-loop-2').should('have.length', 1);
+      pipelineDetails.findGroupToggle('for-loop-2').then(($toggle) => {
+        pipelineDetails.findGroupActionIcon('for-loop-2').then(($action) => {
+          const toggle = $toggle[0].getBoundingClientRect();
+          const action = $action[0].getBoundingClientRect();
+          expect(
+            Math.min(toggle.right, action.right) - Math.max(toggle.left, action.left),
+          ).to.be.greaterThan(0);
+          expect(
+            Math.min(toggle.bottom, action.bottom) - Math.max(toggle.top, action.top),
+          ).to.be.greaterThan(0);
+        });
+      });
+    });
+
     it('keeps the expanded group label out of keyboard navigation', () => {
       initIntercepts(mockGroupedVersion);
       pipelineDetails.visit(
@@ -503,7 +560,7 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').should('be.focused');
     });
 
-    it('keeps focus on an artifact when hovering changes its visual node', () => {
+    it('shows an artifact label on focus and keeps focus through hover', () => {
       initIntercepts();
       pipelineRunDetails.visit(projectId, mockRun.run_id);
 
@@ -511,8 +568,9 @@ describe('Pipeline topology', () => {
         pipelineRunDetails.findControlBar().findByRole('button', { name: 'Zoom In' }).click();
       }
 
-      pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').focus();
       pipelineRunDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('exist');
+      pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').focus();
+      pipelineRunDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('not.exist');
       pipelineRunDetails.findArtifactVisual('iris_dataset (Type: Dataset)').trigger('mouseenter');
       pipelineRunDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('not.exist');
       pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').should('be.focused');

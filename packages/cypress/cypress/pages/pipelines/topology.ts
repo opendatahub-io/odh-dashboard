@@ -71,6 +71,11 @@ class PipelinesTopology {
     return cy.findByTestId(`pipeline-group-toggle-${name}`);
   }
 
+  findGroupActionIcon(name: string) {
+    // PatternFly owns this SVG action icon; scope its class selector to the named group.
+    return cy.findByTestId(`pipeline-group-label-${name}`).find('.pf-topology__node__action-icon');
+  }
+
   findGroupButton(name: string) {
     return cy.findByTestId(`pipeline-group-button-${name}`);
   }

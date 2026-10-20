@@ -27,13 +27,13 @@ import { getPipelineTaskStatusLabel, getRunStatusLabel } from '#~/concepts/topol
 import {
   hideSvgTaskLabelsFromKeyboard,
   isHiddenByCollapsedAncestor,
-  panGroupControlIntoView,
-  panNodeIntoView,
+  panFocusedControlIntoView,
 } from '#~/concepts/topology/a11yUtils';
 import { activateNodeButtonOnKeyDown } from '#~/concepts/topology/PipelineNodeButton';
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
 
 const MAX_TIP_ITEMS = 6;
+const EXPANDED_TOGGLE_OFFSET_FROM_CENTER = NODE_WIDTH / 2 - 42.5;
 
 type PipelinesDefaultGroupProps = {
   element: GraphElement<PipelineNodeModelExpanded>;
@@ -44,10 +44,12 @@ type PipelinesDefaultGroupInnerProps = Omit<PipelinesDefaultGroupProps, 'element
 };
 
 type AccessibleTaskGroupPillLabelProps = React.ComponentProps<typeof TaskGroupPillLabel> & {
+  groupLabel: string;
   onActionChange: (handler: ((event: React.MouseEvent) => void) | undefined) => void;
 };
 
 const AccessibleTaskGroupPillLabel: React.FC<AccessibleTaskGroupPillLabelProps> = ({
+  groupLabel,
   onActionChange,
   ...props
 }) => {
@@ -73,7 +75,7 @@ const AccessibleTaskGroupPillLabel: React.FC<AccessibleTaskGroupPillLabelProps> 
   }, []);
 
   return (
-    <g ref={labelRef}>
+    <g ref={labelRef} data-testid={`pipeline-group-label-${groupLabel}`}>
       <TaskGroupPillLabel {...props} />
     </g>
   );
@@ -241,20 +243,27 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         }, ${groupStatusLabel}`
       : `${groupLabel} task group, ${childCount} ${childCount === 1 ? 'task' : 'tasks'}`;
     const bounds = element.getBounds();
+    // PatternFly centers the expanded pill on the group, even when the group widens.
+    const expandedToggleX = bounds.x + bounds.width / 2 + EXPANDED_TOGGLE_OFFSET_FROM_CENTER;
+    const GroupLabelComponent = React.useCallback(
+      (props: React.ComponentProps<typeof TaskGroupPillLabel>) => (
+        <AccessibleTaskGroupPillLabel
+          {...props}
+          groupLabel={groupLabel}
+          onActionChange={setExpandedAction}
+          badge={badgeText}
+          customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
+        />
+      ),
+      [badgeText, groupLabel, setExpandedAction, status],
+    );
 
     const groupNode = (
       <DefaultTaskGroup
         element={element}
         collapsible
         recreateLayoutOnCollapseChange
-        GroupLabelComponent={(props) => (
-          <AccessibleTaskGroupPillLabel
-            {...props}
-            onActionChange={setExpandedAction}
-            badge={badgeText}
-            customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
-          />
-        )}
+        GroupLabelComponent={GroupLabelComponent}
         selected={selected}
         onSelect={onSelect}
         hideDetailsAtMedium
@@ -305,7 +314,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
                 className="odh-pipeline-node-button m-group pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
                 aria-label={`Show tasks in ${groupAriaLabel}`}
                 aria-expanded={popoverOpen}
-                onFocus={() => panNodeIntoView(element)}
+                onFocus={(event) => panFocusedControlIntoView(element, event.currentTarget)}
                 onClick={(event) => event.stopPropagation()}
                 onKeyDown={activateNodeButtonOnKeyDown}
                 data-pipeline-node-id={element.getId()}
@@ -316,7 +325,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         ) : null}
         {!isHidden ? (
           <foreignObject
-            x={isCollapsed ? bounds.width - 12 : bounds.x + bounds.width - 42.5}
+            x={isCollapsed ? bounds.width - 12 : expandedToggleX}
             y={isCollapsed ? 0 : bounds.y - 13}
             width={28.25}
             height={isCollapsed ? bounds.height : 26}
@@ -326,12 +335,12 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
               ref={toggleRef}
               type="button"
               className="odh-pipeline-node-button m-group m-group-toggle pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
-              aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${groupLabel} task group`}
+              aria-label={`${groupLabel} task group`}
               aria-expanded={!isCollapsed}
               onFocus={() => {
                 setToggleFocused(true);
                 if (toggleRef.current) {
-                  panGroupControlIntoView(element, toggleRef.current);
+                  panFocusedControlIntoView(element, toggleRef.current);
                 }
               }}
               onBlur={() => setToggleFocused(false)}

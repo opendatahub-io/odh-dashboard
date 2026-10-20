@@ -95,8 +95,6 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     () => (selectedIds?.[0] ? controller.getNodeById(selectedIds[0]) || null : null),
     [selectedIds, controller],
   );
-  const selectedNodeIsHidden = selectedNode ? isHiddenByCollapsedAncestor(selectedNode) : false;
-
   const selections = React.useMemo(() => {
     if (selectedIds?.[0]) {
       const element = controller.getElementById(selectedIds[0]);
@@ -138,7 +136,16 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
   React.useEffect(() => {
     // A collapsed group hides its child's graph button; choosing that child also closes its
     // popover, so move focus to the drawer even though the original button is now gone.
-    if (!selectedId || (!focusReturnTarget.current && !selectedNodeIsHidden)) {
+    // Check visibility only when selection changes: collapsing the group later must leave
+    // focus on the group toggle instead of sending it back to an already open drawer.
+    if (!selectedId) {
+      return undefined;
+    }
+    const selectedNodeAtSelection = controller.getNodeById(selectedId);
+    const hiddenAtSelection = selectedNodeAtSelection
+      ? isHiddenByCollapsedAncestor(selectedNodeAtSelection)
+      : false;
+    if (!focusReturnTarget.current && !hiddenAtSelection) {
       return undefined;
     }
     const focusTimeout = setTimeout(() => {
@@ -151,7 +158,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       focusTarget?.focus();
     }, 550);
     return () => clearTimeout(focusTimeout);
-  }, [selectedId, selectedNodeIsHidden]);
+  }, [controller, selectedId]);
 
   React.useEffect(() => {
     const currentModel = controller.toModel();

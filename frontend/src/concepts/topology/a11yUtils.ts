@@ -15,8 +15,8 @@ export const panNodeIntoView = (element: Node): void => {
   element.getGraph().panIntoView(element, { offset: 20, minimumVisible: 100 });
 };
 
-/** Pan a focused group control into the graph viewport when the group itself is larger. */
-export const panGroupControlIntoView = (element: Node, button: HTMLButtonElement): void => {
+/** Keep the whole focused control visible, including when its node is partly in view. */
+export const panFocusedControlIntoView = (element: Node, button: HTMLButtonElement): void => {
   const viewport = button.closest('[data-test-id="topology"]');
   if (!viewport) {
     panNodeIntoView(element);

@@ -1,11 +1,12 @@
 import React from 'react';
 import { Node, observer, WithSelectionProps } from '@patternfly/react-topology';
-import { isHiddenByCollapsedAncestor, panNodeIntoView } from './a11yUtils';
+import { isHiddenByCollapsedAncestor, panFocusedControlIntoView } from './a11yUtils';
 
 type PipelineNodeButtonProps = {
   element: Node;
   ariaLabel: string;
   onSelect: WithSelectionProps['onSelect'];
+  onFocusChange?: (focused: boolean) => void;
 };
 
 // Chrome does not synthesize button clicks from keyboard input inside an SVG foreignObject.
@@ -14,13 +15,17 @@ export const activateNodeButtonOnKeyDown = (
 ): void => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
-    event.currentTarget.click();
+    if (!event.repeat) {
+      event.currentTarget.click();
+    }
   }
 };
 
 /** A native keyboard target over a selectable SVG node; pointer clicks stay on the SVG. */
+// TODO: Reassess custom node and group tab stops when
+// https://github.com/patternfly/react-topology/pull/322 reaches our installed version.
 const PipelineNodeButton: React.FC<PipelineNodeButtonProps> = observer(
-  ({ element, ariaLabel, onSelect }) => {
+  ({ element, ariaLabel, onSelect, onFocusChange }) => {
     const bounds = element.getBounds();
 
     if (isHiddenByCollapsedAncestor(element)) {
@@ -40,7 +45,11 @@ const PipelineNodeButton: React.FC<PipelineNodeButtonProps> = observer(
           type="button"
           className="odh-pipeline-node-button pf-v6-u-display-block pf-v6-u-w-100 pf-v6-u-h-100"
           aria-label={ariaLabel}
-          onFocus={() => panNodeIntoView(element)}
+          onFocus={(event) => {
+            panFocusedControlIntoView(element, event.currentTarget);
+            onFocusChange?.(true);
+          }}
+          onBlur={() => onFocusChange?.(false)}
           onClick={(event) => {
             event.stopPropagation();
             onSelect?.(event);

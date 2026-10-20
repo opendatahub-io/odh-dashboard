@@ -73,7 +73,7 @@ const NodeStatusIcon: React.FC<{
 
   return (
     <Tooltip content={label}>
-      <Icon status={status} isInline aria-label={label}>
+      <Icon status={status} isInline role="img" aria-label={label}>
         {icon}
       </Icon>
     </Tooltip>

@@ -109,6 +109,7 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
   ({ element, selected, onSelect, ...rest }) => {
     const bounds = element.getBounds();
     const [isHover, hoverRef] = useHover<SVGGElement>();
+    const [isFocused, setIsFocused] = React.useState(false);
     const nodeRef = React.useRef<SVGGElement>(null);
     const combinedRef = useCombineRefs(hoverRef, nodeRef);
     React.useLayoutEffect(() => hideSvgTaskLabelsFromKeyboard(nodeRef.current));
@@ -140,7 +141,7 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
         data-testid={`pipeline-artifact-visual-${element.getLabel()}`}
         ref={combinedRef}
       >
-        {isHover || detailsLevel !== ScaleDetailsLevel.high ? (
+        {isHover || isFocused || detailsLevel !== ScaleDetailsLevel.high ? (
           <g>
             <TaskNode
               nameLabelClass="artifact-node-label"
@@ -155,12 +156,12 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
               onSelect={onSelect}
               hiddenDetailsShownStatuses={[]}
               status={data?.runStatus}
-              scaleNode={isHover}
+              scaleNode={isHover || isFocused}
               {...rest}
             >
               {whenDecorator}
             </TaskNode>
-            {!isHover ? (
+            {!isHover && !isFocused ? (
               <g transform={`translate(${translateX}, ${translateY}) scale(${upScale})`}>
                 <g
                   color={
@@ -177,7 +178,12 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
         ) : (
           <IconTaskNode selected={selected} onSelect={onSelect} element={element} />
         )}
-        <PipelineNodeButton element={element} ariaLabel={ariaLabel} onSelect={onSelect} />
+        <PipelineNodeButton
+          element={element}
+          ariaLabel={ariaLabel}
+          onSelect={onSelect}
+          onFocusChange={setIsFocused}
+        />
       </g>
     );
   },
