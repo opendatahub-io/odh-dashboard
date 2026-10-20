@@ -472,6 +472,8 @@ const FilesTable: React.FC<FilesTableProps> = ({
                 const isFileBeingViewed =
                   Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
                 const isUnselectable = file.selectable === false;
+                const isExplicitlyDisabled =
+                  file.disabled === true || typeof file.disabled === 'string';
 
                 const onSelect = (_event: unknown, isSelecting: boolean) => {
                   if (selection === 'radio') {
@@ -539,7 +541,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     data-testid={`file-explorer-row-${sanitizeId(file.path)}`}
                     isSelectable={!isUnselectable}
                     isRowSelected={isSelected}
-                    isClickable={!isUnselectable}
+                    isClickable={!isExplicitlyDisabled && (!isUnselectable || isFolder(file))}
                     onRowClick={(event) => {
                       // we want to ignore clicks that propagate up from the
                       // folder link button, actions menu toggle, etc.
@@ -601,14 +603,19 @@ const FilesTable: React.FC<FilesTableProps> = ({
                           className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
                           data-testid="file-explorer-name"
                         >
-                          {isUnselectable ? (
+                          {isFolder(file) && !isExplicitlyDisabled ? (
+                            <Button
+                              className={isUnselectable ? 'pf-v6-u-text-color-disabled' : undefined}
+                              variant="link"
+                              isInline
+                              onClick={() => onFolderClick?.(file)}
+                            >
+                              <Truncate content={file.name} />
+                            </Button>
+                          ) : isUnselectable ? (
                             <Content className="pf-v6-u-text-color-disabled">
                               <Truncate content={file.name} />
                             </Content>
-                          ) : isFolder(file) && !file.disabled ? (
-                            <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
-                              <Truncate content={file.name} />
-                            </Button>
                           ) : (
                             <Truncate content={file.name} />
                           )}

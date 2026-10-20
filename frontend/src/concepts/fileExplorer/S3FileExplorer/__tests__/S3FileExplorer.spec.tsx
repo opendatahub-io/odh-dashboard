@@ -325,6 +325,32 @@ describe('S3FileExplorer', () => {
         }),
       );
     });
+    it('should keep folders navigable when folder selection is disabled', async () => {
+      render(<S3FileExplorer {...defaultProps} allowFolderSelection={false} />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+      mockGetFiles.mockClear();
+
+      mockGetFiles.mockResolvedValue(
+        mockS3ListObjectsResponse({
+          common_prefixes: mockDatasetsPrefixes(),
+          contents: mockDatasetsObjects(),
+        }),
+      );
+
+      const datasetsRow = screen.getByTestId('file-explorer-row--datasets');
+      fireEvent.click(within(datasetsRow).getByRole('button', { name: 'datasets' }));
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledWith(
+          '',
+          expect.objectContaining({ signal: expect.any(AbortSignal) }),
+          expect.objectContaining({ path: 'datasets/' }),
+        );
+      });
+    });
 
     it('should fetch root files when the root breadcrumb is clicked', async () => {
       render(<S3FileExplorer {...defaultProps} />);

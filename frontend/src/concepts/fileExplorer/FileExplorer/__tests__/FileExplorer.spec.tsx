@@ -182,6 +182,16 @@ describe('FileExplorer', () => {
       fireEvent.click(folderLink);
       expect(onFolderClick).toHaveBeenCalledWith(folder);
     });
+    it('should keep unselectable folders navigable', () => {
+      const folder = mockFolder({ name: 'browse-only', selectable: false });
+      const onFolderClick = jest.fn();
+      render(<FileExplorer {...defaultProps} files={[folder]} onFolderClick={onFolderClick} />);
+
+      const row = screen.getByTestId('file-explorer-row--test-folder');
+      fireEvent.click(within(row).getByRole('button', { name: 'browse-only' }));
+
+      expect(onFolderClick).toHaveBeenCalledWith(folder);
+    });
     it('should not render hidden files', () => {
       const files: ExplorerFiles = [
         mockFile({ name: 'visible.json', path: '/visible.json' }),
