@@ -24,12 +24,6 @@
   "e2eCiTags": [
     "@NotebooksCI"
   ],
-  "bffConfig": {
-    "enabled": true,
-    "port": 9105,
-    "healthEndpoint": "/api/v1/healthcheck",
-    "startCommand": "make dev-bff-e2e-mock"
-  },
   "subtree": {
     "repo": "https://github.com/opendatahub-io/workbenches.git",
     "branch": "main",

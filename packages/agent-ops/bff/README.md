@@ -55,7 +55,7 @@ open http://localhost:4000/mod-arch/swagger-ui
 curl -s http://localhost:4000/mod-arch/openapi.json | jq .info
 ```
 
-**Federated dev note:** the Module Federation dev proxy forwards `/agent-ops/api` and `/healthcheck` only. Open Swagger against the BFF port directly (for example `4021` when using `bffConfig.port`).
+**Federated dev note:** the Module Federation dev proxy forwards `/agent-ops/api` and `/healthcheck` only. Open Swagger against the BFF port directly (default `4000`).
 
 ## Development
 
