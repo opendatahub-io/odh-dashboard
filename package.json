@@ -54,7 +54,8 @@
     "commit:force-lint-hook": "FORCE_LINT_HOOK=true git commit",
     "prepare": "husky",
     "validate:ports": "node scripts/validate-module-ports.js",
-    "lint": "turbo run lint --filter=!automl-ui --filter=!autorag-ui --filter=!core-bff-ui --filter=!eval-hub-ui --filter=!gen-ai --filter=!maas-ui --filter=!mlflow-ui",
+    "lint": "pnpm run lint:adr && turbo run lint --filter=!automl-ui --filter=!autorag-ui --filter=!core-bff-ui --filter=!eval-hub-ui --filter=!gen-ai --filter=!maas-ui --filter=!mlflow-ui",
+    "lint:adr": "./hack/lint-adr-status && ./hack/lint-adr-numbers && ./hack/lint-adr-frontmatter",
     "lint:fix": "turbo run lint:fix --filter=!automl-ui --filter=!autorag-ui --filter=!core-bff-ui --filter=!eval-hub-ui --filter=!gen-ai --filter=!maas-ui --filter=!mlflow-ui",
     "type-check": "turbo run type-check",
     "test-unit": "pnpm run test:dsc-workaround && turbo run test-unit",
@@ -106,7 +107,8 @@
     "turbo": "^2.11.9",
     "typescript": "^5.9.3",
     "wait-on": "^7.2.0",
-    "webpack": "5.104.1"
+    "webpack": "5.104.1",
+    "yaml": "2.9.1"
   },
   "lint-staged": {
     "{,+([^.])*/**/}*.{js,ts,jsx,tsx,md}": [
