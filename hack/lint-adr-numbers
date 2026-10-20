@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const adrDir = path.join(__dirname, '..', 'docs', 'adr');
+const adrDir = process.env.ADR_DIR ? path.resolve(process.env.ADR_DIR) : path.join(__dirname, '..', 'docs', 'adr');
 const files = fs.readdirSync(adrDir).filter((file) => file.endsWith('.md') && file !== 'template.md');
 const seen = new Map();
 let errors = 0;

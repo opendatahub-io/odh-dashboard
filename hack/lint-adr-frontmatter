@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const YAML = require('yaml');
 
-const adrDir = path.join(__dirname, '..', 'docs', 'adr');
+const adrDir = process.env.ADR_DIR ? path.resolve(process.env.ADR_DIR) : path.join(__dirname, '..', 'docs', 'adr');
 const validStatuses = new Set(['Proposed', 'Accepted', 'Deprecated', 'Superseded']);
 const annotatedLegacyFile = '0001-use-monorepo-with-npm-workspaces.md';
 const annotatedLegacyStatus = 'Superseded for package-manager selection; the monorepo decision remains accepted.';

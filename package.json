@@ -42,6 +42,7 @@
     "test:frontend:unit-coverage": "pnpm --filter odh-dashboard-frontend test:unit-coverage",
     "test:backend:unit-coverage": "pnpm --filter odh-dashboard-backend test:unit-coverage",
     "test:dsc-workaround": "python3 -m unittest discover -s .claude/skills/dsc-outage-workaround/tests -v",
+    "test:adr": "./hack/__tests__/lint-adr.test.sh",
     "test:cypress-ci": "pnpm --filter odh-dashboard-frontend test:cypress-ci",
     "test:unit": "pnpm run test:dsc-workaround && turbo run test:unit",
     "lint:frontend:backend": "run-p test:lint:*",

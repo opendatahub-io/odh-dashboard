@@ -11,11 +11,12 @@ paths:
 Use [the ADR template](../../docs/adr/template.md) for new records in
 `docs/adr/`. ADRs 0000–0004 are legacy records; preserve their existing format.
 
-- Record one decision per ADR. Keep `title`, `status`, and `topics` frontmatter,
-  the date, and the Status, Context, Decision, and Consequences sections. Include
-  Options only when alternatives are useful.
-- Use `Proposed`, `Accepted`, `Deprecated`, or `Superseded` for status. Keep the
-  frontmatter value and `## Status` section consistent.
+- Record one decision per ADR. For new ADRs, include `title`, `status`, and
+  `topics` frontmatter, the date, and the Status, Context, Decision, and
+  Consequences sections. Include Options only when alternatives are useful.
+- Use `Proposed`, `Accepted`, `Deprecated`, or `Superseded` for status. For new
+  ADRs, keep frontmatter and `## Status` consistent. Legacy ADRs 0000–0004
+  retain their format and have status annotated in `## Status`.
 - After acceptance, do not edit Context, Decision, or Consequences. Typos,
   broken links, formatting, short clarifications, cross-references, and status
   changes are permitted outside those sections when they do not change the
