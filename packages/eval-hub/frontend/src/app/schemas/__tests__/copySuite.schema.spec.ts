@@ -157,6 +157,76 @@ describe('copySuiteSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  describe('getCopySuiteSchema required parameters', () => {
+    const requiredKeys = new Set(['judge_model']);
+
+    it('should reject missing and empty required parameter values', () => {
+      const missing = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [
+              { key: 'judge_model', type: 'text' },
+              { key: 'other', type: 'text' },
+            ],
+          },
+        ],
+      });
+      const empty = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'judge_model', type: 'text', value: '' }],
+          },
+        ],
+      });
+
+      expect(missing.success).toBe(false);
+      expect(empty.success).toBe(false);
+
+      if (!missing.success) {
+        expect(missing.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'parameters', 0, 'value'],
+              message: 'Judge model is required.',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should accept filled required parameter values', () => {
+      const result = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'judge_model', type: 'text', value: 'gpt-4o' }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should not require parameters when no required keys are configured', () => {
+      const result = getCopySuiteSchema(undefined).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'judge_model', type: 'text' }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+  });
+
   it('should reject malformed and non-object advanced parameters', () => {
     const malformed = copySuiteSchema.safeParse({
       ...validValues(),

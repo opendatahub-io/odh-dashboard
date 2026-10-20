@@ -16,6 +16,7 @@ import { evaluationBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/rout
 import { useNotification } from '~/app/hooks/useNotification';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
+import { CURATED_COLLECTION_PREREQUISITES } from '~/app/curatedSuiteConfig';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
 // import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
@@ -639,9 +640,25 @@ export function useCopySuiteForm({
   const { refresh: refreshCollections } = useCollectionsContext();
   const isCreateMode = mode === 'create';
   const isEditMode = mode === 'edit';
+  const requiredParameterKeys = React.useMemo(() => {
+    if (mode !== 'copy' || !sourceCollection || sourceCollection.resource.tenant) {
+      return new Set<string>();
+    }
+    const parameters =
+      CURATED_COLLECTION_PREREQUISITES[sourceCollection.resource.id]?.parameters ?? {};
+    return new Set(
+      Object.entries(parameters)
+        .filter(([, config]) => config.required)
+        .map(([key]) => key),
+    );
+  }, [mode, sourceCollection]);
   const validationSchema = React.useMemo(
-    () => getCopySuiteSchema(mode === 'copy' ? sourceCollection?.name : undefined),
-    [mode, sourceCollection?.name],
+    () =>
+      getCopySuiteSchema(
+        mode === 'copy' ? sourceCollection?.name : undefined,
+        requiredParameterKeys,
+      ),
+    [mode, sourceCollection?.name, requiredParameterKeys],
   );
 
   const form = useForm<CopySuiteFormValues>({

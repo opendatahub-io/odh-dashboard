@@ -169,14 +169,31 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     () => (collectionCategoryKey ? collectionCategoryKey.split('\u0000') : []),
     [collectionCategoryKey],
   );
-  const initialCategoryFilters = React.useMemo(
-    () =>
-      getBenchmarkCategoryFiltersForAvailableCategories(
-        normalizedCollectionCategories,
-        availableCategories,
-      ),
-    [availableCategories, normalizedCollectionCategories],
-  );
+  const initialCategoryFilters = React.useMemo(() => {
+    const mappedFilters = getBenchmarkCategoryFiltersForAvailableCategories(
+      normalizedCollectionCategories,
+      availableCategories,
+    );
+    if (mappedFilters.length === 0) {
+      return mappedFilters;
+    }
+
+    // Benchmarks already in the suite must stay visible when copying/editing, even when their
+    // category is outside the collection-category prefilter.
+    const selectedBenchmarkKeySet = new Set(selectedBenchmarkKeys);
+    const selectedCategories = catalogBenchmarks.flatMap((benchmark) =>
+      selectedBenchmarkKeySet.has(benchmark.key) && benchmark.category ? [benchmark.category] : [],
+    );
+
+    return [...new Set([...mappedFilters, ...selectedCategories])].toSorted((left, right) =>
+      left.localeCompare(right),
+    );
+  }, [
+    availableCategories,
+    catalogBenchmarks,
+    normalizedCollectionCategories,
+    selectedBenchmarkKeys,
+  ]);
   const initialFilterData = React.useMemo(
     () => ({
       ...initialBenchmarkFilterData,

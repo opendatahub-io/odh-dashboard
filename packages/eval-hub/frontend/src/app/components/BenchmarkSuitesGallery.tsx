@@ -41,6 +41,7 @@ import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCo
 import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
 import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
+import type { CuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import BenchmarkSuiteCard, { isPopularCollection } from '~/app/components/BenchmarkSuiteCard';
 import BenchmarkSuiteCardSkeleton from '~/app/components/BenchmarkSuiteCardSkeleton';
 import type { BenchmarkSuiteCardAction } from '~/app/components/BenchmarkSuiteCard';
@@ -222,7 +223,7 @@ type BenchmarkSuitesGalleryProps = {
   queryFilters?: CollectionFilterParams;
   // System collections without a curation order are not part of the curated gallery.
   requireCuratedIndex?: boolean;
-  prerequisites?: Record<string, string>;
+  prerequisites?: Partial<Record<string, CuratedCollectionConfig>>;
   primaryActionLabel?: string;
   primaryActionRoute?: (collection: Collection) => string;
   primaryActionState?: unknown;
@@ -1146,7 +1147,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             )}
             {visibleCollections.map((collection) => {
               const prerequisite = !collection.resource.tenant
-                ? prerequisites?.[collection.resource.id]
+                ? prerequisites?.[collection.resource.id]?.prerequisite
                 : undefined;
               const hasPrerequisite = Boolean(prerequisite);
 

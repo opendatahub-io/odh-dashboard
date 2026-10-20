@@ -277,6 +277,14 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
 };
 /* eslint-enable camelcase */
 
+export const getBenchmarkParameterLabel = (key: string): string => {
+  const words = key
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : key;
+};
+
 export const getMetricDisplayName = (metric: string): string =>
   Object.hasOwn(METRIC_DISPLAY_NAMES, metric)
     ? METRIC_DISPLAY_NAMES[metric]

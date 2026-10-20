@@ -13,6 +13,7 @@ import {
   SidebarPanel,
 } from '@patternfly/react-core';
 import { useModularArchContext } from 'mod-arch-core';
+import type { CuratedCollectionParameterConfig } from '~/app/curatedSuiteConfig';
 import CopySuiteBenchmarkDetailsOverlay from '~/app/components/CopySuiteBenchmarkDetailsOverlay';
 import CopySuiteBenchmarkSection from '~/app/components/CopySuiteBenchmarkSection';
 import BenchmarkWeightsModal from '~/app/components/BenchmarkWeightsModal';
@@ -35,6 +36,7 @@ type CopySuiteBenchmarksStepProps = {
   isValid: boolean;
   isSubmitting: boolean;
   isInteractionDisabled?: boolean;
+  parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
   onUpdateBenchmark: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
   onWeightsChange: (weights: number[]) => void;
   onSaveAndRun: () => void;
@@ -56,6 +58,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   isValid,
   isSubmitting,
   isInteractionDisabled = false,
+  parameterConfig,
   onUpdateBenchmark,
   onWeightsChange,
   onSaveAndRun,
@@ -190,6 +193,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
                     additionalParametersError={
                       errors.benchmarks?.[index]?.additionalParameters?.message
                     }
+                    parameterConfig={parameterConfig}
                     isInteractionDisabled={isInteractionDisabled}
                     onUpdate={(updatedIndex, field, value) => {
                       if (!isInteractionDisabled) {

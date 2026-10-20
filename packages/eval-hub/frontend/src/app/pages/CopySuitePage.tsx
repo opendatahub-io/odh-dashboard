@@ -86,10 +86,11 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     { initialPromisePurity: true },
   );
   const sourceCollection = isCreateMode ? undefined : fetchedCollection;
-  const prerequisite =
+  const curatedCollectionConfig =
     mode === 'copy' && sourceCollection && !sourceCollection.resource.tenant
       ? CURATED_COLLECTION_PREREQUISITES[sourceCollection.resource.id]
       : undefined;
+  const prerequisite = curatedCollectionConfig?.prerequisite;
 
   const navigationState = location.state;
   const isEvaluateOrigin =
@@ -469,6 +470,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
                 isValid={form.isValid}
                 isSubmitting={isPageInteractionDisabled}
                 isInteractionDisabled={isPageInteractionDisabled}
+                parameterConfig={curatedCollectionConfig?.parameters}
                 onUpdateBenchmark={form.updateBenchmark}
                 onWeightsChange={form.handleWeightsChange}
                 onBack={() => setCurrentStep('selectBenchmarks')}

@@ -1,12 +1,17 @@
 import * as React from 'react';
 import {
   FormGroup,
+  FormHelperText,
   Grid,
   GridItem,
+  HelperText,
+  HelperTextItem,
   TextInput,
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
+import type { CuratedCollectionParameterConfig } from '~/app/curatedSuiteConfig';
+import { getBenchmarkParameterLabel } from '~/app/components/benchmarkUtils';
 import type {
   CopySuiteBenchmarkParameter,
   CopySuiteBenchmarkParameterType,
@@ -16,24 +21,18 @@ type DynamicBenchmarkParameterFieldsProps = {
   parameters: CopySuiteBenchmarkParameter[];
   itemId: string;
   isDisabled?: boolean;
+  parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
   onChange: (key: string, value: string | boolean) => void;
 };
 
 const parameterTypeToInputType = (type: CopySuiteBenchmarkParameterType): 'number' | 'text' =>
   type === 'number' ? 'number' : 'text';
 
-export const getBenchmarkParameterLabel = (key: string): string => {
-  const words = key
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .trim();
-  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : key;
-};
-
 const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsProps> = ({
   parameters,
   itemId,
   isDisabled = false,
+  parameterConfig,
   onChange,
 }) => {
   if (parameters.length === 0) {
@@ -48,10 +47,15 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
         const fieldId = `${itemId}-parameter-${parameter.key}`;
         const value = parameter.value == null ? '' : String(parameter.value);
         const inputType = parameterTypeToInputType(parameter.type);
+        const config = parameterConfig?.[parameter.key];
 
         return (
           <GridItem span={6} key={parameter.key}>
-            <FormGroup label={getBenchmarkParameterLabel(parameter.key)} fieldId={fieldId}>
+            <FormGroup
+              label={getBenchmarkParameterLabel(parameter.key)}
+              fieldId={fieldId}
+              isRequired={config?.required ?? false}
+            >
               {parameter.type === 'boolean' ? (
                 <ToggleGroup
                   aria-label={getBenchmarkParameterLabel(parameter.key)}
@@ -84,6 +88,15 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
                   onChange={(_event, nextValue) => onChange(parameter.key, nextValue)}
                 />
               )}
+              {config?.description ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem data-testid={`${itemId}-parameter-help-${parameter.key}`}>
+                      {config.description}
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
             </FormGroup>
           </GridItem>
         );

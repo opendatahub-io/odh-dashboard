@@ -142,7 +142,9 @@ describe('CollectionDrawerPanel', () => {
               onCustomizeCollection={onCustomizeCollection}
               isSystemCollection
               prerequisites={{
-                'tool-use-v1': 'Requires a model that supports multiple tool/function calls.',
+                'tool-use-v1': {
+                  prerequisite: 'Requires a model that supports multiple tool/function calls.',
+                },
               }}
             />
           }
@@ -222,7 +224,9 @@ describe('CollectionDrawerPanel', () => {
               onRunCollection={onRunCollection}
               onCustomizeCollection={onCustomizeCollection}
               prerequisites={{
-                'tool-use-v1': 'Requires a model that supports multiple tool/function calls.',
+                'tool-use-v1': {
+                  prerequisite: 'Requires a model that supports multiple tool/function calls.',
+                },
               }}
             />
           }

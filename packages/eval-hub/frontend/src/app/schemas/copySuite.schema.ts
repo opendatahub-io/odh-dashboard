@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { MODEL_EVALUATION_TARGETS, SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
+import { getBenchmarkParameterLabel } from '~/app/components/benchmarkUtils';
 import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
 
 export const copySuiteBenchmarkParameterTypeSchema = z.enum(['number', 'boolean', 'text']);
@@ -118,7 +119,10 @@ export const isSameAsSourceCollectionName = (
 ): boolean =>
   Boolean(sourceCollectionName?.trim()) && suiteName.trim() === sourceCollectionName?.trim();
 
-export const getCopySuiteSchema = (sourceCollectionName?: string): typeof copySuiteSchema =>
+export const getCopySuiteSchema = (
+  sourceCollectionName?: string,
+  requiredParameterKeys: ReadonlySet<string> = new Set(),
+): typeof copySuiteSchema =>
   copySuiteSchema.superRefine((data, ctx) => {
     if (isSameAsSourceCollectionName(data.suiteName, sourceCollectionName)) {
       ctx.addIssue({
@@ -127,6 +131,21 @@ export const getCopySuiteSchema = (sourceCollectionName?: string): typeof copySu
         path: ['suiteName'],
       });
     }
+
+    data.benchmarks.forEach((benchmark, benchmarkIndex) => {
+      benchmark.parameters.forEach((parameter, parameterIndex) => {
+        if (
+          requiredParameterKeys.has(parameter.key) &&
+          (parameter.value == null || parameter.value === '')
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `${getBenchmarkParameterLabel(parameter.key)} is required.`,
+            path: ['benchmarks', benchmarkIndex, 'parameters', parameterIndex, 'value'],
+          });
+        }
+      });
+    });
   });
 
 export type CopySuiteFormValues = z.infer<typeof copySuiteSchema>;

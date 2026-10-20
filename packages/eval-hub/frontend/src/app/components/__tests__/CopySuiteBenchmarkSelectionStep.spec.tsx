@@ -292,6 +292,34 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(screen.queryByTestId('benchmark-catalog-prefilter-alert')).not.toBeInTheDocument();
   });
 
+  it('should keep selected benchmarks visible when the category prefilter excludes them', () => {
+    renderSelectionStep({
+      providers: [
+        {
+          resource: { id: 'provider-one' },
+          name: 'provider-one',
+          benchmarks: [
+            { id: 'code', name: 'Code benchmark', category: 'Code', metrics: ['accuracy'] },
+            {
+              id: 'reasoning',
+              name: 'Reasoning benchmark',
+              category: 'Reasoning',
+              metrics: ['accuracy'],
+            },
+          ],
+        },
+      ],
+      selectedBenchmarkKeys: ['provider-one:reasoning'],
+      collectionCategories: ['software'],
+    });
+
+    expect(screen.getByTestId('benchmark-catalog-category-filter-badge')).toHaveTextContent('2');
+    expect(screen.getByTestId('benchmark-catalog-prefilter-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-catalog-checkbox-code')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-catalog-checkbox-reasoning')).toBeChecked();
+  });
+
   it('should preselect providers represented by existing benchmarks', () => {
     renderSelectionStep({
       providers: [

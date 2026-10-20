@@ -335,7 +335,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                     const collectionCategory = getCollectionCategoryValues(collection)[0];
                     const prerequisite = collection.resource.tenant
                       ? undefined
-                      : CURATED_COLLECTION_PREREQUISITES[collection.resource.id];
+                      : CURATED_COLLECTION_PREREQUISITES[collection.resource.id]?.prerequisite;
                     return (
                       <Card
                         key={collection.resource.id}

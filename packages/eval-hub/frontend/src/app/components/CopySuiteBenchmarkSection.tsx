@@ -14,6 +14,7 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { PencilAltIcon } from '@patternfly/react-icons';
+import type { CuratedCollectionParameterConfig } from '~/app/curatedSuiteConfig';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import { getMetricDisplayName } from '~/app/components/benchmarkUtils';
 import DynamicBenchmarkParameterFields from '~/app/components/DynamicBenchmarkParameterFields';
@@ -32,6 +33,7 @@ type CopySuiteBenchmarkSectionProps = {
   weightRatio: number;
   totalWeightRatio: number;
   additionalParametersError?: string;
+  parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
   isInteractionDisabled?: boolean;
   onUpdate: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
   onEditWeights: () => void;
@@ -45,6 +47,7 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
   weightRatio,
   totalWeightRatio,
   additionalParametersError,
+  parameterConfig,
   isInteractionDisabled = false,
   onUpdate,
   onEditWeights,
@@ -176,6 +179,7 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
           parameters={benchmark.parameters}
           itemId={itemId}
           isDisabled={isInteractionDisabled}
+          parameterConfig={parameterConfig}
           onChange={(key, value) =>
             onUpdate(
               index,
