@@ -594,6 +594,38 @@ export const removeGlobalMLflowNamespaces = (baselines: GlobalMLflowNamespacesBa
   }
 };
 
+const GLOBAL_MLFLOW_WORKSPACE_LABEL = 'opendatahub.io/global-mlflow-workspace';
+const GLOBAL_MLFLOW_VIEW_ROLE_BINDING = 'odh-group-mlflow-view';
+const GLOBAL_MLFLOW_EDIT_ROLE_BINDING = 'odh-group-mlflow-edit';
+
+export const waitForGlobalMLflowNamespaceLabel = (
+  namespace: string,
+  mlflowCrName = 'mlflow',
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get namespace ${namespace} -o json | jq -e '.metadata.labels["${GLOBAL_MLFLOW_WORKSPACE_LABEL}"] == "${mlflowCrName}"'`,
+    `global MLflow workspace label to be applied to ${namespace}`,
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  );
+
+export const waitForGlobalMLflowNamespaceLabelAbsence = (
+  namespace: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get namespace ${namespace} -o json | jq -e '(.metadata.labels["${GLOBAL_MLFLOW_WORKSPACE_LABEL}"] // "") == ""'`,
+    `global MLflow workspace label to be removed from ${namespace}`,
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  );
+
+export const waitForGlobalMLflowRoleBindings = (
+  namespace: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get rolebinding ${GLOBAL_MLFLOW_VIEW_ROLE_BINDING} -n ${namespace} -o name >/dev/null && oc get rolebinding ${GLOBAL_MLFLOW_EDIT_ROLE_BINDING} -n ${namespace} -o name >/dev/null`,
+    `global MLflow role bindings to be created in ${namespace}`,
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  );
+
 /**
  * Wait for the MLflow BFF to discover a global prompt in a specific namespace.
  * Polls the BFF prompts endpoint until the prompt appears with scope type 'global'.

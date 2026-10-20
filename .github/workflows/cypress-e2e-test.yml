@@ -102,6 +102,32 @@ env:
 jobs:
 
   # ---------------------------------------------------------------------------
+  # Selection Validation - Fail before cluster work if planner contracts break
+  # ---------------------------------------------------------------------------
+  validate-selection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm and Node.js
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install-dependencies: 'true'
+
+      - name: Validate E2E selection and result contracts
+        run: |
+          node --test \
+            scripts/cypress/__tests__/e2e-selection.test.js \
+            scripts/cypress/__tests__/e2e-results.test.js
+
+  # ---------------------------------------------------------------------------
   # Cluster Selection - Health check with automatic failover
   # ---------------------------------------------------------------------------
   select-cluster:
@@ -423,11 +449,11 @@ jobs:
   # Tag Resolution - Build test matrix from defaults + PR labels/input + auto-detection
   # ---------------------------------------------------------------------------
   get-test-tags:
-    needs: [select-cluster, cleanup-old-resources]
+    needs: [validate-selection, select-cluster, cleanup-old-resources]
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.build.outputs.matrix }}
-      source: ${{ steps.build.outputs.source }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      source: ${{ steps.plan.outputs.source }}
       packages: ${{ steps.discover-packages.outputs.packages }}
 
     steps:
@@ -454,6 +480,20 @@ jobs:
         with:
           mode: discover
           github-token: ${{ github.token }}
+
+      - name: Resolve comparison refs
+        id: refs
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            BASE_SHA="${{ github.event.workflow_run.pull_requests[0].base.sha || 'origin/main' }}"
+          else
+            BASE_SHA="origin/main"
+          fi
+          HEAD_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "Comparing $BASE_SHA...$HEAD_SHA"
 
       - name: Get PR labels
         id: labels
@@ -503,13 +543,8 @@ jobs:
           # --- Layer 1: Turbo-based package detection ---
           echo "🔍 Running Turbo change detection..."
 
-          # Determine base ref for comparison
-          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            BASE_SHA="${{ github.event.workflow_run.pull_requests[0].base.sha || 'origin/main' }}"
-          else
-            BASE_SHA="origin/main"
-          fi
-          HEAD_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          BASE_SHA="${{ steps.refs.outputs.base_sha }}"
+          HEAD_SHA="${{ steps.refs.outputs.head_sha }}"
 
           echo "  📌 Comparing $BASE_SHA...$HEAD_SHA"
 
@@ -589,145 +624,39 @@ jobs:
 
           echo "auto_tags=$AUTO_TAGS" >> $GITHUB_OUTPUT
 
-      - name: Build test matrix
-        id: build
+      - name: Plan E2E selection
+        id: plan
         env:
-          INPUT_SKIP_DEFAULT: ${{ inputs.skip_default }}
           INPUT_ADDITIONAL_TAGS: ${{ inputs.additional_tags }}
+          INPUT_PR_LABELS: ${{ steps.labels.outputs.labels }}
+          INPUT_AUTO_TAGS: ${{ steps.detect.outputs.auto_tags }}
+          INPUT_SKIP_DEFAULT: ${{ inputs.skip_default }}
           INPUT_SKIP_AUTO_DETECT: ${{ inputs.skip_auto_detect }}
-          STEP_AUTO_TAGS: ${{ steps.detect.outputs.auto_tags }}
-          STEP_LABELS: ${{ steps.labels.outputs.labels }}
         run: |
-          # Configuration
-          MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
-          MAX_AUTO_TAGS_PER_JOB=8  # Above this, split auto-detected tags across two matrix entries
+          node scripts/cypress/plan-e2e-selection.js \
+            --base "${{ steps.refs.outputs.base_sha }}" \
+            --head "${{ steps.refs.outputs.head_sha }}" \
+            --additional-tags "$INPUT_ADDITIONAL_TAGS" \
+            --pr-labels "$INPUT_PR_LABELS" \
+            --auto-tags "$INPUT_AUTO_TAGS" \
+            --skip-default "$INPUT_SKIP_DEFAULT" \
+            --skip-auto-detect "$INPUT_SKIP_AUTO_DETECT" \
+            --skip-tags "@Bug @Maintain @NonConcurrent" \
+            --matrix-output "$RUNNER_TEMP/e2e-matrix.json" \
+            --source-output "$RUNNER_TEMP/e2e-source.txt" \
+            --summary-json packages/cypress/results/selection/e2e-selection.json \
+            --summary-md packages/cypress/results/selection/e2e-selection.md
 
-          # Defaults
-          TAGS=""
-          SOURCE="default"
-          if [[ "$INPUT_SKIP_DEFAULT" != "true" ]]; then
-            TAGS="@ci-dashboard-regression-tags"
-          else
-            echo "⏭️ Skipping default @ci-dashboard-regression-tags (skip_default=true)"
-          fi
-          EXTRA_COUNT=0
-          AUTO_DETECTED_ENTRY_1=""
-          AUTO_DETECTED_ENTRY_2=""
+          echo "matrix=$(cat "$RUNNER_TEMP/e2e-matrix.json")" >> "$GITHUB_OUTPUT"
+          echo "source=$(cat "$RUNNER_TEMP/e2e-source.txt")" >> "$GITHUB_OUTPUT"
 
-          # Priority 1: Manual input (workflow_dispatch)
-          if [[ -n "$INPUT_ADDITIONAL_TAGS" ]]; then
-            for tag in $(echo "$INPUT_ADDITIONAL_TAGS" | tr ',' ' '); do
-              if [[ ! "$tag" =~ ^@[a-zA-Z0-9_.:-]+$ ]]; then
-                echo "⚠️ Skipping invalid tag: $tag"
-                continue
-              fi
-              if [[ $EXTRA_COUNT -lt $MAX_EXTRA_TAGS ]]; then
-                TAGS="$TAGS,$tag"
-                EXTRA_COUNT=$((EXTRA_COUNT + 1))
-              fi
-            done
-            SOURCE="manual"
-            echo "📝 Added manual tags (limit: $MAX_EXTRA_TAGS)"
-
-          # Priority 2: PR labels (test:* pattern)
-          elif [[ -n "$STEP_LABELS" ]]; then
-            for label in $(echo "$STEP_LABELS" | tr ',' ' '); do
-              if [[ "$label" == test:* && $EXTRA_COUNT -lt $MAX_EXTRA_TAGS ]]; then
-                tag="@${label#test:}"
-                tag="${tag#@}"  # Remove double @
-                tag="@$tag"
-                if [[ ! "$tag" =~ ^@[a-zA-Z0-9_.:-]+$ ]]; then
-                  echo "⚠️ Skipping invalid tag from label: $tag"
-                  continue
-                fi
-                TAGS="$TAGS,$tag"
-                EXTRA_COUNT=$((EXTRA_COUNT + 1))
-                SOURCE="pr-labels"
-                echo "🏷️ Label '$label' → $tag"
-              fi
-            done
-          fi
-
-          if [[ $EXTRA_COUNT -ge $MAX_EXTRA_TAGS ]]; then
-            echo "⚠️ Tag limit reached ($MAX_EXTRA_TAGS max). Some tags were not added."
-          fi
-
-          # Priority 3: Auto-detected from PR changes (additive, split if >MAX_AUTO_TAGS_PER_JOB)
-          AUTO_TAGS="$STEP_AUTO_TAGS"
-          if [[ "$INPUT_SKIP_AUTO_DETECT" == "true" ]]; then
-            echo "⏭️ Skipping auto-detection (skip_auto_detect=true)"
-            AUTO_TAGS=""
-          fi
-          if [[ -n "$AUTO_TAGS" ]]; then
-            # Remove any auto-detected tags that already appear in manual/label TAGS
-            # to prevent the same tests running in two separate matrix jobs
-            EXISTING_TAGS=$(echo "$TAGS" | tr ',' '\n' | sort -u)
-            FILTERED_AUTO=""
-            for auto_tag in $AUTO_TAGS; do
-              if [[ ! "$auto_tag" =~ ^@[a-zA-Z0-9_.:-]+$ ]]; then
-                echo "⚠️ Skipping invalid auto-detected tag: $auto_tag"
-                continue
-              fi
-              if echo "$EXISTING_TAGS" | grep -qx "$auto_tag"; then
-                echo "⏭️  Skipping $auto_tag from auto-detected (already in manual/label tags)"
-              else
-                FILTERED_AUTO="$FILTERED_AUTO $auto_tag"
-              fi
-            done
-            FILTERED_AUTO=$(echo "$FILTERED_AUTO" | xargs)
-
-            if [[ -n "$FILTERED_AUTO" ]]; then
-              AUTO_TAG_COUNT=$(echo "$FILTERED_AUTO" | wc -w | tr -d ' ')
-
-              if [[ $AUTO_TAG_COUNT -gt $MAX_AUTO_TAGS_PER_JOB ]]; then
-                # Too many tags for one runner — split across two matrix entries
-                AUTO_TAGS_ARRAY=($FILTERED_AUTO)
-                MIDPOINT=$(( (AUTO_TAG_COUNT + 1) / 2 ))
-                AUTO_DETECTED_ENTRY_1="${AUTO_TAGS_ARRAY[*]:0:$MIDPOINT}"
-                AUTO_DETECTED_ENTRY_2="${AUTO_TAGS_ARRAY[*]:$MIDPOINT}"
-                echo "🤖 $AUTO_TAG_COUNT auto-detected tags (split across 2 jobs):"
-                echo "   Job 1: $AUTO_DETECTED_ENTRY_1"
-                echo "   Job 2: $AUTO_DETECTED_ENTRY_2"
-              else
-                # Consolidate into a single matrix entry
-                # Cypress grep treats space-separated tags as OR, so one job covers all areas
-                AUTO_DETECTED_ENTRY_1="$FILTERED_AUTO"
-                echo "🤖 Auto-detected tags (consolidated into 1 job): $AUTO_DETECTED_ENTRY_1"
-              fi
-
-              if [[ "$SOURCE" == "default" ]]; then
-                SOURCE="auto-detected"
-              else
-                SOURCE="$SOURCE+auto-detected"
-              fi
-            else
-              echo "ℹ️  All auto-detected tags already covered by manual/label tags"
-            fi
-          fi
-
-          # Convert to JSON matrix (deduplicated)
-          if [[ -z "$TAGS" && -z "$AUTO_DETECTED_ENTRY_1" ]]; then
-            echo "❌ No tags to run. Provide additional_tags or disable skip options."
-            exit 1
-          fi
-          MATRIX=$(echo "$TAGS" | tr ',' '\n' | sort -u | grep -v '^$' | \
-            sed 's/^[^@]/@&/' | jq -Rc '[., inputs] | unique' | jq -sc 'add | unique')
-
-          # Append auto-detected entries (1 or 2 depending on tag count)
-          if [[ -n "$AUTO_DETECTED_ENTRY_1" ]]; then
-            MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY_1" '. + [$entry] | unique')
-          fi
-          if [[ -n "$AUTO_DETECTED_ENTRY_2" ]]; then
-            MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY_2" '. + [$entry] | unique')
-          fi
-          
-          # Convert to objects with dynamic timeout: 30 min base + 7 min per tag, capped at 360 min
-          # Keep in sync with .github/scripts/test-e2e-timeout.sh
-          MATRIX=$(echo "$MATRIX" | jq -c '[.[] | {tag: ., timeout: [30 + 7 * (split(" ") | length), 360] | min}]')
-
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-          echo "source=$SOURCE" >> $GITHUB_OUTPUT
-          echo "🧪 Final matrix: $MATRIX (source: $SOURCE)"
+      - name: Upload selection summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-selection-summary
+          path: packages/cypress/results/selection/
+          if-no-files-found: error
 
   # ---------------------------------------------------------------------------
   # Ensure Cypress Builds - Check which per-package artifacts exist
@@ -796,7 +725,7 @@ jobs:
   # E2E Tests - Run Cypress tests for each tag in parallel
   # ---------------------------------------------------------------------------
   e2e-tests:
-    name: e2e-tests (${{ matrix.tag }})
+    name: e2e-tests (${{ matrix.tag_dir }})
     needs: [select-cluster, set-pending-status, get-test-tags, ensure-cypress-builds, build-missing-cypress]
     if: >-
       !cancelled() && !failure() &&
@@ -810,6 +739,9 @@ jobs:
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
       MATRIX_TAG: ${{ matrix.tag }}
+      MATRIX_TAG_DIR: ${{ matrix.tag_dir }}
+      MATRIX_SPECS: ${{ toJson(matrix.specs) }}
+      MATRIX_RUN_MODE: ${{ matrix.run_mode }}
     steps:
       - name: Register runner proxy URL for log redaction
         env:
@@ -1377,12 +1309,7 @@ jobs:
           TAG_SOURCE: ${{ needs.get-test-tags.outputs.source }}
         run: |
           TAG="$MATRIX_TAG"
-          if [ ${#TAG} -gt 200 ]; then
-            TAG_DIR=$(echo -n "$TAG" | sha256sum | cut -c1-12)
-            echo "Tag too long for directory name (${#TAG} chars), using hash: ${TAG_DIR}"
-          else
-            TAG_DIR="$TAG"
-          fi
+          TAG_DIR="$MATRIX_TAG_DIR"
           echo "TAG_DIR=${TAG_DIR}" >> $GITHUB_ENV
 
           echo "Running E2E tests for $MATRIX_TAG..."
@@ -1405,8 +1332,20 @@ jobs:
           # Cypress reads CYPRESS_* env vars natively — avoids arg escaping through concurrently
           export CYPRESS_OC_SERVER="$OC_SERVER"
           export CYPRESS_skipTags="@Bug @Maintain @NonConcurrent"
-          export CYPRESS_grepTags="$MATRIX_TAG"
-          export CYPRESS_grepFilterSpecs=true
+          if [[ "$MATRIX_RUN_MODE" == "spec" ]]; then
+            mapfile -t SPEC_PATHS < <(jq -r '.[]' <<< "$MATRIX_SPECS")
+            SPEC_LIST=""
+            for spec in "${SPEC_PATHS[@]}"; do
+              SPEC_LIST+="${GITHUB_WORKSPACE}/${spec},"
+            done
+            export CYPRESS_spec="${SPEC_LIST%,}"
+            export CYPRESS_grepTags=""
+            export CYPRESS_grepFilterSpecs=false
+            echo "Running explicit Cypress specs: $CYPRESS_spec"
+          else
+            export CYPRESS_grepTags="$MATRIX_TAG"
+            export CYPRESS_grepFilterSpecs=true
+          fi
           export CYPRESS_video=true
           export CYPRESS_screenshotsFolder="$CY_RESULTS_DIR/screenshots"
           export CYPRESS_videosFolder="$CY_RESULTS_DIR/videos"
@@ -1449,10 +1388,53 @@ jobs:
           echo "Run ID: ${{ github.run_id }}"
 
   # ---------------------------------------------------------------------------
+  # Result Summary - Prove that selected coverage actually executed
+  # ---------------------------------------------------------------------------
+  summarize-e2e-results:
+    needs: [e2e-tests]
+    if: >-
+      always() &&
+      needs.e2e-tests.result != 'skipped' &&
+      needs.e2e-tests.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Download E2E results
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: e2e-results-*
+          merge-multiple: true
+          path: e2e-results
+
+      - name: Summarize and validate E2E results
+        run: |
+          node scripts/cypress/summarize-e2e-results.js \
+            --results-dir e2e-results \
+            --summary-json e2e-results/e2e-results-summary.json \
+            --summary-md e2e-results/e2e-results-summary.md
+
+      - name: Upload E2E results summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-results-summary
+          path: |
+            e2e-results/e2e-results-summary.json
+            e2e-results/e2e-results-summary.md
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
   # Final Status - Update PR with test results
   # ---------------------------------------------------------------------------
   set-final-status:
-    needs: [select-cluster, e2e-tests]
+    needs: [select-cluster, e2e-tests, summarize-e2e-results]
     if: >-
       always() && 
       (github.event_name == 'workflow_dispatch' || 
@@ -1465,15 +1447,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           E2E_RESULT="${{ needs.e2e-tests.result }}"
+          SUMMARY_RESULT="${{ needs.summarize-e2e-results.result }}"
           CLUSTER_RESULT="${{ needs.select-cluster.result }}"
           CLUSTER="${{ needs.select-cluster.outputs.cluster_name }}"
           
-          echo "📊 Job results: select-cluster=$CLUSTER_RESULT, e2e-tests=$E2E_RESULT"
+          echo "📊 Job results: select-cluster=$CLUSTER_RESULT, e2e-tests=$E2E_RESULT, summary=$SUMMARY_RESULT"
           
           # Handle cluster selection failure first
           if [[ "$CLUSTER_RESULT" == "failure" ]]; then
             STATE="failure"
             DESC="Cluster health check failed - no healthy cluster available"
+          elif [[ "$SUMMARY_RESULT" == "failure" ]]; then
+            STATE="failure"
+            DESC="E2E result validation failed"
           elif [[ "$E2E_RESULT" == "success" ]]; then
             STATE="success"
             DESC="All tests passed on $CLUSTER"

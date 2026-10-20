@@ -228,6 +228,24 @@ Tests are parameterized using tags and applied to the 'it' block:
 it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] }, () => {})
 ```
 
+### CI Selection Contract
+
+The GitHub Actions E2E workflow always schedules added, modified, and renamed
+Cypress specs in addition to the selected tag suites. Changes to page objects,
+fixtures, utilities, commands, support hooks, and other Cypress support code run
+their reverse-impact spec set.
+
+Every selected tag must resolve to at least one executable test before the
+workflow starts. A selection fails when a required spec cannot be scheduled, a
+tag resolves to zero tests, or every selected test is skipped. Added, modified,
+and renamed specs must carry a CI-selectable tag or be listed in
+`non-ci-specs.json` with an owner and reason. Deleting or renaming a spec cannot
+remove the only coverage for a mapped CI behavior.
+
+The workflow uploads a machine-readable and human-readable selection summary.
+After execution, it also uploads a results summary with executed, failed, and
+skipped test counts. A green run with no executed tests is rejected.
+
 ### Test Contents
 
 `cy.step` is used to explain the test behavior in a human-readable format:

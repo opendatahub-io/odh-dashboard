@@ -158,6 +158,10 @@ pnpm run cypress:open
 
 Use the custom command `cy.visitWithLogin` to visit a page and perform the login procedure steps if the user is not already logged in. The default user is not an ODH admin. `cy.visitWithLogin` can be used to login with different users by supplying the user auth configuration as a parameter.
 
+#### Selective E2E tests
+
+The E2E workflow always runs changed Cypress specs, computes the reverse impact of changed Cypress support code, and validates selected tags before starting the cluster jobs. It fails selection for empty tags, unschedulable specs, and all-skipped selections, and reports executed, failed, and skipped counts after the run. See `packages/cypress/cypress/tests/e2e/README.md` for the full contract.
+
 ### Mocked Tests
 
 Cypress mocked tests run against a standalone frontend while mocking all network requests.
