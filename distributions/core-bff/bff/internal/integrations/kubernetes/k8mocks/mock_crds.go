@@ -10,7 +10,7 @@ func DefaultCRDs() []*apiextensionsv1.CustomResourceDefinition {
 	return []*apiextensionsv1.CustomResourceDefinition{
 		CreateServingRuntimeCRD(),
 		CreateNIMAccountCRD(),
-		createOperatorMetadataCRD("datasciencecluster.opendatahub.io", "v2", "datascienceclusters", "DataScienceCluster", apiextensionsv1.ClusterScoped),
+		createOperatorMetadataCRD("datasciencecluster.opendatahub.io", "v3", "datascienceclusters", "DataScienceCluster", apiextensionsv1.ClusterScoped),
 		createOperatorMetadataCRD("operators.coreos.com", "v1alpha1", "subscriptions", "Subscription", apiextensionsv1.NamespaceScoped),
 	}
 }

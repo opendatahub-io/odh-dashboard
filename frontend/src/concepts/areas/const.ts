@@ -230,7 +230,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
-    requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
+    requiredComponents: [DataScienceStackComponent.FEATURE_STORE],
   },
   [SupportedArea.FEATURE_STORE_ADMIN]: {
     featureFlags: ['featureStoreAdmin'],

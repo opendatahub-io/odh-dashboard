@@ -365,16 +365,17 @@ export type DashboardConfigKind = K8sResourceCommon & {
 
 export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
 
-/** The possible V2 component names that are used as keys in the `components` object of the DSC Status.
- * Each component's key (e.g., 'kserve', 'dashboard', etc.) maps to a specific component status.
- **/
+/** Dashboard availability keys normalized from the v3 DSC.
+ * Data Registry and Feature Store are independent children of `spec.components.data`.
+ */
 export enum DataScienceStackComponent {
   DASHBOARD = 'dashboard',
   DS_PIPELINES = 'aipipelines',
   K_SERVE = 'kserve',
   KUEUE = 'kueue',
   MODEL_REGISTRY = 'modelregistry',
-  FEAST_OPERATOR = 'feastoperator',
+  FEATURE_STORE = 'featureStore',
+  DATA_REGISTRY = 'dataRegistry',
   RAY = 'ray',
   TRAINING_OPERATOR = 'trainingoperator',
   TRUSTY_AI = 'trustyai',

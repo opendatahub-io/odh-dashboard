@@ -86,7 +86,10 @@ describe('Module federation visibility', () => {
     it('should show Feature store section and render route when flag and DSC are enabled', () => {
       initIntercepts(
         { disableFeatureStore: false },
-        { [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' } },
+        {
+          [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Managed' },
+          [DataScienceStackComponent.DATA_REGISTRY]: { managementState: 'Removed' },
+        },
       );
       navSidebar.visit();
       navSidebar
@@ -163,7 +166,10 @@ describe('Module federation visibility', () => {
     it('should hide Feature store browse and admin routes when its lifecycle is Removed', () => {
       initIntercepts(
         { disableFeatureStore: false, featureStoreAdmin: true },
-        { [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Removed' } },
+        {
+          [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Removed' },
+          [DataScienceStackComponent.DATA_REGISTRY]: { managementState: 'Managed' },
+        },
       );
 
       navSidebar.visit();

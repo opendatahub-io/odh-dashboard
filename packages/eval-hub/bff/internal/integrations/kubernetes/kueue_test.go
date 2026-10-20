@@ -371,7 +371,7 @@ func externalKueue(available bool) *unstructured.Unstructured {
 
 func dataScienceCluster(managementState string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{Object: map[string]interface{}{
-		"apiVersion": "datasciencecluster.opendatahub.io/v2",
+		"apiVersion": "datasciencecluster.opendatahub.io/v3",
 		"kind":       "DataScienceCluster",
 		"metadata": map[string]interface{}{
 			"name": "default-dsc",

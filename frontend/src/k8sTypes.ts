@@ -570,9 +570,15 @@ export type DataScienceClusterKind = K8sResourceCommon & {
   };
   spec: {
     components?: {
-      [key in DataScienceStackComponent]?: DataScienceClusterComponent;
-    } & {
-      /** KServe and ModelRegistry components, including further specific configuration. */
+      [component: string]: unknown;
+      data?: DataScienceClusterComponent & {
+        featureStore?: DataScienceClusterComponent;
+        dataRegistry?: DataScienceClusterComponent;
+      };
+      aiHub?: DataScienceClusterComponent & {
+        instancesNamespace?: string;
+      };
+      /** KServe and Kueue components, including further specific configuration. */
       [DataScienceStackComponent.K_SERVE]?: DataScienceClusterComponent & {
         nim: {
           managementState: string;
@@ -586,9 +592,6 @@ export type DataScienceClusterKind = K8sResourceCommon & {
           managementState: string;
           name: string;
         };
-      };
-      [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponent & {
-        registriesNamespace: string;
       };
       [DataScienceStackComponent.KUEUE]?: DataScienceClusterComponent & {
         defaultLocalQueueName: string;

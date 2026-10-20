@@ -13,13 +13,21 @@ export const mockDsc = ({
   requiredCapabilities = [],
   phase = 'Ready',
 }: MockDsc): DataScienceClusterKind => ({
-  apiVersion: 'datascience.openshift.io/v1alpha1',
+  apiVersion: 'datasciencecluster.opendatahub.io/v3',
   kind: 'DataScienceCluster',
   metadata: {
     name: 'default-dsc',
   },
   spec: {
     components: {
+      data: {
+        featureStore: {
+          managementState: 'Managed',
+        },
+        dataRegistry: {
+          managementState: 'Managed',
+        },
+      },
       aipipelines: {
         managementState: 'Managed',
       },

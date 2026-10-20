@@ -38,7 +38,7 @@ func subscription(name, namespace, channel, lastUpdated, installedCSV string) *u
 
 func dataScienceCluster(releaseName string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{Object: map[string]any{
-		"apiVersion": "datasciencecluster.opendatahub.io/v2",
+		"apiVersion": "datasciencecluster.opendatahub.io/v3",
 		"kind":       "DataScienceCluster",
 		"metadata":   map[string]any{"name": "default-dsc"},
 		"status":     map[string]any{"release": map[string]any{"name": releaseName}},
@@ -225,7 +225,7 @@ func TestGetOperatorSubscriptionStatus_Deadline(t *testing.T) {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{
-					"apiVersion": "datasciencecluster.opendatahub.io/v2", "kind": "DataScienceClusterList",
+					"apiVersion": "datasciencecluster.opendatahub.io/v3", "kind": "DataScienceClusterList",
 					"items": []any{dataScienceCluster(selfManagedRHOAIReleaseName).Object},
 				}))
 			}))

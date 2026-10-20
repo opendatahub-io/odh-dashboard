@@ -103,7 +103,7 @@ export const initFeatureStoreSpawnerIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
-        [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: feastOperatorState },
+        [DataScienceStackComponent.FEATURE_STORE]: { managementState: feastOperatorState },
       },
     }),
   );

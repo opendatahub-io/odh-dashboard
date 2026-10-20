@@ -34,7 +34,7 @@ describe('Workbench page — Feature Store', () => {
         mockDscStatus({
           components: {
             [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+            [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Managed' },
           },
         }),
       );

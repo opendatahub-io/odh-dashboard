@@ -60,7 +60,7 @@ export const ServiceModel: K8sModelCommon = {
 };
 
 export const DataScienceClusterModel: K8sModelCommon = {
-  apiVersion: 'v1',
+  apiVersion: 'v3',
   apiGroup: 'datasciencecluster.opendatahub.io',
   kind: 'DataScienceCluster',
   plural: 'datascienceclusters',

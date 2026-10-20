@@ -65,6 +65,6 @@ var SubscriptionGVR = schema.GroupVersionResource{
 // DataScienceClusterGVR is the GroupVersionResource for the platform DataScienceCluster.
 var DataScienceClusterGVR = schema.GroupVersionResource{
 	Group:    "datasciencecluster.opendatahub.io",
-	Version:  "v2",
+	Version:  "v3",
 	Resource: "datascienceclusters",
 }
