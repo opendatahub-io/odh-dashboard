@@ -3286,6 +3286,20 @@ func (kc *TokenKubernetesClient) CreateExternalModelSecret(ctx context.Context, 
 	return nil
 }
 
+// DuplicateModelError is returned when creating an external model whose model_id is
+// already registered under a custom-endpoint provider. CreateExternalModelHandler
+// maps it to HTTP 409 Conflict.
+type DuplicateModelError struct {
+	ModelID   string
+	Providers []string
+}
+
+func (e *DuplicateModelError) Error() string {
+	return fmt.Sprintf(
+		"model ID '%s' is already registered under provider(s) %s; model IDs must be unique across custom-endpoint providers — remove the duplicate registration or rename the model",
+		e.ModelID, strings.Join(e.Providers, ", "))
+}
+
 // CreateOrUpdateExternalModelConfigMap creates or updates the gen-ai-aa-custom-model-endpoints ConfigMap
 func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -3341,9 +3355,7 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		}
 	}
 	if len(duplicateProviders) > 0 {
-		return fmt.Errorf(
-			"model ID '%s' is already registered under provider(s) %s; model IDs must be unique across custom-endpoint providers — remove the duplicate registration or rename the model",
-			req.ModelID, strings.Join(duplicateProviders, ", "))
+		return &DuplicateModelError{ModelID: req.ModelID, Providers: duplicateProviders}
 	}
 
 	// Select provider type based on model type: embedding models use passthrough, inference models use openai
