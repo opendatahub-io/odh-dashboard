@@ -1882,8 +1882,6 @@ describe('llamaStackService', () => {
         'https://evil.example/api',
         '//evil.example/api',
         'autorag/api/v1/responses',
-        '/gen-ai/api/v1/lsd/responses/passthrough',
-        '/autorag/api/v1/responses#fragment',
       ]) {
         await expect(
           createPassthroughResponse(
@@ -1900,7 +1898,7 @@ describe('llamaStackService', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should send directly to the AutoRAG responses endpoint', async () => {
+    it('should route an AutoRAG responses endpoint through the BFF relay', async () => {
       const mockReader = {
         read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
         releaseLock: jest.fn(),
@@ -1922,12 +1920,12 @@ describe('llamaStackService', () => {
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/autorag/api/v1/responses?namespace=ns&dbSecretName=db&maasSecretName=maas',
-        expect.objectContaining({ method: 'POST', credentials: 'same-origin' }),
+        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3Fnamespace%3Dns%26dbSecretName%3Ddb%26maasSecretName%3Dmaas',
+        expect.objectContaining({ method: 'POST' }),
       );
     });
 
-    it('should ignore the GenAI BFF path for an AutoRAG endpoint', async () => {
+    it('should normalize bffBasePath for the relay URL', async () => {
       const mockReader = {
         read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
         releaseLock: jest.fn(),
@@ -1949,18 +1947,18 @@ describe('llamaStackService', () => {
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/autorag/api/v1/responses?dbSecretName=db',
+        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3FdbSecretName%3Ddb',
         expect.anything(),
       );
     });
 
-    it('should surface an AutoRAG 503 as a structured error', async () => {
+    it('should surface a relay 503 as a structured error', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 503,
         text: () =>
           Promise.resolve(
-            '{"error":{"code":"service_unavailable","message":"vector database unavailable"}}',
+            '{"error":{"code":"service_unavailable","message":"relay target gateway is not configured (GATEWAY_DOMAIN)"}}',
           ),
       });
 
@@ -1978,9 +1976,9 @@ describe('llamaStackService', () => {
       await expect(request).rejects.toMatchObject({
         error: {
           code: 'service_unavailable',
-          message: 'vector database unavailable',
+          message: 'relay target gateway is not configured (GATEWAY_DOMAIN)',
         },
-        message: 'vector database unavailable',
+        message: 'relay target gateway is not configured (GATEWAY_DOMAIN)',
       });
     });
 

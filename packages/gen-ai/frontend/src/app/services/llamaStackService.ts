@@ -759,11 +759,12 @@ export const createResponse =
  *
  * - Without `responsesEndpointUrl`: the BFF proxies to the OGX instance using
  *   the specified connection secret (`/lsd/responses/passthrough`).
- * - With `responsesEndpointUrl`: the request goes to AutoRAG's same-origin
- *   responses endpoint using the browser's existing session. This lets the
- *   embedded playground work without a running GenAI BFF or OGX playground.
+ * - With `responsesEndpointUrl`: the request is routed through the BFF relay
+ *   (`/lsd/responses/relay?target=...`), which forwards it — with the user's
+ *   bearer token — to the embedder-controlled same-origin target (e.g.
+ *   AutoRAG's responses endpoint) via the externally accessed gateway route.
  *
- * The embedded message hook requests streaming responses.
+ * Always uses streaming (BFF forces stream: true).
  */
 export const createPassthroughResponse = (
   bffBasePath: string,
@@ -778,25 +779,13 @@ export const createPassthroughResponse = (
   const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
   let url: string;
   if (responsesEndpointUrl) {
-    // The request body carries prompts and conversation content. Keep the
-    // override on the one endpoint provided by the AutoRAG embedder.
+    // The request body carries prompts and conversation content, so the
+    // target must stay same-origin: reject absolute URLs and
+    // protocol-relative URLs such as `//evil.example`.
     if (!responsesEndpointUrl.startsWith('/') || responsesEndpointUrl.startsWith('//')) {
       return Promise.reject(new Error('Invalid responses endpoint URL'));
     }
-    let target: URL;
-    try {
-      target = new URL(responsesEndpointUrl, window.location.origin);
-    } catch {
-      return Promise.reject(new Error('Invalid responses endpoint URL'));
-    }
-    if (
-      target.origin !== window.location.origin ||
-      target.pathname !== '/autorag/api/v1/responses' ||
-      target.hash
-    ) {
-      return Promise.reject(new Error('Invalid responses endpoint URL'));
-    }
-    url = `${target.pathname}${target.search}`;
+    url = `${base}/lsd/responses/relay?target=${encodeURIComponent(responsesEndpointUrl)}`;
   } else {
     url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(
       namespace,
@@ -806,7 +795,6 @@ export const createPassthroughResponse = (
   return new Promise((resolve, reject) => {
     fetch(url, {
       method: 'POST',
-      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
