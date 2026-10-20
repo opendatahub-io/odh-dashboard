@@ -99,7 +99,7 @@ func TestIntegration_FederationConfigMap_AllModulesEnabled(t *testing.T) {
 			"mlflowoperator": {ManagementState: "Managed"},
 			"trustyai":       {ManagementState: "Managed"},
 			"aipipelines":    {ManagementState: "Managed"},
-			"data":           {ManagementState: "Managed"},
+			"dataRegistry":   {ManagementState: "Managed"},
 		},
 	})
 
