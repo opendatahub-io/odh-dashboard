@@ -3,9 +3,13 @@
  * Only handles task nodes -- no artifact nodes.
  */
 import { RunStatus } from '@patternfly/react-topology';
-import { RuntimeStateKF, RunDetailsKF, TaskDetailKF } from '~/app/types/pipeline';
+import {
+  isRunInTerminalState,
+  RuntimeStateKF,
+  RunDetailsKF,
+  TaskDetailKF,
+} from '~/app/types/pipeline';
 import { PipelineTaskRunStatus } from '~/app/types/topology';
-import { inferUniqueFailedNode } from './inferTerminalFailure';
 
 // SUCCEEDED (60) outranks CANCELING (59) / CANCELED (51) because the KFP driver
 // transitions to CANCELED after the main task has already completed successfully.
@@ -138,6 +142,15 @@ export const translateStatusForNode = (state?: RuntimeStateKF | string): RunStat
 const isTaskTerminalFailure = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Failed || status === RunStatus.Cancelled;
 
+const getTerminalRunStatus = (runState?: string): RunStatus | undefined => {
+  const normalizedRunState = normalizeRuntimeStateInput(runState);
+  if (normalizedRunState == null || !isRunInTerminalState(normalizedRunState)) {
+    return undefined;
+  }
+
+  return translateStatusForNode(normalizedRunState);
+};
+
 /** Parse run_details once per task id for reuse by status resolution and node creation. */
 export const buildTaskRuntimeById = (
   taskIds: string[],
@@ -191,8 +204,8 @@ const collectPendingDependents = (
  * Resolves task-level statuses for fallback (pipeline_spec) topology when component
  * stage map data is unavailable. Scans all tasks for explicit terminal failures first;
  * run-level fallback applies only when no task failed explicitly in run_details, and
- * marks one unresolved task failed only when exactly one task is reachable. Parallel
- * branches remain unresolved rather than receiving an arbitrary failure.
+ * marks every unresolved task whose dependencies already succeeded (all parallel
+ * siblings after a shared success), never only the first by topo/declaration order.
  */
 export const resolveTaskTopologyRunStatuses = (
   taskIds: string[],
@@ -201,6 +214,7 @@ export const resolveTaskTopologyRunStatuses = (
   depsByTaskId: Map<string, string[]> = new Map(),
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
+  const terminalRunStatus = getTerminalRunStatus(runState);
 
   const inlineById = new Map<string, RunStatus | undefined>();
   for (const taskId of taskIds) {
@@ -219,28 +233,33 @@ export const resolveTaskTopologyRunStatuses = (
     }
   }
 
-  const inferredStatusById = inferUniqueFailedNode({
-    nodeIds: taskIds,
-    statusById,
-    dependenciesById: depsByTaskId,
-    shouldInfer:
-      normalizeRuntimeStateInput(runState)?.toUpperCase() === 'FAILED' && !hasExplicitTaskFailure,
-  });
-  const failureRoots = taskIds.filter((taskId) =>
-    isTaskTerminalFailure(inferredStatusById.get(taskId)),
-  );
+  if (!hasExplicitTaskFailure && isTaskTerminalFailure(terminalRunStatus)) {
+    // Infer failure only for tasks with no inline status. Preserve explicit
+    // status from run_details even when the overall run is terminal.
+    for (const taskId of taskIds) {
+      if (statusById.has(taskId)) {
+        continue;
+      }
+      const deps = depsByTaskId.get(taskId) ?? [];
+      if (deps.every((dep) => statusById.get(dep) === RunStatus.Succeeded)) {
+        statusById.set(taskId, terminalRunStatus);
+      }
+    }
+  }
+
+  const failureRoots = taskIds.filter((taskId) => isTaskTerminalFailure(statusById.get(taskId)));
   const pendingDependents = collectPendingDependents(
     failureRoots,
     buildDependentsByTaskId(taskIds, depsByTaskId),
   );
 
   for (const taskId of taskIds) {
-    if (inferredStatusById.has(taskId)) {
+    if (statusById.has(taskId)) {
       continue;
     }
 
-    inferredStatusById.set(taskId, pendingDependents.has(taskId) ? RunStatus.Pending : undefined);
+    statusById.set(taskId, pendingDependents.has(taskId) ? RunStatus.Pending : undefined);
   }
 
-  return inferredStatusById;
+  return statusById;
 };

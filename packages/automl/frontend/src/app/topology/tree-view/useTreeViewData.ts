@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { computeRankMap, resolveModelRecordKey } from '~/app/utilities/utils';
+import { computeRankMap } from '~/app/utilities/utils';
 import type { PipelineVisualizationData } from './types';
 
 /**
@@ -18,8 +18,11 @@ export const useTreeViewData = (
   React.useMemo(() => {
     const safeModels: Record<string, AutomlModel | null | undefined> = models ?? {};
     const selectedModel =
-      (bestModelKey && resolveModelRecordKey(safeModels, bestModelKey)) ||
-      (stageMapBestModel && resolveModelRecordKey(safeModels, stageMapBestModel));
+      bestModelKey && Object.hasOwn(safeModels, bestModelKey)
+        ? bestModelKey
+        : stageMapBestModel && Object.hasOwn(safeModels, stageMapBestModel)
+          ? stageMapBestModel
+          : undefined;
 
     const selectedRecord = selectedModel ? safeModels[selectedModel] : undefined;
     const winnerModelLabel =
@@ -27,19 +30,17 @@ export const useTreeViewData = (
         ? selectedRecord.name
         : undefined;
     const modelRanks = computeRankMap(safeModels, taskType ?? '', evalMetric, selectedModel);
-    const modelKeysByName = new Map<string, string[]>();
     for (const [modelKey, model] of Object.entries(safeModels)) {
       if (model == null) {
         continue;
       }
       const modelName = model.name;
-      if (typeof modelName === 'string' && modelName.trim().length > 0) {
-        modelKeysByName.set(modelName, [...(modelKeysByName.get(modelName) ?? []), modelKey]);
-      }
-    }
-    for (const [modelName, modelKeys] of modelKeysByName) {
-      if (modelKeys.length === 1 && !Object.hasOwn(modelRanks, modelName)) {
-        modelRanks[modelName] = modelRanks[modelKeys[0]];
+      if (
+        typeof modelName === 'string' &&
+        modelName.trim().length > 0 &&
+        !Object.hasOwn(modelRanks, modelName)
+      ) {
+        modelRanks[modelName] = modelRanks[modelKey];
       }
     }
 

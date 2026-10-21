@@ -104,62 +104,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
-  /api/v1/me:
-    get:
-      summary: Get MaaS Caller Identity
-      operationId: getMaaSMe
-      description: >
-        Returns structured metadata about the authenticated caller from MaaS
-        /v1/me. This is the grid-mode replacement for the Kubernetes-backed
-        /api/v1/user and /api/v1/is-maas-admin endpoints.
-      responses:
-        '200':
-          description: Caller identity and MaaS organization roles
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/MaasMe'
-                required:
-                  - data
-              example:
-                data:
-                  sub: 00u7a1b2c3d4e5f6g7h8
-                  email: alex@grid-tenant-1.com
-                  name: Alex Doe
-                  https://redhat.com/maas/orgs:
-                    - organization_id: 42c3e46f-2477-44d7-a85b-d3b43f6b31fa
-                      organization_name: coke
-                      roles:
-                        - admins
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPErrorResponse'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPErrorResponse'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPErrorResponse'
-        '503':
-          description: MaaS API is unavailable or not configured
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPErrorResponse'
-
   /api/v1/namespaces:
     get:
       summary: Get Namespaces
@@ -679,92 +623,6 @@ paths:
           description: Unauthorized response.
         '500':
           description: Internal Server Error
-
-  /api/v1/api-keys/search/tenant:
-    post:
-      tags:
-        - api-keys
-      summary: Search caller-scoped API keys
-      operationId: searchTenantApiKeys
-      description: Search API keys for the authenticated caller using MaaS API data only. This endpoint does not perform Kubernetes-backed admin or subscription enrichment.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - data
-              properties:
-                data:
-                  type: object
-                  properties:
-                    filters:
-                      type: object
-                      properties:
-                        subscription:
-                          type: string
-                        status:
-                          type: array
-                          items:
-                            type: string
-                            enum: [active, revoked, expired]
-                    sort:
-                      type: object
-                      properties:
-                        by:
-                          type: string
-                          enum: [created_at, expires_at, last_used_at, name]
-                        order:
-                          type: string
-                          enum: [asc, desc]
-                    pagination:
-                      type: object
-                      properties:
-                        limit:
-                          type: integer
-                          minimum: 1
-                          maximum: 100
-                        offset:
-                          type: integer
-                          minimum: 0
-      responses:
-        '200':
-          description: OK response.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiKeyListEnvelope'
-        '400':
-          description: Bad Request. Missing data envelope or invalid search parameters.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPErrorResponse'
-        '401':
-          description: Unauthorized response.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPErrorResponse'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPErrorResponse'
-        '502':
-          description: MaaS API returned an unsuccessful client response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPErrorResponse'
-        '503':
-          description: MaaS API is unavailable, not configured, or returned a server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPErrorResponse'
 
   /api/v1/api-keys/bulk-revoke:
     post:
@@ -2198,46 +2056,6 @@ components:
         clusterAdmin:
           type: boolean
 
-    MaasOrg:
-      type: object
-      required:
-        - organization_id
-        - roles
-      properties:
-        organization_id:
-          type: string
-          example: 42c3e46f-2477-44d7-a85b-d3b43f6b31fa
-        organization_name:
-          type: string
-          example: coke
-        roles:
-          type: array
-          items:
-            type: string
-          example:
-            - admins
-
-    MaasMe:
-      type: object
-      required:
-        - sub
-        - https://redhat.com/maas/orgs
-      properties:
-        sub:
-          type: string
-          example: 00u7a1b2c3d4e5f6g7h8
-        email:
-          type: string
-          format: email
-          example: alex@grid-tenant-1.com
-        name:
-          type: string
-          example: Alex Doe
-        https://redhat.com/maas/orgs:
-          type: array
-          items:
-            $ref: '#/components/schemas/MaasOrg'
-
     Namespace:
       type: object
       properties:
@@ -2474,14 +2292,6 @@ components:
             - flan-t5-small
       required:
         - models
-
-    ApiKeyListEnvelope:
-      type: object
-      properties:
-        data:
-          $ref: '#/components/schemas/ApiKeyListResponse'
-      required:
-        - data
 
     ApiKeyListResponse:
       type: object

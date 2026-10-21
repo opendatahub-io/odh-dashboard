@@ -38,13 +38,11 @@ const MaaSAuthzProvider: React.FC<MaaSAuthzProviderProps> = ({ children }) => {
     let isCurrent = true;
     pluginStore.setFeatureFlags({ [ADMIN_USER_FLAG]: false });
 
-    if (window.__MAAS_CONSUMER_PORTAL_GRID__ !== true) {
-      void getMaaSAdminAccess().then((allowed) => {
-        if (isCurrent) {
-          pluginStore.setFeatureFlags({ [ADMIN_USER_FLAG]: allowed });
-        }
-      });
-    }
+    void getMaaSAdminAccess().then((allowed) => {
+      if (isCurrent) {
+        pluginStore.setFeatureFlags({ [ADMIN_USER_FLAG]: allowed });
+      }
+    });
 
     return () => {
       isCurrent = false;

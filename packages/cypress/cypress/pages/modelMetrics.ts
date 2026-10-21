@@ -47,8 +47,8 @@ class ModelMetricsPerformance extends ModelMetricsGlobal {
 }
 
 class ModelMetricsNim extends ModelMetricsGlobal {
-  visit(project: string, model: string, tab: 'performance' | 'nim' = 'performance') {
-    cy.visitWithLogin(`/ai-hub/models/deployments/${project}/metrics/${model}/${tab}`);
+  visit(project: string, model: string) {
+    cy.visitWithLogin(`/ai-hub/models/deployments/${project}/metrics/${model}/performance`);
     this.wait();
   }
 
@@ -77,15 +77,15 @@ class ModelMetricsKserve extends ModelMetricsPerformance {
 
 class ModelMetricsKserveNim extends ModelMetricsNim {
   findKserveAreaDisabledCard() {
-    return cy.findByTestId('nim-metrics-loaded').findByTestId('kserve-metrics-disabled');
+    return cy.findByTestId('kserve-metrics-disabled');
   }
 
   findUnsupportedRuntimeCard() {
-    return cy.findByTestId('nim-metrics-loaded').findByTestId('kserve-metrics-runtime-unsupported');
+    return cy.findByTestId('kserve-metrics-runtime-unsupported');
   }
 
   findUnknownErrorCard() {
-    return cy.findByTestId('nim-metrics-loaded').findByTestId('kserve-unknown-error');
+    return cy.findByTestId('kserve-unknown-error');
   }
 }
 

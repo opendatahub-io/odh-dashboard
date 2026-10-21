@@ -6,10 +6,7 @@ import {
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
 import { RunDetailsKF } from '~/app/types/pipeline';
-import {
-  buildStageMapTopology,
-  inferFailedNodeForTerminalRun,
-} from '~/app/topology/buildStageMapTopology';
+import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import { MAX_PATTERN_SELECTION_STEPS } from '~/app/topology/stageMapConstants';
 import { MAX_CONFIGURE_MAX_PATTERNS } from '~/app/topology/stageMapStatus';
 import { MIN_RAG_PATTERNS } from '~/app/utilities/const';
@@ -175,28 +172,6 @@ describe('buildStageMapTopology', () => {
       );
       expect(patternNodes[0].label).toBe('pattern_a');
       expect(patternNodes[1].label).toBe('pattern_b');
-    });
-
-    it('should normalize display-name branch identifiers to loaded pattern record keys', () => {
-      const stageMap = makeStageMap([
-        makeComponent('rag_optimization', [
-          makeStage('optimize_templates', {
-            selected_patterns: ['Pattern One', 'Pattern Two'],
-          }),
-        ]),
-      ]);
-      const nodes = buildStageMapTopology(stageMap, undefined, undefined, undefined, undefined, {
-        pattern_one_key: { name: 'Pattern One' },
-        pattern_two_key: { name: 'Pattern Two' },
-      });
-
-      const patternNodes = nodes.filter(
-        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
-      );
-      expect(patternNodes.map((node) => node.data?.patternKey)).toEqual([
-        'pattern_one_key',
-        'pattern_two_key',
-      ]);
     });
 
     it('should fan out from optimize_templates node', () => {
@@ -688,7 +663,7 @@ describe('buildStageMapTopology', () => {
       expect(patternNodes[1].label).toBe('PatternB');
     });
 
-    it('should leave placeholder pattern nodes unreached when the failed node is inferred earlier', () => {
+    it('should show terminal status on placeholder pattern nodes when run is cancelled', () => {
       const stageMap = makeStageMap([noPatternsComponent]);
       const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
 
@@ -697,7 +672,7 @@ describe('buildStageMapTopology', () => {
       );
       expect(patternNodes).toHaveLength(3);
       patternNodes.forEach((node) => {
-        expect(node.data?.runStatus).toBe(RunStatus.Pending);
+        expect(node.data?.runStatus).toBe(RunStatus.Failed);
       });
     });
   });
@@ -953,9 +928,9 @@ describe('buildStageMapTopology', () => {
 
       expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId['rag_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
-        RunStatus.Pending,
+        RunStatus.Failed,
       );
-      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Failed);
       expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
@@ -1306,64 +1281,6 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
       const spacers = nodes.filter((n) => n.type === 'DEFAULT_SPACER_NODE');
       expect(spacers).toHaveLength(0);
-    });
-  });
-
-  describe('terminal failure inference', () => {
-    it('should infer the first reachable unresolved node and leave later nodes pending', () => {
-      const stageMap = makeStageMap([
-        makeComponent('completed_component', [
-          makeStage('validate_inputs', { status: 'completed' }),
-        ]),
-        makeComponent('failed_component', [
-          makeStage('validate_inputs'),
-          makeStage('write_output'),
-        ]),
-      ]);
-
-      const nodes = buildStageMapTopology(
-        stageMap,
-        undefined,
-        'FAILED',
-        undefined,
-        undefined,
-        undefined,
-      );
-      const byId = Object.fromEntries(nodes.map((node) => [node.id, node]));
-
-      expect(byId.completed_component__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
-      expect(byId.failed_component__validate_inputs.data?.runStatus).toBe(RunStatus.Failed);
-      expect(byId.failed_component__write_output.data?.runStatus).toBe(RunStatus.Pending);
-      expect(byId.failed_component__validate_inputs.data?.inferredFailure).toBe(true);
-    });
-
-    it('should not guess between multiple reachable parallel nodes', () => {
-      const nodes = [
-        {
-          id: 'pre',
-          type: 'DEFAULT_TASK_NODE',
-          data: { runStatus: RunStatus.Succeeded },
-        },
-        {
-          id: 'branch-a',
-          type: 'DEFAULT_TASK_NODE',
-          runAfterTasks: ['pre'],
-          data: { runStatus: RunStatus.Pending },
-        },
-        {
-          id: 'branch-b',
-          type: 'DEFAULT_TASK_NODE',
-          runAfterTasks: ['pre'],
-          data: { runStatus: RunStatus.Pending },
-        },
-      ] as unknown as ReturnType<typeof buildStageMapTopology>;
-      const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-      const result = inferFailedNodeForTerminalRun(nodes, 'FAILED');
-
-      expect(result).toEqual(nodes);
-      expect(warningSpy).not.toHaveBeenCalled();
-      warningSpy.mockRestore();
     });
   });
 

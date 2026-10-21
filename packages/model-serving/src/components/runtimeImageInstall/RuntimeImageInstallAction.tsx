@@ -24,8 +24,8 @@ const RuntimeImageInstallAction: React.FC<RuntimeImageInstallActionProps> = ({ a
   if (!canInstall) {
     return (
       <Tooltip content="No supported installation targets are enabled for this runtime image.">
-        <Button variant="primary" data-testid="runtime-image-install" isAriaDisabled>
-          Create
+        <Button variant="secondary" data-testid="runtime-image-install" isAriaDisabled>
+          Install
         </Button>
       </Tooltip>
     );
@@ -33,7 +33,7 @@ const RuntimeImageInstallAction: React.FC<RuntimeImageInstallActionProps> = ({ a
 
   return (
     <Button
-      variant="primary"
+      variant="secondary"
       data-testid="runtime-image-install"
       onClick={handleCreateStarted}
       component={(props: LinkProps) => (
@@ -44,7 +44,7 @@ const RuntimeImageInstallAction: React.FC<RuntimeImageInstallActionProps> = ({ a
         />
       )}
     >
-      Create
+      Install
     </Button>
   );
 };

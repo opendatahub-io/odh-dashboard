@@ -116,6 +116,12 @@ const initBaseIntercepts = () => {
   mockVerifyConnectionSuccess();
 };
 
+const selectSourceMode = (mode: 'Model' | 'Agent') => {
+  const modeValue = mode === 'Model' ? 'model' : 'agent';
+  startEvaluationRunPage.findSourceModeToggle().click();
+  startEvaluationRunPage.findSourceModeOption(modeValue).click();
+};
+
 const selectExternalEndpoint = () => {
   startEvaluationRunPage.findModelPickerToggle().click();
   cy.findByTestId('model-option-external').click();
@@ -168,7 +174,7 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
 
     startEvaluationRunPage.findBenchmarkNameDisplay().should('contain.text', 'Alpha Bench');
     startEvaluationRunPage.findEvaluationNameInput().should('not.have.value', '');
-    startEvaluationRunPage.findSourceModeToggle().should('not.exist');
+    startEvaluationRunPage.findSourceModeToggle().should('contain.text', 'Model');
     startEvaluationRunPage.findModelPickerToggle().should('exist');
     startEvaluationRunPage.findSubmitButton().should('exist');
     startEvaluationRunPage.findCancelButton().should('exist');
@@ -188,11 +194,19 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 
-  it('should not render a source mode selector', () => {
+  it('should switch between source modes via dropdown', () => {
     navigateToBenchmarkStart();
 
-    startEvaluationRunPage.findSourceModeToggle().should('not.exist');
+    startEvaluationRunPage.findSourceModeToggle().should('contain.text', 'Model');
     startEvaluationRunPage.findModelPickerToggle().should('exist');
+
+    startEvaluationRunPage.findSourceModeToggle().click();
+    startEvaluationRunPage.findSourceModeOption('prerecorded').should('not.exist');
+    startEvaluationRunPage.findSourceModeOption('agent').click();
+
+    startEvaluationRunPage.findAgentNameInput().should('exist');
+    startEvaluationRunPage.findEndpointUrlInput().should('exist');
+    startEvaluationRunPage.findModelPickerToggle().should('not.exist');
   });
 
   it('should show external model fields when selecting Other (External endpoint)', () => {
@@ -730,6 +744,13 @@ describe('Start Evaluation Run - Connection Validation', () => {
   beforeEach(() => {
     initBaseIntercepts();
     mockMlflowExperiments([]);
+  });
+
+  it('should show validate connection button for agent mode', () => {
+    navigateToBenchmarkStart();
+
+    selectSourceMode('Agent');
+    startEvaluationRunPage.findValidateConnectionButton().should('exist');
   });
 
   it('should show validate connection button for external model', () => {

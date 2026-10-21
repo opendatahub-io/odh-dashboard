@@ -13,18 +13,18 @@ import {
 } from '@patternfly/react-tokens';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 
-import useWorkloadAdmissionMetrics, { getWindowConfig } from '../hooks/useWorkloadAdmissionMetrics';
+import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
 import {
   ADMISSION_TIME_WINDOW_OPTIONS,
   buildAdmissionMetrics,
   formatAdmissionMetricHeadline,
+  formatAdmissionTooltipTimestamp,
   formatAdmissionTimestamp,
   formatAdmissionMetricValue,
   getAdmissionMetricHeadlineValue,
   getAdmissionMetricsXDomain,
   getAdmissionMetricYBounds,
   getAdmissionMetricYInterval,
-  getAdmissionTickInterval,
   getValidAdmissionMetricPoints,
   type AdmissionMetric,
 } from '../utils/workloadAdmissions';
@@ -57,6 +57,8 @@ type WorkloadAdmissionsTabProps = {
   canAccessAdminMetrics: boolean;
 };
 
+const ADMISSION_DAY_MS = 24 * 60 * 60 * 1000;
+
 const AdmissionMetricChartComponent: React.FC<{
   metric: AdmissionMetric;
   xDomain: [number, number];
@@ -75,26 +77,25 @@ const AdmissionMetricChartComponent: React.FC<{
   const { yMin, yMax, yPadding } = getAdmissionMetricYBounds(data);
   const option = React.useMemo(() => {
     const yDomain: [number, number] = [Math.max(0, yMin - yPadding), yMax + yPadding];
+    const spansMultipleCalendarDays =
+      new Date(xDomain[0]).toDateString() !== new Date(xDomain[1]).toDateString();
     return {
       animation: animateOnMount,
       animationDuration: animateOnMount ? 1200 : 0,
       animationEasing: animateOnMount ? ('cubicOut' as const) : undefined,
       animationDurationUpdate: 0,
-      grid: { left: 48, right: 20, top: 8, bottom: 28, containLabel: true },
+      grid: { left: 48, right: 8, top: 8, bottom: 28 },
       xAxis: {
-        type: 'value' as const,
+        type: 'time' as const,
         min: xDomain[0],
         max: xDomain[1],
-        interval: getAdmissionTickInterval(timeWindow),
+        ...(spansMultipleCalendarDays && { minInterval: ADMISSION_DAY_MS }),
         axisLine: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
         axisTick: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
         axisLabel: {
           color: 'var(--pf-t--global--text--color--subtle)',
           fontSize: 9,
           hideOverlap: true,
-          showMinLabel: true,
-          showMaxLabel: false,
-          margin: 8,
           formatter: (timestamp: number) =>
             formatAdmissionTimestamp(timestamp, timeWindow, xDomain),
         },
@@ -150,10 +151,9 @@ const AdmissionMetricChartComponent: React.FC<{
               ? `${formattedValue} active`
               : formattedValue;
 
-          return `${formatAdmissionTimestamp(
+          return `${formatAdmissionTooltipTimestamp(
             Number(value[0]),
             timeWindow,
-            xDomain,
           )}<br/>${tooltipValue}`;
         },
       },
@@ -247,6 +247,7 @@ const AdmissionMetricCard: React.FC<{
   animateOnMount: boolean;
   timeWindow: string;
 }> = ({ metric, xDomain, isLoading, animateOnMount, timeWindow }) => {
+  const isChartLoading = isLoading;
   const formattedValue = formatAdmissionMetricHeadline(
     metric,
     getAdmissionMetricHeadlineValue(metric),
@@ -255,13 +256,10 @@ const AdmissionMetricCard: React.FC<{
   return (
     <div
       className="gpuaas-workload-overview__admission-metric"
-      data-testid={`admission-metric-card-${metric.id}`}
+      data-testid={`admission-metric-${metric.id}`}
     >
-      {isLoading ? (
-        <>
-          <AdmissionMetricHeaderLoading label={metric.label} />
-          <AdmissionMetricChartLoading label={metric.label} />
-        </>
+      {isChartLoading ? (
+        <AdmissionMetricHeaderLoading label={metric.label} />
       ) : (
         <>
           <div data-testid={`admission-metric-value-${metric.id}`}>
@@ -272,7 +270,9 @@ const AdmissionMetricCard: React.FC<{
           <Content component="p">{metric.label}</Content>
         </>
       )}
-      {!isLoading && (
+      {isChartLoading ? (
+        <AdmissionMetricChartLoading label={metric.label} />
+      ) : (
         <AdmissionMetricChart
           key={`${metric.id}-${timeWindow}`}
           metric={metric}
@@ -322,7 +322,7 @@ const WorkloadAdmissionsTab: React.FC<WorkloadAdmissionsTabProps> = ({
     { blue: chartBlue.var, orange: chartOrange.var },
     canAccessAdminMetrics,
   );
-  const xDomain = getAdmissionMetricsXDomain(getWindowConfig(timeWindow).span, metrics.endInMs);
+  const xDomain = getAdmissionMetricsXDomain(metricSeries);
 
   return (
     <div

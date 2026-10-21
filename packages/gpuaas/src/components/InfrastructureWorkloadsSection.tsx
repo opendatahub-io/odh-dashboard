@@ -269,6 +269,7 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
   kueueAvailable,
   canAccessAdminMetrics,
 }) => {
+  const workloadsContentRef = React.useRef<HTMLDivElement>(null);
   const {
     projects,
     preferredProject,
@@ -296,16 +297,24 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
     }
   }, [preferredProject, projects, projectsLoaded, updatePreferredProject]);
 
+  const previousProjectName = React.useRef<string | undefined>(undefined);
+  React.useEffect(() => {
+    const projectName = preferredProject?.metadata.name;
+    if (previousProjectName.current && projectName !== previousProjectName.current) {
+      window.requestAnimationFrame(() => {
+        const contentSection = workloadsContentRef.current;
+        if (contentSection) {
+          contentSection.scrollTop = 0;
+        }
+      });
+    }
+    previousProjectName.current = projectName;
+  }, [preferredProject?.metadata.name]);
+
   React.useEffect(() => {
     const interval = window.setInterval(() => setCurrentTime(Date.now()), 20_000);
     return () => window.clearInterval(interval);
   }, []);
-
-  React.useEffect(() => {
-    if (loaded) {
-      setLastRefreshed(new Date());
-    }
-  }, [loaded, workloads]);
 
   React.useEffect(() => {
     if (refreshTrigger > 0) {
@@ -314,6 +323,7 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
   }, [refresh, refreshTrigger]);
 
   const handleRefresh = React.useCallback(() => {
+    setLastRefreshed(new Date());
     setRefreshTrigger((current) => current + 1);
     void refreshNotebooks();
   }, [refreshNotebooks]);
@@ -323,6 +333,7 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
       updatePreferredProject(
         projects.find((project) => project.metadata.name === projectName) ?? null,
       );
+      setLastRefreshed(new Date());
     },
     [projects, updatePreferredProject],
   );
@@ -334,14 +345,18 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
     isKueueManagedDataScienceProject(preferredProject);
 
   return (
-    <Stack hasGutter>
+    <Stack className="gpuaas-infrastructure-workloads" hasGutter>
       <InfrastructureWorkloadsHeader
         preferredProject={preferredProject}
         refreshTime={refreshTime}
         onProjectSelection={handleProjectSelection}
         onRefresh={handleRefresh}
       />
-      <div data-testid="infrastructure-workloads">
+      <div
+        ref={workloadsContentRef}
+        className="gpuaas-infrastructure-workloads__content-section"
+        data-testid="infrastructure-workloads"
+      >
         <Stack>
           <StackItem>
             <InfrastructureWorkloadsContent

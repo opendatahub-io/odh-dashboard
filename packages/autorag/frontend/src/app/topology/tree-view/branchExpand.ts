@@ -114,7 +114,7 @@ export const matchesWinnerPattern = (
   patternNode: PipelineNodeModelExpanded,
   options: Pick<BranchExpandOptions, 'winnerPatternLabel' | 'winnerPatternKey'>,
 ): boolean => {
-  const nodeValues = [patternNode.data?.patternKey, patternNode.label, patternNode.id].filter(
+  const nodeValues = [patternNode.label, patternNode.id].filter(
     (value): value is string => typeof value === 'string' && value.length > 0,
   );
   const candidates = [options.winnerPatternLabel, options.winnerPatternKey].filter(
@@ -136,21 +136,13 @@ export const resolveWinnerBranchIndex = (
   branchIndices: number[],
   options: Pick<BranchExpandOptions, 'winnerPatternLabel' | 'winnerPatternKey'>,
 ): number | undefined => {
-  if (typeof options.winnerPatternKey === 'string' && options.winnerPatternKey.length > 0) {
-    const exactMatches = branchIndices.filter((index) => {
-      const patternNode = getPatternTerminus(branches.get(index) ?? []);
-      return patternNode?.data?.patternKey === options.winnerPatternKey;
-    });
-    if (exactMatches.length > 0) {
-      return exactMatches.length === 1 ? exactMatches[0] : undefined;
+  for (const index of branchIndices) {
+    const patternNode = getPatternTerminus(branches.get(index) ?? []);
+    if (patternNode && matchesWinnerPattern(patternNode, options)) {
+      return index;
     }
   }
-
-  const matchingBranchIndices = branchIndices.filter((index) => {
-    const patternNode = getPatternTerminus(branches.get(index) ?? []);
-    return patternNode != null && matchesWinnerPattern(patternNode, options);
-  });
-  return matchingBranchIndices.length === 1 ? matchingBranchIndices[0] : undefined;
+  return undefined;
 };
 
 /** Branch indices to lay out: all when expanded, else winner (or first) spine. */

@@ -22,7 +22,7 @@ describe('Agent Ops API Contract Tests', () => {
     it('should return health status', async () => {
       const result = await apiClient.get('/healthcheck');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
+        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
         status: 200,
       });
     });
@@ -32,7 +32,7 @@ describe('Agent Ops API Contract Tests', () => {
     it('should list agent runtimes', async () => {
       const result = await apiClient.get('/api/v1/agents/runtimes');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/AgentRuntimesResponse/content/application~1json/schema',
+        ref: '#/components/responses/AgentRuntimesResponse/content/application/json/schema',
         status: 200,
       });
     });
@@ -47,7 +47,7 @@ describe('Agent Ops API Contract Tests', () => {
             '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent',
           );
           expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/AgentRuntimeDetailResponse/content/application~1json/schema',
+            ref: '#/components/responses/AgentRuntimeDetailResponse/content/application/json/schema',
             status: 200,
           });
         });

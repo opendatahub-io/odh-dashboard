@@ -23,7 +23,7 @@ describe('Serving runtime catalog endpoints', () => {
       '/api/v1/serving_runtime_catalog/serving_runtimes_filter_options?namespace=kubeflow',
     );
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ServingRuntimeFilterOptionsResponse/content/application~1json/schema',
+      ref: '#/components/responses/ServingRuntimeFilterOptionsResponse/content/application/json/schema',
       status: 200,
     });
     expect(result.response?.data).toMatchObject({
@@ -37,7 +37,7 @@ describe('Serving runtime catalog endpoints', () => {
       `/api/v1/serving_runtime_catalog/serving_runtimes?namespace=kubeflow&filterQuery=${filterQuery}`,
     );
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ServingRuntimeListResponse/content/application~1json/schema',
+      ref: '#/components/responses/ServingRuntimeListResponse/content/application/json/schema',
       status: 200,
     });
     const body = result.response?.data as

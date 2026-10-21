@@ -1,19 +1,16 @@
 import React from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import {
-  Alert,
-  Bullseye,
-  Spinner,
-  Tab,
-  TabAction,
-  Tabs,
-  TabTitleText,
-} from '@patternfly/react-core';
+import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useIsProjectNIMSupported } from '@odh-dashboard/plugin-core';
 import { useModelBiasData } from '@odh-dashboard/trustyai/hooks/useModelBiasData';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import useDoesTrustyAICRExist from '@odh-dashboard/trustyai/hooks/useDoesTrustyAICRExist';
+import { byName } from '@odh-dashboard/k8s-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core';
 import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import useServingPlatformStatuses from '@odh-dashboard/model-serving/hooks/useServingPlatformStatuses';
 import './MetricsPageTabs.scss';
 import { MetricsTabKeys } from './types';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
@@ -27,38 +24,21 @@ type MetricsPageTabsProps = {
 };
 
 const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
-  const { enabledTabs, loading, error } = useMetricsPageEnabledTabs(model);
+  const servingPlatformStatuses = useServingPlatformStatuses();
+  const isProjectNIMSupportedFn = useIsProjectNIMSupported();
+  const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
+  const { projects } = React.useContext(ProjectsContext);
+  const project = projects.find(byName(model.metadata.namespace));
+  const enabledTabs = useMetricsPageEnabledTabs();
+  const isKServeNIMEnabled = project ? isProjectNIMSupportedFn(project) : false;
+  const isNimEnabled = isNIMAvailable && isKServeNIMEnabled;
   const { biasMetricConfigs, statusState } = useModelBiasData();
   const [biasMetricsInstalled] = useDoesTrustyAICRExist();
+  const performanceMetricsAreaAvailable = useIsAreaAvailable(
+    SupportedArea.PERFORMANCE_METRICS,
+  ).status;
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
-
-  if (error) {
-    return (
-      <Alert
-        isInline
-        variant="danger"
-        title="Unable to determine available metrics tabs"
-        data-testid="metrics-tabs-error"
-      >
-        {error.message} Contact your project administrator if access is restricted.
-      </Alert>
-    );
-  }
-
-  if ((tab && !enabledTabs.includes(tab)) || enabledTabs.length === 0) {
-    if (loading) {
-      return (
-        <Bullseye>
-          <Spinner aria-label="Loading available metrics tabs" />
-        </Bullseye>
-      );
-    }
-  }
-
-  if (enabledTabs.length === 0) {
-    return <NotFound />;
-  }
 
   if (!tab) {
     return <Navigate to={`./${enabledTabs[0]}`} replace />;
@@ -68,12 +48,16 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
     return <Navigate to={`../${enabledTabs[0]}`} replace />;
   }
 
+  if (enabledTabs.length === 0) {
+    return <NotFound />;
+  }
+
   //Display only one tab that is available
   if (enabledTabs.length === 1) {
-    if (enabledTabs.includes(MetricsTabKeys.PERFORMANCE)) {
+    if (performanceMetricsAreaAvailable) {
       return <PerformanceTab model={model} />;
     }
-    if (enabledTabs.includes(MetricsTabKeys.NIM)) {
+    if (isNimEnabled) {
       return <NIMTab model={model} />;
     }
 
@@ -95,7 +79,7 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
       className="odh-metrics-page-tabs"
       mountOnEnter
     >
-      {enabledTabs.includes(MetricsTabKeys.PERFORMANCE) && (
+      {performanceMetricsAreaAvailable && (
         <Tab
           eventKey={MetricsTabKeys.PERFORMANCE}
           title={<TabTitleText>Endpoint performance</TabTitleText>}
@@ -107,7 +91,8 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
         </Tab>
       )}
 
-      {enabledTabs.includes(MetricsTabKeys.NIM) && (
+      {/* Add NIN metrics tab */}
+      {isNimEnabled && (
         <Tab
           eventKey={MetricsTabKeys.NIM}
           title={<TabTitleText>NIM Metrics</TabTitleText>}

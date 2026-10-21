@@ -16,8 +16,8 @@ class RuntimeImageInstallPage {
     return cy.findByTestId('runtime-image-install');
   }
 
-  findPageTitle() {
-    return cy.findByRole('heading', { name: 'Create runtime' });
+  findPageTitle(runtimeImageName: string) {
+    return cy.findByRole('heading', { name: `Install ${runtimeImageName}` });
   }
 
   findLibraryBreadcrumb() {

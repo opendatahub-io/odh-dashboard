@@ -28,6 +28,7 @@ const createTarget = (id: RuntimeImageInstallTargetId): RuntimeImageInstallTarge
     description: id,
     installTargetName: id,
     selectedState: { listName: id, description: id },
+    configureStepLabel: id,
     component: () => Promise.resolve({ default: () => null }),
   },
 });
@@ -109,7 +110,7 @@ describe('RuntimeImageInstallAction', () => {
         </Routes>
       </MemoryRouter>,
     );
-    const installLink = screen.getByRole('link', { name: 'Create' });
+    const installLink = screen.getByRole('link', { name: 'Install' });
     expect(installLink).toHaveAttribute(
       'href',
       '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/preview-vllm-0-6-0/install',

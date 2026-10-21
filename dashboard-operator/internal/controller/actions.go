@@ -74,7 +74,7 @@ func (r *DashboardReconciler) autoDetectObservability(ctx context.Context, dashb
 
 	svc := &corev1.Service{}
 	key := types.NamespacedName{Name: persesServiceName, Namespace: monitoringNS}
-	if err := r.apiReader().Get(ctx, key, svc); err != nil {
+	if err := r.Get(ctx, key, svc); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return nil
 		}
@@ -243,7 +243,7 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 	return nil
 }
 
-func extractDashboardURL(ctx context.Context, reader client.Reader, dashboard *v1alpha1.Dashboard, namespace string, platform cluster.Platform) (string, error) {
+func extractDashboardURL(ctx context.Context, cli client.Client, dashboard *v1alpha1.Dashboard, namespace string, platform cluster.Platform) (string, error) {
 	if platform == cluster.XKS {
 		return "", nil
 	}
@@ -253,7 +253,7 @@ func extractDashboardURL(ctx context.Context, reader client.Reader, dashboard *v
 	}
 
 	rl := &routev1.RouteList{}
-	if err := reader.List(ctx, rl,
+	if err := cli.List(ctx, rl,
 		client.InNamespace(namespace),
 		client.MatchingLabels{labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind)},
 	); err != nil {
@@ -285,7 +285,6 @@ func extractDashboardURL(ctx context.Context, reader client.Reader, dashboard *v
 func deployObservabilityManifests(
 	ctx context.Context,
 	cli client.Client,
-	reader client.Reader,
 	dashboard *v1alpha1.Dashboard,
 	basePath string,
 	platform cluster.Platform,
@@ -304,7 +303,7 @@ func deployObservabilityManifests(
 	// Use a discovery-based check to avoid requiring apiextensions.k8s.io RBAC.
 	persesList := &unstructured.UnstructuredList{}
 	persesList.SetGroupVersionKind(persesdashboardGVK)
-	if err := reader.List(ctx, persesList, client.Limit(1)); err != nil {
+	if err := cli.List(ctx, persesList, client.Limit(1)); err != nil {
 		if meta.IsNoMatchError(err) {
 			return ErrPersesCRDNotFound
 		}
@@ -327,7 +326,7 @@ func deployObservabilityManifests(
 		if err := setMaaSPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
 			return err
 		}
-		if err := preserveLegacyMaaSPortalNetworkAccess(ctx, reader, rendered, applicationsNamespace); err != nil {
+		if err := preserveLegacyMaaSPortalNetworkAccess(ctx, cli, rendered, applicationsNamespace); err != nil {
 			return err
 		}
 	}

@@ -141,7 +141,7 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 	if retryAfter == 0 {
 		// Capture pre-cleanup existence so deleting the legacy Deployment still
 		// triggers another reconciliation to remove temporary network-policy peers.
-		legacyDeployment, err := legacyMaaSPortalDeploymentExists(ctx, r.apiReader(), r.ApplicationsNamespace)
+		legacyDeployment, err := legacyMaaSPortalDeploymentExists(ctx, r.Client, r.ApplicationsNamespace)
 		if err == nil {
 			migration, err = r.deleteLegacyMaaSPortalResources(ctx)
 		}

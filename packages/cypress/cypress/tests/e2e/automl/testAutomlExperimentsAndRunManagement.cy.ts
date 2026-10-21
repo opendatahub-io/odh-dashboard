@@ -43,7 +43,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
     { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       cy.step('Login and wait for pipeline server');
-      cy.visitWithLogin(automlExperimentsPage.pathWithDefaults(), HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(automlExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
       waitForAutoXDspaReady(projectName);
       waitForManagedPipelines(projectName);
 

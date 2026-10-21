@@ -1,3 +1,0 @@
-# Runtime image library (Runtime Catalog) E2E test data
-# Any ID works here: the details route is not registered for non-admin users
-nonAdminProbeRuntimeId: 'e2e-non-admin-probe'

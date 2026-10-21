@@ -395,8 +395,6 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 - `input_data_keys` is forwarded to KFP as the ordered list of input locations. `input_data_key` is not part of the public create request contract or new-run runtime parameters.
 - `maas_secret_name` and `db_secret_name` are required for new creation flows. Legacy provider fields remain readable for existing results and compatibility paths.
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF - no manual configuration needed
-- The BFF injects `plugins_input.mlflow.disabled: true` on every created run (optimization and
-  indexing), disabling the platform MLflow integration (AutoRAG owns its own experiment tracking)
 - The BFF discovers the managed AutoRAG pipeline by exact display name
   (case-insensitive; default: `documents-rag-optimization-pipeline`)
 - Discovery results are cached for 5 minutes per namespace to reduce API calls

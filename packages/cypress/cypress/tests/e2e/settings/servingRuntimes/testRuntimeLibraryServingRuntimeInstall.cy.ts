@@ -83,8 +83,13 @@ describe('Install a Serving runtime template from the Runtime library', () => {
           testData,
         );
       });
-      runtimeCatalogDetailsPage.findCreateAction().scrollIntoView().click();
-      runtimeImageInstallPage.findPageTitle().should('be.visible');
+      runtimeCatalogDetailsPage
+        .findRuntimeHeading()
+        .invoke('text')
+        .then((runtimeImageName) => {
+          runtimeCatalogDetailsPage.findInstallAction().scrollIntoView().click();
+          runtimeImageInstallPage.findPageTitle(runtimeImageName).should('be.visible');
+        });
 
       cy.step('Verify the source configuration and its protocol/model-type prefill');
       runtimeImageInstallPage.findServingRuntimeRadio().should('be.enabled').check();

@@ -1,4 +1,3 @@
-import { mockNimServingRuntime } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
@@ -36,6 +35,7 @@ import {
   mockKserveMetricsConfigMap,
   mockNimMetricsConfigMap,
 } from '@odh-dashboard/k8s-core/__mocks__/mockKserveMetricsConfigMap';
+import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { TrustyAIApplicationsModel } from '@odh-dashboard/trustyai/api/model';
 import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
@@ -66,7 +66,7 @@ type HandlersProps = {
   hasServingData: boolean;
   hasBiasData: boolean;
   enableKServe?: boolean;
-  nimWizard?: boolean;
+  enableNIM?: boolean;
   isTrustyAIAvailable?: boolean;
   isTrustyAIInstalled?: boolean;
 };
@@ -96,7 +96,7 @@ const initIntercepts = ({
   hasServingData = false,
   hasBiasData = false,
   enableKServe = true,
-  nimWizard = true,
+  enableNIM = false,
   isTrustyAIAvailable = true,
   isTrustyAIInstalled = true,
 }: HandlersProps) => {
@@ -117,13 +117,14 @@ const initIntercepts = ({
       disablePerformanceMetrics,
       disableNIMModelServing,
       disableKServeMetrics,
-      nimWizard,
     }),
   );
 
   cy.interceptK8sList(
     ProjectModel,
-    mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project', enableKServe })]),
+    mockK8sResourceList([
+      mockProjectK8sResource({ k8sName: 'test-project', enableKServe, enableNIM }),
+    ]),
   );
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
@@ -206,6 +207,20 @@ const initIntercepts = ({
   );
   cy.interceptK8s(RouteModel, mockRouteK8sResource({ name: 'trustyai-service' }));
   cy.interceptK8s(ConfigMapModel, mockKserveMetricsConfigMap({ supported: true }));
+};
+
+const initInterceptsToEnableNim = () => {
+  cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
+  cy.interceptOdh(
+    'GET /api/integrations/:internalRoute',
+    { path: { internalRoute: 'nim' } },
+    {
+      isInstalled: true,
+      isEnabled: true,
+      canInstall: false,
+      error: '',
+    },
+  );
 };
 
 describe('Model Metrics', () => {
@@ -742,71 +757,18 @@ describe('KServe performance metrics', () => {
 
 // Nim Metrics Tests
 describe('KServe NIM metrics', () => {
-  const initNimIntercepts = (options: HandlersProps) => {
-    const runtime = mockNimServingRuntime({});
-    runtime.metadata.name = 'test-model';
-    initIntercepts(options);
-    cy.interceptK8s(ServingRuntimeModel, runtime);
-  };
-
-  it('should hide NIM metrics and redirect its direct route when KServe metrics is disabled', () => {
-    initNimIntercepts({
-      disableNIMModelServing: false,
-      disableKServeMetrics: true,
-      disablePerformanceMetrics: false,
-      hasServingData: false,
-      hasBiasData: false,
-    });
-    modelMetricsKserveNim.visit('test-project', 'test-inference-service', 'nim');
-    modelMetricsPerformance.findTab().should('be.visible');
-    modelMetricsKserveNim.findTab().should('not.exist');
-    modelMetricsKserve.findKserveAreaDisabledCard().should('be.visible');
-    cy.location('pathname').should('match', /\/metrics\/test-inference-service\/performance$/);
-  });
-
-  it('should not offer NIM metrics for a non-NIM runtime even with the wizard enabled', () => {
-    initIntercepts({
-      disableNIMModelServing: false,
-      nimWizard: true,
-      hasServingData: true,
-      hasBiasData: false,
-    });
-    modelMetricsKserveNim.visit('test-project', 'test-inference-service', 'nim');
-    modelMetricsPerformance.findTab().should('be.visible');
-    modelMetricsKserveNim.findTab().should('not.exist');
-  });
-
-  it('should fetch the referenced NIM runtime independently of the dashboard runtime list', () => {
-    initIntercepts({
-      disableNIMModelServing: false,
-      nimWizard: false,
-      hasServingData: true,
-      hasBiasData: false,
-    });
-    const runtime = mockNimServingRuntime({});
-    runtime.metadata.name = 'test-model';
-    cy.interceptK8sList(
-      { model: ServingRuntimeModel, ns: 'test-project' },
-      mockK8sResourceList([]),
-    );
-    cy.interceptK8s(ServingRuntimeModel, runtime).as('getMetricsRuntime');
-    cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ supported: true }));
-    modelMetricsKserveNim.visit('test-project', 'test-inference-service', 'nim');
-    cy.wait('@getMetricsRuntime');
-    modelMetricsKserveNim.findTab().should('be.visible');
-    modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 6);
-  });
-
   it('should show error when ConfigMap is missing', () => {
-    initNimIntercepts({
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      nimWizard: true,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       {
@@ -818,36 +780,32 @@ describe('KServe NIM metrics', () => {
     );
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
-    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.findUnknownErrorCard().should('be.visible');
   });
 
   it('should inform user when serving runtime is unsupported', () => {
-    initNimIntercepts({
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      nimWizard: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
     cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ supported: false }));
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
-    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.findUnsupportedRuntimeCard().should('be.visible');
   });
 
   it('should handle a malformed graph definition gracefully', () => {
-    initNimIntercepts({
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      nimWizard: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
@@ -857,20 +815,21 @@ describe('KServe NIM metrics', () => {
     );
 
     modelMetricsKserveNim.visit('test-project', 'test-inference-service');
-    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.findUnknownErrorCard().should('be.visible');
   });
 
   it('should display only 2 graphs, when the config specifies', () => {
-    initNimIntercepts({
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      nimWizard: true,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ config: MOCK_NIM_METRICS_CONFIG_3 }));
 
@@ -884,15 +843,17 @@ describe('KServe NIM metrics', () => {
   });
 
   it('charts should not error out if a query is missing and there is other data', () => {
-    initNimIntercepts({
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      nimWizard: true,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       ConfigMapModel,
@@ -907,15 +868,17 @@ describe('KServe NIM metrics', () => {
   });
 
   it('charts should not error out if a query is missing and there is no data', () => {
-    initNimIntercepts({
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
-      nimWizard: true,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       ConfigMapModel,
@@ -930,15 +893,17 @@ describe('KServe NIM metrics', () => {
   });
 
   it('charts should not error out if a query is missing and there is no data QUERY_2', () => {
-    initNimIntercepts({
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
-      nimWizard: true,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       ConfigMapModel,
@@ -956,15 +921,17 @@ describe('KServe NIM metrics', () => {
   });
 
   it('charts should not error out if a query is missing and there is no data QUERY_3', () => {
-    initNimIntercepts({
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
-      nimWizard: true,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(
       ConfigMapModel,
@@ -979,20 +946,22 @@ describe('KServe NIM metrics', () => {
     modelMetricsKserveNim.getMetricsChart('Tokens count').shouldHaveNoData();
   });
 
-  it('charts should show data when serving data is available without the NIM wizard or integration', () => {
-    initNimIntercepts({
+  it('charts should show data when serving data is available', () => {
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: true,
       hasBiasData: false,
-      nimWizard: false,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
 
+    initInterceptsToEnableNim();
+
     cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ supported: true }));
-    modelMetricsKserveNim.visit('test-project', 'test-inference-service', 'nim');
-    modelMetricsKserveNim.findTab().should('be.visible');
+    modelMetricsKserveNim.visit('test-project', 'test-inference-service');
+    modelMetricsKserveNim.findTab().click();
     modelMetricsKserveNim.getAllMetricsCharts().should('have.length', 6);
     modelMetricsKserveNim.getMetricsChart('GPU cache usage over time').shouldHaveData();
     modelMetricsKserveNim
@@ -1005,15 +974,17 @@ describe('KServe NIM metrics', () => {
   });
 
   it('charts should show empty state when no serving data is available', () => {
-    initNimIntercepts({
+    initIntercepts({
       disableTrustyBiasMetrics: false,
       disablePerformanceMetrics: false,
       disableNIMModelServing: false,
       hasServingData: false,
       hasBiasData: false,
-      nimWizard: true,
+      enableNIM: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
     });
+
+    initInterceptsToEnableNim();
 
     cy.interceptK8s(ConfigMapModel, mockNimMetricsConfigMap({ supported: true }));
 

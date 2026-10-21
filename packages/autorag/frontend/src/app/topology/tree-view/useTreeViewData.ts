@@ -2,7 +2,6 @@ import * as React from 'react';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { computePatternRankMap, type ObjectiveReference } from '~/app/utilities/metricUtils';
-import { resolvePatternRecordKey } from '~/app/topology/stageMapStatus';
 import type { PipelineVisualizationData } from './types';
 
 /**
@@ -18,8 +17,11 @@ export const useTreeViewData = (
   React.useMemo(() => {
     const safePatterns = patterns ?? {};
     const selectedPattern =
-      (bestPatternKey && resolvePatternRecordKey(safePatterns, bestPatternKey)) ||
-      (stageMapBestPattern && resolvePatternRecordKey(safePatterns, stageMapBestPattern));
+      bestPatternKey && Object.hasOwn(safePatterns, bestPatternKey)
+        ? bestPatternKey
+        : stageMapBestPattern && Object.hasOwn(safePatterns, stageMapBestPattern)
+          ? stageMapBestPattern
+          : undefined;
     const selectedRecord = selectedPattern ? safePatterns[selectedPattern] : undefined;
     const winnerPatternLabel =
       selectedRecord != null && typeof selectedRecord.name === 'string'

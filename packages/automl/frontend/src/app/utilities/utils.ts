@@ -444,44 +444,22 @@ export function getBestModelFromStageMap(
   return getRecordField(componentStageMap, 'best_model');
 }
 
-const normalizeModelIdentifier = (value: string): string =>
-  value.replace(/[\s_-]+/g, '').toLowerCase();
-
-/** Resolves a model identifier to a unique loaded model record key. */
-export function resolveModelRecordKey(
-  models: Record<string, { name?: string } | null | undefined>,
-  modelIdentifier?: string,
-): string | undefined {
-  if (!modelIdentifier) {
-    return undefined;
-  }
-  if (Object.hasOwn(models, modelIdentifier) && models[modelIdentifier] != null) {
-    return modelIdentifier;
-  }
-  const exactNameMatches = Object.entries(models)
-    .filter(([, model]) => model?.name === modelIdentifier)
-    .map(([key]) => key);
-  if (exactNameMatches.length > 0) {
-    return exactNameMatches.length === 1 ? exactNameMatches[0] : undefined;
-  }
-  const normalizedIdentifier = normalizeModelIdentifier(modelIdentifier);
-  const matchingKeys = Object.entries(models)
-    .filter(
-      ([key, model]) =>
-        model != null &&
-        (normalizeModelIdentifier(key) === normalizedIdentifier ||
-          (model.name != null && normalizeModelIdentifier(model.name) === normalizedIdentifier)),
-    )
-    .map(([key]) => key);
-  return matchingKeys.length === 1 ? matchingKeys[0] : undefined;
-}
-
 /** Maps a stage-map best_model value to a key in the loaded models record. */
 export function resolveBestModelKey(
   models: Record<string, { name?: string } | null | undefined>,
   bestModel?: string,
 ): string | undefined {
-  return resolveModelRecordKey(models, bestModel);
+  if (!bestModel) {
+    return undefined;
+  }
+  if (Object.hasOwn(models, bestModel) && models[bestModel] != null) {
+    return bestModel;
+  }
+  const matchingKeys = Object.entries(models)
+    .filter(([, model]) => model?.name === bestModel)
+    .map(([key]) => key);
+  // Ambiguous display-name matches are left unresolved rather than picking arbitrarily.
+  return matchingKeys.length === 1 ? matchingKeys[0] : undefined;
 }
 
 /** Resolves a models-record key to the display name shown on pipeline tree nodes. */
@@ -492,11 +470,10 @@ export function resolveModelDisplayName(
   if (!modelKey) {
     return undefined;
   }
-  const resolvedKey = resolveModelRecordKey(models, modelKey);
-  if (!resolvedKey) {
+  if (!Object.hasOwn(models, modelKey)) {
     return modelKey;
   }
-  return models[resolvedKey]?.name ?? modelKey;
+  return models[modelKey]?.name ?? modelKey;
 }
 
 export function compareOptimizedMetricValues(aVal: number | string, bVal: number | string): number {

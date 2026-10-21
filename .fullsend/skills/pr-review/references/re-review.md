@@ -5,7 +5,7 @@ Required procedure for steps 2a, 3a, and 3a-1 of the review orchestrator.
 From
 [fullsend-ai/agents `skills/pr-review/references/re-review.md`](https://github.com/fullsend-ai/agents/blob/ce2eedd097dcccf17e29f4a7cd337ec4d95d7194/skills/pr-review/references/re-review.md).
 Local changes: categories map to dimensions through the registry
-(`/sandbox/workspace/odh-review/dimensions.json`), not a fixed table, and the forge commands
+(`.fullsend/dimensions.json`), not a fixed table, and the forge commands
 are the ones in [`github/SKILL.md`](../github/SKILL.md).
 
 ### 2a. Prior review context (re-reviews)

@@ -33,6 +33,7 @@ describe('serving runtime templates extensions', () => {
         label: 'Serving runtime template',
         description: expect.any(String),
         selectedState: expect.objectContaining({ listName: 'Serving runtime templates' }),
+        configureStepLabel: 'Configure template',
       }),
     );
   });

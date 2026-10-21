@@ -539,28 +539,62 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 	c.AddModel(model)
 }
 
-// AddProxyRoutedEmbeddingModel registers an embedding model under the genai-bff-proxy
-// passthrough provider.
-//
-// OGX's vector-store path resolves the store's embedding_model from the routing table at
-// startup (before passthrough model discovery runs), so the model must be statically
-// registered — but under genai-bff-proxy, query-time embedding requests route through the
-// BFF's genai-proxy, which resolves the real endpoint and credentials per request.
-//
-// The metadata/embedding_dimension logic follows the established precedence:
-// a caller-supplied dimension takes precedence, then existing metadata, then 128.
-func (c *LlamaStackConfig) AddProxyRoutedEmbeddingModel(modelID string, metadata map[string]interface{}, embeddingDimension *int) {
-	model := NewModel(modelID, constants.PassthroughProviderID, string(models.ModelTypeEmbedding), metadata)
-	if model.Metadata == nil {
-		model.Metadata = make(map[string]interface{})
+// AddCustomEndpointProviderAndModel adds a custom endpoint model provider and its corresponding model to the config
+// This is a helper for building LlamaStack configurations with custom endpoint model providers.
+// The API token/secret is NOT included in the config - it will be fetched at runtime from the ConfigMap secret reference.
+// providerType must be the value stored in the gen-ai-aa-custom-model-endpoints ConfigMap (e.g. "remote::openai" or "remote::passthrough").
+// isClusterLocal should be true for in-cluster service URLs (*.svc.cluster.local); this disables TLS verification
+// since cluster services typically use self-signed certificates.
+func (c *LlamaStackConfig) AddCustomEndpointProviderAndModel(providerID, endpointURL string, index int, modelID, modelType, providerType string, metadata map[string]interface{}, embeddingDimension *int, isClusterLocal bool) {
+	// Create provider config - minimal config for external models
+	// Full configuration (including secrets) is managed via the gen-ai-aa-custom-model-endpoints ConfigMap
+	providerConfig := EmptyConfig()
+	providerConfig["base_url"] = endpointURL
+	// Note: api_token is managed via ConfigMap.
+
+	if isClusterLocal {
+		providerConfig["network"] = map[string]interface{}{
+			"tls": map[string]interface{}{
+				"verify": false,
+			},
+		}
 	}
-	if embeddingDimension != nil {
-		// User-specified value takes precedence
-		model.Metadata["embedding_dimension"] = *embeddingDimension
-	} else if _, alreadySet := model.Metadata["embedding_dimension"]; !alreadySet {
-		// Default to 128 if not specified by the user or the model metadata
-		model.Metadata["embedding_dimension"] = 128
+
+	provider := NewProvider(providerID, providerType, providerConfig)
+	c.AddInferenceProvider(provider)
+
+	// Add model
+	var model Model
+	if metadata == nil {
+		if modelType == "embedding" {
+			// Embedding model with no pre-existing metadata
+			model = Model{
+				ModelID:    modelID,
+				ProviderID: providerID,
+				ModelType:  "embedding",
+				Metadata:   map[string]interface{}{"display_name": modelID},
+			}
+		} else {
+			model = NewLLMModel(modelID, providerID, modelID)
+		}
+	} else {
+		model = NewModel(modelID, providerID, modelType, metadata)
 	}
+
+	// Set embedding_dimension for embedding models (only meaningful for embedding models)
+	if model.ModelType == "embedding" {
+		if model.Metadata == nil {
+			model.Metadata = make(map[string]interface{})
+		}
+		if embeddingDimension != nil {
+			// User-specified value takes precedence
+			model.Metadata["embedding_dimension"] = *embeddingDimension
+		} else if _, alreadySet := model.Metadata["embedding_dimension"]; !alreadySet {
+			// Default to 128 if not specified by the user or the model metadata
+			model.Metadata["embedding_dimension"] = 128
+		}
+	}
+
 	c.AddModel(model)
 }
 

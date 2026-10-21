@@ -80,11 +80,14 @@ const ServingRuntimeInstallTarget: React.FC<RuntimeImageInstallTargetProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title headingLevel="h2">Configure</Title>
+        <Title headingLevel="h2">Add serving runtime template</Title>
       </StackItem>
       <StackItem>
         <Content>
-          <p>Review or customize the pre-filled configuration.</p>
+          <p>
+            Review the pre-filled configuration for this runtime image. Edit any fields before
+            creating it on this cluster.
+          </p>
         </Content>
       </StackItem>
       <StackItem>

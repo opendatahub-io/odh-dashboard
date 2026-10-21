@@ -30,6 +30,7 @@ describe('LLM accelerator configuration extensions', () => {
         label: 'LLM accelerator configuration',
         description: expect.any(String),
         selectedState: expect.objectContaining({ listName: 'LLM accelerator configurations' }),
+        configureStepLabel: 'Configure accelerator',
       }),
     );
   });

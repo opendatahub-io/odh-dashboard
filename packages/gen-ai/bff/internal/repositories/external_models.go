@@ -51,12 +51,8 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		// Clean up secret if ConfigMap creation fails (only if one was created)
 		if secretName != "" {
 			if cleanupErr := client.DeleteSecret(ctx, identity, namespace, secretName); cleanupErr != nil {
-				// Return both the original error and the cleanup error to surface leaked
-				// state. The original error is deliberately formatted with %v rather than
-				// %w: a failed cleanup means server-side state was leaked, which must
-				// surface as a 500 — not be matched by errors.As in
-				// CreateExternalModelHandler as a DuplicateModelError (409).
-				return nil, fmt.Errorf("failed to create/update ConfigMap: %v; cleanup failed deleting secret %s: %v", err, secretName, cleanupErr)
+				// Return both the original error and the cleanup error to surface leaked state
+				return nil, fmt.Errorf("failed to create/update ConfigMap: %w; cleanup failed deleting secret %s: %v", err, secretName, cleanupErr)
 			}
 		}
 		return nil, fmt.Errorf("failed to create/update ConfigMap: %w", err)

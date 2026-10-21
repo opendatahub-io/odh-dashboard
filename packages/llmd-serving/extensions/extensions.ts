@@ -692,6 +692,7 @@ const extensions: (
         description: 'and the LLM inference service deployment wizard.',
       },
       installTargetName: 'LLM accelerator configuration',
+      configureStepLabel: 'Configure accelerator',
       component: () => import('../src/runtimeImageInstall/LlmAcceleratorInstallTarget'),
     },
   },

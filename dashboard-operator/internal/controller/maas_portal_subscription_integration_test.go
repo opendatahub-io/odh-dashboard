@@ -41,7 +41,7 @@ func TestIntegration_MaaSPortalSubscriptionRBACWatches(t *testing.T) {
 	// Controller names are tracked globally across the suite's managers.
 	skipNameValidation := true
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: k8sClient.Scheme(), NewCache: ctrlpkg.NewManagerCache(integrationNamespace), Metrics: metricsserver.Options{BindAddress: "0"}, HealthProbeBindAddress: "0",
+		Scheme: k8sClient.Scheme(), Metrics: metricsserver.Options{BindAddress: "0"}, HealthProbeBindAddress: "0",
 		Controller: config.Controller{SkipNameValidation: &skipNameValidation},
 	})
 	require.NoError(t, err)

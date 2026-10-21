@@ -2399,11 +2399,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
 			}
 			if model.ModelType == string(models.ModelTypeEmbedding) {
-				// Proxy-routed registration: register under genai-bff-proxy so query-time
-				// embedding requests flow through the BFF's genai-proxy, which resolves the
-				// real endpoint and credentials per request.
-				config.AddProxyRoutedEmbeddingModel(extDetails.modelID, extDetails.metadata, model.EmbeddingDimension)
-				kc.Logger.Info("Registered embedding model (proxy-routed via genai-bff-proxy)", "model", extDetails.modelID)
+				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.EmbeddingDimension, model.IsClusterLocal)
+				kc.Logger.Info("Registered embedding model (custom endpoint)", "model", extDetails.modelID, "providerID", extDetails.providerID)
 			} else {
 				kc.Logger.Info("Validated external model", "model", extDetails.modelID, "providerID", extDetails.providerID)
 			}
@@ -2521,10 +2518,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)
 	} else {
 		// Without GatewayDomain the remote::passthrough provider cannot be registered.
-		// Namespace embedding models use static in-cluster vLLM providers; MaaS embedding
-		// models are validation-only. Transcription models are not registered in Llama
-		// Stack. All other supported models — custom-endpoint models included — require
-		// passthrough routing.
+		// Namespace and custom-endpoint embedding models use static providers; MaaS
+		// embedding models are validation-only. Transcription models are not registered
+		// in Llama Stack. All other supported model sources require passthrough routing.
 		for _, m := range installModels {
 			if !requiresPassthroughProvider(m) {
 				continue
@@ -2566,18 +2562,14 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 }
 
 // requiresPassthroughProvider reports whether a supported model requires
-// remote::passthrough for inference routing. Namespace embedding models use
-// static in-cluster vLLM providers, MaaS embedding models are validation-only,
-// and transcription models are not registered in Llama Stack. Custom-endpoint
-// models — embedding included — route through the genai-bff-proxy passthrough
-// provider.
+// remote::passthrough for inference routing. Namespace and custom-endpoint
+// embedding models use static providers, MaaS embedding models are validation-only,
+// and transcription models are not registered in Llama Stack.
 func requiresPassthroughProvider(model models.InstallModel) bool {
 	switch model.ModelSourceType {
-	case models.ModelSourceTypeNamespace, models.ModelSourceTypeMaaS:
+	case models.ModelSourceTypeNamespace, models.ModelSourceTypeMaaS, models.ModelSourceTypeCustomEndpoint:
 		return model.ModelType != string(models.ModelTypeEmbedding) &&
 			model.ModelType != string(models.ModelTypeTranscription)
-	case models.ModelSourceTypeCustomEndpoint:
-		return model.ModelType != string(models.ModelTypeTranscription)
 	default:
 		return false
 	}
@@ -2694,31 +2686,18 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 
 // getExternalModelDetails retrieves external model details from a pre-fetched ExternalModelsConfig.
 func (kc *TokenKubernetesClient) getExternalModelDetails(config *models.ExternalModelsConfig, modelID string) (externalModelDetailsResult, error) {
-	// Find the model by model_id. More than one match across providers is
-	// ambiguous: proxy-routed registrations keep only the native model ID, so
-	// query-time resolution (ResolveCustomEndpointModelProvider) cannot tell the
-	// providers apart and the request fails. Reject at install time with a clear
-	// error rather than installing a config whose retrieval silently fails.
-	var matches []*models.RegisteredModel
+	// Find the model by model_id
+	var foundModel *models.RegisteredModel
 	for i := range config.RegisteredResources.Models {
 		if config.RegisteredResources.Models[i].ModelID == modelID {
-			matches = append(matches, &config.RegisteredResources.Models[i])
+			foundModel = &config.RegisteredResources.Models[i]
+			break
 		}
 	}
 
-	if len(matches) == 0 {
+	if foundModel == nil {
 		return externalModelDetailsResult{}, fmt.Errorf("external model with model_id '%s' not found in ConfigMap", modelID)
 	}
-	if len(matches) > 1 {
-		providerIDs := make([]string, 0, len(matches))
-		for _, m := range matches {
-			providerIDs = append(providerIDs, m.ProviderID)
-		}
-		return externalModelDetailsResult{}, fmt.Errorf(
-			"external model '%s' is registered under %d providers (%s); model IDs must be unique across custom-endpoint providers — remove the duplicate registration or rename one of the models",
-			modelID, len(matches), strings.Join(providerIDs, ", "))
-	}
-	foundModel := matches[0]
 
 	// Find the provider for this model
 	var foundProvider *models.InferenceProvider
@@ -3286,20 +3265,6 @@ func (kc *TokenKubernetesClient) CreateExternalModelSecret(ctx context.Context, 
 	return nil
 }
 
-// DuplicateModelError is returned when creating an external model whose model_id is
-// already registered under a custom-endpoint provider. CreateExternalModelHandler
-// maps it to HTTP 409 Conflict.
-type DuplicateModelError struct {
-	ModelID   string
-	Providers []string
-}
-
-func (e *DuplicateModelError) Error() string {
-	return fmt.Sprintf(
-		"model ID '%s' is already registered under provider(s) %s; model IDs must be unique across custom-endpoint providers — remove the duplicate registration or rename the model",
-		e.ModelID, strings.Join(e.Providers, ", "))
-}
-
 // CreateOrUpdateExternalModelConfigMap creates or updates the gen-ai-aa-custom-model-endpoints ConfigMap
 func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -3340,22 +3305,6 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 				return fmt.Errorf("failed to parse ConfigMap YAML: %w", err)
 			}
 		}
-	}
-
-	// Reject duplicate model IDs up front. Query-time proxy resolution
-	// (ResolveCustomEndpointModelProvider) and playground installation
-	// (getExternalModelDetails) both require model IDs to be unique across
-	// custom-endpoint providers; appending a duplicate would let this call
-	// succeed while producing a ConfigMap whose models fail at install or
-	// retrieval time with no hint that this registration was the cause.
-	var duplicateProviders []string
-	for _, m := range config.RegisteredResources.Models {
-		if m.ModelID == req.ModelID {
-			duplicateProviders = append(duplicateProviders, m.ProviderID)
-		}
-	}
-	if len(duplicateProviders) > 0 {
-		return &DuplicateModelError{ModelID: req.ModelID, Providers: duplicateProviders}
 	}
 
 	// Select provider type based on model type: embedding models use passthrough, inference models use openai

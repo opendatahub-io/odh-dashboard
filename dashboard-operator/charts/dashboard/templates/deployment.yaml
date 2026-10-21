@@ -98,7 +98,7 @@ spec:
             {{- end }}
             {{- end }}
           ports:
-            - containerPort: 8443
+            - containerPort: 8080
               name: metrics
               protocol: TCP
             - containerPort: 8081

@@ -42,7 +42,7 @@ describe('Chatbot - Guardrails Configuration (Mocked)', () => {
       }).as('bffConfig');
 
       cy.interceptGenAi('GET /api/v1/lsd/vectorstores', { query: { namespace } }, { data: [] });
-      cy.interceptGenAi('GET /api/v1/user', { data: { userId: 'test-user' } });
+      cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
       cy.interceptGenAi(
         'GET /api/v1/nemo-guardrails/status',
         { query: { namespace } },

@@ -450,7 +450,7 @@ describe('EvaluationsPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     clickFilterOption('benchmark-suites-category-filter-option-code');
-    clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
+    clickFilterOption('benchmark-suites-category-filter-option-safety');
 
     expect(screen.getByTestId('benchmark-suites-category-filter-badge')).toHaveTextContent('2');
     expect(

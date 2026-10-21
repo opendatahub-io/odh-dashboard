@@ -6,41 +6,24 @@ import {
   NotificationContextProvider,
   BrowserStorageContextProvider,
   useSettings,
-  type ConfigSettings,
-  type UserSettings,
 } from 'mod-arch-core';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { API_URL_PREFIX } from '~/app/utilities/const';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { AppContext } from '~/app/context/AppContext';
-import { useGridSettings } from '~/app/hooks/useGridSettings';
-import { GRID_MANDATORY_NAMESPACE, useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
 
-const getModularArchConfig = (isGridEnabled: boolean): ModularArchConfig => ({
+const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
   URL_PREFIX: API_URL_PREFIX,
   BFF_API_VERSION: 'v1',
-  mandatoryNamespace: isGridEnabled ? GRID_MANDATORY_NAMESPACE : undefined,
-});
+};
 
 type MaaSFederatedProvidersProps = {
   children: React.ReactNode;
 };
 
-type SettingsContentProps = MaaSFederatedProvidersProps & {
-  configSettings: ConfigSettings | null;
-  userSettings: UserSettings | null;
-  loaded: boolean;
-  loadError: Error | undefined;
-};
-
-const MaaSFederatedProvidersContent: React.FC<SettingsContentProps> = ({
-  children,
-  configSettings,
-  userSettings,
-  loaded,
-  loadError,
-}) => {
+const MaaSFederatedProvidersContent: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
+  const { configSettings, userSettings, loaded, loadError } = useSettings();
   const contextValue = React.useMemo(
     () => (configSettings && userSettings ? { config: configSettings, user: userSettings } : null),
     [configSettings, userSettings],
@@ -72,32 +55,10 @@ const MaaSFederatedProvidersContent: React.FC<SettingsContentProps> = ({
   );
 };
 
-const LegacySettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const settings = useSettings();
-  return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
-};
-
-const GridSettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const settings = useGridSettings();
-  return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
-};
-
-const MaaSFederatedProviders: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const isGridEnabled = useGridFeatureFlag();
-  const modularArchConfig = React.useMemo(
-    () => getModularArchConfig(isGridEnabled),
-    [isGridEnabled],
-  );
-
-  return (
-    <ModularArchContextProvider config={modularArchConfig}>
-      {isGridEnabled ? (
-        <GridSettingsLoader>{children}</GridSettingsLoader>
-      ) : (
-        <LegacySettingsLoader>{children}</LegacySettingsLoader>
-      )}
-    </ModularArchContextProvider>
-  );
-};
+const MaaSFederatedProviders: React.FC<MaaSFederatedProvidersProps> = ({ children }) => (
+  <ModularArchContextProvider config={modularArchConfig}>
+    <MaaSFederatedProvidersContent>{children}</MaaSFederatedProvidersContent>
+  </ModularArchContextProvider>
+);
 
 export default MaaSFederatedProviders;

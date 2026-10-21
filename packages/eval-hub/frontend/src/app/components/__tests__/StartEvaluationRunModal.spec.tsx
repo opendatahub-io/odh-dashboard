@@ -247,14 +247,15 @@ describe('StartEvaluationRunModal', () => {
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('should open in model mode without a source selector for an agent-only collection', () => {
+  it('should preselect and hide evaluating when a collection has one evaluation target', () => {
     renderModal(undefined, undefined, {
       collection: { ...collection, evaluation_targets: ['agent'] },
+      defaultSourceMode: 'model',
     });
 
     expect(screen.queryByTestId('source-mode-toggle')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('agent-name-input')).not.toBeInTheDocument();
-    expect(screen.getByTestId('model-picker-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('agent-name-input')).toBeInTheDocument();
+    expect(screen.queryByTestId('model-picker-toggle')).not.toBeInTheDocument();
   });
 
   it('should not render benchmark parameters in any modal view', () => {
@@ -269,22 +270,26 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.queryByTestId('additional-args-upload')).not.toBeInTheDocument();
   });
 
-  it('should not render a source selector for a collection with one unknown evaluation target', () => {
+  it('should show evaluating when a collection has one unknown evaluation target', () => {
     renderModal(undefined, undefined, {
       collection: { ...collection, evaluation_targets: ['unknown'] },
+      defaultSourceMode: 'model',
     });
 
-    expect(screen.queryByTestId('source-mode-toggle')).not.toBeInTheDocument();
-    expect(screen.getByTestId('model-picker-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('source-mode-toggle')).toHaveTextContent('Model');
   });
 
-  it('should not render a source selector for a collection with multiple evaluation targets', () => {
+  it('should show evaluating when a collection has multiple evaluation targets', () => {
     renderModal(undefined, undefined, {
       collection: { ...collection, evaluation_targets: ['model', 'agent'] },
+      defaultSourceMode: 'agent',
     });
 
-    expect(screen.queryByTestId('source-mode-toggle')).not.toBeInTheDocument();
-    expect(screen.getByTestId('model-picker-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('source-mode-toggle')).toHaveTextContent('Agent');
+    fireEvent.click(screen.getByTestId('source-mode-toggle'));
+
+    expect(screen.getByRole('option', { name: 'Model', hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Agent', hidden: true })).toBeInTheDocument();
   });
 
   it('should disable fields and prevent a deferred clone from submitting after cancel', async () => {

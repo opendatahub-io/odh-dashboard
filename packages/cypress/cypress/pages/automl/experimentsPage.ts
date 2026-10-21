@@ -1,27 +1,15 @@
 import { appChrome } from '../appChrome';
 
-const DEV_FEATURE_FLAGS_SESSION_KEY = 'odh-feature-flags';
-const DEV_FEATURE_FLAGS_BANNER_KEY = 'odh.dashboard.devFlag.banner';
+const AUTOML_DEV_FEATURE_FLAGS = 'devFeatureFlags=automl=true';
 
 class AutomlExperimentsPage {
-  pathWithDefaults(): string {
-    return '/';
-  }
-
-  private clearDevFeatureFlagOverrides() {
-    cy.window().then(({ localStorage, sessionStorage }) => {
-      sessionStorage.removeItem(DEV_FEATURE_FLAGS_SESSION_KEY);
-      localStorage.removeItem(DEV_FEATURE_FLAGS_BANNER_KEY);
-    });
+  pathWithDevFlags(): string {
+    return `/?${AUTOML_DEV_FEATURE_FLAGS}`;
   }
 
   visit(namespace: string) {
     // First navigate to home to ensure we're authenticated and dashboard is loaded
-    cy.visitWithLogin(this.pathWithDefaults());
-
-    // Remove any overrides left by an earlier test before reloading the app.
-    // This keeps the navigation on the normal, non-dev-override path.
-    this.clearDevFeatureFlagOverrides();
+    cy.visitWithLogin('/');
 
     // Reload once to pick up any recent config changes (e.g., feature flags just enabled)
     // This ensures the dashboard frontend has the latest OdhDashboardConfig

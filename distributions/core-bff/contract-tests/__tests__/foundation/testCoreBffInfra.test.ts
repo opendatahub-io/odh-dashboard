@@ -15,7 +15,7 @@ describe('Core BFF Infrastructure', () => {
     it('should return health status from infrastructure endpoint', async () => {
       const result = await apiClient.get('/healthcheck');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
+        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
         status: 200,
       });
     });
@@ -23,7 +23,7 @@ describe('Core BFF Infrastructure', () => {
     it('should return health status from API endpoint', async () => {
       const result = await apiClient.get('/api/v1/healthcheck');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
+        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
         status: 200,
       });
     });
@@ -31,7 +31,7 @@ describe('Core BFF Infrastructure', () => {
     it('should not require auth for infrastructure healthcheck', async () => {
       const result = await unauthenticatedClient.get('/healthcheck');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
+        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
         status: 200,
       });
     });
@@ -41,7 +41,7 @@ describe('Core BFF Infrastructure', () => {
     it('should return current user identity', async () => {
       const result = await apiClient.get('/api/v1/user');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/UserResponse/content/application~1json/schema',
+        ref: '#/components/responses/UserResponse/content/application/json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);
@@ -67,7 +67,7 @@ describe('Core BFF Infrastructure', () => {
     it('should return accessible namespaces for cluster admin', async () => {
       const result = await apiClient.get('/api/v1/namespaces');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/NamespacesResponse/content/application~1json/schema',
+        ref: '#/components/responses/NamespacesResponse/content/application/json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);
@@ -106,7 +106,7 @@ describe('Core BFF Infrastructure', () => {
       it('should proxy GET to K8s API and return namespaces', async () => {
         const result = await apiClient.get('/api/k8s/api/v1/namespaces');
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/K8sProxySuccess/content/application~1json/schema',
+          ref: '#/components/responses/K8sProxySuccess/content/application/json/schema',
           status: 200,
         });
       });
@@ -198,7 +198,7 @@ describe('Core BFF Infrastructure', () => {
           data: { key: 'updated' },
         });
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/K8sProxySuccess/content/application~1json/schema',
+          ref: '#/components/responses/K8sProxySuccess/content/application/json/schema',
           status: 200,
         });
         const { response } = expectSuccess(result);
@@ -224,7 +224,7 @@ describe('Core BFF Infrastructure', () => {
       it('should delete a ConfigMap via K8s proxy', async () => {
         const result = await apiClient.delete(`${configMapPath}/${configMapName}`);
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/K8sProxySuccess/content/application~1json/schema',
+          ref: '#/components/responses/K8sProxySuccess/content/application/json/schema',
           status: 200,
         });
       });

@@ -219,7 +219,7 @@ describe('useAutoragTaskTopology', () => {
       ],
     };
 
-    const assertDoesNotGuessParallelFailures = (
+    const assertInferredParallelFailures = (
       spec: PipelineSpecVariable,
       runDetails: typeof runDetailsWithOnlyRootSucceeded,
     ) => {
@@ -231,16 +231,16 @@ describe('useAutoragTaskTopology', () => {
       const byId = Object.fromEntries(renderResult.result.current.map((node) => [node.id, node]));
 
       expect(byId.root.data?.runStatus).toBe('Succeeded');
-      expect(byId['branch-a'].data?.runStatus).toBeUndefined();
-      expect(byId['branch-b'].data?.runStatus).toBeUndefined();
-      expect(byId.merge.data?.runStatus).toBeUndefined();
+      expect(byId['branch-a'].data?.runStatus).toBe('Failed');
+      expect(byId['branch-b'].data?.runStatus).toBe('Failed');
+      expect(byId.merge.data?.runStatus).toBe('Pending');
     };
 
-    assertDoesNotGuessParallelFailures(
+    assertInferredParallelFailures(
       buildParallelBranchSpec('branch-a', 'branch-b'),
       runDetailsWithOnlyRootSucceeded,
     );
-    assertDoesNotGuessParallelFailures(
+    assertInferredParallelFailures(
       buildParallelBranchSpec('branch-b', 'branch-a'),
       runDetailsWithOnlyRootSucceeded,
     );

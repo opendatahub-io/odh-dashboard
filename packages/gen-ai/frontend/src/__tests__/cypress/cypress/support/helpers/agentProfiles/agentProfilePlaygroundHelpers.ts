@@ -24,7 +24,7 @@ export const setupPlaygroundBase = (namespace: string): void => {
     ...mockNamespaces().data.filter((ns) => ns.name !== namespace),
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
-  cy.interceptGenAi('GET /api/v1/user', { data: { userId: 'test-user' } });
+  cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
   cy.interceptGenAi('GET /api/v1/config', {
     data: { isCustomLSD: false, sandboxesAvailable: true },
   });

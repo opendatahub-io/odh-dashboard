@@ -125,21 +125,6 @@ func (c *MaasClient) GetAPIKeyConfig(ctx context.Context) (*models.APIKeyConfig,
 	return &apiResponse, nil
 }
 
-func (c *MaasClient) GetMe(ctx context.Context) (*models.MaaSCallerIdentity, error) {
-	endpoint, err := c.endpoint("me")
-	if err != nil {
-		return nil, err
-	}
-
-	var apiResponse models.MaaSCallerIdentity
-	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return &apiResponse, nil
-}
-
 func (c *MaasClient) CreateAPIKey(ctx context.Context, request models.APIKeyCreateRequest) (*models.APIKeyCreateResponse, error) {
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {

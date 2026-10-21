@@ -30,9 +30,11 @@ const FULL_COVERAGE_TAGS = [
   '@SanitySet5',
 ];
 
+const DASHBOARD_NETWORK_POLICY_IMPACT_TAGS = ['@Pipelines', '@Workbenches', '@FeatureStoreCI'];
+
 const PATH_IMPACT_TAGS = {
-  'manifests/base/networkpolicy.yaml': ['@FeatureStoreCI'],
-  'manifests/rhoai/networkpolicy.yaml': ['@FeatureStoreCI'],
+  'manifests/base/networkpolicy.yaml': DASHBOARD_NETWORK_POLICY_IMPACT_TAGS,
+  'manifests/rhoai/networkpolicy.yaml': DASHBOARD_NETWORK_POLICY_IMPACT_TAGS,
 };
 
 const normalizeTag = (tag) => (tag.startsWith('@') ? tag : `@${tag}`);

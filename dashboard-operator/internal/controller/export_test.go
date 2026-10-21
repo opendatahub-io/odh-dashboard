@@ -80,7 +80,3 @@ func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired
 var ConsoleLinkGVK = consoleLinkGVK
 
 var ConsoleLinkListGVK = consoleLinkListGVK
-
-var ScopedOdhDashboardConfigByObject = scopedOdhDashboardConfigByObject
-
-const OdhDashboardConfigName = odhDashboardConfigName

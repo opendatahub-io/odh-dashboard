@@ -27,9 +27,9 @@ const initIntercepts = (
 
 describe('Module federation visibility', () => {
   describe('Module present — nav and route accessible', () => {
-    it('should show AutoML nav and render route with the GA default', () => {
+    it('should show AutoML nav and render route when flag and DSC are enabled', () => {
       initIntercepts(
-        {},
+        { automl: true },
         { [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' } },
       );
       navSidebar.visit();
@@ -60,7 +60,7 @@ describe('Module federation visibility', () => {
 
     it('should show AutoRAG navigation and task shortcuts without preview labels', () => {
       initIntercepts(
-        { genAiStudio: true },
+        { autorag: true, genAiStudio: true },
         { [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' } },
       );
 

@@ -2,10 +2,12 @@ import * as React from 'react';
 import {
   Card,
   CardBody,
+  CardExpandableContent,
+  CardHeader,
+  CardTitle,
   Alert,
   AlertActionCloseButton,
   Button,
-  ExpandableSection,
   Title,
 } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
@@ -312,75 +314,80 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   );
 
   return (
-    <Card data-testid="infrastructure-workloads-card">
-      <CardBody>
-        <ExpandableSection
-          className="gpuaas-workloads-table"
-          isExpanded={isExpanded}
-          onToggle={(_event, nextExpanded) => setIsExpanded(nextExpanded)}
-          toggleContent={
-            <Title headingLevel="h4" size="md">
-              Workloads
-            </Title>
-          }
-          toggleWrapper="h4"
-        >
-          <div className="pf-v6-u-pt-md">
-            {failedSources.length > 0 && !isPartialFailureDismissed && (
-              <Alert
-                isInline
-                variant="warning"
-                className="pf-v6-u-mb-md"
-                title={INFRASTRUCTURE_WORKLOADS_PARTIAL_FAILURE_TITLE}
-                data-testid="infrastructure-workloads-partial-error"
-                actionClose={
-                  <AlertActionCloseButton
-                    data-testid="infrastructure-workloads-partial-error-close"
-                    onClose={() => setIsPartialFailureDismissed(true)}
-                  />
-                }
-              >
-                {failedSources.join(', ')} could not be loaded. Refresh to try again.
-              </Alert>
-            )}
-            <InfrastructureWorkloadsToolbar
-              searchValue={searchValue}
-              filterType={filterType}
-              availableFilterValues={availableFilterValues}
-              selectedFilterValues={selectedFilterValues}
-              onSearchChange={setSearchValue}
-              onFilterTypeChange={setFilterType}
-              onFilterValueChange={toggleFilterValue}
-              onClearFilters={clearFilters}
-            />
-            {filteredWorkloads.length === 0 ? (
-              <DashboardEmptyTableView
-                titleText="No results"
-                clearFiltersText="Reset filters"
+    <Card isExpanded={isExpanded} data-testid="infrastructure-workloads-card">
+      <CardHeader
+        onExpand={() => setIsExpanded((expanded) => !expanded)}
+        toggleButtonProps={{
+          id: 'infrastructure-workloads-toggle',
+          'aria-label': 'Expand workloads',
+        }}
+      >
+        <CardTitle>
+          <Title headingLevel="h4" size="md">
+            Workloads
+          </Title>
+        </CardTitle>
+      </CardHeader>
+      <CardExpandableContent>
+        <CardBody>
+          {isExpanded && (
+            <>
+              {failedSources.length > 0 && !isPartialFailureDismissed && (
+                <Alert
+                  isInline
+                  variant="warning"
+                  className="pf-v6-u-mb-md"
+                  title={INFRASTRUCTURE_WORKLOADS_PARTIAL_FAILURE_TITLE}
+                  data-testid="infrastructure-workloads-partial-error"
+                  actionClose={
+                    <AlertActionCloseButton
+                      data-testid="infrastructure-workloads-partial-error-close"
+                      onClose={() => setIsPartialFailureDismissed(true)}
+                    />
+                  }
+                >
+                  {failedSources.join(', ')} could not be loaded. Refresh to try again.
+                </Alert>
+              )}
+              <InfrastructureWorkloadsToolbar
+                searchValue={searchValue}
+                filterType={filterType}
+                availableFilterValues={availableFilterValues}
+                selectedFilterValues={selectedFilterValues}
+                onSearchChange={setSearchValue}
+                onFilterTypeChange={setFilterType}
+                onFilterValueChange={toggleFilterValue}
                 onClearFilters={clearFilters}
               />
-            ) : (
-              <Table
-                data-testid="infrastructure-workloads-table"
-                aria-label="Infrastructure workloads table"
-                data={filteredWorkloads}
-                columns={columns}
-                enablePagination="compact"
-                rowRenderer={(workload) => (
-                  <InfrastructureWorkloadTableRow
-                    key={`${workload.namespace}/${workload.type}/${workload.name}`}
-                    workload={workload}
-                    notebookStates={notebookStates}
-                    kueueEnabled={kueueEnabled}
-                    hardwareProfilesLoading={hardwareProfilesLoading}
-                    onStatusClick={() => setSelectedWorkload(workload)}
-                  />
-                )}
-              />
-            )}
-          </div>
-        </ExpandableSection>
-      </CardBody>
+              {filteredWorkloads.length === 0 ? (
+                <DashboardEmptyTableView
+                  titleText="No results"
+                  clearFiltersText="Reset filters"
+                  onClearFilters={clearFilters}
+                />
+              ) : (
+                <Table
+                  data-testid="infrastructure-workloads-table"
+                  aria-label="Infrastructure workloads table"
+                  data={filteredWorkloads}
+                  columns={columns}
+                  enablePagination="compact"
+                  rowRenderer={(workload) => (
+                    <InfrastructureWorkloadTableRow
+                      key={`${workload.namespace}/${workload.type}/${workload.name}`}
+                      workload={workload}
+                      notebookStates={notebookStates}
+                      kueueEnabled={kueueEnabled}
+                      hardwareProfilesLoading={hardwareProfilesLoading}
+                      onStatusClick={() => setSelectedWorkload(workload)}
+                    />
+                  )}
+                />
+              )}
+            </>
+          )}
+        </CardBody>
+      </CardExpandableContent>
       {renderStatusModal()}
     </Card>
   );

@@ -89,7 +89,6 @@ func operatorOwnedResources() map[string]bool {
 		"ConfigMap/" + resolveDistributionConfigMapName(): true, // dashboard.configMapName
 		"ClusterRole/" + base + "-role":                   true,
 		"ClusterRoleBinding/" + base + "-rolebinding":     true,
-		"NetworkPolicy/" + base + "-metrics":              true, // charts/.../networkpolicy.yaml (protects the running controller pod)
 	}
 }
 
@@ -659,7 +658,7 @@ func (r *DashboardReconciler) reconcileObservability(
 ) time.Duration {
 	logger := log.FromContext(ctx)
 
-	switch obsErr := deployObservabilityManifests(ctx, r.Client, r.apiReader(), dashboard, r.ManifestsBasePath, r.Platform, r.ApplicationsNamespace); {
+	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform, r.ApplicationsNamespace); {
 	case obsErr == nil:
 		cm.MarkTrue(conditionObservabilityAvailable,
 			conditions.WithReason("Deployed"),
@@ -712,7 +711,7 @@ func (r *DashboardReconciler) reconcileURL(
 ) (string, time.Duration, error) {
 	logger := log.FromContext(ctx)
 
-	url, err := extractDashboardURL(ctx, r.apiReader(), dashboard, r.ApplicationsNamespace, r.Platform)
+	url, err := extractDashboardURL(ctx, r.Client, dashboard, r.ApplicationsNamespace, r.Platform)
 
 	switch {
 	case errors.Is(err, ErrDashboardRouteNotReady):
@@ -903,7 +902,7 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 	}
 
 	var svcs corev1.ServiceList
-	if err := r.apiReader().List(ctx, &svcs, opts...); err != nil {
+	if err := r.List(ctx, &svcs, opts...); err != nil {
 		return fmt.Errorf("listing observability services: %w", err)
 	}
 	for i := range svcs.Items {
@@ -918,7 +917,7 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 	}
 
 	var cms corev1.ConfigMapList
-	if err := r.apiReader().List(ctx, &cms, opts...); err != nil {
+	if err := r.List(ctx, &cms, opts...); err != nil {
 		return fmt.Errorf("listing observability configmaps: %w", err)
 	}
 	for i := range cms.Items {
@@ -933,7 +932,7 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 	}
 
 	var netpols networkingv1.NetworkPolicyList
-	if err := r.apiReader().List(ctx, &netpols, opts...); err != nil {
+	if err := r.List(ctx, &netpols, opts...); err != nil {
 		return fmt.Errorf("listing observability networkpolicies: %w", err)
 	}
 	for i := range netpols.Items {
@@ -949,7 +948,7 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 
 	persesList := &unstructured.UnstructuredList{}
 	persesList.SetGroupVersionKind(persesdashboardGVK)
-	if err := r.apiReader().List(ctx, persesList, opts...); err != nil {
+	if err := r.List(ctx, persesList, opts...); err != nil {
 		if !k8serrors.IsNotFound(err) && !meta.IsNoMatchError(err) {
 			return fmt.Errorf("listing observability PersesDashboards: %w", err)
 		}

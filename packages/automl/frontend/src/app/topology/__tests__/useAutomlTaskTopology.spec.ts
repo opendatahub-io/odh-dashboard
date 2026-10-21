@@ -168,7 +168,7 @@ describe('useAutomlTaskTopology', () => {
     );
   });
 
-  it('does not infer failure between parallel branches when only root succeeded', () => {
+  it('infers failure on all parallel branches when only root succeeded and the run failed', () => {
     const buildParallelBranchSpec = (
       firstBranchId: 'branch-a' | 'branch-b',
       secondBranchId: 'branch-a' | 'branch-b',
@@ -215,7 +215,7 @@ describe('useAutomlTaskTopology', () => {
       ],
     };
 
-    const assertUnresolvedParallelBranches = (
+    const assertInferredParallelFailures = (
       spec: PipelineSpecVariable,
       runDetails: typeof runDetailsWithOnlyRootSucceeded,
     ) => {
@@ -223,16 +223,16 @@ describe('useAutomlTaskTopology', () => {
       const byId = Object.fromEntries(renderResult.result.current.map((node) => [node.id, node]));
 
       expect(byId.root.data?.runStatus).toBe('Succeeded');
-      expect(byId['branch-a'].data?.runStatus).toBeUndefined();
-      expect(byId['branch-b'].data?.runStatus).toBeUndefined();
-      expect(byId.merge.data?.runStatus).toBeUndefined();
+      expect(byId['branch-a'].data?.runStatus).toBe('Failed');
+      expect(byId['branch-b'].data?.runStatus).toBe('Failed');
+      expect(byId.merge.data?.runStatus).toBe('Pending');
     };
 
-    assertUnresolvedParallelBranches(
+    assertInferredParallelFailures(
       buildParallelBranchSpec('branch-a', 'branch-b'),
       runDetailsWithOnlyRootSucceeded,
     );
-    assertUnresolvedParallelBranches(
+    assertInferredParallelFailures(
       buildParallelBranchSpec('branch-b', 'branch-a'),
       runDetailsWithOnlyRootSucceeded,
     );

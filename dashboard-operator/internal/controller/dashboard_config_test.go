@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
@@ -147,24 +146,4 @@ func TestOdhDashboardConfigWatchFiltersAndMaps(t *testing.T) {
 	assert.Equal(t, v1alpha1.DashboardInstanceName, requests[0].Name)
 	assert.Empty(t, requests[0].Namespace)
 	assert.Empty(t, r.mapOdhDashboardConfigToDashboard(context.Background(), unrelated))
-}
-
-func TestScopedOdhDashboardConfigByObject(t *testing.T) {
-	byObject := scopedOdhDashboardConfigByObject(dashboardConfigTestNamespace)
-	require.Len(t, byObject, 1, "exactly one GVK should be scoped")
-
-	for key, cfg := range byObject {
-		obj, ok := key.(*unstructured.Unstructured)
-		require.True(t, ok, "cache key must carry the OdhDashboardConfig GVK")
-		assert.Equal(t, odhDashboardConfigGVK, obj.GroupVersionKind())
-
-		require.Len(t, cfg.Namespaces, 1, "informer must be restricted to a single namespace")
-		require.Contains(t, cfg.Namespaces, dashboardConfigTestNamespace)
-		assert.Equal(t, cache.Config{}, cfg.Namespaces[dashboardConfigTestNamespace],
-			"namespace restriction carries no extra selectors; name is enforced by the field selector")
-
-		require.NotNil(t, cfg.Field, "informer must be restricted by name")
-		assert.Equal(t, "metadata.name="+odhDashboardConfigName, cfg.Field.String())
-		assert.Nil(t, cfg.Label, "no label selector is used for the named config")
-	}
 }

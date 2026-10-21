@@ -22,18 +22,11 @@ const resolveOpenAPIPath = (relativePath: string): string => {
 
 export const loadOpenAPISchema = (
   relativePath = 'upstream/api/openapi/spec.yaml',
-  requiredSchemaRoot?: 'components' | 'definitions',
 ): Record<string, unknown> => {
   const openApiPath = resolveOpenAPIPath(relativePath);
   const content = fs.readFileSync(openApiPath, 'utf8');
   const loaded = yaml.load(content);
-  if (!isOpenApiDocument(loaded) || Object.keys(loaded).length === 0) {
-    throw new Error(`OpenAPI schema at ${openApiPath} is empty or invalid`);
-  }
-  if (requiredSchemaRoot && !isOpenApiDocument(loaded[requiredSchemaRoot])) {
-    throw new Error(`OpenAPI schema at ${openApiPath} has no ${requiredSchemaRoot}`);
-  }
-  return loaded;
+  return isOpenApiDocument(loaded) ? loaded : {};
 };
 
 export const createSchemaMatcher = (

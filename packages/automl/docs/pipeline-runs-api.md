@@ -433,8 +433,6 @@ Additional required fields for timeseries forecasting pipelines:
 - `task_type` is required in all requests and determines which pipeline type to use
 - Unknown JSON fields are rejected (strict decoding)
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF
-- The BFF injects `plugins_input.mlflow.disabled: true` on every created run, disabling the
-  platform MLflow integration (AutoML owns its own experiment tracking)
 - The `task_type` field selects between the auto-discovered timeseries and tabular pipelines
 - Pipeline-runs endpoints return `404 Not Found` when required managed AutoML
   pipelines are unavailable in the namespace (see Error Responses)

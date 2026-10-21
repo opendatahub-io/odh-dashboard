@@ -27,8 +27,6 @@
 #   7. Absolutize FULLSEND_CONFIG_DIR when FULLSEND_DIR is relative — post_script
 #      CWD is runDir, so a bare ".fullsend" would miss dimensions.json
 #      (labels → ids, Type/Result → —).
-#   8. Unset the host-adapter credentials that env.runner hands every host
-#      script; this script never reads them.
 
 #
 # Harness may fetch this script with sibling files in scripts/.
@@ -62,11 +60,6 @@
 #       action was "failure": the notice is published but the review did
 #       not complete)
 set -euo pipefail
-
-# env.runner in harness/review.yaml gives every host-side script the
-# host-adapter credentials. Only pre-review.sh uses them, so drop them before
-# this script starts any child. Keep the list in step with env.runner.
-unset CODERABBIT_API_KEY JIRA_URL JIRA_USERNAME JIRA_API_TOKEN
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
 
@@ -1458,34 +1451,6 @@ run_self_test() {
   tmp=$(mktemp -d)
   cleanup_self_test() { rm -rf "${tmp}"; }
   trap cleanup_self_test EXIT
-
-  # Every adapter credential the registry names reaches this script through
-  # env.runner, so the unset line at the top must list it. Only the top-level
-  # env.runner mapping counts: a mention elsewhere in the harness does not.
-  local cred_name unset_line runner_env shim missing_creds=""
-  shim="${POST_REVIEW_SCRIPT_DIR}/../../.github/workflows/fullsend.yaml"
-  unset_line="$(grep -m1 -E '^unset CODERABBIT_API_KEY' "${POST_REVIEW_SCRIPT_DIR}/post-review.sh")"
-  runner_env="$(awk '
-    /^[^[:space:]#]/ { in_env = ($0 ~ /^env:[[:space:]]*$/); in_runner = 0; next }
-    in_env && /^  [^[:space:]#]/ { in_runner = ($0 ~ /^  runner:[[:space:]]*$/); next }
-    in_runner && /^    [A-Z]/ { print }
-  ' "${POST_REVIEW_SCRIPT_DIR}/../harness/review.yaml")"
-  while IFS= read -r cred_name; do
-    [[ -n "${cred_name}" ]] || continue
-    if [[ " ${unset_line#unset } " != *" ${cred_name} "* ]] \
-      || ! grep -qxF "    ${cred_name}: \"\${${cred_name}}\"" <<<"${runner_env}" \
-      || { [[ -f "${shim}" ]] && ! grep -qF "secrets.${cred_name} != '' && toJSON(secrets.${cred_name}) || '\"odh-adapter-credential-unset\"'" "${shim}"; }; then
-      missing_creds+=" ${cred_name}"
-    fi
-  done < <(jq -r '[.dimensions[] | select(.kind == "cli-adapter") | .host.credentials // {}
-    | .url_env, .username_env, .token_env | select(type == "string" and . != "")] | unique[]' \
-    "${POST_REVIEW_SCRIPT_DIR}/../dimensions.json")
-  if [[ -z "${unset_line}" || -n "${missing_creds}" ]]; then
-    echo "FAIL adapter credentials: not unset here, not in env.runner, or no shim placeholder:${missing_creds:- (no unset line)}" >&2
-    fail=1
-  else
-    echo "PASS adapter credentials are unset before any child"
-  fi
 
   # Relative FULLSEND_DIR must still resolve when CWD is not the workspace
   # (post_script runs in runDir). Without this, labels/Type/Result collapse.

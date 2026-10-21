@@ -32,6 +32,7 @@ export type RuntimeImageInstallTargetExtension = Extension<
       listName: string;
       description: string;
     };
+    configureStepLabel: string;
     component: ComponentCodeRef<RuntimeImageInstallTargetProps>;
   }
 >;

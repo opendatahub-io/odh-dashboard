@@ -2,14 +2,7 @@ import React, { act } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { GatewayOption } from '../../../api/services/gatewayDiscovery';
-import {
-  GATEWAY_API_FAILURE_MESSAGE,
-  GATEWAY_FIELD_DESCRIPTION,
-  GATEWAY_MAAS_MISSING_MESSAGE,
-  GATEWAY_MISSING_SELECTION_MESSAGE,
-  GatewaySelectField,
-  GatewaySelectFieldData,
-} from '../GatewaySelectField';
+import { GatewaySelectField, GatewaySelectFieldData } from '../GatewaySelectField';
 
 const GatewaySelectFieldComponent = GatewaySelectField.component;
 
@@ -50,7 +43,7 @@ describe('GatewaySelectFieldComponent', () => {
       />,
     );
 
-  const getCombobox = () => screen.getByRole('combobox', { name: 'Gateway' });
+  const getCombobox = () => screen.getByRole('combobox', { name: 'Gateway selection' });
 
   const openDropdown = async () => {
     await act(async () => {
@@ -129,29 +122,10 @@ describe('GatewaySelectFieldComponent', () => {
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
       });
 
-      expect(getCombobox()).toHaveAttribute('placeholder', 'Select gateways');
-    });
-
-    it('should hide placeholder when gateways are selected', () => {
-      const gateways = [makeGateway('gw-alpha', 'ns-1')];
-
-      renderComponent({
-        value: { selections: gateways },
-        externalData: { data: gateways, loaded: true },
-      });
-
-      expect(getCombobox()).toHaveAttribute('placeholder', '');
-    });
-
-    it('should render the Gateway label and description with trailing period', () => {
-      renderComponent({
-        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
-      });
-
-      expect(
-        screen.getByText('Gateway', { selector: '.pf-v6-c-form__label-text' }),
-      ).toBeInTheDocument();
-      expect(screen.getByText(GATEWAY_FIELD_DESCRIPTION)).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: 'Gateway selection' })).toHaveAttribute(
+        'placeholder',
+        'Select gateways',
+      );
     });
   });
 
@@ -241,7 +215,10 @@ describe('GatewaySelectFieldComponent', () => {
         },
       });
 
-      expect(screen.getByText(GATEWAY_API_FAILURE_MESSAGE)).toBeInTheDocument();
+      expect(screen.getByText(/Gateway discovery failed\./)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Ensure "model-serving-api" service is healthy and accessible\./),
+      ).toBeInTheDocument();
     });
 
     it('should not show a loadError warning when isDisabled', () => {
@@ -254,7 +231,7 @@ describe('GatewaySelectFieldComponent', () => {
         isDisabled: true,
       });
 
-      expect(screen.queryByText(GATEWAY_API_FAILURE_MESSAGE)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Gateway discovery failed\./)).not.toBeInTheDocument();
     });
   });
 
@@ -336,7 +313,11 @@ describe('GatewaySelectFieldComponent', () => {
         externalData: { data: gateways, loaded: true },
       });
 
-      expect(screen.getByText(GATEWAY_MISSING_SELECTION_MESSAGE)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'A selected gateway was not found. The deployment may not work as expected.',
+        ),
+      ).toBeInTheDocument();
     });
 
     it('should show a plural warning when multiple selected values are missing', () => {
@@ -351,7 +332,11 @@ describe('GatewaySelectFieldComponent', () => {
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
       });
 
-      expect(screen.getByText(GATEWAY_MISSING_SELECTION_MESSAGE)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'One or more selected gateways were not found. The deployment may not work as expected.',
+        ),
+      ).toBeInTheDocument();
     });
 
     it('should keep a currently selected missing gateway as an option without initialValue', async () => {
@@ -363,7 +348,11 @@ describe('GatewaySelectFieldComponent', () => {
       });
 
       expect(screen.getByTestId('gateway-select')).toHaveTextContent('gw-removed | ns-old');
-      expect(screen.getByText(GATEWAY_MISSING_SELECTION_MESSAGE)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'A selected gateway was not found. The deployment may not work as expected.',
+        ),
+      ).toBeInTheDocument();
       expect(screen.getByText('gw-removed | ns-old').closest('.pf-v6-c-label')).toHaveClass(
         'pf-m-red',
       );
@@ -398,7 +387,11 @@ describe('GatewaySelectFieldComponent', () => {
         externalData: { data: [gateway], loaded: true },
       });
 
-      expect(screen.queryByText(GATEWAY_MISSING_SELECTION_MESSAGE)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'A selected gateway was not found. The deployment may not work as expected.',
+        ),
+      ).not.toBeInTheDocument();
     });
 
     it('should not show the missing warning while data is still loading', () => {
@@ -410,10 +403,14 @@ describe('GatewaySelectFieldComponent', () => {
         externalData: { data: undefined, loaded: false },
       });
 
-      expect(screen.queryByText(GATEWAY_MISSING_SELECTION_MESSAGE)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'A selected gateway was not found. The deployment may not work as expected.',
+        ),
+      ).not.toBeInTheDocument();
     });
 
-    it('should show the MaaS missing warning when isDisabled (locked gateway)', () => {
+    it('should show the missing warning when isDisabled (e.g. MaaS locked gateway)', () => {
       const missingGateway = makeGateway('maas-default-gateway', 'openshift-ingress');
 
       renderComponent({
@@ -423,8 +420,11 @@ describe('GatewaySelectFieldComponent', () => {
         isDisabled: true,
       });
 
-      expect(screen.getByText(GATEWAY_MAAS_MISSING_MESSAGE)).toBeInTheDocument();
-      expect(screen.queryByText(GATEWAY_MISSING_SELECTION_MESSAGE)).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'A selected gateway was not found. The deployment may not work as expected.',
+        ),
+      ).toBeInTheDocument();
     });
 
     it('should not show the missing warning when isDisabled and load failed', () => {
@@ -441,8 +441,11 @@ describe('GatewaySelectFieldComponent', () => {
         isDisabled: true,
       });
 
-      expect(screen.queryByText(GATEWAY_MAAS_MISSING_MESSAGE)).not.toBeInTheDocument();
-      expect(screen.queryByText(GATEWAY_MISSING_SELECTION_MESSAGE)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'A selected gateway was not found. The deployment may not work as expected.',
+        ),
+      ).not.toBeInTheDocument();
     });
 
     it('should not add the initial value as a fallback option when it is in hiddenOptions', async () => {

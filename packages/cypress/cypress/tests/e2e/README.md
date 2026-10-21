@@ -236,9 +236,10 @@ The GitHub Actions E2E workflow always schedules added, modified, and renamed
 Cypress specs in addition to the selected tag suites. Changes to page objects,
 fixtures, utilities, commands, support hooks, and other Cypress support code run
 their executable reverse-impact specs. Critical cross-cutting infrastructure
-paths map directly to their CI tags; dashboard base and RHOAI network-policy
-changes run `@FeatureStoreCI` because those tests exercise dashboard-to-Feast
-connectivity. Small impact sets run as explicit specs;
+paths map directly to their CI tags. Dashboard base and RHOAI network-policy
+changes run the Pipelines, Workbenches, and Feature Store suites because those
+flows exercise dashboard egress to the pipeline server, Thanos, and Feast. Small
+impact sets run as explicit specs;
 larger sets use the narrowest available package CI tags. Deleting Cypress
 support code, or encountering a broad impact set that cannot be mapped to
 package CI tags, falls back to the canonical `@SmokeSet1`–`@SmokeSet5` and

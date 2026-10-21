@@ -15,7 +15,7 @@ describe('Core BFF Connection Types', () => {
     it('should return an array of connection types', async () => {
       const result = await apiClient.get('/api/connection-types');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/ConnectionTypesResponse/content/application~1json/schema',
+        ref: '#/components/responses/ConnectionTypesResponse/content/application/json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);
@@ -162,7 +162,7 @@ describe('Core BFF Connection Types', () => {
         },
       });
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/ConnectionTestResponse/content/application~1json/schema',
+        ref: '#/components/responses/ConnectionTestResponse/content/application/json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);
@@ -177,7 +177,7 @@ describe('Core BFF Connection Types', () => {
         fieldValues: { URI: 'https://example.com/data' },
       });
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/ConnectionTestResponse/content/application~1json/schema',
+        ref: '#/components/responses/ConnectionTestResponse/content/application/json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);
@@ -191,7 +191,7 @@ describe('Core BFF Connection Types', () => {
         fieldValues: { OCI_HOST: 'quay.io' },
       });
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/ConnectionTestResponse/content/application~1json/schema',
+        ref: '#/components/responses/ConnectionTestResponse/content/application/json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);
@@ -253,7 +253,7 @@ describe('Core BFF Connection Types', () => {
         },
       });
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/ConnectionTestResponse/content/application~1json/schema',
+        ref: '#/components/responses/ConnectionTestResponse/content/application/json/schema',
         status: 200,
       });
     });

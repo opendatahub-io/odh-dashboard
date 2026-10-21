@@ -12,35 +12,22 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import {
-  ConfigSettings,
-  DeploymentMode,
-  UserSettings,
-  logout,
-  useModularArchContext,
-  useSettings,
-} from 'mod-arch-core';
+import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-arch-core';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
-import { useGridSettings } from '~/app/hooks/useGridSettings';
-import { isGridFeatureFlagEnabledFromDevStorage } from '~/app/utilities/gridFeatureFlag';
 
-type AppShellProps = {
-  configSettings: ConfigSettings | null;
-  userSettings: UserSettings | null;
-  loaded: boolean;
-  loadError: Error | undefined;
-  showLogoutAction?: boolean;
-};
+const App: React.FC = () => {
+  const {
+    configSettings,
+    userSettings,
+    loaded: configLoaded,
+    loadError: configError,
+  } = useSettings();
 
-const AppShell: React.FC<AppShellProps> = ({
-  configSettings,
-  userSettings,
-  loaded,
-  loadError,
-  showLogoutAction,
-}) => {
+  const { namespacesLoaded, namespacesLoadError, initializationError } =
+    useNamespaceSelectorWithPersistence();
+
   const { config } = useModularArchContext();
   const { deploymentMode } = config;
   const isStandalone = deploymentMode === DeploymentMode.Standalone;
@@ -56,38 +43,47 @@ const AppShell: React.FC<AppShellProps> = ({
     [configSettings, userSettings],
   );
 
+  const error = configError || namespacesLoadError || initializationError;
+
   const sidebar = <PageSidebar isSidebarOpen={false} />;
 
-  if (loadError) {
+  // We lack the critical data to startup the app
+  if (error) {
+    // There was an error fetching critical data
     return (
       <Page sidebar={sidebar}>
         <PageSection>
           <Stack hasGutter>
             <StackItem>
               <Alert variant="danger" isInline title="General loading error">
-                <p>{loadError.message || 'Unknown error occurred during startup'}</p>
-                {showLogoutAction ? (
-                  <p>Logging out and logging back in may solve the issue</p>
-                ) : null}
+                <p>
+                  {configError?.message ||
+                    namespacesLoadError?.message ||
+                    initializationError?.message ||
+                    'Unknown error occurred during startup'}
+                </p>
+                <p>Logging out and logging back in may solve the issue</p>
               </Alert>
             </StackItem>
-            {showLogoutAction ? (
-              <StackItem>
-                <Button
-                  variant="secondary"
-                  onClick={() => logout().then(() => window.location.reload())}
-                >
-                  Logout
-                </Button>
-              </StackItem>
-            ) : null}
+            <StackItem>
+              <Button
+                variant="secondary"
+                onClick={() => logout().then(() => window.location.reload())}
+              >
+                Logout
+              </Button>
+            </StackItem>
           </Stack>
         </PageSection>
       </Page>
     );
   }
 
-  return !loaded || !contextValue ? (
+  // Waiting on the API to finish
+  const loading =
+    !configLoaded || !userSettings || !configSettings || !contextValue || !namespacesLoaded;
+
+  return loading ? (
     <Bullseye>
       <Spinner />
     </Bullseye>
@@ -99,43 +95,5 @@ const AppShell: React.FC<AppShellProps> = ({
     </AppContext.Provider>
   );
 };
-
-const AppContent: React.FC = () => {
-  const {
-    configSettings,
-    userSettings,
-    loaded: configLoaded,
-    loadError: configError,
-  } = useSettings();
-
-  const { namespacesLoaded, namespacesLoadError, initializationError } =
-    useNamespaceSelectorWithPersistence();
-
-  return (
-    <AppShell
-      configSettings={configSettings}
-      userSettings={userSettings}
-      loaded={configLoaded && namespacesLoaded}
-      loadError={configError || namespacesLoadError || initializationError}
-      showLogoutAction
-    />
-  );
-};
-
-const GridAppContent: React.FC = () => {
-  const { configSettings, userSettings, loaded, loadError } = useGridSettings();
-
-  return (
-    <AppShell
-      configSettings={configSettings}
-      userSettings={userSettings}
-      loaded={loaded}
-      loadError={loadError}
-    />
-  );
-};
-
-const App: React.FC = () =>
-  isGridFeatureFlagEnabledFromDevStorage() ? <GridAppContent /> : <AppContent />;
 
 export default App;

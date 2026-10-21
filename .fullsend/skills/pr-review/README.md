@@ -13,10 +13,9 @@ change set.
 ## Pipeline
 
 1. A GitHub event matches a **review** trigger listed under [Invocation](#invocation).
-2. `pre-review` validates the registry, runs the host adapters in parallel
-   (see [Host adapters](#host-adapters)), and aggregates their trusted JSON
-   from `.fullsend/.run/` into `collected.json`. The orchestrator never
-   invokes those CLIs itself.
+2. Workflow host-adapter jobs write trusted JSON under `.fullsend/.run/`;
+   `pre-review` validates the registry and aggregates envelopes into
+   `collected.json`. The orchestrator never invokes those CLIs itself.
 3. The orchestrator reads [`.fullsend/dimensions.json`](../../dimensions.json),
    selects rows by `dispatch` / `when` / `re_review`, and writes a lean
    `producers.json` ledger before results are known. A **`context`** LLM row
@@ -280,13 +279,14 @@ Fullsend reviews all **non-draft** PRs (no opt-in label). ODH differs from
 stock Fullsend by skipping drafts on automatic PR events; use `/fs-review` to
 review a draft. Job `if` filters admit:
 
-**Review path** (`dispatch`, review stage; host adapters run in its pre-script):
+**Review path** (host adapters + review stage; `adapter-plan` / `dispatch`):
 
 - `pull_request_target` when **not draft**: `opened`, `synchronize`,
   `ready_for_review` (draft→ready), or `labeled` with `ready-for-review`
 - issue comment body exactly `/fs-review` (non-bot) — runs even on drafts
 
-**Fix path** (`dispatch`, fix stage; the fix harness has no host adapters):
+**Fix path** (`dispatch` only — no host adapters; fix stage never reads adapter
+context):
 
 - `pull_request_review` with state `changes_requested`
 - issue comment starting with `/fs-fix` (but not `/fs-fix-stop`) from a non-bot
@@ -301,55 +301,8 @@ Local contract checks (no GitHub API):
 
 ```bash
 .fullsend/scripts/validate-dimensions.sh
-.fullsend/scripts/pre-review.sh --self-test
 .fullsend/scripts/post-review.sh --self-test
 ```
-
-### Host adapters
-
-The `cli-adapter` rows (Jira, CodeRabbit) run on the host inside the review
-job, in [`pre-review.sh`](../../scripts/pre-review.sh), after the PR-state and
-skip-author checks:
-
-- **Credentials.** The shim composes `FULLSEND_GITHUB_RUNNER_SECRETS` from the
-  `CODERABBIT_API_KEY`, `JIRA_URL`, `JIRA_USERNAME` and `JIRA_API_TOKEN`
-  secrets, and [`harness/review.yaml`](../../harness/review.yaml) references
-  them in `env.runner` (Fullsend ADR 0136). Every name is always sent: an
-  unset secret goes as the placeholder `odh-adapter-credential-unset`, because
-  `fullsend run` refuses an unset reference and an empty value alike, and
-  `pre-review.sh` reads the placeholder as empty. `pre-review.sh` unsets them before
-  starting any child. Each adapter runs with an allowlisted environment (no
-  review or GitHub token) and only the credentials its row names in
-  `host.credentials`, under the generic `FULLSEND_ADAPTER_*` names. None of
-  them reaches the sandbox. `env.runner` also reaches `post-review.sh`, which
-  unsets them first, and the validation loop, which does not read them.
-- **Order and cost.** `fullsend run` posts the review start-status comment
-  before it runs the pre-script, so it is up before any adapter work. A closed PR or a
-  skipped author exits before the adapters, so it buys no CodeRabbit run.
-  Jira and CodeRabbit run at once; the review waits for the slower one
-  (CodeRabbit, 20 minutes at most).
-- **Failures.** An adapter that exits non-zero, or exits zero without writing
-  its envelope, gets an `error` envelope (`adapter-exited-<code>` or
-  `adapter-wrote-no-output`), so the Producers table shows it as errored. The review carries on without it; both adapter rows are
-  `failure_severity: info`.
-- **Cancellation.** The adapters share the review job's
-  `cancel-in-progress` group, so a newer push cancels them with the review.
-- **Stale context.** Head-dependent context is read from the forge when the
-  pre-script runs, not from the event: `pre-review.sh` reads the head SHA,
-  base, title and body with `gh pr view`, and CodeRabbit reviews that head SHA
-  (Fullsend ADR 0106). A push after that point starts a new run, which cancels
-  this one. If a run is not cancelled, its adapter context still describes the
-  head the sandbox reviewed. Fullsend's steer and coalesce work (fullsend#7689
-  follow-ups) can change this; recheck it when that lands.
-- **Adding a credential.** Add the secret to the shim's `format(...)`
-  expression with the same placeholder fallback, reference it in
-  `env.runner`, add it to `post-review.sh`'s unset line, and name it in the
-  row's `host.credentials`; `post-review.sh --self-test` checks all four. A name the reusable workflow sets itself (`JIRA_TOKEN`,
-  `JIRA_USER_EMAIL`, `JIRA_BASE_URL`, any `FULLSEND_*` or `GITHUB_*`) is
-  refused by `fullsend run`. `pre-review.sh` also refuses rows that name a
-  variable the review needs or must not forward (`REVIEW_*`, `GH_TOKEN`,
-  `PATH`, `PR_*`, …), and `post-review.sh` unsets the four names it never
-  uses.
 
 **Pipeline mode:** `FULLSEND_OUTPUT_DIR` is set. Orchestrator writes
 `$FULLSEND_OUTPUT_DIR/agent-result.json` (omit `action` / `body` on success;
@@ -397,15 +350,9 @@ For dispatched LLM producers, compose the kind contract after
 Stock files track [fullsend-ai/agents](https://github.com/fullsend-ai/agents)
 at `ce2eedd` (2026-10-06). The harness base in
 [`harness/review.yaml`](../../harness/review.yaml) and the reusable workflow in
-[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) move together: the
-base names built-in providers that releases before v0.45.0 do not resolve. The
-sandbox image is on Fullsend v0.48.1, the first release line that passes
-declared secrets to host-side scripts (ADR 0136). The workflow is pinned to
-fullsend `main` at `af8cd47`, just past v0.48.1, for the review-findings marker
-fix (fullsend#8544); move it to v0.48.2 or later once that is released. From v0.48 the
-runner refuses `host_files` under `/sandbox/workspace/.fullsend`, so the
-registry and the adapter output reach the sandbox under
-`/sandbox/workspace/odh-review/`.
+[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) (Fullsend v0.45.0)
+move together: the base names built-in providers that earlier releases do not
+resolve.
 
 | Path | State |
 | --- | --- |
@@ -414,7 +361,7 @@ registry and the adapter output reach the sandbox under
 | [`references/re-review.md`](references/re-review.md) | Upstream text; categories map to dimensions through the registry instead of a fixed table |
 | [`../issue-labels/SKILL.md`](../issue-labels/SKILL.md) | Same text as upstream `skills/issue-labels/github/SKILL.md`. Listed in the harness under its own name: the base's copy shares the basename `github` with `pr-review/github` and is dropped when the harness is composed |
 | [`SKILL.md`](SKILL.md) | Local orchestrator. Carries upstream's time budget, runtime-aware dispatch, PR-head materialisation, challenger accounting and re-review contract, expressed through the registry |
-| `scripts/pre-review.sh` | Rebased onto upstream's `ce2eedd` bundle. Local additions (host-adapter registry and runner, dispatch normalisation, skip signal, registry-driven prior-review validation, self-test) sit on top; its header lists them |
+| `scripts/pre-review.sh` | Rebased onto upstream's `ce2eedd` bundle. Local additions (adapter gate and registry, dispatch normalisation, skip signal, registry-driven prior-review validation, self-test) sit on top; its header lists them |
 | `scripts/post-review.sh` | Local script, derived from `bb167e2` (the last upstream revision before the multi-forge rewrite), plus four changes from `ce2eedd`: the prior-findings projection, `label_actions` hardening, the PR file-list retry, and a failed job when the result is a `failure` |
 
 Not carried from that revision:

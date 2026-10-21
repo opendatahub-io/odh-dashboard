@@ -93,25 +93,6 @@ export const searchApiKeys =
       throw new Error('Invalid response format');
     });
 
-/** POST /api/v1/api-keys/search/tenant - Search caller-scoped API keys without K8s enrichment */
-export const searchTenantApiKeys =
-  (hostPath = '') =>
-  (opts: APIOptions, request: APIKeySearchRequest = {}): Promise<APIKeyListResponse> =>
-    handleRestFailures(
-      restCREATE(
-        hostPath,
-        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/api-keys/search/tenant`,
-        assembleModArchBody(request),
-        {},
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<unknown>(response) && isAPIKeyListResponse(response.data)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-
 /** POST /api/v1/api-keys - Create a new API key */
 export const createApiKey =
   (hostPath = '') =>

@@ -73,17 +73,6 @@ describe('useTreeViewData', () => {
     expect(result.current.selectedPattern).toBe('pattern_b');
   });
 
-  it('should normalize stage-map winner identifiers when selecting a pattern', () => {
-    const patterns = {
-      pattern_one: createPattern('Pattern One'),
-    };
-
-    const { result } = renderHook(() => useTreeViewData(patterns, [], undefined, 'PatternOne'));
-
-    expect(result.current.selectedPattern).toBe('pattern_one');
-    expect(result.current.winnerPatternLabel).toBe('Pattern One');
-  });
-
   it('should not select an invalid stage map best pattern when it is not a patterns key', () => {
     const patterns = {
       pattern_a: createPattern('Pattern A'),
@@ -121,14 +110,14 @@ describe('useTreeViewData', () => {
     expect(result.current.selectedPattern).toBe('pattern_b');
   });
 
-  it('should not select an invalid pattern record', () => {
+  it('should leave winnerPatternLabel undefined when the selected pattern record is invalid', () => {
     const patterns = {
       pattern_b: null as unknown as AutoragPattern,
     };
 
     const { result } = renderHook(() => useTreeViewData(patterns, [], 'pattern_b'));
 
-    expect(result.current.selectedPattern).toBeUndefined();
+    expect(result.current.selectedPattern).toBe('pattern_b');
     expect(result.current.winnerPatternLabel).toBeUndefined();
   });
 

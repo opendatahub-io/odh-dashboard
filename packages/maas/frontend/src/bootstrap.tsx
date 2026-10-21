@@ -17,19 +17,14 @@ import {
 } from '~/app/utilities/const';
 import App from '~/app/App';
 import ToastNotifications from '~/app/components/ToastNotifications';
-import {
-  GRID_MANDATORY_NAMESPACE,
-  isGridFeatureFlagEnabledFromDevStorage,
-} from '~/app/utilities/gridFeatureFlag';
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
-const isGridEnabled = isGridFeatureFlagEnabledFromDevStorage();
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DEPLOYMENT_MODE,
   URL_PREFIX: API_URL_PREFIX,
   BFF_API_VERSION,
-  mandatoryNamespace: MANDATORY_NAMESPACE ?? (isGridEnabled ? GRID_MANDATORY_NAMESPACE : undefined),
+  mandatoryNamespace: MANDATORY_NAMESPACE,
 };
 
 root.render(

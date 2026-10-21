@@ -43,7 +43,9 @@ const createMockCollection = (
     ? ['code_generation']
     : collectionDomains.includes('traces')
       ? ['trace_analysis']
-      : ['general'];
+      : collectionDomains.includes('safety')
+        ? ['safety']
+        : ['general'];
   const modalities = collectionDomains.includes('code') ? ['text', 'code'] : ['text'];
 
   return {
@@ -82,7 +84,7 @@ export const mockBenchmarkSuiteCollections = (): Collection[] => [
   createMockCollection(
     'model-suite-2',
     'Model suite 2',
-    ['trustworthiness', 'model'],
+    ['safety', 'model'],
     'Evaluates model safety, bias, and fairness across diverse scenarios.',
     ['mc1', 'toxicity', 'gender-bias', 'bias', 'accuracy-disambiguated', 'ethics'],
     [
@@ -105,7 +107,7 @@ export const mockBenchmarkSuiteCollections = (): Collection[] => [
   createMockCollection(
     'agent-safety-suite',
     'Agent safety suite',
-    ['trustworthiness', 'agent'],
+    ['safety', 'agent'],
     'Measure agent refusal behavior, tool safety, and policy adherence.',
     ['attack-success', 'quality'],
     ['attack_success_rate', 'bias_score'],
@@ -175,7 +177,7 @@ export const mockCuratedBenchmarkSuiteCollections = (
       createMockCollection(
         'curated-agent-safety-suite',
         'Agent safety suite',
-        ['trustworthiness', 'agent'],
+        ['safety', 'agent'],
         'Evaluate agent refusal behavior, adversarial resistance, and safe handling of harmful requests.',
         ['attack-success', 'adversarial-resistance', 'refusal-quality'],
         ['attack_success_rate', 'resistance_rate', 'quality_score'],
@@ -183,7 +185,7 @@ export const mockCuratedBenchmarkSuiteCollections = (
       createMockCollection(
         'curated-safety-and-fairness-agent',
         'Safety and fairness',
-        ['trustworthiness', 'agent'],
+        ['safety', 'agent'],
         'Evaluate agent safety, bias, and fairness across diverse scenarios.',
         ['safety', 'bias', 'fairness', 'refusal', 'toxicity', 'stereotype'],
         [
@@ -220,7 +222,7 @@ export const mockCuratedBenchmarkSuiteCollections = (
       createMockCollection(
         'curated-toxicity-risk-agent',
         'Toxicity & risk evals (WIP)',
-        ['trustworthiness', 'agent'],
+        ['safety', 'agent'],
         'Evaluate agent outputs for toxic, harmful, or risky content.',
         ['toxicity', 'harmfulness', 'risk', 'jailbreak', 'refusal', 'alignment'],
         [
@@ -261,7 +263,7 @@ export const mockCuratedBenchmarkSuiteCollections = (
     createMockCollection(
       'safety-and-fairness-v1',
       'Safety and fairness',
-      ['trustworthiness', 'model'],
+      ['safety', 'model'],
       'Evaluates model safety, bias, and fairness across diverse scenarios.',
       ['safety', 'bias', 'fairness', 'refusal', 'toxicity', 'stereotype'],
       [
@@ -374,7 +376,7 @@ export const mockCuratedBenchmarkSuiteCollections = (
     createMockCollection(
       'curated-toxicity-risk-model',
       'Toxicity & risk evals (WIP)',
-      ['trustworthiness', 'model'],
+      ['safety', 'model'],
       'Evaluates model outputs for toxic, harmful, or risky content.',
       ['toxicity', 'harmfulness', 'risk', 'jailbreak', 'refusal', 'alignment'],
       [

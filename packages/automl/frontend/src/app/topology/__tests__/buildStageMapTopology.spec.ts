@@ -166,22 +166,6 @@ describe('buildStageMapTopology', () => {
       expect(modelNodes[1].label).toBe('lightgbm');
     });
 
-    it('should normalize selected model identifiers to loaded record keys', () => {
-      const stageMap = makeStageMap([
-        makeComponent('training', [
-          makeStage('load_data'),
-          makeStage('model_selection', { selected_models: ['Model One'] }),
-        ]),
-      ]);
-      const nodes = buildStageMapTopology(stageMap, undefined, undefined, undefined, undefined, {
-        model_one: { name: 'Model One' },
-      });
-      const modelNode = nodes.find((node) => node.id === 'training__model__branch-0');
-
-      expect(modelNode?.label).toBe('Model One');
-      expect(modelNode?.data?.modelKey).toBe('model_one');
-    });
-
     it('should fan out from model_selection node', () => {
       const stageMap = makeStageMap([branchingComponent]);
       const nodes = buildStageMapTopology(stageMap);

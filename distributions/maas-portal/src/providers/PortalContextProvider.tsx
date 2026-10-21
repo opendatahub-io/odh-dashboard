@@ -10,18 +10,8 @@ const modularArchConfig: ModularArchConfig = {
   BFF_API_VERSION: 'v1',
 };
 
-const gridModularArchConfig: ModularArchConfig = {
-  ...modularArchConfig,
-  // TODO: Remove this placeholder when mod-arch-core supports a namespace-free grid setup.
-  mandatoryNamespace: '__maas_grid__',
-};
-
 const PortalContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ModularArchContextProvider
-    config={
-      window.__MAAS_CONSUMER_PORTAL_GRID__ === true ? gridModularArchConfig : modularArchConfig
-    }
-  >
+  <ModularArchContextProvider config={modularArchConfig}>
     <HostApiProvider>
       <MaaSAuthzProvider>
         <PortalAreaContextProvider>{children}</PortalAreaContextProvider>

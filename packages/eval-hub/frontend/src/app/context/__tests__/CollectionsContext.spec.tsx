@@ -31,7 +31,7 @@ describe('CollectionsContextProvider', () => {
 
   it('should fetch the unfiltered shared collection set', () => {
     render(
-      <MemoryRouter initialEntries={['/evaluations?scope=system&domains=trustworthiness']}>
+      <MemoryRouter initialEntries={['/evaluations?scope=system&domains=safety']}>
         <CollectionsContextProvider namespace="test-ns">
           <ContextConsumer />
         </CollectionsContextProvider>

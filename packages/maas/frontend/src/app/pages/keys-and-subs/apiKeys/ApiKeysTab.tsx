@@ -21,7 +21,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
   const pageState = useApiKeysPageLoad();
 
   const {
-    adminControlsEnabled,
+    isMaasAdmin,
     subscriptions,
     response,
     hasAnyApiKeys,
@@ -135,10 +135,10 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
           onSort={onSort}
           onClearFilters={onClearFilters}
           isFetching={isFetching}
-          isMaasAdmin={adminControlsEnabled}
+          isMaasAdmin={isMaasAdmin}
           toolbarContent={
             <ApiKeysToolbar
-              isMaasAdmin={adminControlsEnabled}
+              isMaasAdmin={isMaasAdmin}
               setIsModalOpen={setIsModalOpen}
               filterData={filterData}
               localUsername={localUsername}

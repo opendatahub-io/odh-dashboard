@@ -91,7 +91,7 @@ const InstallWizard: React.FC<{
   if (installTargets.length === 0) {
     return (
       <RuntimeImageInstallPageUnavailable
-        title="Create runtime"
+        title={`Install ${data.runtimeImageName}`}
         message="No runtime image install target extensions are available."
         returnRoute={cancelReturnRoute}
       />
@@ -100,8 +100,8 @@ const InstallWizard: React.FC<{
 
   return (
     <ApplicationsPage
-      title="Create runtime"
-      description="Choose the type of runtime to create from the runtime image, and customize its configuration."
+      title={`Install ${data.runtimeImageName}`}
+      description="Choose how this runtime image should be installed, then review and edit the configuration before creating it on this cluster."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
@@ -113,7 +113,7 @@ const InstallWizard: React.FC<{
           <BreadcrumbItem
             render={() => <Link to={cancelReturnRoute}>{data.runtimeImageName}</Link>}
           />
-          <BreadcrumbItem isActive>Create</BreadcrumbItem>
+          <BreadcrumbItem isActive>Install</BreadcrumbItem>
         </Breadcrumb>
       }
       loaded
@@ -125,7 +125,7 @@ const InstallWizard: React.FC<{
           <InstallWizardFooter selected={selected} canInstall={selectedTarget !== undefined} />
         }
       >
-        <WizardStep name="Runtime type" id="install-target">
+        <WizardStep name="Install target" id="install-target">
           <RuntimeImageInstallWizardTargetStep
             installTargets={installTargets}
             availableTargetIds={availableTargetIds}
@@ -133,7 +133,11 @@ const InstallWizard: React.FC<{
             onSelect={setSelected}
           />
         </WizardStep>
-        <WizardStep name="Configure" id="configure-install" isDisabled={!selectedTarget}>
+        <WizardStep
+          name={selectedTarget?.properties.configureStepLabel ?? 'Configure'}
+          id="configure-install"
+          isDisabled={!selectedTarget}
+        >
           <RuntimeImageInstallWizardConfigureStep
             selectedTarget={selectedTarget}
             targetData={targetData}
@@ -153,7 +157,7 @@ const RuntimeImageInstallPage: React.FC = () => {
   if (!actionData) {
     return (
       <RuntimeImageInstallPageUnavailable
-        title="Create runtime"
+        title="Install runtime image"
         message="The installation data is missing. Return to the runtime library and try again."
         returnRoute={GENERAL_SETTINGS_PATH}
       />

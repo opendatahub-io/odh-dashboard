@@ -209,7 +209,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
     evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
-    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'trustworthiness').click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'safety').click();
 
     evaluationsPage.findBenchmarkSuitesCategoryFilterBadge().should('contain.text', '2');
     evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');

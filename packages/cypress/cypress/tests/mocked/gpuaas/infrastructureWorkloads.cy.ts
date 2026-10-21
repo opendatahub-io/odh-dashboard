@@ -340,7 +340,7 @@ describe('GPUaaS Infrastructure Workloads', () => {
   });
 
   it('should open status modals for workbench, training, and inference workloads', () => {
-    initWorkloadsIntercepts(true, false, false, false, {}, true);
+    initWorkloadsIntercepts();
     infrastructurePage.visit(false);
     infrastructurePage.findWorkloadsTab().click();
     infrastructurePage.selectProjectByName('Project-A');
@@ -518,20 +518,21 @@ describe('GPUaaS Infrastructure Workloads', () => {
   });
 
   it('should use time labels when admissions data is on one calendar day', () => {
-    visitAdmissions({ admissionDataSpan: 'same-day' }, true);
-    infrastructurePage.selectAdmissionTimeWindow('24h');
+    visitAdmissions({ admissionDataSpan: 'same-day' });
+    infrastructurePage.selectAdmissionTimeWindow('7d');
     infrastructurePage.findAdmissionMetricCharts().should('be.visible');
 
     infrastructurePage
       .findAdmissionMetricCharts()
-      .find('[data-testid^="admission-metric-card-"]')
-      .should('have.length', 4)
+      .find('.gpuaas-workload-overview__admission-metric')
+      .should('have.length', 2)
       .each(($metric) => {
         cy.wrap($metric)
           .find('svg text')
           .then(($labels) => {
             const labels = [...$labels].map((label) => label.textContent.trim()).filter(Boolean);
             expect(labels.some((label) => label.includes(':'))).to.equal(true);
+            expect(new Set(labels).size).to.equal(labels.length);
           });
       });
     infrastructurePage.findAdmissionMetricCharts().find('svg [stroke-dasharray]').should('exist');
@@ -542,19 +543,19 @@ describe('GPUaaS Infrastructure Workloads', () => {
     infrastructurePage.findAdmissionMetricCharts().should('be.visible');
     infrastructurePage
       .findAdmissionMetricCharts()
-      .find('[data-testid^="admission-metric-card-"]')
+      .find('.gpuaas-workload-overview__admission-metric')
       .should('have.length', 4);
   });
 
   it('should use date labels when admissions data spans calendar days', () => {
-    visitAdmissions({ admissionDataSpan: 'multi-day' }, true);
+    visitAdmissions({ admissionDataSpan: 'multi-day' });
     infrastructurePage.selectAdmissionTimeWindow('7d');
     infrastructurePage.findAdmissionMetricCharts().should('be.visible');
 
     infrastructurePage
       .findAdmissionMetricCharts()
-      .find('[data-testid^="admission-metric-card-"]')
-      .should('have.length', 4)
+      .find('.gpuaas-workload-overview__admission-metric')
+      .should('have.length', 2)
       .each(($metric) => {
         cy.wrap($metric)
           .find('svg text')
@@ -580,7 +581,7 @@ describe('GPUaaS Infrastructure Workloads', () => {
   });
 
   it('should show an error when admission metrics fail to load', () => {
-    visitAdmissions({ admissionDataSpan: 'same-day', admissionRequestError: true }, true);
+    visitAdmissions({ admissionDataSpan: 'same-day', admissionRequestError: true });
 
     infrastructurePage
       .findAdmissionMetricsError()

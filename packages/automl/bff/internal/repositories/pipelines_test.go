@@ -513,9 +513,6 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["train_data_secret_name"] != "secret" {
 			t.Errorf("train_data_secret_name = %v", params["train_data_secret_name"])
 		}
-		if disabled := kfp.PluginsInput["mlflow"]["disabled"]; disabled != true {
-			t.Errorf("mlflow plugin disabled = %v, want true", disabled)
-		}
 	})
 
 	t.Run("tabular with custom top_n", func(t *testing.T) {
@@ -544,9 +541,6 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		}
 		if params["prediction_length"] != 1 {
 			t.Errorf("prediction_length = %v, want default 1", params["prediction_length"])
-		}
-		if disabled := kfp.PluginsInput["mlflow"]["disabled"]; disabled != true {
-			t.Errorf("mlflow plugin disabled = %v, want true", disabled)
 		}
 	})
 

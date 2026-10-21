@@ -17,7 +17,6 @@ import (
 func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.POST(constants.APIKeyCreatePath, handlerWithMaasApi(app, CreateAPIKeyHandler))
 	apiRouter.POST(constants.APIKeySearchPath, handlerWithMaasApi(app, SearchAPIKeysHandler))
-	apiRouter.POST(constants.APIKeyTenantSearchPath, handlerWithMaasApi(app, SearchTenantAPIKeysHandler))
 	apiRouter.POST(constants.APIKeyBulkRevokePath, handlerWithMaasApi(app, BulkRevokeAPIKeysHandler))
 	apiRouter.GET(constants.APIKeyConfigPath, handlerWithMaasApi(app, GetAPIKeyConfigHandler))
 	apiRouter.GET(constants.APIKeyByIDPath, handlerWithMaasApi(app, GetAPIKeyHandler))
@@ -187,37 +186,6 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 	}
 }
 
-// SearchTenantAPIKeysHandler handles POST /api/v1/api-keys/search/tenant.
-// It uses MaaS API data only and does not perform Kubernetes-backed enrichment.
-func SearchTenantAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var request Envelope[*models.APIKeySearchRequest, None]
-
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		app.badRequestResponse(w, r, err)
-		return
-	}
-	if request.Data == nil {
-		app.badRequestResponse(w, r, errors.New("data is required"))
-		return
-	}
-
-	response, err := app.repositories.APIKeys.SearchAPIKeys(r.Context(), *request.Data)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	enrichTenantAPIKeysWithSubscriptionDetails(app, r, response)
-
-	responseEnvelope := Envelope[*models.APIKeyListResponse, None]{
-		Data: response,
-	}
-
-	if err := app.WriteJSON(w, http.StatusOK, responseEnvelope, nil); err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
-}
-
 // enrichAPIKeysWithSubscriptionDetails populates SubscriptionDetails for inactive
 // status and row enrichment.
 //
@@ -246,21 +214,6 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		enrichAPIKeysFromK8sSubscriptions(app, r, response, subNames)
 		return
 	}
-	enrichAPIKeysFromMaasSubscriptions(app, r, response, subNames)
-}
-
-func enrichTenantAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *models.APIKeyListResponse) {
-	subNames := make(map[string]struct{})
-	for _, key := range response.Data {
-		if key.SubscriptionName != "" {
-			subNames[key.SubscriptionName] = struct{}{}
-		}
-	}
-
-	if len(subNames) == 0 {
-		return
-	}
-
 	enrichAPIKeysFromMaasSubscriptions(app, r, response, subNames)
 }
 

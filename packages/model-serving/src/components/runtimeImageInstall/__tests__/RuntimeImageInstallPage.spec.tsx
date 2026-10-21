@@ -53,6 +53,7 @@ const servingTarget: RuntimeImageInstallTargetExtension = {
       description: 'and the inference service deployment wizard.',
     },
     installTargetName: 'serving runtime template',
+    configureStepLabel: 'Configure template',
     component: () => Promise.resolve({ default: MockTarget }),
   },
 };
@@ -68,6 +69,7 @@ const acceleratorTarget: RuntimeImageInstallTargetExtension = {
       description: 'and the LLM inference service deployment wizard.',
     },
     installTargetName: 'LLM accelerator configuration',
+    configureStepLabel: 'Configure accelerator',
     component: () => Promise.resolve({ default: MockTarget }),
   },
 };
@@ -105,7 +107,7 @@ describe('RuntimeImageInstallPage', () => {
 
   it('should show an actionable state when router data is absent', () => {
     renderPage();
-    expect(screen.getByRole('heading', { name: 'Create runtime' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Install runtime image' })).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Unable to install this runtime image' }),
     ).toBeInTheDocument();
@@ -115,7 +117,7 @@ describe('RuntimeImageInstallPage', () => {
 
   it('should show an unavailable state when no active target has corresponding data', () => {
     renderPage(mockRuntimeImageActionData());
-    expect(screen.getByRole('heading', { name: 'Create runtime' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Install vLLM 0.6.0' })).toBeInTheDocument();
     expect(
       screen.getByText('No runtime image install target extensions are available.'),
     ).toBeInTheDocument();
@@ -253,7 +255,7 @@ describe('RuntimeImageInstallPage', () => {
   it('should show contributed metadata and host only the selected target', async () => {
     mockExtensions = [servingTarget, acceleratorTarget];
     renderPage(mockRuntimeImageActionData());
-    expect(screen.getByRole('heading', { name: 'Runtime type' })).toBeInTheDocument();
+    expect(screen.getByText('Choose install target')).toBeInTheDocument();
     expect(screen.queryByTestId('runtime-image-single-target-alert')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Model deployment settings' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Runtime library' })).toHaveAttribute(
@@ -265,13 +267,13 @@ describe('RuntimeImageInstallPage', () => {
       mockRuntimeImageActionData().cancelReturnRoute,
     );
     expect(
-      screen.getByText('Create', { selector: '.pf-v6-c-breadcrumb__item' }),
+      screen.getByText('Install', { selector: '.pf-v6-c-breadcrumb__item' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('runtime-image-install-next')).toBeDisabled();
 
     fireEvent.click(screen.getByRole('radio', { name: /LLM accelerator configuration/ }));
     expect(screen.getByText('LLM accelerator configurations')).toBeInTheDocument();
-    expect(screen.getByText('Configure')).toBeInTheDocument();
+    expect(screen.getByText('Configure accelerator')).toBeInTheDocument();
     expect(screen.getByTestId('runtime-image-install-next')).toBeEnabled();
 
     fireEvent.click(screen.getByRole('radio', { name: /Serving runtime template/ }));

@@ -273,40 +273,7 @@ describe('AIModelTableRow', () => {
       );
 
       const button = screen.getByText('Try in playground');
-      expect(button.closest('button')).toHaveAttribute('aria-disabled', 'true');
-    });
-
-    it('should show guidance tooltip on the disabled "Try in playground" button when playground is not created', async () => {
-      const model = createMockAIModel();
-      render(
-        <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} />
-        </TestWrapper>,
-      );
-
-      const button = screen.getByTestId('try-playground-button');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
-
-      fireEvent.mouseEnter(button);
-
-      const tooltip = await screen.findByRole('tooltip');
-      expect(tooltip).toHaveTextContent(/^Select Create Playground before trying in Playground\.$/);
-    });
-
-    it('should not show guidance tooltip when the playground is created', () => {
-      const model = createMockAIModel();
-      render(
-        <TestWrapper>
-          <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
-        </TestWrapper>,
-      );
-
-      const button = screen.getByTestId('try-playground-button');
-      expect(button).not.toBeDisabled();
-
-      fireEvent.mouseEnter(button);
-
-      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+      expect(button.closest('button')).toBeDisabled();
     });
 
     it('should enable "Try in playground" button once the playground is created', () => {
@@ -554,10 +521,7 @@ describe('AIModelTableRow', () => {
         </TestWrapper>,
       );
 
-      expect(screen.getByText('Try in playground').closest('button')).toHaveAttribute(
-        'aria-disabled',
-        'true',
-      );
+      expect(screen.getByText('Try in playground').closest('button')).toBeDisabled();
     });
 
     it('should handle external models already in playground', () => {

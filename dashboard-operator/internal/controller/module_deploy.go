@@ -164,7 +164,7 @@ func (r *DashboardReconciler) deployModuleManifests(
 		remapRayDashboardGatewayRBAC(rendered)
 		rendered = filterAndRemapDataConnectHubGatewayRBAC(rendered, r.ApplicationsNamespace, r.Platform)
 		if maasPortalSupportedPlatform(r.Platform) && mod.RequiredByMaaSPortal {
-			if err := preserveLegacyMaaSPortalNetworkAccess(ctx, r.apiReader(), rendered, r.ApplicationsNamespace); err != nil {
+			if err := preserveLegacyMaaSPortalNetworkAccess(ctx, r.Client, rendered, r.ApplicationsNamespace); err != nil {
 				return err
 			}
 		}

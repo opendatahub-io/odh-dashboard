@@ -209,9 +209,11 @@ describe('buildSelectionPlan', () => {
     assert.equal(impactedTagJob.tag, '@BroadCI');
   });
 
-  it('maps dashboard network policy changes to Feature Store coverage', () => {
+  it('maps dashboard network policy changes to their proven impact areas', () => {
     const localInventory = {
       ...inventory,
+      [specPath('pipelines')]: inventoryEntry('pipelines', ['@Pipelines']),
+      [specPath('workbenches')]: inventoryEntry('workbenches', ['@Workbenches']),
       [specPath('featureStore')]: inventoryEntry('featureStore', ['@FeatureStoreCI']),
     };
 
@@ -227,8 +229,16 @@ describe('buildSelectionPlan', () => {
     );
 
     assert.equal(result.valid, true);
-    assert.deepEqual(result.summary.pathImpactTags, ['@FeatureStoreCI']);
-    assert.ok(result.matrix.some((job) => job.run_mode === 'tag' && job.tag === '@FeatureStoreCI'));
+    assert.deepEqual(result.summary.pathImpactTags, [
+      '@FeatureStoreCI',
+      '@Pipelines',
+      '@Workbenches',
+    ]);
+    assert.ok(
+      result.matrix.some(
+        (job) => job.run_mode === 'tag' && job.tag === '@FeatureStoreCI @Pipelines @Workbenches',
+      ),
+    );
     assert.ok(
       result.summary.details.some((detail) => detail.includes('Cross-cutting manifest changes')),
     );

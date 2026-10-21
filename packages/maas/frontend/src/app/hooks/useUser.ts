@@ -1,7 +1,8 @@
 import { useContext } from 'react';
-import { AppContext, type AppUserSettings } from '~/app/context/AppContext';
+import { UserSettings } from 'mod-arch-core';
+import { AppContext } from '~/app/context/AppContext';
 
-const useUser = (): AppUserSettings => {
+const useUser = (): UserSettings => {
   const { user } = useContext(AppContext);
   return user;
 };

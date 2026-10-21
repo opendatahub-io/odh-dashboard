@@ -1,7 +1,4 @@
 import { appChrome } from './appChrome';
-import type { UserAuthConfig } from '../types';
-
-const HARDWARE_FILTER_TEST_ID_PREFIX = 'runtime-catalog-filter-hardware-';
 
 const RUNTIME_CATALOG_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
@@ -12,11 +9,6 @@ class RuntimeCatalogPage {
     if (wait) {
       this.wait();
     }
-  }
-
-  // Visits the library without waiting for it to render, for checking users who cannot reach it.
-  visitAs(credentials: UserAuthConfig) {
-    cy.visitWithLogin(RUNTIME_CATALOG_PATH, credentials);
   }
 
   navigate() {
@@ -31,12 +23,12 @@ class RuntimeCatalogPage {
     this.wait();
   }
 
-  private wait() {
-    cy.findByTestId('runtime-catalog-page').should('exist');
-  }
-
   findTab() {
     return cy.findByTestId('tab-serving-runtime-catalog');
+  }
+
+  private wait() {
+    cy.findByTestId('runtime-catalog-page').should('exist');
   }
 
   findPage() {
@@ -111,19 +103,6 @@ class RuntimeCatalogPage {
     return cy.findByTestId(`runtime-catalog-card-hardware-${cardKey}`);
   }
 
-  findHardwareFilterCheckboxes() {
-    return this.findHardwareFilter().find('input[type="checkbox"]');
-  }
-
-  // Reads the hardware value a filter checkbox selects from its data-testid. closest() checks the
-  // input itself first, then its wrappers, so this holds wherever PatternFly places the test ID.
-  getHardwareFilterValue($checkbox: JQuery<HTMLElement>): string {
-    return (
-      $checkbox.closest(`[data-testid^="${HARDWARE_FILTER_TEST_ID_PREFIX}"]`).attr('data-testid') ??
-      ''
-    ).replace(HARDWARE_FILTER_TEST_ID_PREFIX, '');
-  }
-
   findHardwareFilter() {
     return cy.findByTestId('runtime-catalog-filter-hardware');
   }
@@ -134,10 +113,6 @@ class RuntimeCatalogPage {
 
   findHardwareFilterChip(hardware: string) {
     return cy.findByTestId(`runtime-catalog-filter-chip-hardware-${hardware}`);
-  }
-
-  findHardwareFilterChips() {
-    return cy.findAllByTestId(/^runtime-catalog-filter-chip-hardware-/);
   }
 
   findEmptyState() {

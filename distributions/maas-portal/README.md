@@ -170,7 +170,7 @@ The local Rspack dev proxy sends portal Perses API requests directly to `PERSES_
 | `src/bootstrap.tsx` | App entry — mounts providers via `createDistribution` |
 | `src/extensions.ts` | Distribution nav (`app.suppress` / `app.patch`), redirects, user dropdown |
 | `src/PortalContextProvider.tsx` | Composes the standalone MaaS BFF and portal authorization providers |
-| `src/MaaSAuthzProvider.tsx` | When the `grid` feature flag is off, publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility. When `grid` is on, skips the check and keeps `ADMIN_USER` false. |
+| `src/MaaSAuthzProvider.tsx` | Publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility |
 | `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
 | `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package |
 

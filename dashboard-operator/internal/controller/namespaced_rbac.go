@@ -233,7 +233,7 @@ func (r *DashboardReconciler) applyNamespacedRBAC(
 func (r *DashboardReconciler) applyRole(ctx context.Context, role *rbacv1.Role) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		existing := &rbacv1.Role{}
-		err := r.apiReader().Get(ctx, client.ObjectKeyFromObject(role), existing)
+		err := r.Get(ctx, client.ObjectKeyFromObject(role), existing)
 		if k8serrors.IsNotFound(err) {
 			if createErr := r.Create(ctx, role); createErr != nil && !k8serrors.IsAlreadyExists(createErr) {
 				return fmt.Errorf("creating Role %s/%s: %w", role.Namespace, role.Name, createErr)
@@ -256,7 +256,7 @@ func (r *DashboardReconciler) applyRole(ctx context.Context, role *rbacv1.Role) 
 func (r *DashboardReconciler) applyRoleBinding(ctx context.Context, rb *rbacv1.RoleBinding) error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		existing := &rbacv1.RoleBinding{}
-		err := r.apiReader().Get(ctx, client.ObjectKeyFromObject(rb), existing)
+		err := r.Get(ctx, client.ObjectKeyFromObject(rb), existing)
 		if k8serrors.IsNotFound(err) {
 			if createErr := r.Create(ctx, rb); createErr != nil && !k8serrors.IsAlreadyExists(createErr) {
 				return fmt.Errorf("creating RoleBinding %s/%s: %w", rb.Namespace, rb.Name, createErr)
