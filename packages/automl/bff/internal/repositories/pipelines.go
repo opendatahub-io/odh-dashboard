@@ -535,5 +535,6 @@ func BuildPipelineRunInput(req models.CreateAutoMLRunRequest, pipelineID, pipeli
 		RuntimeConfig: &pipelines.RuntimeConfig{
 			Parameters: params,
 		},
+		PluginsInput: pipelines.DisabledMLflowPluginInput(),
 	}
 }
