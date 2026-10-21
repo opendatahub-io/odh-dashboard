@@ -1048,8 +1048,20 @@ export type DataScienceClusterKindStatus = {
   };
 };
 
+export type DataScienceClusterComponentSpec = {
+  managementState?: ManagementState;
+};
+
+export type DataScienceClusterKindSpec = {
+  components?: {
+    feastoperator?: DataScienceClusterComponentSpec & {
+      dataRegistry?: DataScienceClusterComponentSpec;
+    };
+  };
+};
+
 export type DataScienceClusterKind = K8sResourceCommon & {
-  spec: unknown; // we should never need to look into this
+  spec: DataScienceClusterKindSpec;
   status: DataScienceClusterKindStatus;
 };
 

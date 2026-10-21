@@ -4,6 +4,7 @@
 package proxy
 
 import (
+	"crypto/x509"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
@@ -62,6 +63,9 @@ type DataRegistryProxyConfig struct {
 	// UserIDFn returns the verified user ID to send upstream as X-User when the upstream
 	// implementation needs the authenticated identity for auditing.
 	UserIDFn func(*http.Request) string
+	// RootCAs contains the system and cluster CA bundles loaded by the application.
+	// A nil pool uses the system trust store.
+	RootCAs *x509.CertPool
 	// InsecureSkipVerify skips upstream TLS certificate verification (dev only).
 	InsecureSkipVerify bool
 	Logger             *slog.Logger
@@ -82,7 +86,7 @@ func NewDataRegistryReverseProxy(cfg DataRegistryProxyConfig) *httputil.ReverseP
 	// leaves open: an upstream that accepts the connection and then never writes response headers
 	// would otherwise pin a proxy goroutine and client connection indefinitely.
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = NewTLSConfig(nil, cfg.InsecureSkipVerify)
+	transport.TLSClientConfig = NewTLSConfig(cfg.RootCAs, cfg.InsecureSkipVerify)
 	transport.ResponseHeaderTimeout = dataRegistryUpstreamResponseHeaderTimeout
 
 	return &httputil.ReverseProxy{

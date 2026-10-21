@@ -150,11 +150,11 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 		},
 		{
-			name:    "feastoperator Managed enables data registry",
+			name:    "data registry Managed enables data registry module",
 			wantLen: 11,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
-					"feastoperator": {ManagementState: "Managed"},
+					"dataRegistry": {ManagementState: "Managed"},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
@@ -162,11 +162,11 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 		},
 		{
-			name:    "feastoperator Removed disables data registry",
+			name:    "data registry Removed disables data registry module",
 			wantLen: 11,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
-					"feastoperator": {ManagementState: "Removed"},
+					"dataRegistry": {ManagementState: "Removed"},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
@@ -258,6 +258,61 @@ func TestResolveModuleStatuses(t *testing.T) {
 			for name, wantMsg := range tt.wantMessage {
 				assert.Equal(t, wantMsg, got[name].Message, "module %q message", name)
 			}
+		})
+	}
+}
+
+func TestDataRegistryModuleUsesOnlyDataRegistryAvailability(t *testing.T) {
+	tests := []struct {
+		name              string
+		featureStoreState string
+		dataRegistryState string
+		wantPhase         v1alpha1.ModulePhase
+		wantReason        string
+	}{
+		{
+			name:              "data registry managed and feature store removed",
+			featureStoreState: "Removed",
+			dataRegistryState: "Managed",
+			wantPhase:         v1alpha1.ModulePhaseDeployed,
+			wantReason:        "Deployed",
+		},
+		{
+			name:              "data registry removed and feature store managed",
+			featureStoreState: "Managed",
+			dataRegistryState: "Removed",
+			wantPhase:         v1alpha1.ModulePhaseDisabled,
+			wantReason:        "ComponentNotAvailable",
+		},
+		{
+			name:              "both removed",
+			featureStoreState: "Removed",
+			dataRegistryState: "Removed",
+			wantPhase:         v1alpha1.ModulePhaseDisabled,
+			wantReason:        "ComponentNotAvailable",
+		},
+		{
+			name:              "both managed",
+			featureStoreState: "Managed",
+			dataRegistryState: "Managed",
+			wantPhase:         v1alpha1.ModulePhaseDeployed,
+			wantReason:        "Deployed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			statuses := resolveModuleStatuses(&v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"featureStore": {ManagementState: tt.featureStoreState},
+					"dataRegistry": {ManagementState: tt.dataRegistryState},
+				},
+			})
+
+			status, ok := statuses["dataRegistry"]
+			require.True(t, ok)
+			assert.Equal(t, tt.wantPhase, status.Phase)
+			assert.Equal(t, tt.wantReason, status.Reason)
 		})
 	}
 }
