@@ -460,13 +460,15 @@ export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
 export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
   benchmarks.filter((bm) => bm.status === 'failed').length;
 
+// Status entries may omit benchmark_index; fall back to the entry's array position, mirroring
+// the result/config lookups, so repeated benchmark ids each resolve to their own status entry.
 const findBenchmarkStatusEntry = (
   job: EvaluationJob,
   benchmarkId: string,
   benchmarkIndex: number,
 ): BenchmarkState | undefined =>
   (job.status.benchmarks ?? []).find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? benchmarkIndex) === benchmarkIndex,
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
   );
 
 /**

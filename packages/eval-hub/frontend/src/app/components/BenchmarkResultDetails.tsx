@@ -115,8 +115,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
       {benchmarkFailed && failReason ? (
         <Content
           component="p"
-          className="pf-v6-u-mb-md"
-          style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
+          className="pf-v6-u-mb-md pf-v6-u-text-color-status-danger pf-v6-u-text-break-word"
           data-testid={`benchmark-fail-reason-${benchmarkId}-${benchmarkIndex}`}
         >
           {failReason}

@@ -1215,6 +1215,31 @@ describe('isBenchmarkFailed', () => {
     expect(isBenchmarkFailed(job, 'math', 0)).toBe(true);
   });
 
+  it('should match duplicate ids without indexes by their array position', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        { id: 'math', status: 'completed' },
+        { id: 'math', status: 'failed' },
+      ],
+    });
+
+    expect(isBenchmarkFailed(job, 'math', 0)).toBe(false);
+    expect(isBenchmarkFailed(job, 'math', 1)).toBe(true);
+  });
+
+  it('should not let an index-less entry of another id shadow the requested occurrence', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        { id: 'math', status: 'failed' },
+        { id: 'gpqa', status: 'completed' },
+        { id: 'math', status: 'completed' },
+      ],
+    });
+
+    expect(isBenchmarkFailed(job, 'math', 0)).toBe(true);
+    expect(isBenchmarkFailed(job, 'math', 2)).toBe(false);
+  });
+
   it('should return false for a benchmark id not present in the status entries', () => {
     const job = mockEvaluationJob({
       benchmarkStatuses: [
@@ -1250,6 +1275,28 @@ describe('getBenchmarkErrorMessage', () => {
     });
 
     expect(getBenchmarkErrorMessage(job, 'math', 0)).toBe('inspect eval failed (exit 1)');
+  });
+
+  it('should return the matching occurrence message for duplicate ids without indexes', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        /* eslint-disable camelcase */
+        {
+          id: 'math',
+          status: 'failed',
+          error_message: { message: 'first run failed', message_code: 'unknown' },
+        },
+        {
+          id: 'math',
+          status: 'failed',
+          error_message: { message: 'second run failed', message_code: 'unknown' },
+        },
+        /* eslint-enable camelcase */
+      ],
+    });
+
+    expect(getBenchmarkErrorMessage(job, 'math', 0)).toBe('first run failed');
+    expect(getBenchmarkErrorMessage(job, 'math', 1)).toBe('second run failed');
   });
 
   it('should return undefined when no error message was recorded', () => {
