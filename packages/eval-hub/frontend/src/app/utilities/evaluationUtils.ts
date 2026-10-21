@@ -1,4 +1,9 @@
-import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
+import {
+  BenchmarkState,
+  EvaluationJob,
+  EvaluationJobState,
+  KueueWorkloadStatus,
+} from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
@@ -454,6 +459,35 @@ export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
 
 export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
   benchmarks.filter((bm) => bm.status === 'failed').length;
+
+const findBenchmarkStatusEntry = (
+  job: EvaluationJob,
+  benchmarkId: string,
+  benchmarkIndex: number,
+): BenchmarkState | undefined =>
+  (job.status.benchmarks ?? []).find(
+    (b) => b.id === benchmarkId && (b.benchmark_index ?? benchmarkIndex) === benchmarkIndex,
+  );
+
+/**
+ * Whether a benchmark run failed, per the job's per-benchmark status. Failed benchmarks never
+ * produce test results, so this is the failure signal for benchmarks without a `test`.
+ */
+export const isBenchmarkFailed = (
+  job: EvaluationJob,
+  benchmarkId: string,
+  benchmarkIndex: number,
+): boolean => findBenchmarkStatusEntry(job, benchmarkId, benchmarkIndex)?.status === 'failed';
+
+/** The error message recorded for a failed benchmark run, when the service reported one. */
+export const getBenchmarkErrorMessage = (
+  job: EvaluationJob,
+  benchmarkId: string,
+  benchmarkIndex: number,
+): string | undefined =>
+  /* eslint-disable camelcase */
+  findBenchmarkStatusEntry(job, benchmarkId, benchmarkIndex)?.error_message?.message;
+/* eslint-enable camelcase */
 
 export const getThresholdInputValue = (threshold: number, metric?: string): number =>
   isPercentageMetric(metric)
