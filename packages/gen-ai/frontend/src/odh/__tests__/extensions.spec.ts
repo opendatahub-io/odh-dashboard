@@ -1,11 +1,14 @@
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
+import { PluginStore } from '@odh-dashboard/plugin-core';
 import extensions, {
   GEN_AI_AGENT_DEPLOYMENT,
   GEN_AI_AUDIO_UPLOAD,
   GEN_AI_IMAGE_UPLOAD,
+  GEN_AI_STUDIO,
   GEN_AI_TRACING,
   GUARDRAILS,
   MODEL_AS_SERVICE_CAMEL,
+  PLUGIN_GEN_AI,
   PROMPT_MANAGEMENT,
   PROMPT_MODEL_ASSOCIATIONS,
 } from '~/odh/extensions';
@@ -26,6 +29,31 @@ const makeDscStatus = (conditions: K8sCondition[]) =>
     conditions,
     components: {},
   }) as never;
+
+describe('MaaS Models extensions', () => {
+  const findModelsExtensions = (store: PluginStore) =>
+    store
+      .getExtensions()
+      .filter(
+        (extension) =>
+          (extension.type === 'app.route' &&
+            (extension.properties.path === '/maas/models' ||
+              extension.properties.path === '/maas/models/*')) ||
+          (extension.type === 'app.navigation/href' && extension.properties.id === 'maas-models'),
+      );
+
+  // The MaaS portal distribution owns this route and navigation, not the Gen AI plugin.
+  it('should not register the portal navigation or route', () => {
+    const store = new PluginStore({ genAi: extensions });
+    store.setFeatureFlags({
+      [GEN_AI_STUDIO]: true,
+      [PLUGIN_GEN_AI]: true,
+      [MODEL_AS_SERVICE_CAMEL]: true,
+    });
+
+    expect(findModelsExtensions(store)).toHaveLength(0);
+  });
+});
 
 describe('modelAsService area extension', () => {
   it('should have a customCondition defined', () => {

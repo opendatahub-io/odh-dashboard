@@ -548,6 +548,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   hint = <FlexItem className="pf-v6-u-ml-auto">{hint}</FlexItem>;
                 }
 
+                const fileName = (
+                  <Truncate
+                    content={file.name}
+                    tooltipProps={{ trigger: 'manual', isVisible: false }}
+                  />
+                );
+
                 return (
                   <Tr
                     key={file.path}
@@ -616,22 +623,24 @@ const FilesTable: React.FC<FilesTableProps> = ({
                           data-testid="file-explorer-name"
                         >
                           {isFolder(file) && !isExplicitlyDisabled ? (
-                            <Button
-                              className={
-                                isSelectionDisabled ? 'pf-v6-u-text-color-disabled' : undefined
-                              }
-                              variant="link"
-                              isInline
-                              onClick={() => onFolderClick?.(file)}
-                            >
-                              <Truncate content={file.name} />
-                            </Button>
+                            <Tooltip content={file.name}>
+                              <Button
+                                className={
+                                  isSelectionDisabled ? 'pf-v6-u-text-color-disabled' : undefined
+                                }
+                                variant="link"
+                                isInline
+                                onClick={() => onFolderClick?.(file)}
+                              >
+                                {fileName}
+                              </Button>
+                            </Tooltip>
                           ) : isSelectionDisabled ? (
-                            <Content className="pf-v6-u-text-color-disabled">
-                              <Truncate content={file.name} />
-                            </Content>
+                            <Tooltip content={file.name}>
+                              <Content className="pf-v6-u-text-color-disabled">{fileName}</Content>
+                            </Tooltip>
                           ) : (
-                            <Truncate content={file.name} />
+                            <Tooltip content={file.name}>{fileName}</Tooltip>
                           )}
                         </FlexItem>
                         {!isSelected && isFileBeingViewed && (
