@@ -46,6 +46,22 @@ class InfrastructurePage {
     return cy.findByTestId(`admission-metric-value-${metricId}`);
   }
 
+  findAdmissionRateMetric() {
+    return this.findAdmissionMetricValue('admission-rate');
+  }
+
+  findAdmissionLeadTimeMetric() {
+    return this.findAdmissionMetricValue('admission-lead-time');
+  }
+
+  findWaitingWorkloadsMetric() {
+    return this.findAdmissionMetricValue('waiting-workloads');
+  }
+
+  findActiveWorkloadsMetric() {
+    return this.findAdmissionMetricValue('active-workloads');
+  }
+
   findAdmissionMetricChartLoading(metricId: string) {
     return cy.findByTestId(`admission-metric-chart-loading-${metricId}`);
   }
@@ -64,6 +80,10 @@ class InfrastructurePage {
 
   findWorkloadsCard() {
     return cy.findByTestId('infrastructure-workloads-card');
+  }
+
+  findWorkloadsTable() {
+    return cy.findByTestId('infrastructure-workloads-table');
   }
 
   scrollToWorkloadsCard() {
@@ -89,6 +109,14 @@ class InfrastructurePage {
 
   findWorkloadRow(name: string, options?: Cypress.Timeoutable) {
     return cy.findByTestId(`infrastructure-workload-row-${name}`, options);
+  }
+
+  findWorkloadQueuePosition(name: string, options?: Cypress.Timeoutable) {
+    return cy.findByTestId(`infrastructure-workload-queue-position-${name}`, options);
+  }
+
+  findWorkloadPriorityClass(name: string, options?: Cypress.Timeoutable) {
+    return cy.findByTestId(`infrastructure-workload-priority-class-${name}`, options);
   }
 
   findWorkloadsStatusFilter() {
@@ -175,6 +203,11 @@ class InfrastructurePage {
 
   switchToQuotaUsageTab() {
     this.findQuotaUsageTab().click();
+    return this;
+  }
+
+  switchToWorkloadsTab() {
+    this.findWorkloadsTab().click();
     return this;
   }
 
