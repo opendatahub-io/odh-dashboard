@@ -160,15 +160,16 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
         selectedAndAncestorIds.add(parent.getId());
         parent = parent.getParent();
       }
-      const focusReturnedToGroup =
+      const focusReturnedToTaskListTrigger =
         triggerWasRemoved &&
         activeElement instanceof HTMLButtonElement &&
+        activeElement.hasAttribute('data-pipeline-group-trigger') &&
         !!activeElement.dataset.pipelineNodeId &&
         selectedAndAncestorIds.has(activeElement.dataset.pipelineNodeId);
       if (
         activeElement !== focusedAtSelection &&
         !(triggerWasRemoved && activeElement === document.body) &&
-        !focusReturnedToGroup
+        !focusReturnedToTaskListTrigger
       ) {
         return;
       }

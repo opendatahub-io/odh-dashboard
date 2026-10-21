@@ -390,6 +390,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
                 onClick={(event) => event.stopPropagation()}
                 onKeyDown={activateNodeButtonOnKeyDown}
                 data-pipeline-node-id={element.getId()}
+                data-pipeline-group-trigger
                 data-testid={`pipeline-group-button-${groupLabel}`}
               />
             </Popover>

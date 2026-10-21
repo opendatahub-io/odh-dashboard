@@ -422,6 +422,26 @@ describe('Pipeline topology', () => {
       pipelineDetails.findGroupButton('for-loop-2').should('be.focused');
     });
 
+    it('keeps focus on the group toggle after leaving a selected task', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').should('not.exist');
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      // The drawer focus effect waits 550 ms. Fake timers break Monaco in pipeline details.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(600);
+      pipelineDetails.findGroupToggle('for-loop-2').should('be.focused');
+    });
+
     it('opens group details from the collapsed-group popover', () => {
       initIntercepts(mockGroupedVersion);
       pipelineDetails.visit(
