@@ -178,22 +178,27 @@ const ChatbotMain: React.FunctionComponent = () => {
   );
 
   const isProfileDirty = useIsProfileDirty(primaryConfigId, availableMcpServers, mcpConfigMapName);
-  // Effective starting configuration, captured once ChatbotPlayground finishes initializing
-  // (route-provided values, stored MCP selections, initial model). Dirty checks and Revert
-  // compare against this baseline instead of raw defaults so initialized settings are
-  // neither flagged as dirty nor discarded by Revert.
-  const defaultConfigBaselineRef = React.useRef<ChatbotConfiguration | null>(null);
+  // Effective starting configuration per pane, captured once ChatbotPlayground finishes
+  // initializing (route-provided values, stored MCP selections, initial model) and when a
+  // compare pane is duplicated. Dirty checks and Revert compare each pane against its own
+  // baseline instead of raw defaults so initialized settings are neither flagged as dirty
+  // nor discarded by Revert.
+  const configBaselinesRef = React.useRef<{ [configId: string]: ChatbotConfiguration | undefined }>(
+    {},
+  );
   const configurations = useChatbotConfigStore((s) => s.configurations);
-  const hasBaseline = defaultConfigBaselineRef.current !== null;
   // The subscription SubscriptionDropdown auto-picks (highest priority) for a model
   const getAutoSubscription = (model: string, isMaaSModel = false): string =>
     getModelSubscriptions(model, maasModels, isMaaSModel)[0]?.name ?? '';
   // Mask values the app manages automatically (default guardrail, auto-picked MaaS
   // subscriptions, inline-mode vector store, conversation images) so they don't read
-  // as user edits. MCP tool selections are also masked until the baseline exists —
+  // as user edits. MCP tool selections are also masked until the pane's baseline exists —
   // the store pre-loads them from sessionStorage before initialization captures
   // the baseline.
-  const serializeConfigForDirtyCheck = (config: ChatbotConfiguration): string =>
+  const serializeConfigForDirtyCheck = (
+    config: ChatbotConfiguration,
+    hasBaseline: boolean,
+  ): string =>
     JSON.stringify({
       ...config,
       mcpToolSelections: hasBaseline ? config.mcpToolSelections : {},
@@ -220,16 +225,23 @@ const ChatbotMain: React.FunctionComponent = () => {
         config.knowledgeMode === 'inline' ? null : config.selectedVectorStoreId,
       hasVisionImage: false,
     });
-  const baselineSnapshot = serializeConfigForDirtyCheck(
-    defaultConfigBaselineRef.current ?? DEFAULT_CONFIGURATION,
-  );
+  const isConfigDirty = (configId: string): boolean => {
+    const config = configurations[configId];
+    if (!config) {
+      return false;
+    }
+    const baseline = configBaselinesRef.current[configId];
+    const hasBaseline = baseline !== undefined;
+    return (
+      serializeConfigForDirtyCheck(config, hasBaseline) !==
+      serializeConfigForDirtyCheck(baseline ?? DEFAULT_CONFIGURATION, hasBaseline)
+    );
+  };
   // Compare every pane so edits to either side of compare mode count
   const isDefaultConfigDirty =
-    !profileApplied &&
-    configIds.some((configId) => {
-      const config = configurations[configId];
-      return !!config && serializeConfigForDirtyCheck(config) !== baselineSnapshot;
-    });
+    !profileApplied && configIds.some((configId) => isConfigDirty(configId));
+  // The settings panel edits one pane at a time — its Revert reflects the active pane only
+  const isActivePaneDirty = !profileApplied && isConfigDirty(activePaneConfigId);
   useSafeBrowserUnloadBlocker(isProfileDirty || isDefaultConfigDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
@@ -291,6 +303,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     const currentConfigIds = useChatbotConfigStore.getState().configIds;
     const remainingConfigId = currentConfigIds.find((id) => id !== configIdToClose);
     useChatbotConfigStore.getState().removeConfiguration(configIdToClose);
+    delete configBaselinesRef.current[configIdToClose];
     // Set active pane to the remaining config (or default if somehow none remain)
     setActivePaneConfigId(remainingConfigId || DEFAULT_CONFIG_ID);
     fireMiscTrackingEvent('Playground Compare Mode Exited', { success: true });
@@ -374,8 +387,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, [models, mcpServers, namespace?.name]);
 
   const handleNewAgentConfiguration = React.useCallback(() => {
-    // Drop the baseline until the playground re-initializes and captures a new one
-    defaultConfigBaselineRef.current = null;
+    // Drop the baselines until the playground re-initializes and captures new ones
+    configBaselinesRef.current = {};
     useChatbotConfigStore.getState().resetConfiguration();
     setSearchParams(
       (prev) => {
@@ -393,8 +406,32 @@ const ChatbotMain: React.FunctionComponent = () => {
   const handleInitialModelSelected = React.useCallback((model: string) => {
     const config = useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID];
     if (config) {
-      defaultConfigBaselineRef.current = { ...config, selectedModel: model };
+      configBaselinesRef.current[DEFAULT_CONFIG_ID] = { ...config, selectedModel: model };
     }
+  }, []);
+
+  // Revert restores the pane's starting values in place — compare mode, sibling panes,
+  // and the active pane all stay intact
+  const handleRevertToDefaults = React.useCallback((configId: string) => {
+    const state = useChatbotConfigStore.getState();
+    const currentConfig = state.configurations[configId];
+    if (!currentConfig) {
+      return;
+    }
+    const baseline = configBaselinesRef.current[configId] ?? DEFAULT_CONFIGURATION;
+    // The inline-mode vector store is auto-provisioned from uploaded
+    // documents, not a user setting — keep it so RAG requests stay
+    // connected to them after reverting
+    const preserveInlineVectorStore =
+      baseline.knowledgeMode === 'inline' && currentConfig.knowledgeMode === 'inline';
+    // resetConfigurationValues also persists mcpToolSelections to sessionStorage,
+    // so the starting MCP tool selections are restored in storage too
+    state.resetConfigurationValues(configId, {
+      ...baseline,
+      selectedVectorStoreId: preserveInlineVectorStore
+        ? (currentConfig.selectedVectorStoreId ?? baseline.selectedVectorStoreId)
+        : baseline.selectedVectorStoreId,
+    });
   }, []);
 
   const handleProfileSelected = React.useCallback(
@@ -501,9 +538,16 @@ const ChatbotMain: React.FunctionComponent = () => {
     if (clearAllMessagesRef.current) {
       clearAllMessagesRef.current();
     }
-    // Enter compare mode by duplicating the first config
+    // Enter compare mode by duplicating the first config; the duplicate's starting state
+    // is the source config as it is right now — capture it as that pane's baseline
     const firstConfigId = useChatbotConfigStore.getState().configIds[0] || DEFAULT_CONFIG_ID;
-    useChatbotConfigStore.getState().duplicateConfiguration(firstConfigId);
+    const newConfigId = useChatbotConfigStore.getState().duplicateConfiguration(firstConfigId);
+    const duplicatedConfig = newConfigId
+      ? useChatbotConfigStore.getState().configurations[newConfigId]
+      : undefined;
+    if (newConfigId && duplicatedConfig) {
+      configBaselinesRef.current[newConfigId] = duplicatedConfig;
+    }
     fireMiscTrackingEvent('Playground Compare Mode Entered', { success: true });
   }, []);
 
@@ -672,27 +716,9 @@ const ChatbotMain: React.FunctionComponent = () => {
               onClearAgent={handleNewAgentConfiguration}
               isProfileDirty={isProfileDirty}
               onResetToLastSaved={handleResetToLastSaved}
-              isDefaultConfigDirty={isDefaultConfigDirty}
+              isDefaultConfigDirty={isActivePaneDirty}
               onInitialModelSelected={handleInitialModelSelected}
-              onRevertToDefaults={() => {
-                const currentConfig =
-                  useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID];
-                const baseline = defaultConfigBaselineRef.current ?? DEFAULT_CONFIGURATION;
-                // The inline-mode vector store is auto-provisioned from uploaded
-                // documents, not a user setting — keep it so RAG requests stay
-                // connected to them after reverting
-                const preserveInlineVectorStore =
-                  baseline.knowledgeMode === 'inline' && currentConfig?.knowledgeMode === 'inline';
-                // resetConfiguration also persists mcpToolSelections to sessionStorage,
-                // so the starting MCP tool selections are restored in storage too
-                useChatbotConfigStore.getState().resetConfiguration({
-                  ...baseline,
-                  selectedVectorStoreId: preserveInlineVectorStore
-                    ? (currentConfig.selectedVectorStoreId ?? baseline.selectedVectorStoreId)
-                    : baseline.selectedVectorStoreId,
-                });
-                setActivePaneConfigId(DEFAULT_CONFIG_ID);
-              }}
+              onRevertToDefaults={handleRevertToDefaults}
               mcpServers={availableMcpServers}
               mcpRegistryAvailable={mcpRegistryAvailable}
               mcpServersLoaded={mcpServersLoaded}

@@ -681,6 +681,31 @@ const createStoreActions = (
     );
   },
 
+  // Reset one pane's values in place — keeps configIds and sibling panes intact,
+  // unlike resetConfiguration which collapses the store to the single default config
+  resetConfigurationValues: (id: string, initialValues?: Partial<ChatbotConfiguration>) => {
+    const state = get();
+    if (!state.configurations[id]) {
+      return;
+    }
+    if (!skipSessionStorage && initialValues?.mcpToolSelections) {
+      saveMcpToolSelectionsForConfig(id, initialValues.mcpToolSelections);
+    }
+    set(
+      (currentState) => ({
+        configurations: {
+          ...currentState.configurations,
+          [id]: {
+            ...DEFAULT_CONFIGURATION,
+            ...initialValues,
+          },
+        },
+      }),
+      false,
+      'resetConfigurationValues',
+    );
+  },
+
   applyAgentProfile: (
     config: Partial<ChatbotConfiguration>,
     profileId?: string,

@@ -312,6 +312,41 @@ describe('useChatbotConfigStore', () => {
     });
   });
 
+  describe('resetConfigurationValues', () => {
+    it('should reset one pane in place without collapsing compare mode', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateTemperature(DEFAULT_CONFIG_ID, 0.7);
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+      const newConfigId = useChatbotConfigStore.getState().configIds[1];
+      act(() => {
+        useChatbotConfigStore.getState().updateTemperature(newConfigId, 0.9);
+      });
+
+      act(() => {
+        useChatbotConfigStore.getState().resetConfigurationValues(newConfigId, {
+          ...DEFAULT_CONFIGURATION,
+          temperature: 0.1,
+        });
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configIds).toHaveLength(2);
+      expect(state.configurations[newConfigId]?.temperature).toBe(0.1);
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.temperature).toBe(0.7);
+    });
+
+    it('should ignore unknown configuration ids', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .resetConfigurationValues('missing-id', DEFAULT_CONFIGURATION);
+      });
+
+      expect(useChatbotConfigStore.getState().configIds).toEqual([DEFAULT_CONFIG_ID]);
+    });
+  });
+
   describe('MCP tool selections', () => {
     const configId = DEFAULT_CONFIG_ID;
 

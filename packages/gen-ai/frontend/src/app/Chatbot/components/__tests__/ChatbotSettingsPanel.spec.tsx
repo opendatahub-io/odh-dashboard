@@ -288,6 +288,28 @@ describe('ChatbotSettingsPanel', () => {
     expect(screen.queryByTestId('settings-reverted-alert')).not.toBeInTheDocument();
   });
 
+  it('should offer Revert for the active pane in compare mode while hiding save actions', async () => {
+    mockAgentConfigManagementEnabled = true;
+    act(() => {
+      useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+    });
+    const user = userEvent.setup();
+    const onRevertToDefaults = jest.fn();
+    render(
+      <ChatbotSettingsPanel
+        {...defaultProps}
+        isDefaultConfigDirty
+        onRevertToDefaults={onRevertToDefaults}
+      />,
+    );
+
+    expect(screen.queryByTestId('settings-panel-save-as-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('settings-panel-save-button')).not.toBeInTheDocument();
+    await user.click(screen.getByTestId('settings-panel-reset-button'));
+    await user.click(screen.getByTestId('reset-agent-confirm-button'));
+    expect(onRevertToDefaults).toHaveBeenCalledWith(DEFAULT_CONFIG_ID);
+  });
+
   it('should show saved-agent Revert only while settings have changed', async () => {
     mockAgentConfigManagementEnabled = true;
     useChatbotConfigStore.getState().applyAgentProfile({}, 'agent-id', 'Agent', '');

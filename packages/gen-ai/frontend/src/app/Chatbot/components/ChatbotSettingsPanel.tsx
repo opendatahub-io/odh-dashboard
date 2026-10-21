@@ -89,7 +89,7 @@ interface ChatbotSettingsPanelProps {
   onSaveAs?: () => void;
   onResetToLastSaved?: () => void;
   isDefaultConfigDirty?: boolean;
-  onRevertToDefaults?: () => void;
+  onRevertToDefaults?: (configId: string) => void;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
   defaultActiveTabKey?: string | number;
@@ -183,6 +183,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
+  // In compare mode the save actions stay hidden, but Revert remains available for the
+  // active pane — the footer shows whenever it has any content
+  const showFooterActions =
+    agentConfigManagementEnabled &&
+    (!isCompareMode || (!profileApplied && isDefaultConfigDirty && onRevertToDefaults));
 
   // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
@@ -581,7 +586,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           </div>
         )}
       </DrawerPanelBody>
-      {agentConfigManagementEnabled && !isCompareMode && (
+      {showFooterActions && (
         <div
           style={{
             display: 'flex',
@@ -591,7 +596,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             borderTop: '1px solid var(--pf-t--global--border--color--default)',
           }}
         >
-          {profileApplied &&
+          {!isCompareMode &&
+            profileApplied &&
             (hasWarnings ? (
               <Tooltip
                 content="You don't have permission to access every model, vector store, or prompt in this agent."
@@ -606,19 +612,21 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 Save
               </Button>
             ))}
-          <Button
-            variant={profileApplied ? 'secondary' : 'primary'}
-            onClick={() => {
-              fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
-                agentID: loadedProfileId ?? '',
-                triggerContext: 'settings_drawer_button',
-              });
-              onSaveAs?.();
-            }}
-            data-testid="settings-panel-save-as-button"
-          >
-            Save as new agent
-          </Button>
+          {!isCompareMode && (
+            <Button
+              variant={profileApplied ? 'secondary' : 'primary'}
+              onClick={() => {
+                fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
+                  agentID: loadedProfileId ?? '',
+                  triggerContext: 'settings_drawer_button',
+                });
+                onSaveAs?.();
+              }}
+              data-testid="settings-panel-save-as-button"
+            >
+              Save as new agent
+            </Button>
+          )}
           {((profileApplied && isProfileDirty && onResetToLastSaved) ||
             (!profileApplied && isDefaultConfigDirty && onRevertToDefaults)) && (
             <Button
@@ -658,7 +666,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 if (profileApplied) {
                   onResetToLastSaved?.();
                 } else {
-                  onRevertToDefaults?.();
+                  onRevertToDefaults?.(configId);
                   setShowRevertedAlert(true);
                 }
                 setShowResetModal(false);

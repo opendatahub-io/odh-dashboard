@@ -224,7 +224,7 @@ type ChatbotPlaygroundProps = {
   onResetToLastSaved?: () => void;
   isDefaultConfigDirty?: boolean;
   onInitialModelSelected?: (model: string) => void;
-  onRevertToDefaults?: () => void;
+  onRevertToDefaults?: (configId: string) => void;
   mcpServers?: MCPServerFromAPI[];
   mcpRegistryAvailable?: boolean;
   mcpServersLoaded?: boolean;

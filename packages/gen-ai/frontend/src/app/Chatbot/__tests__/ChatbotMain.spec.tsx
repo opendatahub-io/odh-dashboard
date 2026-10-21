@@ -14,6 +14,7 @@ import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlo
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import ChatbotPlayground from '~/app/Chatbot/ChatbotPlayground';
 import SaveAgentProfileModal from '~/app/Chatbot/components/SaveAgentProfileModal';
+import ChatModal from '~/app/Chatbot/components/ChatModal';
 import type {
   AAModelResponse,
   AIModel,
@@ -93,7 +94,7 @@ jest.mock('~/app/Chatbot/components/DeletePlaygroundModal', () => ({
 
 jest.mock('~/app/Chatbot/components/ChatModal', () => ({
   __esModule: true,
-  default: () => null,
+  default: jest.fn(() => null),
 }));
 
 type ApplicationsPageProps = {
@@ -344,7 +345,7 @@ describe('ChatbotMain - Empty State Logic', () => {
     const { rerender, unmount } = render(renderMain());
 
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
-    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
     expect(useChatbotConfigStore.getState().configurations.default?.selectedModel).toBe('');
     selectedModel = 'test-model';
     rerender(renderMain());
@@ -373,8 +374,9 @@ describe('ChatbotMain - Empty State Logic', () => {
     expect(playgroundProps?.isDefaultConfigDirty).toBe(true);
     act(() => playgroundProps?.setActivePaneConfigId?.('other-config'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].activePaneConfigId).toBe('other-config');
-    act(() => playgroundProps?.onRevertToDefaults?.());
-    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].activePaneConfigId).toBe('default');
+    act(() => playgroundProps?.onRevertToDefaults?.('default'));
+    // Reverting one pane keeps the active pane — compare mode is not collapsed
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].activePaneConfigId).toBe('other-config');
     expect(useChatbotConfigStore.getState().configurations.default).toEqual({
       ...DEFAULT_CONFIGURATION,
       selectedModel: 'test-model',
@@ -406,23 +408,23 @@ describe('ChatbotMain - Empty State Logic', () => {
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     act(() => actualStore.getState().updateTemperature('default', 0.5));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
-    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     act(() => actualStore.getState().updateGuardrail('default', 'test-model'));
     act(() => actualStore.getState().updateGuardrailModelOutputEnabled('default', true));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
-    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     act(() => actualStore.getState().updateGuardrail('default', 'test-model'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     act(() => actualStore.getState().updateGuardrail('default', 'other-model'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
-    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     act(() => actualStore.getState().updateGuardrail('default', 'test-model'));
     act(() => actualStore.getState().updateGuardrailUserInputEnabled('default', true));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
-    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     mockUseFetchBFFConfig.mockReturnValue({ data: null } as FetchStateObject<BFFConfig | null>);
     act(() => actualStore.getState().updateGuardrail('default', 'test-model'));
@@ -436,17 +438,17 @@ describe('ChatbotMain - Empty State Logic', () => {
     // Revert restores the effective starting configuration, not raw defaults
     act(() => actualStore.getState().updateTemperature('default', 0.5));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
-    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
     expect(useChatbotConfigStore.getState().configurations.default?.selectedMcpServerIds).toEqual([
       'server-1',
     ]);
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
-    // Edits to the compare-mode secondary pane mark the configuration dirty
-    act(() => actualStore.getState().duplicateConfiguration('default'));
+    // Edits to the compare-mode secondary pane still trip the navigation guard
+    act(() => jest.mocked(ChatModal).mock.calls.at(-1)?.[0].onConfirm());
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     const secondaryConfigId = useChatbotConfigStore.getState().configIds[1];
     act(() => actualStore.getState().updateTemperature(secondaryConfigId, 0.9));
-    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    expect(jest.mocked(useSafeBrowserUnloadBlocker)).toHaveBeenLastCalledWith(true);
     act(() => actualStore.getState().resetConfiguration());
   });
 
@@ -519,7 +521,7 @@ describe('ChatbotMain - Empty State Logic', () => {
       expect.objectContaining({ hasUnsavedChanges: true }),
       expect.anything(),
     );
-    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     expect(actualStore.getState().configurations.default?.selectedSubscription).toBe('');
     expect(jest.mocked(useSafeBrowserUnloadBlocker)).toHaveBeenLastCalledWith(false);
@@ -536,10 +538,46 @@ describe('ChatbotMain - Empty State Logic', () => {
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     act(() => actualStore.getState().updateTemperature('default', 0.5));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
-    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     // RAG stays connected to the uploaded documents after reverting
     expect(actualStore.getState().configurations.default?.selectedVectorStoreId).toBe('doc-store');
+    act(() => actualStore.getState().resetConfiguration());
+  });
+
+  it('should revert only the corresponding pane and keep compare mode', () => {
+    const actualStore = renderWithActualStore([]);
+
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    // Enter compare mode through the compare confirmation flow
+    act(() => jest.mocked(ChatModal).mock.calls.at(-1)?.[0].onConfirm());
+    const [, secondConfigId] = actualStore.getState().configIds;
+    expect(secondConfigId).toBeDefined();
+
+    // Edits to the second pane trip the navigation guard even while the first pane
+    // is active and clean in the settings panel
+    act(() => actualStore.getState().updateTemperature(secondConfigId, 0.9));
+    expect(jest.mocked(useSafeBrowserUnloadBlocker)).toHaveBeenLastCalledWith(true);
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+
+    // Switch the settings panel to the edited pane — its Revert becomes available
+    const switchActivePane = mockChatbotPlayground.mock.calls.at(-1)?.[0].setActivePaneConfigId;
+    act(() => switchActivePane?.(secondConfigId));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+
+    // Reverting the second pane leaves compare mode and the first pane intact
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.(secondConfigId));
+    expect(actualStore.getState().configIds).toHaveLength(2);
+    expect(actualStore.getState().configurations[secondConfigId]?.temperature).toBe(
+      DEFAULT_CONFIGURATION.temperature,
+    );
+    expect(actualStore.getState().configurations.default?.temperature).toBe(
+      DEFAULT_CONFIGURATION.temperature,
+    );
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    expect(jest.mocked(useSafeBrowserUnloadBlocker)).toHaveBeenLastCalledWith(false);
+
     act(() => actualStore.getState().resetConfiguration());
   });
 });
