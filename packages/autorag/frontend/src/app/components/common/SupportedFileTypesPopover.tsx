@@ -1,7 +1,7 @@
 import { Button, Content, Popover, type PopoverProps } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 
 export const SUPPORTED_FILE_TYPES_CONTENT = (
   <>
@@ -32,16 +32,34 @@ type SupportedFileTypesPopoverProps = {
 const SupportedFileTypesPopover: React.FC<SupportedFileTypesPopoverProps> = ({
   children,
   appendTo,
-}) => (
-  <Popover
-    aria-label="Supported file types help"
-    headerContent="Supported file types"
-    bodyContent={SUPPORTED_FILE_TYPES_CONTENT}
-    appendTo={appendTo}
-  >
-    {children}
-  </Popover>
-);
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  const handleOpen = useCallback(() => {
+    setIsVisible(true);
+  }, []);
+
+  const handleClose = useCallback((event: MouseEvent | KeyboardEvent) => {
+    if ('key' in event && event.key === 'Escape') {
+      event.stopPropagation();
+    }
+    setIsVisible(false);
+  }, []);
+
+  return (
+    <Popover
+      aria-label="Supported file types help"
+      headerContent="Supported file types"
+      bodyContent={SUPPORTED_FILE_TYPES_CONTENT}
+      appendTo={appendTo}
+      isVisible={isVisible}
+      shouldOpen={handleOpen}
+      shouldClose={handleClose}
+    >
+      {children}
+    </Popover>
+  );
+};
 
 export const SupportedFileTypesLink: React.FC = () => (
   /* Inline appending keeps the popover content within the file-explorer modal's focus trap. */
