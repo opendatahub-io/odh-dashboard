@@ -90,6 +90,8 @@ func NewManagerCache(applicationsNamespace string) cache.NewCacheFunc {
 		if err != nil {
 			return nil, err
 		}
+		// Preserve manager-initialized fields such as Scheme, Mapper, and HTTPClient.
+		// Any option added to ManagerCacheOptions must also be copied here.
 		options.ByObject = scoped.ByObject
 		options.ReaderFailOnMissingInformer = scoped.ReaderFailOnMissingInformer
 		return cache.New(config, options)

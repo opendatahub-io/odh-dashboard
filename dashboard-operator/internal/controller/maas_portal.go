@@ -440,7 +440,7 @@ func (r *DashboardReconciler) deleteLabeledMaaSPortalCustomResources(ctx context
 	routes := &unstructured.UnstructuredList{}
 	routes.SetAPIVersion("gateway.networking.k8s.io/v1")
 	routes.SetKind("HTTPRouteList")
-	if err := r.List(ctx, routes, client.MatchingLabels{labels.PlatformPartOf: maasPortalPartOf}, client.InNamespace(r.ApplicationsNamespace)); err != nil {
+	if err := r.apiReader().List(ctx, routes, client.MatchingLabels{labels.PlatformPartOf: maasPortalPartOf}, client.InNamespace(r.ApplicationsNamespace)); err != nil {
 		if !meta.IsNoMatchError(err) {
 			errs = append(errs, err)
 		}

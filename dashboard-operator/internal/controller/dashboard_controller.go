@@ -1016,7 +1016,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	// supported platforms, so a missing HTTPRoute mapping must not block teardown.
 	httpRoutes := &unstructured.UnstructuredList{}
 	httpRoutes.SetGroupVersionKind(gatewayv1.SchemeGroupVersion.WithKind("HTTPRouteList"))
-	if err := deleteTyped(r, httpRoutes, "HTTPRoute", matchLabels, inNamespace); err != nil && !meta.IsNoMatchError(err) {
+	if err := deleteTyped(r.apiReader(), httpRoutes, "HTTPRoute", matchLabels, inNamespace); err != nil && !meta.IsNoMatchError(err) {
 		return err
 	}
 
@@ -1116,7 +1116,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	// ConsoleLink CRD is not installed (non-OpenShift).
 	consoleLinks := &unstructured.UnstructuredList{}
 	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
-	if err := r.List(ctx, consoleLinks, matchLabels); err != nil {
+	if err := r.apiReader().List(ctx, consoleLinks, matchLabels); err != nil {
 		if !meta.IsNoMatchError(err) {
 			return fmt.Errorf("listing ConsoleLinks: %w", err)
 		}
