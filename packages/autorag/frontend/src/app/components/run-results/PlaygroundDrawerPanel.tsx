@@ -1,6 +1,5 @@
 import {
   Bullseye,
-  Button,
   Card,
   CardBody,
   Content,
@@ -25,7 +24,7 @@ import {
   SelectOption,
   Spinner,
 } from '@patternfly/react-core';
-import { CodeIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
@@ -57,7 +56,6 @@ type PlaygroundDrawerPanelProps = {
   patternInfo: PlaygroundPatternInfo;
   onClose: () => void;
   onSelectPattern: (patternName: string) => void;
-  onViewCode: (patternName: string) => void;
 };
 
 const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
@@ -66,7 +64,6 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   patternInfo,
   onClose,
   onSelectPattern,
-  onViewCode,
 }) => {
   const { parameters, patterns } = useAutoragResultsContext();
   const secretName = resolveMaaSSecretName(parameters) ?? '';
@@ -149,23 +146,6 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
                 ))}
               </SelectList>
             </Select>
-          </FlexItem>
-          <FlexItem>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              spaceItems={{ default: 'spaceItemsSm' }}
-            >
-              {responsesReady ? (
-                <Button
-                  variant="secondary"
-                  icon={<CodeIcon />}
-                  onClick={() => onViewCode(patternInfo.patternName)}
-                  data-testid="playground-view-code-button"
-                >
-                  View Code
-                </Button>
-              ) : null}
-            </Flex>
           </FlexItem>
         </Flex>
         <DrawerActions>
