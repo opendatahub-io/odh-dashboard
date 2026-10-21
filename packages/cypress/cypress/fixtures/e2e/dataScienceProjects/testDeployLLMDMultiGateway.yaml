@@ -1,0 +1,30 @@
+# testDeployLLMDMultiGateway.cy.ts Test Data #
+
+# resource kind
+resourceType: 'llminferenceservice'
+resourceApiVersion: 'apiVersion: serving.kserve.io/v1alpha2'
+
+# form data
+projectResourceName: 'test-llmd-multi-gw'
+singleModelName: 'test-llmd-gw'
+hardwareProfileName: 'cypress-llmd-hardware-profile-model'
+modelType: 'Generative AI model (Example, LLM)'
+modelLocationURI: 'hf://facebook/opt-125m'
+# Applied via oc after deploy (not YAML viewer) so gateway form apply is not dropped
+cpuContainerImage: 'quay.io/pierdipi/vllm-cpu:latest'
+connectionNameSuffix: '-connection'
+
+# llm-d LLMInferenceService path
+deploymentMethod: 'llm-inference-service-llmd'
+servingRuntime: 'Distributed inference with llm-d'
+
+# Gateway refs for MultiSelection (UI label built as `${name} | ${namespace}`).
+# Must be selectable in Project members mode (do NOT use maas-default-gateway — MaaS hides it).
+# gatewayA: shared cluster gateway. gatewayB: provisioned in the test project at runtime
+# (namespace is replaced with the project name in the suite).
+gatewayA:
+  name: openshift-ai-inference
+  namespace: openshift-ingress
+gatewayB:
+  name: cypress-llmd-multi-gw
+  namespace: PLACEHOLDER_PROJECT

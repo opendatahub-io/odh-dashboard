@@ -4,16 +4,47 @@
   "teams": [
     {
       "name": "Razzmatazz",
-      "ci_tags": ["AgentOpsCI", "ConnectionTypes", "HardwareProfiles", "MlflowEmbedded", "MLflowCI", "ModelRegistryCI", "ModelCatalogCI"],
-      "path_patterns": ["pipelines/", "agentOps/", "connectionTypes/", "hardwareProfiles/", "mlflow/", "mlflowExperiments/", "dashboardNavigation/", "learningResources/", "storageClasses/", "settings/", "modelRegistry/", "modelCatalog/", "mcpCatalog/", "agentsCatalog/", "data-registry/"],
+      "ci_tags": [
+        "AgentOpsCI",
+        "ConnectionTypes",
+        "HardwareProfiles",
+        "MlflowEmbedded",
+        "MLflowCI",
+        "ModelRegistryCI",
+        "ModelCatalogCI"
+      ],
+      "path_patterns": [
+        "pipelines/",
+        "agentOps/",
+        "connectionTypes/",
+        "hardwareProfiles/",
+        "mlflow/",
+        "mlflowExperiments/",
+        "dashboardNavigation/",
+        "learningResources/",
+        "storageClasses/",
+        "settings/",
+        "modelRegistry/",
+        "modelCatalog/",
+        "mcpCatalog/",
+        "agentsCatalog/",
+        "data-registry/"
+      ],
       "slack_handle": "@openshift-ai-dashboard-razzmatazz-scrum",
       "slack_group_id": "S06FFRUSFH8",
       "emoji": ":razzmatazz:"
     },
     {
       "name": "Zaffre",
-      "ci_tags": ["KServeCI", "NIMServingCI", "ModelServingCI", "LLMDServingCI"],
-      "path_patterns": ["modelServing/", "nim/", "dataScienceProjects/models/", "dataScienceProjects/connections/", "settings/servingRuntimes/"],
+      "ci_tags": ["KServeCI", "NIMServingCI", "ModelServingCI", "LLMDServingCI", "MaaSCI"],
+      "path_patterns": [
+        "modelServing/",
+        "nim/",
+        "dataScienceProjects/models/",
+        "dataScienceProjects/connections/",
+        "settings/servingRuntimes/",
+        "maas/"
+      ],
       "slack_handle": "@openshift-ai-dashboard-zaffre-scrum",
       "slack_group_id": "S07CFUVMXBM",
       "emoji": ":zaffre:"
@@ -49,14 +80,6 @@
       "slack_handle": "@group-openshift-ai-notebooks-server-extensions",
       "slack_group_id": "S05UB882TDF",
       "emoji": ":indigo:"
-    },
-    {
-      "name": "Onyx",
-      "ci_tags": ["MaaSCI"],
-      "path_patterns": ["maas/"],
-      "slack_handle": "@openshift-ai-dashboard-onyx-scrum",
-      "slack_group_id": "S0AU18N3AFP",
-      "emoji": ":onyxl:"
     },
     {
       "name": "Purple",

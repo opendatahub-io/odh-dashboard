@@ -3,10 +3,13 @@
 Required procedure for steps 2a, 3a, and 3a-1 of the review orchestrator.
 
 From
-[fullsend-ai/agents `skills/pr-review/references/re-review.md`](https://github.com/fullsend-ai/agents/blob/ce2eedd097dcccf17e29f4a7cd337ec4d95d7194/skills/pr-review/references/re-review.md).
+[fullsend-ai/agents `skills/pr-review/references/re-review.md`](https://github.com/fullsend-ai/agents/blob/2da538b8b62ad6d7b91c43d8cf139f4738cfbf51/skills/pr-review/references/re-review.md).
 Local changes: categories map to dimensions through the registry
-(`.fullsend/dimensions.json`), not a fixed table, and the forge commands
-are the ones in [`github/SKILL.md`](../github/SKILL.md).
+(`/sandbox/workspace/odh-review/dimensions.json`), not a fixed table, and the forge commands
+are the ones in [`github/SKILL.md`](../github/SKILL.md). Upstream's finding-id
+ledger (`id`, `dispositions`, human thread dismissals) is not carried: the
+host writes no ids, so the projection here is severity, category, file and
+line only.
 
 ### 2a. Prior review context (re-reviews)
 

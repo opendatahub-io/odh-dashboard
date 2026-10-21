@@ -13,6 +13,7 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Tooltip,
 } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { InfoCircleIcon, OutlinedQuestionCircleIcon, EllipsisVIcon } from '@patternfly/react-icons';
@@ -55,6 +56,35 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const assetType = model.model_source_type === 'maas' ? 'maas_model' : 'model';
+  const tryInPlaygroundButton = (
+    <Button
+      data-testid="try-playground-button"
+      variant={ButtonVariant.secondary}
+      onClick={() => {
+        fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+          assetType,
+          assetId: model.model_id,
+        });
+        navigate(genAiChatPlaygroundRoute(namespace?.name), {
+          state: {
+            model: enabledModel?.id,
+          },
+        });
+      }}
+      // Disabled with helper text until a playground is created for the project.
+      // Embedding/transcription models cannot be tried in the chat playground directly.
+      // Custom endpoint models are always available if they're in the list
+      isAriaDisabled={!lsdStatus}
+      isDisabled={
+        !!lsdStatus &&
+        (model.model_type === 'embedding' ||
+          model.model_type === 'transcription' ||
+          (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running'))
+      }
+    >
+      Try in playground
+    </Button>
+  );
 
   const handleDelete = React.useCallback(async () => {
     if (!onDelete) {
@@ -173,33 +203,12 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               >
                 See vector stores
               </Button>
+            ) : !lsdStatus ? (
+              <Tooltip content="Select Create Playground before trying in Playground.">
+                {tryInPlaygroundButton}
+              </Tooltip>
             ) : (
-              <Button
-                data-testid="try-playground-button"
-                variant={ButtonVariant.secondary}
-                onClick={() => {
-                  fireMiscTrackingEvent('Available Endpoints Playground Launched', {
-                    assetType,
-                    assetId: model.model_id,
-                  });
-                  navigate(genAiChatPlaygroundRoute(namespace?.name), {
-                    state: {
-                      model: enabledModel?.id,
-                    },
-                  });
-                }}
-                // Disabled until a playground is created for the project.
-                // Embedding/transcription models cannot be tried in the chat playground directly.
-                // Custom endpoint models are always available if they're in the list
-                isDisabled={
-                  !lsdStatus ||
-                  model.model_type === 'embedding' ||
-                  model.model_type === 'transcription' ||
-                  (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
-                }
-              >
-                Try in playground
-              </Button>
+              tryInPlaygroundButton
             )}
           </Td>
         )}

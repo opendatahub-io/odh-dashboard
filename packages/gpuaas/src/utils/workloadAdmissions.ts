@@ -18,8 +18,17 @@ export const ADMISSION_TIME_WINDOW_OPTIONS: SimpleSelectOption[] = [
   { key: '30d', label: 'Last 30 days' },
 ];
 
-const MULTI_DAY_ADMISSION_TIME_WINDOWS = new Set(['7d', '30d']);
-const ADMISSION_TOOLTIP_DATE_TIME_WINDOWS = new Set(['7d', '30d']);
+const ADMISSION_DATE_ONLY_WINDOWS = new Set(['7d', '30d']);
+const ADMISSION_TIME_ONLY_WINDOWS = new Set(['24h']);
+const ADMISSION_TICK_INTERVALS: Record<string, number> = {
+  '1h': 15 * 60 * 1000,
+  '24h': 5 * 60 * 60 * 1000,
+  '7d': 2 * 24 * 60 * 60 * 1000,
+  '30d': 6 * 24 * 60 * 60 * 1000,
+};
+
+export const getAdmissionTickInterval = (timeWindow: string): number | undefined =>
+  ADMISSION_TICK_INTERVALS[timeWindow];
 
 export const formatAdmissionTimestamp = (
   timestamp: number,
@@ -28,26 +37,37 @@ export const formatAdmissionTimestamp = (
 ): string => {
   const date = new Date(timestamp);
   const spansMultipleCalendarDays =
-    domain && new Date(domain[0]).toDateString() !== new Date(domain[1]).toDateString();
-  const shouldUseDateLabels =
-    MULTI_DAY_ADMISSION_TIME_WINDOWS.has(timeWindow) &&
-    (spansMultipleCalendarDays || domain === undefined);
+    domain !== undefined &&
+    new Date(domain[0]).toDateString() !== new Date(domain[1]).toDateString();
 
-  return shouldUseDateLabels
-    ? date.toLocaleDateString([], { month: 'short', day: 'numeric' })
-    : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-};
+  if (ADMISSION_DATE_ONLY_WINDOWS.has(timeWindow)) {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  }
 
-export const formatAdmissionTooltipTimestamp = (timestamp: number, timeWindow = '1h'): string => {
-  const date = new Date(timestamp);
-  const timeOptions: Intl.DateTimeFormatOptions = {
-    hour: 'numeric',
-    minute: '2-digit',
-  };
+  if (ADMISSION_TIME_ONLY_WINDOWS.has(timeWindow)) {
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
 
-  return ADMISSION_TOOLTIP_DATE_TIME_WINDOWS.has(timeWindow)
-    ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-    : date.toLocaleTimeString([], timeOptions);
+  return spansMultipleCalendarDays || domain === undefined
+    ? date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
 };
 
 export const formatAdmissionMetricValue = (metricId: string, value: number): string => {
@@ -89,20 +109,10 @@ export const getAdmissionMetricYInterval = (metricId: string, yMax = 0): number 
     ? Math.max(1, Math.ceil(yMax / 5))
     : undefined;
 
-export const getAdmissionMetricsXDomain = (metrics: AdmissionMetric[]): [number, number] => {
-  const timestamps = metrics.flatMap((metric) =>
-    metric.data
-      .map((point) => point.x)
-      .filter((timestamp): timestamp is number => Number.isFinite(timestamp)),
-  );
-  const latestTimestamp = timestamps.length > 0 ? Math.max(...timestamps) : Date.now();
-  const earliestTimestamp =
-    timestamps.length > 0 ? Math.min(...timestamps) : latestTimestamp - 24 * 60 * 60 * 1000;
-
-  return earliestTimestamp === latestTimestamp
-    ? [earliestTimestamp - 1, latestTimestamp + 1]
-    : [earliestTimestamp, latestTimestamp];
-};
+export const getAdmissionMetricsXDomain = (
+  spanInSeconds: number,
+  endInMs = Date.now(),
+): [number, number] => [endInMs - spanInSeconds * 1000, endInMs];
 
 export const getAdmissionMetricHeadlineValue = (metric: AdmissionMetric): number | null => {
   const values = metric.data.map((point) => point.y).filter(Number.isFinite);
@@ -172,7 +182,7 @@ export const buildAdmissionMetrics = (
           ? '--'
           : `${metrics.waitingWorkloads.value} waiting`,
       data: metrics.waitingWorkloads.data,
-      color: colors.orange,
+      color: colors.blue,
       interpolation: 'stepAfter' as const,
     },
     {

@@ -83,13 +83,9 @@ describe('ServingRuntimeInstallTarget', () => {
     const source = template();
     createMock.mockResolvedValue(source);
     renderTarget(JSON.stringify(source));
+    expect(screen.getByRole('heading', { name: 'Configure', level: 2 })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Add serving runtime template', level: 2 }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Review the pre-filled configuration for this runtime image. Edit any fields before creating it on this cluster.',
-      ),
+      screen.getByText('Review or customize the pre-filled configuration.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('dashboard-code-editor')).toHaveValue(
       YAML.stringify(source.objects[0]),
