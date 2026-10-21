@@ -15,6 +15,7 @@ import {
   validateAfterDays,
   validateExpirationDate,
   getModelDocumentationUrl,
+  ApiKeyUsageExampleKind,
   buildApiKeyUsageExample,
   findMaaSModelBySubscriptionRef,
   resolveApiKeyUsageExampleKind,
@@ -318,20 +319,28 @@ describe('findMaaSModelBySubscriptionRef', () => {
 
 describe('resolveApiKeyUsageExampleKind', () => {
   it('should resolve embedding from model capabilities', () => {
-    expect(resolveApiKeyUsageExampleKind(['text-embedding'])).toBe('embedding');
-    expect(resolveApiKeyUsageExampleKind(['embeddings'])).toBe('embedding');
-    expect(resolveApiKeyUsageExampleKind(['embedding'])).toBe('embedding');
+    expect(resolveApiKeyUsageExampleKind(['text-embedding'])).toBe(
+      ApiKeyUsageExampleKind.Embedding,
+    );
+    expect(resolveApiKeyUsageExampleKind(['embeddings'])).toBe(ApiKeyUsageExampleKind.Embedding);
+    expect(resolveApiKeyUsageExampleKind(['embedding'])).toBe(ApiKeyUsageExampleKind.Embedding);
   });
 
   it('should resolve transcription for ASR-only capabilities', () => {
-    expect(resolveApiKeyUsageExampleKind(['audio-transcription'])).toBe('transcription');
-    expect(resolveApiKeyUsageExampleKind(['audio-transcription', 'vision'])).toBe('transcription');
+    expect(resolveApiKeyUsageExampleKind(['audio-transcription'])).toBe(
+      ApiKeyUsageExampleKind.Transcription,
+    );
+    expect(resolveApiKeyUsageExampleKind(['audio-transcription', 'vision'])).toBe(
+      ApiKeyUsageExampleKind.Transcription,
+    );
   });
 
   it('should default to chat for text-generation and multimodal ASR', () => {
-    expect(resolveApiKeyUsageExampleKind(['text-generation'])).toBe('chat');
-    expect(resolveApiKeyUsageExampleKind(['text-generation', 'audio-transcription'])).toBe('chat');
-    expect(resolveApiKeyUsageExampleKind()).toBe('chat');
+    expect(resolveApiKeyUsageExampleKind(['text-generation'])).toBe(ApiKeyUsageExampleKind.Chat);
+    expect(resolveApiKeyUsageExampleKind(['text-generation', 'audio-transcription'])).toBe(
+      ApiKeyUsageExampleKind.Chat,
+    );
+    expect(resolveApiKeyUsageExampleKind()).toBe(ApiKeyUsageExampleKind.Chat);
   });
 });
 
@@ -341,12 +350,14 @@ describe('buildApiKeyUsageExample', () => {
       'https://maas.apps.example.com',
       'embed-model',
       'sk-test-key',
-      'embedding',
+      ApiKeyUsageExampleKind.Embedding,
     );
     expect(example).toContain('/v1/embeddings');
     expect(example).toContain('"input":"Hello"');
     expect(example).not.toContain('messages');
-    expect(getApiKeyUsageExampleEndpointPath('embedding')).toBe('/v1/embeddings');
+    expect(getApiKeyUsageExampleEndpointPath(ApiKeyUsageExampleKind.Embedding)).toBe(
+      '/v1/embeddings',
+    );
   });
 
   it('should build a transcription curl example', () => {
@@ -354,13 +365,15 @@ describe('buildApiKeyUsageExample', () => {
       'https://maas.apps.example.com',
       'asr-model',
       'sk-test-key',
-      'transcription',
+      ApiKeyUsageExampleKind.Transcription,
     );
     expect(example).toContain('/v1/audio/transcriptions');
     expect(example).toContain('-F "file=@<path-to-audio-file>"');
     expect(example).toContain('-F "model=asr-model"');
     expect(example).not.toContain('Content-Type: application/json');
-    expect(getApiKeyUsageExampleEndpointPath('transcription')).toBe('/v1/audio/transcriptions');
+    expect(getApiKeyUsageExampleEndpointPath(ApiKeyUsageExampleKind.Transcription)).toBe(
+      '/v1/audio/transcriptions',
+    );
   });
 
   it('should not duplicate /v1 when the base URL already ends with it', () => {

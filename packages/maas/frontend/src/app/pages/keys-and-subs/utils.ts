@@ -250,7 +250,17 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
   );
 };
 
-export type ApiKeyUsageExampleKind = 'chat' | 'embedding' | 'transcription';
+export enum ApiKeyUsageExampleKind {
+  Chat = 'chat',
+  Embedding = 'embedding',
+  Transcription = 'transcription',
+}
+
+const API_KEY_USAGE_ENDPOINT_SUFFIX: Record<ApiKeyUsageExampleKind, string> = {
+  [ApiKeyUsageExampleKind.Chat]: 'chat/completions',
+  [ApiKeyUsageExampleKind.Embedding]: 'embeddings',
+  [ApiKeyUsageExampleKind.Transcription]: 'audio/transcriptions',
+};
 
 const CAPABILITY_TEXT_GENERATION = 'text-generation';
 const CAPABILITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
@@ -263,33 +273,25 @@ const EMBEDDING_CAPABILITIES = new Set(['text-embedding', 'embeddings', 'embeddi
 export const resolveApiKeyUsageExampleKind = (capabilities?: string[]): ApiKeyUsageExampleKind => {
   const caps = capabilities ?? [];
   if (caps.some((cap) => EMBEDDING_CAPABILITIES.has(cap))) {
-    return 'embedding';
+    return ApiKeyUsageExampleKind.Embedding;
   }
   const hasAsr = caps.includes(CAPABILITY_AUDIO_TRANSCRIPTION);
   const hasTextGen = caps.includes(CAPABILITY_TEXT_GENERATION);
   if (hasAsr && !hasTextGen) {
-    return 'transcription';
+    return ApiKeyUsageExampleKind.Transcription;
   }
-  return 'chat';
+  return ApiKeyUsageExampleKind.Chat;
 };
 
-export const getApiKeyUsageExampleEndpointPath = (kind: ApiKeyUsageExampleKind): string => {
-  switch (kind) {
-    case 'embedding':
-      return '/v1/embeddings';
-    case 'transcription':
-      return '/v1/audio/transcriptions';
-    default:
-      return '/v1/chat/completions';
-  }
-};
+export const getApiKeyUsageExampleEndpointPath = (kind: ApiKeyUsageExampleKind): string =>
+  `/v1/${API_KEY_USAGE_ENDPOINT_SUFFIX[kind]}`;
 
 /** OpenAI-compatible curl example for the created API key (Access details). */
 export const buildApiKeyUsageExample = (
   baseURL: string | undefined,
   modelID: string,
   apiKey: string,
-  kind: ApiKeyUsageExampleKind = 'chat',
+  kind: ApiKeyUsageExampleKind = ApiKeyUsageExampleKind.Chat,
 ): string => {
   if (!baseURL || !modelID || !apiKey) {
     return '';
@@ -305,13 +307,7 @@ export const buildApiKeyUsageExample = (
     requestURL.hash = '';
     const basePath = requestURL.pathname.replace(/\/$/, '');
     const apiVersionPath = basePath.endsWith('/v1') ? basePath : `${basePath}/v1`;
-    const endpointSuffix =
-      kind === 'embedding'
-        ? 'embeddings'
-        : kind === 'transcription'
-          ? 'audio/transcriptions'
-          : 'chat/completions';
-    requestURL.pathname = `${apiVersionPath}/${endpointSuffix}`;
+    requestURL.pathname = `${apiVersionPath}/${API_KEY_USAGE_ENDPOINT_SUFFIX[kind]}`;
 
     const escapeDoubleQuotedShell = (value: string): string =>
       value
@@ -325,7 +321,7 @@ export const buildApiKeyUsageExample = (
     const requestURLString = requestURL.toString();
     const authHeader = '  -H "Authorization: Bearer $API_KEY" \\';
 
-    if (kind === 'transcription') {
+    if (kind === ApiKeyUsageExampleKind.Transcription) {
       return [
         `export API_KEY="${shellSafeKey}"`,
         '',
@@ -337,7 +333,7 @@ export const buildApiKeyUsageExample = (
     }
 
     const requestBody =
-      kind === 'embedding'
+      kind === ApiKeyUsageExampleKind.Embedding
         ? { model: modelID, input: 'Hello' }
         : { model: modelID, messages: [{ role: 'user', content: 'Hello' }] };
     const shellSafeBody = JSON.stringify(requestBody).replaceAll("'", "'\"'\"'");
