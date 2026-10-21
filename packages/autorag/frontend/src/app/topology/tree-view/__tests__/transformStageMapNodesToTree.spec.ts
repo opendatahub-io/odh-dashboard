@@ -384,6 +384,40 @@ describe('transformStageMapNodesToTree', () => {
     expect(winner?.data.showWinnerStar).toBe(false);
   });
 
+  it('does not annotate ambiguous display-name matches as winners', () => {
+    const stageMap = makeStageMap([
+      makeComponent('rag_optimization', [
+        makeStage('validate_inputs', { status: 'completed' }),
+        makeStage('optimize_templates', {
+          status: 'started',
+          selected_patterns: ['pattern_a', 'pattern_b'],
+        }),
+      ]),
+    ]);
+    const topologyNodes = buildStageMapTopology(
+      stageMap,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        pattern_a: { name: 'Shared Pattern' },
+        pattern_b: { name: 'Shared Pattern' },
+      },
+    );
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: true,
+      winnerResolved: true,
+      winnerPatternLabel: 'Shared Pattern',
+      winnerPatternKey: 'missing-pattern',
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(2);
+    expect(patternNodes.some((node) => node.data.isResolvedWinner)).toBe(false);
+    expect(patternNodes.some((node) => node.data.labelSubtitle === 'winner')).toBe(false);
+  });
+
   it('expands all pattern branches when patternsExpanded is true', () => {
     const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
     const { nodes, edges } = transformStageMapNodesToTree(topologyNodes, {

@@ -14,7 +14,7 @@ Vendored from
 [fullsend-ai/agents `skills/pr-review`](https://github.com/fullsend-ai/agents/tree/ce2eedd097dcccf17e29f4a7cd337ec4d95d7194/skills/pr-review)
 at harness pin `ce2eedd`; [`README.md`](README.md) lists what is not
 carried from that revision. Local change: dimensions come from
-`.fullsend/dimensions.json`. Discriminator is `output`:
+`/sandbox/workspace/odh-review/dimensions.json`. Discriminator is `output`:
 `findings` (LLM + CLI → merge + challenger), `context` (host
 snapshot or pre-dispatch LLM brief, not challenger), `section:<name>`
 (schema field, not challenger), `check:<name>` (readiness result), and
@@ -50,11 +50,11 @@ post-script to post. In interactive mode, it posts directly via
 
 ## Dimension registry
 
-**Read `.fullsend/dimensions.json` before dispatch.** That file is the
+**Read `/sandbox/workspace/odh-review/dimensions.json` before dispatch.** That file is the
 only roster. Do not assume how many rows there are, what they are
 named, or that every producer is an LLM sub-agent.
 
-Also read `/sandbox/workspace/.fullsend/.run/collected.json` once when it
+Also read `/sandbox/workspace/odh-review/collected.json` once when it
 exists and index its adapter envelopes by `dimension`. Treat a missing file as
 an empty adapter set. Use this index for adapter
 findings collection; never invoke a host adapter from the sandbox.
@@ -81,8 +81,8 @@ Each `dimensions[]` object:
 | `budget_priority` | Lower runs deeper when attention is scarce (**findings** LLM only) |
 | `re_review` | `full` / `trivial` / `skip-unless-requalified` when this **findings** dimension had no prior findings |
 | `remediation_candidates` | If true, this **findings** LLM receives the step 3a-1 remediation candidates and the incremental diff, and re-qualifies on re-review per step 3c |
-| `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/`. It may contain findings, a `check`, or trusted context. Every adapter envelope also appears in `.fullsend/.run/collected.json` |
-| `host` | Trusted execution metadata for a `cli-adapter`: `workflow` or `pre_review` execution plus any artifact, setup, checkout, and credential-name requirements |
+| `producer_file` | Host JSON path (`cli-adapter` only), under `.fullsend/.run/` on the host. It may contain findings, a `check`, or trusted context. Every adapter envelope also appears in `/sandbox/workspace/odh-review/collected.json` |
+| `host` | Trusted execution metadata for a `cli-adapter`: `pre_review` execution, an optional setup script, and the names of the host environment variables that hold its credentials |
 | `context_file` | Optional trusted-host snapshot an LLM must read (do not fetch it yourself) |
 | `stage` | `pre-dispatch` on an LLM row with `output: context`, and only there. The row runs alone before step 4 and every later LLM reviewer is told to read its brief (step 3g) |
 
@@ -999,7 +999,7 @@ Do **not** include section payloads or context snapshots.
 1. **Findings LLM sub-agents** that ran in step 4. Each returns a
    JSON array of findings in the standard format. Ignore `section:*`
    returns here (those are step 4b / 7).
-2. **CLI adapters** from `/sandbox/workspace/.fullsend/.run/collected.json`
+2. **CLI adapters** from `/sandbox/workspace/odh-review/collected.json`
    (array of envelopes). Take the `findings[]` from every entry with
    `output: findings` and concatenate them with the arrays above; they are
    producers like any other. Context envelopes are not findings and reach

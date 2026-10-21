@@ -120,6 +120,22 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     ],
   );
   const fallbackNodes = useAutoragTaskTopology(pipelineRun?.pipeline_spec, runDetails, runState);
+  const inferredFailureWarningRef = React.useRef<string>();
+  React.useEffect(() => {
+    const inferredNode = stageMapNodes.find((node) => node.data?.inferredFailure);
+    if (!inferredNode) {
+      return;
+    }
+    const warningKey = `${pipelineRun?.run_id ?? 'unknown-run'}:${inferredNode.id}`;
+    if (inferredFailureWarningRef.current === warningKey) {
+      return;
+    }
+    inferredFailureWarningRef.current = warningKey;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[AutoRAG topology] Inferred failed node ${inferredNode.id}${pipelineRun?.run_id ? ` for run ${pipelineRun.run_id}` : ''}; no exact component failure was available.`,
+    );
+  }, [pipelineRun?.run_id, stageMapNodes]);
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);

@@ -15,7 +15,7 @@ describe('Core BFF Status Endpoints', () => {
     it('should return user session status', async () => {
       const result = await apiClient.get('/api/status');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/StatusResponse/content/application/json/schema',
+        ref: '#/components/responses/StatusResponse/content/application~1json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);
@@ -39,5 +39,4 @@ describe('Core BFF Status Endpoints', () => {
       expect(body.kube).toHaveProperty('userName');
     });
   });
-
 });

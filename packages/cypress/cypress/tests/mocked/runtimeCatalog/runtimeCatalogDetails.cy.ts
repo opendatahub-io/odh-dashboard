@@ -159,7 +159,7 @@ describe('Runtime library details', () => {
     runtimeCatalogDetailsPage
       .findContainerImageInput()
       .should('have.value', 'registry.example.com/mock/vllm:0.6.0');
-    runtimeCatalogDetailsPage.findLink('Install').should('be.visible');
+    runtimeCatalogDetailsPage.findLink('Create').should('be.visible');
     runtimeCatalogDetailsPage.findServingRuntimeTab().should('be.visible');
     runtimeCatalogDetailsPage
       .findServingRuntimePanel()
@@ -199,13 +199,13 @@ describe('Runtime library details', () => {
       },
     );
     runtimeCatalogDetailsPage.visit(runtimeId);
-    runtimeCatalogDetailsPage.findLink('Install').click();
+    runtimeCatalogDetailsPage.findLink('Create').click();
 
     cy.location('pathname').should(
       'eq',
       `${settingsUrl}/serving-runtime-catalog/${runtimeId}/install`,
     );
-    runtimeImageInstallPage.findPageTitle('vLLM').should('be.visible');
+    runtimeImageInstallPage.findPageTitle().should('be.visible');
     runtimeImageInstallPage
       .findLibraryBreadcrumb()
       .should('have.attr', 'href', `${settingsUrl}/serving-runtime-catalog`);
@@ -259,7 +259,7 @@ describe('Runtime library details', () => {
 
   [false, true].forEach((acceleratorEnabled) => {
     ['servingRuntimeTemplate', 'llmInferenceServiceConfig'].forEach((resourceType) => {
-      it(`should reflect Install availability for ${resourceType}-only images with accelerator flag ${acceleratorEnabled}`, () => {
+      it(`should reflect Create availability for ${resourceType}-only images with accelerator flag ${acceleratorEnabled}`, () => {
         cy.interceptOdh(
           'GET /api/config',
           mockDashboardConfig({
@@ -290,25 +290,25 @@ describe('Runtime library details', () => {
         runtimeCatalogDetailsPage.findHeading('vLLM').should('be.visible');
         if (resourceType === 'llmInferenceServiceConfig' && !acceleratorEnabled) {
           runtimeCatalogDetailsPage
-            .findInstallAction()
+            .findCreateAction()
             .should('have.attr', 'aria-disabled', 'true')
             .and('not.have.attr', 'href');
-          runtimeCatalogDetailsPage.findInstallAction().focus();
+          runtimeCatalogDetailsPage.findCreateAction().focus();
           runtimeCatalogDetailsPage
             .findInstallUnavailableTooltip()
             .should(
               'contain.text',
               'No supported installation targets are enabled for this runtime image.',
             );
-          runtimeCatalogDetailsPage.findInstallAction().click();
+          runtimeCatalogDetailsPage.findCreateAction().click();
           cy.location('pathname').should(
             'eq',
             `${settingsUrl}/serving-runtime-catalog/${runtimeId}`,
           );
         } else {
-          runtimeCatalogDetailsPage.findInstallAction().should('have.attr', 'href');
-          runtimeCatalogDetailsPage.findInstallAction().click();
-          runtimeImageInstallPage.findPageTitle('vLLM').should('be.visible');
+          runtimeCatalogDetailsPage.findCreateAction().should('have.attr', 'href');
+          runtimeCatalogDetailsPage.findCreateAction().click();
+          runtimeImageInstallPage.findPageTitle().should('be.visible');
           if (resourceType === 'llmInferenceServiceConfig') {
             runtimeImageInstallPage.findAcceleratorRadio().should('be.visible');
           } else {

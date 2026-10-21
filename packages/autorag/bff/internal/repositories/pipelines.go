@@ -544,6 +544,7 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		RuntimeConfig: &pipelines.RuntimeConfig{
 			Parameters: params,
 		},
+		PluginsInput: pipelines.DisabledMLflowPluginInput(),
 	}
 }
 
@@ -564,5 +565,6 @@ func BuildIndexingPipelineRunInput(req models.CreateIndexingPipelineRunRequest, 
 		RuntimeConfig: &pipelines.RuntimeConfig{
 			Parameters: params,
 		},
+		PluginsInput: pipelines.DisabledMLflowPluginInput(),
 	}
 }
