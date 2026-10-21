@@ -83,7 +83,7 @@ func TestListEvalHubCRsFallsBackToV1alpha1WhenV1NotServed(t *testing.T) {
 	assert.Equal(t, []string{EvalHubCRDVersion, EvalHubCRDLegacyVersion}, listedEvalHubVersions(client))
 }
 
-func TestListEvalHubCRsSurfacesNonNotFoundErrorsImmediately(t *testing.T) {
+func TestListEvalHubCRsSurfacesOperationalErrorsImmediately(t *testing.T) {
 	client := newEvalHubCRTestClient(t)
 	failEvalHubVersion(client, EvalHubCRDVersion,
 		k8serrors.NewForbidden(EvalHubGVR.GroupResource(), "", fmt.Errorf("user cannot list evalhubs")))
@@ -92,8 +92,50 @@ func TestListEvalHubCRsSurfacesNonNotFoundErrorsImmediately(t *testing.T) {
 
 	require.Error(t, err)
 	assert.True(t, k8serrors.IsForbidden(err))
-	// Operational errors must not be masked by the legacy-version fallback.
+	// Operational errors (RBAC etc.) must not be masked by the fallback.
 	assert.Equal(t, []string{EvalHubCRDVersion}, listedEvalHubVersions(client))
+}
+
+// Objects created before the v1 promotion remain stored as v1alpha1: listing
+// them at v1 goes through the conversion webhook, so an unavailable webhook
+// fails the v1 list even though the v1alpha1 list would be served directly.
+// These failures must fall through to the legacy version.
+func TestListEvalHubCRsFallsBackOnConversionFailures(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{
+			name: "internal error from a failed conversion webhook call",
+			err: k8serrors.NewInternalError(fmt.Errorf(
+				"failed calling webhook \"%s.convert\": connection refused", EvalHubCRDResource)),
+		},
+		{
+			name: "service unavailable",
+			err:  k8serrors.NewServiceUnavailable("conversion webhook call failed"),
+		},
+		{
+			name: "request timeout while calling the webhook",
+			err:  context.DeadlineExceeded,
+		},
+		{
+			name: "error message mentioning the conversion webhook",
+			err:  fmt.Errorf("conversion webhook for evalhubs.trustyai.opendatahub.io failed"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newEvalHubCRTestClient(t, evalHubCR("evalhub", "test-ns", EvalHubLegacyGVR))
+			failEvalHubVersion(client, EvalHubCRDVersion, tt.err)
+
+			list, err := listEvalHubCRs(context.Background(), client, "test-ns")
+
+			require.NoError(t, err)
+			require.Len(t, list.Items, 1)
+			assert.Equal(t, EvalHubCRDLegacyVersion, list.Items[0].GroupVersionKind().Version)
+			assert.Equal(t, []string{EvalHubCRDVersion, EvalHubCRDLegacyVersion}, listedEvalHubVersions(client))
+		})
+	}
 }
 
 func TestListEvalHubCRsReturnsErrorWhenNoVersionServed(t *testing.T) {

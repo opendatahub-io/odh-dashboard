@@ -2,8 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -123,11 +125,17 @@ func validateServiceURL(raw string) error {
 	return nil
 }
 
-// listEvalHubCRs lists EvalHub CRs in the given namespace, trying API versions in
-// preference order (see EvalHubGVRs). A NotFound from List means the version is not
-// served on this cluster — fall through to the next version. Any other error
-// (RBAC, connectivity, timeouts) is returned immediately so it is not masked by
-// the fallback.
+// listEvalHubCRs lists EvalHub CRs preferring v1 (the CRD storage version, whose
+// reads are served directly by the API server) and falling back to v1alpha1 on
+// clusters running older trustyai-service-operator releases where v1 is not served.
+//
+// The fallback triggers on NotFound (the version is not served at all) and on
+// conversion failures (see isConversionFailure): the storage version only
+// governs writes, so objects created before the v1 promotion can remain stored
+// as v1alpha1, and listing those at v1 requires the conversion webhook. When
+// that webhook is unavailable, the version matching the stored objects still
+// lists them directly, so the other version is tried before giving up.
+// All other errors (e.g. RBAC denials) are surfaced immediately.
 func listEvalHubCRs(ctx context.Context, dynClient dynamic.Interface, namespace string) (*unstructured.UnstructuredList, error) {
 	var lastErr error
 	for _, gvr := range EvalHubGVRs {
@@ -135,12 +143,33 @@ func listEvalHubCRs(ctx context.Context, dynClient dynamic.Interface, namespace 
 		if err == nil {
 			return list, nil
 		}
-		if !k8serrors.IsNotFound(err) {
+		if !k8serrors.IsNotFound(err) && !isConversionFailure(err) {
 			return nil, err
 		}
 		lastErr = err
 	}
 	return nil, lastErr
+}
+
+// isConversionFailure reports whether err indicates a List failed because the
+// API server could not convert existing objects to the requested version — most
+// commonly because the EvalHub CRD conversion webhook is unavailable. Conversion
+// failures surface as request timeouts, 503s, or internal errors (optionally
+// mentioning the conversion webhook), depending on how the webhook call failed.
+func isConversionFailure(err error) bool {
+	if k8serrors.IsTimeout(err) || k8serrors.IsServiceUnavailable(err) || k8serrors.IsInternalError(err) {
+		return true
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	// A client-side timeout (e.g. a hung webhook connection) surfaces as a
+	// net.Error with Timeout() true, not as an API status error.
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return strings.Contains(err.Error(), "conversion webhook")
 }
 
 func ParseEvalHubCRStatus(item *unstructured.Unstructured) (*models.EvalHubCRStatus, error) {
