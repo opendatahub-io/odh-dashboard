@@ -1048,6 +1048,67 @@ func TestPortForwardManager_CooldownExpiresAndAllowsRetry(t *testing.T) {
 	}
 }
 
+// TestPortForwardManager_CanceledCreationDoesNotThrottleHealthyRetry verifies
+// that a creation canceled because its waiters left — not because the target
+// failed — does not arm the retry cooldown: the next healthy caller must be
+// able to establish the forward immediately. The factory mirrors the real
+// cancellation path by reporting the creation context error as a startup
+// failure.
+func TestPortForwardManager_CanceledCreationDoesNotThrottleHealthyRetry(t *testing.T) {
+	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
+	started := make(chan struct{})
+	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ int) (*activeForward, error) {
+		close(started)
+		<-ctx.Done()
+		// Match the real createForward: a canceled startup reports the
+		// cancellation as a startup error rather than a healthy forward.
+		return nil, ctx.Err()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() {
+		_, err := manager.getOrCreateForward(ctx, "team-a", "milvus", 19530)
+		result <- err
+	}()
+	<-started
+	waitForCreationWaiters(t, manager, "team-a/milvus:19530", 1)
+
+	cancel()
+	if err := <-result; !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled caller error = %v, want context cancellation", err)
+	}
+	waitForCreationGone(t, manager, "team-a/milvus:19530")
+
+	// The cancellation is not a target failure: the next healthy caller must
+	// not inherit a cooldown from the abandoned creation.
+	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+		return &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
+	}
+	port, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+	if err != nil || port != 4567 {
+		t.Fatalf("healthy retry after canceled creation = %d, %v; want 4567, nil", port, err)
+	}
+}
+
+// TestPortForwardManager_OutstandingAbandonmentCapGatesNewCreations verifies
+// the outstanding-negotiation cap: while too many abandoned negotiations are
+// still blocked on peers that never respond, new creations are rejected before
+// any creation attempt.
+func TestPortForwardManager_OutstandingAbandonmentCapGatesNewCreations(t *testing.T) {
+	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
+	manager.abandonedNegotiations = maxOutstandingAbandonedNegotiations
+	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+		t.Fatal("the outstanding-negotiation cap must reject before starting a new creation")
+		return nil, nil
+	}
+
+	_, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+	if err == nil || !strings.Contains(err.Error(), "outstanding") {
+		t.Fatalf("getOrCreateForward() error = %v, want outstanding-negotiation rejection", err)
+	}
+}
+
 // newUpgradingForwardServer returns a test server that behaves like a healthy
 // API server as far as port-forward startup is concerned: Endpoints lookups
 // succeed, and portforward POSTs are hijacked and answered with a valid 101
@@ -1203,5 +1264,64 @@ func TestContextDialer_ClosesTunnelCompletedAfterDeadline(t *testing.T) {
 	case <-clientClosed:
 	case <-time.After(10 * time.Second):
 		t.Fatal("tunnel completed after the deadline was not closed by the abandonment watcher")
+	}
+}
+
+// TestCreateForward_AbandonmentTrackedUntilSettled verifies an abandoned
+// negotiation counts against the outstanding-negotiation cap from the moment
+// it is abandoned until the peer finally responds — the window in which its
+// connection and goroutines linger with no other resource accounting.
+func TestCreateForward_AbandonmentTrackedUntilSettled(t *testing.T) {
+	clientset, cfg, _, clientClosed := newUpgradingForwardServer(t, 600*time.Millisecond)
+	manager := newTestPortForwardManager(clientset)
+	manager.restConfig = cfg
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	if _, err := manager.createForward(ctx, "team-a", "milvus-0", 19530); err == nil {
+		t.Fatal("expected createForward against a late upgrade to fail at the deadline")
+	}
+
+	// The negotiation was abandoned at the deadline while the peer stayed
+	// silent; it must count as outstanding. The abandonment happens on the
+	// ForwardPorts goroutine, so it is observed shortly after createForward
+	// has already returned to its caller.
+	var abandoned int
+	deadline := time.After(10 * time.Second)
+	for {
+		manager.mu.Lock()
+		abandoned = manager.abandonedNegotiations
+		manager.mu.Unlock()
+		if abandoned == 1 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatalf("outstanding abandoned negotiations = %d, want 1 after the deadline abandoned the upgrade", abandoned)
+		case <-time.After(5 * time.Millisecond):
+		}
+	}
+
+	// The peer completes the upgrade only after the abandonment; the watcher
+	// closes the late tunnel and the slot must be released.
+	select {
+	case <-clientClosed:
+	case <-time.After(10 * time.Second):
+		t.Fatal("late tunnel was not closed by the abandonment watcher")
+	}
+	settleDeadline := time.After(10 * time.Second)
+	for {
+		manager.mu.Lock()
+		abandoned = manager.abandonedNegotiations
+		manager.mu.Unlock()
+		if abandoned == 0 {
+			return
+		}
+		select {
+		case <-settleDeadline:
+			t.Fatalf("abandoned negotiation did not settle after the peer responded; outstanding = %d", abandoned)
+		case <-time.After(5 * time.Millisecond):
+		}
 	}
 }

@@ -33,6 +33,15 @@ const (
 	// responds, so repeated requests against an unresponsive target would
 	// otherwise accumulate one abandoned connection and goroutine per attempt.
 	portForwardRetryCooldown = 5 * time.Second
+
+	// maxOutstandingAbandonedNegotiations caps how many abandoned SPDY upgrade
+	// negotiations may linger at once. The retry cooldown only paces new
+	// attempts; a peer that never completes the upgrade leaves each abandoned
+	// negotiation — and its connection — alive until it responds, so without a
+	// cap a persistent stall would accumulate them without bound for the life
+	// of the process. Abandoned negotiations belong to completed creations, so
+	// neither the forwards cache nor the creations registry accounts for them.
+	maxOutstandingAbandonedNegotiations = 8
 )
 
 type requestNamespaceContextKey struct{}
@@ -51,20 +60,26 @@ var RequestNamespaceKey requestNamespaceContextKey
 // If a forward dies (pod restart, network blip), the next call to ForwardURL
 // detects the failure and re-establishes the forward transparently.
 type PortForwardManager struct {
-	mu                 sync.Mutex
-	forwards           map[string]*activeForward
-	creations          map[string]*forwardCreation
-	pendingCreations   map[*forwardCreation]struct{}
-	recentFailures     map[string]time.Time
-	closeOnce          sync.Once
-	closed             bool
-	lifecycleCtx       context.Context
-	lifecycleCancel    context.CancelFunc
-	restConfig         *rest.Config
-	clientset          kubernetes.Interface
-	logger             *slog.Logger
-	createForwardFn    func(context.Context, string, string, int) (*activeForward, error)
-	creationLookupHook func()
+	mu               sync.Mutex
+	forwards         map[string]*activeForward
+	creations        map[string]*forwardCreation
+	pendingCreations map[*forwardCreation]struct{}
+	recentFailures   map[string]time.Time
+	// abandonedNegotiations counts SPDY upgrade negotiations abandoned by a
+	// startup deadline or shutdown that are still blocked reading the peer's
+	// response. Their connections cannot be closed from the outside (see
+	// contextDialer.Dial), so they linger until the peer responds; the count
+	// backs the maxOutstandingAbandonedNegotiations cap.
+	abandonedNegotiations int
+	closeOnce             sync.Once
+	closed                bool
+	lifecycleCtx          context.Context
+	lifecycleCancel       context.CancelFunc
+	restConfig            *rest.Config
+	clientset             kubernetes.Interface
+	logger                *slog.Logger
+	createForwardFn       func(context.Context, string, string, int) (*activeForward, error)
+	creationLookupHook    func()
 }
 
 type activeForward struct {
@@ -152,6 +167,12 @@ type contextDialer struct {
 	client   *http.Client
 	method   string
 	url      *url.URL
+	// onAbandoned fires when the negotiation is abandoned while still blocked
+	// on the peer; onSettled fires when it finally terminates. The pair lets
+	// the manager cap how many abandoned negotiations linger at once. Both are
+	// nil for dialers constructed directly in tests.
+	onAbandoned func()
+	onSettled   func()
 }
 
 // negotiationResult carries the outcome of an SPDY upgrade attempt that may
@@ -177,8 +198,9 @@ type negotiationResult struct {
 // has been read, and the only construction hook that dials through custom code
 // (RoundTripperConfig's UpgradeTransport) drops the proxy support that
 // RoundTripperFor provides. The blocked negotiation goroutine and its watcher
-// therefore linger until the peer responds; the retry cooldown bounds how
-// many abandoned attempts can accumulate.
+// therefore linger until the peer responds; the retry cooldown paces new
+// attempts and the outstanding-negotiation cap bounds how many may linger
+// at once.
 func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string, error) {
 	req, err := http.NewRequestWithContext(d.ctx, d.method, d.url.String(), nil)
 	if err != nil {
@@ -206,9 +228,19 @@ func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string
 
 // abandon watches an already-abandoned negotiation so a tunnel the peer
 // completes late is closed instead of lingering. The buffered result channel
-// guarantees the negotiation goroutine never blocks sending to it.
+// guarantees the negotiation goroutine never blocks sending to it. The
+// negotiation — and its connection — stay live until the peer responds; the
+// tracking hooks let the manager cap how many abandoned attempts linger.
 func (d *contextDialer) abandon(result <-chan negotiationResult) {
+	if d.onAbandoned != nil {
+		d.onAbandoned()
+	}
 	go func() {
+		defer func() {
+			if d.onSettled != nil {
+				d.onSettled()
+			}
+		}()
 		if r := <-result; r.conn != nil {
 			r.conn.Close()
 		}
@@ -348,6 +380,13 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 			m.mu.Unlock()
 			return 0, fmt.Errorf("port-forward %s failed to start recently; retrying after a %s cooldown", key, portForwardRetryCooldown)
 		}
+		// The cooldown paces retries but does not cap how many abandoned
+		// negotiations linger; reject new startups while too many are still
+		// blocked on peers that never complete the upgrade.
+		if m.abandonedNegotiations >= maxOutstandingAbandonedNegotiations {
+			m.mu.Unlock()
+			return 0, fmt.Errorf("port-forward %s cannot start: %d abandoned upgrade negotiations are still outstanding; retry once the unresponsive peers complete or restart the dev server", key, m.abandonedNegotiations)
+		}
 		creationCtx := lifecycleCtx
 		if creationCtx == nil {
 			creationCtx = context.Background()
@@ -463,8 +502,13 @@ func (m *PortForwardManager) runCreation(key, namespace, serviceName string, rem
 		creation.err = err
 	}
 	// Arm the cooldown before publishing the result so a waiter that wakes up
-	// and immediately retries deterministically observes the gate.
-	if createFailed {
+	// and immediately retries deterministically observes the gate. A creation
+	// canceled because its waiters left (or the manager closed) is not a
+	// target failure — its possibly healthy forward was abandoned by its
+	// callers, not by the cluster — and must not throttle the next caller.
+	// The startup deadline is exempt: a 30s timeout exhausted against an
+	// unresponsive peer is a genuine failure and keeps the cooldown.
+	if createFailed && !closed && creationCanceled == nil {
 		m.noteForwardFailure(key, time.Now())
 	}
 	m.mu.Unlock()
@@ -513,6 +557,25 @@ func (m *PortForwardManager) noteForwardFailure(key string, failedAt time.Time) 
 		m.recentFailures = make(map[string]time.Time)
 	}
 	m.recentFailures[key] = failedAt
+}
+
+// noteAbandonedNegotiation records an upgrade negotiation abandoned while
+// still blocked reading the peer's response; noteNegotiationSettled records
+// its eventual termination. The pair backs the outstanding-negotiation cap.
+func (m *PortForwardManager) noteAbandonedNegotiation() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.abandonedNegotiations++
+}
+
+// noteNegotiationSettled releases a slot under the outstanding-negotiation
+// cap once an abandoned negotiation has finally terminated.
+func (m *PortForwardManager) noteNegotiationSettled() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.abandonedNegotiations > 0 {
+		m.abandonedNegotiations--
+	}
 }
 
 func (m *PortForwardManager) releaseCreationWaiter(key string, creation *forwardCreation) {
@@ -573,6 +636,10 @@ func (m *PortForwardManager) createForward(ctx context.Context, namespace, podNa
 		client:   client,
 		method:   http.MethodPost,
 		url:      reqURL,
+		// Track the negotiation so the manager can cap how many abandoned
+		// attempts linger against a peer that never completes the upgrade.
+		onAbandoned: m.noteAbandonedNegotiation,
+		onSettled:   m.noteNegotiationSettled,
 	}
 
 	stopChan := make(chan struct{})

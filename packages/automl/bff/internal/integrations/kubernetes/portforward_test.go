@@ -664,10 +664,12 @@ func TestCreateForward_StalledUpgradeFailsFast(t *testing.T) {
 	}
 }
 
-// TestGetOrCreateForward_StalledStartupIsBoundedAndCooledDown verifies the
-// manager-level view: a stalled startup fails at the caller's deadline, and
-// the cooldown prevents an immediate second abandoned attempt.
-func TestGetOrCreateForward_StalledStartupIsBoundedAndCooledDown(t *testing.T) {
+// TestGetOrCreateForward_StalledStartupIsBoundedAndTracked verifies the
+// manager-level view: a caller with its own deadline gets control back at
+// that deadline even though the stalled SPDY upgrade cannot be interrupted,
+// the shutdown-abandoned negotiation is counted against the outstanding-
+// negotiation cap, and a caller leaving early does not arm the cooldown.
+func TestGetOrCreateForward_StalledStartupIsBoundedAndTracked(t *testing.T) {
 	clientset, cfg, _ := newStalledClusterSimulator(t)
 	pfm := &PortForwardManager{
 		forwards:   make(map[string]*activeForward),
@@ -692,17 +694,112 @@ func TestGetOrCreateForward_StalledStartupIsBoundedAndCooledDown(t *testing.T) {
 			t.Fatal("expected stalled port-forward startup to fail")
 		}
 		if !errors.Is(err, context.DeadlineExceeded) {
-			t.Fatalf("getOrCreateForward() error = %v, want deadline exceeded", err)
+			t.Fatalf("getOrCreateForward() error = %v, want the caller's deadline", err)
 		}
 	case <-time.After(10 * time.Second):
-		t.Fatal("getOrCreateForward() did not return after the startup deadline — a stalled SPDY upgrade hangs the request and everything coalesced behind it")
+		t.Fatal("getOrCreateForward() did not return after the caller's deadline — a stalled SPDY upgrade hangs the request and everything coalesced behind it")
 	}
 
-	// The failed attempt must arm the cooldown: an immediate retry must be
-	// rejected without starting another abandoned upgrade.
-	_, err := pfm.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
-	if err == nil || !strings.Contains(err.Error(), "cooldown") {
-		t.Fatalf("immediate retry error = %v, want cooldown rejection", err)
+	// The shared startup keeps running detached after its caller left. Close()
+	// reaps it via the shutdown channel — exactly what BFF shutdown does for
+	// real workloads — instead of waiting out the 30s startup timeout.
+	pfm.Close()
+
+	// The shutdown-abandoned negotiation is still blocked on the stalled peer
+	// with no way to close its connection, so it must count against the
+	// outstanding-negotiation cap.
+	deadline := time.After(10 * time.Second)
+	for {
+		pfm.mu.Lock()
+		abandoned := pfm.abandonedNegotiations
+		pfm.mu.Unlock()
+		if abandoned == 1 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatalf("outstanding abandoned negotiations = %d after Close(), want 1 — shutdown-aborted negotiations escape the cap", abandoned)
+		case <-time.After(5 * time.Millisecond):
+		}
+	}
+
+	// A caller leaving early is not a target failure: it must not arm the
+	// cooldown and throttle later callers against a possibly healthy target.
+	pfm.mu.Lock()
+	_, armed := pfm.recentFailures["team-a/milvus:19530"]
+	pfm.mu.Unlock()
+	if armed {
+		t.Fatal("caller cancellation armed the retry cooldown — an abandoned wait must not throttle later callers")
+	}
+}
+
+// TestGetOrCreateForward_CanceledLeaderDoesNotFailCoalescedCaller verifies
+// that a caller abandoning its wait does not cancel the shared startup for
+// callers coalesced behind it: the startup runs detached from any single
+// request, so one disconnecting caller must not fail — or throttle — the
+// others waiting on the same forward.
+func TestGetOrCreateForward_CanceledLeaderDoesNotFailCoalescedCaller(t *testing.T) {
+	clientset, cfg, requestSeen, _ := newUpgradingClusterSimulator(t, 600*time.Millisecond)
+	pfm := &PortForwardManager{
+		forwards:   make(map[string]*activeForward),
+		restConfig: cfg,
+		clientset:  clientset,
+		logger:     slog.Default(),
+		closed:     make(chan struct{}),
+	}
+	defer pfm.Close()
+
+	// The upgrade completes 600ms after the request; the first caller gives
+	// up at 300ms, before the shared startup can finish.
+	leaderCtx, cancelLeader := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancelLeader()
+	leaderResult := make(chan error, 1)
+	go func() {
+		_, err := pfm.getOrCreateForward(leaderCtx, "team-a", "milvus", 19530)
+		leaderResult <- err
+	}()
+	<-requestSeen
+
+	// A second caller coalesces behind the same in-flight startup.
+	followerResult := make(chan struct {
+		port uint16
+		err  error
+	}, 1)
+	go func() {
+		port, err := pfm.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+		followerResult <- struct {
+			port uint16
+			err  error
+		}{port: port, err: err}
+	}()
+
+	select {
+	case err := <-leaderResult:
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("canceled leader error = %v, want the leader's own deadline", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("leader did not return at its own deadline")
+	}
+
+	select {
+	case res := <-followerResult:
+		if res.err != nil {
+			t.Fatalf("coalesced caller error = %v, want the shared startup result", res.err)
+		}
+		if res.port == 0 {
+			t.Fatal("coalesced caller got no local port from the shared startup")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("coalesced caller did not receive the shared startup result after the leader canceled")
+	}
+
+	// The successful startup must be cached — later callers hit it directly.
+	pfm.mu.Lock()
+	_, cached := pfm.forwards["team-a/milvus:19530"]
+	pfm.mu.Unlock()
+	if !cached {
+		t.Fatal("successful shared startup was not cached")
 	}
 }
 
@@ -744,6 +841,25 @@ func TestGetOrCreateForward_CooldownExpiresAndAllowsRetry(t *testing.T) {
 	pfm.mu.Unlock()
 	if !armed {
 		t.Fatal("startup failure did not re-arm the retry cooldown")
+	}
+}
+
+// TestGetOrCreateForward_AbandonmentCapGatesNewStartups verifies the
+// outstanding-negotiation cap: while too many abandoned negotiations are
+// still blocked on peers that never respond, new startups are rejected before
+// any cluster interaction.
+func TestGetOrCreateForward_AbandonmentCapGatesNewStartups(t *testing.T) {
+	pfm := &PortForwardManager{
+		forwards:              make(map[string]*activeForward),
+		logger:                slog.Default(),
+		abandonedNegotiations: maxOutstandingAbandonedNegotiations,
+	}
+
+	// The clientset is nil on purpose: if the cap failed to reject here,
+	// resolvePod would panic on the nil clientset, failing the test.
+	_, err := pfm.getOrCreateForward(context.Background(), "ns", "svc", 8080)
+	if err == nil || !strings.Contains(err.Error(), "outstanding") {
+		t.Fatalf("getOrCreateForward() error = %v, want outstanding-negotiation rejection", err)
 	}
 }
 
@@ -942,5 +1058,69 @@ func TestContextDialer_ClosesTunnelCompletedAfterDeadline(t *testing.T) {
 	case <-clientClosed:
 	case <-time.After(10 * time.Second):
 		t.Fatal("tunnel completed after the deadline was not closed by the abandonment watcher")
+	}
+}
+
+// TestCreateForward_AbandonmentTrackedUntilSettled verifies an abandoned
+// negotiation counts against the outstanding-negotiation cap from the moment
+// it is abandoned until the peer finally responds — the window in which its
+// connection and goroutines linger with no other resource accounting.
+func TestCreateForward_AbandonmentTrackedUntilSettled(t *testing.T) {
+	clientset, cfg, _, clientClosed := newUpgradingClusterSimulator(t, 600*time.Millisecond)
+	pfm := &PortForwardManager{
+		forwards:   make(map[string]*activeForward),
+		restConfig: cfg,
+		clientset:  clientset,
+		logger:     slog.Default(),
+		closed:     make(chan struct{}),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	if _, err := pfm.createForward(ctx, "team-a", "milvus-0", 19530); err == nil {
+		t.Fatal("expected createForward against a late upgrade to fail at the deadline")
+	}
+
+	// The negotiation was abandoned at the deadline while the peer stayed
+	// silent; it must count as outstanding. The abandonment happens on the
+	// ForwardPorts goroutine, so it is observed shortly after createForward
+	// has already returned to its caller.
+	var abandoned int
+	deadline := time.After(10 * time.Second)
+	for {
+		pfm.mu.Lock()
+		abandoned = pfm.abandonedNegotiations
+		pfm.mu.Unlock()
+		if abandoned == 1 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatalf("outstanding abandoned negotiations = %d, want 1 after the deadline abandoned the upgrade", abandoned)
+		case <-time.After(5 * time.Millisecond):
+		}
+	}
+
+	// The peer completes the upgrade only after the abandonment; the watcher
+	// closes the late tunnel and the slot must be released.
+	select {
+	case <-clientClosed:
+	case <-time.After(10 * time.Second):
+		t.Fatal("late tunnel was not closed by the abandonment watcher")
+	}
+	settleDeadline := time.After(10 * time.Second)
+	for {
+		pfm.mu.Lock()
+		abandoned = pfm.abandonedNegotiations
+		pfm.mu.Unlock()
+		if abandoned == 0 {
+			return
+		}
+		select {
+		case <-settleDeadline:
+			t.Fatalf("abandoned negotiation did not settle after the peer responded; outstanding = %d", abandoned)
+		case <-time.After(5 * time.Millisecond):
+		}
 	}
 }
