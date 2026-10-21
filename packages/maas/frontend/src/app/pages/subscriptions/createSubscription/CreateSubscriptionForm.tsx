@@ -249,8 +249,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   );
 
   const hasInternalModel = hasInternalModelKind(models.map((m) => m.modelRefSummary));
-  const effectiveInferencePriority =
-    hasInternalModel && isInferencePriorityFieldEnabled ? inferencePriority : undefined;
+  const effectiveInferencePriority = hasInternalModel ? inferencePriority : undefined;
 
   const clearInferencePriorityIfNoInternalModels = (remaining: SubscriptionModelEntry[]) => {
     if (!hasInternalModelKind(remaining.map((m) => m.modelRefSummary))) {

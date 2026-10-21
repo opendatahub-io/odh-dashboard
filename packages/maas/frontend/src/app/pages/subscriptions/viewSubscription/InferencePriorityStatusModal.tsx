@@ -35,7 +35,7 @@ const formatReady = (ready: boolean | undefined): string => {
   return '—';
 };
 
-const modalTitle = () => (
+const modalTitle = (
   <Stack>
     <StackItem>
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -72,7 +72,7 @@ const InferencePriorityStatusModal: React.FC<InferencePriorityStatusModalProps> 
       onClose={onClose}
       data-testid="inference-priority-status-modal"
     >
-      <ModalHeader title={modalTitle()} />
+      <ModalHeader title={modalTitle} />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
@@ -116,13 +116,17 @@ const InferencePriorityStatusModal: React.FC<InferencePriorityStatusModalProps> 
                       {modelRef.namespace}
                     </Td>
                     <Td dataLabel="Applied" data-testid={`${modelRef.name}-applied`}>
-                      <Label
-                        status={modelRef.ready ? 'success' : 'danger'}
-                        isClickable={false}
-                        variant="outline"
-                      >
-                        {formatReady(modelRef.ready)}
-                      </Label>
+                      {modelRef.ready === undefined ? (
+                        '—'
+                      ) : (
+                        <Label
+                          status={modelRef.ready ? 'success' : 'danger'}
+                          isClickable={false}
+                          variant="outline"
+                        >
+                          {formatReady(modelRef.ready)}
+                        </Label>
+                      )}
                     </Td>
                     <Td dataLabel="Reason" data-testid={`${modelRef.name}-reason`}>
                       {modelRef.reason ?? '—'}
