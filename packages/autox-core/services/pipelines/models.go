@@ -96,6 +96,7 @@ type CreatePipelineRunInput struct {
 	Description              string                    `json:"description,omitempty"`
 	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
 	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
+	PluginsInput             map[string]map[string]any `json:"plugins_input,omitempty"`
 }
 
 // PipelineRunResponse wraps a list of pipeline runs with pagination.
