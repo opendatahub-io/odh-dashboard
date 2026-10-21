@@ -23,11 +23,7 @@ import {
   evaluationsBaseRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
-import {
-  CURATED_COLLECTION_PREREQUISITES,
-  CURATED_SUITE_PAGE_CONFIG,
-  isCuratedEvaluationTarget,
-} from '~/app/curatedSuiteConfig';
+import { CURATED_SUITE_PAGE_CONFIG, isCuratedEvaluationTarget } from '~/app/curatedSuiteConfig';
 import './BenchmarkSuitesPage.scss';
 
 const CuratedBenchmarkSuitesPage: React.FC = () => {
@@ -106,7 +102,6 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
               onCustomizeCollection={handleCustomizeCollection}
               isSystemCollection
               primaryActionLabel="Run"
-              prerequisites={CURATED_COLLECTION_PREREQUISITES}
             />
           }
         >
@@ -151,7 +146,6 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
                     showEvaluatesFilter={false}
                     showPagination
                     showContextualActions={false}
-                    prerequisites={CURATED_COLLECTION_PREREQUISITES}
                     primaryActionLabel="Run"
                     primaryActionVariant="secondary"
                     dropdownActionLabel="Customize"
