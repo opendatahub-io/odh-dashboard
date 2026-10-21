@@ -11,6 +11,7 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import {
@@ -36,7 +37,11 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
   subscription,
   modelRefs,
 }) => {
+  const isInferencePriorityFieldEnabled = useIsAreaAvailable(
+    SupportedArea.INFERENCE_PRIORITY_FIELD,
+  ).status;
   const hasInternalModel = hasInternalModelKind(modelRefs);
+  const showInferencePriority = hasInternalModel && isInferencePriorityFieldEnabled;
   const [showInferencePriorityStatus, setShowInferencePriorityStatus] = React.useState(false);
   return (
     <Stack hasGutter data-testid="subscription-details-section">
@@ -86,7 +91,7 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
             <DescriptionListTerm>Resource name</DescriptionListTerm>
             <DescriptionListDescription>{subscription.name}</DescriptionListDescription>
           </DescriptionListGroup>
-          {hasInternalModel && (
+          {showInferencePriority ? (
             <DescriptionListGroup>
               <DescriptionListTerm>Inference priority</DescriptionListTerm>
               <DescriptionListDescription>
@@ -105,7 +110,7 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
                 </Stack>
               </DescriptionListDescription>
             </DescriptionListGroup>
-          )}
+          ) : null}
           <DescriptionListGroup>
             <DescriptionListTerm>Created</DescriptionListTerm>
             <DescriptionListDescription>
@@ -123,7 +128,7 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
           </DescriptionListGroup>
         </DescriptionList>
       </StackItem>
-      {showInferencePriorityStatus ? (
+      {showInferencePriority && showInferencePriorityStatus ? (
         <InferencePriorityStatusModal
           subscription={subscription}
           modelRefs={modelRefs}

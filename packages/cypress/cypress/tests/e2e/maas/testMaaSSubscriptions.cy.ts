@@ -63,8 +63,6 @@ let projectName: string;
 let resourceName: string;
 let modelName: string;
 let subscriptionDescription: string;
-let subscriptionPriority: number;
-let secondSubscriptionPriority: number;
 let subscriptionGroups: string[];
 let subscriptionName: string;
 let subscriptionNamespace: string;
@@ -94,8 +92,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionNamespace = testData.subscriptionNamespace;
         subscriptionDescription = 'This is a test MaaS subscription';
-        subscriptionPriority = 256;
-        secondSubscriptionPriority = subscriptionPriority + 1;
         subscriptionGroups = ['rhods-admins'];
         apiKeyName = `maas-api-key-${uuid}`;
         tokenRateLimit = {
@@ -264,10 +260,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       createSubscriptionPage.findModelsTable().should('exist');
       createSubscriptionPage.findModelsTable().should('contain.text', modelName);
 
-      // Inference priority is available once an LLMInferenceService model is on the form
-      createSubscriptionPage.findPriorityField().should('exist');
-      createSubscriptionPage.findPriorityInput().clear().type(subscriptionPriority.toString());
-
       // Edit token rate limits for the added model
       createSubscriptionPage.addTokenRateLimit(0);
       editRateLimitsModal.shouldBeOpen();
@@ -307,15 +299,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .should('contain.text', testData.singleModelDescription);
       subscriptionRow.findExpandedModelTokenLimits().should('contain.text', tokenLimit);
 
-      cy.step('Verify the view page shows the set inference priority');
-      viewSubscriptionPage.visit(subscriptionName);
-      viewSubscriptionPage.findTitle().should('contain.text', subscriptionName);
-      viewSubscriptionPage
-        .findDetailsSection()
-        .should('contain.text', 'Inference priority')
-        .and('contain.text', String(subscriptionPriority));
-
-      cy.step('Create another subscription without setting inference priority');
+      cy.step('Create another subscription');
       subscriptionsPage.visit();
       subscriptionsPage.findCreateSubscriptionButton().click();
       createSubscriptionPage.findDisplayNameInput().clear().type(`${subscriptionName}-2`);
@@ -332,10 +316,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       // Verify the model appears in the subscription models table
       createSubscriptionPage.findModelsTable().should('exist');
       createSubscriptionPage.findModelsTable().should('contain.text', modelName);
-
-      // Leave inference priority empty — scheduler default displays as 0 on the view page
-      createSubscriptionPage.findPriorityField().should('exist');
-      createSubscriptionPage.findPriorityInput().should('have.value', '');
 
       // Edit token rate limits for the added model
       createSubscriptionPage.addTokenRateLimit(0);
@@ -357,40 +337,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       cy.then(() => {
         checkMaaSSubscriptionState(`${subscriptionName}-2`, subscriptionNamespace);
       });
-
-      cy.step('Verify the view page shows scheduler default inference priority 0');
-      viewSubscriptionPage.visit(`${subscriptionName}-2`);
-      viewSubscriptionPage.findTitle().should('contain.text', `${subscriptionName}-2`);
-      viewSubscriptionPage
-        .findDetailsSection()
-        .should('contain.text', 'Inference priority')
-        .and('contain.text', '0');
-
-      cy.step('Set inference priority, then verify it on the view page');
-      editSubscriptionPage.visit(`${subscriptionName}-2`);
-      editSubscriptionPage.findNameInput().should('have.value', `${subscriptionName}-2`);
-      editSubscriptionPage.findPriorityInput().clear().type(secondSubscriptionPriority.toString());
-      editSubscriptionPage.findSaveButton().click();
-
-      viewSubscriptionPage.visit(`${subscriptionName}-2`);
-      viewSubscriptionPage
-        .findDetailsSection()
-        .should('contain.text', 'Inference priority')
-        .and('contain.text', String(secondSubscriptionPriority));
-
-      cy.step('Clear inference priority, then verify the view page shows 0 again');
-      editSubscriptionPage.visit(`${subscriptionName}-2`);
-      editSubscriptionPage
-        .findPriorityInput()
-        .should('have.value', secondSubscriptionPriority.toString());
-      editSubscriptionPage.findPriorityInput().clear();
-      editSubscriptionPage.findSaveButton().click();
-
-      viewSubscriptionPage.visit(`${subscriptionName}-2`);
-      viewSubscriptionPage
-        .findDetailsSection()
-        .should('contain.text', 'Inference priority')
-        .and('contain.text', '0');
 
       cy.step('Edit the second subscription description and groups');
       editSubscriptionPage.visit(`${subscriptionName}-2`);
@@ -422,9 +368,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .findDetailsSection()
         .should('contain.text', `${subscriptionName}-2`)
         .and('contain.text', 'Name')
-        .and('contain.text', 'Created')
-        .and('contain.text', 'Inference priority')
-        .and('contain.text', '0');
+        .and('contain.text', 'Created');
 
       viewSubscriptionPage.findGroupsSection().should('exist');
       viewSubscriptionPage.findGroupsTable().should('contain.text', subscriptionGroups);

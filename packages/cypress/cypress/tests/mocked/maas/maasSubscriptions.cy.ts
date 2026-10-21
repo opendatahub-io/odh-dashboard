@@ -31,7 +31,10 @@ import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtil
 
 const setupCommonIntercepts = () => {
   asProductAdminUser();
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ modelAsService: true, inferencePriorityField: true }),
+  );
   cy.interceptOdh('GET /maas/api/v1/user', { data: { userId: 'test-user', clusterAdmin: false } });
   cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
   cy.interceptOdh(
@@ -416,6 +419,17 @@ describe('View Subscription Page', () => {
     viewSubscriptionPage.findInferencePriorityStatusButton().should('not.exist');
   });
 
+  it('should not display inference priority when the inference priority field is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ modelAsService: true, inferencePriorityField: false }),
+    );
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findDetailsSection().should('not.contain.text', 'Inference priority');
+    viewSubscriptionPage.findInferencePriorityStatusButton().should('not.exist');
+  });
+
   it('should display model status in the models table', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
     viewSubscriptionPage.visit(subscriptionName);
@@ -565,6 +579,26 @@ describe('Subscription Create Page', () => {
           modelRef: { kind: 'InferenceService', name: modelRef.modelRef.name },
         })),
       }),
+    );
+
+    createSubscriptionPage.visit();
+    createSubscriptionPage.findPriorityField().should('not.exist');
+
+    createSubscriptionPage.findAddModelsButton().click();
+    addModelsToSubscriptionModal.shouldBeOpen();
+    addModelsToSubscriptionModal
+      .findToggleModelButton('granite-3-8b-instruct', 'maas-models')
+      .click();
+    addModelsToSubscriptionModal.findConfirmButton().click();
+
+    createSubscriptionPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
+    createSubscriptionPage.findPriorityField().should('not.exist');
+  });
+
+  it('should not display inference priority when the inference priority field is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ modelAsService: true, inferencePriorityField: false }),
     );
 
     createSubscriptionPage.visit();

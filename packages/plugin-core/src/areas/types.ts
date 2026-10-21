@@ -63,6 +63,7 @@ export enum SupportedArea {
   NIM_SERVICE_OPERATOR = 'nim-service-operator',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
+  INFERENCE_PRIORITY_FIELD = 'inference-priority-field',
   LLMD_SERVING = 'llmd-serving',
   LLMD_TOPOLOGY_CONFIGS = 'llmd-topology-configs',
   YAML_VIEWER = 'yaml-viewer',

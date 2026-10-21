@@ -264,7 +264,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       addModelsToSubscriptionModal.findTable().should('exist');
       addModelsToSubscriptionModal.findToggleModelButton(modelName, projectName).click();
       addModelsToSubscriptionModal.findConfirmButton().click();
-      createSubscriptionPage.findPriorityInput().should('exist');
 
       // Edit token rate limits for the added model
       createSubscriptionPage.addTokenRateLimit(0);

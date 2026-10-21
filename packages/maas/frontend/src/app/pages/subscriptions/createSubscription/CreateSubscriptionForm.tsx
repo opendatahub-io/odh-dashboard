@@ -26,6 +26,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
@@ -130,6 +131,10 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const { refresh } = useMaaSGovernanceContext();
   const isEditing = !!subscriptionInfo;
   const subscription = subscriptionInfo?.subscription;
+
+  const isInferencePriorityFieldEnabled = useIsAreaAvailable(
+    SupportedArea.INFERENCE_PRIORITY_FIELD,
+  ).status;
 
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
     subscription
@@ -244,7 +249,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   );
 
   const hasInternalModel = hasInternalModelKind(models.map((m) => m.modelRefSummary));
-  const effectiveInferencePriority = hasInternalModel ? inferencePriority : undefined;
+  const effectiveInferencePriority =
+    hasInternalModel && isInferencePriorityFieldEnabled ? inferencePriority : undefined;
 
   const clearInferencePriorityIfNoInternalModels = (remaining: SubscriptionModelEntry[]) => {
     if (!hasInternalModelKind(remaining.map((m) => m.modelRefSummary))) {
@@ -434,7 +440,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               }
               resourceType="subscription"
             />
-            {hasInternalModel ? (
+            {hasInternalModel && isInferencePriorityFieldEnabled && (
               <FormGroup label="Inference priority" fieldId="subscription-inference-priority">
                 <FormHelperText>
                   <HelperText>
@@ -458,7 +464,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
                   onChange={(newValue) => setInferencePriority(newValue)}
                 />
               </FormGroup>
-            ) : null}
+            )}
           </>
         )}
 

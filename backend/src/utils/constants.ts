@@ -90,6 +90,7 @@ export const blankDashboardCR: DashboardConfig = {
       automl: true,
       autorag: true,
       modelAsService: true,
+      inferencePriorityField: false,
       aiAssetCustomEndpoints: false,
       disableFineTuning: true,
       disableKueue: true,

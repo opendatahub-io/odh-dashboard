@@ -11,6 +11,7 @@ export const techPreviewFlags = {
   genAiTracing: false,
   guardrails: false,
   modelAsService: true,
+  inferencePriorityField: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
   mcpRegistry: false,
@@ -331,5 +332,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_DATA_CONNECT_HUB]: {
     featureFlags: ['dataConnectHub'],
+  },
+  [SupportedArea.INFERENCE_PRIORITY_FIELD]: {
+    featureFlags: ['inferencePriorityField'],
   },
 };
