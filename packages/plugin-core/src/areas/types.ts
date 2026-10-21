@@ -99,6 +99,9 @@ export enum SupportedArea {
   FEATURE_STORE = 'feature-store',
   FEATURE_STORE_ADMIN = 'feature-store-admin',
 
+  /* Data Registry */
+  DATA_REGISTRY = 'data-registry',
+
   /* Model Training */
   MODEL_TRAINING = 'model-training',
   RAY_JOBS = 'ray-jobs',
@@ -234,6 +237,8 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.KUEUE]: 'Kueue',
   [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
   [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
+  [DataScienceStackComponent.FEATURE_STORE]: 'Feature Store',
+  [DataScienceStackComponent.DATA_REGISTRY]: 'Data Registry',
   [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
   [DataScienceStackComponent.RAY]: 'Ray',
   [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
