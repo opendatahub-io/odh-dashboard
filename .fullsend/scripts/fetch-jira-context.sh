@@ -3,8 +3,9 @@
 #
 # Parses issue keys from the PR title/body (preamble first, then title).
 # Strips HTML comments before scanning so template placeholders inside
-# <!-- ... --> are ignored. Fetches every collected key and writes an
-# issues[] array alongside the backward-compatible top-level fields.
+# <!-- ... --> are ignored. Fetches up to 10 unique collected keys, records
+# omitted keys, and writes an issues[] array alongside the backward-compatible
+# top-level fields.
 #
 # Reads only the existing Dashboard preflight secrets: JIRA_URL,
 # JIRA_USERNAME, and JIRA_API_TOKEN. It deliberately produces no mock data.
@@ -26,6 +27,8 @@ from pathlib import Path
 
 dest = Path(sys.argv[1])
 KEY_RE = re.compile(r"\b([A-Z][A-Z0-9]+-\d+)\b")
+MAX_JIRA_KEYS = 10
+OMITTED_KEYS = []
 
 
 def strip_html_comments(text):
@@ -48,7 +51,7 @@ def unique_keys(raw_keys):
 
 
 def collect_keys(title, body):
-    pre = strip_html_comments(preamble(body))
+    pre = preamble(strip_html_comments(body))
     pre_keys = unique_keys(KEY_RE.findall(pre))
     if pre_keys:
         return pre_keys
@@ -79,6 +82,8 @@ def envelope(**kwargs):
         "output": "context",
     }
     payload.update(kwargs)
+    if OMITTED_KEYS:
+        payload["omitted_keys"] = OMITTED_KEYS
     return payload
 
 
@@ -104,6 +109,8 @@ def snapshot_from_issue(data, key):
 title = os.environ.get("REVIEW_PR_TITLE") or ""
 body = os.environ.get("REVIEW_PR_BODY") or ""
 keys = collect_keys(title, body)
+OMITTED_KEYS = keys[MAX_JIRA_KEYS:]
+keys = keys[:MAX_JIRA_KEYS]
 key = keys[0] if keys else None
 base = (os.environ.get("FULLSEND_ADAPTER_URL") or os.environ.get("JIRA_URL") or "").rstrip("/")
 user = os.environ.get("FULLSEND_ADAPTER_USERNAME") or os.environ.get("JIRA_USERNAME") or ""
@@ -118,6 +125,7 @@ if os.environ.get("FULLSEND_JIRA_SNAPSHOT_READY") == "1" and dest.is_file():
     allowed = {
         "id", "dimension", "kind", "output", "status", "source", "url",
         "key", "summary", "description", "status_name", "reason", "issues",
+        "omitted_keys",
     }
     try:
         existing = json.loads(dest.read_text(encoding="utf-8"))
@@ -232,6 +240,21 @@ assert "RHOAIENG-123456" not in json.dumps(data), f"template sample leaked: {dat
 print("PASS jira-snapshot: commented template sample ignored, real key used")
 PY
 
+  # Multiline comment containing a heading does not end the body preamble.
+  REVIEW_PR_TITLE='fix: export RHOAIENG-100655' \
+  REVIEW_PR_BODY=$'<!-- template\nFixes: https://issues.redhat.com/browse/RHOAIENG-123456\n## Tracking\n-->\nFixes: https://issues.redhat.com/browse/RHOAIENG-100655\n\n## Problem\nBroken.\n' \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["key"] == "RHOAIENG-100655", data
+assert data["issues"] == [{"key": "RHOAIENG-100655"}], data
+assert "RHOAIENG-123456" not in json.dumps(data), f"template sample leaked: {data}"
+print("PASS jira-snapshot: multiline comment heading ignored before preamble scan")
+PY
+
   # Four Fixes: lines at the top (PR #10264 shape).
   REVIEW_PR_TITLE='fix: multi' \
   REVIEW_PR_BODY=$'Fixes: https://issues.redhat.com/browse/RHOAIENG-100580\nFixes: https://issues.redhat.com/browse/RHOAIENG-100583\nFixes: https://issues.redhat.com/browse/RHOAIENG-100584\nFixes: https://issues.redhat.com/browse/RHOAIENG-100585\n\n## Problem\nMulti.\n' \
@@ -288,6 +311,43 @@ data = json.load(open(sys.argv[1], encoding="utf-8"))
 keys = [i["key"] for i in data["issues"]]
 assert keys == ["RHOAIENG-100580"], keys
 print("PASS jira-snapshot: duplicate preamble key deduplicated")
+PY
+
+  # Exactly ten keys are all retained.
+  local bounded_body bounded_key
+  bounded_body=''
+  for i in $(seq 1 10); do
+    bounded_key=$(printf 'RHOAIENG-1005%02d' "$i")
+    bounded_body+="Fixes: ${bounded_key}"$'\n'
+  done
+  REVIEW_PR_TITLE='fix: bounded' \
+  REVIEW_PR_BODY="${bounded_body}" \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+keys = [i["key"] for i in data["issues"]]
+assert keys == [f"RHOAIENG-1005{i:02d}" for i in range(1, 11)], keys
+assert "omitted_keys" not in data, data
+print("PASS jira-snapshot: ten keys retained without truncation")
+PY
+
+  # An eleventh key is recorded as omitted instead of fetched.
+  bounded_body+="Fixes: RHOAIENG-100511"$'\n'
+  REVIEW_PR_TITLE='fix: bounded' \
+  REVIEW_PR_BODY="${bounded_body}" \
+  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+keys = [i["key"] for i in data["issues"]]
+assert keys == [f"RHOAIENG-1005{i:02d}" for i in range(1, 11)], keys
+assert data["omitted_keys"] == ["RHOAIENG-100511"], data
+print("PASS jira-snapshot: eleventh key recorded as omitted")
 PY
 
   # Commented key only: no key found.

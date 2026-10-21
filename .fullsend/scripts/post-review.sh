@@ -103,7 +103,9 @@ transform_review_result() {
   python3 - "$1" <<'PY'
 import json, os, re, sys
 from datetime import datetime, timezone
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
+
+JIRA_KEY_RE = re.compile(r"[A-Z][A-Z0-9]+-\d+")
 
 # Host policy: .fullsend/rating-policy.json (floors/caps/refuse lists only).
 # Judgment criteria live in the rating skill — not here.
@@ -1228,12 +1230,61 @@ def _pa_status_line(label, record, suffix=""):
     return f"**{label}:** `{clean(status)}`{human}{suffix}"
 
 
+def load_trusted_jira_issues():
+    config_dir = os.environ.get("FULLSEND_CONFIG_DIR") or ""
+    if not config_dir:
+        return {}
+    path = os.path.join(config_dir, ".run", "jira.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError, TypeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    entries = []
+    if data.get("key"):
+        entries.append(data)
+    issues = data.get("issues")
+    if isinstance(issues, list):
+        entries.extend(issue for issue in issues if isinstance(issue, dict))
+    return {
+        str(issue.get("key")): str(issue.get("url") or "")
+        for issue in entries
+        if issue.get("key")
+    }
+
+
+TRUSTED_JIRA_ISSUES = load_trusted_jira_issues()
+
+
+def trusted_jira_issue_url(key):
+    url = TRUSTED_JIRA_ISSUES.get(key, "")
+    if not url:
+        return ""
+    parsed = urlsplit(url)
+    expected_path = f"/browse/{quote(key, safe='')}"
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path != expected_path
+        or parsed.query
+        or parsed.fragment
+    ):
+        return ""
+    return url
+
+
 def _pa_issue_link(issue):
-    key = clean(issue.get("key") or "")
+    key = str(issue.get("key") or "").strip()
     if not key:
         return ""
-    url = issue.get("url") or ""
-    return f"[{key}]({url})" if url else f"`{key}`"
+    if not JIRA_KEY_RE.fullmatch(key):
+        return f"`{code_span_text(key)}`"
+    url = trusted_jira_issue_url(key)
+    return f"[{key}]({url})" if url else f"`{code_span_text(key)}`"
 
 
 def _render_pa_block(issue, suffix=""):
@@ -1611,9 +1662,30 @@ run_self_test() {
 
   render_fixture needs-human comment "{${common},\"findings\":[],\"todo\":[{\"category\":\"judgement\",\"text\":\"Decide which product scope this PR implements.\"}],\"product_ask\":{\"status\":\"mismatch-justified\",\"needs_human\":true}}"
 
-  local pa body
+  local jira_config body
+  jira_config="${tmp}/jira-config"
+  mkdir -p "${jira_config}/.run"
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "key": "RHOAIENG-100655",
+  "url": "https://issues.redhat.com/browse/RHOAIENG-100655",
+  "issues": [
+    {"key": "RHOAIENG-100580", "url": "https://issues.redhat.com/browse/RHOAIENG-100580"},
+    {"key": "RHOAIENG-100583", "url": "https://issues.redhat.com/browse/RHOAIENG-100583"},
+    {"key": "RHOAIENG-100655", "url": "https://issues.redhat.com/browse/RHOAIENG-100655"},
+    {"key": "bad]\n[more]\n@org/team\n<script>alert(1)</script>", "url": "https://issues.redhat.com/browse/RHOAIENG-100655"}
+  ]
+}
+JSON
+  render_jira_fixture() {
+    local name="$1"
+    (
+      export FULLSEND_CONFIG_DIR="${jira_config}"
+      transform_review_result "${tmp}/${name}.json" > "${tmp}/${name}-out.json"
+    )
+  }
   printf '%s' "{${common},\"product_ask\":{\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for export\"]}}" > "${tmp}/product-ask.json"
-  transform_review_result "${tmp}/product-ask.json" > "${tmp}/product-ask-out.json"
+  render_jira_fixture product-ask
   if ! jq -e '.action == "comment" and .risk.level == "low" and .confidence.level == "low" and (.confidence.why | contains("Jira"))' "${tmp}/product-ask-out.json" >/dev/null; then
     echo "FAIL product-ask: want confidence floor only (risk unchanged) + comment" >&2
     fail=1
@@ -1626,7 +1698,7 @@ run_self_test() {
 
   # Multi-issue product-ask: overall computed from per-issue statuses.
   printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]},{\"key\":\"RHOAIENG-100583\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100583\",\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for import.\"],\"needs_human\":true}]}}" > "${tmp}/pa-multi.json"
-  transform_review_result "${tmp}/pa-multi.json" > "${tmp}/pa-multi-out.json"
+  render_jira_fixture pa-multi
   body=$(jq -r .body "${tmp}/pa-multi-out.json")
   if ! grep -qF '**Overall:** `mismatch-unjustified` · needs human review' <<<"${body}"; then
     echo "FAIL pa-multi: Overall line missing or wrong" >&2
@@ -1646,7 +1718,7 @@ run_self_test() {
 
   # Single-issue product-ask: key linked on status line, no Overall.
   printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-single.json"
-  transform_review_result "${tmp}/pa-single.json" > "${tmp}/pa-single-out.json"
+  render_jira_fixture pa-single
   body=$(jq -r .body "${tmp}/pa-single-out.json")
   if grep -qF '**Overall:**' <<<"${body}"; then
     echo "FAIL pa-single: Overall line should not appear for one issue" >&2
@@ -1659,6 +1731,26 @@ run_self_test() {
     fail=1
   else
     echo "PASS pa-single: single issue renders linked status, no Overall"
+  fi
+
+  # Hostile issue metadata cannot escape the link or inject Markdown/HTML.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://example.com)\\n\\n@org/team\\n\\n[more](https://example.com\",\"status\":\"aligned\",\"aligned\":[\"Safe link only.\"]},{\"key\":\"bad]\\n[more]\\n@org/team\\n<script>alert(1)</script>\",\"url\":\"https://example.com\",\"status\":\"aligned\",\"aligned\":[\"Hostile key only.\"]}]}}" > "${tmp}/pa-hostile.json"
+  render_jira_fixture pa-hostile
+  body=$(jq -r .body "${tmp}/pa-hostile-out.json")
+  if ! grep -qF '[RHOAIENG-100655](https://issues.redhat.com/browse/RHOAIENG-100655)' <<<"${body}"; then
+    echo "FAIL pa-hostile: trusted issue link missing" >&2
+    fail=1
+  elif grep -qF -e 'https://example.com)' \
+                -e '[more](https://example.com' \
+                -e '<script>' \
+                -e '@org/team' <<<"${body}"; then
+    echo "FAIL pa-hostile: hostile URL, Markdown, HTML, or mention reached the body" >&2
+    fail=1
+  elif ! grep -qF 'bad] [more] @' <<<"${body}"; then
+    echo "FAIL pa-hostile: hostile key was not flattened into a safe code span" >&2
+    fail=1
+  else
+    echo "PASS pa-hostile: issue links and labels escaped hostile metadata"
   fi
 
   # Legacy product-ask without issues: same block as before.
