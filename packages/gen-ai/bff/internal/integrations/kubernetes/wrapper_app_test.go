@@ -50,6 +50,16 @@ func TestGenerateWrapperAppScript_ContainsRequiredElements(t *testing.T) {
 	assert.Contains(t, script, `sanitized_headers`)
 	assert.Contains(t, script, `"detail": "Unsupported model source type"`)
 
+	// Embedding model credentials are injected alongside the LLM key: AGENT_EMBEDDING_API_KEY
+	// is forwarded as passthrough_api_key so remote::passthrough embedding providers
+	// authenticate file-search calls. Both keys coexist in one provider-data payload, and
+	// the header is omitted entirely when neither credential is configured.
+	assert.Contains(t, script, `AGENT_EMBEDDING_API_KEY`)
+	assert.Contains(t, script, `if embedding_api_key := os.environ.get("AGENT_EMBEDDING_API_KEY"):`)
+	assert.Contains(t, script, `provider_data["passthrough_api_key"] = embedding_api_key`)
+	assert.Contains(t, script, `provider_data = {}`)
+	assert.Contains(t, script, `if provider_data:`)
+
 	// Every HTTP endpoint is authorized against the caller's access to this exact Sandbox
 	// before model credentials, MCP credentials, or the profile snapshot are made available.
 	assert.Contains(t, script, `SandboxAuthorizationMiddleware`)
