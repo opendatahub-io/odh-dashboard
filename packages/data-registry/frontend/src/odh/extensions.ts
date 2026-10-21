@@ -1,4 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const PLUGIN_DATA_REGISTRY = 'plugin-data-registry';
 
@@ -8,6 +9,7 @@ const extensions: Extension[] = [
     properties: {
       id: PLUGIN_DATA_REGISTRY,
       featureFlags: ['dataRegistry'],
+      reliantAreas: [SupportedArea.DATA_REGISTRY],
     },
   },
   {
