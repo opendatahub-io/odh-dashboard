@@ -469,6 +469,33 @@ export type GlobalMLflowNamespacesBaseline = ConfigInstance & {
   globalMLflowNamespaces?: string[];
 };
 
+const getPrimaryDashboardConfig = (configs: ConfigInstance[]): ConfigInstance => {
+  const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  return (
+    configs.find(
+      ({ namespace, name }) =>
+        namespace === applicationsNamespace && name === 'odh-dashboard-config',
+    ) ?? configs[0]
+  );
+};
+
+const setGlobalMLflowNamespacesViaAPI = (namespaces: string[]) =>
+  cy.request('/api/cluster-settings').then((settings) =>
+    cy
+      .request({
+        method: 'PUT',
+        url: '/api/cluster-settings',
+        body: {
+          ...settings.body,
+          globalMLflowNamespaces: namespaces,
+        },
+      })
+      .then((response) => {
+        expect(response.status, 'cluster settings update status').to.eq(200);
+        expect(response.body.success, 'cluster settings update result').to.eq(true);
+      }),
+  );
+
 /**
  * Get all OdhDashboardConfig instances in the cluster.
  * Falls back to default config if none found.
@@ -501,8 +528,8 @@ export const getOdhDashboardConfigs = (): Cypress.Chainable<ConfigInstance[]> =>
     });
 
 /**
- * Set globalMLflowNamespaces in all OdhDashboardConfig instances.
- * Replaces existing values with the provided namespaces.
+ * Set globalMLflowNamespaces through the cluster-settings API, which also applies
+ * the global workspace label, and synchronize any additional config instances.
  * Polls until the change is confirmed.
  *
  * @param namespaces - Array of namespace strings to set as global MLflow namespaces.
@@ -514,6 +541,8 @@ export const setGlobalMLflowNamespaces = (
 ): Cypress.Chainable<GlobalMLflowNamespacesBaseline[]> =>
   getOdhDashboardConfigs().then((configs) => {
     const capturedBaselines: GlobalMLflowNamespacesBaseline[] = [];
+    const primaryConfig = getPrimaryDashboardConfig(configs);
+    const additionalConfigs = configs.filter((config) => config !== primaryConfig);
 
     if (baselineStore.length === 0) {
       cy.wrap(configs).each((config) => {
@@ -546,7 +575,8 @@ export const setGlobalMLflowNamespaces = (
 
     return cy
       .then(() => {
-        for (const { namespace: ns, name } of baselineStore.length > 0 ? baselineStore : configs) {
+        setGlobalMLflowNamespacesViaAPI(namespaces);
+        for (const { namespace: ns, name } of additionalConfigs) {
           const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: namespaces } });
           patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
         }
