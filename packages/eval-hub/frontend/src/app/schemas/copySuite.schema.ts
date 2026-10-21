@@ -30,6 +30,9 @@ export type CopySuiteBenchmarkParameter = z.infer<typeof copySuiteBenchmarkParam
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const isMissingRequiredValue = (value: CopySuiteBenchmarkParameter['value']): boolean =>
+  value == null || (typeof value === 'string' && value.trim() === '');
+
 export const getAdditionalParametersError = (
   value: string | undefined,
   dedicatedParameterKeys: Iterable<string> = [],
@@ -134,10 +137,7 @@ export const getCopySuiteSchema = (
 
     data.benchmarks.forEach((benchmark, benchmarkIndex) => {
       benchmark.parameters.forEach((parameter, parameterIndex) => {
-        if (
-          requiredParameterKeys.has(parameter.key) &&
-          (parameter.value == null || parameter.value === '')
-        ) {
+        if (requiredParameterKeys.has(parameter.key) && isMissingRequiredValue(parameter.value)) {
           ctx.addIssue({
             code: 'custom',
             message: `${getBenchmarkParameterLabel(parameter.key)} is required.`,

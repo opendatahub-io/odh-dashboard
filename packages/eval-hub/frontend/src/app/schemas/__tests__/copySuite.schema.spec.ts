@@ -198,6 +198,51 @@ describe('copySuiteSchema', () => {
       }
     });
 
+    it('should reject whitespace-only required parameter values', () => {
+      const result = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'judge_model', type: 'text', value: '   ' }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'parameters', 0, 'value'],
+              message: 'Judge model is required.',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should accept falsy but meaningful required parameter values', () => {
+      const result = getCopySuiteSchema(
+        undefined,
+        new Set(['judge_model', 'num', 'flag']),
+      ).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [
+              { key: 'judge_model', type: 'text', value: 'gpt-4o' },
+              { key: 'num', type: 'number', value: 0 },
+              { key: 'flag', type: 'boolean', value: false },
+            ],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
     it('should accept a benchmark that omits a required parameter key entirely', () => {
       const result = getCopySuiteSchema(undefined, requiredKeys).safeParse({
         ...validValues(),
