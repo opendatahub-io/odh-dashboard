@@ -48,8 +48,12 @@ update_package_json_commit() {
   if [ -n "${SYNC_BASE_COMMIT:-}" ]; then
     tracking_filter+=' | .subtree.syncBase = $base'
   fi
+  if [ -n "${SYNC_TARGET_COMMIT:-}" ]; then
+    tracking_filter+=' | .subtree.syncTarget = $target'
+  fi
 
-  if ! jq --arg commit "$commit" --arg base "${SYNC_BASE_COMMIT:-}" "$tracking_filter" "$PACKAGE_JSON" > "$temp_file"; then
+  if ! jq --arg commit "$commit" --arg base "${SYNC_BASE_COMMIT:-}" \
+      --arg target "${SYNC_TARGET_COMMIT:-}" "$tracking_filter" "$PACKAGE_JSON" > "$temp_file"; then
     error_msg "Failed to update package.json with commit $commit"
     rm -f "$temp_file"
     return 1
@@ -62,6 +66,47 @@ update_package_json_commit() {
   fi
 
   return 0
+}
+
+pin_upstream_sync_target() {
+  local base_commit="$1"
+  local target_commit="$2"
+  local temp_file="$PACKAGE_JSON.tmp"
+
+  if ! jq --arg base "$base_commit" --arg target "$target_commit" \
+      '.subtree.syncBase = $base | .subtree.syncTarget = $target' "$PACKAGE_JSON" > "$temp_file"; then
+    error_msg "Failed to save upstream sync target $target_commit"
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  if ! mv "$temp_file" "$PACKAGE_JSON"; then
+    error_msg "Failed to replace package.json"
+    rm -f "$temp_file"
+    return 1
+  fi
+}
+
+resolve_upstream_target_commit() {
+  local pinned_commit="$1"
+  local requested_commit="$2"
+
+  if [ -n "$pinned_commit" ]; then
+    if ! git cat-file -e "$pinned_commit^{commit}" 2>/dev/null; then
+      error_msg "Pinned upstream target $pinned_commit is unavailable"
+      return 1
+    fi
+    if [ -n "$requested_commit" ] && [ "$(git rev-parse "$requested_commit^{commit}")" != "$pinned_commit" ]; then
+      error_msg "Requested commit $requested_commit differs from pinned target $pinned_commit"
+      return 1
+    fi
+    TARGET_COMMIT="$pinned_commit"
+  elif [ -n "$requested_commit" ]; then
+    git checkout -q "$requested_commit" || return 1
+    TARGET_COMMIT=$(git rev-parse HEAD) || return 1
+  else
+    TARGET_COMMIT=$(git rev-parse HEAD) || return 1
+  fi
 }
 
 # A processed commit may be on a side branch and not contain the original

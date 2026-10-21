@@ -192,6 +192,7 @@ UPSTREAM_SUBDIR=$(jq -r '.subtree.src // ""' "$PACKAGE_JSON")
 TARGET_RELATIVE=$(jq -r '.subtree.target' "$PACKAGE_JSON")
 CURRENT_COMMIT=$(jq -r '.subtree.commit // ""' "$PACKAGE_JSON")
 SYNC_BASE_COMMIT=$(jq -r '.subtree.syncBase // .subtree.commit // ""' "$PACKAGE_JSON")
+SYNC_TARGET_COMMIT=$(jq -r '.subtree.syncTarget // ""' "$PACKAGE_JSON")
 UPSTREAM_BRANCH=$(jq -r '.subtree.branch // "main"' "$PACKAGE_JSON")
 DO_NOT_MERGE_FLAG=$(jq -r '.subtree.DO_NOT_MERGE_OVERRIDDEN_FOR_PR // ""' "$PACKAGE_JSON")
 
@@ -253,14 +254,9 @@ if [ "$CONTINUE_MODE" = true ]; then
   git clone -q -b "$UPSTREAM_BRANCH" "$UPSTREAM_REPO" "$TMP_DIR/repo"
   cd "$TMP_DIR/repo"
 
-  if [ -n "$COMMIT_SHA" ]; then
-    git checkout -q "$COMMIT_SHA"
-    TARGET_COMMIT=$(git rev-parse HEAD)
-  else
-    TARGET_COMMIT=$(git rev-parse HEAD)
-  fi
+  resolve_upstream_target_commit "$SYNC_TARGET_COMMIT" "$COMMIT_SHA" || clean_exit 1 "Failed to resolve upstream target"
 
-  if ! git merge-base --is-ancestor "$CURRENT_COMMIT" HEAD 2>/dev/null; then
+  if ! git merge-base --is-ancestor "$CURRENT_COMMIT" "$TARGET_COMMIT" 2>/dev/null; then
     cd "$MONOREPO_ROOT"
     error_msg "Current commit $CURRENT_COMMIT not found in branch '$UPSTREAM_BRANCH' of $UPSTREAM_REPO"
     echo ""
@@ -314,17 +310,12 @@ trap 'cd "$MONOREPO_ROOT"; rm -rf "$TMP_DIR"' EXIT
 git clone -q -b "$UPSTREAM_BRANCH" "$UPSTREAM_REPO" "$TMP_DIR/repo"
 cd "$TMP_DIR/repo"
 
-# Get target commit SHA
-if [ -n "$COMMIT_SHA" ]; then
-  git checkout -q "$COMMIT_SHA"
-  TARGET_COMMIT=$(git rev-parse HEAD)
-else
-  TARGET_COMMIT=$(git rev-parse HEAD)
-fi
+# Get the original target when resuming an interrupted sync.
+resolve_upstream_target_commit "$SYNC_TARGET_COMMIT" "$COMMIT_SHA" || clean_exit 1 "Failed to resolve upstream target"
 
 # Validate that CURRENT_COMMIT exists in this branch (skip for initial setup)
 if [ -n "$CURRENT_COMMIT" ] && [ "$CURRENT_COMMIT" != "null" ] && [ "$CURRENT_COMMIT" != "" ]; then
-  if ! git merge-base --is-ancestor "$CURRENT_COMMIT" HEAD 2>/dev/null; then
+  if ! git merge-base --is-ancestor "$CURRENT_COMMIT" "$TARGET_COMMIT" 2>/dev/null; then
     error_msg "Current commit $CURRENT_COMMIT not found in branch '$UPSTREAM_BRANCH' of $UPSTREAM_REPO"
     echo ""
     echo "You are probably syncing from a temporarily overridden repo and branch for an"
@@ -364,7 +355,8 @@ if [ ! -d "$TARGET_DIR" ] && ([ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" = 
 fi
 
 # Early exit if no changes
-if [ "$CURRENT_COMMIT" = "$TARGET_COMMIT" ] && [ -d "$TARGET_DIR" ] && [ "$SYNC_BASE_COMMIT" = "$CURRENT_COMMIT" ]; then
+if [ "$CURRENT_COMMIT" = "$TARGET_COMMIT" ] && [ -d "$TARGET_DIR" ] && \
+    [ "$SYNC_BASE_COMMIT" = "$CURRENT_COMMIT" ] && [ -z "$SYNC_TARGET_COMMIT" ]; then
   info_msg "Already up-to-date at $TARGET_COMMIT"
   exit 0
 fi
@@ -405,14 +397,23 @@ if [ ! -d "$TARGET_DIR" ]; then
   mkdir -p "$TARGET_DIR"
 fi
 
+# Record the exact target before applying any patch, including one that may
+# conflict immediately. A later invocation must finish this range first.
+if [ -z "$SYNC_TARGET_COMMIT" ]; then
+  pin_upstream_sync_target "$SYNC_BASE_COMMIT" "$TARGET_COMMIT" || clean_exit 1 "Failed to pin upstream target"
+  git -C "$MONOREPO_ROOT" add "$PACKAGE_JSON" || clean_exit 1 "Failed to stage upstream target"
+  git -C "$MONOREPO_ROOT" commit -q -m "${COMMIT_PREFIX}Track $PACKAGE_NAME sync target $TARGET_COMMIT" || clean_exit 1 "Failed to commit upstream target"
+  SYNC_TARGET_COMMIT="$TARGET_COMMIT"
+fi
+
 apply_patch_based_update "$CURRENT_COMMIT" "$TARGET_COMMIT" "$UPSTREAM_SUBDIR" "$TARGET_DIR"
 
 cd "$MONOREPO_ROOT"
 
 # The per-commit checkpoint is only valid while this sync is in progress.
 # Once all patches are applied, record the target (which may be a merge commit)
-# and remove the temporary baseline so the next sync starts from its true tip.
-if ! jq --arg commit "$TARGET_COMMIT" '.subtree.commit = $commit | del(.subtree.syncBase)' "$PACKAGE_JSON" > "$PACKAGE_JSON.tmp"; then
+# and remove the temporary range so the next sync starts from its true tip.
+if ! jq --arg commit "$TARGET_COMMIT" '.subtree.commit = $commit | del(.subtree.syncBase, .subtree.syncTarget)' "$PACKAGE_JSON" > "$PACKAGE_JSON.tmp"; then
   clean_exit 1 "Failed to finalize subtree tracking"
 fi
 mv "$PACKAGE_JSON.tmp" "$PACKAGE_JSON"
