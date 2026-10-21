@@ -141,6 +141,49 @@ describe('PipelineServerSetup', () => {
     expect(onReady).toHaveBeenCalledTimes(1);
   });
 
+  it('should wait for watched readiness when the BFF reports ready and preserve the timeout', () => {
+    mockReadiness.mockReturnValue({ data: true, isError: false, error: undefined });
+    const onReady = jest.fn();
+    const initialOnFailed = jest.fn();
+    const latestOnFailed = jest.fn();
+    const { rerender } = render(
+      <MemoryRouter>
+        <PipelineServerSetup
+          config={config}
+          namespace="test-project"
+          mode="waiting"
+          isReady={false}
+          onReady={onReady}
+          onFailed={initialOnFailed}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('pipeline-server-polling')).toBeInTheDocument();
+    expect(mockReadiness).toHaveBeenLastCalledWith('test-project', config.isTransientError, false);
+    expect(onReady).not.toHaveBeenCalled();
+
+    act(() => jest.advanceTimersByTime(119_999));
+    rerender(
+      <MemoryRouter>
+        <PipelineServerSetup
+          config={config}
+          namespace="test-project"
+          mode="waiting"
+          isReady={false}
+          onReady={onReady}
+          onFailed={latestOnFailed}
+        />
+      </MemoryRouter>,
+    );
+    act(() => jest.advanceTimersByTime(1));
+
+    expect(onReady).not.toHaveBeenCalled();
+    expect(initialOnFailed).not.toHaveBeenCalled();
+    expect(latestOnFailed).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('pipeline-server-polling')).not.toBeInTheDocument();
+  });
+
   it('should not call readiness callbacks after unmount', () => {
     const onReady = jest.fn();
     const { unmount } = render(

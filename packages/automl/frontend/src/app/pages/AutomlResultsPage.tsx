@@ -48,7 +48,7 @@ import {
   isRunCompleted,
   isRunRetryable,
   isRunTerminatable,
-  resolveTrainingTaskPrefix,
+  resolveUniqueTrainingTaskPrefix,
   resolveUniqueUuidPrefix,
 } from '~/app/utilities/utils';
 import {
@@ -129,12 +129,13 @@ function AutomlResultsPage(): React.JSX.Element {
     isLoading: runLevelLoading,
     isError: runLevelError,
   } = useS3ListFilesQuery(namespace, runArtifactRoot);
-  const trainingTaskPrefix = React.useMemo(() => {
-    const allowedTaskNames = [modelGenerationDir, `${modelGenerationDir}-2`];
-    return runLevelFiles
-      ? resolveTrainingTaskPrefix(runLevelFiles.common_prefixes, allowedTaskNames)
-      : undefined;
-  }, [modelGenerationDir, runLevelFiles]);
+  const trainingTaskPrefix = React.useMemo(
+    () =>
+      runLevelFiles
+        ? resolveUniqueTrainingTaskPrefix(runLevelFiles.common_prefixes, modelGenerationDir)
+        : undefined,
+    [modelGenerationDir, runLevelFiles],
+  );
   const {
     data: trainingTaskFiles,
     isLoading: trainingTaskLoading,

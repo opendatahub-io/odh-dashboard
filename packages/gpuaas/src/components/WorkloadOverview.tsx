@@ -1,19 +1,17 @@
 import * as React from 'react';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionToggle,
   Alert,
   Button,
   Card,
   CardBody,
   Content,
+  ExpandableSection,
   EmptyState,
   EmptyStateBody,
   Flex,
   FlexItem,
   Popover,
+  Skeleton,
   Spinner,
   Stack,
   Tab,
@@ -28,6 +26,7 @@ import {
   t_chart_color_yellow_300 as chartYellow,
   t_chart_global_danger_color_100 as chartRed,
 } from '@patternfly/react-tokens';
+import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
 import {
   overviewBuckets,
   summarizeOverview,
@@ -39,11 +38,41 @@ import './InfrastructureWorkloadsSection.scss';
 type WorkloadOverviewProps = {
   workloads: WorkloadOverviewRow[];
   loaded: boolean;
+  kueueAvailable?: boolean;
+  canAccessAdminMetrics?: boolean;
+  namespace?: string;
   dataUnavailable?: boolean;
   partial?: boolean;
   error?: Error;
+  refreshTrigger?: number;
   onViewInTable?: (bucket: OverviewBucket) => void;
 };
+
+const WorkloadAdmissionsTab = React.lazy(() => import('./WorkloadAdmissionsTab'));
+
+const admissionMetricLabels = [
+  'Admission rate',
+  'Admission lead time',
+  'Waiting workloads',
+  'Active workloads',
+];
+
+const AdmissionMetricsLoading: React.FC = () => (
+  <div
+    className="gpuaas-workload-overview__admission-metrics"
+    data-testid="admission-metric-charts-loading"
+  >
+    {admissionMetricLabels.map((label) => (
+      <div className="gpuaas-workload-overview__admission-metric" key={label}>
+        <div className="gpuaas-workload-overview__admission-header-loading">
+          <Skeleton width="80px" height="24px" screenreaderText={`Loading ${label} value`} />
+          <Skeleton width="120px" height="16px" screenreaderText={`Loading ${label} label`} />
+        </div>
+        <Skeleton width="100%" height="140px" screenreaderText={`Loading ${label} chart`} />
+      </div>
+    ))}
+  </div>
+);
 
 type WorkloadStatusPopoverProps = {
   bucket: OverviewBucket;
@@ -308,12 +337,25 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
 const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   workloads,
   loaded,
+  kueueAvailable = false,
+  canAccessAdminMetrics = false,
+  namespace,
   dataUnavailable = false,
   partial = false,
   error,
+  refreshTrigger = 0,
   onViewInTable,
 }) => {
   const [expanded, setExpanded] = React.useState(true);
+  const [activeTab, setActiveTab] = React.useState<string | number>('status');
+  const [timeWindow, setTimeWindow] = React.useState('24h');
+  const admissionMetrics = useWorkloadAdmissionMetrics(
+    namespace,
+    timeWindow,
+    kueueAvailable && activeTab === 'admissions',
+    canAccessAdminMetrics,
+    refreshTrigger,
+  );
   const [visiblePopover, setVisiblePopover] = React.useState<
     { bucket: OverviewBucket; source: 'count' | 'chart' } | undefined
   >();
@@ -322,61 +364,79 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   return (
     <Card data-testid="workload-overview">
       <CardBody>
-        <Accordion
-          asDefinitionList={false}
-          togglePosition="start"
-          isPlain
+        <ExpandableSection
           className="gpuaas-workload-overview"
-          data-testid="workload-overview-accordion"
+          isExpanded={expanded}
+          onToggle={(_event, nextExpanded) => setExpanded(nextExpanded)}
+          toggleContent={
+            <Title headingLevel="h4" size="md">
+              Workload overview
+            </Title>
+          }
+          toggleWrapper="h4"
         >
-          <AccordionItem isExpanded={expanded}>
-            <AccordionToggle
-              id="workload-overview-toggle"
-              className="gpuaas-workload-overview__toggle"
-              onClick={() => setExpanded((current) => !current)}
-            >
-              <Content component="h4">Workload overview</Content>
-            </AccordionToggle>
-            <AccordionContent id="workload-overview-content">
-              {dataUnavailable ? (
-                <EmptyState titleText="Workload data not connected" headingLevel="h3">
-                  <EmptyStateBody>Workload data is not available for the overview.</EmptyStateBody>
-                </EmptyState>
-              ) : error ? (
-                <Alert variant="danger" title="Unable to load workload overview">
-                  {error.message}
+          {dataUnavailable ? (
+            <EmptyState titleText="Workload data not connected" headingLevel="h3">
+              <EmptyStateBody>Workload data is not available for the overview.</EmptyStateBody>
+            </EmptyState>
+          ) : error ? (
+            <Alert variant="danger" title="Unable to load workload overview">
+              {error.message}
+            </Alert>
+          ) : !loaded ? (
+            <Spinner aria-label="Loading workload overview" />
+          ) : (
+            <>
+              {partial && (
+                <Alert variant="warning" isInline title="Some workloads could not be loaded">
+                  Counts include only workload types and resources that loaded successfully.
                 </Alert>
-              ) : !loaded ? (
-                <Spinner aria-label="Loading workload overview" />
-              ) : (
-                <>
-                  {partial && (
-                    <Alert variant="warning" isInline title="Some workloads could not be loaded">
-                      Counts include only workload types and resources that loaded successfully.
-                    </Alert>
-                  )}
-                  <Tabs activeKey="status" aria-label="Workload overview tabs">
-                    <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
-                      {total === 0 ? (
-                        <WorkloadOverviewEmptyState />
-                      ) : (
-                        <WorkloadStatusTab
-                          total={total}
-                          counts={counts}
-                          details={details}
-                          visiblePopover={visiblePopover}
-                          onPopoverOpen={(bucket, source) => setVisiblePopover({ bucket, source })}
-                          onPopoverClose={() => setVisiblePopover(undefined)}
-                          onViewInTable={onViewInTable}
-                        />
-                      )}
-                    </Tab>
-                  </Tabs>
-                </>
               )}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+              <Tabs
+                activeKey={activeTab}
+                onSelect={(_event, eventKey) => setActiveTab(eventKey)}
+                aria-label="Workload overview tabs"
+              >
+                <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
+                  {total === 0 ? (
+                    <WorkloadOverviewEmptyState />
+                  ) : (
+                    <WorkloadStatusTab
+                      total={total}
+                      counts={counts}
+                      details={details}
+                      visiblePopover={visiblePopover}
+                      onPopoverOpen={(bucket, source) => setVisiblePopover({ bucket, source })}
+                      onPopoverClose={() => setVisiblePopover(undefined)}
+                      onViewInTable={onViewInTable}
+                    />
+                  )}
+                </Tab>
+                {kueueAvailable && canAccessAdminMetrics && (
+                  <Tab
+                    eventKey="admissions"
+                    title={
+                      <TabTitleText>
+                        <span data-testid="workload-overview-tab-admissions">Admissions</span>
+                      </TabTitleText>
+                    }
+                  >
+                    {activeTab === 'admissions' && (
+                      <React.Suspense fallback={<AdmissionMetricsLoading />}>
+                        <WorkloadAdmissionsTab
+                          metrics={admissionMetrics}
+                          timeWindow={timeWindow}
+                          onTimeWindowChange={setTimeWindow}
+                          canAccessAdminMetrics={canAccessAdminMetrics}
+                        />
+                      </React.Suspense>
+                    )}
+                  </Tab>
+                )}
+              </Tabs>
+            </>
+          )}
+        </ExpandableSection>
       </CardBody>
     </Card>
   );

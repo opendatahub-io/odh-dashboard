@@ -33,7 +33,6 @@ const servingRuntimeTarget: RuntimeImageInstallTargetExtension = {
       description: 'and the inference service deployment wizard.',
     },
     installTargetName: 'serving runtime template',
-    configureStepLabel: 'Configure template',
     component: () => Promise.resolve({ default: () => null }),
   },
 };
@@ -49,7 +48,6 @@ const acceleratorTarget: RuntimeImageInstallTargetExtension = {
       description: 'and the LLM inference service deployment wizard.',
     },
     installTargetName: 'LLM accelerator configuration',
-    configureStepLabel: 'Configure accelerator',
     component: () => Promise.resolve({ default: () => null }),
   },
 };

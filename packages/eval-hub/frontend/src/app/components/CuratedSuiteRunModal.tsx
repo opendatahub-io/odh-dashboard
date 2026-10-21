@@ -8,7 +8,7 @@ import type { Collection, CollectionResolution } from '~/app/types';
 import StartEvaluationRunModal from './StartEvaluationRunModal';
 
 const CURATED_SUITE_RUN_DESCRIPTION =
-  'An unchanged copy of this benchmark suite will be reused if one already exists in your project; otherwise, it will be copied before the evaluation starts.';
+  'An unchanged copy of this collection will be reused if one already exists in your project; otherwise, it will be copied before the evaluation starts.';
 
 type CuratedSuiteRunModalProps = {
   isOpen: boolean;
@@ -46,8 +46,8 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
       } catch (error) {
         if (!signal?.aborted) {
           notification.error(
-            'Failed to find existing suite copy',
-            getErrorMessage(error, 'Unable to check for an existing suite copy.'),
+            'Failed to find existing collection copy',
+            getErrorMessage(error, 'Unable to check for an existing collection copy.'),
           );
         }
         throw error;
@@ -78,8 +78,8 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
       } catch (error) {
         if (!signal?.aborted) {
           notification.error(
-            'Failed to copy suite',
-            getErrorMessage(error, 'Unable to copy suite.'),
+            'Failed to copy collection',
+            getErrorMessage(error, 'Unable to copy collection.'),
           );
         }
         return undefined;
@@ -98,9 +98,9 @@ const CuratedSuiteRunModal: React.FC<CuratedSuiteRunModalProps> = ({
         await deleteCollection(copiedCollection.resource.id);
       } catch (cleanupError) {
         return new Error(
-          `The copied suite "${copiedCollection.name}" could not be removed. ${getErrorMessage(
+          `The copied collection "${copiedCollection.name}" could not be removed. ${getErrorMessage(
             cleanupError,
-            'Please remove it from your benchmark suites.',
+            'Please remove it from your collections.',
           )}`,
         );
       }

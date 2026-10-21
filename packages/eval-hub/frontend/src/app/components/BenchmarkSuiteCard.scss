@@ -1,64 +1,26 @@
 .evalhub-benchmark-suite-card {
-  --evalhub-benchmark-suite-card-gradient-color: var(
-    --pf-t--global--background--color--primary--default
-  );
+  --evalhub-benchmark-suite-card-gradient-color: #d9e7f2;
+  --evalhub-benchmark-suite-card-gradient-opacity: 50%;
   --pf-v6-c-card--BackgroundColor: transparent;
   background: linear-gradient(
     to bottom,
     var(--pf-t--global--background--color--primary--default),
     var(--pf-t--global--background--color--primary--default) 60%,
-    color-mix(in srgb, var(--evalhub-benchmark-suite-card-gradient-color) 50%, transparent)
+    color-mix(
+      in srgb,
+      var(--evalhub-benchmark-suite-card-gradient-color)
+        var(--evalhub-benchmark-suite-card-gradient-opacity),
+      transparent
+    )
   );
   max-width: 22.25rem;
   min-width: 0;
 }
 
-.evalhub-benchmark-suite-card--blue {
-  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--blue--100, #dbeafe);
-}
-
-.evalhub-benchmark-suite-card--cyan {
-  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--cyan--100, #cffafe);
-}
-
-.evalhub-benchmark-suite-card--green {
-  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--green--100, #dcfce7);
-}
-
-.evalhub-benchmark-suite-card--orange {
-  --evalhub-benchmark-suite-card-gradient-color: var(
-    --pf-t--global--color--orange--100,
-    #ffedd5
-  );
-}
-
-.evalhub-benchmark-suite-card--orangered {
-  --evalhub-benchmark-suite-card-gradient-color: var(
-    --pf-t--global--color--orange--100,
-    #fed7aa
-  );
-}
-
-.evalhub-benchmark-suite-card--purple {
-  --evalhub-benchmark-suite-card-gradient-color: var(
-    --pf-t--global--color--purple--100,
-    #f3e8ff
-  );
-}
-
-.evalhub-benchmark-suite-card--red {
-  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--red--100, #fee2e2);
-}
-
-.evalhub-benchmark-suite-card--teal {
-  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--global--color--teal--100, #ccfbf1);
-}
-
-.evalhub-benchmark-suite-card--yellow {
-  --evalhub-benchmark-suite-card-gradient-color: var(
-    --pf-t--global--color--yellow--100,
-    #fef3c7
-  );
+:root:where(.pf-v6-theme-dark)
+  .evalhub-benchmark-suite-card:not(.evalhub-benchmark-suite-card--loading) {
+  --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--color--blue--70);
+  --evalhub-benchmark-suite-card-gradient-opacity: 15%;
 }
 
 .evalhub-benchmark-suite-card--loading {
@@ -72,6 +34,9 @@
 
   .evalhub-benchmark-suite-card__domain-icon--loading {
     background-color: var(--pf-t--global--background--color--secondary--default);
+    flex: 0 0 auto;
+    inset-inline-start: auto;
+    position: relative;
   }
 
   .evalhub-benchmark-suite-card__loading-title {
@@ -94,41 +59,6 @@
 
   .evalhub-benchmark-suite-card__loading-metrics {
     gap: var(--pf-t--global--spacer--xs);
-  }
-}
-
-:root:where(.pf-v6-theme-dark) {
-  .evalhub-benchmark-suite-card--blue {
-    --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--color--blue--40);
-  }
-
-  .evalhub-benchmark-suite-card--cyan {
-    --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--color--teal--40);
-  }
-
-  .evalhub-benchmark-suite-card--green {
-    --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--color--green--40);
-  }
-
-  .evalhub-benchmark-suite-card--orange,
-  .evalhub-benchmark-suite-card--orangered {
-    --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--color--orange--40);
-  }
-
-  .evalhub-benchmark-suite-card--purple {
-    --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--color--purple--40);
-  }
-
-  .evalhub-benchmark-suite-card--red {
-    --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--color--red--40);
-  }
-
-  .evalhub-benchmark-suite-card--teal {
-    --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--color--teal--40);
-  }
-
-  .evalhub-benchmark-suite-card--yellow {
-    --evalhub-benchmark-suite-card-gradient-color: var(--pf-t--color--yellow--40);
   }
 }
 
@@ -167,7 +97,30 @@
   gap: var(--pf-t--global--spacer--sm);
 }
 
+.evalhub-benchmark-suite-card__domain-group {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+.evalhub-benchmark-suite-card__domain-icons {
+  --evalhub-benchmark-suite-card-domain-icon-size: calc(var(--pf-t--global--spacer--xl) + 4px);
+  --evalhub-benchmark-suite-card-domain-icon-overlap: var(--pf-t--global--spacer--sm);
+  --evalhub-benchmark-suite-card-domain-icon-expanded-gap: var(--pf-t--global--spacer--xs);
+  flex: 0 0 auto;
+  height: var(--evalhub-benchmark-suite-card-domain-icon-size);
+  position: relative;
+  transition: width 200ms ease-in-out;
+  width: calc(
+    var(--evalhub-benchmark-suite-card-domain-icon-size) +
+      (var(--evalhub-benchmark-suite-card-domain-count) - 1) *
+      var(--evalhub-benchmark-suite-card-domain-icon-overlap)
+  );
+}
+
 .evalhub-benchmark-suite-card__contextual-actions {
+  align-self: flex-start;
   margin-inline-start: auto;
 }
 
@@ -175,66 +128,149 @@
   color: var(--pf-t--global--text--color--regular);
   font-size: var(--pf-t--global--font--size--xs);
   font-weight: var(--pf-t--global--font--weight--body--bold);
+  max-width: 12rem;
+  overflow: hidden;
+  transition: max-width 200ms ease-in-out, opacity 150ms ease-in-out, visibility 0s linear 200ms;
+  visibility: visible;
+  white-space: nowrap;
+}
+
+.evalhub-benchmark-suite-card__domain-group.m-multiple:hover {
+  align-items: flex-start;
+  flex: 1 1 auto;
+  gap: 0;
+  min-width: 0;
+
+  .evalhub-benchmark-suite-card__category {
+    max-width: 0;
+    opacity: 0;
+    transition: max-width 200ms ease-in-out, opacity 75ms ease-out, visibility 0s;
+    visibility: hidden;
+  }
+}
+
+.evalhub-benchmark-suite-card__domain-group.m-multiple:not(.m-many-domains):hover {
+  .evalhub-benchmark-suite-card__domain-icons {
+    flex: 0 0 auto;
+    width: calc(
+      var(--evalhub-benchmark-suite-card-domain-icon-size) *
+        var(--evalhub-benchmark-suite-card-domain-count) +
+        (var(--evalhub-benchmark-suite-card-domain-count) - 1) *
+        var(--evalhub-benchmark-suite-card-domain-icon-expanded-gap)
+    );
+  }
+
+  .evalhub-benchmark-suite-card__domain-icon {
+    inset-inline-start: calc(
+      var(--evalhub-benchmark-suite-card-domain-index) *
+        (
+          var(--evalhub-benchmark-suite-card-domain-icon-size) +
+            var(--evalhub-benchmark-suite-card-domain-icon-expanded-gap)
+        )
+    );
+  }
+}
+
+.evalhub-benchmark-suite-card__domain-group.m-many-domains:hover {
+  .evalhub-benchmark-suite-card__domain-icons {
+    display: grid;
+    flex: 1 1 auto;
+    gap: var(--evalhub-benchmark-suite-card-domain-icon-expanded-gap);
+    grid-auto-rows: var(--evalhub-benchmark-suite-card-domain-icon-size);
+    grid-template-columns: repeat(auto-fill, var(--evalhub-benchmark-suite-card-domain-icon-size));
+    height: auto;
+    min-width: 0;
+    transition: none;
+    width: 100%;
+  }
+
+  .evalhub-benchmark-suite-card__category {
+    transition: none;
+  }
 }
 
 .evalhub-benchmark-suite-card__domain-icon {
   align-items: center;
   border-radius: 50%;
+  border: 2px solid var(--pf-t--global--background--color--primary--default);
+  box-sizing: content-box;
   display: inline-flex;
   flex: 0 0 auto;
   height: var(--pf-t--global--spacer--xl);
+  inset-block-start: 0;
   justify-content: center;
+  position: absolute;
+  inset-inline-start: calc(
+    var(--evalhub-benchmark-suite-card-domain-index) *
+      var(--evalhub-benchmark-suite-card-domain-icon-overlap)
+  );
+  transition: inset-inline-start 200ms ease-in-out;
   width: var(--pf-t--global--spacer--xl);
+  z-index: calc(
+    var(--evalhub-benchmark-suite-card-domain-count) -
+      var(--evalhub-benchmark-suite-card-domain-index)
+  );
 
   > svg {
+    color: var(--pf-t--global--text--color--on-highlight);
     height: var(--pf-t--global--icon--size--lg);
     width: var(--pf-t--global--icon--size--lg);
   }
 }
 
-.evalhub-benchmark-suite-card__domain-icon--blue {
-  background-color: var(--pf-t--global--color--blue--100, #dbeafe);
+.evalhub-benchmark-suite-card__domain-group.m-many-domains:hover
+  .evalhub-benchmark-suite-card__domain-icon {
+  inset-block-start: auto;
+  inset-inline-start: auto;
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evalhub-benchmark-suite-card__domain-icons,
+  .evalhub-benchmark-suite-card__domain-icon,
+  .evalhub-benchmark-suite-card__category {
+    transition-duration: 0.01ms;
+  }
+}
+
+.evalhub-benchmark-suite-card__domain-icon--light-blue {
+  background-color: #b9dcf7;
   color: var(--pf-t--global--color--blue--500, #1e3a8a);
 }
 
-.evalhub-benchmark-suite-card__domain-icon--cyan {
-  background-color: var(--pf-t--global--color--cyan--100, #cffafe);
-  color: var(--pf-t--global--color--cyan--500, #155e75);
-}
-
-.evalhub-benchmark-suite-card__domain-icon--green {
-  background-color: var(--pf-t--global--color--green--100, #dcfce7);
-  color: var(--pf-t--global--color--green--500, #166534);
-}
-
-.evalhub-benchmark-suite-card__domain-icon--orange {
-  background-color: var(--pf-t--global--color--orange--100, #ffedd5);
-  color: var(--pf-t--global--color--orange--500, #9a3412);
-}
-
-.evalhub-benchmark-suite-card__domain-icon--orangered {
-  background-color: var(--pf-t--global--color--orange--100, #fed7aa);
-  color: var(--pf-t--global--color--orange--500, #c2410c);
-}
-
-.evalhub-benchmark-suite-card__domain-icon--purple {
-  background-color: var(--pf-t--global--color--purple--100, #f3e8ff);
+.evalhub-benchmark-suite-card__domain-icon--lavender {
+  background-color: #d0c4f3;
   color: var(--pf-t--global--color--purple--500, #6b21a8);
 }
 
-.evalhub-benchmark-suite-card__domain-icon--red {
-  background-color: var(--pf-t--global--color--red--100, #fee2e2);
-  color: var(--pf-t--global--color--red--500, #991b1b);
-}
-
-.evalhub-benchmark-suite-card__domain-icon--teal {
-  background-color: var(--pf-t--global--color--teal--100, #ccfbf1);
+.evalhub-benchmark-suite-card__domain-icon--mint-teal {
+  background-color: #bce8df;
   color: var(--pf-t--global--color--teal--500, #115e59);
 }
 
-.evalhub-benchmark-suite-card__domain-icon--yellow {
-  background-color: var(--pf-t--global--color--yellow--100, #fef3c7);
+.evalhub-benchmark-suite-card__domain-icon--light-green {
+  background-color: #c8efb5;
+  color: var(--pf-t--global--color--green--500, #166534);
+}
+
+.evalhub-benchmark-suite-card__domain-icon--apricot {
+  background-color: #ffd0a0;
+  color: var(--pf-t--global--color--orange--500, #9a3412);
+}
+
+.evalhub-benchmark-suite-card__domain-icon--soft-mint-yellow {
+  background-color: #e6e6a8;
   color: var(--pf-t--global--color--yellow--500, #854d0e);
+}
+
+.evalhub-benchmark-suite-card__domain-icon--soft-pink {
+  background-color: #f5c1c1;
+  color: var(--pf-t--global--color--red--500, #991b1b);
+}
+
+.evalhub-benchmark-suite-card__domain-icon--pale-cyan {
+  background-color: #b9e5e5;
+  color: var(--pf-t--global--color--cyan--500, #155e75);
 }
 
 .evalhub-benchmark-suite-card__title-button {
@@ -294,12 +330,6 @@
 
 .evalhub-benchmark-suite-card__metrics {
   max-width: 100%;
-
-  .pf-v6-c-label-group__main,
-  .pf-v6-c-label-group__list {
-    flex-wrap: nowrap;
-    min-width: 0;
-  }
 }
 
 .evalhub-benchmark-suite-card__body .evalhub-benchmark-suite-card__description {
@@ -311,6 +341,19 @@
   -webkit-line-clamp: 4;
 }
 
+.evalhub-benchmark-suite-card__body .evalhub-benchmark-suite-card__prerequisite {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.evalhub-benchmark-suite-card__prerequisite-icon-container {
+  height: var(--pf-t--global--font--line-height--body);
+  padding-block-start: var(--pf-t--global--spacer--xs);
+}
+
+.evalhub-benchmark-suite-card__prerequisite-icon {
+  color: var(--pf-t--global--icon--color--status--info--default);
+}
+
 .evalhub-benchmark-suite-card__footer {
   display: flex;
   flex-direction: column;
@@ -319,7 +362,32 @@
 }
 
 .evalhub-benchmark-suite-card__footer-metrics {
+  position: relative;
   width: 100%;
+}
+
+.evalhub-benchmark-suite-card__metrics-measurement {
+  column-gap: var(--pf-t--global--spacer--xs);
+  inset: 0 auto auto 0;
+  overflow: hidden;
+  position: absolute;
+  visibility: hidden;
+  width: 100%;
+}
+
+.evalhub-benchmark-suite-card__metrics-measurement-row {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: var(--pf-t--global--spacer--xs);
+  white-space: nowrap;
+}
+
+.evalhub-benchmark-suite-card__metrics-measurement-label {
+  flex: 0 0 auto;
+
+  .evalhub-benchmark-suite-card__metrics-measurement-text::after {
+    content: attr(data-label);
+  }
 }
 
 .evalhub-benchmark-suite-card__footer-content {

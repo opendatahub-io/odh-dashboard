@@ -16,6 +16,8 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
 import type { RuntimeImageInstallTargetProps } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
+import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { parseLlmInferenceServiceConfig } from './parseLlmInferenceServiceConfig';
 import LlmAcceleratorConfigFormBody from '../settings/llmAcceleratorConfigs/LlmAcceleratorConfigFormBody';
 import { fireLlmAcceleratorConfigCreated } from '../tracking/llmdTrackingConstants';
@@ -62,6 +64,10 @@ const LlmAcceleratorInstallTargetBody: React.FC<RuntimeImageInstallTargetProps> 
                     outcome: TrackingOutcome.cancel,
                     mode: 'install',
                   });
+                  fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+                    outcome: TrackingOutcome.cancel,
+                    configurationType: 'llm-accelerator-configuration',
+                  });
                   navigate(cancelReturnRoute);
                 }}
               >
@@ -77,14 +83,11 @@ const LlmAcceleratorInstallTargetBody: React.FC<RuntimeImageInstallTargetProps> 
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title headingLevel="h2">Add LLM accelerator configuration</Title>
+        <Title headingLevel="h2">Configure</Title>
       </StackItem>
       <StackItem>
         <Content>
-          <p>
-            Review the pre-filled configuration for this runtime image. Edit any fields before
-            creating it on this cluster.
-          </p>
+          <p>Review or customize the pre-filled configuration.</p>
         </Content>
       </StackItem>
       <StackItem>

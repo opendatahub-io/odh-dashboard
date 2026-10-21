@@ -71,6 +71,11 @@ export type CrPathConfig = {
   nodeSelectorPath: string;
 };
 
+export type DRAHardwareProfileDetails = {
+  resourceClaimTemplateName: string;
+  description?: string;
+};
+
 export type HardwareProfileOptions = {
   visibleIn: HardwareProfileFeatureVisibility[];
   paths?: CrPathConfig;

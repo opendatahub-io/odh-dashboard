@@ -46,7 +46,54 @@ export const getBenchmarkDisplayName = (
   return providerBenchmarkName ?? benchmarkNameMap?.get(benchmark.id) ?? benchmark.id;
 };
 
-type CategoryColor = 'orange' | 'blue' | 'green' | 'purple' | 'teal' | 'red' | 'yellow';
+type CategoryColor = 'orange' | 'blue' | 'green' | 'purple' | 'teal' | 'red' | 'yellow' | 'grey';
+
+export type CategoryTileColor =
+  | 'light-blue'
+  | 'lavender'
+  | 'mint-teal'
+  | 'light-green'
+  | 'apricot'
+  | 'soft-mint-yellow'
+  | 'soft-pink'
+  | 'pale-cyan';
+
+export const CATEGORY_TILE_COLORS: Readonly<Record<CategoryTileColor, string>> = {
+  'light-blue': '#B9DCF7',
+  lavender: '#D0C4F3',
+  'mint-teal': '#BCE8DF',
+  'light-green': '#C8EFB5',
+  apricot: '#FFD0A0',
+  'soft-mint-yellow': '#E6E6A8',
+  'soft-pink': '#F5C1C1',
+  'pale-cyan': '#B9E5E5',
+};
+
+/* eslint-disable camelcase */
+const CATEGORY_TILE_COLOR_MAP: Readonly<Record<string, CategoryTileColor>> = {
+  knowledge_and_reasoning: 'lavender',
+  grounded_document_understanding: 'light-blue',
+  instruction_and_output_reliability: 'light-green',
+  tool_use_and_function_calling: 'apricot',
+  software: 'mint-teal',
+  trustworthiness: 'soft-pink',
+  multilingual: 'pale-cyan',
+  multimodal: 'soft-mint-yellow',
+};
+/* eslint-enable camelcase */
+
+export const normalizeCategory = (category?: string): string =>
+  category
+    ?.trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_') ?? '';
+
+export const getCategoryTileColor = (category?: string): CategoryTileColor => {
+  const normalizedCategory = normalizeCategory(category);
+  return Object.hasOwn(CATEGORY_TILE_COLOR_MAP, normalizedCategory)
+    ? CATEGORY_TILE_COLOR_MAP[normalizedCategory]
+    : 'light-blue';
+};
 
 const CATEGORY_COLOR_PALETTE: CategoryColor[] = [
   'blue',
@@ -58,9 +105,29 @@ const CATEGORY_COLOR_PALETTE: CategoryColor[] = [
   'yellow',
 ];
 
+/* eslint-disable camelcase */
+const CATEGORY_LABEL_COLOR_MAP: Readonly<Partial<Record<string, CategoryColor>>> = {
+  knowledge_and_reasoning: 'purple',
+  grounded_document_understanding: 'blue',
+  instruction_and_output_reliability: 'green',
+  tool_use_and_function_calling: 'orange',
+  software: 'teal',
+  trustworthiness: 'red',
+  multilingual: 'grey',
+  multimodal: 'yellow',
+};
+/* eslint-enable camelcase */
+
 export const getCategoryColor = (category?: string): CategoryColor => {
   if (!category) {
     return 'blue';
+  }
+  const normalizedCategory = normalizeCategory(category);
+  const mappedColor = Object.hasOwn(CATEGORY_LABEL_COLOR_MAP, normalizedCategory)
+    ? CATEGORY_LABEL_COLOR_MAP[normalizedCategory]
+    : undefined;
+  if (mappedColor) {
+    return mappedColor;
   }
   const hash = category
     .toLowerCase()
@@ -202,6 +269,29 @@ export const getMetricDisplayName = (metric: string): string =>
     : formatCategory(metric);
 
 export const VISIBLE_METRICS_COUNT = 3;
+
+export const getVisibleMetricCount = (
+  metricWidths: number[],
+  overflowLabelWidths: number[],
+  availableWidth: number,
+  gap: number,
+): number => {
+  const maximumVisibleCount = Math.min(metricWidths.length, VISIBLE_METRICS_COUNT);
+
+  for (let visibleCount = maximumVisibleCount; visibleCount >= 0; visibleCount -= 1) {
+    const hiddenCount = metricWidths.length - visibleCount;
+    const labelsWidth = metricWidths.slice(0, visibleCount).reduce((sum, width) => sum + width, 0);
+    const labelsGap = Math.max(visibleCount - 1, 0) * gap;
+    const overflowWidth = hiddenCount > 0 ? (overflowLabelWidths[hiddenCount - 1] ?? 0) : 0;
+    const overflowGap = visibleCount > 0 && hiddenCount > 0 ? gap : 0;
+
+    if (labelsWidth + labelsGap + overflowWidth + overflowGap <= availableWidth) {
+      return visibleCount;
+    }
+  }
+
+  return 0;
+};
 
 export const toSafeExternalUrl = (raw?: string): string | undefined => {
   if (!raw) {

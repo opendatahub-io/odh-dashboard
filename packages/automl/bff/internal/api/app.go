@@ -28,19 +28,20 @@ import (
 )
 
 const (
-	Version                 = "1.0.0"
-	PathPrefix              = "/automl"
-	ApiPathPrefix           = "/api/v1"
-	HealthCheckPath         = "/healthcheck"
-	UserPath                = ApiPathPrefix + "/user"
-	NamespacePath           = ApiPathPrefix + "/namespaces"
-	SecretsPath             = ApiPathPrefix + "/secrets"
-	S3FilePath              = ApiPathPrefix + "/s3/files/:key"
-	S3FilesPath             = ApiPathPrefix + "/s3/files"
-	PipelineRunsPath        = ApiPathPrefix + "/pipeline-runs"
-	ModelRegistriesPath     = ApiPathPrefix + "/model-registries"
-	ModelRegistryModelsPath = ModelRegistriesPath + "/:registryId/models"
-	ManagedPipelinesPath    = ApiPathPrefix + "/managed-pipelines/enable"
+	Version                  = "1.0.0"
+	PathPrefix               = "/automl"
+	ApiPathPrefix            = "/api/v1"
+	HealthCheckPath          = "/healthcheck"
+	UserPath                 = ApiPathPrefix + "/user"
+	NamespacePath            = ApiPathPrefix + "/namespaces"
+	SecretsPath              = ApiPathPrefix + "/secrets"
+	S3FilePath               = ApiPathPrefix + "/s3/files/:key"
+	S3FilesPath              = ApiPathPrefix + "/s3/files"
+	PipelineRunsPath         = ApiPathPrefix + "/pipeline-runs"
+	ModelRegistriesPath      = ApiPathPrefix + "/model-registries"
+	ModelRegistryModelsPath  = ModelRegistriesPath + "/:registryId/models"
+	ManagedPipelinesPath     = ApiPathPrefix + "/managed-pipelines/enable"
+	PipelineServerStatusPath = ApiPathPrefix + "/pipeline-server/status"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -333,6 +334,7 @@ func (app *App) Routes() http.Handler {
 
 	// Managed pipelines — enable AutoML pipeline definitions on an existing DSPA
 	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
+	apiRouter.GET(PipelineServerStatusPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.PipelineServerStatusHandler)))
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
 	apiRouter.POST(ModelRegistryModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.modelRegistry.RegisterModelHandler)))
 

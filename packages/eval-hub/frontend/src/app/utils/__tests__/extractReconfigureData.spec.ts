@@ -45,12 +45,12 @@ describe('inferSourceMode', () => {
     });
   });
 
-  it('should return agent/external when model has url but no matching service', () => {
+  it('should return model/external when model has url but no matching service', () => {
     const job = mockEvaluationJob({ modelName: 'external-agent' });
     job.model.url = 'https://agent.example.com/v1';
 
     expect(inferSourceMode(job, [])).toEqual({
-      sourceMode: 'agent',
+      sourceMode: 'model',
       modelSelection: 'external',
     });
   });

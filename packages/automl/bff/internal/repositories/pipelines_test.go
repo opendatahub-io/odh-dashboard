@@ -86,6 +86,9 @@ func (m *mockPipelinesService) DiscoverReadyDSPA(context.Context, string) (*pipe
 func (m *mockPipelinesService) EnableManagedPipelines(context.Context, string) (*pipelines.EnableManagedPipelinesResult, error) {
 	return nil, nil
 }
+func (m *mockPipelinesService) GetDSPAStatus(context.Context, string) (*pipelines.DSPAStatus, error) {
+	return nil, nil
+}
 
 // --- Test helpers ---
 
@@ -510,6 +513,9 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["train_data_secret_name"] != "secret" {
 			t.Errorf("train_data_secret_name = %v", params["train_data_secret_name"])
 		}
+		if disabled := kfp.PluginsInput["mlflow"]["disabled"]; disabled != true {
+			t.Errorf("mlflow plugin disabled = %v, want true", disabled)
+		}
 	})
 
 	t.Run("tabular with custom top_n", func(t *testing.T) {
@@ -538,6 +544,9 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		}
 		if params["prediction_length"] != 1 {
 			t.Errorf("prediction_length = %v, want default 1", params["prediction_length"])
+		}
+		if disabled := kfp.PluginsInput["mlflow"]["disabled"]; disabled != true {
+			t.Errorf("mlflow plugin disabled = %v, want true", disabled)
 		}
 	})
 

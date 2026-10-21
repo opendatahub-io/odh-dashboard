@@ -15,6 +15,10 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core'),
   useExtensions: () => mockExtensions,
 }));
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
+  useTrackEvent: () => jest.fn(),
+}));
 
 const createTarget = (id: RuntimeImageInstallTargetId): RuntimeImageInstallTargetExtension => ({
   type: 'model-serving.runtime-image/install-target',
@@ -24,7 +28,6 @@ const createTarget = (id: RuntimeImageInstallTargetId): RuntimeImageInstallTarge
     description: id,
     installTargetName: id,
     selectedState: { listName: id, description: id },
-    configureStepLabel: id,
     component: () => Promise.resolve({ default: () => null }),
   },
 });
@@ -106,7 +109,7 @@ describe('RuntimeImageInstallAction', () => {
         </Routes>
       </MemoryRouter>,
     );
-    const installLink = screen.getByRole('link', { name: 'Install' });
+    const installLink = screen.getByRole('link', { name: 'Create' });
     expect(installLink).toHaveAttribute(
       'href',
       '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/preview-vllm-0-6-0/install',

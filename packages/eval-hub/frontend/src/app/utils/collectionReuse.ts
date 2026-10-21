@@ -4,7 +4,7 @@ import type { Collection } from '~/app/types';
 
 const COLLECTION_PAGE_SIZE = 100;
 const MAX_COLLECTION_PAGES = 100;
-const COLLECTION_LOOKUP_ERROR = 'Unable to complete tenant benchmark suite lookup';
+const COLLECTION_LOOKUP_ERROR = 'Unable to complete tenant collection lookup';
 
 const getCollectionContent = (collection: Collection) => ({
   name: collection.name,
@@ -55,7 +55,7 @@ export const getAllTenantCollections = async (
     if (newItems.length === 0) {
       if (response.total_count != null && collections.length < response.total_count) {
         throw new Error(
-          `${COLLECTION_LOOKUP_ERROR}: benchmark suite page repeated before all benchmark suites were fetched`,
+          `${COLLECTION_LOOKUP_ERROR}: collection page repeated before all collections were fetched`,
         );
       }
       offset = undefined;
@@ -74,7 +74,7 @@ export const getAllTenantCollections = async (
       collections.length < response.total_count
     ) {
       throw new Error(
-        `${COLLECTION_LOOKUP_ERROR}: benchmark suite page ended before all benchmark suites were fetched`,
+        `${COLLECTION_LOOKUP_ERROR}: collection page ended before all collections were fetched`,
       );
     }
 

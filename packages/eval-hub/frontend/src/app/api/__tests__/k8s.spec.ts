@@ -305,7 +305,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid benchmark suite: expected an object',
+      'Invalid collection: expected an object',
     );
   });
 
@@ -314,7 +314,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid benchmark suite: missing or empty name',
+      'Invalid collection: missing or empty name',
     );
   });
 
@@ -323,7 +323,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid benchmark suite: missing resource',
+      'Invalid collection: missing resource',
     );
   });
 
@@ -332,7 +332,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid benchmark suite: missing resource.id',
+      'Invalid collection: missing resource.id',
     );
   });
 
@@ -343,7 +343,7 @@ describe('getCollection', () => {
     mockIsModArchResponse.mockReturnValue(true);
 
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
-      'Invalid benchmark suite: benchmarks is not an array',
+      'Invalid collection: benchmarks is not an array',
     );
   });
 
@@ -352,7 +352,7 @@ describe('getCollection', () => {
       data: {
         name: 'Test',
         resource: { id: 'col-1' },
-        domains: ['safety', 123],
+        domains: ['trustworthiness', 123],
         evaluation_targets: 'model',
         industries: [null, 'healthcare'],
       },
@@ -362,7 +362,7 @@ describe('getCollection', () => {
     const result = await getCollection('', 'test-ns', 'col-1')({});
 
     expect(result).toMatchObject({
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       evaluation_targets: undefined,
       industries: ['healthcare'],
     });
@@ -370,7 +370,7 @@ describe('getCollection', () => {
 
   it('should reject with an error when collectionId is empty', async () => {
     await expect(getCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'Benchmark suite ID must not be empty',
+      'Collection ID must not be empty',
     );
 
     expect(mockRestGET).not.toHaveBeenCalled();
@@ -480,7 +480,7 @@ describe('deleteCollection', () => {
 
   it('should reject when collectionId is empty', async () => {
     await expect(deleteCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'Benchmark suite ID must not be empty',
+      'Collection ID must not be empty',
     );
 
     expect(mockRestDELETE).not.toHaveBeenCalled();
@@ -532,7 +532,7 @@ describe('patchCollection', () => {
   it('should reject when collectionId is empty', async () => {
     await expect(
       patchCollection('', 'test-ns', '', [{ op: 'replace', path: '/name', value: 'Test' }])({}),
-    ).rejects.toThrow('Benchmark suite ID must not be empty');
+    ).rejects.toThrow('Collection ID must not be empty');
 
     expect(mockRestPATCH).not.toHaveBeenCalled();
   });
@@ -556,7 +556,7 @@ describe('cloneCollection', () => {
 
     await expect(
       cloneCollection('', 'test-ns', 'col-1', { name: 'Cloned suite' })({}),
-    ).rejects.toThrow('Invalid benchmark suite: benchmarks contains an invalid entry');
+    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
   });
 
   it('should send an empty override object when cloning a collection as-is', async () => {
@@ -587,14 +587,14 @@ describe('createCollection', () => {
   it('should create a collection with metadata and evaluation target arrays', async () => {
     const request: CreateCollectionRequest = {
       name: 'New suite',
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       evaluation_targets: ['model'],
       benchmarks: [{ id: 'benchmark-001' }],
     };
     const collection: Collection = {
       resource: { id: 'created-collection' },
       name: 'New suite',
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       evaluation_targets: ['model'],
       benchmarks: [{ id: 'benchmark-001' }],
     };
@@ -626,7 +626,7 @@ describe('createCollection', () => {
         name: 'New suite',
         benchmarks: [{ id: 'benchmark-001' }],
       })({}),
-    ).rejects.toThrow('Invalid benchmark suite: benchmarks contains an invalid entry');
+    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
   });
 
   it('should reject a created collection with missing resource metadata', async () => {
@@ -640,7 +640,7 @@ describe('createCollection', () => {
         name: 'New suite',
         benchmarks: [{ id: 'benchmark-001' }],
       })({}),
-    ).rejects.toThrow('Invalid benchmark suite: missing resource.id');
+    ).rejects.toThrow('Invalid collection: missing resource.id');
   });
 });
 
@@ -714,7 +714,7 @@ describe('getCollections', () => {
       {
         resource: { id: 'col-1' },
         name: 'Collection',
-        domains: ['safety', 123],
+        domains: ['trustworthiness', 123],
         evaluation_targets: 'model',
         industries: [null, 'healthcare'],
       },
@@ -724,7 +724,7 @@ describe('getCollections', () => {
 
     const result = await getCollections('', { namespace: 'ns' })({});
 
-    expect(result.items[0].domains).toEqual(['safety']);
+    expect(result.items[0].domains).toEqual(['trustworthiness']);
     expect(result.items[0].evaluation_targets).toBeUndefined();
     expect(result.items[0].industries).toEqual(['healthcare']);
   });
@@ -736,7 +736,7 @@ describe('getCollections', () => {
         name: 'Collection',
         category: 123,
         tags: ['curated', null],
-        domains: ['safety', 123],
+        domains: ['trustworthiness', 123],
         tasks: ['question_answering', false],
         modalities: ['text', {}],
         industries: ['healthcare', undefined],
@@ -758,7 +758,7 @@ describe('getCollections', () => {
     expect(result.items[0]).toMatchObject({
       category: undefined,
       tags: ['curated'],
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       tasks: ['question_answering'],
       modalities: ['text'],
       industries: ['healthcare'],

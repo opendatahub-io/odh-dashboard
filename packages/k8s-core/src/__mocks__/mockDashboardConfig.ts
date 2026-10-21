@@ -41,6 +41,8 @@ export type MockDashboardConfigType = {
   featureStoreAdmin?: boolean;
   dataRegistry?: boolean;
   genAiStudio?: boolean;
+  genAiImageUpload?: boolean;
+  genAiAudioUpload?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
@@ -56,6 +58,7 @@ export type MockDashboardConfigType = {
   workbenchesV2?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
+  skillRegistry?: boolean;
   genAiMcpRegistryServers?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
@@ -93,6 +96,8 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = true,
+  genAiImageUpload = false,
+  genAiAudioUpload = false,
   genAiTracing = false,
   automl = true,
   autorag = true,
@@ -116,6 +121,7 @@ export const mockDashboardConfig = ({
   disableModelCatalog = false,
   mcpCatalog = false,
   mcpRegistry = false,
+  skillRegistry = false,
   genAiMcpRegistryServers = false,
   toolCalling = false,
   disableModelRegistry = false,
@@ -301,6 +307,8 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
+      genAiImageUpload,
+      genAiAudioUpload,
       genAiTracing,
       automl,
       autorag,
@@ -313,6 +321,7 @@ export const mockDashboardConfig = ({
       disableModelCatalog,
       mcpCatalog,
       mcpRegistry,
+      skillRegistry,
       genAiMcpRegistryServers,
       toolCalling,
       disableModelRegistry,

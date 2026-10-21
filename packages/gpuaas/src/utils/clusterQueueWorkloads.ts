@@ -64,6 +64,11 @@ export type NamespaceWorkloadBaseData = {
   localQueues: LocalQueueKind[];
 };
 
+type NamespaceWorkloadRows = {
+  rows: ClusterQueueWorkloadRow[];
+  localQueueKeys: Set<string>;
+};
+
 export type NamespaceWorkloadData = NamespaceWorkloadBaseData & {
   pods: PodKind[];
   /** Workbench StatefulSets; pod template carries hardware-profile annotations when the notebook is stopped. */
@@ -1187,15 +1192,19 @@ export const buildQueuePositionKey = (namespace: string, workloadName: string): 
  */
 export const fetchQueuePositions = async (
   rows: ClusterQueueWorkloadRow[],
+  localQueueKeys?: Set<string>,
 ): Promise<Map<QueuePositionKey, number>> => {
   const positions = new Map<QueuePositionKey, number>();
   const workloadsByQueue = new Map<string, ClusterQueueWorkloadRow[]>();
 
   for (const row of rows) {
-    if (!QUOTA_USAGE_STATUSES_WITH_QUEUE_POSITION.includes(row.status) || !row.localQueue) {
+    if (!row.localQueue || !QUOTA_USAGE_STATUSES_WITH_QUEUE_POSITION.includes(row.status)) {
       continue;
     }
     const queueKey = `${row.namespace}/${row.localQueue}`;
+    if (localQueueKeys && !localQueueKeys.has(queueKey)) {
+      continue;
+    }
     const existing = workloadsByQueue.get(queueKey) ?? [];
     existing.push(row);
     workloadsByQueue.set(queueKey, existing);
@@ -1241,12 +1250,15 @@ export const applyQueuePositions = (
  * UXD display statuses: Kueue "Queued" without a visibility position → Pending;
  * with position → Queued. Other statuses are unchanged.
  */
-export const applyDisplayStatuses = (rows: ClusterQueueWorkloadRow[]): ClusterQueueWorkloadRow[] =>
+export const applyDisplayStatuses = (
+  rows: ClusterQueueWorkloadRow[],
+  positionsLoaded = true,
+): ClusterQueueWorkloadRow[] =>
   rows.map((row) => {
     if (row.status !== QuotaUsageWorkloadStatuses.Queued) {
       return row;
     }
-    if (row.queuePosition != null) {
+    if (!positionsLoaded || row.queuePosition != null) {
       return row;
     }
     return { ...row, status: QuotaUsageWorkloadStatuses.Pending };
@@ -1375,13 +1387,13 @@ export const fetchWorkloadsForClusterQueues = async (
   return mapWorkloadsForClusterQueues(clusterQueueNames, cache, projectDisplayNames);
 };
 
-export const fetchNamespaceWorkloads = async (
+export const fetchNamespaceWorkloadsBase = async (
   namespace: string,
   projectDisplayName: string,
   dashboardNamespace = '',
-): Promise<ClusterQueueWorkloadRow[]> => {
+): Promise<NamespaceWorkloadRows> => {
   if (!namespace) {
-    return [];
+    return { rows: [], localQueueKeys: new Set() };
   }
 
   const namespaceData = await fetchNamespaceWorkloadData(namespace);
@@ -1395,7 +1407,28 @@ export const fetchNamespaceWorkloads = async (
     hardwareProfileByKey,
     hardwareProfilesForMatching,
   );
-  const positions = await fetchQueuePositions(rows);
+  return {
+    rows,
+    localQueueKeys: new Set(
+      namespaceData.localQueues.flatMap((localQueue) => {
+        const name = localQueue.metadata?.name;
+        return name ? [`${namespace}/${name}`] : [];
+      }),
+    ),
+  };
+};
+
+export const fetchNamespaceWorkloads = async (
+  namespace: string,
+  projectDisplayName: string,
+  dashboardNamespace = '',
+): Promise<ClusterQueueWorkloadRow[]> => {
+  const { rows, localQueueKeys } = await fetchNamespaceWorkloadsBase(
+    namespace,
+    projectDisplayName,
+    dashboardNamespace,
+  );
+  const positions = await fetchQueuePositions(rows, localQueueKeys);
   return applyDisplayStatuses(applyQueuePositions(rows, positions));
 };
 

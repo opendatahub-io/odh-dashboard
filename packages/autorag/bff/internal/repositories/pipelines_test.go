@@ -95,6 +95,9 @@ func (m *mockPipelinesService) DiscoverReadyDSPA(context.Context, string) (*pipe
 func (m *mockPipelinesService) EnableManagedPipelines(_ context.Context, _ string) (*pipelines.EnableManagedPipelinesResult, error) {
 	return nil, nil
 }
+func (m *mockPipelinesService) GetDSPAStatus(_ context.Context, _ string) (*pipelines.DSPAStatus, error) {
+	return nil, nil
+}
 
 // --- Helpers ---
 
@@ -855,6 +858,9 @@ func TestCreateRun(t *testing.T) {
 		if gotInput.RuntimeConfig.Parameters["optimization_metric"] != constants.DefaultOptimizationMetric {
 			t.Error("default optimization_metric not set")
 		}
+		if disabled := gotInput.PluginsInput["mlflow"]["disabled"]; disabled != true {
+			t.Errorf("mlflow plugin disabled = %v, want true", disabled)
+		}
 	})
 
 	t.Run("discovery failure", func(t *testing.T) {
@@ -1011,6 +1017,9 @@ func TestCreateIndexingRun(t *testing.T) {
 		}
 		if _, found := gotInput.RuntimeConfig.Parameters["provider_type"]; found {
 			t.Error("provider_type should not be submitted to Pipeline Server")
+		}
+		if disabled := gotInput.PluginsInput["mlflow"]["disabled"]; disabled != true {
+			t.Errorf("mlflow plugin disabled = %v, want true", disabled)
 		}
 	})
 

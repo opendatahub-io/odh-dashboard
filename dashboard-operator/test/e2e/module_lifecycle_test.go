@@ -202,14 +202,16 @@ func TestE2EModuleOperands(t *testing.T) {
 		waitForObject(t, uid, cm, "federation-config")
 		var entries []struct {
 			Name    string `json:"name"`
-			Service *struct {
-				Name string `json:"name"`
-			} `json:"service"`
+			Backend *struct {
+				Service *struct {
+					Name string `json:"name"`
+				} `json:"service"`
+			} `json:"backend"`
 		}
 		require.NoError(t, json.Unmarshal([]byte(cm.Data["module-federation-config.json"]), &entries))
 		require.Condition(t, func() bool {
 			for _, entry := range entries {
-				if entry.Name == "agentOps" && entry.Service != nil && entry.Service.Name == "odh-dashboard-agent-ops-ui" {
+				if entry.Name == "agentOps" && entry.Backend != nil && entry.Backend.Service != nil && entry.Backend.Service.Name == "odh-dashboard-agent-ops-ui" {
 					return true
 				}
 			}

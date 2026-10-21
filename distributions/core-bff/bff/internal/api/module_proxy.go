@@ -264,8 +264,9 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		PathRewriteFn: func(r *http.Request) string {
 			return pathRewrite + strings.TrimPrefix(r.URL.Path, proxyPath)
 		},
-		StripHeaders:       proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
-		ModifyResponse:     ssrf.NewRedirectValidator(app.logger),
+		StripHeaders: proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
+		// SSRF redirect check, then force no-store (Node rewriteNoStoreCacheHeaders parity).
+		ModifyResponse:     chainModifyResponse(ssrf.NewRedirectValidator(app.logger), forceNoStoreCacheHeaders),
 		SSRFValidateTarget: ssrfValidate,
 		Logger:             app.logger,
 	}
