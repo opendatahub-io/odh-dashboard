@@ -62,13 +62,8 @@ export function buildRoutes(backendPort: number): RoutingTable {
   clusterRoutes.push({ pattern: '/api/service', target: clusterUrl });
 
   for (const config of configs) {
-    const { backend } = config;
-    if (backend && !isDashboardOwnedService(backend.service.name)) {
-      clusterRoutes.push({ pattern: `/_mf/${config.name}`, target: clusterUrl });
-    }
-
     for (const ps of config.proxyService ?? []) {
-      if (!isDashboardOwnedService(ps.service.name)) {
+      if (ps.service.name !== 'odh-dashboard') {
         clusterRoutes.push({ pattern: ps.path, target: clusterUrl });
       }
     }
@@ -82,8 +77,4 @@ export function buildRoutes(backendPort: number): RoutingTable {
     clusterRoutes,
     defaultTarget: `http://localhost:${backendPort}`,
   };
-}
-
-function isDashboardOwnedService(serviceName: string): boolean {
-  return serviceName === 'odh-dashboard' || serviceName.startsWith('odh-dashboard-');
 }

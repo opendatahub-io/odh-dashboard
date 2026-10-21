@@ -94,9 +94,9 @@ func main() {
 		metricsOpts.CertDir = "/tmp/k8s-metrics-server/serving-certs"
 		metricsOpts.TLSOpts = tlsOpts
 	}
-
 	mgrOpts := ctrl.Options{
 		Scheme:                 scheme,
+		NewCache:               controller.NewManagerCache(applicationsNamespace),
 		Metrics:                metricsOpts,
 		HealthProbeBindAddress: healthProbeAddr,
 		LeaderElection:         leaderElect,

@@ -209,6 +209,31 @@ describe('buildSelectionPlan', () => {
     assert.equal(impactedTagJob.tag, '@BroadCI');
   });
 
+  it('maps dashboard network policy changes to Feature Store coverage', () => {
+    const localInventory = {
+      ...inventory,
+      [specPath('featureStore')]: inventoryEntry('featureStore', ['@FeatureStoreCI']),
+    };
+
+    const result = plan(
+      [
+        { status: 'M', path: 'manifests/base/networkpolicy.yaml' },
+        { status: 'M', path: 'manifests/rhoai/networkpolicy.yaml' },
+      ],
+      {
+        inventory: localInventory,
+        ciTags: ['@Tag', '@CI', '@FeatureStoreCI'],
+      },
+    );
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.summary.pathImpactTags, ['@FeatureStoreCI']);
+    assert.ok(result.matrix.some((job) => job.run_mode === 'tag' && job.tag === '@FeatureStoreCI'));
+    assert.ok(
+      result.summary.details.some((detail) => detail.includes('Cross-cutting manifest changes')),
+    );
+  });
+
   it('uses canonical full-coverage tag sets when support code is deleted', () => {
     const fullInventory = {
       [specPath('alpha')]: inventoryEntry('alpha', ['@Tag', '@SmokeSet1']),

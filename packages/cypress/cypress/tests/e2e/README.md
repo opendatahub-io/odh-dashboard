@@ -198,6 +198,8 @@ Use `retryableBefore`. If using an `after` method, include `if (!wasSetupPerform
 
 Test Data should be referenced from fixture files and loaded into the test in the hook (`retryableBefore`). Typically, testData is then assigned a type, and a custom function is created to assign values to a variable.
 
+`retryableBefore` skips its callback when `IS_NON_ADMIN_RUN` is set, because it is meant for admin-only setup. If a test that runs in non-admin mode needs fixture data, load the fixture in a plain `before()` hook and keep only admin setup in `retryableBefore`.
+
 ### Test IDs
 
 It's recommended to use `testIDs` when referencing page objects. If an element does not have a `testID`, please add one:
@@ -233,7 +235,10 @@ it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@
 The GitHub Actions E2E workflow always schedules added, modified, and renamed
 Cypress specs in addition to the selected tag suites. Changes to page objects,
 fixtures, utilities, commands, support hooks, and other Cypress support code run
-their executable reverse-impact specs. Small impact sets run as explicit specs;
+their executable reverse-impact specs. Critical cross-cutting infrastructure
+paths map directly to their CI tags; dashboard base and RHOAI network-policy
+changes run `@FeatureStoreCI` because those tests exercise dashboard-to-Feast
+connectivity. Small impact sets run as explicit specs;
 larger sets use the narrowest available package CI tags. Deleting Cypress
 support code, or encountering a broad impact set that cannot be mapped to
 package CI tags, falls back to the canonical `@SmokeSet1`–`@SmokeSet5` and

@@ -19,7 +19,11 @@ import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
 // import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
-import { MODEL_EVALUATION_TARGETS, type SuiteEvaluatesOption } from '~/app/pages/const';
+import {
+  isCollectionCategory,
+  MODEL_EVALUATION_TARGETS,
+  type SuiteEvaluatesOption,
+} from '~/app/pages/const';
 import {
   copySuiteDefaultValues,
   getCopySuiteSchema,
@@ -558,7 +562,8 @@ const buildInitialFormValues = (
   suiteName: mode === 'edit' ? sourceCollection.name : buildDefaultSuiteName(sourceCollection.name),
   suiteDescription: sourceCollection.description ?? '',
   suiteDomains: uniqueCollectionMetadata(
-    sourceCollection.domains ?? (sourceCollection.category ? [sourceCollection.category] : []),
+    sourceCollection.domains ??
+      (isCollectionCategory(sourceCollection.category) ? [sourceCollection.category] : []),
   ),
   suiteTasks: uniqueCollectionMetadata(sourceCollection.tasks),
   suiteModalities: uniqueCollectionMetadata(sourceCollection.modalities),

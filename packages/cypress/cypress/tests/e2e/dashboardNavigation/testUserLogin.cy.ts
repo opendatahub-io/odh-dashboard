@@ -12,7 +12,7 @@ describe('Verify that logged in users display on the Dashboard', () => {
 
       // Click the user menu toggle
       cy.step('Click the user menu dropdown');
-      header.findMenuDropdown().should('be.visible').click();
+      header.findMenuDropdown().click();
 
       // Verify the username appears
       cy.step('Verify the username appears in the menu');
@@ -33,7 +33,7 @@ describe('Verify that logged in users display on the Dashboard', () => {
 
       // Click the user menu toggle
       cy.step('Click the user menu dropdown');
-      header.findMenuDropdown().should('be.visible').click();
+      header.findMenuDropdown().click();
 
       // Verify the username appears
       cy.step('Verify the username appears in the menu');

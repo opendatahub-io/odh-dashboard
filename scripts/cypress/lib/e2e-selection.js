@@ -30,6 +30,11 @@ const FULL_COVERAGE_TAGS = [
   '@SanitySet5',
 ];
 
+const PATH_IMPACT_TAGS = {
+  'manifests/base/networkpolicy.yaml': ['@FeatureStoreCI'],
+  'manifests/rhoai/networkpolicy.yaml': ['@FeatureStoreCI'],
+};
+
 const normalizeTag = (tag) => (tag.startsWith('@') ? tag : `@${tag}`);
 
 const parseTagList = (value = '') =>
@@ -56,6 +61,21 @@ const isCypressSupportFile = (file) => {
     normalized.startsWith(`${DEFAULT_CYPRESS_SOURCE_ROOT}/`) ||
     /(^|\/)cypress\/(pages|fixtures|utils|support|commands|plugins)\//.test(normalized)
   );
+};
+
+const resolvePathImpactTags = (changes = []) => {
+  const tags = new Set();
+  for (const change of changes) {
+    for (const changedPath of [change.path, change.previousPath]) {
+      if (!changedPath) {
+        continue;
+      }
+      for (const tag of PATH_IMPACT_TAGS[normalizePath(changedPath)] ?? []) {
+        tags.add(normalizeTag(tag));
+      }
+    }
+  }
+  return [...tags].toSorted();
 };
 
 const parseBoolean = (value, defaultValue = false) => {
@@ -428,6 +448,12 @@ const buildSelectionPlan = ({
   const impactedSpecs = new Set();
   let fullCoverageRequired = false;
   const details = [];
+  const pathImpactTags = resolvePathImpactTags(changes);
+  if (pathImpactTags.length > 0) {
+    details.push(`Cross-cutting manifest changes require ${pathImpactTags.join(', ')}`);
+  }
+  const effectiveSelectedTags = unique([...selectedTags, ...pathImpactTags]);
+  const effectiveAutoTags = unique([...autoTags, ...pathImpactTags]);
 
   for (const change of changes) {
     const changedPath = normalizePath(change.path);
@@ -537,14 +563,14 @@ const buildSelectionPlan = ({
     }
   }
 
-  const tagResolution = resolveSelectedTags(selectedTags, inventory);
+  const tagResolution = resolveSelectedTags(effectiveSelectedTags, inventory);
   errors.push(...tagResolution.errors);
 
   const explicitChangedSpecs = [...changedSpecs].toSorted();
   const explicitImpactedSpecs = [...impactedSpecs]
     .filter((spec) => !changedSpecs.has(spec))
     .toSorted();
-  const selectedTagSet = new Set(selectedTags);
+  const selectedTagSet = new Set(effectiveSelectedTags);
   const uncoveredImpactedSpecs = explicitImpactedSpecs.filter(
     (spec) => !inventory[spec]?.executableTags.some((tag) => selectedTagSet.has(tag)),
   );
@@ -590,7 +616,7 @@ const buildSelectionPlan = ({
   }
 
   const matrix = [
-    ...buildTagJobs(selectedTags, autoTags),
+    ...buildTagJobs(effectiveSelectedTags, effectiveAutoTags),
     ...createSpecJobs(explicitChangedSpecs, 'ChangedSpec'),
     ...impactedTagJobs,
     ...createSpecJobs(explicitImpactSpecs, 'ImpactedSpec'),
@@ -631,7 +657,8 @@ const buildSelectionPlan = ({
       deletedSpecs: [...deletedSpecs].toSorted(),
       impactedSpecs: explicitImpactedSpecs,
       impactMode,
-      selectedTags,
+      selectedTags: effectiveSelectedTags,
+      pathImpactTags,
       resolvedTags: tagResolution.resolved,
       plannedTestCount,
       details,
@@ -698,6 +725,7 @@ module.exports = {
   parseTagSelection,
   readNonCiSpecs,
   renderSelectionMarkdown,
+  resolvePathImpactTags,
   resolveSelectedTags,
   sanitizeTagDir,
 };

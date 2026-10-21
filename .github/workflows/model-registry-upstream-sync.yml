@@ -265,6 +265,11 @@ jobs:
         working-directory: ${{ env.FRONTEND_DIR }}
         run: npm run test:unit
 
+      - name: BFF contract tests
+        if: steps.outcome.outputs.status == 'synced'
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: pnpm run test:contract
+
       - name: Collect upstream PR links
         id: prs
         if: >
@@ -491,6 +496,8 @@ jobs:
           * \`npm run test:lint\`
           * \`npm run test:type-check\`
           * \`npm run test:unit\`
+
+          CI also ran the Model Registry BFF contract tests in \`packages/model-registry\` against the synced upstream OpenAPI document.
 
           Automated coverage: upstream changes include their own tests."
           fi
