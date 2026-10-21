@@ -15,6 +15,8 @@ import (
 	"github.com/opendatahub-io/data-registry/bff/internal/models"
 )
 
+const dchListEndpointNotFoundCode = "DCH_LIST_ENDPOINT_NOT_FOUND"
+
 // Decode only fields needed for display. Credentials and arbitrary properties are never relayed.
 type dchConnection struct {
 	Metadata struct {
@@ -44,11 +46,31 @@ func DCHFallbackAllowed(err error) bool {
 		return false
 	}
 	switch upstream.Code {
-	case bffclient.ErrCodeConnectionFailed, bffclient.ErrCodeTimeout, bffclient.ErrCodeServerUnavailable:
+	case bffclient.ErrCodeConnectionFailed,
+		bffclient.ErrCodeTimeout,
+		bffclient.ErrCodeServerUnavailable,
+		dchListEndpointNotFoundCode:
 		return true
 	default:
 		return false
 	}
+}
+
+// A 404 from either DCH collection endpoint means the configured DCH integration cannot serve
+// connection lists (for example, when the DCH backend/API is not installed yet). Keep this
+// fallback scoped to these two list requests; other 4xx responses and malformed contracts remain
+// errors.
+func classifyDCHListError(err error) error {
+	var upstream *bffclient.BFFClientError
+	if !errors.As(err, &upstream) || upstream.Code != bffclient.ErrCodeNotFound {
+		return err
+	}
+	return bffclient.NewBFFClientErrorWithTarget(
+		dchListEndpointNotFoundCode,
+		"DCH connection list endpoint is not available",
+		bffclient.BFFTargetDCH,
+		upstream.StatusCode,
+	)
 }
 
 func dchErrorPriority(err error) int {
@@ -107,6 +129,7 @@ func (r *ConnectionRepository) GetDCHConnections(ctx context.Context, client bff
 		defer wg.Done()
 		connectionErr = client.Call(ctx, http.MethodGet, "/connections"+query, nil, &connections)
 		if connectionErr != nil {
+			connectionErr = classifyDCHListError(connectionErr)
 			return
 		}
 		if connections.Data == nil {
@@ -128,6 +151,7 @@ func (r *ConnectionRepository) GetDCHConnections(ctx context.Context, client bff
 		defer wg.Done()
 		typeErr = client.Call(ctx, http.MethodGet, "/connection-types"+query, nil, &types)
 		if typeErr != nil {
+			typeErr = classifyDCHListError(typeErr)
 			return
 		}
 		if types.Data == nil {
@@ -144,7 +168,7 @@ func (r *ConnectionRepository) GetDCHConnections(ctx context.Context, client bff
 		}
 	}()
 	wg.Wait()
-	// Inspect both results: a transient error must never mask a denial or contract error.
+	// Inspect both results: a fallback-eligible error must never mask a denial or contract error.
 	if dchErrorPriority(typeErr) > dchErrorPriority(connectionErr) {
 		connectionErr = typeErr
 	}
