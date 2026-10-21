@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
@@ -154,6 +155,11 @@ describe('CuratedBenchmarkSuitesPage', () => {
       .map((collection, index) => ({
         ...collection,
         resource: { ...collection.resource, id: ids[index] },
+        benchmarks: collection.benchmarks?.map((benchmark, benchmarkIndex) =>
+          index === 0 && benchmarkIndex === 0
+            ? { ...benchmark, parameters: { ...benchmark.parameters, judge_model: '' } }
+            : benchmark,
+        ),
       }));
     mockUseCollectionsQuery.mockReturnValue({
       data: {

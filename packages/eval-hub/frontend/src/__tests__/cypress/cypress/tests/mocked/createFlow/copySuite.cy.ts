@@ -149,6 +149,7 @@ describe('Suite editor curated collection prerequisites', () => {
       name: 'Trustworthiness Suite',
       domains: ['trustworthiness'],
       benchmarkIds: ['bench-alpha'],
+      judgeModel: true,
     });
     cy.interceptApi(
       'GET /api/:apiVersion/evaluations/collections/:collectionId',
@@ -176,7 +177,7 @@ describe('Suite editor curated collection prerequisites', () => {
     copySuitePage.findSelectBenchmarksNextButton().click();
     copySuitePage.findConfigurationStep().should('exist');
 
-    // The judge model field is synthesized even though the source collection omits it, and the
+    // The judge model field comes from the source benchmark's parameters, and the
     // validation error only surfaces after the field is edited.
     copySuitePage.findBenchmarkParameterInput(0, 'judge_model').should('have.value', '');
     copySuitePage.findBenchmarkParameterError(0, 'judge_model').should('not.exist');

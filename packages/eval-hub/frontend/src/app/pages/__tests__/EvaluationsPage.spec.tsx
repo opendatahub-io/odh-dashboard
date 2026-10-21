@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -261,6 +262,11 @@ describe('EvaluationsPage', () => {
       .map((collection, index) => ({
         ...collection,
         resource: { ...collection.resource, id: ids[index] },
+        benchmarks: collection.benchmarks?.map((benchmark, benchmarkIndex) =>
+          index === 0 && benchmarkIndex === 0
+            ? { ...benchmark, parameters: { ...benchmark.parameters, judge_model: '' } }
+            : benchmark,
+        ),
       }));
     mockUseCollectionsQuery.mockImplementation((_namespace: string, scope?: string) => ({
       data: {

@@ -109,6 +109,11 @@ describe('Evaluations Page - Tabs', () => {
       .map((collection, index) => ({
         ...collection,
         resource: { ...collection.resource, id: ids[index] },
+        benchmarks: collection.benchmarks?.map((benchmark, benchmarkIndex) =>
+          index === 0 && benchmarkIndex === 0
+            ? { ...benchmark, parameters: { ...benchmark.parameters, judge_model: '' } }
+            : benchmark,
+        ),
       }));
     initIntercepts({ collections, collectionsTotalCount: collections.length });
 
@@ -138,7 +143,10 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteName('trustworthiness-v1').click();
     evaluationsPage
       .findCollectionDrawerPrerequisite()
-      .should('contain.text', 'Requires a judge model.');
+      .should(
+        'contain.text',
+        'Requires a judge model in addition to the model you are evaluating.',
+      );
     evaluationsPage
       .findCollectionDrawerPanel()
       .find('[data-testid="use-benchmark-suite-button"]')

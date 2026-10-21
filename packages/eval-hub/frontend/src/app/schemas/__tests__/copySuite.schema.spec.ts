@@ -198,7 +198,7 @@ describe('copySuiteSchema', () => {
       }
     });
 
-    it('should reject a benchmark that is missing a required parameter key entirely', () => {
+    it('should accept a benchmark that omits a required parameter key entirely', () => {
       const result = getCopySuiteSchema(undefined, requiredKeys).safeParse({
         ...validValues(),
         benchmarks: [
@@ -209,18 +209,7 @@ describe('copySuiteSchema', () => {
         ],
       });
 
-      expect(result.success).toBe(false);
-
-      if (!result.success) {
-        expect(result.error.issues).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              path: ['benchmarks', 0, 'parameters'],
-              message: 'Judge model is required.',
-            }),
-          ]),
-        );
-      }
+      expect(result.success).toBe(true);
     });
 
     it('should accept filled required parameter values', () => {

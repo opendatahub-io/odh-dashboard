@@ -133,17 +133,6 @@ export const getCopySuiteSchema = (
     }
 
     data.benchmarks.forEach((benchmark, benchmarkIndex) => {
-      const presentParameterKeys = new Set(benchmark.parameters.map((parameter) => parameter.key));
-      requiredParameterKeys.forEach((key) => {
-        if (!presentParameterKeys.has(key)) {
-          ctx.addIssue({
-            code: 'custom',
-            message: `${getBenchmarkParameterLabel(key)} is required.`,
-            path: ['benchmarks', benchmarkIndex, 'parameters'],
-          });
-        }
-      });
-
       benchmark.parameters.forEach((parameter, parameterIndex) => {
         if (
           requiredParameterKeys.has(parameter.key) &&

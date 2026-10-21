@@ -32,8 +32,8 @@ import {
 } from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
 import {
-  CURATED_COLLECTION_PREREQUISITES,
   CURATED_SUITE_PAGE_CONFIG,
+  getCuratedCollectionConfig,
   isCuratedEvaluationTarget,
   type CuratedEvaluationTarget,
 } from '~/app/curatedSuiteConfig';
@@ -88,9 +88,9 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   const sourceCollection = isCreateMode ? undefined : fetchedCollection;
   const curatedCollectionConfig =
     mode === 'copy' && sourceCollection && !sourceCollection.resource.tenant
-      ? CURATED_COLLECTION_PREREQUISITES[sourceCollection.resource.id]
+      ? getCuratedCollectionConfig(sourceCollection)
       : undefined;
-  const prerequisite = curatedCollectionConfig?.prerequisite;
+  const prerequisite = curatedCollectionConfig?.prerequisite.long;
 
   const navigationState = location.state;
   const isEvaluateOrigin =
