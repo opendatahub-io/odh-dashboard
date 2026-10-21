@@ -15,6 +15,7 @@ describe('MaaSAuthzProvider', () => {
 
   beforeEach(() => {
     originalFetch = global.fetch;
+    window.__MAAS_CONSUMER_PORTAL_GRID__ = undefined;
     jest.clearAllMocks();
     mockUsePluginStore.mockReturnValue({ setFeatureFlags } as unknown as ReturnType<
       typeof usePluginStore
@@ -23,6 +24,7 @@ describe('MaaSAuthzProvider', () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
+    window.__MAAS_CONSUMER_PORTAL_GRID__ = undefined;
   });
 
   const renderProvider = (): void => {
@@ -32,6 +34,17 @@ describe('MaaSAuthzProvider', () => {
       </MaaSAuthzProvider>,
     );
   };
+
+  it('does not check Kubernetes authorization in grid mode', () => {
+    window.__MAAS_CONSUMER_PORTAL_GRID__ = true;
+    global.fetch = jest.fn();
+
+    renderProvider();
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(setFeatureFlags).toHaveBeenCalledTimes(1);
+    expect(setFeatureFlags).toHaveBeenCalledWith({ ADMIN_USER: false });
+  });
 
   it('should enable ADMIN_USER only when the MaaS authorization endpoint allows access', async () => {
     global.fetch = jest.fn().mockResolvedValue({

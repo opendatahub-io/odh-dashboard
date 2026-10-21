@@ -4815,6 +4815,7 @@ components:
     # LlamaStack Distribution Schema
     LlamaStackDistributionModel:
       type: object
+      nullable: true
       required:
         - name
         - phase
@@ -6675,7 +6676,6 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/LlamaStackDistributionModel'
-                nullable: true
             example:
               data:
                 name: 'test-lsd'
@@ -7225,9 +7225,15 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/UserModel'
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/UserModel'
           example:
-            userId: 'user@example.com'
+            data:
+              userId: 'user@example.com'
 
     BFFConfigResponse:
       description: BFF application-level configuration
