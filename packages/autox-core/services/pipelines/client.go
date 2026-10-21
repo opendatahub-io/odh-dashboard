@@ -30,6 +30,11 @@ const maxSuccessBodySize = 10 << 20 // 10 MB
 // maxPaginationPages caps auto-paginating client methods to prevent unbounded iteration.
 const maxPaginationPages = 100
 
+// maxRequestTimeout is the largest per-method operation budget in this client
+// (pipeline version uploads). It also serves as the hang backstop on the
+// default HTTP client, so it must stay >= every per-method context deadline.
+const maxRequestTimeout = 60 * time.Second
+
 // HTTPClient wraps http.Client for testing.
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
@@ -80,6 +85,8 @@ func NewDefaultClient(cfg ClientConfig) Client {
 
 	hc := &http.Client{
 		Transport: k8s.NewBearerTokenRoundTripper(base),
+		// Backstop only — every method sets its own, shorter context deadline.
+		Timeout: maxRequestTimeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -491,7 +498,7 @@ func (c *client) CreatePipeline(ctx context.Context, baseURL string, name string
 
 // UploadPipelineVersion uploads a new pipeline version from file content
 func (c *client) UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error) {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, maxRequestTimeout)
 	defer cancel()
 
 	if pipelineID == "" || versionName == "" {

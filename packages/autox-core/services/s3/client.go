@@ -23,6 +23,13 @@ import (
 // (typically 30s) so the BFF can return a meaningful error instead of a raw 504.
 const s3ConnectTimeout = 10 * time.Second
 
+// s3ResponseHeaderTimeout bounds the wait for S3 response headers once a request
+// has been fully written. It matches the typical OpenShift route timeout so the
+// BFF can surface a meaningful error rather than the route's raw 504. Body
+// streaming after the headers arrive is intentionally not bounded here — large
+// payloads are legitimate (see s3MetadataTimeout).
+const s3ResponseHeaderTimeout = 30 * time.Second
+
 // s3MetadataTimeout bounds read-only S3 metadata operations (ListObjects, HeadObject
 // for ObjectExists). net/http's connection-level timeouts do not cancel ctx, so an
 // endpoint that accepts the TCP connection but never sends response headers could
@@ -325,11 +332,17 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 // buildHTTPClient clones the default transport to preserve connection pooling and sets
 // connect, TLS handshake, and response-header timeouts so that unreachable S3 endpoints
 // fail fast under the OpenShift route timeout.
+//
+// The returned client deliberately sets no Timeout field: http.Client.Timeout spans the
+// entire request lifecycle including body streaming, so any static value would truncate
+// legitimately large uploads and downloads (see s3MetadataTimeout). The hang-prone
+// phases are bounded on the transport instead, and payload streaming is bounded by each
+// caller's request context.
 func (p *awsClientProvider) buildHTTPClient() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.DialContext = ssrfSafeDialContext(&net.Dialer{Timeout: s3ConnectTimeout}, p.cfg.AllowUnresolvableEndpoint)
 	transport.TLSHandshakeTimeout = s3ConnectTimeout
-	transport.ResponseHeaderTimeout = 30 * time.Second
+	transport.ResponseHeaderTimeout = s3ResponseHeaderTimeout
 
 	if p.cfg.RootCAs != nil {
 		// Supply the custom CA pool so that self-signed or cluster-issued
@@ -351,7 +364,10 @@ func (p *awsClientProvider) buildHTTPClient() *http.Client {
 		rt = p.cfg.WrapTransport(rt)
 	}
 
-	return &http.Client{Transport: rt}
+	// A blanket client deadline would truncate large transfers mid-stream; the
+	// hang-prone phases are bounded on the transport above and payload streaming
+	// is bounded by the caller's request context.
+	return &http.Client{Transport: rt} //nosemgrep: go-http-client-no-timeout
 }
 
 func (c ClientConfig) withDefaults() ClientConfig {
