@@ -99,6 +99,9 @@ export enum SupportedArea {
   FEATURE_STORE = 'feature-store',
   FEATURE_STORE_ADMIN = 'feature-store-admin',
 
+  /* Data Registry */
+  DATA_REGISTRY = 'data-registry',
+
   /* Model Training */
   MODEL_TRAINING = 'model-training',
   RAY_JOBS = 'ray-jobs',
