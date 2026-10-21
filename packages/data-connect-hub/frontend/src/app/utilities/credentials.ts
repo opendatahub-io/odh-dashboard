@@ -17,8 +17,11 @@ const SENSITIVE_CREDENTIAL_FIELD_TERMS = [
 
 const SENSITIVE_CREDENTIAL_COMPOUND_TERMS = ['apikey', 'connectionstring'] as const;
 
+const splitCredentialFieldCaseBoundaries = (value: string): string =>
+  value.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+
 const getCredentialFieldTokens = (value?: string | null): string[] =>
-  (value ?? '')
+  splitCredentialFieldCaseBoundaries(value ?? '')
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter(Boolean);

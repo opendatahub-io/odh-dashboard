@@ -413,6 +413,62 @@ describe('CreateConnectionWizard', () => {
     expect((screen.getByTestId('credential-SSL_MODE') as HTMLInputElement).type).toBe('text');
   });
 
+  it('masks camelCase credential fields on both wizard steps', async () => {
+    const user = userEvent.setup();
+    const credentialValues = {
+      clientSecret: 'client-secret-value',
+      accessToken: 'access-token-value',
+    };
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              { name: 'clientSecret', label: 'clientSecret', required: true, type: 'string' },
+              { name: 'accessToken', label: 'accessToken', required: true, type: 'string' },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: credentialValues,
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    Object.values(credentialValues).forEach((value) => {
+      expect(screen.queryByText(value)).toBeNull();
+    });
+    Object.keys(credentialValues).forEach((fieldName) => {
+      expect(screen.getByText(`${fieldName} value hidden`)).toBeTruthy();
+      expect(screen.getByRole('button', { name: `Show ${fieldName}` })).toBeTruthy();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    Object.keys(credentialValues).forEach((fieldName) => {
+      const input = screen.getByTestId(`credential-${fieldName}`) as HTMLInputElement;
+      expect(input.type).toBe('password');
+      expect(input.value).toBe(credentialValues[fieldName as keyof typeof credentialValues]);
+    });
+  });
+
   it('masks connection URI and URL fields on both wizard steps', async () => {
     const user = userEvent.setup();
     const credentialValues = {

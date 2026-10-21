@@ -17,6 +17,10 @@ describe('isSensitiveCredentialField', () => {
     ['url', 'Connection URL'],
     ['CONNECTION_STRING', 'Connection string'],
     ['DSN', 'Data source name'],
+    ['clientSecret', 'clientSecret'],
+    ['accessToken', 'accessToken'],
+    ['dbPassword', 'dbPassword'],
+    ['privateKey', 'privateKey'],
   ])('identifies sensitive field %s', (name, label) => {
     expect(isSensitiveCredentialField(field(name, label))).toBe(true);
   });
