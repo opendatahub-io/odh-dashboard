@@ -226,7 +226,7 @@ func TestBuildSandboxLlamaStackConfig_CustomEndpointEmbeddingModel(t *testing.T)
 			SecretRef:   models.SecretRef{Name: "gemini-key", Key: "api_key"},
 		},
 	}
-	classify := func(name string) kubernetes.SandboxEmbeddingModel { return classifications[name] }
+	classify := func(name string) (kubernetes.SandboxEmbeddingModel, error) { return classifications[name], nil }
 
 	cfg, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
 	require.NoError(t, err)
@@ -273,11 +273,11 @@ func TestBuildSandboxLlamaStackConfig_CustomEndpointClusterLocalTLS(t *testing.T
 		VectorStoreID:  "vs-local-endpoint",
 		EmbeddingModel: "granite-embedding-keyless",
 	})
-	classify := func(string) kubernetes.SandboxEmbeddingModel {
+	classify := func(string) (kubernetes.SandboxEmbeddingModel, error) {
 		return kubernetes.SandboxEmbeddingModel{
 			Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
 			EndpointURL: "https://keyless-endpoint.test.svc.cluster.local/v1",
-		}
+		}, nil
 	}
 
 	cfg, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
@@ -308,11 +308,11 @@ func TestBuildSandboxLlamaStackConfig_CustomEndpointSVCHostTLS(t *testing.T) {
 		VectorStoreID:  "vs-svc-host",
 		EmbeddingModel: "granite-embedding-keyless",
 	})
-	classify := func(string) kubernetes.SandboxEmbeddingModel {
+	classify := func(string) (kubernetes.SandboxEmbeddingModel, error) {
 		return kubernetes.SandboxEmbeddingModel{
 			Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
 			EndpointURL: "https://keyless-endpoint.test.svc:8080",
-		}
+		}, nil
 	}
 
 	cfg, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
@@ -344,8 +344,8 @@ func TestBuildSandboxLlamaStackConfig_ISVCEmbeddingModel(t *testing.T) {
 		EmbeddingModel:     embeddingModel,
 		EmbeddingDimension: 768,
 	})
-	classify := func(string) kubernetes.SandboxEmbeddingModel {
-		return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceISVC, EndpointURL: isvcURL}
+	classify := func(string) (kubernetes.SandboxEmbeddingModel, error) {
+		return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceISVC, EndpointURL: isvcURL}, nil
 	}
 
 	cfg, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
@@ -384,8 +384,8 @@ func TestBuildSandboxLlamaStackConfig_ISVCServedModelNameDiffers(t *testing.T) {
 		EmbeddingModel:     storeRef,
 		EmbeddingDimension: 768,
 	})
-	classify := func(string) kubernetes.SandboxEmbeddingModel {
-		return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceISVC, EndpointURL: isvcURL, ModelID: servedName}
+	classify := func(string) (kubernetes.SandboxEmbeddingModel, error) {
+		return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceISVC, EndpointURL: isvcURL, ModelID: servedName}, nil
 	}
 
 	cfg, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
@@ -406,21 +406,21 @@ func TestBuildSandboxLlamaStackConfig_MixedEmbeddingModelSources(t *testing.T) {
 		models.RegisteredVectorStore{VectorStoreID: "vs-keyed", EmbeddingModel: "gemini-embedding-001", EmbeddingDimension: 3072},
 		models.RegisteredVectorStore{VectorStoreID: "vs-isvc", EmbeddingModel: "granite-embedding-r2", EmbeddingDimension: 768},
 	)
-	classify := func(name string) kubernetes.SandboxEmbeddingModel {
+	classify := func(name string) (kubernetes.SandboxEmbeddingModel, error) {
 		switch name {
 		case "gemini-embedding-001":
 			return kubernetes.SandboxEmbeddingModel{
 				Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
 				EndpointURL: "https://gemini.example.com/v1",
 				SecretRef:   models.SecretRef{Name: "gemini-key", Key: "api_key"},
-			}
+			}, nil
 		case "granite-embedding-r2":
 			return kubernetes.SandboxEmbeddingModel{
 				Source:      kubernetes.SandboxEmbeddingSourceISVC,
 				EndpointURL: "http://granite-embedding-r2-predictor.test.svc.cluster.local/v1",
-			}
+			}, nil
 		default:
-			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceSentenceTransformers}
+			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceSentenceTransformers}, nil
 		}
 	}
 
@@ -452,12 +452,12 @@ func TestBuildSandboxLlamaStackConfig_SharedEmbeddingModel(t *testing.T) {
 		models.RegisteredVectorStore{VectorStoreID: "vs-a", EmbeddingModel: "gemini-embedding-001", EmbeddingDimension: 3072},
 		models.RegisteredVectorStore{VectorStoreID: "vs-b", EmbeddingModel: "gemini-embedding-001", EmbeddingDimension: 3072},
 	)
-	classify := func(string) kubernetes.SandboxEmbeddingModel {
+	classify := func(string) (kubernetes.SandboxEmbeddingModel, error) {
 		return kubernetes.SandboxEmbeddingModel{
 			Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
 			EndpointURL: "https://gemini.example.com/v1",
 			SecretRef:   models.SecretRef{Name: "gemini-key", Key: "api_key"},
-		}
+		}, nil
 	}
 
 	cfg, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
@@ -496,8 +496,8 @@ func TestBuildSandboxLlamaStackConfig_MissingEndpointURLErrors(t *testing.T) {
 	)
 
 	t.Run("custom endpoint without base URL", func(t *testing.T) {
-		classify := func(string) kubernetes.SandboxEmbeddingModel {
-			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceCustomEndpoint}
+		classify := func(string) (kubernetes.SandboxEmbeddingModel, error) {
+			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceCustomEndpoint}, nil
 		}
 		_, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
 		require.Error(t, err)
@@ -506,8 +506,8 @@ func TestBuildSandboxLlamaStackConfig_MissingEndpointURLErrors(t *testing.T) {
 	})
 
 	t.Run("ISVC without endpoint URL", func(t *testing.T) {
-		classify := func(string) kubernetes.SandboxEmbeddingModel {
-			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceISVC}
+		classify := func(string) (kubernetes.SandboxEmbeddingModel, error) {
+			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceISVC}, nil
 		}
 		_, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
 		require.Error(t, err)
@@ -533,6 +533,7 @@ type stubClassifierClient struct {
 	externalErr    error
 	isvcURL        string
 	isvcModelID    string
+	isvcErr        error // real serving lookup failure; when nil and isvcURL is empty, the model is not serving-backed
 	isvcCalls      int
 }
 
@@ -540,13 +541,17 @@ func (s *stubClassifierClient) GetExternalModelsConfig(_ context.Context, _ stri
 	return s.externalModels, s.externalErr
 }
 
-// GetServingModelDetails mimics the real resolution: no match when isvcURL is empty;
+// GetServingModelDetails mimics the real resolution: a real lookup failure when
+// isvcErr is set; no match (the not-found sentinel) when isvcURL is empty;
 // otherwise the served model ID (defaulting to the reference, mirroring resources
 // whose served name equals their reference).
 func (s *stubClassifierClient) GetServingModelDetails(_ context.Context, _ string, modelRef string) (string, string, error) {
 	s.isvcCalls++
+	if s.isvcErr != nil {
+		return "", "", s.isvcErr
+	}
 	if s.isvcURL == "" {
-		return "", "", fmt.Errorf("no InferenceService or LLMInferenceService for model '%s'", modelRef)
+		return "", "", kubernetes.ErrServingModelNotFound
 	}
 	if s.isvcModelID == "" {
 		return s.isvcURL, modelRef, nil
@@ -674,9 +679,31 @@ func TestBuildSandboxEmbeddingClassifier(t *testing.T) {
 			classifier, err := kubernetes.BuildSandboxEmbeddingClassifier(context.Background(), client, "test-namespace", nil)
 			require.NoError(t, err)
 			require.NotNil(t, classifier)
-			assert.Equal(t, tt.expected, classifier(tt.embeddingModel))
+			resolved, clsErr := classifier(tt.embeddingModel)
+			require.NoError(t, clsErr)
+			assert.Equal(t, tt.expected, resolved)
 		})
 	}
+}
+
+func TestBuildSandboxEmbeddingClassifier_PropagatesServingLookupErrors(t *testing.T) {
+	// Serving lookup failures (RBAC, timeout, ISVC not ready) must not be mistaken
+	// for a model that is not ISVC-served — the classifier would fall back to
+	// sentence-transformers and silently break file search.
+	client := &stubClassifierClient{
+		isvcErr: fmt.Errorf("InferenceService 'granite-embedding-r2' has no internal URL - service may not be ready"),
+	}
+	classifier, err := kubernetes.BuildSandboxEmbeddingClassifier(context.Background(), client, "test-namespace", nil)
+	require.NoError(t, err)
+	resolved, clsErr := classifier("granite-embedding-r2")
+	require.Error(t, clsErr)
+	assert.Contains(t, clsErr.Error(), "may not be ready")
+	assert.Empty(t, resolved.Source)
+
+	// The failure memoizes: repeated classification of the same model does not retry.
+	_, clsErr2 := classifier("granite-embedding-r2")
+	require.Error(t, clsErr2)
+	assert.Equal(t, 1, client.isvcCalls)
 }
 
 func TestBuildSandboxEmbeddingClassifier_PropagatesLookupErrors(t *testing.T) {
@@ -697,34 +724,38 @@ func TestBuildSandboxEmbeddingClassifier_MemoizesLookups(t *testing.T) {
 	classifier, err := kubernetes.BuildSandboxEmbeddingClassifier(context.Background(), client, "test-namespace", nil)
 	require.NoError(t, err)
 
-	assert.Equal(t, kubernetes.SandboxEmbeddingSourceSentenceTransformers, classifier("some-model").Source)
-	assert.Equal(t, kubernetes.SandboxEmbeddingSourceSentenceTransformers, classifier("some-model").Source)
+	resolved1, err1 := classifier("some-model")
+	require.NoError(t, err1)
+	resolved2, err2 := classifier("some-model")
+	require.NoError(t, err2)
+	assert.Equal(t, kubernetes.SandboxEmbeddingSourceSentenceTransformers, resolved1.Source)
+	assert.Equal(t, kubernetes.SandboxEmbeddingSourceSentenceTransformers, resolved2.Source)
 	assert.Equal(t, 1, client.isvcCalls)
 }
 
 func TestRequiredSandboxEmbeddingKeyRef(t *testing.T) {
-	keyedClassify := func(name string) kubernetes.SandboxEmbeddingModel {
+	keyedClassify := func(name string) (kubernetes.SandboxEmbeddingModel, error) {
 		switch name {
 		case "gemini-embedding-001":
 			return kubernetes.SandboxEmbeddingModel{
 				Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
 				EndpointURL: "https://gemini.example.com/v1",
 				SecretRef:   models.SecretRef{Name: "gemini-key", Key: "api_key"},
-			}
+			}, nil
 		case "other-keyed-model":
 			return kubernetes.SandboxEmbeddingModel{
 				Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
 				EndpointURL: "https://other.example.com/v1",
 				SecretRef:   models.SecretRef{Name: "other-key", Key: "api_key"},
-			}
+			}, nil
 		case "shared-key-model":
 			return kubernetes.SandboxEmbeddingModel{
 				Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
 				EndpointURL: "https://shared.example.com/v1",
 				SecretRef:   models.SecretRef{Name: "gemini-key", Key: "api_key"},
-			}
+			}, nil
 		default:
-			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceSentenceTransformers}
+			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceSentenceTransformers}, nil
 		}
 	}
 
@@ -750,11 +781,11 @@ func TestRequiredSandboxEmbeddingKeyRef(t *testing.T) {
 			models.RegisteredVectorStore{VectorStoreID: "vs-keyless", EmbeddingModel: "keyless-model"},
 			models.RegisteredVectorStore{VectorStoreID: "vs-isvc", EmbeddingModel: "isvc-model"},
 		)
-		classify := func(name string) kubernetes.SandboxEmbeddingModel {
+		classify := func(name string) (kubernetes.SandboxEmbeddingModel, error) {
 			if name == "keyless-model" {
-				return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceCustomEndpoint, EndpointURL: "https://keyless.example.com"}
+				return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceCustomEndpoint, EndpointURL: "https://keyless.example.com"}, nil
 			}
-			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceISVC, EndpointURL: "http://isvc.test.svc.cluster.local/v1"}
+			return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceISVC, EndpointURL: "http://isvc.test.svc.cluster.local/v1"}, nil
 		}
 		ref, err := kubernetes.RequiredSandboxEmbeddingKeyRef(profile, storeDoc, classify)
 		require.NoError(t, err)
@@ -766,12 +797,12 @@ func TestRequiredSandboxEmbeddingKeyRef(t *testing.T) {
 		storeDoc := sandboxEmbeddingTestStoreDoc(models.RegisteredVectorStore{
 			VectorStoreID: "vs-bad-ref", EmbeddingModel: "bad-ref-model",
 		})
-		classify := func(string) kubernetes.SandboxEmbeddingModel {
+		classify := func(string) (kubernetes.SandboxEmbeddingModel, error) {
 			return kubernetes.SandboxEmbeddingModel{
 				Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
 				EndpointURL: "https://keyed.example.com/v1",
 				SecretRef:   models.SecretRef{Name: "gemini-key"}, // Key empty
-			}
+			}, nil
 		}
 		_, err := kubernetes.RequiredSandboxEmbeddingKeyRef(profile, storeDoc, classify)
 		require.Error(t, err)

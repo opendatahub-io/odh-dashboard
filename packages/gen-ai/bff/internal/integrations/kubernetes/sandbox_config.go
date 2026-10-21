@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -101,7 +102,10 @@ type SandboxEmbeddingModel struct {
 
 // SandboxEmbeddingClassifier resolves a vector store's bare embedding model name
 // (as stored in the gen-ai-aa-vector-stores ConfigMap) to its registration source.
-type SandboxEmbeddingClassifier func(embeddingModel string) SandboxEmbeddingModel
+// It returns an error when the model's serving details cannot be determined
+// (RBAC, timeout, not-ready) — absence of a serving resource is not an error and
+// resolves to the local sentence-transformers source.
+type SandboxEmbeddingClassifier func(embeddingModel string) (SandboxEmbeddingModel, error)
 
 // BuildSandboxEmbeddingClassifier returns a memoized classifier that resolves an
 // embedding model by source: custom endpoint models registered in the external models
@@ -132,9 +136,13 @@ func BuildSandboxEmbeddingClassifier(
 	}
 
 	memo := make(map[string]SandboxEmbeddingModel)
-	return func(embeddingModel string) SandboxEmbeddingModel {
+	errMemo := make(map[string]error)
+	return func(embeddingModel string) (SandboxEmbeddingModel, error) {
 		if resolved, ok := memo[embeddingModel]; ok {
-			return resolved
+			return resolved, nil
+		}
+		if memoErr, ok := errMemo[embeddingModel]; ok {
+			return SandboxEmbeddingModel{}, memoErr
 		}
 		resolved := SandboxEmbeddingModel{Source: SandboxEmbeddingSourceSentenceTransformers}
 		if _, provider, err := ResolveCustomEndpointModelProvider(externalModelsConfig, embeddingModel); err == nil {
@@ -152,9 +160,14 @@ func BuildSandboxEmbeddingClassifier(
 				EndpointURL: isvcURL,
 				ModelID:     servedModelID,
 			}
+		} else if isvcErr != nil && !errors.Is(isvcErr, ErrServingModelNotFound) {
+			// A serving lookup failure (RBAC, timeout, not-ready) must not be mistaken for
+			// a local model — the sandbox would silently misconfigure file search.
+			errMemo[embeddingModel] = isvcErr
+			return SandboxEmbeddingModel{}, fmt.Errorf("failed to resolve serving details for embedding model %q: %w", embeddingModel, isvcErr)
 		}
 		memo[embeddingModel] = resolved
-		return resolved
+		return resolved, nil
 	}, nil
 }
 
@@ -285,7 +298,11 @@ func BuildSandboxLlamaStackConfig(
 
 		classification := SandboxEmbeddingModel{Source: SandboxEmbeddingSourceSentenceTransformers}
 		if classifyEmbeddingModel != nil {
-			classification = classifyEmbeddingModel(embeddingModelName)
+			var clsErr error
+			classification, clsErr = classifyEmbeddingModel(embeddingModelName)
+			if clsErr != nil {
+				return nil, clsErr
+			}
 		}
 
 		switch classification.Source {
@@ -441,7 +458,10 @@ func RequiredSandboxEmbeddingKeyRef(
 		if embeddingModelName == "" {
 			continue
 		}
-		classification := classifyEmbeddingModel(embeddingModelName)
+		classification, clsErr := classifyEmbeddingModel(embeddingModelName)
+		if clsErr != nil {
+			return nil, clsErr
+		}
 		if classification.Source != SandboxEmbeddingSourceCustomEndpoint || classification.SecretRef.Name == "" {
 			continue
 		}
