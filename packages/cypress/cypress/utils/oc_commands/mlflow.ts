@@ -829,6 +829,61 @@ export const findAvailableExperimentSuffix = (
 };
 
 /**
+ * Create a text prompt directly through the MLflow tracking API for test setup.
+ * Prompt versions use a placeholder source; the template is stored in version tags.
+ */
+export const createMlflowPromptViaAPI = (
+  workspace: string,
+  name: string,
+  template: string,
+  commitMessage: string,
+): Cypress.Chainable<string> =>
+  deleteStalePromptByName(workspace, name)
+    .then(() =>
+      execCurlInMlflowPod(
+        '/api/2.0/mlflow/registered-models/create',
+        { name, tags: [{ key: 'mlflow.prompt.is_prompt', value: 'true' }] },
+        workspace,
+      ),
+    )
+    .then((response) => {
+      const result = JSON.parse(response) as {
+        registered_model?: { name?: string };
+        message?: string;
+      };
+      if (result.registered_model?.name !== name) {
+        throw new Error(`Failed to create MLflow prompt ${name}: ${result.message ?? response}`);
+      }
+
+      return execCurlInMlflowPod(
+        '/api/2.0/mlflow/model-versions/create',
+        {
+          name,
+          source: 'dummy-source',
+          description: commitMessage,
+          tags: [
+            { key: 'mlflow.prompt.text', value: template },
+            { key: '_mlflow_prompt_type', value: 'text' },
+            { key: 'mlflow.prompt.is_prompt', value: 'true' },
+          ],
+        },
+        workspace,
+      );
+    })
+    .then((response) => {
+      const result = JSON.parse(response) as {
+        model_version?: { name?: string; version?: string };
+        message?: string;
+      };
+      if (result.model_version?.name !== name || !result.model_version.version) {
+        throw new Error(
+          `Failed to create MLflow prompt version for ${name}: ${result.message ?? response}`,
+        );
+      }
+      return result.model_version.version;
+    });
+
+/**
  * Delete an MLflow prompt (registered model) by name if it exists.
  * Silently succeeds when the prompt is not found.
  * Uses DELETE method — POST to this endpoint returns ENDPOINT_NOT_FOUND.

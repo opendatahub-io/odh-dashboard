@@ -86,6 +86,11 @@ class GenAiPlayground {
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
   }
 
+  navigateToAssetsWithGuardrails(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_GUARDRAILS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
   navigateToAssetsWithGuardrailsAndPromptManagement(projectName: string) {
     cy.visit(
       `/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG}`,

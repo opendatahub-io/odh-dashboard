@@ -16,9 +16,9 @@ import {
   enableMlflowBackend,
   disablePromptManagementFeatures,
   deleteStalePromptByName,
+  createMlflowPromptViaAPI,
 } from '../../../utils/oc_commands/mlflow';
 import {
-  createGenAiPromptViaAPI,
   forceDashboardConfigRefresh,
   deployGenAiModel,
   cleanupServingRuntimeTemplate,
@@ -41,13 +41,21 @@ import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
 
 type PromptManagementTestData = {
+  projectPrompt: {
+    name: string;
+    template: string;
+    commitMessage: string;
+    testMessageWithPrompt: string;
+    variableName: string;
+    variableValue: string;
+  };
   globalPrompt: {
     template: string;
     commitMessage: string;
   };
 };
 
-describe('Verify Global Prompt Management in Playground Settings', () => {
+describe('Verify Prompt Management in Playground Settings', () => {
   let testData: GenAiTestData;
   let promptManagementTestData: PromptManagementTestData;
   let projectName: string;
@@ -60,6 +68,12 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   const globalPromptName = `global-prompt-${uuid}`;
 
   retryableBefore(() => {
+    if (portForwardHandle) {
+      stopPortForward(portForwardHandle).then(() => {
+        portForwardHandle = null;
+      });
+    }
+
     cy.fixture('e2e/genAi/testGenAiModelDeployment.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as GenAiTestData;
@@ -104,8 +118,8 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
         forceDashboardConfigRefresh();
       })
       .then(() => {
-        cy.step('Create global prompt via BFF');
-        return createGenAiPromptViaAPI(
+        cy.step('Seed global prompt via MLflow API');
+        return createMlflowPromptViaAPI(
           globalNamespace,
           globalPromptName,
           promptManagementTestData.globalPrompt.template,
@@ -113,7 +127,36 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
         );
       })
       .then(() => {
+        cy.step('Seed project prompt via MLflow API');
+        return createMlflowPromptViaAPI(
+          projectName,
+          promptManagementTestData.projectPrompt.name,
+          promptManagementTestData.projectPrompt.template,
+          promptManagementTestData.projectPrompt.commitMessage,
+        );
+      })
+      .then(() => {
         waitForGlobalPromptsInBFF(projectName, globalPromptName);
+      })
+      .then(() => {
+        cy.step('Navigate to AI asset endpoints page');
+        genAiPlayground.navigateToAssets(projectName);
+
+        cy.step('Create playground with the deployed model');
+        genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
+        genAiPlayground.findConfigurationTable().should('be.visible');
+        genAiPlayground.ensureModelCheckboxIsChecked(testData.modelDeploymentName);
+        genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
+
+        cy.step('Wait for playground resources');
+        waitForResource('configmap', testData.configMapName, projectName);
+        waitForOGXServerReady(projectName);
+        waitForResource('service', testData.playgroundServiceName, projectName);
+
+        cy.step('Start port-forward for LSD service');
+        startPortForward(projectName, testData.playgroundServiceName, 8321, 3000).then((handle) => {
+          portForwardHandle = handle;
+        });
       });
   });
 
@@ -134,6 +177,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       cleanupHardwareProfiles(hardwareProfileName);
     }
     if (projectName) {
+      deleteStalePromptByName(projectName, promptManagementTestData.projectPrompt.name);
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
@@ -147,27 +191,13 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssets(projectName);
-
-      cy.step('Create playground with the deployed model');
-      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
-      genAiPlayground.findConfigurationTable().should('be.visible');
-      genAiPlayground.ensureModelCheckboxIsChecked(testData.modelDeploymentName);
-      genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
-
-      cy.step('Wait for playground resources');
-      waitForResource('configmap', testData.configMapName, projectName);
-      waitForOGXServerReady(projectName);
-      waitForResource('service', testData.playgroundServiceName, projectName);
-
-      cy.step('Start port-forward for LSD service');
-      startPortForward(projectName, testData.playgroundServiceName, 8321, 3000).then((handle) => {
-        portForwardHandle = handle;
-      });
-
       cy.step('Navigate to playground');
       genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+
+      cy.step(`Select ${testData.inferenceServiceName} model from dropdown`);
+      genAiPlayground.findModelToggleButton({ timeout: 120000 }).should('be.visible');
+      genAiPlayground.selectModelFromDropdown(testData.inferenceServiceName, { timeout: 120000 });
+      genAiPlayground.verifyModelIsSelected(testData.inferenceServiceName);
 
       cy.step('Open settings panel and switch to prompt tab');
       genAiPlayground.ensureSettingsPanelOpen();
@@ -210,6 +240,78 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       genAiPlayground.sendMessage(testData.testMessage);
       genAiPlayground.findUserMessage().should('exist').and('contain', testData.testMessage);
       genAiPlayground.findAssistantMessage({ timeout: 120000 }).should('exist').and('not.be.empty');
+    },
+  );
+
+  it(
+    'Verify prompt management — load and use a saved prompt',
+    {
+      tags: ['@GenAI', '@PromptManagement', '@MLflow', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Log into the application');
+      cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      cy.step('Navigate to playground with prompt management enabled');
+      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+
+      cy.step(`Select ${testData.inferenceServiceName} model from dropdown`);
+      genAiPlayground.findModelToggleButton({ timeout: 120000 }).should('be.visible');
+      genAiPlayground.selectModelFromDropdown(testData.inferenceServiceName, { timeout: 120000 });
+      genAiPlayground.verifyModelIsSelected(testData.inferenceServiceName);
+
+      cy.step('Open settings panel, navigate to Prompt tab, and load prompt');
+      genAiPlayground.ensureSettingsPanelOpen();
+      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
+      genAiPlayground.findLoadPromptButton().should('be.visible').click();
+
+      cy.step('Select the project prompt from the table');
+      genAiPlayground.findPromptManagementModal().should('exist');
+      chatbotPromptModal.findProjectPromptsTab().should('have.attr', 'aria-selected', 'true');
+      genAiPlayground
+        .findPromptTableRow(promptManagementTestData.projectPrompt.name)
+        .should('be.visible')
+        .click();
+      genAiPlayground.findPromptLoadConfirmButton().should('be.enabled').click();
+
+      cy.step('Verify prompt is loaded in the settings panel');
+      genAiPlayground
+        .findPromptNameTitle()
+        .should('be.visible')
+        .and('contain', promptManagementTestData.projectPrompt.name);
+
+      cy.step('Verify the template variable survived the MLflow round-trip');
+      genAiPlayground.findVariableInputPanel().should('be.visible');
+      genAiPlayground
+        .findVariableInput(promptManagementTestData.projectPrompt.variableName)
+        .should('be.visible');
+
+      cy.step('Fill in the variable value and confirm it is reflected in the panel');
+      genAiPlayground
+        .findVariableInput(promptManagementTestData.projectPrompt.variableName)
+        .clear()
+        .type(promptManagementTestData.projectPrompt.variableValue);
+      genAiPlayground
+        .findVariableInput(promptManagementTestData.projectPrompt.variableName)
+        .should('have.value', promptManagementTestData.projectPrompt.variableValue);
+
+      cy.step('Send a test message using the loaded prompt context and filled-in variable');
+      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
+      genAiPlayground.sendMessage(promptManagementTestData.projectPrompt.testMessageWithPrompt);
+
+      cy.step('Verify user message appears in chat');
+      genAiPlayground
+        .findAllUserMessages()
+        .last()
+        .should('contain', promptManagementTestData.projectPrompt.testMessageWithPrompt);
+
+      cy.step('Verify assistant response is received');
+      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
+      genAiPlayground
+        .findAllAssistantMessages({ timeout: 120000 })
+        .last()
+        .should('exist')
+        .and('not.be.empty');
     },
   );
 });

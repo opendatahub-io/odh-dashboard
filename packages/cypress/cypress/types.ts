@@ -883,11 +883,6 @@ export type CustomEndpointTestData = {
     variableName: string;
     variableValue: string;
   };
-  prompt2: {
-    name: string;
-    template: string;
-    commitMessage: string;
-  };
   rag: {
     fileName: string;
     fixturePath: string;

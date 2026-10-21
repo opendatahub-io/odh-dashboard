@@ -1,3 +1,10 @@
+projectPrompt:
+  name: 'e2e-project-prompt'
+  template: 'You are a helpful assistant. Respond concisely to: {{ input }}'
+  commitMessage: 'E2E project prompt for playground'
+  testMessageWithPrompt: 'Summarize what a model playground is in one sentence.'
+  variableName: 'input'
+  variableValue: 'e2e-test-value'
 globalPrompt:
   template: 'You are a global template for summarization tasks.'
   commitMessage: 'Initial global prompt version'

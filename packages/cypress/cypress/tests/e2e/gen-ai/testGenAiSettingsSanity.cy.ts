@@ -18,14 +18,8 @@ import {
   verifyEndpointResourcesCleanedUp,
   waitForModelInLSD,
   forceDashboardConfigRefresh,
-  createGenAiPromptViaAPI,
-  deleteGenAiPromptViaAPI,
   waitForNemoGuardrailsReady,
 } from '../../../utils/oc_commands/genAi';
-import {
-  enableMlflowBackend,
-  disablePromptManagementFeatures,
-} from '../../../utils/oc_commands/mlflow';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { CustomEndpointTestData } from '../../../types';
@@ -65,39 +59,14 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       createCleanProject(projectName);
       waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
 
-      cy.step('Enable MLflow backend (tracking server only — no MF remote check)');
-      enableMlflowBackend();
-
-      cy.step(
-        'Log into the application with custom endpoints, prompt management, and guardrails enabled',
-      );
+      cy.step('Log into the application with custom endpoints and guardrails enabled');
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false`,
+        '/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
       cy.step('Force backend to refresh config from cluster');
       forceDashboardConfigRefresh();
-
-      cy.step('Create prompt via Gen AI BFF API');
-      createGenAiPromptViaAPI(
-        projectName,
-        testData.prompt.name,
-        testData.prompt.template,
-        testData.prompt.commitMessage,
-      )
-        .its('status')
-        .should('be.oneOf', [200, 201]);
-
-      cy.step('Create second prompt via Gen AI BFF API');
-      createGenAiPromptViaAPI(
-        projectName,
-        testData.prompt2.name,
-        testData.prompt2.template,
-        testData.prompt2.commitMessage,
-      )
-        .its('status')
-        .should('be.oneOf', [200, 201]);
     });
   });
 
@@ -105,14 +74,8 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
     stopPortForward(portForwardHandle);
     stopPortForward(nemoPortForwardHandle);
 
-    cy.step('Delete test prompt from MLflow');
-    deleteGenAiPromptViaAPI(projectName, testData.prompt.name);
-
     cy.step('Revert externalProviders in OdhDashboardConfig');
     disableExternalProviders();
-
-    cy.step('Clean up MLflow features');
-    disablePromptManagementFeatures();
 
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
@@ -124,7 +87,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithGuardrails(projectName);
 
       cy.step('Force backend to refresh config from cluster');
       forceDashboardConfigRefresh();
@@ -177,7 +140,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithGuardrails(projectName);
       genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
 
       cy.step('Create playground with the endpoint');
@@ -213,66 +176,6 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       startPortForward(projectName, testData.lsdServiceName, 8321).then((handle) => {
         portForwardHandle = handle;
       });
-    },
-  );
-
-  it(
-    'Verify prompt management — load and use a saved prompt',
-    {
-      tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@NonConcurrent'],
-    },
-    () => {
-      cy.step('Navigate to playground with prompt management enabled');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
-
-      cy.step(`Select ${testData.displayName} model from dropdown`);
-      genAiPlayground.selectModelFromDropdown(testData.displayName);
-      genAiPlayground.verifyModelIsSelected(testData.displayName);
-
-      cy.step('Open settings panel, navigate to Prompt tab, and load prompt');
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
-      genAiPlayground.findLoadPromptButton().should('be.visible').click();
-
-      cy.step('Select the prompt from the table');
-      genAiPlayground.findPromptManagementModal().should('exist');
-      genAiPlayground.findPromptTableRow(testData.prompt.name).should('be.visible').click();
-      genAiPlayground.findPromptLoadConfirmButton().should('be.enabled').click();
-
-      cy.step('Verify prompt is loaded in the settings panel');
-      genAiPlayground
-        .findPromptNameTitle()
-        .should('be.visible')
-        .and('contain', testData.prompt.name);
-
-      cy.step(
-        'Verify the {{ }} template survived the MLflow round-trip and rendered a variable input',
-      );
-      genAiPlayground.findVariableInputPanel().should('be.visible');
-      genAiPlayground.findVariableInput(testData.prompt.variableName).should('be.visible');
-
-      cy.step('Fill in the variable value and confirm it is reflected in the panel');
-      genAiPlayground
-        .findVariableInput(testData.prompt.variableName)
-        .clear()
-        .type(testData.prompt.variableValue);
-      genAiPlayground
-        .findVariableInput(testData.prompt.variableName)
-        .should('have.value', testData.prompt.variableValue);
-
-      cy.step('Send a test message using the loaded prompt context and filled-in variable');
-      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
-      genAiPlayground.sendMessage(testData.prompt.testMessageWithPrompt);
-
-      cy.step('Verify user message appears in chat');
-      genAiPlayground
-        .findUserMessage()
-        .should('exist')
-        .and('contain', testData.prompt.testMessageWithPrompt);
-
-      cy.step('Verify assistant response is received');
-      genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
-      genAiPlayground.findAssistantMessage({ timeout: 60000 }).should('exist').and('not.be.empty');
     },
   );
 
@@ -398,7 +301,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
     },
     () => {
       cy.step('Navigate back to AI Assets to delete the endpoint');
-      genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
 
       cy.step('Wait for AI models table to load');
       genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
@@ -414,7 +317,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       genAiPlayground.findDeleteModelConfirmButton().click();
 
       cy.step('Reload page and verify endpoint is deleted');
-      genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
       genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible');
 
       cy.step('Verify ConfigMap and Secret are cleaned up');
