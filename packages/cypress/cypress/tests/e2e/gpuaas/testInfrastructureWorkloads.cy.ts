@@ -240,6 +240,8 @@ describeAdminOnly('Infrastructure Workloads visibility', () => {
       }
       const testContext = context;
 
+      cy.clearCookies();
+      cy.clearLocalStorage();
       cy.visitWithLogin('/observe-and-monitor/infrastructure', HTPASSWD_CLUSTER_ADMIN_USER);
       infrastructurePage.findUtilizationTab().should('be.visible');
       infrastructurePage.findQuotaUsageTab().should('be.visible');
