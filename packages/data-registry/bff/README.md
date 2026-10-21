@@ -347,8 +347,9 @@ endpoint. Production must retain certificate verification.
 timeouts, upstream 5xx, and 404 responses from either DCH collection endpoint trigger Secret
 fallback using the original request context. Treating collection-endpoint 404s as unavailable
 supports clusters where the DCH BFF is present before its backend API is installed. 401/403,
-other 4xx (excluding these collection-endpoint 404s), and invalid contracts return 502 without
-fallback.
+other 4xx (excluding these collection-endpoint 404s), and invalid contracts do not trigger
+fallback. DCH authentication failures return 401, access denials return 403, and other
+non-fallback errors return 502.
 A missing connector type omits that connection and returns a warning. The service does not
 probe DCH during startup, cache user connection lists, or convert saved references.
 

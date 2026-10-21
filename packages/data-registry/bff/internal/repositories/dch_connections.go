@@ -15,7 +15,25 @@ import (
 	"github.com/opendatahub-io/data-registry/bff/internal/models"
 )
 
-const dchListEndpointNotFoundCode = "DCH_LIST_ENDPOINT_NOT_FOUND"
+const errCodeDCHListEndpointNotFound = "DCH_LIST_ENDPOINT_NOT_FOUND"
+
+type classifiedDCHListError struct {
+	*bffclient.BFFClientError
+	cause error
+}
+
+func (e *classifiedDCHListError) Unwrap() error { return e.cause }
+
+// As exposes the sanitized classification to callers while Unwrap preserves the original error
+// for internal diagnostics.
+func (e *classifiedDCHListError) As(target any) bool {
+	classified, ok := target.(**bffclient.BFFClientError)
+	if !ok {
+		return false
+	}
+	*classified = e.BFFClientError
+	return true
+}
 
 // Decode only fields needed for display. Credentials and arbitrary properties are never relayed.
 type dchConnection struct {
@@ -49,7 +67,7 @@ func DCHFallbackAllowed(err error) bool {
 	case bffclient.ErrCodeConnectionFailed,
 		bffclient.ErrCodeTimeout,
 		bffclient.ErrCodeServerUnavailable,
-		dchListEndpointNotFoundCode:
+		errCodeDCHListEndpointNotFound:
 		return true
 	default:
 		return false
@@ -60,17 +78,23 @@ func DCHFallbackAllowed(err error) bool {
 // connection lists (for example, when the DCH backend/API is not installed yet). Keep this
 // fallback scoped to these two list requests; other 4xx responses and malformed contracts remain
 // errors.
-func classifyDCHListError(err error) error {
+func reclassifyDCHListNotFound(err error) error {
 	var upstream *bffclient.BFFClientError
-	if !errors.As(err, &upstream) || upstream.Code != bffclient.ErrCodeNotFound {
+	if !errors.As(err, &upstream) {
 		return err
 	}
-	return bffclient.NewBFFClientErrorWithTarget(
-		dchListEndpointNotFoundCode,
-		"DCH connection list endpoint is not available",
-		bffclient.BFFTargetDCH,
-		upstream.StatusCode,
-	)
+	if upstream.Code != bffclient.ErrCodeNotFound {
+		return err
+	}
+	return &classifiedDCHListError{
+		BFFClientError: bffclient.NewBFFClientErrorWithTarget(
+			errCodeDCHListEndpointNotFound,
+			"DCH connection list endpoint is not available",
+			bffclient.BFFTargetDCH,
+			upstream.StatusCode,
+		),
+		cause: err,
+	}
 }
 
 func dchErrorPriority(err error) int {
@@ -129,7 +153,7 @@ func (r *ConnectionRepository) GetDCHConnections(ctx context.Context, client bff
 		defer wg.Done()
 		connectionErr = client.Call(ctx, http.MethodGet, "/connections"+query, nil, &connections)
 		if connectionErr != nil {
-			connectionErr = classifyDCHListError(connectionErr)
+			connectionErr = reclassifyDCHListNotFound(connectionErr)
 			return
 		}
 		if connections.Data == nil {
@@ -151,7 +175,7 @@ func (r *ConnectionRepository) GetDCHConnections(ctx context.Context, client bff
 		defer wg.Done()
 		typeErr = client.Call(ctx, http.MethodGet, "/connection-types"+query, nil, &types)
 		if typeErr != nil {
-			typeErr = classifyDCHListError(typeErr)
+			typeErr = reclassifyDCHListNotFound(typeErr)
 			return
 		}
 		if types.Data == nil {
