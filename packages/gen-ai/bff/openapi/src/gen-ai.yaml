@@ -526,6 +526,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Conflict - a model with the same model_id is already registered in this namespace; model IDs must be unique across custom-endpoint providers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: createExternalModel

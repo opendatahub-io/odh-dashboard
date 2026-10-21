@@ -182,7 +182,7 @@ describe('EvalHub API Contract Tests', () => {
       const createRequest = {
         name: 'New Collection',
         description: 'A collection created from the suite form',
-        domains: ['safety'],
+        domains: ['trustworthiness'],
         tasks: ['reasoning'],
         modalities: ['text'],
         industries: ['health'],
@@ -234,7 +234,7 @@ describe('EvalHub API Contract Tests', () => {
         description: 'A collection configured for agent evaluation',
         category: 'Safety',
         tags: ['custom', 'agent'],
-        domains: ['safety', 'reasoning'],
+        domains: ['trustworthiness', 'knowledge_and_reasoning'],
         tasks: ['classification'],
         modalities: ['text'],
         industries: ['technology'],

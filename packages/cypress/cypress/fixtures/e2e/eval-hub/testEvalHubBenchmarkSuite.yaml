@@ -13,7 +13,7 @@ hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profi
 suiteName: EvalHub Cypress suite
 suiteDomains:
   - knowledge_and_reasoning
-  - safety
+  - trustworthiness
 benchmarkProviderId: lm_evaluation_harness
 benchmarks:
   - id: arc_easy

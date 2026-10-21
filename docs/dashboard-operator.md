@@ -575,11 +575,21 @@ oc get dashboard default-dashboard -o yaml
 In production, the ODH Operator manages the dashboard-operator's lifecycle:
 
 1. The ODH Operator's `ModuleHandler` for Dashboard renders the Helm chart from `charts/dashboard/`
-2. The Helm chart creates the operator Deployment, ServiceAccount, RBAC, and cert-manager resources
+2. The Helm chart creates the operator Deployment, ServiceAccount, RBAC, cert-manager resources, and an ingress NetworkPolicy for the controller pod
 3. The ODH Operator creates the `Dashboard` CR with component availability from the DSC
 4. The dashboard-operator reconciles and deploys the Dashboard application
 
 The `RELATED_IMAGE_ODH_DASHBOARD_OPERATOR_IMAGE` env var on the ODH Operator pod provides the dashboard-operator image reference.
+
+#### Controller NetworkPolicy
+
+The chart ships a default-enabled ingress `NetworkPolicy` (`<namePrefix>dashboard-operator-metrics`) that selects the controller pod and restricts ingress to:
+
+- **TCP 8443** (HTTPS metrics) from the supported monitoring namespaces only: `openshift-monitoring`, `openshift-user-workload-monitoring`, `redhat-ods-monitoring`, `opendatahub-monitoring`.
+- **TCP 8081** (health/readiness probes), port-scoped with no peer selector — kubelet/node-originated probes are host-sourced and not constrainable via NetworkPolicy peers.
+- The webhook port, only when `webhook.enabled=true`.
+
+Toggle with `networkPolicy.enabled` in `charts/dashboard/values.yaml` (default `true`); set it to `false` to opt out. The operator exempts this policy from `managementState: Removed` teardown so the running controller keeps its metrics isolation.
 
 ### Image Override Pattern
 
