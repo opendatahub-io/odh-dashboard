@@ -44,6 +44,7 @@
     "type-check": "cd frontend && pnpm run test:type-check"
   },
   "exports": {
+    "./api/me": "./frontend/src/app/api/me.ts",
     "./utils/api-keys": "./frontend/src/app/pages/keys-and-subs/utils.ts",
     "./types/api-key": "./frontend/src/app/types/api-key.ts",
     "./types/subscriptions": "./frontend/src/app/types/subscriptions.ts",

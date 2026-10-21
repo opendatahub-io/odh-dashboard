@@ -31,9 +31,9 @@ const RuntimeImageInstallWizardTargetStep: React.FC<RuntimeImageInstallWizardTar
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title headingLevel="h2">Choose install target</Title>
+        <Title headingLevel="h2">Runtime type</Title>
       </StackItem>
-      <StackItem>Select where this runtime image should be available after installation.</StackItem>
+      <StackItem>Select the type of runtime to create from this runtime image.</StackItem>
       {soleAvailableTarget && (
         <StackItem>
           <Alert
