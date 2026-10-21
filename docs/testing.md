@@ -275,6 +275,15 @@ Cypress uses several environment variables to control test behavior and configur
 - **Usage**: `export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'`
 - **Required**: Yes, for e2e tests
 
+#### CYPRESS_DSPA_S3_ENDPOINT
+
+- **Purpose**: Overrides the S3 endpoint used by AutoX end-to-end provisioning
+- **Values**: A complete HTTP or HTTPS endpoint, such as `http://minio.<namespace>.svc.cluster.local:9000`
+- **Effect**: Uses the endpoint for the DSPA configuration, AutoX data-connection Secret, and S3 cleanup. This keeps disconnected-cluster tests on the cluster-internal MinIO service instead of the external route.
+- **Fallback**: Uses the selected bucket's `S3.*.ENDPOINT` value when the variable is unset or blank
+- **Usage**: `export CYPRESS_DSPA_S3_ENDPOINT='http://minio.<namespace>.svc.cluster.local:9000'`
+- **Required**: No
+
 #### CY_MOCK
 
 - **Purpose**: Enables mocked test mode
