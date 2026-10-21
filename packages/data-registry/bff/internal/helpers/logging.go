@@ -1,10 +1,7 @@
 package helper
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -32,6 +29,7 @@ var sensitiveHeaders = []string{
 	"Cookie",
 	"Set-Cookie",
 	"Proxy-Authorization",
+	"X-Forwarded-Access-Token",
 }
 
 func isSensitiveHeader(h string) bool {
@@ -62,53 +60,24 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(values...)
 }
 
-func CloneBody(r *http.Request) ([]byte, error) {
-	if r.Body == nil {
-		return nil, fmt.Errorf("no body provided")
-	}
-	buf, _ := io.ReadAll(r.Body)
-	readerCopy := io.NopCloser(bytes.NewBuffer(buf))
-	readerOriginal := io.NopCloser(bytes.NewBuffer(buf))
-	r.Body = readerOriginal
-
-	defer readerCopy.Close()
-	cloneBody, err := io.ReadAll(readerCopy)
-
-	return cloneBody, err
-}
-
 type RequestLogValuer struct {
 	Request *http.Request
 }
 
 func (r RequestLogValuer) LogValue() slog.Value {
-	body := ""
-
-	if r.Request.Body != nil {
-		cloneBody, err := CloneBody(r.Request)
-		if err != nil {
-			body = fmt.Sprintf("error: %v", err)
-		} else {
-			body = string(cloneBody)
-		}
-	}
-
 	return slog.GroupValue(
 		slog.String("method", r.Request.Method),
 		slog.String("url", r.Request.URL.String()),
-		slog.String("body", body),
 		slog.Any("headers", HeaderLogValuer{Header: r.Request.Header}))
 }
 
 type ResponseLogValuer struct {
 	Response *http.Response
-	Body     []byte
 }
 
 func (r ResponseLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("status_code", r.Response.StatusCode),
 		slog.String("status", r.Response.Status),
-		slog.Any("body", r.Body),
 		slog.Any("headers", HeaderLogValuer{Header: r.Response.Header}))
 }

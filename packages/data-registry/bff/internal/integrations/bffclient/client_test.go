@@ -2,6 +2,7 @@ package bffclient
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -11,6 +12,39 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestHTTPBFFClient_TLSCertificateVerification(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.NotNil(t, r.TLS)
+		assert.Equal(t, "test-token", r.Header.Get("X-Forwarded-Access-Token"))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer server.Close()
+
+	for _, trusted := range []bool{false, true} {
+		name := "untrusted certificate rejected"
+		if trusted {
+			name = "configured CA trusted"
+		}
+		t.Run(name, func(t *testing.T) {
+			roots := x509.NewCertPool()
+			if trusted {
+				roots.AddCert(server.Certificate())
+			}
+			client := NewHTTPBFFClient(server.URL, BFFTargetMaaS, "test-token", false, roots)
+			var result map[string]string
+			err := client.Call(context.Background(), http.MethodGet, "/test", nil, &result)
+			if !trusted {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, "certificate signed by unknown authority")
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, "ok", result["status"])
+		})
+	}
+}
 
 func TestHTTPBFFClient_Call_Success(t *testing.T) {
 	expected := map[string]string{"status": "ok"}

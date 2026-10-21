@@ -69,7 +69,7 @@ type BFFClientConfig struct {
 }
 
 // NewDefaultBFFClientConfig creates a default BFF client configuration
-// with all known BFF targets configured for the standard single-pod deployment
+// with known BFF targets configured for TLS-enabled dashboard module services.
 func NewDefaultBFFClientConfig() *BFFClientConfig {
 	return &BFFClientConfig{
 		MockBFFClients: false,
@@ -79,7 +79,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				ServiceName:     "odh-dashboard",
 				Port:            8243,
 				PathPrefix:      "/api/v1",
-				TLSEnabled:      false,
+				TLSEnabled:      true,
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",
@@ -89,7 +89,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				ServiceName:     "odh-dashboard",
 				Port:            8143,
 				PathPrefix:      "/api/v1",
-				TLSEnabled:      false,
+				TLSEnabled:      true,
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",
@@ -99,7 +99,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				ServiceName:     "odh-dashboard",
 				Port:            8043,
 				PathPrefix:      "/api/v1",
-				TLSEnabled:      false,
+				TLSEnabled:      true,
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",
@@ -109,7 +109,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				ServiceName:     "odh-dashboard",
 				Port:            8343,
 				PathPrefix:      "/api/v1",
-				TLSEnabled:      false,
+				TLSEnabled:      true,
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",

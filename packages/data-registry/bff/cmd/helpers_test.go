@@ -1,6 +1,9 @@
 package main
 
 import (
+	"flag"
+	"io"
+	"reflect"
 	"testing"
 )
 
@@ -31,6 +34,40 @@ func TestNewOriginParser(t *testing.T) {
 				if allowList[i] != tc.expected[i] {
 					t.Fatalf("expected %v got %v", tc.expected, allowList)
 				}
+			}
+		})
+	}
+}
+
+func TestCommaSeparatedFlagDefaults(t *testing.T) {
+	for _, name := range []string{"allowed-origins", "bundle-paths"} {
+		t.Run(name, func(t *testing.T) {
+			cases := []struct {
+				name     string
+				fallback string
+				args     []string
+				want     []string
+			}{
+				{"unset", "", nil, nil},
+				{"environment only", " first, second ", nil, []string{"first", "second"}},
+				{"flag overrides environment", "first,second", []string{"--" + name + "=third"}, []string{"third"}},
+				{"explicit empty clears environment", "first", []string{"--" + name + "="}, nil},
+				{"ignore empty entries", "", []string{"--" + name + "=, first, , second, "}, []string{"first", "second"}},
+				{"last flag wins", "first", []string{"--" + name + "=second", "--" + name + "=third"}, []string{"third"}},
+			}
+			for _, tc := range cases {
+				t.Run(tc.name, func(t *testing.T) {
+					var values []string
+					fs := flag.NewFlagSet("test", flag.ContinueOnError)
+					fs.SetOutput(io.Discard)
+					fs.Func(name, "", newOriginParser(&values, tc.fallback))
+					if err := fs.Parse(tc.args); err != nil {
+						t.Fatal(err)
+					}
+					if !reflect.DeepEqual(tc.want, values) {
+						t.Fatalf("want %v, got %v", tc.want, values)
+					}
+				})
 			}
 		})
 	}

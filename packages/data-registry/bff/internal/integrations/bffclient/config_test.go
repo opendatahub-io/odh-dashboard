@@ -19,6 +19,12 @@ func TestNewDefaultBFFClientConfig(t *testing.T) {
 	assert.NotNil(t, cfg.GetServiceConfig(BFFTargetGenAI))
 	assert.NotNil(t, cfg.GetServiceConfig(BFFTargetModelRegistry))
 	assert.NotNil(t, cfg.GetServiceConfig(BFFTargetMLflow))
+	for target, service := range cfg.ServiceConfigs {
+		t.Run(string(target), func(t *testing.T) {
+			assert.True(t, service.TLSEnabled, "default inter-BFF connections must use TLS")
+			assert.Regexp(t, `^https://`, service.GetURL("test-namespace"))
+		})
+	}
 }
 
 func TestBFFServiceConfig_GetURL_DevOverride(t *testing.T) {

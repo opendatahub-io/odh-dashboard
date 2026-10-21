@@ -47,6 +47,9 @@ If you want to change the log level on deployment, add the LOG_LEVEL argument wh
 make run LOG_LEVEL=DEBUG
 ```
 
+DEBUG request/response logging records metadata and redacted headers without reading or
+logging bodies. This preserves streaming requests and keeps payload credentials out of logs.
+
 ## Flags / Environment Variables
 
 | Flag                            | Env Var                        | Description                                                                                                           |
@@ -58,6 +61,7 @@ make run LOG_LEVEL=DEBUG
 | `-static-assets-dir`            | `STATIC_ASSETS_DIR`            | Directory to serve single‑page frontend assets                                                                        |
 | `-log-level`                    | `LOG_LEVEL`                    | ERROR, WARN, INFO, DEBUG (default INFO)                                                                               |
 | `-allowed-origins`              | `ALLOWED_ORIGINS`              | Comma separated CORS origins                                                                                          |
+| `-bundle-paths`                 | `BUNDLE_PATHS`                 | Comma separated PEM CA bundle paths for outbound TLS                                                                  |
 | `-auth-method`                  | `AUTH_METHOD`                  | `user_token` only; uses the authenticated RHOAI/ODH user token                                                        |
 | `-auth-token-header`            | `AUTH_TOKEN_HEADER`            | Header to read token from (default `x-forwarded-access-token` for ODH)                                                |
 | `-auth-token-prefix`            | `AUTH_TOKEN_PREFIX`            | Expected value prefix (default empty for ODH; use `Bearer` with standard `Authorization`)                             |
@@ -70,6 +74,14 @@ make run LOG_LEVEL=DEBUG
 | `-data-registry-configmap-key`  | `DATA_REGISTRY_CONFIGMAP_KEY`  | Key within that ConfigMap holding the URL (default `apiURL`)                                                          |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+`ALLOWED_ORIGINS` and `BUNDLE_PATHS` apply when their flags are omitted. An explicit flag
+replaces the environment value; an empty flag clears it. Whitespace and empty list entries
+are ignored. If a flag is repeated, its last value wins.
+
+Default inter-BFF targets use HTTPS with certificate verification enabled. Configure
+`--bundle-paths` or `BUNDLE_PATHS` to trust the cluster service CA. Local HTTP endpoints
+remain available through an explicit development URL override.
 
 ## Running the linter locally
 

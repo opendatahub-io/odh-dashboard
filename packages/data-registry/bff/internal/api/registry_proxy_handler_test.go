@@ -510,9 +510,7 @@ func TestDataRegistryProxy_DiscoveryRoutes(t *testing.T) {
 	}
 }
 
-// TestDataRegistryProxy_OwnHandlersTakePrecedence confirms the BFF's own /api/v1/user and
-// /api/v1/namespaces endpoints are NOT swallowed by the Data Registry catchall proxy, even
-// though both share the same DataRegistryPathPrefix ("/api/v1").
+// Native routes must keep their method handling instead of reaching the upstream catchall.
 func TestDataRegistryProxy_OwnHandlersTakePrecedence(t *testing.T) {
 	var upstreamCalled bool
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -523,10 +521,14 @@ func TestDataRegistryProxy_OwnHandlersTakePrecedence(t *testing.T) {
 
 	app := newRegistryProxyTestApp(upstream.URL)
 
-	res := doRegistryProxyRequest(t, app, http.MethodGet, "http://bff.example"+UserPath, nil, "tok")
-	defer res.Body.Close()
-
-	assert.False(t, upstreamCalled, "the BFF's own /api/v1/user handler must not be shadowed by the Data Registry catchall proxy")
+	for _, path := range []string{UserPath, NamespacePath, ApiPathPrefix + "/connections/my-project", PathPrefix + UserPath} {
+		t.Run(path, func(t *testing.T) {
+			res := doRegistryProxyRequest(t, app, http.MethodPost, "http://bff.example"+path, nil, "tok")
+			defer res.Body.Close()
+			assert.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
+			assert.False(t, upstreamCalled, "the native route must not reach the upstream proxy")
+		})
+	}
 }
 
 func TestDataRegistryProxy_UnreachableUpstream_ReturnsServiceUnavailable(t *testing.T) {

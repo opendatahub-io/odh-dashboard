@@ -43,21 +43,21 @@ func parseLevel(s string) slog.Level {
 }
 
 func newOriginParser(allowList *[]string, defaultVal string) func(s string) error {
-	return func(s string) error {
-		value := defaultVal
-
-		if s != "" {
-			value = s
-		}
-
-		if value == "" {
-			return nil
-		}
-
+	parse := func(s string) []string {
+		var values []string
 		for _, str := range strings.Split(s, ",") {
-			*allowList = append(*allowList, strings.TrimSpace(str))
+			if value := strings.TrimSpace(str); value != "" {
+				values = append(values, value)
+			}
 		}
+		return values
+	}
 
+	// flag.Func only calls its parser for explicitly supplied flags, so initialize
+	// the environment default now. An explicit flag replaces it, including "".
+	*allowList = parse(defaultVal)
+	return func(s string) error {
+		*allowList = parse(s)
 		return nil
 	}
 }
