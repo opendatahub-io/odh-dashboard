@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const YAML = require('yaml');
+const ts = require('typescript');
 
 const distribution = YAML.parse(
   fs.readFileSync(path.resolve(__dirname, '../../distribution.yaml'), 'utf8'),
@@ -26,6 +27,33 @@ describe('MaaS Portal Gen AI registration', () => {
     );
     expect(maas.featureFlags.grid).toBe(false);
     expect(genAi.featureFlags.grid).toBe(maas.featureFlags.grid);
+  });
+
+  it('should resolve the public page types without consumer aliases', () => {
+    const { resolvedModule } = ts.resolveModuleName(
+      '@odh-dashboard/gen-ai/MaaSModelsPageProvider',
+      path.resolve(__dirname, '../../src/extensions.ts'),
+      { moduleResolution: ts.ModuleResolutionKind.Bundler },
+      ts.sys,
+    );
+
+    expect(resolvedModule.resolvedFileName).toBe(
+      path.resolve(__dirname, '../../../../packages/gen-ai/types/MaaSModelsPageProvider.d.ts'),
+    );
+    expect(
+      ts
+        .preProcessFile(fs.readFileSync(resolvedModule.resolvedFileName, 'utf8'))
+        .importedFiles.map(({ fileName }) => fileName),
+    ).toEqual(['react']);
+  });
+
+  it('should keep the public page runtime export pointing to the implementation', () => {
+    expect(require.resolve('@odh-dashboard/gen-ai/MaaSModelsPageProvider')).toBe(
+      path.resolve(
+        __dirname,
+        '../../../../packages/gen-ai/frontend/src/app/pages/MaaSModelsPageProvider.tsx',
+      ),
+    );
   });
 
   it('should expose the shared Gen AI extension entry point', () => {

@@ -4,11 +4,7 @@
     "rootDir": "..",
     "baseUrl": "./src",
     "outDir": "./dist",
-    "rootDirs": ["./src", "../base/types"],
-    "paths": {
-      "~/*": ["../../../packages/gen-ai/frontend/src/*"],
-      "@mf/*": ["../../../frontend/@mf-types/@mf/*"]
-    }
+    "rootDirs": ["./src", "../base/types"]
   },
   "include": [
     "*.ts",

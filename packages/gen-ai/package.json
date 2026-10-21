@@ -46,7 +46,10 @@
     "./extension-points": "./frontend/src/odh/extension-points/index.ts",
     "./types": "./frontend/src/types/index.ts",
     "./extensions/static": "./frontend/src/odh/extensions.ts",
-    "./MaaSModelsPageProvider": "./frontend/src/app/pages/MaaSModelsPageProvider.tsx"
+    "./MaaSModelsPageProvider": {
+      "types": "./types/MaaSModelsPageProvider.d.ts",
+      "default": "./frontend/src/app/pages/MaaSModelsPageProvider.tsx"
+    }
   },
   "dependencies": {
     "@odh-dashboard/internal": "workspace:*",
