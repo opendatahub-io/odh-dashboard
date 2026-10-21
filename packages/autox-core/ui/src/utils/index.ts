@@ -18,3 +18,8 @@ export {
   type ExtractExecutorLogErrorOptions,
 } from './executorLogError';
 export { formatMissingKeysMessage, getMissingRequiredKeys } from './secretValidation';
+export {
+  getPipelineTaskAttemptTimestamp,
+  getPipelineTaskTiming,
+  type PipelineTaskTiming,
+} from './pipelineTaskTiming';

@@ -58,7 +58,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
 
   return (
     <>
-      <Tr>
+      <Tr data-testid={`vector-store-row-${store.vector_store_id}`}>
         <Td dataLabel="Collection name">
           <div style={dimStyle}>
             <div className="pf-v6-u-font-weight-bold">
@@ -127,6 +127,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
             {isInPlayground ? (
               <Button
                 variant={ButtonVariant.secondary}
+                data-testid={`vector-store-try-in-playground-${store.vector_store_id}`}
                 onClick={() => {
                   fireMiscTrackingEvent('Available Endpoints Playground Launched', {
                     assetType: 'vector_store',
@@ -147,6 +148,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
                 variant={ButtonVariant.link}
                 icon={<PlusCircleIcon />}
                 isDisabled={isDisabled}
+                data-testid={`vector-store-add-to-playground-${store.vector_store_id}`}
                 onClick={() => {
                   setIsConfigurationModalOpen(true);
                   fireMiscTrackingEvent('Available Endpoints Playground Launched', {

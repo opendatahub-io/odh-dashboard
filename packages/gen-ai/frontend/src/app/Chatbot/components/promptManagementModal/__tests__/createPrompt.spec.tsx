@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CreatePrompt from '~/app/Chatbot/components/promptManagementModal/createPrompt';
 import * as chatbotStore from '~/app/Chatbot/store';
@@ -160,5 +161,27 @@ describe('CreatePrompt - Save As mode', () => {
         name: 'Copy of global-template',
       }),
     );
+  });
+
+  it('should preserve save errors in the modal but not in analytics', async () => {
+    const message = 'Private prompt payload could not be saved';
+    mockRegisterMLflowPrompt.mockRejectedValueOnce(new Error(message));
+    renderWithQueryClient(
+      <CreatePrompt
+        configId="default"
+        displayText={{ title: 'Save prompt as', description: 'Save as new prompt' }}
+        onClose={jest.fn()}
+      />,
+    );
+    await act(async () => {
+      screen.getByTestId('prompt-save-button').click();
+    });
+    await waitFor(() => expect(screen.getByText(message)).toBeVisible());
+    expect(fireMiscTrackingEvent).toHaveBeenCalledWith(
+      'Playground Prompt Saved',
+      expect.objectContaining({ success: false, error: 'unknown_error' }),
+    );
+    expect(JSON.stringify(jest.mocked(fireMiscTrackingEvent).mock.calls)).not.toContain(message);
+    expect(mockCloseModal).not.toHaveBeenCalled();
   });
 });

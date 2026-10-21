@@ -17,6 +17,7 @@ import {
   findEquivalentMetric,
   findTrainingTaskPrefix,
   resolveTrainingTaskPrefix,
+  resolveUniqueTrainingTaskPrefix,
   resolveUniqueUuidPrefix,
   generateReconfigureName,
   getBestModelFromStageMap,
@@ -915,6 +916,33 @@ describe('resolveBestModelKey', () => {
     expect(resolveBestModelKey(models, 'ExtraTreesGini_BAG_L2')).toBe('model_0');
   });
 
+  it('matches normalized model keys and names', () => {
+    expect(resolveBestModelKey({ model_one: { name: 'Other Model' } }, 'Model One')).toBe(
+      'model_one',
+    );
+    expect(resolveBestModelKey({ generated: { name: 'Model One' } }, 'model_one')).toBe(
+      'generated',
+    );
+  });
+
+  it('prefers a unique exact model name before normalized matching', () => {
+    expect(
+      resolveBestModelKey(
+        { model_one: { name: 'Other Model' }, generated: { name: 'Model One' } },
+        'Model One',
+      ),
+    ).toBe('generated');
+  });
+
+  it('leaves normalized key-to-name collisions unresolved', () => {
+    expect(
+      resolveBestModelKey(
+        { model_one: { name: 'Other Model' }, other: { name: 'Model One' } },
+        'ModelOne',
+      ),
+    ).toBeUndefined();
+  });
+
   it('returns undefined when best_model matches more than one model.name', () => {
     const ambiguousModels = {
       model_a: { name: 'SharedName' },
@@ -1321,6 +1349,29 @@ describe('resolveTrainingTaskPrefix', () => {
       resolveTrainingTaskPrefix(
         [{ prefix: 'pipeline/run-1/autogluon-models-training-backup/' }],
         allowedTaskNames,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe('resolveUniqueTrainingTaskPrefix', () => {
+  it('should resolve a single numeric task suffix', () => {
+    expect(
+      resolveUniqueTrainingTaskPrefix(
+        [{ prefix: 'pipeline/run-1/autogluon-models-training-3/' }],
+        'autogluon-models-training',
+      ),
+    ).toBe('pipeline/run-1/autogluon-models-training-3');
+  });
+
+  it('should reject ambiguous task suffixes', () => {
+    expect(
+      resolveUniqueTrainingTaskPrefix(
+        [
+          { prefix: 'pipeline/run-1/autogluon-models-training/' },
+          { prefix: 'pipeline/run-1/autogluon-models-training-3/' },
+        ],
+        'autogluon-models-training',
       ),
     ).toBeUndefined();
   });

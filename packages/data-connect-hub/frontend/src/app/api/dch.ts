@@ -2,8 +2,6 @@ import {
   APIOptions,
   handleRestFailures,
   isModArchResponse,
-  restENDPOINT,
-  restDELETE,
   restGET,
   restCREATE,
 } from 'mod-arch-core';
@@ -32,7 +30,15 @@ const getResponseErrorMessage = (body: string, status: number): string => {
   } catch {
     // Fall back to the raw response for non-JSON errors.
   }
-  return body || `Credential verification failed with status ${status}`;
+  return body || `Request failed with status ${status}`;
+};
+
+const requireNoContent = async (response: Response): Promise<void> => {
+  if (response.status === 204) {
+    return;
+  }
+  const body = await response.text();
+  throw new Error(getResponseErrorMessage(body, response.status));
 };
 
 const isConnection = (value: unknown): value is Connection => {
@@ -48,9 +54,18 @@ const isConnection = (value: unknown): value is Connection => {
     typeof value.metadata.id === 'string' &&
     value.metadata.id.length > 0 &&
     (value.metadata.tenant_id === undefined || typeof value.metadata.tenant_id === 'string') &&
+    (value.metadata.created_at === undefined || typeof value.metadata.created_at === 'string') &&
+    (value.metadata.updated_at === undefined || typeof value.metadata.updated_at === 'string') &&
     typeof value.resource.name === 'string' &&
     typeof value.resource.data_connection_type_id === 'string' &&
     (value.resource.format === 'tabular' || value.resource.format === 'binary') &&
+    isRecord(value.resource.credentials_ref) &&
+    typeof value.resource.credentials_ref.secret === 'string' &&
+    (value.resource.properties === undefined ||
+      (isRecord(value.resource.properties) &&
+        Object.entries(value.resource.properties).every(
+          ([key, propertyValue]) => typeof key === 'string' && typeof propertyValue === 'string',
+        ))) &&
     (value.status.state === 'ready' ||
       value.status.state === 'ingestion_not_ready' ||
       value.status.state === 'not_ready') &&
@@ -103,6 +118,41 @@ export const getConnections =
       }
       throw new Error('Invalid response format');
     });
+
+export const getConnection =
+  (hostPath: string) =>
+  async (opts: APIOptions, namespace: string, connectionId: string): Promise<Connection | null> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+        connectionId,
+      )}?${searchParams.toString()}`,
+      {
+        method: 'GET',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    const body = await response.text();
+
+    if (response.status === 404) {
+      return null;
+    }
+    if (!response.ok) {
+      throw new Error(getResponseErrorMessage(body, response.status));
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      throw new Error('Invalid response format');
+    }
+    if (isModArchResponse<unknown>(parsed) && isConnection(parsed.data)) {
+      return parsed.data;
+    }
+    throw new Error('Invalid response format');
+  };
 
 export const getConnectionTypes =
   (hostPath: string) =>
@@ -166,17 +216,20 @@ export const getConnectionType =
 
 export const verifyConnection =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string, connectionId: string): Promise<void> =>
-    handleRestFailures(
-      restENDPOINT(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
-          connectionId,
-        )}/readiness`,
-        { namespace },
-        { ...opts, parseJSON: false },
-      ),
-    ).then(() => undefined);
+  async (opts: APIOptions, namespace: string, connectionId: string): Promise<void> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+        connectionId,
+      )}/readiness?${searchParams.toString()}`,
+      {
+        method: 'POST',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    await requireNoContent(response);
+  };
 
 export const testCredentials =
   (hostPath: string) =>
@@ -194,23 +247,21 @@ export const testCredentials =
         body: JSON.stringify(request),
         signal: opts.signal,
       },
-    ).then(async (response) => {
-      if (response.status === 204) {
-        return;
-      }
-      const body = await response.text();
-      throw new Error(getResponseErrorMessage(body, response.status));
-    });
+    ).then(requireNoContent);
 
 export const deleteConnection =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string, connectionId: string): Promise<void> =>
-    handleRestFailures(
-      restDELETE(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(connectionId)}`,
-        {},
-        { namespace },
-        { ...opts, parseJSON: false },
-      ),
-    ).then(() => undefined);
+  async (opts: APIOptions, namespace: string, connectionId: string): Promise<void> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(
+        connectionId,
+      )}?${searchParams.toString()}`,
+      {
+        method: 'DELETE',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    await requireNoContent(response);
+  };

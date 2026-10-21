@@ -159,7 +159,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         component={ContentVariants.p}
         className="pf-v6-u-font-weight-bold pf-v6-u-text-align-center"
       >
-        {subscription.priority ?? '-'}
+        {subscription.inferencePriority !== undefined ? subscription.inferencePriority : '0'}
       </Content>
     </Td>
   );

@@ -11,16 +11,22 @@ import {
   Label,
   Truncate,
 } from '@patternfly/react-core';
+import { RhStandardContainerImageIcon } from '@patternfly/react-icons';
 import { TruncatedText } from 'mod-arch-shared';
 import { Link, type LinkProps } from 'react-router-dom';
 import type { ServingRuntime } from '~/odh/types/servingRuntimeCatalogTypes';
-import RuntimeCatalogIcon from '~/odh/pages/runtimeCatalog/RuntimeCatalogIcon';
 import HardwareIcon from '~/odh/pages/runtimeCatalog/HardwareIcon';
 import {
   getRuntimeCatalogCardKey,
   getRuntimeCatalogDetailsRoute,
+  getRuntimeHardwareFilterValues,
   getRuntimePrimaryHardwareLabel,
 } from '~/odh/pages/runtimeCatalog/utils/runtimeCatalogUtils';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  RuntimeCatalogTrackingEvent,
+  buildHardwareFiltersValue,
+} from '~/odh/pages/runtimeCatalog/tracking/runtimeCatalogTracking';
 
 type RuntimeCatalogCardProps = {
   runtime: ServingRuntime;
@@ -32,6 +38,14 @@ const RuntimeCatalogCard: React.FC<RuntimeCatalogCardProps> = React.memo(({ runt
   const title = runtime.displayName || runtime.name || cardKey;
   const hardwareLabel = getRuntimePrimaryHardwareLabel(runtime);
   const showLatestBadge = (runtime.versionCount ?? 0) > 0;
+  const { trackSimpleEvent } = useUserInteraction();
+
+  const handleItemOpened = React.useCallback(() => {
+    trackSimpleEvent(RuntimeCatalogTrackingEvent.ITEM_OPENED, {
+      runtimeName: title,
+      hardware: buildHardwareFiltersValue(getRuntimeHardwareFilterValues(runtime)),
+    });
+  }, [trackSimpleEvent, title, runtime]);
 
   return (
     <Card isFullHeight data-testid={`runtime-catalog-card-${cardKey}`}>
@@ -44,11 +58,17 @@ const RuntimeCatalogCard: React.FC<RuntimeCatalogCardProps> = React.memo(({ runt
         >
           <FlexItem>
             <span
-              className="pf-v6-u-display-inline-block pf-v6-u-font-size-2xl pf-v6-u-color-200"
+              className="pf-v6-u-display-inline-block pf-v6-u-color-200"
               aria-hidden
               data-testid={`runtime-catalog-card-icon-${cardKey}`}
             >
-              <RuntimeCatalogIcon />
+              <RhStandardContainerImageIcon
+                noDefaultStyle
+                style={{
+                  height: 'var(--pf-t--global--icon--size--2xl)',
+                  width: 'var(--pf-t--global--icon--size--2xl)',
+                }}
+              />
             </span>
           </FlexItem>
           {showLatestBadge && (
@@ -65,6 +85,7 @@ const RuntimeCatalogCard: React.FC<RuntimeCatalogCardProps> = React.memo(({ runt
             variant="link"
             isInline
             isDisabled={!runtimeId}
+            onClick={handleItemOpened}
             component={
               runtimeId
                 ? (props: LinkProps) => (

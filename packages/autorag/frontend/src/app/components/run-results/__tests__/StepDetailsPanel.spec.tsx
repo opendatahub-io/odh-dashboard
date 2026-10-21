@@ -15,6 +15,7 @@ jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
 }));
 
 jest.mock('~/app/topology/stageMapStatus', () => ({
+  ...jest.requireActual('~/app/topology/stageMapStatus'),
   getSelectedPatterns: jest.fn(),
   BRANCHING_STAGE_ID: 'branching',
 }));
@@ -56,6 +57,53 @@ const renderStep = (nodeData: TreeNodeData, statusFilter: PipelineStatusFilter =
         selectedNodeId="documents-discovery"
         nodeData={nodeData}
         statusFilter={statusFilter}
+      />
+    </AutoragResultsContext.Provider>,
+  );
+};
+
+const renderBranchPanel = (): void => {
+  const { getSelectedPatterns } = jest.requireMock('~/app/topology/stageMapStatus') as {
+    getSelectedPatterns: jest.Mock;
+  };
+  const { parseStageMapNodeId } = jest.requireMock(
+    '~/app/topology/tree-view/stageMapStepMetadata',
+  ) as { parseStageMapNodeId: jest.Mock };
+  const { getStepMetadata: getStepMetadataMock } = jest.requireMock(
+    '~/app/topology/tree-view/stepMetadata',
+  ) as { getStepMetadata: jest.Mock };
+  getSelectedPatterns.mockReturnValue({ patterns: ['Pattern One'], isPlaceholder: false });
+  parseStageMapNodeId.mockReturnValue({
+    type: 'branch_pattern',
+    componentId: 'rag_optimization',
+    branchIndex: 0,
+  });
+  getStepMetadataMock.mockReturnValue({ description: 'Pattern details', details: [] });
+
+  render(
+    <AutoragResultsContext.Provider
+      value={{
+        patterns: { generatedKey: { name: 'Pattern One' } } as never,
+        optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
+        bestPatternKey: 'generatedKey',
+      }}
+    >
+      <StepDetailsPanel
+        selectedNodeId="rag_optimization__pattern__branch-0"
+        nodeData={{ label: 'Pattern One', stepState: 'completed' }}
+        selectedPattern="generatedKey"
+        statusFilter="completed"
+        componentStageMap={
+          {
+            components: [
+              {
+                id: 'rag_optimization',
+                description: 'RAG optimization',
+                stages: [{ id: 'optimize_templates', description: 'Optimize' }],
+              },
+            ],
+          } as never
+        }
       />
     </AutoragResultsContext.Provider>,
   );
@@ -142,5 +190,11 @@ describe('StepDetailsPanel', () => {
     expect(mockUseTaskExecutorError).toHaveBeenCalledWith(
       expect.objectContaining({ enabled: false }),
     );
+  });
+
+  it('should identify a best pattern when the stage map uses its display name', () => {
+    renderBranchPanel();
+
+    expect(screen.getByRole('heading', { name: 'Best pattern' })).toBeInTheDocument();
   });
 });

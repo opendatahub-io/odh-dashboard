@@ -258,7 +258,7 @@ describe('useAudioTranscription', () => {
     expect(result.current.state.error?.variant).toBe('danger');
     expect(mockFireForm).toHaveBeenCalledWith(
       PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED,
-      expect.objectContaining({ success: false, error: 'Network error during upload' }),
+      expect.objectContaining({ success: false, error: 'unknown_error' }),
     );
   });
 
@@ -286,7 +286,7 @@ describe('useAudioTranscription', () => {
     expect(result.current.state.error?.description).toBe('ASR model unavailable');
     expect(mockFireForm).toHaveBeenCalledWith(
       PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED,
-      expect.objectContaining({ success: false, error: 'ASR model unavailable' }),
+      expect.objectContaining({ success: false, error: 'unknown_error' }),
     );
   });
 

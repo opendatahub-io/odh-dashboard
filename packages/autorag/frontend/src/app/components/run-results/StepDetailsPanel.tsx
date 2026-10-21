@@ -32,7 +32,11 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type { PipelineRun } from '~/app/types';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { getSelectedPatterns, BRANCHING_STAGE_ID } from '~/app/topology/stageMapStatus';
+import {
+  getSelectedPatterns,
+  BRANCHING_STAGE_ID,
+  resolvePatternRecordKey,
+} from '~/app/topology/stageMapStatus';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 import { getStepMetadata, type StepDetail } from '~/app/topology/tree-view/stepMetadata';
 import {
@@ -90,7 +94,7 @@ const resolveBranchPatternKey = (
   if (isPlaceholder) {
     return undefined;
   }
-  const patternKey = branchPatterns[parsedNodeId.branchIndex];
+  const patternKey = resolvePatternRecordKey(patterns, branchPatterns[parsedNodeId.branchIndex]);
   return patternKey && Object.hasOwn(patterns, patternKey) ? patternKey : undefined;
 };
 

@@ -1,6 +1,7 @@
-# Based on the Fullsend-managed scaffold, with registry-driven host-adapter
-# preparation for PR reviews. Keep this extension in sync with the upstream
-# scaffold when Fullsend is upgraded.
+# Based on the Fullsend-managed scaffold. Local changes: the review/fix event
+# filter on `dispatch`, the host-adapter credentials composed into
+# FULLSEND_GITHUB_RUNNER_SECRETS, and the `stop-fix` job. Keep it in sync with
+# the upstream scaffold when Fullsend is upgraded.
 # Upstream: https://github.com/fullsend-ai/fullsend/blob/main/internal/scaffold/fullsend-repo/templates/shim-per-repo.yaml
 ---
 # fullsend shim workflow (per-repo installation mode)
@@ -10,9 +11,10 @@
 #
 # Security: pull_request_target runs the BASE branch version of this workflow,
 # preventing PRs from modifying it to exfiltrate credentials.
-# The dispatch shim never checks out PR code. Registered host adapters may opt
-# into an isolated, credential-scoped PR checkout; only their normalized JSON
-# artifacts cross into the review job.
+# The dispatch shim never checks out PR code. The CodeRabbit and Jira host
+# adapters run inside the review job's pre-script (.fullsend/scripts/
+# pre-review.sh); their credentials reach it through env.runner and never
+# enter the sandbox (ADR 0136).
 #
 # Routing: this shim forwards the raw event context to reusable-dispatch.yml,
 # which determines the stage and runs the agent inline (ADR 62).
@@ -38,189 +40,13 @@ on:
 permissions: {}
 
 jobs:
-  adapter-plan:
-    name: Plan host adapters
-    # These jobs run a paid CodeRabbit review and a credentialed Jira fetch, and
-    # `dispatch` needs them, so they finish before Route picks a stage. Anything
-    # admitted here that the review stage does not consume is wasted spend. A
-    # `changes_requested` review routes to the fix stage, which never reads
-    # adapter context, so it is not admitted here.
-    # Fullsend reviews all non-draft PRs (no opt-in `fullsend` label). Drafts
-    # are skipped on open/sync; draft→ready (`ready_for_review` event) or the
-    # `ready-for-review` label starts review. `/fs-review` is the explicit
-    # opt-in for drafts (and a manual re-run).
-    if: >-
-      (github.event_name == 'pull_request_target'
-       && github.event.pull_request.draft == false
-       && (github.event.action == 'opened'
-        || github.event.action == 'synchronize'
-        || github.event.action == 'ready_for_review'
-        || (github.event.action == 'labeled'
-         && github.event.label.name == 'ready-for-review')))
-      || (github.event_name == 'issue_comment'
-       && github.event.issue.pull_request
-       && github.event.comment.user.type != 'Bot'
-       && github.event.comment.body == '/fs-review')
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      matrix: ${{ steps.adapters.outputs.matrix }}
-      run_adapters: ${{ steps.gate.outputs.run_adapters }}
-    steps:
-      - name: Checkout trusted review integration
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # github.sha is the base branch's current tip, unlike pull_request.base.sha
-          # which is stale for any PR that hasn't been synced since this checkout ref
-          # was last advanced (see RHOAIENG-82125 CI failure on PR #9090).
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      # The review's pre-script skips closed PRs, but it runs inside dispatch,
-      # after the adapters have already bought a CodeRabbit review. Apply the
-      # same state check here first.
-      - name: Check review readiness
-        id: gate
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
-          REPO_FULL_NAME: ${{ github.repository }}
-        run: bash .fullsend/scripts/pre-review.sh --adapter-gate
-
-      - name: Build adapter matrix from registry
-        id: adapters
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
-        run: |
-          set -euo pipefail
-          bash .fullsend/scripts/pre-review.sh --validate-adapters
-          matrix="$(jq -c --arg pr_number "${PR_NUMBER}" '
-            {
-              include: [
-                .dimensions[]
-                | select(.kind == "cli-adapter" and .host.execution == "workflow")
-                | {
-                    id,
-                    runner,
-                    producer_file,
-                    artifact_name: (.host.artifact_name | gsub("\\{pr_number\\}"; $pr_number)),
-                    artifact_file: .host.artifact_file,
-                    checkout_pr: .host.checkout_pr,
-                    setup_runner: .host.setup_runner,
-                    url_secret: .host.credentials.url_secret,
-                    username_secret: .host.credentials.username_secret,
-                    token_secret: .host.credentials.token_secret
-                  }
-              ]
-            }
-          ' .fullsend/dimensions.json)"
-          echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
-
-  adapter-context:
-    name: Prepare ${{ matrix.id }} context
-    needs: adapter-plan
-    if: needs.adapter-plan.outputs.run_adapters == 'true'
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.adapter-plan.outputs.matrix) }}
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - name: Checkout trusted review integration
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Resolve pull request context
-        id: revisions
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
-          REPO_FULL_NAME: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          PR_JSON="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json baseRefOid,headRefOid,baseRefName)"
-          BASE_SHA="$(jq -r '.baseRefOid // empty' <<<"${PR_JSON}")"
-          HEAD_SHA="$(jq -r '.headRefOid // empty' <<<"${PR_JSON}")"
-          BASE_REF="$(jq -r '.baseRefName // empty' <<<"${PR_JSON}")"
-          if [[ ! "${BASE_SHA}" =~ ^[0-9a-f]{40}$ || ! "${HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Could not resolve immutable base and head revisions for PR ${PR_NUMBER}"
-            exit 1
-          fi
-          if [[ ! "${BASE_REF}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
-            echo "::error::Could not resolve base branch name for PR ${PR_NUMBER}"
-            exit 1
-          fi
-          echo "base_sha=${BASE_SHA}" >> "${GITHUB_OUTPUT}"
-          echo "head_sha=${HEAD_SHA}" >> "${GITHUB_OUTPUT}"
-          echo "base_ref=${BASE_REF}" >> "${GITHUB_OUTPUT}"
-
-      - name: Checkout pull request for adapter
-        if: ${{ matrix.checkout_pr }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ steps.revisions.outputs.head_sha }}
-          path: adapter-target
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Set up adapter
-        if: ${{ matrix.setup_runner != '' }}
-        env:
-          ADAPTER_SETUP_RUNNER: ${{ matrix.setup_runner }}
-        run: bash ".fullsend/${ADAPTER_SETUP_RUNNER}"
-
-      - name: Run registered adapter
-        env:
-          FULLSEND_ADAPTER_URL: ${{ secrets[matrix.url_secret] }}
-          FULLSEND_ADAPTER_USERNAME: ${{ secrets[matrix.username_secret] }}
-          FULLSEND_ADAPTER_TOKEN: ${{ secrets[matrix.token_secret] }}
-          FULLSEND_ADAPTER_TARGET_REPO: ${{ matrix.checkout_pr && format('{0}/adapter-target', github.workspace) || '' }}
-          FULLSEND_ADAPTER_BASE_SHA: ${{ steps.revisions.outputs.base_sha }}
-          FULLSEND_ADAPTER_REPO: ${{ github.repository }}
-          FULLSEND_ADAPTER_BASE_REF: ${{ steps.revisions.outputs.base_ref }}
-          FULLSEND_ADAPTER_HEAD_SHA: ${{ steps.revisions.outputs.head_sha }}
-          ADAPTER_RUNNER: ${{ matrix.runner }}
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
-          REPO_FULL_NAME: ${{ github.repository }}
-          EVENT_PR_BODY: ${{ github.event.pull_request.body }}
-          EVENT_PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          set -euo pipefail
-          export REVIEW_PR_TITLE="${EVENT_PR_TITLE}"
-          export REVIEW_PR_BODY="${EVENT_PR_BODY}"
-          if [[ -z "${REVIEW_PR_TITLE}" || -z "${REVIEW_PR_BODY}" ]]; then
-            PR_JSON="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json title,body)"
-            export REVIEW_PR_TITLE="$(jq -r '.title // empty' <<<"${PR_JSON}")"
-            export REVIEW_PR_BODY="$(jq -r '.body // empty' <<<"${PR_JSON}")"
-          fi
-          bash ".fullsend/${ADAPTER_RUNNER}"
-
-      - name: Upload sanitized adapter output
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: .fullsend/${{ matrix.producer_file }}
-          if-no-files-found: error
-          include-hidden-files: true
-          retention-days: 1
-
   dispatch:
-    needs: [adapter-plan, adapter-context]
-    # Review-path filter matches adapter-plan (non-draft open/sync/ready/label,
-    # or `/fs-review`). Fix-path events do not need adapters.
-    # always()+!cancelled() still lets Route run when adapters were skipped or
-    # failed (or when this run was cancelled).
+    # Admit only the events a stage acts on, so unrelated labels or bot reviews
+    # do not burn a Route run. Review: non-draft open/sync/ready, the
+    # `ready-for-review` label, or `/fs-review`. Fix: a `changes_requested`
+    # review or `/fs-fix`.
     if: >-
-      always()
-      && !cancelled()
-      && (github.event_name != 'pull_request_target' && github.event_name != 'pull_request_review'
+      (github.event_name != 'pull_request_target' && github.event_name != 'pull_request_review'
        || github.event.pull_request.head.ref != 'fullsend/scaffold-install')
       && (
         (github.event_name == 'pull_request_target'
@@ -247,12 +73,14 @@ jobs:
       packages: read
       pull-requests: write
     # Keep in step with the sandbox image pinned in .fullsend/harness/review.yaml
-    # (same release, Pi 0.99.2).
+    # (v0.48.1, Pi 1.3.0; this pin is just past that release, see below).
     # The harness base names built-in providers that only v0.45.0 onward
-    # resolves, so this pin and the base pin move together.
-    # Temporary pin through fullsend#7848 (fixes #7834 custom role_name auth).
-    # Revert to a released tag when v0.46+ ships this.
-    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@d8560dcc4f4920618f8eba3afd6c56e60263502a # fullsend#7848 (post-v0.45.0)
+    # resolves, so this pin and the base pin move together. v0.48.0 is the
+    # first release that declares FULLSEND_GITHUB_RUNNER_SECRETS (ADR 0136).
+    # Temporary pin past v0.48.1 for fullsend#8544 (cb06ac392): v0.48 escapes
+    # the review-findings-v2 marker, so every re-review ran as a first review.
+    # Revert to a released tag when v0.48.2+ ships it.
+    uses: fullsend-ai/fullsend/.github/workflows/reusable-dispatch.yml@af8cd4756172ec105c3aa523515c9c7d51684e90 # fullsend#8544 (post-v0.48.1)
     with:
       event_action: ${{ github.event.action }}
       install_mode: per-repo
@@ -269,6 +97,32 @@ jobs:
       OTEL_EXPORTER_OTLP_HEADERS: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
       JIRA_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
       JIRA_USER_EMAIL: ${{ secrets.JIRA_USERNAME }}
+      # Host-adapter credentials for the review pre-script, as the JSON object
+      # ADR 0136 defines. .fullsend/harness/review.yaml references each name in
+      # env.runner. It is composed here from the existing per-integration
+      # secrets, so each one still rotates on its own. Rules this expression
+      # follows:
+      # - Only review-routed events get it (the pull_request_target events
+      #   `dispatch` admits, and `/fs-review`). Fix runs get an empty string,
+      #   which `fullsend run` treats as no bundle; no other harness reads
+      #   these names.
+      # - Every name is always present. `fullsend run` fails the review when an
+      #   env.runner reference is unset, and also when a value is empty, so an
+      #   unset secret is sent as the placeholder "odh-adapter-credential-unset",
+      #   which pre-review.sh reads as empty.
+      # - Each value goes through toJSON(), which quotes and escapes it, so a
+      #   secret holding `"`, `\` or a newline still yields a valid object.
+      # - JIRA_TOKEN, JIRA_USER_EMAIL and JIRA_BASE_URL are refused names: the
+      #   reusable workflow sets them itself on harness-run.
+      FULLSEND_GITHUB_RUNNER_SECRETS: >-
+        ${{ (github.event_name == 'pull_request_target'
+        || (github.event_name == 'issue_comment' && github.event.comment.body == '/fs-review'))
+        && format('{{"CODERABBIT_API_KEY":{0},"JIRA_URL":{1},"JIRA_USERNAME":{2},"JIRA_API_TOKEN":{3}}}',
+        secrets.CODERABBIT_API_KEY != '' && toJSON(secrets.CODERABBIT_API_KEY) || '"odh-adapter-credential-unset"',
+        secrets.JIRA_URL != '' && toJSON(secrets.JIRA_URL) || '"odh-adapter-credential-unset"',
+        secrets.JIRA_USERNAME != '' && toJSON(secrets.JIRA_USERNAME) || '"odh-adapter-credential-unset"',
+        secrets.JIRA_API_TOKEN != '' && toJSON(secrets.JIRA_API_TOKEN) || '"odh-adapter-credential-unset"')
+        || '' }}
 
   stop-fix:
     # Job-level if: is intentionally coarse — it only screens for the

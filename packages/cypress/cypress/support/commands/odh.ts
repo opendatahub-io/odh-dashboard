@@ -40,6 +40,7 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
+  AIHubNamespaceResponse,
   ConfigMapKind,
   ConnectionTypeConfigMap,
   DashboardConfigKind,
@@ -271,6 +272,10 @@ declare global {
         ((
           type: 'GET /api/dsc/status',
           response: OdhResponse<DataScienceClusterKindStatus>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/aihub',
+          response: OdhResponse<AIHubNamespaceResponse | null>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/status',
@@ -1307,6 +1312,22 @@ declare global {
         ((
           type: 'GET /maas/api/v1/gateway-url',
           response: OdhResponse<{ data: { url: string } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/models',
+          response: OdhResponse<{
+            data: {
+              object: string;
+              data: Array<{
+                id: string;
+                object: string;
+                created: number;
+                owned_by: string;
+                ready: boolean;
+                url?: string;
+              }>;
+            };
+          }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'PUT /api/mlflow-global-namespace',

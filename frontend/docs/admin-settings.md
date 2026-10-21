@@ -38,7 +38,7 @@
 | **ClusterSettingsType** | TS shape mirroring config fields the UI edits: `pvcSize`, `cullerTimeout`, `userTrackingEnabled`, model-serving toggles, `defaultDeploymentStrategy`, etc. |
 | **Notebook culling** | Idle notebook pods evicted after `cullerTimeout` seconds (default ~1 year; minimum 600 s). |
 | **BYONImage** | `kind: BYONNotebookImage` CR for admin-registered workbench images. |
-| **HardwareProfile** | `kind: HardwareProfile` CR: CPU/memory, accelerators, node selectors, tolerations; exposed in workbench and model-serving flows. |
+| **HardwareProfile** | `kind: HardwareProfile` CR: CPU/memory, accelerators, node selectors, tolerations; exposed in workbench and model-serving flows. DRA profiles (`spec.dra.resourceClaimTemplateName`) show the claim template in the profile details popover and workbench details; the optional `opendatahub.io/resource-claim-description` annotation in the HardwareProfile's `metadata.annotations` appears as "Resource description" in the template's "?" popover. |
 | **ConnectionType** | `kind: ConnectionType` CR: schema template for standardized connections (S3, DB, URI, etc.). |
 | **StorageClassConfig** | JSON in `metadata.annotations["opendatahub.io/storage-class-config"]`: display name, description, enabled, default. |
 | **groupsConfig** | `OdhDashboardConfig.spec` field: `adminGroups` / `allowedGroups` (OpenShift Group names). |

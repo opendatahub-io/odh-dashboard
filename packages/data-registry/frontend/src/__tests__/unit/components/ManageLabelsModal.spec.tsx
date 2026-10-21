@@ -122,6 +122,52 @@ describe('ManageLabelsModal', () => {
     expect(screen.queryByTestId('label-row-shared-label')).toBeNull();
   });
 
+  it('should show the creation empty state when there are no labels', () => {
+    renderModal({ labels: [], assets: [] });
+
+    expect(screen.getByTestId('labels-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No labels yet')).toBeInTheDocument();
+    expect(screen.queryByTestId('label-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('labels-table')).not.toBeInTheDocument();
+  });
+
+  it('should keep the create flow available from the creation empty state', () => {
+    renderModal({ labels: [], assets: [] });
+
+    fireEvent.click(screen.getByTestId('create-label-button'));
+
+    expect(screen.queryByTestId('labels-empty-state')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('label-filter')).not.toBeInTheDocument();
+    expect(screen.getByTestId('labels-table')).toBeInTheDocument();
+    expect(screen.getByTestId('create-label-row')).toBeInTheDocument();
+  });
+
+  it('should clear a stale filter before creating the first label', () => {
+    const { rerender } = renderModal({ labels: ['old'], assets: [] });
+    const filter = screen.getByTestId('label-filter');
+    fireEvent.change(filter.querySelector('input')!, { target: { value: 'old' } });
+
+    rerender(<ManageLabelsModal {...defaultProps} labels={[]} assets={[]} />);
+    fireEvent.click(screen.getByTestId('create-label-button'));
+    rerender(<ManageLabelsModal {...defaultProps} labels={['new-label']} assets={[]} />);
+
+    expect(screen.getByTestId('label-row-new-label')).toBeInTheDocument();
+  });
+
+  it('should show a table no-results empty state when filtering finds no labels', () => {
+    renderModal();
+    const filter = screen.getByTestId('label-filter');
+    fireEvent.change(filter.querySelector('input')!, { target: { value: 'missing' } });
+
+    expect(screen.getByTestId('labels-no-results-state')).toBeInTheDocument();
+    expect(screen.getByText('No results found')).toBeInTheDocument();
+    expect(screen.getByTestId('label-filter')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Label' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('clear-label-filters'));
+    expect(screen.getByTestId('label-row-production')).toBeInTheDocument();
+  });
+
   it('should show create label row when create button is clicked', () => {
     renderModal();
     fireEvent.click(screen.getByTestId('create-label-button'));

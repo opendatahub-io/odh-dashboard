@@ -28,6 +28,7 @@ type pipelinesRepository interface {
 	DeleteRun(ctx context.Context, namespace, runID string) error
 	ListManagedPipelines(ctx context.Context, namespace string) (*models.ManagedPipelinesData, error)
 	EnableManagedPipelines(ctx context.Context, namespace string) (*pipelines.EnableManagedPipelinesResult, error)
+	GetPipelineServerStatus(ctx context.Context, namespace string) (*pipelines.DSPAStatus, error)
 }
 
 type PipelinesHandler struct {
@@ -41,6 +42,7 @@ type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
 type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 type ManagedPipelinesEnvelope Envelope[*models.ManagedPipelinesData, None]
+type PipelineServerStatusEnvelope Envelope[*pipelines.DSPAStatus, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
 func (h *PipelinesHandler) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -322,6 +324,10 @@ func (h *PipelinesHandler) mapPipelineError(w http.ResponseWriter, r *http.Reque
 			"Pipeline Server exists but is not ready - check that the APIServer component is running")
 		return
 	}
+	if errors.Is(err, pipelines.ErrInvalidDSPAConditions) {
+		serverErrorResponseWithMessage(h.logger, w, r, err, "Pipeline Server returned invalid readiness conditions")
+		return
+	}
 	if errors.Is(err, kubernetes.ErrForbidden) {
 		forbiddenResponse(h.logger, w, r, err.Error())
 		return
@@ -370,6 +376,25 @@ func (h *PipelinesHandler) EnableManagedPipelinesHandler(w http.ResponseWriter, 
 		"message": "managed pipelines " + result.Action,
 		"dspa":    result.DSPAName,
 	}, nil); err != nil {
+		serverErrorResponse(h.logger, w, r, err)
+	}
+}
+
+// PipelineServerStatusHandler handles GET /api/v1/pipeline-server/status
+func (h *PipelinesHandler) PipelineServerStatusHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
+
+	result, err := h.repo.GetPipelineServerStatus(r.Context(), namespace)
+	if err != nil {
+		h.mapPipelineError(w, r, err)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, PipelineServerStatusEnvelope{Data: result}, nil); err != nil {
 		serverErrorResponse(h.logger, w, r, err)
 	}
 }

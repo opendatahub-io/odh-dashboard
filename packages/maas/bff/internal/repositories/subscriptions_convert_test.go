@@ -14,8 +14,9 @@ func TestConvertUnstructuredToSubscription_FlowControlStatusesAndObjectivesReady
 			"apiVersion": "maas.opendatahub.io/v1alpha1",
 			"kind":       "MaaSSubscription",
 			"metadata": map[string]interface{}{
-				"name":      "premium-team-sub",
-				"namespace": "maas-system",
+				"name":            "premium-team-sub",
+				"namespace":       "maas-system",
+				"resourceVersion": "98765",
 			},
 			"spec": map[string]interface{}{
 				"inferencePriority": int64(10),
@@ -88,6 +89,9 @@ func TestConvertUnstructuredToSubscription_FlowControlStatusesAndObjectivesReady
 	sub, err := convertUnstructuredToSubscription(obj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if sub.ResourceVersion != "98765" {
+		t.Fatalf("ResourceVersion = %q, want 98765", sub.ResourceVersion)
 	}
 	if sub.InferencePriority == nil || *sub.InferencePriority != 10 {
 		t.Fatalf("InferencePriority = %v, want 10", sub.InferencePriority)

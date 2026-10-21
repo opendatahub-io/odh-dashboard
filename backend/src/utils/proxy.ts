@@ -6,15 +6,7 @@ import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
 import { getAccessToken, getDirectCallOptions } from './directCallUtils';
 import type { EitherNotBoth } from '@odh-dashboard/foundation';
-import { IncomingHttpHeaders } from 'http';
 import { V1Service } from '@kubernetes/client-node';
-
-export const addDefaultCacheControl = (headers: IncomingHttpHeaders): IncomingHttpHeaders => {
-  if (!headers['cache-control']) {
-    headers['cache-control'] = 'no-cache';
-  }
-  return headers;
-};
 
 export const getParam = <F extends FastifyRequest<any, any>>(req: F, name: string): string =>
   (req.params as { [key: string]: string })[name];
@@ -213,6 +205,7 @@ export const registerProxy = async (
     authorize,
     tls,
     onError,
+    onResponse,
     rewriteHeaders,
     headers,
   }: {
@@ -230,6 +223,7 @@ export const registerProxy = async (
       port?: number | string;
     };
     onError?: FastifyHttpProxyOptions['replyOptions']['onError'];
+    onResponse?: FastifyHttpProxyOptions['replyOptions']['onResponse'];
     rewriteHeaders?: FastifyHttpProxyOptions['replyOptions']['rewriteHeaders'];
     headers?: Record<string, string>;
   },
@@ -246,6 +240,7 @@ export const registerProxy = async (
     replyOptions: {
       getUpstream: () => upstream,
       onError,
+      onResponse,
       rewriteHeaders,
     },
     preHandler: async (request, reply) => {
