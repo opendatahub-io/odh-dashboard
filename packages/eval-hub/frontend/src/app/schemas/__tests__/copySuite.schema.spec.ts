@@ -198,6 +198,31 @@ describe('copySuiteSchema', () => {
       }
     });
 
+    it('should reject a benchmark that is missing a required parameter key entirely', () => {
+      const result = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'other', type: 'text' }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'parameters'],
+              message: 'Judge model is required.',
+            }),
+          ]),
+        );
+      }
+    });
+
     it('should accept filled required parameter values', () => {
       const result = getCopySuiteSchema(undefined, requiredKeys).safeParse({
         ...validValues(),

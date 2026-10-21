@@ -12,7 +12,6 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
-import CuratedSuiteCategories from '~/app/components/CuratedSuiteCategories';
 import {
   evaluationBenchmarksRoute,
   evaluationBenchmarkSuitesRoute,
@@ -41,7 +40,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
   onEditCollection,
   onDuplicateCollection,
 }) => {
-  const [collectionCount, setCollectionCount] = React.useState(0);
+  const heading = 'Recent benchmark collections';
 
   return (
     <>
@@ -56,9 +55,8 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
             gap={{ default: 'gapMd' }}
           >
-            {/* TODO: This preview count is capped at 200 until API-side created_at filtering is available. */}
             <Title headingLevel="h2" size="lg">
-              My benchmark collections{collectionCount > 0 ? ` (${collectionCount})` : ''}
+              {heading}
             </Title>
             <Button
               variant="primary"
@@ -85,7 +83,6 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
             onEditCollection={onEditCollection}
             onDuplicateCollection={onDuplicateCollection}
             onSelectCollection={onSelectCollection}
-            onCollectionCountChange={setCollectionCount}
           />
         </StackItem>
         <StackItem>
@@ -128,9 +125,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
             </CardBody>
           </Card>
         </StackItem>
-        <StackItem className="evalhub-evaluate-tab__curated">
-          <CuratedSuiteCategories namespace={namespace} />
-        </StackItem>
+        {/* Red Hat validated collections are temporarily hidden until more evaluation targets are available. */}
       </Stack>
     </>
   );

@@ -44,6 +44,12 @@ describe('getBenchmarkCategoryFilters', () => {
     ).toEqual(['code', 'language_modeling', 'reasoning', 'security']);
   });
 
+  it('should include all provider values sharing a normalized form', () => {
+    expect(
+      getBenchmarkCategoryFiltersForAvailableCategories(['software'], ['Code', 'code', 'coding']),
+    ).toEqual(['Code', 'code', 'coding']);
+  });
+
   it('should keep each mapped collection category within the supported taxonomy', () => {
     const supportedCategories = new Set([
       'grounded_document_understanding',

@@ -21,7 +21,12 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
     data-testid="create-suite-card"
   >
     <CardBody className="evalhub-create-suite-card__body">
-      <div className="evalhub-create-suite-card__icon" aria-hidden="true">
+      {/* Not Bullseye: its height: 100% is reapplied by the duplicate PatternFly styles
+          the federated page loads (separate host/remote copies), stretching this fixed-size badge */}
+      <div
+        className="pf-v6-u-display-flex pf-v6-u-align-items-center pf-v6-u-justify-content-center evalhub-create-suite-card__icon"
+        aria-hidden="true"
+      >
         <PlusIcon />
       </div>
       <Title headingLevel="h3" size="md" className="evalhub-create-suite-card__title">

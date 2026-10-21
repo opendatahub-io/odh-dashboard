@@ -115,6 +115,28 @@ describe('CopySuiteBenchmarkSection', () => {
     expect(screen.queryByTestId('benchmark-0-parameter-help-other')).not.toBeInTheDocument();
   });
 
+  it('should surface required parameter validation errors only after the field is edited', () => {
+    renderSection({
+      benchmark: {
+        ...benchmark,
+        parameters: [{ key: JUDGE_MODEL_KEY, type: 'text', value: 'gpt-4o' }],
+      },
+      parameterErrors: { [JUDGE_MODEL_KEY]: 'Judge model is required.' },
+    });
+
+    expect(
+      screen.queryByTestId(`benchmark-0-parameter-error-${JUDGE_MODEL_KEY}`),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Judge model')).not.toHaveAttribute('aria-invalid', 'true');
+
+    fireEvent.change(screen.getByLabelText('Judge model'), { target: { value: '' } });
+
+    expect(screen.getByTestId(`benchmark-0-parameter-error-${JUDGE_MODEL_KEY}`)).toHaveTextContent(
+      'Judge model is required.',
+    );
+    expect(screen.getByLabelText('Judge model')).toHaveAttribute('aria-invalid', 'true');
+  });
+
   it('should close and disable a primary-metric menu when interaction is locked', async () => {
     const metricBenchmark: CopySuiteBenchmark = {
       ...benchmark,

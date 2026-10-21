@@ -1248,6 +1248,38 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.benchmarks[1].id).toBe('benchmark-two');
   });
 
+  it('should synthesize required parameter entries when copying a curated collection', async () => {
+    const trustworthinessCollection: Collection = {
+      ...sourceCollection,
+      resource: { id: 'trustworthiness-v1' },
+    };
+    const result = renderForm({ sourceCollection: trustworthinessCollection });
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    expect(result.result.current.benchmarks[0].parameters).toEqual([
+      { key: 'judge_model', type: 'text' },
+      { key: 'num_examples', type: 'number', value: 250 },
+      { key: 'num_few_shot', type: 'number', value: 3 },
+    ]);
+
+    act(() =>
+      result.result.current.applyBenchmarkSelection([
+        'provider-one:benchmark-one',
+        'provider-two:benchmark-two',
+      ]),
+    );
+
+    expect(result.result.current.benchmarks).toHaveLength(2);
+    const addedBenchmark = result.result.current.benchmarks.find(
+      ({ id }) => id === 'benchmark-two',
+    );
+    expect(addedBenchmark?.parameters).toEqual([
+      { key: 'judge_model', type: 'text' },
+      { key: 'num_examples', type: 'number', value: 100 },
+      { key: 'num_few_shot', type: 'number', value: 2 },
+    ]);
+  });
+
   it('should preserve nonuniform weights when saving an unchanged catalog selection', async () => {
     const collectionWithNonuniformWeights: Collection = {
       ...sourceCollection,

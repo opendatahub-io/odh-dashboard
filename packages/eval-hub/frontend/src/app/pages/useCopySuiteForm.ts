@@ -423,6 +423,31 @@ const buildBenchmarkFromProvider = (
   };
 };
 
+export const ensureRequiredBenchmarkParameters = (
+  benchmark: CopySuiteBenchmark,
+  requiredParameterKeys: ReadonlySet<string>,
+): CopySuiteBenchmark => {
+  if (requiredParameterKeys.size === 0) {
+    return benchmark;
+  }
+
+  const presentKeys = new Set(benchmark.parameters.map((parameter) => parameter.key));
+  const missingKeys = [...requiredParameterKeys]
+    .filter((key) => !presentKeys.has(key))
+    .toSorted((left, right) => left.localeCompare(right));
+  if (missingKeys.length === 0) {
+    return benchmark;
+  }
+
+  return {
+    ...benchmark,
+    parameters: [
+      ...benchmark.parameters,
+      ...missingKeys.map((key) => ({ key, type: 'text' as const })),
+    ].toSorted((left, right) => left.key.localeCompare(right.key)),
+  };
+};
+
 export const createBenchmarkFromKey = (
   key: string,
   providers: Provider[],
@@ -446,6 +471,7 @@ export const createBenchmarkFromKey = (
 const buildInitialBenchmarks = (
   collection: Collection,
   providers: Provider[],
+  requiredParameterKeys: ReadonlySet<string>,
 ): CopySuiteBenchmark[] => {
   const sourceBenchmarks = collection.benchmarks ?? [];
   const normalizedWeights = normalizeWeights(sourceBenchmarks.map((cb) => cb.weight ?? 1));
@@ -456,20 +482,23 @@ const buildInitialBenchmarks = (
       const primaryScore = cb.primary_score ?? pb?.primary_score;
       const parameterState = splitBenchmarkParameters(cb.parameters);
 
-      return {
-        id: cb.id,
-        providerId: pb?.providerId ?? cb.provider_id ?? '',
-        name: pb?.name ?? cb.id,
-        weight: normalizedWeights[index] ?? 0,
-        primaryMetric: primaryScore?.metric,
-        lowerIsBetter: primaryScore?.lower_is_better,
-        parameters: parameterState.parameters,
-        additionalParameters: parameterState.additionalParameters,
-        threshold: cb.pass_criteria
-          ? getThresholdInputValue(cb.pass_criteria.threshold, primaryScore?.metric)
-          : DEFAULT_SUITE_THRESHOLD,
-        availableMetrics: pb?.metrics ?? [],
-      };
+      return ensureRequiredBenchmarkParameters(
+        {
+          id: cb.id,
+          providerId: pb?.providerId ?? cb.provider_id ?? '',
+          name: pb?.name ?? cb.id,
+          weight: normalizedWeights[index] ?? 0,
+          primaryMetric: primaryScore?.metric,
+          lowerIsBetter: primaryScore?.lower_is_better,
+          parameters: parameterState.parameters,
+          additionalParameters: parameterState.additionalParameters,
+          threshold: cb.pass_criteria
+            ? getThresholdInputValue(cb.pass_criteria.threshold, primaryScore?.metric)
+            : DEFAULT_SUITE_THRESHOLD,
+          availableMetrics: pb?.metrics ?? [],
+        },
+        requiredParameterKeys,
+      );
     }),
   );
 };
@@ -559,6 +588,7 @@ const buildInitialFormValues = (
   sourceCollection: Collection,
   providers: Provider[],
   mode: 'copy' | 'edit',
+  requiredParameterKeys: ReadonlySet<string>,
 ): CopySuiteFormValues => ({
   suiteName: mode === 'edit' ? sourceCollection.name : buildDefaultSuiteName(sourceCollection.name),
   suiteDescription: sourceCollection.description ?? '',
@@ -575,7 +605,7 @@ const buildInitialFormValues = (
   suiteThreshold: sourceCollection.pass_criteria
     ? normalizeThreshold(sourceCollection.pass_criteria.threshold)
     : DEFAULT_SUITE_THRESHOLD,
-  benchmarks: buildInitialBenchmarks(sourceCollection, providers),
+  benchmarks: buildInitialBenchmarks(sourceCollection, providers, requiredParameterKeys),
 });
 
 type EditableCollectionRequest = {
@@ -676,14 +706,27 @@ export function useCopySuiteForm({
     }
     initializedRef.current = true;
     const initialValues = sourceCollection
-      ? buildInitialFormValues(sourceCollection, providers, isEditMode ? 'edit' : 'copy')
+      ? buildInitialFormValues(
+          sourceCollection,
+          providers,
+          isEditMode ? 'edit' : 'copy',
+          requiredParameterKeys,
+        )
       : copySuiteDefaultValues;
     initialBenchmarksRef.current = initialValues.benchmarks;
     form.reset(initialValues);
     if (sourceCollection) {
       void form.trigger();
     }
-  }, [sourceCollection, providers, providersLoaded, form, isCreateMode, isEditMode]);
+  }, [
+    sourceCollection,
+    providers,
+    providersLoaded,
+    form,
+    isCreateMode,
+    isEditMode,
+    requiredParameterKeys,
+  ]);
 
   const [
     suiteName,
@@ -807,7 +850,16 @@ export function useCopySuiteForm({
       }
 
       const nextBenchmarks = [...selectedKeySet]
-        .map((key) => previousByKey.get(key) ?? createBenchmarkFromKey(key, providers))
+        .map((key) => {
+          const previousBenchmark = previousByKey.get(key);
+          if (previousBenchmark) {
+            return previousBenchmark;
+          }
+          const createdBenchmark = createBenchmarkFromKey(key, providers);
+          return createdBenchmark
+            ? ensureRequiredBenchmarkParameters(createdBenchmark, requiredParameterKeys)
+            : undefined;
+        })
         .filter((benchmark): benchmark is CopySuiteBenchmark => benchmark !== undefined);
 
       if (nextBenchmarks.length === 0) {
@@ -818,7 +870,7 @@ export function useCopySuiteForm({
         shouldValidate: true,
       });
     },
-    [form, providers],
+    [form, providers, requiredParameterKeys],
   );
 
   const handleWeightsChange = React.useCallback(

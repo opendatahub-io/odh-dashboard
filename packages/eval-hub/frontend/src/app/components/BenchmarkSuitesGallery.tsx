@@ -262,7 +262,6 @@ type BenchmarkSuitesGalleryProps = {
   createSuiteRoute?: string;
   createSuiteRouteState?: unknown;
   onCreateSuite?: () => void;
-  onCollectionCountChange?: (count: number) => void;
   onPrimaryAction: (collection: Collection) => void;
   onDropdownAction?: (collection: Collection) => void;
   onEditCollection?: (collection: Collection) => void;
@@ -295,7 +294,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   createSuiteRoute,
   createSuiteRouteState,
   onCreateSuite,
-  onCollectionCountChange,
   onPrimaryAction,
   onDropdownAction,
   onEditCollection,
@@ -451,15 +449,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const totalCount = hasApiCollections
     ? (data?.total_count ?? collections.length)
     : collections.length;
-  // TODO: The preview count is capped at COLLECTION_FETCH_LIMIT until the API supports filtering
-  // and ordering by created_at.
-  const displayedCollectionCount = maxVisibleCollections
-    ? Math.min(totalCount, COLLECTION_FETCH_LIMIT)
-    : totalCount;
-
-  React.useEffect(() => {
-    onCollectionCountChange?.(displayedCollectionCount);
-  }, [displayedCollectionCount, onCollectionCountChange]);
 
   // All filter dropdowns use the same helper so their options stay in sync with the collection
   // fields returned by the API or the temporary mock fallback.

@@ -82,13 +82,19 @@ export const getBenchmarkCategoryFiltersForAvailableCategories = (
   collectionCategories: readonly string[],
   availableCategories: readonly string[],
 ): string[] => {
-  const availableCategoriesByNormalizedValue = new Map(
-    availableCategories.map((category) => [normalizeBenchmarkCategory(category), category]),
-  );
+  const availableCategoriesByNormalizedValue = new Map<string, string[]>();
+  for (const category of availableCategories) {
+    const normalizedValue = normalizeBenchmarkCategory(category);
+    const categories = availableCategoriesByNormalizedValue.get(normalizedValue);
+    if (categories) {
+      categories.push(category);
+    } else {
+      availableCategoriesByNormalizedValue.set(normalizedValue, [category]);
+    }
+  }
 
-  return getBenchmarkCategoryFilters(collectionCategories)
-    .map((category) =>
-      availableCategoriesByNormalizedValue.get(normalizeBenchmarkCategory(category)),
-    )
-    .filter((category): category is string => category !== undefined);
+  return getBenchmarkCategoryFilters(collectionCategories).flatMap(
+    (category) =>
+      availableCategoriesByNormalizedValue.get(normalizeBenchmarkCategory(category)) ?? [],
+  );
 };

@@ -22,6 +22,7 @@ type DynamicBenchmarkParameterFieldsProps = {
   itemId: string;
   isDisabled?: boolean;
   parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
+  parameterErrors?: Record<string, string>;
   onChange: (key: string, value: string | boolean) => void;
 };
 
@@ -33,11 +34,26 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
   itemId,
   isDisabled = false,
   parameterConfig,
+  parameterErrors,
   onChange,
 }) => {
+  const [interactedKeys, setInteractedKeys] = React.useState<ReadonlySet<string>>(() => new Set());
+
   if (parameters.length === 0) {
     return null;
   }
+
+  const handleChange = (key: string, value: string | boolean) => {
+    setInteractedKeys((prev) => {
+      if (prev.has(key)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+    onChange(key, value);
+  };
 
   const sortedParameters = parameters.toSorted((left, right) => left.key.localeCompare(right.key));
 
@@ -48,6 +64,9 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
         const value = parameter.value == null ? '' : String(parameter.value);
         const inputType = parameterTypeToInputType(parameter.type);
         const config = parameterConfig?.[parameter.key];
+        const error = interactedKeys.has(parameter.key)
+          ? parameterErrors?.[parameter.key]
+          : undefined;
 
         return (
           <GridItem span={6} key={parameter.key}>
@@ -67,7 +86,7 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
                     data-testid={`${itemId}-parameter-input-${parameter.key}-true`}
                     isSelected={parameter.value === true}
                     isDisabled={isDisabled}
-                    onChange={() => onChange(parameter.key, true)}
+                    onChange={() => handleChange(parameter.key, true)}
                   />
                   <ToggleGroupItem
                     text="False"
@@ -75,7 +94,7 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
                     data-testid={`${itemId}-parameter-input-${parameter.key}-false`}
                     isSelected={parameter.value === false}
                     isDisabled={isDisabled}
-                    onChange={() => onChange(parameter.key, false)}
+                    onChange={() => handleChange(parameter.key, false)}
                   />
                 </ToggleGroup>
               ) : (
@@ -85,15 +104,25 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
                   type={inputType}
                   value={value}
                   isDisabled={isDisabled}
-                  onChange={(_event, nextValue) => onChange(parameter.key, nextValue)}
+                  validated={error ? 'error' : 'default'}
+                  onChange={(_event, nextValue) => handleChange(parameter.key, nextValue)}
                 />
               )}
-              {config?.description ? (
+              {error || config?.description ? (
                 <FormHelperText>
                   <HelperText>
-                    <HelperTextItem data-testid={`${itemId}-parameter-help-${parameter.key}`}>
-                      {config.description}
-                    </HelperTextItem>
+                    {error ? (
+                      <HelperTextItem
+                        variant="error"
+                        data-testid={`${itemId}-parameter-error-${parameter.key}`}
+                      >
+                        {error}
+                      </HelperTextItem>
+                    ) : (
+                      <HelperTextItem data-testid={`${itemId}-parameter-help-${parameter.key}`}>
+                        {config?.description}
+                      </HelperTextItem>
+                    )}
                   </HelperText>
                 </FormHelperText>
               ) : null}

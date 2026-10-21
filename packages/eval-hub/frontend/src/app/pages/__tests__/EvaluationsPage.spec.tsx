@@ -587,7 +587,7 @@ describe('EvaluationsPage', () => {
     renderPage('test-project', '?tab=evaluate');
 
     expect(
-      screen.getByRole('heading', { name: 'My benchmark collections (125)' }),
+      screen.getByRole('heading', { name: 'Recent benchmark collections' }),
     ).toBeInTheDocument();
 
     const expectedOrder = [
@@ -616,6 +616,23 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should always show the recent collections heading while keeping View all', () => {
+    const collections = mockBenchmarkSuiteCollections().slice(0, 5);
+    mockUseCollectionsQuery.mockReturnValue({
+      // eslint-disable-next-line camelcase
+      data: { items: collections, total_count: collections.length },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage('test-project', '?tab=evaluate');
+
+    expect(
+      screen.getByRole('heading', { name: 'Recent benchmark collections' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View all' })).toBeInTheDocument();
+  });
+
   it('should link to the tenant benchmark collections page from the section header', () => {
     renderPage('test-project', '?tab=evaluate');
 
@@ -625,10 +642,11 @@ describe('EvaluationsPage', () => {
     );
   });
 
-  it('should link to the single benchmark flow from the browse benchmarks section', () => {
+  it('should hide Red Hat validated collections until more evaluation targets are available', () => {
     renderPage('test-project', '?tab=evaluate');
 
     expect(screen.queryByTestId('start-single-benchmark-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('curated-suite-categories')).not.toBeInTheDocument();
     expect(screen.getByTestId('browse-all-benchmarks')).toBeInTheDocument();
     expect(screen.getByTestId('browse-all-benchmarks-explore')).toHaveAttribute(
       'href',

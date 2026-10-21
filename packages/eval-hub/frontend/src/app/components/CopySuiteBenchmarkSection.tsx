@@ -33,6 +33,7 @@ type CopySuiteBenchmarkSectionProps = {
   weightRatio: number;
   totalWeightRatio: number;
   additionalParametersError?: string;
+  parameterErrors?: Record<string, string>;
   parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
   isInteractionDisabled?: boolean;
   onUpdate: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
@@ -47,6 +48,7 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
   weightRatio,
   totalWeightRatio,
   additionalParametersError,
+  parameterErrors,
   parameterConfig,
   isInteractionDisabled = false,
   onUpdate,
@@ -180,6 +182,7 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
           itemId={itemId}
           isDisabled={isInteractionDisabled}
           parameterConfig={parameterConfig}
+          parameterErrors={parameterErrors}
           onChange={(key, value) =>
             onUpdate(
               index,

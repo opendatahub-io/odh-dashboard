@@ -293,16 +293,13 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run');
   });
 
-  it('should render curated suite category cards and link to filtered collections', () => {
+  it('should hide Red Hat validated collections until more evaluation targets are available', () => {
     initIntercepts({ collections: mockBenchmarkSuiteCollections() });
 
     evaluationsPage.visitEvaluate(NAMESPACE);
 
-    evaluationsPage.findCuratedSuiteCategories().should('exist');
-    evaluationsPage.findCuratedSuiteCategoryCard('models').should('contain.text', 'Models');
-    evaluationsPage.findCuratedSuiteCategoryCard('agents').should('not.exist');
-    evaluationsPage.findCuratedSuiteCategoryCard('models').click();
-    cy.url().should('include', `/evaluation/${NAMESPACE}/collections/model`);
+    evaluationsPage.findCuratedSuiteCategories().should('not.exist');
+    evaluationsPage.findBrowseAllBenchmarksExploreButton().should('exist');
   });
 
   it('should show suite contextual actions and the delete confirmation modal', () => {

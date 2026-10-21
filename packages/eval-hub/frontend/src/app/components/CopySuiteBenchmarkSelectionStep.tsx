@@ -202,44 +202,17 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     }),
     [initialCategoryFilters, initialFrameworkFilters],
   );
-  const [filterData, setFilterData] = React.useState<BenchmarkFilterDataType>(initialFilterData);
-  const [hasUserAdjustedFilters, setHasUserAdjustedFilters] = React.useState(false);
+  const [userFilterData, setUserFilterData] = React.useState<BenchmarkFilterDataType | null>(null);
+  const filterData = userFilterData ?? initialFilterData;
+  const hasUserAdjustedFilters = userFilterData !== null;
   const setFilterDataFromUser = React.useCallback(
     (action: React.SetStateAction<BenchmarkFilterDataType>) => {
-      setHasUserAdjustedFilters(true);
-      setFilterData(action);
+      setUserFilterData((prev) =>
+        typeof action === 'function' ? action(prev ?? initialFilterData) : action,
+      );
     },
-    [],
+    [initialFilterData],
   );
-  React.useEffect(() => {
-    if (hasUserAdjustedFilters) {
-      return;
-    }
-
-    setFilterData((currentFilterData) => {
-      const currentCategoryFilters = currentFilterData[BenchmarkFilterOptions.category];
-      const currentFrameworkFilters = currentFilterData[BenchmarkFilterOptions.framework];
-      const categoryFiltersAreUnchanged =
-        currentCategoryFilters.length === initialCategoryFilters.length &&
-        currentCategoryFilters.every(
-          (category, index) => category === initialCategoryFilters[index],
-        );
-      const frameworkFiltersAreUnchanged =
-        currentFrameworkFilters.length === initialFrameworkFilters.length &&
-        currentFrameworkFilters.every(
-          (framework, index) => framework === initialFrameworkFilters[index],
-        );
-
-      return categoryFiltersAreUnchanged && frameworkFiltersAreUnchanged
-        ? currentFilterData
-        : {
-            ...currentFilterData,
-            [BenchmarkFilterOptions.category]: initialCategoryFilters,
-            [BenchmarkFilterOptions.framework]: initialFrameworkFilters,
-          };
-    });
-    setPage(1);
-  }, [hasUserAdjustedFilters, initialCategoryFilters, initialFrameworkFilters]);
   const filteredBenchmarks = React.useMemo(() => {
     const matchingBenchmarks = filterBenchmarks(catalogBenchmarks, filterData);
     if (hasUserAdjustedFilters) {
@@ -266,10 +239,13 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     ],
     [filteredBenchmarks, selected],
   );
+  // Clamp instead of resetting via an effect: keeps the page valid when derived filters shrink
+  // the result set after the user has paged ahead.
+  const effectivePage = Math.min(page, Math.max(1, Math.ceil(sortedBenchmarks.length / PAGE_SIZE)));
   const paginatedBenchmarks = React.useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
+    const start = (effectivePage - 1) * PAGE_SIZE;
     return sortedBenchmarks.slice(start, start + PAGE_SIZE);
-  }, [sortedBenchmarks, page]);
+  }, [sortedBenchmarks, effectivePage]);
 
   const selectionCount = draftSelectedBenchmarkKeys.length;
   const remainingSelections = MAX_BENCHMARKS - selectionCount;
@@ -482,7 +458,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                   <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
                     <Pagination
                       itemCount={sortedBenchmarks.length}
-                      page={page}
+                      page={effectivePage}
                       perPage={PAGE_SIZE}
                       onSetPage={(_event, nextPage) => setPage(nextPage)}
                       widgetId="benchmark-catalog-pagination-top"
@@ -630,7 +606,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
             <StackItem>
               <Pagination
                 itemCount={sortedBenchmarks.length}
-                page={page}
+                page={effectivePage}
                 perPage={PAGE_SIZE}
                 onSetPage={(_event, nextPage) => setPage(nextPage)}
                 widgetId="benchmark-catalog-pagination-bottom"

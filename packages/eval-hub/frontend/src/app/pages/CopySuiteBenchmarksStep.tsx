@@ -91,6 +91,22 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
 
   const flatBenchmarkByKey = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);
 
+  const getParameterErrors = (index: number): Record<string, string> | undefined => {
+    const parameterErrors = errors.benchmarks?.[index]?.parameters;
+    if (!Array.isArray(parameterErrors)) {
+      return undefined;
+    }
+    const result: Record<string, string> = {};
+    parameterErrors.forEach((parameterError, parameterIndex) => {
+      const message = parameterError?.value?.message;
+      const key = benchmarks[index]?.parameters[parameterIndex]?.key;
+      if (typeof message === 'string' && key) {
+        result[key] = message;
+      }
+    });
+    return Object.keys(result).length > 0 ? result : undefined;
+  };
+
   const detailsBenchmark = detailsBenchmarkKey
     ? flatBenchmarkByKey.get(detailsBenchmarkKey)
     : undefined;
@@ -193,6 +209,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
                     additionalParametersError={
                       errors.benchmarks?.[index]?.additionalParameters?.message
                     }
+                    parameterErrors={getParameterErrors(index)}
                     parameterConfig={parameterConfig}
                     isInteractionDisabled={isInteractionDisabled}
                     onUpdate={(updatedIndex, field, value) => {
