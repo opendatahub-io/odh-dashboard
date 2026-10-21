@@ -84,6 +84,8 @@ pnpm run type-check
 
 **[Multi-Agent Workflows](docs/multi-agent-workflows.md)** covers running parallel agent sessions locally (git worktrees, Agent Teams, terminal layout) and remotely (Ambient platform).
 
+**[Architecture Decision Records](docs/adr/)** preserve the reasoning behind architectural choices. Use the [ADR template](docs/adr/template.md) and [writing workflow](.claude/skills/writing-adrs/SKILL.md) for new decisions.
+
 ## Package-Specific Guidelines
 
 Some packages have their own AGENTS.md with package-specific guidance. Check the package directory for its own AGENTS.md file.
@@ -97,6 +99,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | Rule                        | File                          | Trigger                                                                        |
 | --------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
 | **Architecture**            | `architecture.md`             | When making structural changes, adding packages, modifying package boundaries, or working on distributions |
+| **ADRs**                    | `adrs.md`                     | When creating, reviewing, or superseding architecture decision records in `docs/adr/` |
 | **BFF Go**                  | `bff-go.md`                   | When working on Go BFF code in `packages/*/bff/` or `distributions/core-bff/bff/` |
 | **Contract Tests**          | `contract-tests.md`           | When working on contract tests or BFF API validation                           |
 | **Conventions**             | `conventions.md`              | When writing or reviewing TypeScript, React, or backend code                   |
@@ -129,6 +132,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Docs Create**                    | `skills/docs-create/`                  | Creating a new documentation file from a description                           |
 | **Docs Create Package**            | `skills/docs-create-package/`          | Scaffolding a package doc and registering it in BOOKMARKS.md                   |
 | **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |
+| **Writing ADRs**                  | `skills/writing-adrs/`                | Writing, reviewing, or superseding architecture decision records              |
 | **Upstream Sync Status**           | `skills/upstream-sync-status/`         | Checking whether a package's upstream copy is up to date (pass package name or be prompted) |
 | **Upstream Sync**                  | `skills/upstream-sync/`                | Syncing upstream changes for a package and opening a PR (pass package name or be prompted)  |
 | **Upstream Sync Local**            | `skills/upstream-sync-local/`          | Syncing upstream changes from a local repository clone (pass package name, local repo path, and branch) |

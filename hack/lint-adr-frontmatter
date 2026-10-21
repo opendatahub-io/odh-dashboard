@@ -1,0 +1,70 @@
+#!/usr/bin/env node
+
+const fs = require('node:fs');
+const path = require('node:path');
+const YAML = require('yaml');
+
+const adrDir = path.join(__dirname, '..', 'docs', 'adr');
+const validStatuses = new Set(['Proposed', 'Accepted', 'Deprecated', 'Superseded']);
+const annotatedLegacyFile = '0001-use-monorepo-with-npm-workspaces.md';
+const annotatedLegacyStatus = 'Superseded for package-manager selection; the monorepo decision remains accepted.';
+const legacyFiles = new Set([
+  '0000-use-markdown-architectural-decision-records.md',
+  '0001-use-monorepo-with-npm-workspaces.md',
+  '0002-use-rspack-module-federation.md',
+  '0003-use-turborepo-for-build-orchestration.md',
+  '0004-use-pnpm-workspaces.md',
+]);
+const files = fs.readdirSync(adrDir).filter((file) => file.endsWith('.md') && file !== 'template.md');
+
+let errors = 0;
+for (const file of files) {
+  const content = fs.readFileSync(path.join(adrDir, file), 'utf8');
+  const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
+  if (!frontmatter) {
+    if (!legacyFiles.has(file) || content.startsWith('---')) {
+      console.error(`${file}: missing or incomplete YAML frontmatter`);
+      errors++;
+    }
+    continue;
+  }
+
+  const document = YAML.parseDocument(frontmatter[1], { uniqueKeys: true, strict: true });
+  if (document.errors.length) {
+    console.error(`${file}: invalid YAML frontmatter: ${document.errors[0].message}`);
+    errors++;
+    continue;
+  }
+
+  const data = document.toJS();
+  if (!data || Array.isArray(data) || typeof data !== 'object') {
+    console.error(`${file}: YAML frontmatter must be a mapping`);
+    errors++;
+    continue;
+  }
+
+  if (typeof data.title !== 'string' || !data.title.trim()) {
+    console.error(`${file}: title must be a nonempty string`);
+    errors++;
+  }
+  if (!validStatuses.has(data.status)) {
+    console.error(`${file}: status must be Proposed, Accepted, Deprecated, or Superseded`);
+    errors++;
+  }
+  if ('topics' in data && (!Array.isArray(data.topics) || data.topics.some((topic) => typeof topic !== 'string' || !topic.trim()))) {
+    console.error(`${file}: topics must be a list of nonempty strings`);
+    errors++;
+  }
+
+  const body = content.slice(frontmatter[0].length);
+  const section = body.match(/^## Status[ \t]*\r?\n(?:[ \t]*\r?\n)*[ \t]*([^\r\n]+)/m);
+  const statusLine = section?.[1].trim();
+  const bodyStatus = file === annotatedLegacyFile && statusLine === annotatedLegacyStatus ? 'Superseded' : statusLine;
+  if (data.status !== bodyStatus) {
+    console.error(`${file}: frontmatter status ${data.status || 'none'} differs from ## Status ${bodyStatus || 'none'}`);
+    errors++;
+  }
+}
+
+if (errors) process.exitCode = 1;
+else console.log(`ADR frontmatter: ${files.length} files valid`);
