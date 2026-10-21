@@ -42,8 +42,10 @@ spec:
               feast.dev/name: data-registry
               feast.dev/service-type: data-registry
       ports:
-        - port: 8443
-          protocol: TCP
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8443
     - to:
         - podSelector:
             matchLabels:
