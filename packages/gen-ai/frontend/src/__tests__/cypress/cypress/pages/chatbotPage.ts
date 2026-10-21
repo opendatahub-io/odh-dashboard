@@ -182,7 +182,19 @@ class ChatbotPage {
 
   // Delete Playground Modal
   findDeletePlaygroundModal(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('delete-modal');
+    return cy.findByTestId('delete-playground-modal');
+  }
+
+  findDeletePlaygroundInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDeletePlaygroundModal().findByTestId('delete-modal-input');
+  }
+
+  findDeletePlaygroundSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDeletePlaygroundModal().findByRole('button', { name: 'Delete' });
+  }
+
+  findDeletePlaygroundError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDeletePlaygroundModal().findByTestId('delete-model-error-message-alert');
   }
 
   // View Code Modal

@@ -15,6 +15,7 @@ import type {
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploymentTransformExtension,
   WizardFieldDeploymentFunctionsExtension,
+  WizardTrackingPropertiesExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
@@ -158,6 +159,18 @@ const gatewaySelectExtractorExtension: WizardFieldExtractorExtension<
       import('../src/wizardFields/gateway/gatewaySelectApplyExtract').then(
         (m) => m.extractGatewaySelectData,
       ),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
+  },
+};
+
+const llmdTrackingPropertiesExtension: WizardTrackingPropertiesExtension<LLMdDeployment> = {
+  type: 'model-serving.deployment/tracking-properties',
+  properties: {
+    platform: LLMD_SERVING_ID,
+    getProperties: () =>
+      import('../src/tracking/llmdWizardTracking').then((m) => m.getLlmdWizardTrackingProperties),
   },
   flags: {
     required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
@@ -409,6 +422,7 @@ const extensions: (
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
+  | WizardTrackingPropertiesExtension<LLMdDeployment>
   | TopologyConfigsExtensionsType
   | HrefNavItemExtension
   | RouteExtension
@@ -610,6 +624,7 @@ const extensions: (
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,
+  llmdTrackingPropertiesExtension,
   deploymentMethodExtractorExtensionLllmdOnly,
   deploymentMethodExtractorExtensionvLLMOnMaaS,
   {
@@ -677,7 +692,6 @@ const extensions: (
         description: 'and the LLM inference service deployment wizard.',
       },
       installTargetName: 'LLM accelerator configuration',
-      configureStepLabel: 'Configure accelerator',
       component: () => import('../src/runtimeImageInstall/LlmAcceleratorInstallTarget'),
     },
   },

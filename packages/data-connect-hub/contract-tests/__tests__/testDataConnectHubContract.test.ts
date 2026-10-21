@@ -123,6 +123,14 @@ describe('Data Connect Hub BFF Contract Tests', () => {
         ref: '#/components/responses/ConnectionTypesResponse/content/application~1json/schema',
         status: 200,
       });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.data).toHaveProperty('data.0.resource.tags', [
+          'domain: database',
+          'engine: postgresql',
+          'access: sql',
+        ]);
+      }
     });
   });
 
@@ -135,6 +143,14 @@ describe('Data Connect Hub BFF Contract Tests', () => {
         ref: '#/components/responses/ConnectionTypeResponse/content/application~1json/schema',
         status: 200,
       });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.data).toHaveProperty('data.resource.tags', [
+          'domain: database',
+          'engine: postgresql',
+          'access: sql',
+        ]);
+      }
     });
 
     it('should return not found for an unknown connection type', async () => {

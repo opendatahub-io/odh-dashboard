@@ -822,10 +822,19 @@ func TestReconcile_AdoptionIdempotency(t *testing.T) {
 	base := createMinimalManifests(t)
 	route := admittedRoute(testNamespace)
 
+	statusWrites := 0
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
 		WithObjects(dashboard, route).
 		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			SubResourceUpdate: func(ctx context.Context, c client.Client, subResource string, obj client.Object, opts ...client.SubResourceUpdateOption) error {
+				if subResource == "status" {
+					statusWrites++
+				}
+				return c.SubResource(subResource).Update(ctx, obj, opts...)
+			},
+		}).
 		Build()
 
 	r := &ctrlpkg.DashboardReconciler{
@@ -846,6 +855,12 @@ func TestReconcile_AdoptionIdempotency(t *testing.T) {
 
 	first := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(ctx, types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, first))
+	// Use an old timestamp so a reset is detectable without sleeping.
+	for i := range first.Status.Conditions {
+		first.Status.Conditions[i].LastTransitionTime = metav1.NewTime(time.Unix(1, 0))
+	}
+	require.NoError(t, cli.Status().Update(ctx, first))
+	statusWrites = 0
 
 	result2, err := r.Reconcile(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
@@ -859,6 +874,8 @@ func TestReconcile_AdoptionIdempotency(t *testing.T) {
 	assert.Equal(t, first.Status.Phase, second.Status.Phase, "phase should be stable")
 	assert.Equal(t, first.Status.URL, second.Status.URL, "URL should be stable")
 	assert.Len(t, second.Status.Conditions, len(first.Status.Conditions), "condition count should be stable")
+	assert.Equal(t, first.Status, second.Status, "unchanged conditions must retain their transition timestamps")
+	assert.Zero(t, statusWrites, "an unchanged status must not be written")
 }
 
 func TestReconcile_StatusContract(t *testing.T) {
@@ -1346,9 +1363,27 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 		},
 	}
 
+	// The operator's own metrics NetworkPolicy (shipped by the Helm chart) carries the
+	// part-of=dashboard label too, so it must survive teardown; an operand policy must not.
+	operatorNetpol := &networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opDep + "-metrics",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardNetpol := &networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dashboard-allow-ports",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA, operatorCR, dashboardCR, operatorCRB, dashboardCRB).
+		WithObjects(dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA, operatorCR, dashboardCR, operatorCRB, dashboardCRB, operatorNetpol, dashboardNetpol).
 		WithStatusSubresource(dashboard).
 		Build()
 
@@ -1405,6 +1440,15 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 	}
 	assert.Contains(t, crbNames, opCRB, "operator ClusterRoleBinding must survive teardown")
 	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
+
+	var netpols networkingv1.NetworkPolicyList
+	require.NoError(t, cli.List(ctx, &netpols, client.InNamespace(testNamespace)))
+	var netpolNames []string
+	for i := range netpols.Items {
+		netpolNames = append(netpolNames, netpols.Items[i].Name)
+	}
+	assert.Contains(t, netpolNames, opDep+"-metrics", "operator metrics NetworkPolicy must survive teardown")
+	assert.NotContains(t, netpolNames, "dashboard-allow-ports", "operand NetworkPolicies must be deleted")
 }
 
 func TestCleanupLegacyResources(t *testing.T) {

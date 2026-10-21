@@ -14,7 +14,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         await updateDashboardConfig();
       }
 
-      reply.header('Cache-Control', 'no-cache').send(getDashboardConfig(request));
+      // Cache-Control comes from applySecurityHeaders (no-store).
+      reply.send(getDashboardConfig(request));
     }),
   );
 

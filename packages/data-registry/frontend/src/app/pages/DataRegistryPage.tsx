@@ -33,6 +33,8 @@ import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
 import { shouldDisplayConnectionWarning } from '~/app/utilities/connectionUtils';
 import noProjectsImage from '~/images/RHOAI-Registerdata-Noprojects-RGB.png';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
 const HIDDEN_NS_PREFIXES = ['openshift-', 'kube-'];
@@ -103,6 +105,7 @@ const ProjectCreationErrorPage: React.FC<ProjectCreationErrorPageProps> = ({
 const DataRegistryPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const trackEvent = useDataRegistryTrackEvent();
   const requestedProject = searchParams.get('project') || '';
   const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = React.useState(false);
@@ -237,8 +240,14 @@ const DataRegistryPage: React.FC = () => {
 
   const handleProjectSelect = React.useCallback(
     (projectName: string) => {
-      returnToEditRef.current = undefined;
       const namespace = projectNamespaces.find((project) => project.name === projectName);
+      if (namespace && selectedProject && projectName !== selectedProject) {
+        trackEvent({
+          eventName: DATA_REGISTRY_EVENT_NAMES.projectSwitched,
+          properties: { previousProject: selectedProject, selectedProject: projectName },
+        });
+      }
+      returnToEditRef.current = undefined;
       if (namespace) {
         updatePreferredNamespace(namespace);
       }
@@ -251,7 +260,7 @@ const DataRegistryPage: React.FC = () => {
         { replace: true },
       );
     },
-    [projectNamespaces, setSearchParams, updatePreferredNamespace],
+    [projectNamespaces, selectedProject, setSearchParams, trackEvent, updatePreferredNamespace],
   );
 
   const handleProjectCreated = React.useCallback(
@@ -402,6 +411,10 @@ const DataRegistryPage: React.FC = () => {
               setIsLabelsModalOpen(true);
             }}
             onRegisterData={() => {
+              trackEvent({
+                eventName: DATA_REGISTRY_EVENT_NAMES.registrationStarted,
+                properties: { project: selectedProject },
+              });
               setReturnToRegisterData(false);
               setIsRegisterModalOpen(true);
             }}

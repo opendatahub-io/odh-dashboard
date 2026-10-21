@@ -12,6 +12,7 @@ import {
   DropdownList,
   Flex,
   FlexItem,
+  getResizeObserver,
   Label,
   LabelGroup,
   List,
@@ -34,7 +35,6 @@ import {
   RhUiDocumentIcon,
   RhUiPlugIcon,
   RhUiSecuredIcon,
-  RhUiSecurityIcon,
   InfoCircleIcon,
 } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
@@ -42,10 +42,14 @@ import type { MenuToggleElement } from '@patternfly/react-core';
 import type { Collection } from '~/app/types';
 import { trackEvalHubEvent, type EvalHubCollectionSurface } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { isCollectionCategory, type CollectionCategory } from '~/app/pages/const';
 import {
   formatCategory,
   getBenchmarkDisplayName,
+  getCategoryTileColor,
   getMetricDisplayName,
+  getVisibleMetricCount,
+  normalizeCategory,
   VISIBLE_METRICS_COUNT,
 } from './benchmarkUtils';
 import type { BenchmarkNameMap } from './benchmarkUtils';
@@ -57,23 +61,95 @@ export const isPopularCollection = (collection: Collection): boolean =>
   collection.curation_order !== undefined && POPULAR_CURATION_ORDERS.has(collection.curation_order);
 
 type DomainIcon = React.ComponentType<React.ComponentProps<typeof RhStandardBrainIcon>>;
-type DomainIconColor =
-  'blue' | 'cyan' | 'green' | 'orange' | 'orangered' | 'purple' | 'red' | 'teal' | 'yellow';
-type DomainIconConfig = { icon: DomainIcon; color: DomainIconColor };
+type DomainIconConfig = { icon: DomainIcon };
 
 /* eslint-disable camelcase */
-const DOMAIN_ICON_CONFIG: Partial<Record<string, DomainIconConfig>> = {
-  knowledge_and_reasoning: { icon: RhStandardBrainIcon, color: 'purple' },
-  grounded_document_understanding: { icon: RhUiDocumentIcon, color: 'blue' },
-  instruction_and_output_reliability: { icon: RhUiCheckClipboardIcon, color: 'green' },
-  tool_use_and_function_calling: { icon: RhUiPlugIcon, color: 'yellow' },
-  software: { icon: RhUiCodeIcon, color: 'orange' },
-  trustworthiness: { icon: RhUiSecuredIcon, color: 'red' },
-  multilingual: { icon: RhUiAssessmentIcon, color: 'teal' },
-  multimodal: { icon: RhUiCubesIcon, color: 'orangered' },
-  safety: { icon: RhUiSecurityIcon, color: 'yellow' },
+const DOMAIN_ICON_CONFIG: Record<CollectionCategory, DomainIconConfig> = {
+  knowledge_and_reasoning: { icon: RhStandardBrainIcon },
+  grounded_document_understanding: { icon: RhUiDocumentIcon },
+  instruction_and_output_reliability: { icon: RhUiCheckClipboardIcon },
+  tool_use_and_function_calling: { icon: RhUiPlugIcon },
+  software: { icon: RhUiCodeIcon },
+  trustworthiness: { icon: RhUiSecuredIcon },
+  multilingual: { icon: RhUiAssessmentIcon },
+  multimodal: { icon: RhUiCubesIcon },
 };
 /* eslint-enable camelcase */
+
+type DomainIconStackProps = {
+  collectionId: string;
+  domains: string[];
+};
+
+type DomainIconsStyle = React.CSSProperties & {
+  '--evalhub-benchmark-suite-card-domain-count': number;
+};
+
+type DomainIconStyle = React.CSSProperties & {
+  '--evalhub-benchmark-suite-card-domain-index': number;
+};
+
+const DomainIconStack: React.FC<DomainIconStackProps> = ({ collectionId, domains }) => {
+  const isMultipleDomains = domains.length > 1;
+  const hasManyDomains = domains.length > 5;
+  const categoryLabel = isMultipleDomains
+    ? `${domains.length} categories`
+    : formatCategory(domains[0] ?? '');
+  const iconsStyle: DomainIconsStyle = {
+    '--evalhub-benchmark-suite-card-domain-count': domains.length,
+  };
+
+  return (
+    <div
+      className={`evalhub-benchmark-suite-card__domain-group${
+        isMultipleDomains ? ' m-multiple' : ''
+      }${hasManyDomains ? ' m-many-domains' : ''}`}
+      data-testid={`benchmark-suite-card-domain-group-${collectionId}`}
+    >
+      <div
+        className="evalhub-benchmark-suite-card__domain-icons"
+        style={iconsStyle}
+        data-testid={`benchmark-suite-card-domain-icons-${collectionId}`}
+      >
+        {domains.map((domain, index) => {
+          const DomainIcon = isCollectionCategory(domain)
+            ? DOMAIN_ICON_CONFIG[domain].icon
+            : RhUiAssessmentIcon;
+          const iconColor = getCategoryTileColor(domain);
+          const iconStyle: DomainIconStyle = {
+            '--evalhub-benchmark-suite-card-domain-index': index,
+          };
+          const domainName = formatCategory(domain);
+
+          return (
+            <Tooltip content={domainName} key={domain}>
+              <span
+                className={`evalhub-benchmark-suite-card__domain-icon evalhub-benchmark-suite-card__domain-icon--${iconColor}`}
+                style={iconStyle}
+                data-testid={
+                  index === 0
+                    ? `benchmark-suite-card-domain-icon-${collectionId}`
+                    : `benchmark-suite-card-domain-icon-${collectionId}-${index}`
+                }
+                data-icon-color={iconColor}
+                role="img"
+                aria-label={domainName}
+              >
+                <DomainIcon aria-hidden="true" />
+              </span>
+            </Tooltip>
+          );
+        })}
+      </div>
+      <span
+        className="evalhub-benchmark-suite-card__category"
+        data-testid={`benchmark-suite-card-category-${collectionId}`}
+      >
+        {categoryLabel}
+      </span>
+    </div>
+  );
+};
 
 export type BenchmarkSuiteCardAction = {
   id: string;
@@ -104,6 +180,135 @@ type BenchmarkSuiteCardProps = {
   reservePopularHeader?: boolean;
 };
 
+type MetricLabelGroupProps = {
+  collectionId: string;
+  metricNames: string[];
+  metricsTooltip: React.ReactNode;
+};
+
+const MetricLabelGroup: React.FC<MetricLabelGroupProps> = ({
+  collectionId,
+  metricNames,
+  metricsTooltip,
+}) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const measurementRef = React.useRef<HTMLDivElement>(null);
+  const [visibleMetricCount, setVisibleMetricCount] = React.useState(() =>
+    Math.min(metricNames.length, VISIBLE_METRICS_COUNT),
+  );
+
+  React.useLayoutEffect(() => {
+    const container = containerRef.current;
+    const measurement = measurementRef.current;
+    if (!container || !measurement) {
+      return undefined;
+    }
+
+    const measure = () => {
+      const availableWidth = container.getBoundingClientRect().width;
+      const metricWidths = Array.from(
+        measurement.querySelectorAll<HTMLElement>('[data-metric-label]'),
+      ).map((label) => label.getBoundingClientRect().width);
+      const overflowLabelWidths = Array.from(
+        measurement.querySelectorAll<HTMLElement>('[data-overflow-label]'),
+      ).map((label) => label.getBoundingClientRect().width);
+      const gap = parseFloat(getComputedStyle(measurement).columnGap) || 0;
+
+      if (!availableWidth || metricWidths.length !== metricNames.length) {
+        return;
+      }
+
+      const nextVisibleMetricCount = getVisibleMetricCount(
+        metricWidths,
+        overflowLabelWidths,
+        availableWidth,
+        gap,
+      );
+      setVisibleMetricCount((currentCount) =>
+        currentCount === nextVisibleMetricCount ? currentCount : nextVisibleMetricCount,
+      );
+    };
+
+    measure();
+    const observedElements = [
+      container,
+      ...Array.from(measurement.querySelectorAll<HTMLElement>('[data-metric-label]')),
+      ...Array.from(measurement.querySelectorAll<HTMLElement>('[data-overflow-label]')),
+    ];
+    const cleanupObservers = observedElements.map((element) => getResizeObserver(element, measure));
+
+    return () => cleanupObservers.forEach((cleanupObserver) => cleanupObserver());
+  }, [metricNames]);
+
+  const labelGroup = (
+    <LabelGroup
+      className="evalhub-benchmark-suite-card__metrics"
+      numLabels={visibleMetricCount}
+      isCompact
+      aria-label="Metrics"
+      data-testid={`benchmark-suite-card-metrics-${collectionId}`}
+    >
+      {metricNames.map((metric) => (
+        <Label key={metric} isCompact variant="outline">
+          {metric}
+        </Label>
+      ))}
+    </LabelGroup>
+  );
+
+  return (
+    <div
+      ref={containerRef}
+      className="evalhub-benchmark-suite-card__footer-metrics"
+      data-testid={`benchmark-suite-card-footer-metrics-${collectionId}`}
+    >
+      {visibleMetricCount < metricNames.length ? (
+        <Tooltip content={metricsTooltip}>{labelGroup}</Tooltip>
+      ) : (
+        labelGroup
+      )}
+      <div
+        ref={measurementRef}
+        className="evalhub-benchmark-suite-card__metrics-measurement"
+        aria-hidden="true"
+      >
+        <div className="evalhub-benchmark-suite-card__metrics-measurement-row">
+          {metricNames.map((metric) => (
+            <Label
+              key={metric}
+              className="evalhub-benchmark-suite-card__metrics-measurement-label"
+              data-metric-label
+              isCompact
+              variant="outline"
+            >
+              <span
+                className="evalhub-benchmark-suite-card__metrics-measurement-text"
+                data-label={metric}
+              />
+            </Label>
+          ))}
+        </div>
+        <div className="evalhub-benchmark-suite-card__metrics-measurement-row">
+          {metricNames.map((_, index) => (
+            <Label
+              key={index}
+              className="evalhub-benchmark-suite-card__metrics-measurement-label"
+              data-overflow-label
+              isCompact
+              variant="overflow"
+            >
+              <span
+                className="evalhub-benchmark-suite-card__metrics-measurement-text"
+                data-label={`${index + 1} more`}
+              />
+            </Label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   collection,
   benchmarkNameMap,
@@ -118,24 +323,22 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
-  const domains = [...new Set(collection.domains ?? [])];
-  const iconDomain =
-    collection.category && DOMAIN_ICON_CONFIG[collection.category]
-      ? collection.category
-      : (domains[0] ?? '');
-  const domainIconConfig = DOMAIN_ICON_CONFIG[iconDomain];
-  const DomainIcon = domainIconConfig?.icon;
-  const iconColor = domainIconConfig?.color ?? 'grey';
-  const metrics = [
-    ...new Set(
-      (collection.benchmarks ?? [])
-        .map((benchmark) => benchmark.primary_score?.metric)
-        .filter((metric): metric is string => Boolean(metric)),
-    ),
-  ];
-  const metricNames = metrics
-    .map(getMetricDisplayName)
-    .toSorted((first, second) => first.localeCompare(second));
+  const domains = [...new Set((collection.domains ?? []).map(normalizeCategory).filter(Boolean))];
+  const normalizedCategory = normalizeCategory(collection.category);
+  const resolvedDomains = domains.length > 0 ? domains : [normalizedCategory].filter(Boolean);
+  const metricNames = React.useMemo(
+    () =>
+      [
+        ...new Set(
+          (collection.benchmarks ?? [])
+            .map((benchmark) => benchmark.primary_score?.metric)
+            .filter((metric): metric is string => Boolean(metric)),
+        ),
+      ]
+        .map(getMetricDisplayName)
+        .toSorted((first, second) => first.localeCompare(second)),
+    [collection],
+  );
   const evaluationTargetNames = [...new Set(collection.evaluation_targets ?? [])]
     .map(formatCategory)
     .toSorted((first, second) => first.localeCompare(second));
@@ -197,21 +400,6 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         ))}
       </List>
     </div>
-  );
-  const metricsLabelGroup = (
-    <LabelGroup
-      className="evalhub-benchmark-suite-card__metrics"
-      numLabels={VISIBLE_METRICS_COUNT}
-      isCompact
-      aria-label="Metrics"
-      data-testid={`benchmark-suite-card-metrics-${collection.resource.id}`}
-    >
-      {metricNames.map((metric) => (
-        <Label key={metric} isCompact variant="outline">
-          {metric}
-        </Label>
-      ))}
-    </LabelGroup>
   );
   const runCount = collection.state?.run_count ?? 0;
   const runCountTooltip = 'Run Count: Number of successful executions of this collection';
@@ -351,7 +539,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
 
   return (
     <Card
-      className={`evalhub-benchmark-suite-card evalhub-benchmark-suite-card--${iconColor}`}
+      className="evalhub-benchmark-suite-card"
       isFullHeight
       data-testid={`benchmark-suite-card-${collection.resource.id}`}
     >
@@ -395,23 +583,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       )}
       <CardTitle className="evalhub-benchmark-suite-card__title">
         <div className="evalhub-benchmark-suite-card__title-content">
-          {DomainIcon && (
-            <Tooltip content={formatCategory(iconDomain)}>
-              <span
-                className={`evalhub-benchmark-suite-card__domain-icon evalhub-benchmark-suite-card__domain-icon--${iconColor}`}
-                data-testid={`benchmark-suite-card-domain-icon-${collection.resource.id}`}
-                data-icon-color={iconColor}
-                role="img"
-                aria-label={formatCategory(iconDomain)}
-                title={formatCategory(iconDomain)}
-              >
-                <DomainIcon aria-hidden="true" />
-              </span>
-            </Tooltip>
-          )}
-          <span className="evalhub-benchmark-suite-card__category">
-            {formatCategory(collection.category ?? iconDomain)}
-          </span>
+          <DomainIconStack collectionId={collection.resource.id} domains={resolvedDomains} />
           {contextualActionsMenu}
         </div>
         {onSelect ? (
@@ -523,16 +695,11 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       </CardBody>
       <CardFooter className="evalhub-benchmark-suite-card__footer">
         {metricNames.length > 0 && (
-          <div
-            className="evalhub-benchmark-suite-card__footer-metrics"
-            data-testid={`benchmark-suite-card-footer-metrics-${collection.resource.id}`}
-          >
-            {metricNames.length > VISIBLE_METRICS_COUNT ? (
-              <Tooltip content={metricsTooltip}>{metricsLabelGroup}</Tooltip>
-            ) : (
-              metricsLabelGroup
-            )}
-          </div>
+          <MetricLabelGroup
+            collectionId={collection.resource.id}
+            metricNames={metricNames}
+            metricsTooltip={metricsTooltip}
+          />
         )}
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}

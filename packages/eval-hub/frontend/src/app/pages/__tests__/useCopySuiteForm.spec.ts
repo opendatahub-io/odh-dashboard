@@ -67,7 +67,7 @@ const sourceCollection: Collection = {
   name: 'Curated suite',
   description: 'A curated description',
   category: 'language',
-  domains: ['reasoning', 'safety'],
+  domains: ['reasoning', 'trustworthiness'],
   tasks: ['text-generation'],
   modalities: ['text'],
   industries: ['technology'],
@@ -207,7 +207,7 @@ describe('createBenchmarkFromKey', () => {
       buildPendingCollection({
         suiteName: 'New suite',
         suiteDescription: 'A new description',
-        suiteDomains: ['safety'],
+        suiteDomains: ['trustworthiness'],
         suiteTasks: [],
         suiteModalities: [],
         suiteIndustries: [],
@@ -264,7 +264,7 @@ describe('useCopySuiteForm', () => {
     );
 
     expect(result.result.current.suiteDescription).toBe('A curated description');
-    expect(result.result.current.suiteDomains).toEqual(['reasoning', 'safety']);
+    expect(result.result.current.suiteDomains).toEqual(['reasoning', 'trustworthiness']);
     expect(result.result.current.suiteTasks).toEqual(['text-generation']);
     expect(result.result.current.suiteModalities).toEqual(['text']);
     expect(result.result.current.suiteIndustries).toEqual(['technology']);
@@ -502,14 +502,28 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.suiteIndustries).toEqual(['technology']);
   });
 
-  it('should fall back to the source category when domains are absent', async () => {
+  it('should fall back to a supported source category when domains are absent', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        domains: undefined,
+        category: 'trustworthiness',
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteDomains).toEqual(['trustworthiness']);
+  });
+
+  it('should not copy a legacy category into domains when it is not supported', async () => {
     const result = renderForm({
       sourceCollection: { ...sourceCollection, domains: undefined, category: 'safety' },
     });
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteDomains).toEqual(['safety']);
+    expect(result.result.current.suiteDomains).toEqual([]);
   });
 
   it('should preserve an explicitly empty domains array instead of falling back to category', async () => {
@@ -541,7 +555,7 @@ describe('useCopySuiteForm', () => {
       result.result.current.form.setValue('suiteDescription', 'A new suite', {
         shouldValidate: true,
       });
-      result.result.current.form.setValue('suiteDomains', ['safety', 'reasoning'], {
+      result.result.current.form.setValue('suiteDomains', ['trustworthiness', 'reasoning'], {
         shouldValidate: true,
       });
       result.result.current.form.setValue('suiteTasks', ['classification'], {
@@ -584,7 +598,7 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({
         name: 'New suite',
         description: 'A new suite',
-        domains: ['safety', 'reasoning'],
+        domains: ['trustworthiness', 'reasoning'],
         evaluation_targets: ['model'],
         benchmarks: [
           expect.objectContaining({
@@ -1523,7 +1537,7 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({
         name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
-        domains: ['reasoning', 'safety'],
+        domains: ['reasoning', 'trustworthiness'],
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
@@ -1703,7 +1717,7 @@ describe('useCopySuiteForm', () => {
         name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
         category: 'language',
-        domains: ['reasoning', 'safety'],
+        domains: ['reasoning', 'trustworthiness'],
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],

@@ -23,6 +23,7 @@ import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { searchApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
 import { isKeyInactive } from '~/app/utilities/apiKeys';
@@ -126,7 +127,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
       fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: message,
+        error: errorCategory(err),
         bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
         keyCount: activeKeys.length,
         isAdmin: true,

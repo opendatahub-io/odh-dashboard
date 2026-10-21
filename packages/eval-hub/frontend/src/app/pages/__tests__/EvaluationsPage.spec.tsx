@@ -474,7 +474,7 @@ describe('EvaluationsPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     clickFilterOption('benchmark-suites-category-filter-option-code');
-    clickFilterOption('benchmark-suites-category-filter-option-safety');
+    clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
 
     expect(screen.getByTestId('benchmark-suites-category-filter-badge')).toHaveTextContent('2');
     expect(

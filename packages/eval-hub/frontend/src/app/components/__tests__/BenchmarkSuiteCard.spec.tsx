@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { mockCollection } from '~/__mocks__/mockCollection';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
@@ -21,7 +21,7 @@ describe('BenchmarkSuiteCard', () => {
     const collection = mockCollection({
       id: 'model-suite',
       name: 'Model suite',
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       benchmarkIds: ['benchmark-2', 'benchmark-1'],
       benchmarkMetrics: ['toxicity_score', 'mc1_acc'],
     });
@@ -128,6 +128,145 @@ describe('BenchmarkSuiteCard', () => {
 
     expect(screen.getByText('Robustness')).toBeInTheDocument();
     expect(screen.getByText('Truthfulness')).toBeVisible();
+  });
+
+  describe('responsive metric measurement', () => {
+    type MetricWidths = { container: number; metric: number; overflow: number };
+
+    const widthRect = (width: number): DOMRect =>
+      ({
+        width,
+        height: 0,
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: width,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
+
+    const mockMetricWidths = (widths: MetricWidths) => {
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function mockedRect(
+        this: Element,
+      ) {
+        if (this.hasAttribute('data-metric-label')) {
+          return widthRect(widths.metric);
+        }
+        if (this.hasAttribute('data-overflow-label')) {
+          return widthRect(widths.overflow);
+        }
+        if (this.getAttribute('data-testid')?.startsWith('benchmark-suite-card-footer-metrics-')) {
+          return widthRect(widths.container);
+        }
+        return widthRect(0);
+      });
+    };
+
+    const renderMeasuredCard = (id: string, widths: MetricWidths) => {
+      mockMetricWidths(widths);
+      render(
+        <BenchmarkSuiteCard
+          collection={mockCollection({
+            id,
+            benchmarkIds: [
+              'benchmark-1',
+              'benchmark-2',
+              'benchmark-3',
+              'benchmark-4',
+              'benchmark-5',
+            ],
+            benchmarkMetrics: [
+              'accuracy',
+              'bias_score',
+              'toxicity_score',
+              'robustness',
+              'truthfulness',
+            ],
+          })}
+          primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        />,
+      );
+    };
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should show only the metric labels that fit the measured container width', () => {
+      renderMeasuredCard('measurement-suite', { container: 200, metric: 100, overflow: 50 });
+
+      expect(screen.getByText('Accuracy')).toBeInTheDocument();
+      expect(screen.queryByText('Bias score')).not.toBeInTheDocument();
+      expect(screen.getByText('4 more')).toBeInTheDocument();
+    });
+
+    it('should update the visible metric count when the container resizes', () => {
+      const widths: MetricWidths = { container: 200, metric: 100, overflow: 50 };
+      renderMeasuredCard('resize-suite', widths);
+
+      expect(screen.getByText('4 more')).toBeInTheDocument();
+
+      widths.container = 40;
+      fireEvent(window, new Event('resize'));
+
+      expect(screen.getByText('5 more')).toBeInTheDocument();
+      expect(screen.queryByText('Accuracy')).not.toBeInTheDocument();
+
+      widths.container = 1000;
+      fireEvent(window, new Event('resize'));
+
+      expect(screen.getByText('2 more')).toBeInTheDocument();
+      expect(screen.getByText('Accuracy')).toBeInTheDocument();
+      expect(screen.getByText('Bias score')).toBeInTheDocument();
+      expect(screen.getByText('Robustness')).toBeInTheDocument();
+      expect(screen.queryByText('Toxicity score')).not.toBeInTheDocument();
+    });
+
+    it('should keep the metrics tooltip when labels are collapsed by measurement', async () => {
+      renderMeasuredCard('collapsed-tooltip-suite', { container: 200, metric: 100, overflow: 50 });
+
+      // PF attaches the tooltip trigger to the label group root; the testid sits on the
+      // inner list, so the hover event must bubble to reach the trigger.
+      fireEvent.mouseEnter(
+        screen.getByTestId('benchmark-suite-card-metrics-collapsed-tooltip-suite'),
+        { bubbles: true },
+      );
+
+      expect(await screen.findByText('Truthfulness')).toBeInTheDocument();
+      expect(screen.getByText('Bias score')).toBeInTheDocument();
+    });
+
+    it('should remove the overflow control and tooltip when all metric labels fit', async () => {
+      mockMetricWidths({ container: 500, metric: 100, overflow: 50 });
+      render(
+        <BenchmarkSuiteCard
+          collection={mockCollection({
+            id: 'fits-suite',
+            benchmarkIds: ['benchmark-1', 'benchmark-2'],
+            benchmarkMetrics: ['accuracy', 'bias_score'],
+          })}
+          primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        />,
+      );
+
+      expect(screen.getByText('Accuracy')).toBeInTheDocument();
+      expect(screen.getByText('Bias score')).toBeInTheDocument();
+      expect(screen.queryByText('1 more')).not.toBeInTheDocument();
+
+      fireEvent.mouseEnter(screen.getByTestId('benchmark-suite-card-metrics-fits-suite'), {
+        bubbles: true,
+      });
+      // Must exceed PF Tooltip's 300ms entry delay so the negative assertion
+      // below can't pass while a tooltip is still pending.
+      await act(async () => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 400);
+        });
+      });
+
+      expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    });
   });
 
   it('should show benchmark names and fall back to IDs in the benchmark count tooltip', async () => {
@@ -514,7 +653,7 @@ describe('BenchmarkSuiteCard', () => {
     );
   });
 
-  it('should render the category and evaluation target instead of collection tags or domains', () => {
+  it('should render the resolved category and evaluation target instead of collection tags', () => {
     render(
       <BenchmarkSuiteCard
         collection={{
@@ -534,22 +673,21 @@ describe('BenchmarkSuiteCard', () => {
       screen.queryByTestId('benchmark-suite-card-tags-collection-tags-suite'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Collection tag')).not.toBeInTheDocument();
-    expect(screen.queryByText('Domain value')).not.toBeInTheDocument();
-    expect(screen.getByText('Primary category')).toBeInTheDocument();
+    expect(screen.getByText('Domain value')).toBeInTheDocument();
+    expect(screen.queryByText('Primary category')).not.toBeInTheDocument();
     expect(screen.getByText('Model evaluation')).toBeInTheDocument();
     expect(screen.getByText('2 benchmarks')).toBeInTheDocument();
   });
 
   it.each([
-    ['knowledge_and_reasoning', 'purple'],
-    ['grounded_document_understanding', 'blue'],
-    ['instruction_and_output_reliability', 'green'],
-    ['tool_use_and_function_calling', 'yellow'],
-    ['software', 'orange'],
-    ['trustworthiness', 'red'],
-    ['multilingual', 'teal'],
-    ['multimodal', 'orangered'],
-    ['safety', 'yellow'],
+    ['knowledge_and_reasoning', 'lavender'],
+    ['grounded_document_understanding', 'light-blue'],
+    ['instruction_and_output_reliability', 'light-green'],
+    ['tool_use_and_function_calling', 'apricot'],
+    ['software', 'mint-teal'],
+    ['trustworthiness', 'soft-pink'],
+    ['multilingual', 'pale-cyan'],
+    ['multimodal', 'soft-mint-yellow'],
   ])('should render the %s domain icon with the %s color', (domain, color) => {
     render(
       <BenchmarkSuiteCard
@@ -566,7 +704,7 @@ describe('BenchmarkSuiteCard', () => {
     );
   });
 
-  it('should prefer a supported category over the first domain for the tile icon', () => {
+  it('should use the first supplied domain when the collection category differs', () => {
     render(
       <BenchmarkSuiteCard
         collection={{
@@ -582,7 +720,107 @@ describe('BenchmarkSuiteCard', () => {
 
     expect(
       screen.getByTestId('benchmark-suite-card-domain-icon-category-icon-suite'),
-    ).toHaveAttribute('title', 'Multilingual');
+    ).toHaveAttribute('aria-label', 'Software');
+    expect(
+      screen.getByTestId('benchmark-suite-card-category-category-icon-suite'),
+    ).toHaveTextContent('Software');
+    expect(screen.queryByText('Multilingual')).not.toBeInTheDocument();
+  });
+
+  it('should render an icon for every domain and summarize multiple domains', () => {
+    const collection = mockCollection({
+      id: 'multi-domain-suite',
+      domains: ['software', 'multilingual', 'trustworthiness'],
+    });
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-category-multi-domain-suite'),
+    ).toHaveTextContent('3 categories');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-group-multi-domain-suite'),
+    ).not.toHaveClass('m-many-domains');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icon-multi-domain-suite'),
+    ).toHaveAttribute('aria-label', 'Software');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icon-multi-domain-suite-1'),
+    ).toHaveAttribute('aria-label', 'Multilingual');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icon-multi-domain-suite-2'),
+    ).toHaveAttribute('aria-label', 'Trustworthiness');
+  });
+
+  it('should ignore empty domains before counting and rendering domain icons', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({
+          id: 'empty-domain-suite',
+          domains: ['software', '  ', 'SOFTWARE'],
+        })}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('benchmark-suite-card-category-empty-domain-suite'),
+    ).toHaveTextContent('Software');
+    expect(
+      screen.getByTestId('benchmark-suite-card-domain-icon-empty-domain-suite'),
+    ).toHaveAttribute('aria-label', 'Software');
+    expect(
+      screen.queryByTestId('benchmark-suite-card-domain-icon-empty-domain-suite-1'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should mark stacks with more than five domains for stable expansion', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({
+          id: 'many-domain-suite',
+          domains: [
+            'software',
+            'multilingual',
+            'trustworthiness',
+            'multimodal',
+            'knowledge_and_reasoning',
+            'grounded_document_understanding',
+          ],
+        })}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(screen.getByTestId('benchmark-suite-card-domain-group-many-domain-suite')).toHaveClass(
+      'm-many-domains',
+    );
+  });
+
+  it('should show an individual domain tooltip when an icon is hovered', async () => {
+    const collection = mockCollection({
+      id: 'domain-tooltip-suite',
+      domains: ['software', 'multilingual'],
+    });
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    fireEvent.mouseEnter(
+      screen.getByTestId('benchmark-suite-card-domain-icon-domain-tooltip-suite-1'),
+    );
+
+    expect(await screen.findByText('Multilingual')).toBeInTheDocument();
+    expect(screen.queryByText('Software')).not.toBeInTheDocument();
   });
 
   it('should fall back to the first domain when category is not a supported enum value', () => {
@@ -601,7 +839,9 @@ describe('BenchmarkSuiteCard', () => {
 
     expect(
       screen.getByTestId('benchmark-suite-card-domain-icon-domain-icon-fallback-suite'),
-    ).toHaveAttribute('title', 'Software');
+    ).toHaveAttribute('aria-label', 'Software');
+    expect(screen.getByText('Software')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy category')).not.toBeInTheDocument();
   });
 });
 

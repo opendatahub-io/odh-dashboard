@@ -98,7 +98,7 @@ module.exports = merge(
       open: false,
       proxy: [
         {
-          context: ['/api', '/mod-arch/api'],
+          context: ['/api', '/maas/api', '/mod-arch/api'],
           target: {
             host: PROXY_HOST,
             protocol: PROXY_PROTOCOL,

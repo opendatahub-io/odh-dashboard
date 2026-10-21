@@ -3,9 +3,11 @@ import React from 'react';
 import { UserSubscription } from '~/app/types/subscriptions';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
 import { getIsMaasAdmin } from '~/app/api/k8s';
-import { searchApiKeys } from '~/app/api/api-keys';
+import { searchApiKeys, searchTenantApiKeys } from '~/app/api/api-keys';
 import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 import { useMaaSGatewayUrl } from '~/app/hooks/useMaaSGatewayUrl';
+import useUser from '~/app/hooks/useUser';
+import { useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export const KeysAndSubsContext = React.createContext({} as KeysAndSubsContextType);
@@ -34,20 +36,28 @@ type KeysAndSubsProviderProps = {
 };
 
 export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ children }) => {
+  const isGridEnabled = useGridFeatureFlag();
+  const { orgAdmin } = useUser();
+
   const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<UserSubscription[]>>(
     (opts: APIOptions) => listUserSubscriptions()(opts),
     [],
   );
 
   const isMaasAdminCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(
-    (opts: APIOptions) => getIsMaasAdmin()(opts).then((result) => result.allowed),
-    [],
+    (opts: APIOptions) =>
+      isGridEnabled
+        ? Promise.resolve(Boolean(orgAdmin))
+        : getIsMaasAdmin()(opts).then((result) => result.allowed),
+    [isGridEnabled, orgAdmin],
   );
 
   const hasAnyApiKeysCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(
     (opts: APIOptions) =>
-      searchApiKeys()(opts, { pagination: { limit: 1 } }).then((result) => result.data.length > 0),
-    [],
+      (isGridEnabled ? searchTenantApiKeys() : searchApiKeys())(opts, {
+        pagination: { limit: 1 },
+      }).then((result) => result.data.length > 0),
+    [isGridEnabled],
   );
 
   const [subscriptions, subscriptionsLoaded, subscriptionsError, refreshSubscriptions] =

@@ -317,15 +317,14 @@ class CreateApiKeyModal extends Modal {
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // Find the dialog that contains the API key name input (unique to this modal)
-    return cy.findByTestId('api-key-name-input').closest('[role="dialog"]');
+    return cy.findByRole('dialog', { name: /Create API key/ });
   }
 
   shouldBeOpen(open = true): void {
     if (open) {
       this.find().should('be.visible');
     } else {
-      this.find().should('not.exist');
+      cy.get('[role="dialog"]').should('not.exist');
     }
   }
 
@@ -456,15 +455,16 @@ class CopyApiKeyModal extends Modal {
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // Find the dialog that contains the API key token copy (unique to this modal)
-    return cy.findByTestId('api-key-token-copy-section').closest('[role="dialog"]');
+    // PF dialog accessible name includes body text; match title as a prefix.
+    return cy.findByRole('dialog', { name: /API key created/ });
   }
 
   shouldBeOpen(open = true): void {
     if (open) {
       this.find().should('be.visible');
     } else {
-      this.find().should('not.exist');
+      // findByRole waits for presence; use get for absence assertions.
+      cy.get('[role="dialog"]').should('not.exist');
     }
   }
 
@@ -501,8 +501,36 @@ class CopyApiKeyModal extends Modal {
     return cy.findByTestId('close-api-key-button');
   }
 
-  findModelDocumentation(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('#api-key-model-documentation');
+  findCopiedAcknowledgement(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-copied-acknowledgement');
+  }
+
+  acknowledgeKeyCopiedCheckbox(): void {
+    this.findCopiedAcknowledgement().check({ force: true });
+  }
+
+  findAccessDetails(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-access-details');
+  }
+
+  expandAccessDetails(): void {
+    this.findAccessDetails()
+      .find('button')
+      .first()
+      .then(($btn) => {
+        if ($btn.attr('aria-expanded') === 'false') {
+          cy.wrap($btn).click();
+        }
+      });
+    this.findAccessDetails().find('button').first().should('have.attr', 'aria-expanded', 'true');
+  }
+
+  findUsageExample(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-usage-example');
+  }
+
+  findEndpointCompatibilityAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-endpoint-compatibility-alert');
   }
 
   findAvailableModelsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -514,6 +542,7 @@ class CopyApiKeyModal extends Modal {
   }
 
   selectAvailableModel(value: string): void {
+    this.expandAccessDetails();
     this.findAvailableModelsToggle().click();
     this.findAvailableModelsOption(value).click();
   }

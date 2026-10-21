@@ -407,12 +407,44 @@ export type RoutingTestData = DataScienceProjectData & {
   defaultRoutingLabel: string;
 };
 
+/** Gateway MultiSelection option identity (UI label is `${name} | ${namespace}`). */
+export type MultiGatewayFixtureRef = {
+  name: string;
+  namespace: string;
+};
+
+export type MultiGatewayTestData = DataScienceProjectData & {
+  gatewayA: MultiGatewayFixtureRef;
+  gatewayB: MultiGatewayFixtureRef;
+  cpuContainerImage: string;
+};
+
 export type AcceleratorTestData = DataScienceProjectData & {
   unsupportedAcceleratorConfigFixturePath: string;
   acceleratorConfigName: string;
   version: string;
   replaceSourceString: string;
   replaceTargetString: string;
+};
+
+export type RuntimeLibraryInstallTestData = {
+  searchTerm: string;
+  resourceNamePrefix: string;
+  displayNamePrefix: string;
+  resourceKind: string;
+  resourceApiVersion: string;
+  listPath: string;
+};
+
+export type RuntimeLibraryTemplateTestData = RuntimeLibraryInstallTestData & {
+  templateKind: string;
+  templateApiVersion: string;
+  modelServingSupport: string[];
+};
+
+export type RuntimeLibraryAcceleratorTestData = RuntimeLibraryInstallTestData & {
+  editedVersion: string;
+  configType: string;
 };
 
 export type ServingRuntimeSettingsTestData = DataScienceProjectData & {

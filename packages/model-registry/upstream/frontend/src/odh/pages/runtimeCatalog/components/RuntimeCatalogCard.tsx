@@ -58,11 +58,17 @@ const RuntimeCatalogCard: React.FC<RuntimeCatalogCardProps> = React.memo(({ runt
         >
           <FlexItem>
             <span
-              className="pf-v6-u-display-inline-block pf-v6-u-font-size-2xl pf-v6-u-color-200"
+              className="pf-v6-u-display-inline-block pf-v6-u-color-200"
               aria-hidden
               data-testid={`runtime-catalog-card-icon-${cardKey}`}
             >
-              <RhStandardContainerImageIcon noDefaultStyle />
+              <RhStandardContainerImageIcon
+                noDefaultStyle
+                style={{
+                  height: 'var(--pf-t--global--icon--size--2xl)',
+                  width: 'var(--pf-t--global--icon--size--2xl)',
+                }}
+              />
             </span>
           </FlexItem>
           {showLatestBadge && (
