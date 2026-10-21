@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { loadRemote } from '@module-federation/runtime';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import MlflowRunTabs from '~/app/components/MlflowRunTabs';
@@ -20,22 +20,35 @@ const RemoteComponent = jest.fn(() => <div data-testid="remote-run-tabs" />);
 
 const defaultProps = { experimentId: '16', runUuid: 'run-1', workspace: 'test-ns' };
 
-function deferred<T>(): {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason?: unknown) => void;
-} {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
+/** Flushes pending promise reactions without advancing timers. */
+async function flushMicrotasks(): Promise<void> {
+  await act(async () => {
+    // Awaiting act flushes queued microtasks (promise reactions) only.
   });
-  return { promise, resolve, reject };
+}
+
+/**
+ * Advances jest fake timers past the component's automatic retry backoff
+ * (RETRY_DELAY_MS * attempt: 1s after the first failure, 2s after the second),
+ * flushing the intermediate promise reactions via act.
+ */
+async function advancePastAutoRetries(): Promise<void> {
+  // Let the initial attempt's rejection flush so the first backoff timer exists.
+  await flushMicrotasks();
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(2000);
+  });
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 describe('MlflowRunTabs', () => {
@@ -72,12 +85,36 @@ describe('MlflowRunTabs', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('should show a retryable error and track the event when the remote fails to load', async () => {
+  it('should retry automatically and recover from a transient load failure', async () => {
+    jest.useFakeTimers();
+    mockLoadRemote
+      .mockRejectedValueOnce(new Error('transient blip'))
+      .mockResolvedValue({ default: RemoteComponent });
+
+    render(<MlflowRunTabs {...defaultProps} />);
+
+    // Flush the initial rejection, then advance past the 1s backoff to the retry.
+    await flushMicrotasks();
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(mockLoadRemote).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('remote-run-tabs')).toBeInTheDocument();
+    expect(screen.queryByTestId('mlflow-run-tabs-error')).not.toBeInTheDocument();
+    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+  });
+
+  it('should show a retryable error and track the event after exhausting automatic retries', async () => {
+    jest.useFakeTimers();
     mockLoadRemote.mockRejectedValue(new Error('chunk 404'));
 
     render(<MlflowRunTabs {...defaultProps} />);
 
-    await waitFor(() => expect(screen.getByTestId('mlflow-run-tabs-error')).toBeInTheDocument());
+    await advancePastAutoRetries();
+
+    expect(mockLoadRemote).toHaveBeenCalledTimes(3);
+    expect(screen.getByTestId('mlflow-run-tabs-error')).toBeInTheDocument();
     expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
     expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.MLFLOW_RUN_TABS_LOAD_FAILED,
@@ -85,32 +122,35 @@ describe('MlflowRunTabs', () => {
     );
   });
 
-  it('should retry the load when Try again is clicked', async () => {
-    const first = deferred<{ default: React.ComponentType }>();
-    const second = deferred<{ default: React.ComponentType }>();
-    mockLoadRemote.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+  it('should restart the load cycle when Try again is clicked', async () => {
+    jest.useFakeTimers();
+    mockLoadRemote.mockRejectedValue(new Error('stale remote entry'));
 
     render(<MlflowRunTabs {...defaultProps} />);
 
-    first.reject(new Error('transient blip'));
-    await waitFor(() => expect(screen.getByTestId('mlflow-run-tabs-error')).toBeInTheDocument());
+    await advancePastAutoRetries();
+    expect(screen.getByTestId('mlflow-run-tabs-error')).toBeInTheDocument();
 
+    mockLoadRemote.mockResolvedValue({ default: RemoteComponent });
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    await waitFor(() => expect(mockLoadRemote).toHaveBeenCalledTimes(2));
+    await flushMicrotasks();
 
-    second.resolve({ default: RemoteComponent });
-    await waitFor(() => expect(screen.getByTestId('remote-run-tabs')).toBeInTheDocument());
+    expect(mockLoadRemote).toHaveBeenCalledTimes(4);
+    expect(screen.getByTestId('remote-run-tabs')).toBeInTheDocument();
     expect(screen.queryByTestId('mlflow-run-tabs-error')).not.toBeInTheDocument();
   });
 
   it('should offer retry and page reload actions in the error state', async () => {
     // window.location.reload cannot be mocked in jsdom (non-configurable), so the
     // reload handler itself is not directly asserted here.
+    jest.useFakeTimers();
     mockLoadRemote.mockRejectedValue(new Error('stale remote entry'));
 
     render(<MlflowRunTabs {...defaultProps} />);
 
-    await waitFor(() => expect(screen.getByTestId('mlflow-run-tabs-error')).toBeInTheDocument());
+    await advancePastAutoRetries();
+
+    expect(screen.getByTestId('mlflow-run-tabs-error')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Reload page' })).toBeEnabled();
   });
