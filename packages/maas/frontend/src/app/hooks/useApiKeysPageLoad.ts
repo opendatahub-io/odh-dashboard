@@ -5,9 +5,11 @@ import {
 } from '~/app/hooks/useApiKeysTableState';
 import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 import { UserSubscription } from '~/app/types/subscriptions';
+import { useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
 
 export type UseApiKeysPageLoadReturn = UseApiKeysTableStateReturn & {
   isMaasAdmin: boolean;
+  adminControlsEnabled: boolean;
   isMaasAdminLoaded: boolean;
   maxExpirationDays: number;
   apiKeyConfigLoaded: boolean;
@@ -20,6 +22,7 @@ export type UseApiKeysPageLoadReturn = UseApiKeysTableStateReturn & {
 };
 
 export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
+  const isGridEnabled = useGridFeatureFlag();
   const {
     isMaasAdmin,
     isMaasAdminLoaded,
@@ -49,6 +52,7 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
   return {
     ...tableState,
     isMaasAdmin,
+    adminControlsEnabled: isMaasAdmin && !isGridEnabled,
     isMaasAdminLoaded,
     maxExpirationDays,
     apiKeyConfigLoaded,
