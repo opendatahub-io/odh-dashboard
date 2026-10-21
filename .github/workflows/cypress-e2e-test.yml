@@ -20,7 +20,6 @@ name: Cypress e2e Test
 #   1. Manual input (workflow_dispatch):
 #      Enter tags in 'additional_tags' field: @Pipelines,@Workbenches
 #      Check 'skip_default' to omit @ci-dashboard-regression-tags
-#      Check 'skip_auto_detect' to omit Turbo-based package detection
 #
 #   2. PR labels (test:* pattern):
 #      Add labels with 'test:' prefix to your PR:
@@ -29,15 +28,14 @@ name: Cypress e2e Test
 #        test:Workbenches  → @Workbenches
 #      Any 'test:<TagName>' label maps to '@<TagName>' Cypress grep tag
 #
-#   3. Auto-detected from PR changes (always additive):
-#      Turbo detects changed packages → reads "e2eCiTags" from package.json
-#      Git diff detects changed frontend sub-areas → inline mapping resolves tags
-#      When ≤8 auto-detected tags: consolidated into ONE additional matrix job
-#      When >8 auto-detected tags: split across two matrix jobs (half each)
+#   3. Path-impact selection (always additive):
+#      scripts/cypress/e2e-path-impact.json maps every impactful repository path
+#      Package and frontend-area mappings derive their declared E2E CI tags
+#      The planner validates coverage, environment capabilities, and tag resolution
 #
-#      To add auto-detection for a package:
+#      To add path-impact coverage for a package:
 #        Add "e2eCiTags": ["@YourTagCI"] to the package's package.json
-#      To add auto-detection for a frontend area:
+#      To add path-impact coverage for a frontend area:
 #        Add an entry to .github/frontend-ci-tags.json
 #
 # LIMITS:
@@ -68,11 +66,6 @@ on:
         type: string
       skip_default:
         description: 'Skip default @ci-dashboard-regression-tags'
-        required: false
-        default: false
-        type: boolean
-      skip_auto_detect:
-        description: 'Skip auto-detection of changed packages'
         required: false
         default: false
         type: boolean
@@ -448,7 +441,7 @@ jobs:
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ---------------------------------------------------------------------------
-  # Tag Resolution - Build test matrix from defaults + PR labels/input + auto-detection
+  # Tag Resolution - Build test matrix from defaults + PR labels/input + path impact
   # ---------------------------------------------------------------------------
   get-test-tags:
     needs: [validate-selection, select-cluster, cleanup-old-resources]
@@ -527,124 +520,19 @@ jobs:
             echo "⚠️ Could not find PR number for SHA ${{ github.event.workflow_run.head_sha }}"
           fi
 
-      - name: Detect changed areas
-        id: detect
-        if: inputs.skip_auto_detect != true
-        run: |
-          # =================================================================
-          # Smart Test Selection: Detect changed areas and resolve CI tags
-          #
-          # Layer 1: Turbo detects changed packages (including frontend workspace)
-          #          → reads e2eCiTags from each package.json (self-service, teams opt in)
-          # Layer 2: For frontend changes detected by Layer 1, git diff identifies
-          #          sub-areas → .github/frontend-ci-tags.json mapping resolves CI tags
-          # Layer 3: The Node planner maps critical cross-cutting infrastructure paths
-          #          (for example, dashboard network policies) to their E2E CI tags
-          # =================================================================
-
-          AUTO_TAGS=""
-
-          # --- Layer 1: Turbo-based package detection ---
-          echo "🔍 Running Turbo change detection..."
-
-          BASE_SHA="${{ steps.refs.outputs.base_sha }}"
-          HEAD_SHA="${{ steps.refs.outputs.head_sha }}"
-
-          echo "  📌 Comparing $BASE_SHA...$HEAD_SHA"
-
-          # Get changed packages from turbo (uses dependency graph)
-          CHANGED_PACKAGES=$(pnpm exec turbo run lint --dry=json --filter="...[$BASE_SHA...$HEAD_SHA]" 2>/dev/null \
-            | jq -r '.packages[]' 2>/dev/null || echo "")
-
-          if [[ -n "$CHANGED_PACKAGES" ]]; then
-            echo "  📦 Changed workspaces detected by Turbo:"
-            echo "$CHANGED_PACKAGES" | while read -r pkg; do echo "     - $pkg"; done
-
-            # For each changed package, check for e2eCiTags in its package.json
-            for pkg_dir in packages/*/; do
-              pkg_name=$(jq -r '.name // empty' "$pkg_dir/package.json" 2>/dev/null)
-              if echo "$CHANGED_PACKAGES" | grep -qx "$pkg_name"; then
-                ci_tags=$(jq -r '.e2eCiTags[]? // empty' "$pkg_dir/package.json" 2>/dev/null)
-                if [[ -n "$ci_tags" ]]; then
-                  for tag in $ci_tags; do
-                    echo "  ✅ $pkg_name → $tag"
-                    AUTO_TAGS="$AUTO_TAGS $tag"
-                  done
-                else
-                  echo "  ⏭️  $pkg_name (no e2eCiTags — defaults only)"
-                fi
-              fi
-            done
-          else
-            echo "  ℹ️  No package changes detected by Turbo"
-          fi
-
-          # --- Layer 2: Frontend sub-area detection ---
-          # Turbo sees the entire frontend as one workspace. When it changes,
-          # use git diff to identify which sub-areas were modified.
-          # Turbo may report the frontend workspace as "//" or "odh-dashboard-frontend"
-          if echo "$CHANGED_PACKAGES" | grep -qxE "//|odh-dashboard-frontend"; then
-            echo ""
-            echo "🔍 Frontend changed — detecting sub-areas via git diff..."
-
-            # Load frontend directory → CI tag mapping from external JSON file
-            # To add a new area: edit .github/frontend-ci-tags.json
-            MAPPING_FILE=".github/frontend-ci-tags.json"
-            if [[ ! -f "$MAPPING_FILE" ]]; then
-              echo "  ⚠️  $MAPPING_FILE not found — skipping frontend sub-area detection"
-            else
-              echo "  📄 Loaded mappings from $MAPPING_FILE"
-
-              # Get changed frontend files
-              CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" -- frontend/src/ 2>/dev/null || echo "")
-
-              if [[ -n "$CHANGED_FILES" ]]; then
-                # Scan pages/, concepts/, api/, routes/ using the same mapping
-                for src_dir in pages concepts api routes; do
-                  DIRS=$(echo "$CHANGED_FILES" | grep "^frontend/src/$src_dir/" | \
-                    sed "s|^frontend/src/$src_dir/||" | cut -d'/' -f1 | sort -u)
-
-                  for dir in $DIRS; do
-                    tag=$(jq -r --arg d "$dir" '.[$d] // empty' "$MAPPING_FILE")
-                    if [[ -n "$tag" ]]; then
-                      echo "  ✅ $src_dir/$dir → $tag"
-                      AUTO_TAGS="$AUTO_TAGS $tag"
-                    fi
-                  done
-                done
-              fi
-            fi
-          fi
-
-          # Deduplicate auto-detected tags
-          if [[ -n "$AUTO_TAGS" ]]; then
-            AUTO_TAGS=$(echo "$AUTO_TAGS" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
-            echo ""
-            echo "🏷️  Auto-detected CI tags: $AUTO_TAGS"
-          else
-            echo ""
-            echo "ℹ️  No area-specific CI tags detected — defaults only"
-          fi
-
-          echo "auto_tags=$AUTO_TAGS" >> $GITHUB_OUTPUT
-
       - name: Plan E2E selection
         id: plan
         env:
           INPUT_ADDITIONAL_TAGS: ${{ inputs.additional_tags }}
           INPUT_PR_LABELS: ${{ steps.labels.outputs.labels }}
-          INPUT_AUTO_TAGS: ${{ steps.detect.outputs.auto_tags }}
           INPUT_SKIP_DEFAULT: ${{ inputs.skip_default }}
-          INPUT_SKIP_AUTO_DETECT: ${{ inputs.skip_auto_detect }}
         run: |
           node scripts/cypress/plan-e2e-selection.js \
             --base "${{ steps.refs.outputs.base_sha }}" \
             --head "${{ steps.refs.outputs.head_sha }}" \
             --additional-tags "$INPUT_ADDITIONAL_TAGS" \
             --pr-labels "$INPUT_PR_LABELS" \
-            --auto-tags "$INPUT_AUTO_TAGS" \
             --skip-default "$INPUT_SKIP_DEFAULT" \
-            --skip-auto-detect "$INPUT_SKIP_AUTO_DETECT" \
             --skip-tags "@Bug @Maintain @NonConcurrent" \
             --matrix-output "$RUNNER_TEMP/e2e-matrix.json" \
             --source-output "$RUNNER_TEMP/e2e-source.txt" \

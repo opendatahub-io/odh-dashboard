@@ -11,6 +11,7 @@ const {
   buildSelectionPlan,
   createSpecJobs,
   groupTagsForJobs,
+  matchesPathPattern,
   parseSpecSource,
   parseTagSelection,
   resolveSelectedTags,
@@ -108,6 +109,36 @@ describe('resolveSelectedTags', () => {
   });
 });
 
+describe('matchesPathPattern', () => {
+  it('supports exact paths, single-segment wildcards, character wildcards, and recursive wildcards', () => {
+    assert.equal(
+      matchesPathPattern('manifests/base/networkpolicy.yaml', 'manifests/base/networkpolicy.yaml'),
+      true,
+    );
+    assert.equal(
+      matchesPathPattern(
+        'manifests/modules/*/networkpolicy.yaml',
+        'manifests/modules/feature-store/networkpolicy.yaml',
+      ),
+      true,
+    );
+    assert.equal(
+      matchesPathPattern(
+        'manifests/modules/*/networkpolicy.yaml',
+        'manifests/modules/feature-store/extra/networkpolicy.yaml',
+      ),
+      false,
+    );
+    assert.equal(matchesPathPattern('tsconfig?.json', 'tsconfig1.json'), true);
+    assert.equal(matchesPathPattern('tsconfig?.json', 'tsconfig10.json'), false);
+    assert.equal(
+      matchesPathPattern('frontend/src/**', 'frontend/src/pages/pipelines/index.tsx'),
+      true,
+    );
+    assert.equal(matchesPathPattern('frontend/src/**', 'frontend/tests/index.tsx'), false);
+  });
+});
+
 describe('buildSelectionPlan', () => {
   it('always schedules changed specs in addition to selected tag jobs', () => {
     const result = plan([{ status: 'M', path: specPath('alpha') }]);
@@ -121,11 +152,25 @@ describe('buildSelectionPlan', () => {
   });
 
   it('does not schedule unchanged specs as explicit jobs', () => {
-    const result = plan([{ status: 'M', path: 'frontend/src/App.tsx' }]);
+    const localInventory = {
+      ...inventory,
+      [specPath('default')]: inventoryEntry('default', ['@ci-dashboard-regression-tags']),
+    };
+
+    const result = plan([{ status: 'M', path: 'frontend/src/App.tsx' }], {
+      inventory: localInventory,
+    });
 
     assert.equal(result.valid, true);
     assert.deepEqual(result.summary.changedSpecs, []);
     assert.equal(result.matrix.filter((job) => job.run_mode === 'spec').length, 0);
+    assert.deepEqual(result.summary.pathImpactTags, ['@ci-dashboard-regression-tags']);
+    assert.equal(
+      result.summary.matchedMappings.some(
+        (mapping) => mapping.mappingId === 'frontend-area' && mapping.fallbackUsed,
+      ),
+      true,
+    );
   });
 
   it('does not treat Cypress documentation as fixture support code', () => {
@@ -240,8 +285,186 @@ describe('buildSelectionPlan', () => {
       ),
     );
     assert.ok(
-      result.summary.details.some((detail) => detail.includes('Cross-cutting manifest changes')),
+      result.summary.details.some((detail) => detail.includes('Path-impact mappings require')),
     );
+  });
+
+  it('maps manifest-only changes to the explicit deployment mapping', () => {
+    const localInventory = {
+      [specPath('default')]: inventoryEntry('default', ['@ci-dashboard-regression-tags']),
+    };
+
+    const result = plan([{ status: 'M', path: 'manifests/base/service.yaml' }], {
+      inventory: localInventory,
+      selectedTags: [],
+    });
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.summary.matchedMappings, [
+      {
+        path: 'manifests/base/service.yaml',
+        mappingId: 'deployment-manifests',
+        selectionMode: 'tag',
+        cypressTags: ['@ci-dashboard-regression-tags'],
+        derivedTags: [],
+        fallbackUsed: false,
+        environments: ['odh', 'rhoai', 'connected', 'operator', 'image-contract'],
+        supportingChecks: ['manifest-validation'],
+        coverageInventoryIds: ['deployment-manifests'],
+      },
+    ]);
+    assert.deepEqual(result.summary.selectedEnvironments, [
+      'connected',
+      'image-contract',
+      'odh',
+      'operator',
+      'rhoai',
+    ]);
+  });
+
+  it('maps operator-only changes to dashboard regression and operator checks', () => {
+    const localInventory = {
+      [specPath('default')]: inventoryEntry('default', ['@ci-dashboard-regression-tags']),
+    };
+
+    const result = plan(
+      [{ status: 'M', path: 'dashboard-operator/internal/controller/actions.go' }],
+      { inventory: localInventory, selectedTags: [] },
+    );
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.matchedMappings[0].mappingId, 'dashboard-operator');
+    assert.deepEqual(result.summary.supportingChecks, [
+      'dashboard-operator-tests',
+      'manifest-validation',
+    ]);
+  });
+
+  it('maps root-file changes without relying on Turbo', () => {
+    const localInventory = {
+      [specPath('default')]: inventoryEntry('default', ['@ci-dashboard-regression-tags']),
+    };
+
+    const result = plan([{ status: 'M', path: 'package.json' }], {
+      inventory: localInventory,
+      selectedTags: [],
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.matchedMappings[0].mappingId, 'build-and-environment-config');
+    assert.deepEqual(result.summary.pathImpactTags, ['@ci-dashboard-regression-tags']);
+  });
+
+  it('derives module network-policy tags from the owning workspace package', () => {
+    const localInventory = {
+      [specPath('featureStore')]: inventoryEntry('featureStore', ['@FeatureStoreCI']),
+    };
+
+    const result = plan(
+      [{ status: 'M', path: 'manifests/modules/feature-store/networkpolicy.yaml' }],
+      {
+        inventory: localInventory,
+        selectedTags: [],
+        workspacePackages: [{ path: 'packages/feature-store', e2eCiTags: ['@FeatureStoreCI'] }],
+      },
+    );
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.summary.derivedPathImpactTags, ['@FeatureStoreCI']);
+    assert.deepEqual(result.summary.pathImpactTags, ['@FeatureStoreCI']);
+  });
+
+  it('maps packages without executable suite tags to dashboard regression', () => {
+    const localInventory = {
+      [specPath('default')]: inventoryEntry('default', ['@ci-dashboard-regression-tags']),
+    };
+
+    const result = plan([{ status: 'M', path: 'packages/mlflow/src/example.ts' }], {
+      inventory: localInventory,
+      selectedTags: [],
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(
+      result.summary.matchedMappings[0].mappingId,
+      'package-without-executable-e2e-suite',
+    );
+    assert.deepEqual(result.summary.pathImpactTags, ['@ci-dashboard-regression-tags']);
+    assert.ok(!result.summary.selectedTags.includes('@MLflowCI'));
+  });
+
+  it('derives frontend area tags from the machine-readable area map', () => {
+    const localInventory = {
+      [specPath('pipelines')]: inventoryEntry('pipelines', ['@PipelinesCI']),
+    };
+
+    const result = plan([{ status: 'M', path: 'frontend/src/pages/pipelines/Pipelines.tsx' }], {
+      inventory: localInventory,
+      selectedTags: [],
+      frontendAreaTags: { pipelines: '@PipelinesCI' },
+    });
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.summary.derivedPathImpactTags, ['@PipelinesCI']);
+    assert.equal(result.summary.matchedMappings[0].fallbackUsed, false);
+  });
+
+  it('fails when an impactful path has no explicit mapping', () => {
+    const pathImpactMap = {
+      schemaVersion: 1,
+      mappings: [
+        {
+          id: 'known',
+          description: 'Known path',
+          pathPatterns: ['known.txt'],
+          selectionMode: 'tag',
+          cypressTags: ['@Tag'],
+          environments: ['odh'],
+          supportingChecks: [],
+          coverageInventoryIds: [],
+        },
+      ],
+    };
+
+    const result = plan([{ status: 'M', path: 'unknown.txt' }], { pathImpactMap });
+
+    assert.equal(result.valid, false);
+    assert.deepEqual(result.summary.unmatchedImpactfulPaths, ['unknown.txt']);
+    assert.match(result.errors.join('\n'), /has no E2E path-impact mapping/);
+  });
+
+  it('fails an all-skipped path-impact selection', () => {
+    const pathImpactMap = {
+      schemaVersion: 1,
+      mappings: [
+        {
+          id: 'skipped-behavior',
+          description: 'Skipped behavior',
+          pathPatterns: ['skipped.txt'],
+          selectionMode: 'tag',
+          cypressTags: ['@NonConcurrent'],
+          environments: ['odh'],
+          supportingChecks: [],
+          coverageInventoryIds: [],
+        },
+      ],
+    };
+
+    const result = plan([{ status: 'M', path: 'skipped.txt' }], {
+      pathImpactMap,
+      selectedTags: [],
+      coverageInventory: { schemaVersion: 1, behaviors: [] },
+      environmentCapabilities: {
+        schemaVersion: 1,
+        defaultCapabilities: { odh: true },
+        tags: ['@NonConcurrent'],
+        tagOverrides: {},
+        notSupportedReasons: {},
+      },
+    });
+
+    assert.equal(result.valid, false);
+    assert.match(result.errors.join('\n'), /@NonConcurrent resolves to zero executable tests/);
   });
 
   it('uses canonical full-coverage tag sets when support code is deleted', () => {

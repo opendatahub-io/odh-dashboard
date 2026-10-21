@@ -235,15 +235,22 @@ it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@
 The GitHub Actions E2E workflow always schedules added, modified, and renamed
 Cypress specs in addition to the selected tag suites. Changes to page objects,
 fixtures, utilities, commands, support hooks, and other Cypress support code run
-their executable reverse-impact specs. Critical cross-cutting infrastructure
-paths map directly to their CI tags. Dashboard base and RHOAI network-policy
-changes run the Pipelines, Workbenches, and Feature Store suites because those
-flows exercise dashboard egress to the pipeline server, Thanos, and Feast. Small
-impact sets run as explicit specs;
-larger sets use the narrowest available package CI tags. Deleting Cypress
-support code, or encountering a broad impact set that cannot be mapped to
-package CI tags, falls back to the canonical `@SmokeSet1`–`@SmokeSet5` and
-`@SanitySet1`–`@SanitySet5` tag groups.
+their executable reverse-impact specs. Path impact is defined by the ordered,
+versioned mappings in `scripts/cypress/e2e-path-impact.json`; the first matching
+mapping wins. Patterns support exact paths plus `**`, `*`, and `?`. Package paths
+derive `e2eCiTags`, module network policies derive tags from their owning module,
+and frontend areas derive tags from `.github/frontend-ci-tags.json`. Turbo is not
+used as the E2E selector. Packages that declare CI tags without executable E2E
+specs map explicitly to dashboard regression instead of failing selection or
+silently broadening the run.
+
+Dashboard base and RHOAI network-policy changes run the Pipelines, Workbenches, and
+Feature Store suites because those flows exercise dashboard egress to the pipeline
+server, Thanos, and Feast. Small impact sets run as explicit specs; larger sets use
+the narrowest available package CI tags. Deleting Cypress support code, or
+encountering a broad impact set that cannot be mapped to package CI tags, falls back
+to the canonical `@SmokeSet1`–`@SmokeSet5` and `@SanitySet1`–`@SanitySet5` tag
+groups.
 
 Every selected tag must resolve to at least one executable test before the
 workflow starts. A selection fails when a required spec cannot be scheduled, a
@@ -252,9 +259,18 @@ and renamed specs must carry a CI-selectable tag or be listed in
 `non-ci-specs.json` with an owner and reason. Deleting or renaming a spec cannot
 remove the only coverage for a mapped CI behavior.
 
-The workflow uploads a machine-readable and human-readable selection summary.
-After execution, it also uploads a results summary with executed, failed, and
-skipped test counts. A green run with no executed tests is rejected.
+Every impactful path must match a mapping. Referenced coverage behaviors must exist
+in `scripts/cypress/e2e-coverage-inventory.json` and declare a terminal-state
+assertion. Selected tags must exist in
+`scripts/cypress/e2e-environment-capabilities.json`, which records ODH/RHOAI, FIPS,
+connected/disconnected, operator, RBAC, image-contract, and performance
+capabilities. Unsupported required environments are explicit coverage gaps.
+
+The workflow uploads a machine-readable and human-readable selection summary with
+changed paths, matched mappings, selected suites and environments, supporting checks,
+coverage gaps, and unmatched impactful paths. After execution, it also uploads a
+results summary with executed, failed, and skipped test counts. A green run with no
+executed tests is rejected.
 
 ### Test Contents
 

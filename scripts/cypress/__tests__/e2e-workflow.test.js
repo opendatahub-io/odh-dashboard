@@ -33,4 +33,15 @@ describe('Cypress E2E workflow', () => {
 
     assert.ok(workflow.includes('--hide 0'));
   });
+
+  it('uses the explicit path-impact planner instead of Turbo-based E2E selection', () => {
+    const workflow = fs.readFileSync(
+      path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
+      'utf8',
+    );
+
+    assert.ok(workflow.includes('node scripts/cypress/plan-e2e-selection.js'));
+    assert.ok(!workflow.includes('turbo run lint --dry=json'));
+    assert.ok(!workflow.includes('name: Detect changed areas'));
+  });
 });

@@ -12,6 +12,17 @@ const DEFAULT_SPEC_ROOT = 'packages/cypress/cypress/tests/e2e';
 const DEFAULT_CYPRESS_SOURCE_ROOT = 'packages/cypress/cypress';
 const DEFAULT_TAG = '@ci-dashboard-regression-tags';
 const DEFAULT_SKIP_TAGS = ['@Bug', '@Maintain', '@NonConcurrent'];
+const PATH_IMPACT_MAP_FILE = 'scripts/cypress/e2e-path-impact.json';
+const FRONTEND_CI_TAGS_FILE = '.github/frontend-ci-tags.json';
+const COVERAGE_INVENTORY_FILE = 'scripts/cypress/e2e-coverage-inventory.json';
+const ENVIRONMENT_CAPABILITIES_FILE = 'scripts/cypress/e2e-environment-capabilities.json';
+const PATH_IMPACT_SCHEMA_VERSION = 1;
+const PATH_SELECTION_MODES = new Set(['changed-spec', 'reverse-impact', 'tag', 'none']);
+const PATH_TAG_DERIVATIONS = new Set([
+  'workspace-package',
+  'workspace-package-from-manifest-path',
+  'frontend-area',
+]);
 const MAX_EXTRA_TAGS = 5;
 const MAX_AUTO_TAGS_PER_JOB = 8;
 const MAX_SPEC_JOBS = 12;
@@ -30,13 +41,6 @@ const FULL_COVERAGE_TAGS = [
   '@SanitySet5',
 ];
 
-const DASHBOARD_NETWORK_POLICY_IMPACT_TAGS = ['@Pipelines', '@Workbenches', '@FeatureStoreCI'];
-
-const PATH_IMPACT_TAGS = {
-  'manifests/base/networkpolicy.yaml': DASHBOARD_NETWORK_POLICY_IMPACT_TAGS,
-  'manifests/rhoai/networkpolicy.yaml': DASHBOARD_NETWORK_POLICY_IMPACT_TAGS,
-};
-
 const normalizeTag = (tag) => (tag.startsWith('@') ? tag : `@${tag}`);
 
 const parseTagList = (value = '') =>
@@ -47,6 +51,229 @@ const parseTagList = (value = '') =>
     .map(normalizeTag);
 
 const unique = (values) => [...new Set(values)];
+
+const readJsonFile = (root, relativePath) =>
+  JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'));
+
+const assertStringArray = (value, field) => {
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string' || !entry)) {
+    throw new Error(`${field} must be an array of non-empty strings`);
+  }
+};
+
+const validatePathImpactMap = (pathImpactMap) => {
+  if (pathImpactMap.schemaVersion !== PATH_IMPACT_SCHEMA_VERSION) {
+    throw new Error('e2e-path-impact.json must use schemaVersion 1');
+  }
+  if (!Array.isArray(pathImpactMap.mappings) || pathImpactMap.mappings.length === 0) {
+    throw new Error('e2e-path-impact.json must contain at least one mapping');
+  }
+
+  const mappingIds = new Set();
+  for (const mapping of pathImpactMap.mappings) {
+    if (!mapping.id || typeof mapping.id !== 'string' || mappingIds.has(mapping.id)) {
+      throw new Error('Every E2E path-impact mapping requires a unique non-empty id');
+    }
+    mappingIds.add(mapping.id);
+    if (!mapping.description || typeof mapping.description !== 'string') {
+      throw new Error(`E2E path-impact mapping ${mapping.id} requires a description`);
+    }
+    assertStringArray(mapping.pathPatterns, `E2E path mapping ${mapping.id} pathPatterns`);
+    if (!PATH_SELECTION_MODES.has(mapping.selectionMode)) {
+      throw new Error(`E2E path mapping ${mapping.id} has an invalid selectionMode`);
+    }
+    if (mapping.selectionMode === 'tag' && !mapping.cypressTags && !mapping.deriveCypressTags) {
+      throw new Error(`E2E tag mapping ${mapping.id} requires cypressTags or deriveCypressTags`);
+    }
+    if (mapping.cypressTags) {
+      assertStringArray(mapping.cypressTags, `E2E path mapping ${mapping.id} cypressTags`);
+    }
+    if (mapping.deriveCypressTags && !PATH_TAG_DERIVATIONS.has(mapping.deriveCypressTags)) {
+      throw new Error(`E2E path mapping ${mapping.id} has an invalid deriveCypressTags strategy`);
+    }
+    if (mapping.deriveCypressTags && !mapping.fallbackCypressTags) {
+      throw new Error(`E2E derived tag mapping ${mapping.id} requires fallbackCypressTags`);
+    }
+    if (mapping.fallbackCypressTags) {
+      assertStringArray(
+        mapping.fallbackCypressTags,
+        `E2E path mapping ${mapping.id} fallbackCypressTags`,
+      );
+    }
+    assertStringArray(mapping.environments ?? [], `E2E path mapping ${mapping.id} environments`);
+    assertStringArray(
+      mapping.supportingChecks ?? [],
+      `E2E path mapping ${mapping.id} supportingChecks`,
+    );
+    assertStringArray(
+      mapping.coverageInventoryIds ?? [],
+      `E2E path mapping ${mapping.id} coverageInventoryIds`,
+    );
+  }
+
+  return pathImpactMap;
+};
+
+const readPathImpactMap = (root = DEFAULT_ROOT) =>
+  validatePathImpactMap(readJsonFile(root, PATH_IMPACT_MAP_FILE));
+
+const validateCoverageInventory = (coverageInventory, pathImpactMap) => {
+  if (coverageInventory.schemaVersion !== PATH_IMPACT_SCHEMA_VERSION) {
+    throw new Error('e2e-coverage-inventory.json must use schemaVersion 1');
+  }
+  if (!Array.isArray(coverageInventory.behaviors)) {
+    throw new Error('e2e-coverage-inventory.json must contain a behaviors array');
+  }
+
+  const mappingIds = new Set(pathImpactMap.mappings.map((mapping) => mapping.id));
+  const behaviorIds = new Set();
+  for (const behavior of coverageInventory.behaviors) {
+    if (!behavior.id || typeof behavior.id !== 'string' || behaviorIds.has(behavior.id)) {
+      throw new Error('Every E2E coverage behavior requires a unique non-empty id');
+    }
+    behaviorIds.add(behavior.id);
+    if (!mappingIds.has(behavior.mappingId)) {
+      throw new Error(`E2E coverage behavior ${behavior.id} references an unknown mapping`);
+    }
+    assertStringArray(
+      behavior.cypressTags ?? [],
+      `E2E coverage behavior ${behavior.id} cypressTags`,
+    );
+    const assertion = behavior.terminalStateAssertion;
+    if (
+      !assertion ||
+      typeof assertion.asserted !== 'boolean' ||
+      !assertion.description ||
+      typeof assertion.description !== 'string'
+    ) {
+      throw new Error(`E2E coverage behavior ${behavior.id} requires a terminal-state assertion`);
+    }
+  }
+
+  return coverageInventory;
+};
+
+const readCoverageInventory = (root = DEFAULT_ROOT, pathImpactMap = readPathImpactMap(root)) =>
+  validateCoverageInventory(readJsonFile(root, COVERAGE_INVENTORY_FILE), pathImpactMap);
+
+const validateEnvironmentCapabilities = (environmentCapabilities) => {
+  if (environmentCapabilities.schemaVersion !== PATH_IMPACT_SCHEMA_VERSION) {
+    throw new Error('e2e-environment-capabilities.json must use schemaVersion 1');
+  }
+  if (
+    !environmentCapabilities.defaultCapabilities ||
+    typeof environmentCapabilities.defaultCapabilities !== 'object'
+  ) {
+    throw new Error('E2E environment capabilities require defaultCapabilities');
+  }
+  assertStringArray(environmentCapabilities.tags, 'E2E environment capability tags');
+  if (new Set(environmentCapabilities.tags).size !== environmentCapabilities.tags.length) {
+    throw new Error('E2E environment capability tags must be unique');
+  }
+  if (
+    environmentCapabilities.tagOverrides &&
+    typeof environmentCapabilities.tagOverrides !== 'object'
+  ) {
+    for (const [tag, capabilities] of Object.entries(environmentCapabilities.tagOverrides)) {
+      if (!environmentCapabilities.tags.includes(tag) || typeof capabilities !== 'object') {
+        throw new Error(`E2E environment override for ${tag} is invalid`);
+      }
+    }
+  }
+
+  return environmentCapabilities;
+};
+
+const readEnvironmentCapabilities = (root = DEFAULT_ROOT) =>
+  validateEnvironmentCapabilities(readJsonFile(root, ENVIRONMENT_CAPABILITIES_FILE));
+
+const globSegmentToRegExp = (segment) =>
+  new RegExp(
+    `^${segment
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/g, '[^/]*')
+      .replace(/\?/g, '[^/]')}$`,
+  );
+
+const matchPathSegments = (patternParts, pathParts) => {
+  if (patternParts.length === 0) {
+    return pathParts.length === 0;
+  }
+  if (patternParts[0] === '**') {
+    if (patternParts.length === 1) {
+      return true;
+    }
+    return pathParts.some((_, index) =>
+      matchPathSegments(patternParts.slice(1), pathParts.slice(index)),
+    );
+  }
+  if (pathParts.length === 0 || !globSegmentToRegExp(patternParts[0]).test(pathParts[0])) {
+    return false;
+  }
+  return matchPathSegments(patternParts.slice(1), pathParts.slice(1));
+};
+
+const matchesPathPattern = (pattern, candidatePath) =>
+  matchPathSegments(String(pattern).split('/'), normalizePath(candidatePath).split('/'));
+
+const readFrontendAreaTags = (root = DEFAULT_ROOT) => readJsonFile(root, FRONTEND_CI_TAGS_FILE);
+
+const findWorkspacePackagesForPath = (changedPath, workspacePackages) => {
+  const normalizedPath = normalizePath(changedPath);
+  return workspacePackages
+    .filter((workspacePackage) => {
+      const packagePath = workspacePackage.path ?? workspacePackage.location;
+      return (
+        packagePath &&
+        packagePath !== '.' &&
+        (normalizedPath === packagePath || normalizedPath.startsWith(`${packagePath}/`))
+      );
+    })
+    .toSorted((first, second) => {
+      const firstPath = first.path ?? first.location;
+      const secondPath = second.path ?? second.location;
+      return secondPath.length - firstPath.length || firstPath.localeCompare(secondPath);
+    });
+};
+
+const deriveWorkspacePackageTags = (changedPath, workspacePackages) => {
+  const candidates = findWorkspacePackagesForPath(changedPath, workspacePackages);
+  const taggedCandidates = candidates.filter((workspacePackage) =>
+    Boolean(workspacePackage.e2eCiTags?.length),
+  );
+  return unique(
+    (taggedCandidates.length > 0 ? taggedCandidates : candidates).flatMap(
+      (workspacePackage) => workspacePackage.e2eCiTags ?? [],
+    ),
+  ).map(normalizeTag);
+};
+
+const deriveModuleManifestTags = (changedPath, workspacePackages) => {
+  const parts = normalizePath(changedPath).split('/');
+  if (parts[0] !== 'manifests' || parts[1] !== 'modules' || !parts[2]) {
+    return [];
+  }
+  return deriveWorkspacePackageTags(`packages/${parts[2]}/package.json`, workspacePackages);
+};
+
+const deriveFrontendAreaTags = (changedPath, frontendAreaTags) => {
+  const parts = normalizePath(changedPath).split('/');
+  if (
+    parts[0] !== 'frontend' ||
+    parts[1] !== 'src' ||
+    !['pages', 'concepts', 'api', 'routes'].includes(parts[2]) ||
+    !parts[3]
+  ) {
+    return [];
+  }
+  const tag = frontendAreaTags[parts[3]];
+  return tag ? [normalizeTag(tag)] : [];
+};
+
+const resolveTagCapabilities = (environmentCapabilities, tag) => ({
+  ...environmentCapabilities.defaultCapabilities,
+  ...(environmentCapabilities.tagOverrides?.[tag] ?? {}),
+});
 
 const isSpecFile = (file) =>
   normalizePath(file).endsWith('.cy.ts') && /(^|\/)cypress\/tests\/e2e\//.test(normalizePath(file));
@@ -65,20 +292,179 @@ const isCypressSupportFile = (file) => {
   );
 };
 
-const resolvePathImpactTags = (changes = []) => {
+const resolvePathImpact = ({
+  changes = [],
+  root = DEFAULT_ROOT,
+  pathImpactMap,
+  workspacePackages,
+  frontendAreaTags,
+  coverageInventory,
+  environmentCapabilities,
+}) => {
+  const map = pathImpactMap ? validatePathImpactMap(pathImpactMap) : readPathImpactMap(root);
+  const errors = [];
+  const matchedMappings = [];
+  const impactfulPaths = new Set();
+  const unmatchedImpactfulPaths = new Set();
   const tags = new Set();
+  const derivedTags = new Set();
+  const environments = new Set();
+  const supportingChecks = new Set();
+  const coverageGaps = new Set();
+
+  let resolvedWorkspacePackages = workspacePackages;
+  let resolvedFrontendAreaTags = frontendAreaTags;
+  let resolvedCoverageInventory = coverageInventory;
+  let resolvedEnvironmentCapabilities = environmentCapabilities;
+
+  const getWorkspacePackages = () => {
+    if (resolvedWorkspacePackages === undefined) {
+      resolvedWorkspacePackages = listWorkspacePackagesFromManifest(root);
+    }
+    return resolvedWorkspacePackages;
+  };
+  const getFrontendAreaTags = () => {
+    if (resolvedFrontendAreaTags === undefined) {
+      resolvedFrontendAreaTags = readFrontendAreaTags(root);
+    }
+    return resolvedFrontendAreaTags;
+  };
+  const getCoverageInventory = () => {
+    if (resolvedCoverageInventory === undefined) {
+      resolvedCoverageInventory = readCoverageInventory(root, map);
+    } else {
+      validateCoverageInventory(resolvedCoverageInventory, map);
+    }
+    return resolvedCoverageInventory;
+  };
+  const getEnvironmentCapabilities = () => {
+    if (resolvedEnvironmentCapabilities === undefined) {
+      resolvedEnvironmentCapabilities = readEnvironmentCapabilities(root);
+    } else {
+      validateEnvironmentCapabilities(resolvedEnvironmentCapabilities);
+    }
+    return resolvedEnvironmentCapabilities;
+  };
+
   for (const change of changes) {
     for (const changedPath of [change.path, change.previousPath]) {
       if (!changedPath) {
         continue;
       }
-      for (const tag of PATH_IMPACT_TAGS[normalizePath(changedPath)] ?? []) {
-        tags.add(normalizeTag(tag));
+
+      const normalizedPath = normalizePath(changedPath);
+      const mapping = map.mappings.find((candidate) =>
+        candidate.pathPatterns.some((pattern) => matchesPathPattern(pattern, normalizedPath)),
+      );
+      if (!mapping) {
+        unmatchedImpactfulPaths.add(normalizedPath);
+        errors.push(`Changed path has no E2E path-impact mapping: ${normalizedPath}`);
+        continue;
+      }
+
+      let mappingTags = mapping.cypressTags ? mapping.cypressTags.map(normalizeTag) : [];
+      let usedFallback = false;
+      if (mapping.deriveCypressTags) {
+        const derived =
+          mapping.deriveCypressTags === 'workspace-package'
+            ? deriveWorkspacePackageTags(normalizedPath, getWorkspacePackages())
+            : mapping.deriveCypressTags === 'workspace-package-from-manifest-path'
+            ? deriveModuleManifestTags(normalizedPath, getWorkspacePackages())
+            : deriveFrontendAreaTags(normalizedPath, getFrontendAreaTags());
+        for (const tag of derived) {
+          derivedTags.add(tag);
+        }
+        mappingTags = derived;
+        if (mappingTags.length === 0) {
+          mappingTags = mapping.fallbackCypressTags.map(normalizeTag);
+          usedFallback = true;
+        }
+      }
+
+      matchedMappings.push({
+        path: normalizedPath,
+        mappingId: mapping.id,
+        selectionMode: mapping.selectionMode,
+        cypressTags: mappingTags,
+        derivedTags: mapping.deriveCypressTags ? mappingTags : [],
+        fallbackUsed: usedFallback,
+        environments: mapping.selectionMode === 'none' ? [] : mapping.environments,
+        supportingChecks: mapping.supportingChecks,
+        coverageInventoryIds: mapping.coverageInventoryIds ?? [],
+      });
+
+      if (mapping.selectionMode === 'none') {
+        continue;
+      }
+
+      impactfulPaths.add(normalizedPath);
+      for (const tag of mappingTags) {
+        tags.add(tag);
+      }
+      for (const environment of mapping.environments) {
+        environments.add(environment);
+      }
+      for (const check of mapping.supportingChecks) {
+        supportingChecks.add(check);
+      }
+
+      const inventory = getCoverageInventory();
+      for (const behaviorId of mapping.coverageInventoryIds ?? []) {
+        const behavior = inventory.behaviors.find((entry) => entry.id === behaviorId);
+        if (!behavior) {
+          errors.push(
+            `E2E path mapping ${mapping.id} references unknown coverage behavior ${behaviorId}`,
+          );
+          continue;
+        }
+        if (!behavior.terminalStateAssertion.asserted) {
+          errors.push(`E2E coverage behavior ${behaviorId} has no terminal-state assertion`);
+        }
+      }
+
+      const capabilities = getEnvironmentCapabilities();
+      for (const tag of mappingTags) {
+        if (!capabilities.tags.includes(tag)) {
+          errors.push(
+            `E2E path-impact tag ${tag} is missing from the environment capability matrix`,
+          );
+          continue;
+        }
+        const tagCapabilities = resolveTagCapabilities(capabilities, tag);
+        for (const environment of mapping.environments) {
+          if (tagCapabilities[environment] === undefined) {
+            errors.push(
+              `E2E environment capability matrix has no ${environment} capability for ${tag}`,
+            );
+          } else if (!tagCapabilities[environment]) {
+            const reason = capabilities.notSupportedReasons?.[environment] ?? 'no reason recorded';
+            const gap = `${tag} cannot run in ${environment}: ${reason}`;
+            coverageGaps.add(gap);
+            errors.push(`E2E path-impact coverage gap: ${gap}`);
+          }
+        }
       }
     }
   }
-  return [...tags].toSorted();
+
+  return {
+    errors,
+    matchedMappings: matchedMappings.toSorted(
+      (first, second) =>
+        first.path.localeCompare(second.path) || first.mappingId.localeCompare(second.mappingId),
+    ),
+    impactfulPaths: [...impactfulPaths].toSorted(),
+    unmatchedImpactfulPaths: [...unmatchedImpactfulPaths].toSorted(),
+    tags: [...tags].toSorted(),
+    derivedTags: [...derivedTags].toSorted(),
+    selectedEnvironments: [...environments].toSorted(),
+    supportingChecks: [...supportingChecks].toSorted(),
+    coverageGaps: [...coverageGaps].toSorted(),
+  };
 };
+
+const resolvePathImpactTags = (changes = [], options = {}) =>
+  resolvePathImpact({ ...options, changes }).tags;
 
 const parseBoolean = (value, defaultValue = false) => {
   if (value === undefined || value === null || value === '') {
@@ -443,6 +829,11 @@ const buildSelectionPlan = ({
   ciTags = [DEFAULT_TAG],
   nonCiSpecs = {},
   root = DEFAULT_ROOT,
+  pathImpactMap,
+  workspacePackages,
+  frontendAreaTags,
+  coverageInventory,
+  environmentCapabilities,
 }) => {
   const errors = [];
   const changedSpecs = new Set();
@@ -450,12 +841,21 @@ const buildSelectionPlan = ({
   const impactedSpecs = new Set();
   let fullCoverageRequired = false;
   const details = [];
-  const pathImpactTags = resolvePathImpactTags(changes);
-  if (pathImpactTags.length > 0) {
-    details.push(`Cross-cutting manifest changes require ${pathImpactTags.join(', ')}`);
+  const pathImpact = resolvePathImpact({
+    changes,
+    root,
+    pathImpactMap,
+    workspacePackages,
+    frontendAreaTags,
+    coverageInventory,
+    environmentCapabilities,
+  });
+  errors.push(...pathImpact.errors);
+  if (pathImpact.tags.length > 0) {
+    details.push(`Path-impact mappings require ${pathImpact.tags.join(', ')}`);
   }
-  const effectiveSelectedTags = unique([...selectedTags, ...pathImpactTags]);
-  const effectiveAutoTags = unique([...autoTags, ...pathImpactTags]);
+  const effectiveSelectedTags = unique([...selectedTags, ...pathImpact.tags]);
+  const effectiveAutoTags = unique([...autoTags, ...pathImpact.tags]);
 
   for (const change of changes) {
     const changedPath = normalizePath(change.path);
@@ -660,7 +1060,14 @@ const buildSelectionPlan = ({
       impactedSpecs: explicitImpactedSpecs,
       impactMode,
       selectedTags: effectiveSelectedTags,
-      pathImpactTags,
+      pathImpactTags: pathImpact.tags,
+      derivedPathImpactTags: pathImpact.derivedTags,
+      matchedMappings: pathImpact.matchedMappings,
+      selectedEnvironments: pathImpact.selectedEnvironments,
+      supportingChecks: pathImpact.supportingChecks,
+      coverageGaps: pathImpact.coverageGaps,
+      unmatchedImpactfulPaths: pathImpact.unmatchedImpactfulPaths,
+      selectedSuites: effectiveSelectedTags,
       resolvedTags: tagResolution.resolved,
       plannedTestCount,
       details,
@@ -689,9 +1096,29 @@ const renderSelectionMarkdown = (summary) =>
     '',
     `Impact strategy: ${summary.impactMode}`,
     '',
+    '## Matched path-impact mappings',
+    ...(summary.matchedMappings.length > 0
+      ? summary.matchedMappings.map(
+          (mapping) =>
+            `- ${mapping.path}: ${mapping.mappingId}${
+              mapping.cypressTags.length > 0 ? ` → ${mapping.cypressTags.join(', ')}` : ''
+            }`,
+        )
+      : ['- None']),
+    '',
     '## Selected tags',
     ...(summary.selectedTags.length > 0
       ? summary.selectedTags.map((tag) => `- ${tag}`)
+      : ['- None']),
+    '',
+    '## Selected environments',
+    ...(summary.selectedEnvironments.length > 0
+      ? summary.selectedEnvironments.map((environment) => `- ${environment}`)
+      : ['- None']),
+    '',
+    '## Supporting checks',
+    ...(summary.supportingChecks.length > 0
+      ? summary.supportingChecks.map((check) => `- ${check}`)
       : ['- None']),
     '',
     '## Resolved tags',
@@ -703,6 +1130,16 @@ const renderSelectionMarkdown = (summary) =>
       : ['- None']),
     '',
     `Planned executable test count: ${summary.plannedTestCount}`,
+    '',
+    '## Coverage gaps',
+    ...(summary.coverageGaps.length > 0
+      ? summary.coverageGaps.map((gap) => `- ${gap}`)
+      : ['- None']),
+    '',
+    '## Unmatched impactful paths',
+    ...(summary.unmatchedImpactfulPaths.length > 0
+      ? summary.unmatchedImpactfulPaths.map((path) => `- ${path}`)
+      : ['- None']),
     '',
   ].join('\n');
 
@@ -725,8 +1162,11 @@ module.exports = {
   parseBoolean,
   parseSpecSource,
   parseTagSelection,
+  matchesPathPattern,
   readNonCiSpecs,
+  readPathImpactMap,
   renderSelectionMarkdown,
+  resolvePathImpact,
   resolvePathImpactTags,
   resolveSelectedTags,
   sanitizeTagDir,

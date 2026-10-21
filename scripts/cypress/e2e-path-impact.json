@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "mappings": [
+    {
+      "id": "documentation",
+      "description": "Documentation-only changes do not require Cypress E2E execution.",
+      "pathPatterns": ["docs/**", "**/*.md"],
+      "selectionMode": "none",
+      "environments": [],
+      "supportingChecks": [],
+      "coverageInventoryIds": []
+    },
+    {
+      "id": "cypress-e2e-spec",
+      "description": "Changed Cypress E2E specs run explicitly in addition to selected suites.",
+      "pathPatterns": ["**/cypress/tests/e2e/**/*.cy.ts"],
+      "selectionMode": "changed-spec",
+      "environments": ["odh", "rhoai"],
+      "supportingChecks": ["selection-contract-tests"],
+      "coverageInventoryIds": ["changed-cypress-spec"]
+    },
+    {
+      "id": "cypress-support",
+      "description": "Changed Cypress support code runs its executable reverse-impact specs.",
+      "pathPatterns": [
+        "**/cypress/pages/**",
+        "**/cypress/fixtures/**",
+        "**/cypress/utils/**",
+        "**/cypress/support/**",
+        "**/cypress/commands/**",
+        "**/cypress/plugins/**"
+      ],
+      "selectionMode": "reverse-impact",
+      "environments": ["odh", "rhoai"],
+      "supportingChecks": ["selection-contract-tests"],
+      "coverageInventoryIds": ["cypress-support"]
+    },
+    {
+      "id": "dashboard-network-policy",
+      "description": "Dashboard egress-policy changes run the proven Pipelines, Workbenches, and Feature Store impact suites.",
+      "pathPatterns": ["manifests/base/networkpolicy.yaml", "manifests/rhoai/networkpolicy.yaml"],
+      "selectionMode": "tag",
+      "cypressTags": ["@Pipelines", "@Workbenches", "@FeatureStoreCI"],
+      "environments": ["odh", "rhoai", "connected"],
+      "supportingChecks": ["manifest-validation", "dashboard-operator-tests"],
+      "coverageInventoryIds": [
+        "dashboard-network-policy-pipelines",
+        "dashboard-network-policy-workbenches",
+        "dashboard-network-policy-feature-store"
+      ]
+    },
+    {
+      "id": "package-without-executable-e2e-suite",
+      "description": "Packages whose declared CI tags have no executable E2E specs use dashboard regression.",
+      "pathPatterns": [
+        "packages/agent-ops/**",
+        "packages/mlflow/**",
+        "packages/notebooks/**",
+        "manifests/modules/agent-ops/networkpolicy.yaml",
+        "manifests/modules/mlflow/networkpolicy.yaml",
+        "manifests/modules/notebooks/networkpolicy.yaml"
+      ],
+      "selectionMode": "tag",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai", "connected", "operator", "rbac", "image-contract"],
+      "supportingChecks": ["workspace-build", "workspace-unit-tests"],
+      "coverageInventoryIds": ["package-without-executable-e2e-suite"]
+    },
+    {
+      "id": "module-network-policy",
+      "description": "Module egress-policy changes use the owning module's E2E CI tags.",
+      "pathPatterns": ["manifests/modules/*/networkpolicy.yaml"],
+      "selectionMode": "tag",
+      "deriveCypressTags": "workspace-package-from-manifest-path",
+      "fallbackCypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai", "connected"],
+      "supportingChecks": ["manifest-validation"],
+      "coverageInventoryIds": ["module-network-policy"]
+    },
+    {
+      "id": "frontend-area",
+      "description": "Frontend sub-area changes use the repository frontend CI tag map.",
+      "pathPatterns": ["frontend/src/**"],
+      "selectionMode": "tag",
+      "deriveCypressTags": "frontend-area",
+      "fallbackCypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai", "connected", "rbac"],
+      "supportingChecks": ["frontend-build", "frontend-unit-tests"],
+      "coverageInventoryIds": ["frontend-area"]
+    },
+    {
+      "id": "workspace-package",
+      "description": "Workspace package changes use the owning package's declared E2E CI tags.",
+      "pathPatterns": ["packages/**", "frontend/**", "backend/**", "distributions/**"],
+      "selectionMode": "tag",
+      "deriveCypressTags": "workspace-package",
+      "fallbackCypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai", "connected", "operator", "rbac", "image-contract"],
+      "supportingChecks": ["workspace-build", "workspace-unit-tests"],
+      "coverageInventoryIds": ["workspace-package"]
+    },
+    {
+      "id": "dashboard-operator",
+      "description": "Dashboard-operator changes run dashboard regression and operator-specific checks.",
+      "pathPatterns": ["dashboard-operator/**"],
+      "selectionMode": "tag",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai", "connected", "operator", "rbac"],
+      "supportingChecks": ["dashboard-operator-tests", "manifest-validation"],
+      "coverageInventoryIds": ["dashboard-operator"]
+    },
+    {
+      "id": "deployment-manifests",
+      "description": "Deployment manifest changes run dashboard regression and manifest validation.",
+      "pathPatterns": ["manifests/**"],
+      "selectionMode": "tag",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai", "connected", "operator", "image-contract"],
+      "supportingChecks": ["manifest-validation"],
+      "coverageInventoryIds": ["deployment-manifests"]
+    },
+    {
+      "id": "build-and-environment-config",
+      "description": "Build and environment contracts run dashboard regression plus build and image checks.",
+      "pathPatterns": [
+        "package.json",
+        "pnpm-workspace.yaml",
+        "pnpm-lock.yaml",
+        "tsconfig*.json",
+        "*.config.*",
+        ".env*",
+        "Dockerfile*",
+        "Makefile",
+        "turbo.jsonc"
+      ],
+      "selectionMode": "tag",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai", "connected", "image-contract"],
+      "supportingChecks": ["workspace-build", "image-contract-tests"],
+      "coverageInventoryIds": ["build-and-environment-config"]
+    },
+    {
+      "id": "ci-and-selection-config",
+      "description": "CI and selection configuration changes run dashboard regression and selection contract tests.",
+      "pathPatterns": [
+        ".github/frontend-ci-tags.json",
+        ".github/actions/**",
+        ".github/workflows/**",
+        ".tekton/**",
+        ".husky/**",
+        ".fullsend/**",
+        ".agentic-ci/**",
+        "scripts/**"
+      ],
+      "selectionMode": "tag",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai", "connected"],
+      "supportingChecks": ["selection-contract-tests"],
+      "coverageInventoryIds": ["ci-and-selection-config"]
+    },
+    {
+      "id": "deployment-scripts-and-data",
+      "description": "Deployment scripts and runtime feature data run dashboard regression and deployment checks.",
+      "pathPatterns": ["install/**", "hack/**", "chaos/**", "data/**", "pkg/**", "prefetch/**"],
+      "selectionMode": "tag",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai", "connected"],
+      "supportingChecks": ["manifest-validation"],
+      "coverageInventoryIds": ["deployment-scripts-and-data"]
+    },
+    {
+      "id": "repository-fallback",
+      "description": "Any remaining repository path explicitly uses the dashboard regression suite rather than silent detection.",
+      "pathPatterns": ["**"],
+      "selectionMode": "tag",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "environments": ["odh", "rhoai"],
+      "supportingChecks": ["workspace-build"],
+      "coverageInventoryIds": ["repository-fallback"]
+    }
+  ]
+}
