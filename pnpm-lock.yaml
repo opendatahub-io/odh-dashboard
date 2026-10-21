@@ -1138,8 +1138,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/tsconfig
       '@pmmmwh/react-refresh-webpack-plugin':
-        specifier: ^0.5.17
-        version: 0.5.17(react-refresh@0.14.2)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)
+        specifier: ^0.6.3
+        version: 0.6.3(react-refresh@0.14.2)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)
       '@rsdoctor/rspack-plugin':
         specifier: ^1.6.1
         version: 1.6.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(supports-color@8.1.1)(webpack@5.104.1)
@@ -5902,19 +5902,19 @@ importers:
         version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/loki-plugin':
         specifier: v0.6.0-rc.2
-        version: 0.6.0-rc.2(ef23d09c62e65ee16ff7da212e272cd3)
+        version: 0.6.0-rc.2(1c36e1576871dad28a3941bec5337d34)
       '@perses-dev/plugin-system':
         specifier: ^0.54.0-beta.10
         version: 0.54.0(0e86414737cfda25bfb0e330a279ff18)
       '@perses-dev/prometheus-plugin':
         specifier: v0.58.0-beta.3
-        version: 0.58.0-beta.3(2bad87e8d13f7ca8cc1722de93123b14)
+        version: 0.58.0-beta.3(f0d8e50953735a7ba416d12010f7a6ac)
       '@perses-dev/stat-chart-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(739ac65d3ad846d405df8a1fc31eca19)
+        version: 0.13.0-rc.1(39b42c2fa7ba6005cbf9fcd99bd2547e)
       '@perses-dev/table-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(d5015d94851d591d827f4607857b349c)
+        version: 0.13.0-rc.1(710bb49623d50ad8e1f3edc9cafb55e3)
       '@tanstack/react-query':
         specifier: ^4.44.0
         version: 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -8854,18 +8854,18 @@ packages:
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  '@pmmmwh/react-refresh-webpack-plugin@0.5.17':
-    resolution: {integrity: sha512-tXDyE1/jzFsHXjhRZQ3hMl0IVhYe5qula43LDWIhVfjp9G/nT5OQY5AORVOrkEGAUltBJOfOWeETbmhm6kHhuQ==}
-    engines: {node: '>= 10.13'}
+  '@pmmmwh/react-refresh-webpack-plugin@0.6.3':
+    resolution: {integrity: sha512-k1EEmFS9K7685tqJM55DCA3sYlTNZb7aFj1M3HNFwMqH+fGgMEvemIQ5kurIzKc9wYRSmfKpSZN3WUyY/GHlvg==}
+    engines: {node: '>=18.12'}
     peerDependencies:
-      '@types/webpack': 4.x || 5.x
+      '@types/webpack': 5.x
       react-refresh: '>=0.10.0 <1.0.0'
       sockjs-client: ^1.4.0
-      type-fest: '>=0.17.0 <5.0.0'
+      type-fest: '>=0.17.0 <6.0.0'
       webpack: 5.104.1
-      webpack-dev-server: 3.x || 4.x || 5.x
+      webpack-dev-server: ^4.8.0 || 5.x || 6.x
       webpack-hot-middleware: 2.x
-      webpack-plugin-serve: 0.x || 1.x
+      webpack-plugin-serve: 1.x
     peerDependenciesMeta:
       '@types/webpack':
         optional: true
@@ -10370,6 +10370,9 @@ packages:
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
 
+  anser@2.3.5:
+    resolution: {integrity: sha512-vcZjxvvVoxTeR5XBNJB38oTu/7eDCZlwdz32N1eNgpyPF7j/Z7Idf+CUwQOkKKpJ7RJyjxgLHCM7vdIK0iCNMQ==}
+
   ansi-align@3.0.1:
     resolution: {integrity: sha512-IOfwwBF5iczOjp/WeY4YxyjqAFMQoZufdQWDd19SEExbVLNXqvpzSJ/M7Za4/sCPmQ0+GRquoA7bGcINcxew6w==}
 
@@ -10387,11 +10390,6 @@ packages:
 
   ansi-html-community@0.0.8:
     resolution: {integrity: sha512-1APHAyr3+PCamwNw3bXCPp4HFLONZt/yIH0sZp0/469KWNTEy+qN5jQ3GVX6DMZ1UXAi34yVwtTeaG/HpBuuzw==}
-    engines: {'0': node >= 0.8.0}
-    hasBin: true
-
-  ansi-html@0.0.9:
-    resolution: {integrity: sha512-ozbS3LuenHVxNRh/wdnN16QapUHzauqSomAl1jwwJRRsGwFwtj644lIhxfWu0Fy0acCij2+AEgHvjscq3dlVXg==}
     engines: {'0': node >= 0.8.0}
     hasBin: true
 
@@ -21172,7 +21170,7 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/loki-plugin@0.6.0-rc.2(ef23d09c62e65ee16ff7da212e272cd3)':
+  '@perses-dev/loki-plugin@0.6.0-rc.2(1c36e1576871dad28a3941bec5337d34)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -21187,6 +21185,7 @@ snapshots:
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       react: 18.3.1
@@ -21245,7 +21244,7 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/prometheus-plugin@0.58.0-beta.3(2bad87e8d13f7ca8cc1722de93123b14)':
+  '@perses-dev/prometheus-plugin@0.58.0-beta.3(f0d8e50953735a7ba416d12010f7a6ac)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -21263,6 +21262,7 @@ snapshots:
       color-hash: 2.0.2
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       qs: 6.15.3
@@ -21288,7 +21288,7 @@ snapshots:
       mathjs: 15.2.0
       zod: 3.25.76
 
-  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(739ac65d3ad846d405df8a1fc31eca19)':
+  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(39b42c2fa7ba6005cbf9fcd99bd2547e)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -21300,13 +21300,14 @@ snapshots:
       chroma-js: 3.2.0
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       immer: 10.2.0
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@perses-dev/table-plugin@0.13.0-rc.1(d5015d94851d591d827f4607857b349c)':
+  '@perses-dev/table-plugin@0.13.0-rc.1(710bb49623d50ad8e1f3edc9cafb55e3)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
@@ -21319,6 +21320,7 @@ snapshots:
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
       date-fns-tz: 3.2.0(date-fns@4.4.0)
+      echarts: 5.5.0
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -21331,13 +21333,12 @@ snapshots:
 
   '@pkgr/core@0.3.6': {}
 
-  '@pmmmwh/react-refresh-webpack-plugin@0.5.17(react-refresh@0.14.2)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)':
+  '@pmmmwh/react-refresh-webpack-plugin@0.6.3(react-refresh@0.14.2)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.104.1)':
     dependencies:
-      ansi-html: 0.0.9
+      anser: 2.3.5
       core-js-pure: 3.50.0
       error-stack-parser: 2.1.4
       html-entities: 2.6.0
-      loader-utils: 2.0.4
       react-refresh: 0.14.2
       schema-utils: 4.3.3
       source-map: 0.7.6
@@ -23111,6 +23112,8 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
+  anser@2.3.5: {}
+
   ansi-align@3.0.1:
     dependencies:
       string-width: 4.2.3
@@ -23127,8 +23130,6 @@ snapshots:
       environment: 1.1.0
 
   ansi-html-community@0.0.8: {}
-
-  ansi-html@0.0.9: {}
 
   ansi-regex@5.0.1: {}
 
@@ -23668,7 +23669,7 @@ snapshots:
   caniuse-api@3.0.0:
     dependencies:
       browserslist: 4.29.3
-      caniuse-lite: 1.0.30001816
+      caniuse-lite: 1.0.30001810
       lodash.memoize: 4.1.2
       lodash.uniq: 4.5.0
 
@@ -31915,7 +31916,7 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
-      schema-utils: 4.6.0
+      schema-utils: 4.3.3
       terser: 5.51.2
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.26))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.26)(uglify-js@3.19.3)(webpack-cli@6.0.1)
     optionalDependencies:
@@ -31932,7 +31933,7 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
-      schema-utils: 4.6.0
+      schema-utils: 4.3.3
       terser: 5.51.2
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.28)(uglify-js@3.19.3)(webpack-cli@6.0.1)
     optionalDependencies:
@@ -32947,7 +32948,7 @@ snapshots:
       mime-types: 3.0.2
       on-finished: 2.4.1
       range-parser: 1.3.0
-      schema-utils: 4.6.0
+      schema-utils: 4.3.3
     optionalDependencies:
       webpack: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.28)(uglify-js@3.19.3)(webpack-cli@6.0.1)
 
@@ -32974,7 +32975,7 @@ snapshots:
       launch-editor: 2.14.1
       open: 10.2.0
       p-retry: 6.2.1
-      schema-utils: 4.6.0
+      schema-utils: 4.3.3
       selfsigned: 5.5.0
       serve-index: 1.9.2(supports-color@8.1.1)
       sockjs: 0.3.24
