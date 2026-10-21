@@ -81,7 +81,7 @@ func normalizeMilvusForwardURI(raw string) (string, error) {
 		return raw, nil
 	}
 	if parsed.Hostname() == "" {
-		return "", errors.New("milvus URI must include a host")
+		return "", errors.New("Milvus URI must include a host")
 	}
 	parsed.Host = net.JoinHostPort(parsed.Hostname(), "19530")
 	return parsed.String(), nil
