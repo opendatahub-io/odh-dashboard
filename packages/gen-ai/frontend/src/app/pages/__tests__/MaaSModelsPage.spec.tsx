@@ -35,9 +35,9 @@ describe('MaaSModelsPage', () => {
     });
   });
 
-  it('should show the MaaS title and description without tabs or a namespace selector', () => {
+  it('should show the Models Endpoints title and description without tabs or a namespace selector', () => {
     renderPage();
-    expect(screen.getByRole('heading', { name: 'MaaS Models' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Models Endpoints' })).toBeInTheDocument();
     expect(
       screen.getByText(
         'Browse the Models-as-a-Service endpoints available through your subscriptions.',

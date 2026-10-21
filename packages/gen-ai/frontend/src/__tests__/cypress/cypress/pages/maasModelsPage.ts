@@ -1,20 +1,7 @@
 class MaaSModelsPage {
-  private navigate(grid?: boolean) {
-    const query = grid === undefined ? '' : `?devFeatureFlags=grid=${grid}`;
-    cy.visit(`/maas-portal/maas/models${query}`);
-  }
-
-  visit(grid?: boolean) {
-    this.navigate(grid);
+  visit() {
+    cy.visit('/maas-portal/maas/models');
     this.findPage().should('be.visible');
-    cy.testA11y();
-  }
-
-  visitUnavailable(grid?: boolean) {
-    this.navigate(grid);
-    cy.findByRole('heading', { name: 'Page not found' }).should('be.visible');
-    this.findPage().should('not.exist');
-    this.findModelsNavigation().should('not.exist');
     cy.testA11y();
   }
 
@@ -27,7 +14,11 @@ class MaaSModelsPage {
   }
 
   findModelsNavigation() {
-    return cy.findByRole('link', { name: 'Models' });
+    return cy.findByRole('link', { name: 'Models endpoints' });
+  }
+
+  findAIAssetsNavigation() {
+    return cy.findByRole('link', { name: 'AI asset endpoints' });
   }
 
   findTable() {

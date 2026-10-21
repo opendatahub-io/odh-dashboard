@@ -8,7 +8,7 @@ const configPath = '/maas-portal/api/config';
 
 describe('MaaS Portal models', () => {
   beforeEach(() => {
-    cy.intercept('GET', configPath, mockDashboardConfig({ grid: true })).as('dashboardConfig');
+    cy.intercept('GET', configPath, mockDashboardConfig({})).as('dashboardConfig');
     cy.intercept('GET', '/maas-portal/maas/api/v1/user', {
       data: { userId: 'maas-consumer', clusterAdmin: false },
     });
@@ -27,46 +27,13 @@ describe('MaaS Portal models', () => {
     });
   });
 
-  it('should hide the navigation and route when the runtime grid flag is disabled', () => {
-    cy.intercept('GET', configPath, mockDashboardConfig({ grid: false }));
-    cy.intercept('GET', `${modelsPath}*`, () => {
-      throw new Error('Models must not be fetched when grid is disabled');
-    });
-    maasModelsPage.visitUnavailable();
-  });
-
-  it('should keep the page disabled by default when configuration cannot be loaded', () => {
+  it('should keep the page available when configuration cannot be loaded', () => {
     cy.intercept('GET', configPath, { statusCode: 503, body: {} });
-    cy.intercept('GET', `${modelsPath}*`, () => {
-      throw new Error('Models must not be fetched when grid defaults to false');
-    });
-    maasModelsPage.visitUnavailable();
-  });
-
-  it('should use and persist the devFeatureFlags override and allow disabling it again', () => {
-    cy.intercept('GET', configPath, (request) => {
-      // The config endpoint applies the portal's override header, as the real BFF does.
-      const overrides = request.headers['x-odh-feature-flags'];
-      expect(overrides).to.be.oneOf(['{"grid":true}', '{"grid":false}']);
-      request.reply(mockDashboardConfig({ grid: overrides === '{"grid":true}' }));
-    }).as('overriddenConfig');
-    cy.intercept('GET', `${modelsPath}*`, { data: [] });
-
-    maasModelsPage.visit(true);
-    cy.wait('@overriddenConfig')
-      .its('request.headers.x-odh-feature-flags')
-      .should('eq', '{"grid":true}');
-
-    // No query override on the second visit: the session-stored value is used.
+    cy.intercept('GET', `${modelsPath}*`, { data: [mockMaaSModel()] }).as('models');
     maasModelsPage.visit();
-    cy.wait('@overriddenConfig')
-      .its('request.headers.x-odh-feature-flags')
-      .should('eq', '{"grid":true}');
-
-    maasModelsPage.visitUnavailable(false);
-    cy.wait('@overriddenConfig')
-      .its('request.headers.x-odh-feature-flags')
-      .should('eq', '{"grid":false}');
+    cy.wait('@models');
+    maasModelsPage.findModelsNavigation().should('be.visible');
+    maasModelsPage.findTable().should('contain.text', 'Llama 3');
   });
 
   it('should load subscription models without a namespace or AI Assets chrome', () => {
@@ -79,8 +46,9 @@ describe('MaaS Portal models', () => {
 
     maasModelsPage.visit();
     cy.wait('@models');
-    maasModelsPage.findTitle().should('have.text', 'MaaS Models');
+    maasModelsPage.findTitle().should('have.text', 'Models Endpoints');
     maasModelsPage.findModelsNavigation().should('have.attr', 'href', '/maas-portal/maas/models');
+    maasModelsPage.findAIAssetsNavigation().should('not.exist');
     maasModelsPage.findTable().should('contain.text', 'Llama 3').and('contain.text', 'Granite');
     maasModelsPage.findModelIds().should('have.length', 2);
     maasModelsPage.findPlaygroundActions().should('not.exist');
