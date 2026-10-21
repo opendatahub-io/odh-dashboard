@@ -21,7 +21,9 @@ const EXECUTOR_LOG_STALE_TIME = 30_000;
  * marked FAILED — and both products disable refetch-on-window-focus, so an
  * empty discovery would otherwise stay empty until the panel is remounted.
  * While the hook is enabled, a discovery listing that has not yet yielded
- * its next stage is re-listed at this interval.
+ * its next stage is re-listed at this interval — including the task-dir
+ * listing after execution directories have appeared, since a later retry
+ * attempt's directory only shows up once it starts uploading artifacts.
  */
 const EXECUTOR_LOG_REDISCOVERY_INTERVAL = 10_000;
 /** Rediscovery stops after this window — past it, the artifact is not coming. */
@@ -111,14 +113,23 @@ export function useTaskExecutorError(options: UseTaskExecutorErrorOptions): Task
 
   const isEnabled = Boolean(enabled && namespace && runId && rootDir && task);
 
-  // Rediscovery window anchor: recorded when the hook first enables (the
-  // failed step is selected), cleared when it disables. The write is
-  // idempotent for a given input set, so writing during render is safe.
-  const rediscoveryStartedAtRef = useRef<number | undefined>(undefined);
-  if (!isEnabled) {
-    rediscoveryStartedAtRef.current = undefined;
-  } else if (rediscoveryStartedAtRef.current === undefined) {
-    rediscoveryStartedAtRef.current = Date.now();
+  // Rediscovery window anchor: recorded when the hook starts watching a
+  // failed step, cleared when it disables. Selections can switch directly
+  // between two failed steps (or the leaderboard between two failed runs)
+  // without the hook ever disabling, so the anchor is keyed to the discovery
+  // identity — when any input changes, the window restarts instead of the new
+  // step inheriting an already-expired deadline. The write is idempotent for
+  // a given identity, so writing during render is safe.
+  const rediscoveryIdentity = isEnabled
+    ? [namespace, runId, rootDir, taskKey, ...candidateNames].join('\u0000')
+    : undefined;
+  const rediscoveryAnchorRef = useRef<{ identity: string; startedAt: number } | undefined>(
+    undefined,
+  );
+  if (rediscoveryIdentity === undefined) {
+    rediscoveryAnchorRef.current = undefined;
+  } else if (rediscoveryAnchorRef.current?.identity !== rediscoveryIdentity) {
+    rediscoveryAnchorRef.current = { identity: rediscoveryIdentity, startedAt: Date.now() };
   }
 
   /**
@@ -131,7 +142,7 @@ export function useTaskExecutorError(options: UseTaskExecutorErrorOptions): Task
   const rediscoveryRefetchInterval = (
     isStageUnresolved: (data?: S3ListObjectsResponse) => boolean,
   ): ((query: { state: { data?: S3ListObjectsResponse } }) => number | false) => {
-    const startedAt = rediscoveryStartedAtRef.current;
+    const startedAt = rediscoveryAnchorRef.current?.startedAt;
     if (!isEnabled || startedAt === undefined) {
       return () => false;
     }
@@ -165,11 +176,15 @@ export function useTaskExecutorError(options: UseTaskExecutorErrorOptions): Task
     () => findTaskDirPrefix(runDirQuery.data?.common_prefixes ?? [], candidateNames),
     [runDirQuery.data, candidateNames],
   );
-  // Poll while no execution-uuid directory has appeared yet.
+  // Keep re-listing the task dir for the whole rediscovery window, not just
+  // until the first execution-uuid directory appears: a retried attempt gets
+  // a new directory that shows up in S3 only once its artifacts start
+  // uploading, so a listing that already has one attempt's directory can
+  // still miss a later retry's. Unchanged listings keep the same data
+  // reference (react-query structural sharing), so polling an already-listed
+  // task dir does not churn the downstream stages.
   const taskDirQuery = useS3ListFilesQuery(namespace, isEnabled ? taskDirPrefix : undefined, {
-    refetchInterval: rediscoveryRefetchInterval(
-      (data) => (data?.common_prefixes ?? []).length === 0,
-    ),
+    refetchInterval: rediscoveryRefetchInterval(() => true),
   });
   const executionPrefixes = useMemo(
     () => (isEnabled ? (taskDirQuery.data?.common_prefixes ?? []).map((p) => p.prefix) : []),

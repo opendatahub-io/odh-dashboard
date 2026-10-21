@@ -497,6 +497,218 @@ describe('useTaskExecutorError', () => {
     await waitFor(() => expect(result.current.logText).toBe(LOG_TEXT));
   });
 
+  it('should rediscover a retry attempt execution directory that appears after the initial discovery', async () => {
+    // A retried step gets a new execution-uuid directory that shows up in S3
+    // only once its artifacts start uploading. Discovery initially sees just
+    // the older attempt's directory, so the task-dir listing must keep
+    // re-polling within the rediscovery window — stopping at the first
+    // execution directory would leave the older attempt's log standing in
+    // for the current failure.
+    jest.useFakeTimers();
+    const olderDir = `${TASK_DIR}exec-old/`;
+    const retryDir = `${TASK_DIR}exec-retry/`;
+    const retryLogText = `${LOG_TEXT}retry attempt\n`;
+    let retryPublished = false;
+    getFiles.mockImplementation(async (_path, _opts, options) => {
+      switch (options.path) {
+        case `${ROOT_DIR}/${RUN_ID}`:
+          return {
+            common_prefixes: [{ prefix: TASK_DIR }],
+            contents: [],
+            is_truncated: false,
+            key_count: 1,
+            max_keys: 1000,
+          };
+        case TASK_DIR:
+          return retryPublished
+            ? {
+                common_prefixes: [{ prefix: olderDir }, { prefix: retryDir }],
+                contents: [],
+                is_truncated: false,
+                key_count: 2,
+                max_keys: 1000,
+              }
+            : {
+                common_prefixes: [{ prefix: olderDir }],
+                contents: [],
+                is_truncated: false,
+                key_count: 1,
+                max_keys: 1000,
+              };
+        case olderDir:
+          return {
+            common_prefixes: [],
+            contents: [
+              {
+                key: `${olderDir}executor-logs-0`,
+                size: 10,
+                last_modified: '2026-10-15T01:00:00Z',
+              },
+            ],
+            is_truncated: false,
+            key_count: 1,
+            max_keys: 1000,
+          };
+        case retryDir:
+          return {
+            common_prefixes: [],
+            contents: [
+              {
+                key: `${retryDir}executor-logs-0`,
+                size: 10,
+                last_modified: '2026-10-15T02:00:00Z',
+              },
+            ],
+            is_truncated: false,
+            key_count: 1,
+            max_keys: 1000,
+          };
+        default:
+          throw new Error(`unexpected path: ${options.path}`);
+      }
+    });
+    fetchS3File.mockImplementation(async (_namespace, key) =>
+      key === `${retryDir}executor-logs-0`
+        ? ({ text: () => Promise.resolve(retryLogText) } as Blob)
+        : ({ text: () => Promise.resolve(LOG_TEXT) } as Blob),
+    );
+
+    const { result } = runHook({
+      namespace: 'ns',
+      runId: RUN_ID,
+      pipelineRun: failedRun,
+      taskKey: 'documents_discovery',
+      rootDir: ROOT_DIR,
+    });
+
+    // The older attempt's log is discovered and shown first.
+    await waitFor(() => expect(result.current.logKey).toBe(`${olderDir}executor-logs-0`));
+
+    // The retry's directory lands; the next task-dir rediscovery tick picks
+    // up the newer attempt without a remount.
+    retryPublished = true;
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
+    await waitFor(() => expect(result.current.logKey).toBe(`${retryDir}executor-logs-0`));
+    expect(result.current.logText).toBe(retryLogText);
+  });
+
+  it('should restart the rediscovery window when switching directly between failed steps', async () => {
+    // Switching straight from one failed step to another keeps the hook
+    // enabled, so the window anchor must key on the discovery identity —
+    // otherwise the second step inherits the first's already-expired
+    // deadline and never polls for its late-arriving log.
+    jest.useFakeTimers();
+    const dirB = `${ROOT_DIR}/${RUN_ID}/vector-db-setup/`;
+    const execA = `${TASK_DIR}exec-a/`;
+    const execB = `${dirB}exec-b/`;
+    const logBText = `${LOG_TEXT}step b\n`;
+    let logBPublished = false;
+    const twoFailedTasksRun: PipelineRun = {
+      ...failedRun,
+      run_details: {
+        task_details: [
+          { task_id: 'uuid-driver', display_name: 'documents-discovery-driver' },
+          { task_id: 'uuid-exec-a', display_name: 'documents-discovery', state: 'FAILED' },
+          { task_id: 'uuid-exec-b', display_name: 'vector-db-setup', state: 'FAILED' },
+        ],
+      },
+    };
+    getFiles.mockImplementation(async (_path, _opts, options) => {
+      switch (options.path) {
+        case `${ROOT_DIR}/${RUN_ID}`:
+          return {
+            common_prefixes: [{ prefix: TASK_DIR }, { prefix: dirB }],
+            contents: [],
+            is_truncated: false,
+            key_count: 2,
+            max_keys: 1000,
+          };
+        case TASK_DIR:
+          return {
+            common_prefixes: [{ prefix: execA }],
+            contents: [],
+            is_truncated: false,
+            key_count: 1,
+            max_keys: 1000,
+          };
+        case dirB:
+          // Step B's execution directory has not landed in S3 yet.
+          return logBPublished
+            ? {
+                common_prefixes: [{ prefix: execB }],
+                contents: [],
+                is_truncated: false,
+                key_count: 1,
+                max_keys: 1000,
+              }
+            : {
+                common_prefixes: [],
+                contents: [],
+                is_truncated: false,
+                key_count: 0,
+                max_keys: 1000,
+              };
+        case execA:
+        case execB:
+          return {
+            common_prefixes: [],
+            contents: [
+              {
+                key: `${options.path}executor-logs-0`,
+                size: 10,
+                last_modified: '2026-10-15T01:00:00Z',
+              },
+            ],
+            is_truncated: false,
+            key_count: 1,
+            max_keys: 1000,
+          };
+        default:
+          throw new Error(`unexpected path: ${options.path}`);
+      }
+    });
+    fetchS3File.mockImplementation(async (_namespace, key) =>
+      key === `${execB}executor-logs-0`
+        ? ({ text: () => Promise.resolve(logBText) } as Blob)
+        : ({ text: () => Promise.resolve(LOG_TEXT) } as Blob),
+    );
+
+    const { result, rerender } = renderHook(
+      (taskKey: string) =>
+        useTaskExecutorError({
+          namespace: 'ns',
+          runId: RUN_ID,
+          pipelineRun: twoFailedTasksRun,
+          taskKey,
+          rootDir: ROOT_DIR,
+        }),
+      { wrapper: createWrapper(), initialProps: 'documents_discovery' },
+    );
+
+    // Step A's log is discovered and shown.
+    await waitFor(() => expect(result.current.logKey).toBe(`${execA}executor-logs-0`));
+
+    // Step A's rediscovery window expires while the user stays on the step.
+    act(() => {
+      jest.advanceTimersByTime(150_000);
+    });
+
+    // Switch directly to failed step B — the hook never disables in between.
+    rerender('vector_db_setup');
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.logKey).toBeUndefined();
+
+    // B's log lands; B's own rediscovery window must still be open.
+    logBPublished = true;
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
+    await waitFor(() => expect(result.current.logKey).toBe(`${execB}executor-logs-0`));
+    expect(result.current.logText).toBe(logBText);
+  });
+
   it('should prefer the failed task when several match the component', async () => {
     const branchTaskDir = `${ROOT_DIR}/${RUN_ID}/pattern-generation-2/`;
     const branchRun: PipelineRun = {
