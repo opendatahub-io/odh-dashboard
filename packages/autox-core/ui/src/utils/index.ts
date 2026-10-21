@@ -12,6 +12,11 @@ export {
 } from './topology/treeEdgePath';
 export type { TreeEdgeBounds } from './topology/treeEdgePath';
 export { parseErrorStatus } from './parseErrorStatus';
+export {
+  extractExecutorLogError,
+  EXECUTOR_ERROR_MAX_LENGTH_DEFAULT,
+  type ExtractExecutorLogErrorOptions,
+} from './executorLogError';
 export { formatMissingKeysMessage, getMissingRequiredKeys } from './secretValidation';
 export {
   getPipelineTaskAttemptTimestamp,
