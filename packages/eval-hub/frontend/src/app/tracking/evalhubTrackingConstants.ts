@@ -7,6 +7,7 @@ export const EVAL_HUB_EVENTS = {
   EVALUATION_STOPPED: 'Evaluations Evaluation Stopped',
   EXTERNAL_LINK_CLICKED: 'Evaluations External Link Clicked',
   MLFLOW_EXPERIMENT_SELECTED: 'Evaluations MLFlow Experiment Selected',
+  MLFLOW_RUN_TABS_LOAD_FAILED: 'Evaluations MLFlow Run Tabs Load Failed',
   RESULT_BENCHMARK_CARD_SELECTED: 'Evaluations Result Benchmark Card Selected',
   BENCHMARK_RUN_SELECTED: 'Evaluations Benchmark Run Selected',
   COMPARE_RUN_SELECTED: 'Evaluations Compare Run Selected',
