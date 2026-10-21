@@ -647,7 +647,7 @@ func TestCreateForward_StalledUpgradeFailsFast(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, err := pfm.createForward(ctx, "team-a", "milvus-0", 19530)
+		_, err := pfm.createForward(ctx, "team-a/milvus:19530", "team-a", "milvus-0", 19530)
 		done <- err
 	}()
 
@@ -711,7 +711,7 @@ func TestGetOrCreateForward_StalledStartupIsBoundedAndTracked(t *testing.T) {
 	deadline := time.After(10 * time.Second)
 	for {
 		pfm.mu.Lock()
-		abandoned := pfm.abandonedNegotiations
+		abandoned := pfm.abandonedNegotiations["team-a/milvus:19530"]
 		pfm.mu.Unlock()
 		if abandoned == 1 {
 			break
@@ -852,7 +852,7 @@ func TestGetOrCreateForward_AbandonmentCapGatesNewStartups(t *testing.T) {
 	pfm := &PortForwardManager{
 		forwards:              make(map[string]*activeForward),
 		logger:                slog.Default(),
-		abandonedNegotiations: maxOutstandingAbandonedNegotiations,
+		abandonedNegotiations: map[string]int{"ns/svc:8080": maxOutstandingAbandonedNegotiations},
 	}
 
 	// The clientset is nil on purpose: if the cap failed to reject here,
@@ -860,6 +860,32 @@ func TestGetOrCreateForward_AbandonmentCapGatesNewStartups(t *testing.T) {
 	_, err := pfm.getOrCreateForward(context.Background(), "ns", "svc", 8080)
 	if err == nil || !strings.Contains(err.Error(), "outstanding") {
 		t.Fatalf("getOrCreateForward() error = %v, want outstanding-negotiation rejection", err)
+	}
+}
+
+// TestGetOrCreateForward_AbandonmentCapOnlyThrottlesItsKey verifies the
+// outstanding-negotiation cap is per key: a target whose abandoned
+// negotiations fill the cap rejects its own startups, but forwards to other
+// services must not be blocked by that stalled target.
+func TestGetOrCreateForward_AbandonmentCapOnlyThrottlesItsKey(t *testing.T) {
+	pfm := &PortForwardManager{
+		forwards:              make(map[string]*activeForward),
+		logger:                slog.Default(),
+		clientset:             fake.NewSimpleClientset(),
+		abandonedNegotiations: map[string]int{"stalled/svc:8080": maxOutstandingAbandonedNegotiations},
+	}
+
+	// The capped key rejects new startups before any cluster interaction.
+	_, err := pfm.getOrCreateForward(context.Background(), "stalled", "svc", 8080)
+	if err == nil || !strings.Contains(err.Error(), "outstanding") {
+		t.Fatalf("getOrCreateForward() for the capped key = %v, want outstanding-negotiation rejection", err)
+	}
+
+	// A different key must not inherit the stalled target's cap: its startup
+	// proceeds past the gates and fails only on the empty fake cluster.
+	_, err = pfm.getOrCreateForward(context.Background(), "other", "svc", 9090)
+	if err == nil || !strings.Contains(err.Error(), "resolving pod") {
+		t.Fatalf("getOrCreateForward() for an unaffected key = %v, want a startup failure that is not the cap", err)
 	}
 }
 
@@ -898,6 +924,53 @@ func TestClose_AbortsStalledStartup(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("stalled startup did not finish after Close() — shutdown cannot abort a pending SPDY upgrade")
+	}
+}
+
+// TestCacheForward_RejectsLateForwardAfterClose verifies a startup that
+// completes after Close() cannot insert its forward into the drained cache:
+// closeOnce has already fired and the cache was cleared, so nothing would ever
+// stop a forward stored there — its listener, tunnel, and ForwardPorts
+// goroutine would leak for the life of the process. The late forward is
+// stopped and rejected instead.
+func TestCacheForward_RejectsLateForwardAfterClose(t *testing.T) {
+	pfm := &PortForwardManager{
+		forwards: make(map[string]*activeForward),
+		logger:   slog.Default(),
+		closed:   make(chan struct{}),
+	}
+	pfm.Close()
+
+	late := &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}
+	if err := pfm.cacheForward("team-a/milvus:19530", late); err == nil || !strings.Contains(err.Error(), "closed") {
+		t.Fatalf("cacheForward() after Close() = %v, want closed-manager rejection", err)
+	}
+	select {
+	case <-late.stopChan:
+	default:
+		t.Fatal("late forward was not stopped — caching it after Close() leaks its listener, tunnel, and worker goroutine")
+	}
+	if _, cached := pfm.forwards["team-a/milvus:19530"]; cached {
+		t.Fatal("forward was cached after Close() despite the drained cache")
+	}
+
+	// Control on a live manager: the same store caches the forward and clears
+	// any cooldown previously armed for the key.
+	open := &PortForwardManager{
+		forwards:       make(map[string]*activeForward),
+		recentFailures: map[string]time.Time{"team-a/milvus:19530": time.Now()},
+		logger:         slog.Default(),
+		closed:         make(chan struct{}),
+	}
+	healthy := &activeForward{localPort: 4568, stopChan: make(chan struct{}), errChan: make(chan error, 1)}
+	if err := open.cacheForward("team-a/milvus:19530", healthy); err != nil {
+		t.Fatalf("cacheForward() on a live manager = %v, want success", err)
+	}
+	if open.forwards["team-a/milvus:19530"] != healthy {
+		t.Fatal("cacheForward() on a live manager did not cache the forward")
+	}
+	if _, armed := open.recentFailures["team-a/milvus:19530"]; armed {
+		t.Fatal("cacheForward() on a live manager did not clear the key's cooldown")
 	}
 }
 
@@ -988,7 +1061,7 @@ func TestCreateForward_SuccessfulUpgradeSurvivesDeadline(t *testing.T) {
 	defer cancel()
 
 	startedAt := time.Now()
-	fwd, err := pfm.createForward(ctx, "team-a", "milvus-0", 19530)
+	fwd, err := pfm.createForward(ctx, "team-a/milvus:19530", "team-a", "milvus-0", 19530)
 	if err != nil {
 		t.Fatalf("createForward() against a healthy upgrade error = %v", err)
 	}
@@ -1078,7 +1151,7 @@ func TestCreateForward_AbandonmentTrackedUntilSettled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
-	if _, err := pfm.createForward(ctx, "team-a", "milvus-0", 19530); err == nil {
+	if _, err := pfm.createForward(ctx, "team-a/milvus:19530", "team-a", "milvus-0", 19530); err == nil {
 		t.Fatal("expected createForward against a late upgrade to fail at the deadline")
 	}
 
@@ -1090,7 +1163,7 @@ func TestCreateForward_AbandonmentTrackedUntilSettled(t *testing.T) {
 	deadline := time.After(10 * time.Second)
 	for {
 		pfm.mu.Lock()
-		abandoned = pfm.abandonedNegotiations
+		abandoned = pfm.abandonedNegotiations["team-a/milvus:19530"]
 		pfm.mu.Unlock()
 		if abandoned == 1 {
 			break
@@ -1112,7 +1185,7 @@ func TestCreateForward_AbandonmentTrackedUntilSettled(t *testing.T) {
 	settleDeadline := time.After(10 * time.Second)
 	for {
 		pfm.mu.Lock()
-		abandoned = pfm.abandonedNegotiations
+		abandoned = pfm.abandonedNegotiations["team-a/milvus:19530"]
 		pfm.mu.Unlock()
 		if abandoned == 0 {
 			return

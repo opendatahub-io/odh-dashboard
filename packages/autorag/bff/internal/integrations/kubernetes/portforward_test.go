@@ -55,9 +55,9 @@ func TestForwardURL_RewritesExactServiceFQDNAndResolvesNamespace(t *testing.T) {
 		Subsets: []corev1.EndpointSubset{{Addresses: []corev1.EndpointAddress{{TargetRef: &corev1.ObjectReference{Kind: "Pod", Name: "milvus-0"}}}}},
 	})
 	manager := newTestPortForwardManager(clientset)
-	manager.createForwardFn = func(_ context.Context, namespace, podName string, port int) (*activeForward, error) {
-		if namespace != "team-a" || podName != "milvus-0" || port != 19530 {
-			t.Fatalf("forward target = %s/%s:%d, want team-a/milvus-0:19530", namespace, podName, port)
+	manager.createForwardFn = func(_ context.Context, key, namespace, podName string, port int) (*activeForward, error) {
+		if key != "team-a/milvus:19530" || namespace != "team-a" || podName != "milvus-0" || port != 19530 {
+			t.Fatalf("forward target = %s (%s/%s:%d), want team-a/milvus:19530 (team-a/milvus-0:19530)", key, namespace, podName, port)
 		}
 		return &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
 	}
@@ -117,7 +117,7 @@ func TestCreateForward_ContextCancellationStopsStartup(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err = manager.createForward(ctx, "team-a", "milvus-0", 19530)
+	_, err = manager.createForward(ctx, "team-a/milvus:19530", "team-a", "milvus-0", 19530)
 	if err == nil || !errors.Is(err, context.Canceled) {
 		t.Fatalf("createForward() error = %v, want wrapped cancellation error", err)
 	}
@@ -159,7 +159,7 @@ func TestCreateForward_ActiveStartupCancellationRetainsStartupError(t *testing.T
 	defer cancel()
 	result := make(chan error, 1)
 	go func() {
-		_, createErr := manager.createForward(ctx, "team-a", "milvus-0", 19530)
+		_, createErr := manager.createForward(ctx, "team-a/milvus:19530", "team-a", "milvus-0", 19530)
 		result <- createErr
 	}()
 
@@ -217,7 +217,7 @@ func TestPortForwardManager_CachedErrorIsSanitized(t *testing.T) {
 		errChan:   make(chan error, 1),
 	}
 	manager.forwards["team-a/milvus:19530"].errChan <- errors.New("dial milvus://user:password@milvus.example:19530?token=secret#fragment")
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		return &activeForward{localPort: 4568, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
 	}
 
@@ -261,7 +261,7 @@ func TestPortForwardManager_CanceledWaiterDoesNotCancelCreation(t *testing.T) {
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
 	started := make(chan struct{})
 	release := make(chan struct{})
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		close(started)
 		<-release
 		return &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
@@ -293,7 +293,7 @@ func TestPortForwardManager_AllWaitersCancelStopsCreationWithoutCaching(t *testi
 	started := make(chan struct{})
 	canceled := make(chan struct{})
 	forward := &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}
-	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ int) (*activeForward, error) {
+	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ string, _ int) (*activeForward, error) {
 		close(started)
 		<-ctx.Done()
 		close(canceled)
@@ -342,7 +342,7 @@ func TestPortForwardManager_AllWaitersCancelRetryBeforeOldCreationCleanup(t *tes
 
 	var createMu sync.Mutex
 	var attempts int
-	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ int) (*activeForward, error) {
+	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ string, _ int) (*activeForward, error) {
 		createMu.Lock()
 		attempts++
 		attempt := attempts
@@ -480,7 +480,7 @@ func TestPortForwardManager_CanceledInitiatorDoesNotPoisonHealthyWaiter(t *testi
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
 	started := make(chan struct{})
 	release := make(chan struct{})
-	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ int) (*activeForward, error) {
+	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ string, _ int) (*activeForward, error) {
 		close(started)
 		<-release
 		if err := ctx.Err(); err != nil {
@@ -522,7 +522,7 @@ func TestPortForwardManager_FailedCreationRetryAfterCompletionStartsFreshCreatio
 
 	var attempts int
 	started := make(chan struct{})
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		attempts++
 		if attempts == 1 {
 			close(started)
@@ -584,7 +584,7 @@ func TestPortForwardManager_FailedCreationRetryAfterCompletionStartsFreshCreatio
 func TestPortForwardManager_CachesAndRecreatesForward(t *testing.T) {
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
 	var creations int
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		creations++
 		return &activeForward{localPort: uint16(4566 + creations), stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
 	}
@@ -614,7 +614,7 @@ func TestPortForwardManager_RecreatesAfterTerminationPublished(t *testing.T) {
 	manager.forwards["team-a/milvus:19530"] = oldForward
 
 	var creations int
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		creations++
 		return &activeForward{
 			localPort: uint16(4567 + creations),
@@ -656,7 +656,7 @@ func TestPortForwardManager_CloseDuringCreationDoesNotInsertForward(t *testing.T
 	manager := newTestPortForwardManager(clientset)
 	started := make(chan struct{})
 	forward := &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}
-	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ int) (*activeForward, error) {
+	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ string, _ int) (*activeForward, error) {
 		close(started)
 		<-ctx.Done()
 		return forward, nil
@@ -754,7 +754,7 @@ func TestPortForwardManager_AllowsCrossNamespaceServiceForwarding(t *testing.T) 
 		Subsets: []corev1.EndpointSubset{{Addresses: []corev1.EndpointAddress{{TargetRef: &corev1.ObjectReference{Kind: "Pod", Name: "milvus-0"}}}}},
 	})
 	manager := newTestPortForwardManager(clientset)
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		return &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
 	}
 
@@ -774,7 +774,7 @@ func TestPortForwardManager_BoundsCachedForwards(t *testing.T) {
 			lastUsed:  time.Now(),
 		}
 	}
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		t.Fatal("cache capacity must reject creation")
 		return nil, nil
 	}
@@ -796,7 +796,7 @@ func TestPortForwardManager_EvictsIdleForwardAndStopsTunnel(t *testing.T) {
 	}
 	close(forward.done)
 	manager.forwards["team-a/milvus:19530"] = forward
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		return &activeForward{localPort: 4568, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
 	}
 
@@ -926,7 +926,7 @@ func TestCreateForward_StalledUpgradeFailsFast(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, createErr := manager.createForward(ctx, "team-a", "milvus-0", 19530)
+		_, createErr := manager.createForward(ctx, "team-a/milvus:19530", "team-a", "milvus-0", 19530)
 		done <- createErr
 	}()
 
@@ -990,7 +990,7 @@ func TestPortForwardManager_CloseAbortsStalledCreation(t *testing.T) {
 // arms the retry cooldown for the key.
 func TestPortForwardManager_FailedCreationArmsCooldown(t *testing.T) {
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		return nil, errors.New("upgrade stalled")
 	}
 
@@ -1015,7 +1015,7 @@ func TestPortForwardManager_FailedCreationArmsCooldown(t *testing.T) {
 func TestPortForwardManager_CooldownGatesNewCreation(t *testing.T) {
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
 	manager.recentFailures = map[string]time.Time{"team-a/milvus:19530": time.Now()}
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		t.Fatal("cooldown must reject before starting a new creation")
 		return nil, nil
 	}
@@ -1031,7 +1031,7 @@ func TestPortForwardManager_CooldownGatesNewCreation(t *testing.T) {
 func TestPortForwardManager_CooldownExpiresAndAllowsRetry(t *testing.T) {
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
 	manager.recentFailures = map[string]time.Time{"team-a/milvus:19530": time.Now().Add(-portForwardRetryCooldown - time.Second)}
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		return &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
 	}
 
@@ -1057,7 +1057,7 @@ func TestPortForwardManager_CooldownExpiresAndAllowsRetry(t *testing.T) {
 func TestPortForwardManager_CanceledCreationDoesNotThrottleHealthyRetry(t *testing.T) {
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
 	started := make(chan struct{})
-	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ int) (*activeForward, error) {
+	manager.createForwardFn = func(ctx context.Context, _ string, _ string, _ string, _ int) (*activeForward, error) {
 		close(started)
 		<-ctx.Done()
 		// Match the real createForward: a canceled startup reports the
@@ -1082,7 +1082,7 @@ func TestPortForwardManager_CanceledCreationDoesNotThrottleHealthyRetry(t *testi
 
 	// The cancellation is not a target failure: the next healthy caller must
 	// not inherit a cooldown from the abandoned creation.
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		return &activeForward{localPort: 4567, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
 	}
 	port, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
@@ -1097,8 +1097,8 @@ func TestPortForwardManager_CanceledCreationDoesNotThrottleHealthyRetry(t *testi
 // any creation attempt.
 func TestPortForwardManager_OutstandingAbandonmentCapGatesNewCreations(t *testing.T) {
 	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints()))
-	manager.abandonedNegotiations = maxOutstandingAbandonedNegotiations
-	manager.createForwardFn = func(context.Context, string, string, int) (*activeForward, error) {
+	manager.abandonedNegotiations = map[string]int{"team-a/milvus:19530": maxOutstandingAbandonedNegotiations}
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
 		t.Fatal("the outstanding-negotiation cap must reject before starting a new creation")
 		return nil, nil
 	}
@@ -1106,6 +1106,37 @@ func TestPortForwardManager_OutstandingAbandonmentCapGatesNewCreations(t *testin
 	_, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
 	if err == nil || !strings.Contains(err.Error(), "outstanding") {
 		t.Fatalf("getOrCreateForward() error = %v, want outstanding-negotiation rejection", err)
+	}
+}
+
+// TestPortForwardManager_AbandonmentCapOnlyThrottlesItsKey verifies the
+// outstanding-negotiation cap is per key: a target whose abandoned
+// negotiations fill the cap rejects its own creations, but forwards to other
+// services must not be blocked by that stalled target.
+func TestPortForwardManager_AbandonmentCapOnlyThrottlesItsKey(t *testing.T) {
+	//nolint:staticcheck // The production resolver currently reads the Endpoints API.
+	otherEndpoints := &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{Name: "other", Namespace: "team-b"},
+		//nolint:staticcheck // The production resolver currently reads the Endpoints API.
+		Subsets: []corev1.EndpointSubset{{Addresses: []corev1.EndpointAddress{{TargetRef: &corev1.ObjectReference{Kind: "Pod", Name: "other-0"}}}}},
+	}
+	manager := newTestPortForwardManager(k8sfake.NewSimpleClientset(testPortForwardEndpoints(), otherEndpoints))
+	manager.abandonedNegotiations = map[string]int{"team-a/milvus:19530": maxOutstandingAbandonedNegotiations}
+
+	// The capped key rejects new creations before any creation attempt.
+	_, err := manager.getOrCreateForward(context.Background(), "team-a", "milvus", 19530)
+	if err == nil || !strings.Contains(err.Error(), "outstanding") {
+		t.Fatalf("getOrCreateForward() for the capped key = %v, want outstanding-negotiation rejection", err)
+	}
+
+	// A different key must not inherit the stalled target's cap: its forward
+	// is established normally.
+	manager.createForwardFn = func(context.Context, string, string, string, int) (*activeForward, error) {
+		return &activeForward{localPort: 4568, stopChan: make(chan struct{}), errChan: make(chan error, 1)}, nil
+	}
+	port, err := manager.getOrCreateForward(context.Background(), "team-b", "other", 8080)
+	if err != nil || port != 4568 {
+		t.Fatalf("getOrCreateForward() for an unaffected key = %d, %v; want 4568, nil", port, err)
 	}
 }
 
@@ -1195,7 +1226,7 @@ func TestCreateForward_SuccessfulUpgradeSurvivesDeadline(t *testing.T) {
 	defer cancel()
 
 	startedAt := time.Now()
-	fwd, err := manager.createForward(ctx, "team-a", "milvus-0", 19530)
+	fwd, err := manager.createForward(ctx, "team-a/milvus:19530", "team-a", "milvus-0", 19530)
 	if err != nil {
 		t.Fatalf("createForward() against a healthy upgrade error = %v", err)
 	}
@@ -1279,7 +1310,7 @@ func TestCreateForward_AbandonmentTrackedUntilSettled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
-	if _, err := manager.createForward(ctx, "team-a", "milvus-0", 19530); err == nil {
+	if _, err := manager.createForward(ctx, "team-a/milvus:19530", "team-a", "milvus-0", 19530); err == nil {
 		t.Fatal("expected createForward against a late upgrade to fail at the deadline")
 	}
 
@@ -1291,7 +1322,7 @@ func TestCreateForward_AbandonmentTrackedUntilSettled(t *testing.T) {
 	deadline := time.After(10 * time.Second)
 	for {
 		manager.mu.Lock()
-		abandoned = manager.abandonedNegotiations
+		abandoned = manager.abandonedNegotiations["team-a/milvus:19530"]
 		manager.mu.Unlock()
 		if abandoned == 1 {
 			break
@@ -1313,7 +1344,7 @@ func TestCreateForward_AbandonmentTrackedUntilSettled(t *testing.T) {
 	settleDeadline := time.After(10 * time.Second)
 	for {
 		manager.mu.Lock()
-		abandoned = manager.abandonedNegotiations
+		abandoned = manager.abandonedNegotiations["team-a/milvus:19530"]
 		manager.mu.Unlock()
 		if abandoned == 0 {
 			return
