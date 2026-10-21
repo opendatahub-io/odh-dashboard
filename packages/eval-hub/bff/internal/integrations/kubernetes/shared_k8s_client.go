@@ -12,6 +12,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -120,6 +121,26 @@ func validateServiceURL(raw string) error {
 		return fmt.Errorf("service name %q does not match expected EvalHub service prefix", serviceName)
 	}
 	return nil
+}
+
+// listEvalHubCRs lists EvalHub CRs in the given namespace, trying API versions in
+// preference order (see EvalHubGVRs). A NotFound from List means the version is not
+// served on this cluster — fall through to the next version. Any other error
+// (RBAC, connectivity, timeouts) is returned immediately so it is not masked by
+// the fallback.
+func listEvalHubCRs(ctx context.Context, dynClient dynamic.Interface, namespace string) (*unstructured.UnstructuredList, error) {
+	var lastErr error
+	for _, gvr := range EvalHubGVRs {
+		list, err := dynClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
+		if err == nil {
+			return list, nil
+		}
+		if !k8serrors.IsNotFound(err) {
+			return nil, err
+		}
+		lastErr = err
+	}
+	return nil, lastErr
 }
 
 func ParseEvalHubCRStatus(item *unstructured.Unstructured) (*models.EvalHubCRStatus, error) {
