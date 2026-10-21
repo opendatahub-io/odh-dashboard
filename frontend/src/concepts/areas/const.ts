@@ -7,10 +7,14 @@ import {
 } from '@odh-dashboard/plugin-core/areas';
 
 // Shared operator readiness does not establish per-child backend reachability.
-const isFeastOperatorReady: CustomConditionFunction = ({ dscStatus }) =>
-  dscStatus?.conditions.some(
-    (condition) => condition.type === 'FeastOperatorReady' && condition.status === 'True',
-  ) ?? false;
+const isFeastOperatorReady: CustomConditionFunction = ({ dscStatus }) => {
+  const conditions = dscStatus?.conditions;
+  return (
+    conditions?.some(
+      (condition) => condition.type === 'FeastOperatorReady' && condition.status === 'True',
+    ) ?? false
+  );
+};
 
 export const techPreviewFlags = {
   genAiImageUpload: false,

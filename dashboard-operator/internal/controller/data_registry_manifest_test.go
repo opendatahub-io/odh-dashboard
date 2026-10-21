@@ -41,14 +41,16 @@ func TestDataRegistryManifestConnectivity(t *testing.T) {
 	require.NoError(t, runtime.DefaultUnstructuredConverter.FromUnstructured(policy.Object, &networkPolicy))
 	assert.Equal(t, "data-registry-ui", networkPolicy.Spec.PodSelector.MatchLabels["deployment"])
 	assert.Contains(t, networkPolicy.Spec.PolicyTypes, networkingv1.PolicyTypeEgress)
-	assert.True(t, egressAllowsPort(networkPolicy, 8443, func(peer networkingv1.NetworkPolicyPeer) bool {
-		return peer.IPBlock == nil &&
-			peer.NamespaceSelector != nil &&
-			len(peer.NamespaceSelector.MatchLabels) == 1 &&
-			peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] == "rhoai-data-registry" &&
-			peer.PodSelector != nil &&
-			len(peer.PodSelector.MatchLabels) == 2 &&
-			peer.PodSelector.MatchLabels["feast.dev/name"] == "data-registry" &&
-			peer.PodSelector.MatchLabels["feast.dev/service-type"] == "data-registry"
-	}), "Data Registry BFF must reach the registry sidecar on pod port 8443")
+	for _, port := range []int32{443, 8443} {
+		assert.True(t, egressAllowsPort(networkPolicy, port, func(peer networkingv1.NetworkPolicyPeer) bool {
+			return peer.IPBlock == nil &&
+				peer.NamespaceSelector != nil &&
+				len(peer.NamespaceSelector.MatchLabels) == 1 &&
+				peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] == "rhoai-data-registry" &&
+				peer.PodSelector != nil &&
+				len(peer.PodSelector.MatchLabels) == 2 &&
+				peer.PodSelector.MatchLabels["feast.dev/name"] == "data-registry" &&
+				peer.PodSelector.MatchLabels["feast.dev/service-type"] == "data-registry"
+		}), "Data Registry BFF must reach the registry on TCP port %d", port)
+	}
 }

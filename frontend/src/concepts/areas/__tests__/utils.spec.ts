@@ -656,6 +656,17 @@ describe('isAreaAvailable', () => {
       expect(result.status).toBe(false);
     });
 
+    it('should stay unavailable when DSC conditions are omitted', () => {
+      const dscStatus = mockDscStatus({});
+      // Kubernetes may omit an empty conditions array from the status payload.
+      Reflect.deleteProperty(dscStatus, 'conditions');
+
+      const result = isAreaAvailable(area, mockDashboardConfig(flags).spec, dscStatus, null);
+
+      expect(result.status).toBe(false);
+      expect(result.requiredComponents).toEqual({ [component]: true });
+    });
+
     it('should not substitute DSCI capability readiness for DSC operator readiness', () => {
       const result = isAreaAvailable(
         area,
