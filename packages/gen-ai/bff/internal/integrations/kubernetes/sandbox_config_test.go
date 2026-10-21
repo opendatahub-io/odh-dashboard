@@ -287,12 +287,49 @@ func TestBuildSandboxLlamaStackConfig_CustomEndpointClusterLocalTLS(t *testing.T
 	// Keyless endpoints pin a placeholder api_key: OGX's passthrough adapter cannot issue
 	// unauthenticated requests, and unauthenticated endpoints ignore the header.
 	assert.Equal(t, "fake", embeddingProvider.Config["api_key"])
-	// Cluster-local services serve certificates unverifiable with public CAs.
+	// Cluster-local services verify TLS against the OpenShift service-serving CA
+	// projected into the pod — verification is never disabled.
 	network, ok := embeddingProvider.Config["network"].(map[string]interface{})
 	require.True(t, ok, "expected network TLS config for cluster-local endpoint")
 	tls, ok := network["tls"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, false, tls["verify"])
+	assert.Equal(t, kubernetes.SandboxServiceServingCAPath, tls["verify"])
+	assert.NotEqual(t, false, tls["verify"])
+}
+
+func TestBuildSandboxLlamaStackConfig_CustomEndpointSVCHostTLS(t *testing.T) {
+	// OpenShift serving certs cover the .svc host form too; those endpoints must
+	// get the same service-CA verification instead of public-CA verification
+	// (which would fail).
+	profile := sandboxEmbeddingTestProfile("vs-svc-host")
+	storeDoc := sandboxEmbeddingTestStoreDoc(models.RegisteredVectorStore{
+		VectorStoreID:  "vs-svc-host",
+		EmbeddingModel: "granite-embedding-keyless",
+	})
+	classify := func(string) kubernetes.SandboxEmbeddingModel {
+		return kubernetes.SandboxEmbeddingModel{
+			Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
+			EndpointURL: "https://keyless-endpoint.test.svc:8080",
+		}
+	}
+
+	cfg, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
+	require.NoError(t, err)
+
+	embeddingProvider := findSandboxProvider(cfg, "agent-embedding-1")
+	require.NotNil(t, embeddingProvider)
+	network, ok := embeddingProvider.Config["network"].(map[string]interface{})
+	require.True(t, ok, "expected network TLS config for .svc host")
+	tls := network["tls"].(map[string]interface{})
+	assert.Equal(t, kubernetes.SandboxServiceServingCAPath, tls["verify"])
+}
+
+func TestIsClusterLocalURL(t *testing.T) {
+	assert.True(t, kubernetes.IsClusterLocalURL("https://svc.ns.svc.cluster.local:8080"))
+	assert.True(t, kubernetes.IsClusterLocalURL("http://svc.ns.svc:8080"))
+	assert.False(t, kubernetes.IsClusterLocalURL("https://gemini.example.com/v1"))
+	assert.False(t, kubernetes.IsClusterLocalURL("https://gateway.example.com/svc/cluster"))
+	assert.False(t, kubernetes.IsClusterLocalURL("not a url"))
 }
 
 func TestBuildSandboxLlamaStackConfig_ISVCEmbeddingModel(t *testing.T) {
@@ -312,11 +349,16 @@ func TestBuildSandboxLlamaStackConfig_ISVCEmbeddingModel(t *testing.T) {
 	cfg, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
 	require.NoError(t, err)
 
-	// remote::vllm provider with the ISVC URL (including /v1).
+	// remote::vllm provider with the ISVC URL (including /v1) and service-CA TLS verification.
 	embeddingProvider := findSandboxProvider(cfg, "agent-embedding-1")
 	require.NotNil(t, embeddingProvider)
 	assert.Equal(t, "remote::vllm", embeddingProvider.ProviderType)
 	assert.Equal(t, isvcURL, embeddingProvider.Config["base_url"])
+	assert.NotContains(t, embeddingProvider.Config, "tls_verify")
+	network, ok := embeddingProvider.Config["network"].(map[string]interface{})
+	require.True(t, ok, "expected network TLS config for the vLLM provider")
+	tls := network["tls"].(map[string]interface{})
+	assert.Equal(t, kubernetes.SandboxServiceServingCAPath, tls["verify"])
 
 	require.Len(t, cfg.RegisteredResources.Models, 2)
 	assert.Equal(t, embeddingModel, cfg.RegisteredResources.Models[1].ModelID)

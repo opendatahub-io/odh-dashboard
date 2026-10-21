@@ -166,11 +166,23 @@ func PassthroughBaseURL(endpointURL string) string {
 	return strings.TrimSuffix(strings.TrimRight(endpointURL, "/"), "/v1")
 }
 
-// isClusterLocalURL reports whether the URL targets an in-cluster service, which serves
-// certificates that are not verifiable with public CAs.
-func isClusterLocalURL(rawURL string) bool {
+// sandboxServiceServingCAPath is the OpenShift service-serving CA bundle, projected
+// into every pod's service-account volume alongside the kube API CA (ca.crt). It
+// signs certificates for in-cluster Services using OpenShift serving certs, so
+// cluster-local providers verify TLS against it instead of disabling verification.
+const SandboxServiceServingCAPath = "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+
+// IsClusterLocalURL reports whether the URL targets an in-cluster service. OpenShift
+// serving certificates cover the Service's DNS name in all its forms
+// (<name>, <name>.<ns>, <name>.<ns>.svc, <name>.<ns>.svc.cluster.local), so any
+// .svc or .svc.cluster.local host matches.
+func IsClusterLocalURL(rawURL string) bool {
 	parsed, err := url.Parse(rawURL)
-	return err == nil && strings.HasSuffix(parsed.Hostname(), ".svc.cluster.local")
+	if err != nil {
+		return false
+	}
+	host := parsed.Hostname()
+	return strings.HasSuffix(host, ".svc.cluster.local") || strings.HasSuffix(host, ".svc")
 }
 
 // BuildSandboxLlamaStackConfig generates a LlamaStackConfig from an AgentProfile's model and
@@ -278,9 +290,13 @@ func BuildSandboxLlamaStackConfig(
 				// per request by the wrapper via passthrough_api_key provider data for keyed
 				// models; keyless models pin a placeholder api_key (see below).
 				providerConfig := map[string]interface{}{"base_url": PassthroughBaseURL(classification.EndpointURL)}
-				if isClusterLocalURL(classification.EndpointURL) {
+				if IsClusterLocalURL(classification.EndpointURL) {
+					// Cluster-local services serve certificates signed by the OpenShift service
+					// CA. Verify against the bundle projected into the pod's service-account
+					// volume rather than disabling verification — the embedding API key must
+					// never travel over an unauthenticated channel.
 					providerConfig["network"] = map[string]interface{}{
-						"tls": map[string]interface{}{"verify": false},
+						"tls": map[string]interface{}{"verify": SandboxServiceServingCAPath},
 					}
 				}
 				if classification.SecretRef.Name == "" {
@@ -313,8 +329,19 @@ func BuildSandboxLlamaStackConfig(
 				providerID = nextEmbeddingProviderID()
 				// remote::vllm expects the base URL to include /v1 (the endpoint URLs returned by
 				// GetInferenceServiceURL already do). These predictors are typically unauthenticated.
-				cfg.AddVLLMProviderAndModel(providerID, classification.EndpointURL, embeddingProviderCount, embeddingModelName,
-					string(models.ModelTypeEmbedding), map[string]interface{}{"display_name": embeddingModelName}, &vs.EmbeddingDimension)
+				// ISVC URLs are always cluster-local, so when the URL is https, TLS verifies
+				// against the service-serving CA.
+				providerConfig := map[string]interface{}{
+					"base_url": classification.EndpointURL,
+					"network": map[string]interface{}{
+						"tls": map[string]interface{}{"verify": SandboxServiceServingCAPath},
+					},
+				}
+				cfg.AddInferenceProvider(NewProvider(providerID, "remote::vllm", providerConfig))
+				cfg.RegisterModel(NewModel(embeddingModelName, providerID, string(models.ModelTypeEmbedding), map[string]interface{}{
+					"display_name":        embeddingModelName,
+					"embedding_dimension": vs.EmbeddingDimension,
+				}))
 				registeredEmbeddings[registrationKey] = providerID
 			}
 			vs.EmbeddingModel = providerID + "/" + embeddingModelName

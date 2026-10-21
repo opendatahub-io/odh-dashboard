@@ -229,7 +229,6 @@ func buildSandboxEnvVars(opts SandboxCROptions, namespace, pgvectorHost, pgvecto
 	vars := []interface{}{
 		sandboxEnvVar("OGX_CONFIG", "/etc/ogx/config.yaml"),
 		sandboxEnvVar("OGX_CONFIG_DIR", "/opt/app-root/src/.ogx/distributions/rh/"),
-		sandboxEnvVar("VLLM_TLS_VERIFY", "false"),
 		sandboxEnvVar("FAISS_STORE_DIR", "/opt/app-root/.llama/faiss"),
 		sandboxEnvVar("MAAS_GATEWAY_URL", opts.MaaSGatewayURL),
 		sandboxEnvVar("MAAS_SUBSCRIPTION", opts.MaaSSubscription),
