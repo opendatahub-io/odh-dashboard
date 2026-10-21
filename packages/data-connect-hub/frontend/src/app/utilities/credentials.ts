@@ -2,7 +2,7 @@ import type { ConnectionTypeCredentialField } from '~/app/types';
 
 export const SENSITIVE_CREDENTIAL_MASK = '••••••••';
 
-const SENSITIVE_CREDENTIAL_FIELD_TERMS = [
+const SENSITIVE_CREDENTIAL_CORE_TERMS = [
   'password',
   'passphrase',
   'secret',
@@ -11,10 +11,9 @@ const SENSITIVE_CREDENTIAL_FIELD_TERMS = [
   'pwd',
   'passwd',
   'private',
-  'uri',
-  'url',
-  'dsn',
-] as const;
+];
+
+const SENSITIVE_CREDENTIAL_BOUNDARY_TERMS = ['uri', 'url', 'dsn'] as const;
 
 const SENSITIVE_CREDENTIAL_COMPOUND_TERMS = ['apikey', 'connectionstring'] as const;
 
@@ -44,10 +43,14 @@ export const isSensitiveCredentialField = (
 
   return (
     fieldTokens.some((token) =>
-      SENSITIVE_CREDENTIAL_FIELD_TERMS.some((term) => token === term || token === `${term}s`),
+      [...SENSITIVE_CREDENTIAL_CORE_TERMS, ...SENSITIVE_CREDENTIAL_BOUNDARY_TERMS].some(
+        (term) => token === term || token === `${term}s`,
+      ),
     ) ||
-    SENSITIVE_CREDENTIAL_COMPOUND_TERMS.some((term) =>
-      normalizedValues.some((value) => value.includes(term)),
+    normalizedValues.some(
+      (value) =>
+        SENSITIVE_CREDENTIAL_CORE_TERMS.some((term) => value.includes(term)) ||
+        SENSITIVE_CREDENTIAL_COMPOUND_TERMS.some((term) => value.includes(term)),
     )
   );
 };

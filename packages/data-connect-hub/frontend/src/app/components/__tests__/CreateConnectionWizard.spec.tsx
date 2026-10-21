@@ -413,11 +413,15 @@ describe('CreateConnectionWizard', () => {
     expect((screen.getByTestId('credential-SSL_MODE') as HTMLInputElement).type).toBe('text');
   });
 
-  it('masks camelCase credential fields on both wizard steps', async () => {
+  it('masks camelCase and concatenated lowercase credential fields on both wizard steps', async () => {
     const user = userEvent.setup();
     const credentialValues = {
       clientSecret: 'client-secret-value',
       accessToken: 'access-token-value',
+      dbpassword: 'database-password-value',
+      clientsecret: 'client-secret-concatenated-value',
+      accesstoken: 'access-token-concatenated-value',
+      privatekey: 'private-key-concatenated-value',
     };
     mockUseConnectionTypes.mockReturnValue([
       [
@@ -428,6 +432,10 @@ describe('CreateConnectionWizard', () => {
             credentials_fields: [
               { name: 'clientSecret', label: 'clientSecret', required: true, type: 'string' },
               { name: 'accessToken', label: 'accessToken', required: true, type: 'string' },
+              { name: 'dbpassword', label: 'dbpassword', required: true, type: 'string' },
+              { name: 'clientsecret', label: 'clientsecret', required: true, type: 'string' },
+              { name: 'accesstoken', label: 'accesstoken', required: true, type: 'string' },
+              { name: 'privatekey', label: 'privatekey', required: true, type: 'string' },
             ],
           },
         },
