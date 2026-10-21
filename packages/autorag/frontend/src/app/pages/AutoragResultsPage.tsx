@@ -762,7 +762,6 @@ function AutoragResultsPage(): React.JSX.Element {
                 patternInfo={drawerContent.patternInfo}
                 onClose={handleDrawerClose}
                 onSelectPattern={openPlaygroundForPattern}
-                onViewCode={(patternName) => handleViewCode(patternName, 'playground')}
               />
             ) : undefined
           }

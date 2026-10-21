@@ -2,8 +2,19 @@ import type { DashboardCommonConfig } from '@odh-dashboard/k8s-core';
 import {
   SupportedArea,
   type SupportedAreasState,
+  type CustomConditionFunction,
   DataScienceStackComponent,
 } from '@odh-dashboard/plugin-core/areas';
+
+// Shared operator readiness does not establish per-child backend reachability.
+const isFeastOperatorReady: CustomConditionFunction = ({ dscStatus }) => {
+  const conditions = dscStatus?.conditions;
+  return (
+    conditions?.some(
+      (condition) => condition.type === 'FeastOperatorReady' && condition.status === 'True',
+    ) ?? false
+  );
+};
 
 export const techPreviewFlags = {
   genAiImageUpload: false,
@@ -236,11 +247,16 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
-    requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
+    requiredComponents: [DataScienceStackComponent.FEATURE_STORE],
+    customCondition: isFeastOperatorReady,
   },
   [SupportedArea.FEATURE_STORE_ADMIN]: {
     featureFlags: ['featureStoreAdmin'],
     reliantAreas: [SupportedArea.FEATURE_STORE],
+  },
+  [SupportedArea.DATA_REGISTRY]: {
+    requiredComponents: [DataScienceStackComponent.DATA_REGISTRY],
+    customCondition: isFeastOperatorReady,
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
@@ -320,6 +336,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_DATA_REGISTRY]: {
     featureFlags: ['dataRegistry'],
+    reliantAreas: [SupportedArea.DATA_REGISTRY],
   },
   [SupportedArea.GUIDED_TOUR]: {
     // Dev-only flag — not in OdhDashboardConfig CRD. Off by default.
