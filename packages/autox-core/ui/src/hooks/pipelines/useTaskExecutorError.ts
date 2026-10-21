@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { findComponentTasksInRunDetails, findTaskDirPrefix } from './taskMatching';
 import type { PipelineRun } from '../../api/pipelines/types';
 import type { S3ListObjectsResponse } from '../../api/s3/types';
+import type { S3ListRefetchIntervalQuery } from '../s3/useS3ListFilesQuery';
 import { extractExecutorLogError } from '../../utils/executorLogError';
 import { useS3FileFetchers } from '../s3/useS3FileFetchers';
 import { useS3ListFilesQueries, useS3ListFilesQuery } from '../s3/useS3ListFilesQuery';
@@ -137,17 +138,21 @@ export function useTaskExecutorError(options: UseTaskExecutorErrorOptions): Task
    * is enabled, the window is open, and `isStageUnresolved` holds for the
    * query's own latest data. React Query re-evaluates the callback after
    * every query event (each poll settles one), so both the stop predicate
-   * and the time window stay fresh without re-renders.
+   * and the time window stay fresh without re-renders. A query whose latest
+   * refetch errored counts as unresolved too: React Query retains the
+   * previous data through a failed refetch (so the data check alone would
+   * look resolved) while the error suppresses the log below — and with
+   * retry disabled, this interval is the only thing that clears it.
    */
   const rediscoveryRefetchInterval = (
     isStageUnresolved: (data?: S3ListObjectsResponse) => boolean,
-  ): ((query: { state: { data?: S3ListObjectsResponse } }) => number | false) => {
+  ): ((query: S3ListRefetchIntervalQuery) => number | false) => {
     const startedAt = rediscoveryAnchorRef.current?.startedAt;
     if (!isEnabled || startedAt === undefined) {
       return () => false;
     }
     return (query) =>
-      isStageUnresolved(query.state.data) &&
+      (query.state.status === 'error' || isStageUnresolved(query.state.data)) &&
       Date.now() - startedAt < EXECUTOR_LOG_REDISCOVERY_WINDOW
         ? EXECUTOR_LOG_REDISCOVERY_INTERVAL
         : false;

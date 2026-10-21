@@ -709,6 +709,125 @@ describe('useTaskExecutorError', () => {
     expect(result.current.logText).toBe(logBText);
   });
 
+  it('should retry an execution-directory listing that errors after a successful discovery', async () => {
+    // Switching back to a previously viewed failed step re-subscribes its
+    // queries, and the default staleTime 0 refetches them on mount. If that
+    // refetch transiently fails, React Query retains the old listing data
+    // (which already contains the log) while flipping the query to 'error' —
+    // and the isError guard suppresses the log. With retry disabled, the
+    // rediscovery interval must keep polling the errored query, or the step
+    // is stuck on the generic message until the panel is remounted.
+    jest.useFakeTimers();
+    const dirB = `${ROOT_DIR}/${RUN_ID}/vector-db-setup/`;
+    const execA = `${TASK_DIR}exec-a/`;
+    const execB = `${dirB}exec-b/`;
+    const twoFailedTasksRun: PipelineRun = {
+      ...failedRun,
+      run_details: {
+        task_details: [
+          { task_id: 'uuid-driver', display_name: 'documents-discovery-driver' },
+          { task_id: 'uuid-exec-a', display_name: 'documents-discovery', state: 'FAILED' },
+          { task_id: 'uuid-exec-b', display_name: 'vector-db-setup', state: 'FAILED' },
+        ],
+      },
+    };
+    let execAListings = 0;
+    getFiles.mockImplementation(async (_path, _opts, options) => {
+      switch (options.path) {
+        case `${ROOT_DIR}/${RUN_ID}`:
+          return {
+            common_prefixes: [{ prefix: TASK_DIR }, { prefix: dirB }],
+            contents: [],
+            is_truncated: false,
+            key_count: 2,
+            max_keys: 1000,
+          };
+        case TASK_DIR:
+          return {
+            common_prefixes: [{ prefix: execA }],
+            contents: [],
+            is_truncated: false,
+            key_count: 1,
+            max_keys: 1000,
+          };
+        case dirB:
+          return {
+            common_prefixes: [{ prefix: execB }],
+            contents: [],
+            is_truncated: false,
+            key_count: 1,
+            max_keys: 1000,
+          };
+        case execA:
+          // First listing succeeds; the re-subscribe refetch on the switch
+          // back to step A fails; the rediscovery tick after it succeeds.
+          execAListings += 1;
+          if (execAListings === 2) {
+            throw new Error('listing failed');
+          }
+          return {
+            common_prefixes: [],
+            contents: [
+              {
+                key: `${execA}executor-logs-0`,
+                size: 10,
+                last_modified: '2026-10-15T01:00:00Z',
+              },
+            ],
+            is_truncated: false,
+            key_count: 1,
+            max_keys: 1000,
+          };
+        case execB:
+          return {
+            common_prefixes: [],
+            contents: [
+              {
+                key: `${execB}executor-logs-0`,
+                size: 10,
+                last_modified: '2026-10-15T01:00:00Z',
+              },
+            ],
+            is_truncated: false,
+            key_count: 1,
+            max_keys: 1000,
+          };
+        default:
+          throw new Error(`unexpected path: ${options.path}`);
+      }
+    });
+
+    const { result, rerender } = renderHook(
+      (taskKey: string) =>
+        useTaskExecutorError({
+          namespace: 'ns',
+          runId: RUN_ID,
+          pipelineRun: twoFailedTasksRun,
+          taskKey,
+          rootDir: ROOT_DIR,
+        }),
+      { wrapper: createWrapper(), initialProps: 'documents_discovery' },
+    );
+
+    // Step A's log is discovered and shown.
+    await waitFor(() => expect(result.current.logKey).toBe(`${execA}executor-logs-0`));
+
+    // Switch to failed step B, then back to A: the re-subscribe refetch of
+    // A's execution-dir listing rejects while retaining the old data.
+    rerender('vector_db_setup');
+    await waitFor(() => expect(result.current.logKey).toBe(`${execB}executor-logs-0`));
+    rerender('documents_discovery');
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.logKey).toBeUndefined();
+
+    // The next rediscovery tick retries the errored listing and recovers.
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
+    await waitFor(() => expect(result.current.logKey).toBe(`${execA}executor-logs-0`));
+    expect(result.current.isError).toBe(false);
+  });
+
   it('should prefer the failed task when several match the component', async () => {
     const branchTaskDir = `${ROOT_DIR}/${RUN_ID}/pattern-generation-2/`;
     const branchRun: PipelineRun = {
