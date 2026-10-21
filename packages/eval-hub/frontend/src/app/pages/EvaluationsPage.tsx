@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Bullseye,
   Content,
   Drawer,
@@ -331,6 +332,16 @@ const EvaluationsPage: React.FC = () => {
                 removeChildrenTopPadding
                 keepBodyWrapper={false}
               >
+                <Alert
+                  isInline
+                  variant="info"
+                  title="Technology Preview"
+                  data-testid="evalhub-tech-preview-alert"
+                  className="pf-v6-u-mb-lg"
+                >
+                  The AI Evaluations user interface is provided as a Technology Preview, while the
+                  AI Evaluations back-end is generally available.
+                </Alert>
                 <Tabs
                   activeKey={activeTab}
                   onSelect={onSelectTab}

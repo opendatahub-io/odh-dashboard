@@ -209,6 +209,20 @@ describe('EvaluationsPage', () => {
     }));
   });
 
+  it('should show the Technology Preview inline notification above the tabs', () => {
+    renderPage('test-project');
+    const alert = screen.getByTestId('evalhub-tech-preview-alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent('Technology Preview');
+    expect(alert).toHaveTextContent(
+      'The AI Evaluations user interface is provided as a Technology Preview, while the AI Evaluations back-end is generally available.',
+    );
+    // The notification sits above the page tabs.
+    expect(alert.compareDocumentPosition(screen.getByTestId('evaluations-page-tabs'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
   it('should default to the Gallery tab with curated suite filters', () => {
     renderPage('test-project');
     expect(screen.getByTestId('applications-page')).toBeInTheDocument();
