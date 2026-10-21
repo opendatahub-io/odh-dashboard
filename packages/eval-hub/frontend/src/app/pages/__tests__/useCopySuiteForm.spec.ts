@@ -631,7 +631,7 @@ describe('useCopySuiteForm', () => {
         saveMode: 'create',
         suiteName: 'New suite',
         suiteDescription: 'A new suite',
-        suiteDomains: JSON.stringify(['safety', 'reasoning']),
+        suiteDomains: JSON.stringify(['trustworthiness', 'reasoning']),
         suiteTasks: JSON.stringify(['classification']),
         suiteModalities: JSON.stringify(['text']),
         suiteIndustries: JSON.stringify(['technology']),
