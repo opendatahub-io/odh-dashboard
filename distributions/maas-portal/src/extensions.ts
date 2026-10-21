@@ -5,6 +5,7 @@ import type {
   SuppressExtension,
   PatchExtension,
   NavPatch,
+  HrefNavItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
 const extensions: Extension[] = [
@@ -64,7 +65,7 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
-  // Hide the AAE page
+  // Suppression is unconditional, so restore AAE below only when grid is disabled.
   {
     type: 'app.suppress',
     properties: {
@@ -72,6 +73,17 @@ const extensions: Extension[] = [
       targetId: 'ai-assets',
     },
   } satisfies SuppressExtension,
+
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['plugin-gen-ai'], disallowed: ['grid'] },
+    properties: {
+      id: 'ai-assets',
+      title: 'AI asset endpoints',
+      href: '/gen-ai-studio/assets',
+      path: '/gen-ai-studio/assets/*',
+    },
+  } satisfies HrefNavItemExtension,
 
   // Patch package-owned nav items: clear section (flatten) and set top-level group order
   {
@@ -119,6 +131,7 @@ const extensions: Extension[] = [
   } satisfies PatchExtension<NavPatch>,
   {
     type: 'app.route',
+    flags: { required: ['grid'] },
     properties: {
       path: '/maas/models/*',
       component: () => import('@odh-dashboard/gen-ai/MaaSModelsPageProvider'),
@@ -126,6 +139,7 @@ const extensions: Extension[] = [
   } satisfies RouteExtension,
   {
     type: 'app.navigation/href',
+    flags: { required: ['grid'] },
     properties: {
       id: 'maas-models',
       title: 'Models endpoints',
