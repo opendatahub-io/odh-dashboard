@@ -1286,7 +1286,7 @@ jobs:
         run: |
           echo "🧹 Cleaning up stale processes on E2E ports..."
           # E2E proxy port + all BFF ports
-          for port in 4040 9100 9101 9102 9103 9104 9105 9106 9107 9108 9109 9110 9111 9112 9113; do
+          for port in 4040 9100 9101 9102 9103 9104 9105 9106 9107 9108 9109 9110 9111 9112 9113 18443; do
             PIDS=$(lsof -ti :$port 2>/dev/null || true)
             if [ -n "$PIDS" ]; then
               echo "  Killing stale process on port $port (PIDs: $PIDS)"
@@ -1311,6 +1311,8 @@ jobs:
           BFF_MLFLOW_DEV_URL: 'http://localhost:9110/api/v1'
           BFF_MLFLOW_AUTH_TOKEN_HEADER: 'Authorization'
           BFF_MLFLOW_AUTH_TOKEN_PREFIX: 'Bearer '
+          MLFLOW_URL: 'https://localhost:18443/mlflow'
+          INSECURE_SKIP_VERIFY: 'true'
           TAG_SOURCE: ${{ needs.get-test-tags.outputs.source }}
         run: |
           TAG="$MATRIX_TAG"
@@ -1363,16 +1365,43 @@ jobs:
           fi
 
           # Final port cleanup right before server start (minimizes race window with concurrent jobs)
-          for port in 4040 4000 9100 9102 9104 9106 9107 9108 9109 9110 9111 9112 9113; do
+          for port in 4040 4000 9100 9102 9104 9106 9107 9108 9109 9110 9111 9112 9113 18443; do
             fuser -k $port/tcp 2>/dev/null || true
           done
           sleep 0.5
 
+          MLFLOW_FORWARD_LOG=/tmp/mlflow-pod-forward.log
+          rm -f "$MLFLOW_FORWARD_LOG"
+          (
+            while true; do
+              if oc wait --for=condition=Available deployment/mlflow -n redhat-ods-applications --timeout=0 >/dev/null 2>&1; then
+                oc port-forward -n redhat-ods-applications deployment/mlflow 18443:8443
+                echo "$(date -u +%FT%TZ) MLflow port-forward exited; retrying"
+              fi
+              sleep 5
+            done
+          ) </dev/null >>"$MLFLOW_FORWARD_LOG" 2>&1 &
+          MLFLOW_FORWARD_PID=$!
+          cleanup_mlflow_forward() {
+            kill "$MLFLOW_FORWARD_PID" 2>/dev/null || true
+            pkill -f 'oc port-forward -n redhat-ods-applications deployment/mlflow 18443:8443' 2>/dev/null || true
+          }
+          trap cleanup_mlflow_forward EXIT
+          echo "Routing local MLflow BFF traffic through pod-local port 18443"
+
           # Keep backend request logs out of the Actions output; Cypress remains visible as process 1.
+          set +e
           npx concurrently -P -k -s first --hide 0 \
             "pnpm cypress:server:e2e" \
             "pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true $CYPRESS_COMMAND" \
             --
+          TEST_STATUS=$?
+          set -e
+          if [ -s "$MLFLOW_FORWARD_LOG" ]; then
+            echo "--- MLflow port-forward log ---"
+            tail -n 50 "$MLFLOW_FORWARD_LOG"
+          fi
+          exit "$TEST_STATUS"
 
       - name: Upload test results
         if: always()
