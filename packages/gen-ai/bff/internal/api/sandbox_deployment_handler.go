@@ -407,11 +407,6 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 	// so remote::passthrough embedding providers authenticate file-search calls with it.
 	var embeddingAuthSecret *kubernetes.SandboxSecretEnvVar
 	if embeddingKeyRef != nil {
-		if embeddingKeyRef.Key == "" {
-			rollback()
-			app.badRequestResponse(w, r, fmt.Errorf("custom endpoint embedding model has a Secret name %q but no key", embeddingKeyRef.Name))
-			return
-		}
 		apiKey, secretErr := k8sClient.GetSecretValue(ctx, nil, namespace, embeddingKeyRef.Name, embeddingKeyRef.Key)
 		if secretErr != nil {
 			rollback()

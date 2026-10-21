@@ -685,6 +685,25 @@ func TestRequiredSandboxEmbeddingKeyRef(t *testing.T) {
 		assert.Nil(t, ref)
 	})
 
+	t.Run("Secret name without key is rejected", func(t *testing.T) {
+		profile := sandboxEmbeddingTestProfile("vs-bad-ref")
+		storeDoc := sandboxEmbeddingTestStoreDoc(models.RegisteredVectorStore{
+			VectorStoreID: "vs-bad-ref", EmbeddingModel: "bad-ref-model",
+		})
+		classify := func(string) kubernetes.SandboxEmbeddingModel {
+			return kubernetes.SandboxEmbeddingModel{
+				Source:      kubernetes.SandboxEmbeddingSourceCustomEndpoint,
+				EndpointURL: "https://keyed.example.com/v1",
+				SecretRef:   models.SecretRef{Name: "gemini-key"}, // Key empty
+			}
+		}
+		_, err := kubernetes.RequiredSandboxEmbeddingKeyRef(profile, storeDoc, classify)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "bad-ref-model")
+		assert.Contains(t, err.Error(), "gemini-key")
+		assert.Contains(t, err.Error(), "no key")
+	})
+
 	t.Run("keyed model requires its SecretRef", func(t *testing.T) {
 		profile := sandboxEmbeddingTestProfile("vs-keyed")
 		storeDoc := sandboxEmbeddingTestStoreDoc(models.RegisteredVectorStore{

@@ -422,6 +422,9 @@ func RequiredSandboxEmbeddingKeyRef(
 		if classification.Source != SandboxEmbeddingSourceCustomEndpoint || classification.SecretRef.Name == "" {
 			continue
 		}
+		if classification.SecretRef.Key == "" {
+			return nil, fmt.Errorf("custom endpoint embedding model %q has a Secret name %q but no key", embeddingModelName, classification.SecretRef.Name)
+		}
 		if required == nil {
 			ref := classification.SecretRef
 			required = &ref
