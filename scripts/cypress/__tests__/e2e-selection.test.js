@@ -160,6 +160,29 @@ describe('buildSelectionPlan', () => {
     );
   });
 
+  it('does not schedule impacted specs without CI-selectable tags', () => {
+    const localInventory = {
+      [specPath('alpha')]: inventory[specPath('alpha')],
+      [specPath('other')]: inventory[specPath('other')],
+      [specPath('feature-flagged')]: inventoryEntry('feature-flagged', ['@FeatureFlagged']),
+    };
+
+    const result = plan([{ status: 'M', path: supportPath('pages/shared') }], {
+      inventory: localInventory,
+      dependencyIndex: {
+        consumers: {
+          [supportPath('pages/shared')]: [specPath('alpha'), specPath('feature-flagged')],
+        },
+      },
+      selectedTags: ['@Other'],
+    });
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.summary.impactedSpecs, [specPath('alpha')]);
+    const impactedJob = result.matrix.find((job) => job.tag.startsWith('@ImpactedSpec'));
+    assert.deepEqual(impactedJob.specs, [specPath('alpha')]);
+  });
+
   it('maps broad reverse impact to package CI tags instead of every spec', () => {
     const broadInventory = {};
     const broadSpecs = Array.from({ length: 6 }, (_, index) => `broad-${index}`);

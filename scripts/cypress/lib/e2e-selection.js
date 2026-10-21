@@ -368,6 +368,14 @@ const buildFixtureConsumers = ({ root, specs, dependencyIndex, fixturePath }) =>
 
 const isExecutableSpec = (spec, inventory) => (inventory[spec]?.executableTestCount ?? 0) > 0;
 
+const isCiRunnableSpec = (spec, inventory, ciTags) => {
+  const entry = inventory[spec];
+  return (
+    isExecutableSpec(spec, inventory) &&
+    Boolean(entry?.executableTags.some((tag) => ciTags.includes(tag)))
+  );
+};
+
 const resolveAvailableFullCoverageTags = (inventory) =>
   FULL_COVERAGE_TAGS.filter((tag) =>
     Object.values(inventory).some((entry) => entry.executableTags.includes(tag)),
@@ -455,7 +463,7 @@ const buildSelectionPlan = ({
         continue;
       }
       const executableConsumers = consumers.filter((consumer) =>
-        isExecutableSpec(consumer, inventory),
+        isCiRunnableSpec(consumer, inventory, ciTags),
       );
       for (const consumer of executableConsumers) {
         impactedSpecs.add(consumer);
@@ -477,7 +485,7 @@ const buildSelectionPlan = ({
       continue;
     }
     const executableConsumers = consumers.filter((consumer) =>
-      isExecutableSpec(consumer, inventory),
+      isCiRunnableSpec(consumer, inventory, ciTags),
     );
     for (const consumer of executableConsumers) {
       impactedSpecs.add(consumer);

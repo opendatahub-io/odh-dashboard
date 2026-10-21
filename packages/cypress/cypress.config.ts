@@ -217,8 +217,8 @@ export default defineConfig({
         }
 
         try {
-          const outputFile = path.join(__dirname, resultsDir, 'junit-report.xml');
-          const inputFiles = [`./${resultsDir}/junit/*.xml`];
+          const outputFile = path.resolve(__dirname, resultsDir, 'junit-report.xml');
+          const inputFiles = [path.resolve(__dirname, resultsDir, 'junit', '*.xml')];
           await mergeFiles(outputFile, inputFiles);
         } catch (e) {
           console.warn('junit report merge failed:', e);

@@ -14,6 +14,7 @@ On startup, the proxy builds a routing table from `test-variables.yml` and the m
 |---------|--------|-------------|
 | `/api/service/*` | Cluster (`ODH_DASHBOARD_URL`) | `Authorization: Bearer <token>` |
 | `proxyService` paths where `service.name` is not `odh-dashboard` | Cluster | `Authorization: Bearer <token>` |
+| `/_mf/{name}/*` for external module federation services | Cluster (`ODH_DASHBOARD_URL`) | `Authorization: Bearer <token>` |
 | Everything else (static files, `/api/*`, `/_mf/*` for local BFFs, WebSockets) | Local backend (`:4000`) | `x-forwarded-access-token: <token>` |
 
 Only services NOT managed by `odh-dashboard` are routed to the cluster. The `proxyService` paths are read from each package's `module-federation` config in `package.json`. Packages with BFFs running locally (service name `odh-dashboard`) fall through to the backend, which proxies `/_mf/{name}/*` to the local BFF port.
