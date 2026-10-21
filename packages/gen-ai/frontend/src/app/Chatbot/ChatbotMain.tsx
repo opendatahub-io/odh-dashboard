@@ -27,6 +27,7 @@ import { getMCPServerAuth } from '~/app/agentProfile/mcpServerAuth';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
+import { getModelSubscriptions } from '~/app/Chatbot/components/SubscriptionDropdown';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
@@ -184,10 +185,14 @@ const ChatbotMain: React.FunctionComponent = () => {
   const defaultConfigBaselineRef = React.useRef<ChatbotConfiguration | null>(null);
   const configurations = useChatbotConfigStore((s) => s.configurations);
   const hasBaseline = defaultConfigBaselineRef.current !== null;
-  // Mask values the app manages automatically (default guardrail, inline-mode vector
-  // store, conversation images) so they don't read as user edits. MCP tool selections
-  // are also masked until the baseline exists — the store pre-loads them from
-  // sessionStorage before initialization captures the baseline.
+  // The subscription SubscriptionDropdown auto-picks (highest priority) for a model
+  const getAutoSubscription = (model: string, isMaaSModel = false): string =>
+    getModelSubscriptions(model, maasModels, isMaaSModel)[0]?.name ?? '';
+  // Mask values the app manages automatically (default guardrail, auto-picked MaaS
+  // subscriptions, inline-mode vector store, conversation images) so they don't read
+  // as user edits. MCP tool selections are also masked until the baseline exists —
+  // the store pre-loads them from sessionStorage before initialization captures
+  // the baseline.
   const serializeConfigForDirtyCheck = (config: ChatbotConfiguration): string =>
     JSON.stringify({
       ...config,
@@ -199,6 +204,18 @@ const ChatbotMain: React.FunctionComponent = () => {
         )?.id
           ? ''
           : config.guardrail,
+      selectedSubscription:
+        config.selectedSubscription === getAutoSubscription(config.selectedModel)
+          ? ''
+          : config.selectedSubscription,
+      guardrailSubscription:
+        config.guardrailSubscription === getAutoSubscription(config.guardrail)
+          ? ''
+          : config.guardrailSubscription,
+      selectedAsrSubscription:
+        config.selectedAsrSubscription === getAutoSubscription(config.selectedAsrModel, true)
+          ? ''
+          : config.selectedAsrSubscription,
       selectedVectorStoreId:
         config.knowledgeMode === 'inline' ? null : config.selectedVectorStoreId,
       hasVisionImage: false,
@@ -369,6 +386,16 @@ const ChatbotMain: React.FunctionComponent = () => {
       { replace: true },
     );
   }, [setSearchParams]);
+
+  // Reported by ChatbotPlayground once initialization finishes — capture the effective
+  // starting configuration as the dirty-check baseline. The model is written to the
+  // store right after this callback, so patch it in.
+  const handleInitialModelSelected = React.useCallback((model: string) => {
+    const config = useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID];
+    if (config) {
+      defaultConfigBaselineRef.current = { ...config, selectedModel: model };
+    }
+  }, []);
 
   const handleProfileSelected = React.useCallback(
     (profileId: string) => {
@@ -646,18 +673,22 @@ const ChatbotMain: React.FunctionComponent = () => {
               isProfileDirty={isProfileDirty}
               onResetToLastSaved={handleResetToLastSaved}
               isDefaultConfigDirty={isDefaultConfigDirty}
-              onInitialModelSelected={(model) => {
-                const config = useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID];
-                if (config) {
-                  // The model is written to the store right after this callback — patch it
-                  // in so the baseline matches the effective starting configuration
-                  defaultConfigBaselineRef.current = { ...config, selectedModel: model };
-                }
-              }}
+              onInitialModelSelected={handleInitialModelSelected}
               onRevertToDefaults={() => {
-                useChatbotConfigStore
-                  .getState()
-                  .resetConfiguration(defaultConfigBaselineRef.current ?? DEFAULT_CONFIGURATION);
+                const currentConfig =
+                  useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID];
+                const baseline = defaultConfigBaselineRef.current ?? DEFAULT_CONFIGURATION;
+                // The inline-mode vector store is auto-provisioned from uploaded
+                // documents, not a user setting — keep it so RAG requests stay
+                // connected to them after reverting
+                const preserveInlineVectorStore =
+                  baseline.knowledgeMode === 'inline' && currentConfig?.knowledgeMode === 'inline';
+                useChatbotConfigStore.getState().resetConfiguration({
+                  ...baseline,
+                  selectedVectorStoreId: preserveInlineVectorStore
+                    ? (currentConfig.selectedVectorStoreId ?? baseline.selectedVectorStoreId)
+                    : baseline.selectedVectorStoreId,
+                });
                 setActivePaneConfigId(DEFAULT_CONFIG_ID);
               }}
               mcpServers={availableMcpServers}

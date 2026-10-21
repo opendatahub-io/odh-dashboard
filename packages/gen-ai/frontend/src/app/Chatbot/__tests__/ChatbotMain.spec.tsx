@@ -10,10 +10,13 @@ import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import useGenAiAgentDeploymentEnabled from '~/app/hooks/useGenAiAgentDeploymentEnabled';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
+import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
+import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import ChatbotPlayground from '~/app/Chatbot/ChatbotPlayground';
 import SaveAgentProfileModal from '~/app/Chatbot/components/SaveAgentProfileModal';
 import type {
   AAModelResponse,
+  AIModel,
   BFFConfig,
   LlamaStackDistributionModel,
   MCPServerFromAPI,
@@ -45,7 +48,11 @@ jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
 
 jest.mock('~/app/components/SafeNavigationBlocker', () => ({
   __esModule: true,
-  default: () => null,
+  default: jest.fn(() => null),
+}));
+
+jest.mock('~/app/hooks/useSafeBrowserUnloadBlocker', () => ({
+  useSafeBrowserUnloadBlocker: jest.fn(),
 }));
 
 // Mock child components
@@ -440,6 +447,99 @@ describe('ChatbotMain - Empty State Logic', () => {
     const secondaryConfigId = useChatbotConfigStore.getState().configIds[1];
     act(() => actualStore.getState().updateTemperature(secondaryConfigId, 0.9));
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() => actualStore.getState().resetConfiguration());
+  });
+
+  const renderWithActualStore = (maasModels: AIModel[]) => {
+    const actualStore =
+      jest.requireActual<typeof import('~/app/Chatbot/store')>(
+        '~/app/Chatbot/store',
+      ).useChatbotConfigStore;
+    mockUseChatbotConfigStore.getState = actualStore.getState;
+    mockUseChatbotConfigStore.mockImplementation(actualStore);
+    act(() => actualStore.getState().resetConfiguration());
+    render(
+      <ChatbotContext.Provider
+        value={{
+          lsdStatus: { phase: 'Ready', tracingEnabled: false } as LlamaStackDistributionModel,
+          modelsLoaded: true,
+          lsdStatusLoaded: true,
+          lsdStatusError: undefined,
+          refresh: jest.fn(),
+          aiModels: [],
+          aiModelsLoaded: true,
+          aiModelsError: undefined,
+          maasModels,
+          maasModelsLoaded: true,
+          maasModelsError: undefined,
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'test-model', modelId: 'test-model', object: 'model', created: 0, owned_by: '' },
+          ],
+          modelsError: undefined,
+          nemoGuardrailsStatus: null,
+          nemoGuardrailsStatusLoaded: true,
+          nemoGuardrailsStatusError: undefined,
+          lastInput: '',
+          setLastInput: jest.fn(),
+        }}
+      >
+        <GenAiContext.Provider
+          value={{
+            namespace: { name: 'test-namespace' } as Namespace,
+            apiState: { apiAvailable: false, api: null as never },
+            refreshAPIState: jest.fn(),
+          }}
+        >
+          <ChatbotMain />
+        </GenAiContext.Provider>
+      </ChatbotContext.Provider>,
+    );
+    return actualStore;
+  };
+
+  it('should not treat the auto-picked model subscription as an unsaved change', () => {
+    const actualStore = renderWithActualStore([
+      {
+        id: 'test-model',
+        subscriptions: [{ name: 'priority-sub' }, { name: 'other-sub' }],
+      } as AIModel,
+    ]);
+
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    // The subscription dropdown auto-picks the highest-priority subscription — not a user edit
+    act(() => actualStore.getState().updateSelectedSubscription('default', 'priority-sub'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    // Choosing a different subscription is a user edit
+    act(() => actualStore.getState().updateSelectedSubscription('default', 'other-sub'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    expect(jest.mocked(useSafeBrowserUnloadBlocker)).toHaveBeenLastCalledWith(true);
+    expect(jest.mocked(SafeNavigationBlocker)).toHaveBeenLastCalledWith(
+      expect.objectContaining({ hasUnsavedChanges: true }),
+      expect.anything(),
+    );
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    expect(actualStore.getState().configurations.default?.selectedSubscription).toBe('');
+    expect(jest.mocked(useSafeBrowserUnloadBlocker)).toHaveBeenLastCalledWith(false);
+    act(() => actualStore.getState().resetConfiguration());
+  });
+
+  it('should keep the inline vector store when reverting to the starting settings', () => {
+    const actualStore = renderWithActualStore([]);
+
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    // Inline-mode documents auto-provision a vector store — not a user edit
+    act(() => actualStore.getState().updateSelectedVectorStoreId('default', 'doc-store'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    act(() => actualStore.getState().updateTemperature('default', 0.5));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.());
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    // RAG stays connected to the uploaded documents after reverting
+    expect(actualStore.getState().configurations.default?.selectedVectorStoreId).toBe('doc-store');
     act(() => actualStore.getState().resetConfiguration());
   });
 });
