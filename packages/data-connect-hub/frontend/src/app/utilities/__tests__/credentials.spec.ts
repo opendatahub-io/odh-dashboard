@@ -13,15 +13,18 @@ describe('isSensitiveCredentialField', () => {
     ['API_KEY', 'API key'],
     ['PROVIDER_APIKEY', 'Provider API key'],
     ['PRIVATE_KEY', 'Private key'],
+    ['URI', 'URI'],
+    ['url', 'Connection URL'],
+    ['CONNECTION_STRING', 'Connection string'],
   ])('identifies sensitive field %s', (name, label) => {
     expect(isSensitiveCredentialField(field(name, label))).toBe(true);
   });
 
   it.each([
-    ['URI', 'Connection URI'],
     ['HOST', 'Host'],
     ['SSL_MODE', 'SSL mode'],
     ['AWS_ACCESS_KEY_ID', 'Access key ID'],
+    ['DSN', 'Data source name'],
   ])('does not identify non-sensitive field %s', (name, label) => {
     expect(isSensitiveCredentialField(field(name, label))).toBe(false);
   });

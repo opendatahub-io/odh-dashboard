@@ -264,8 +264,11 @@ describe('CreateConnectionWizard', () => {
     expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
     expect(screen.getByText('existing-connection')).toBeTruthy();
     expect(screen.getByText('region: east')).toBeTruthy();
+    expect(screen.queryByText('postgres://example')).toBeNull();
+    expect(screen.getByLabelText('URI value hidden').textContent).toBe('••••••••');
+
+    await user.click(screen.getByRole('button', { name: 'Show URI' }));
     expect(screen.getByText('postgres://example')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Show URI' })).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
     await waitFor(() =>
@@ -323,16 +326,93 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByLabelText('API token value hidden').textContent).toBe('••••••••');
     expect(screen.queryByText('short-lived-token')).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: 'Show API token' }));
+    const reviewShowButton = screen.getByRole('button', { name: 'Show API token' });
+    expect(within(reviewShowButton).getByTestId('hidden-value-icon')).toBeTruthy();
+
+    await user.click(reviewShowButton);
     expect(screen.getByText('short-lived-token')).toBeTruthy();
+    expect(within(reviewShowButton).getByTestId('visible-value-icon')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Back' }));
     const tokenInput = screen.getByTestId('credential-API_TOKEN') as HTMLInputElement;
     expect(tokenInput).toHaveProperty('type', 'password');
     expect(tokenInput.value).toBe('short-lived-token');
 
-    await user.click(screen.getByRole('button', { name: 'Show API token' }));
+    const configurationShowButton = screen.getByRole('button', { name: 'Show API token' });
+    expect(within(configurationShowButton).getByTestId('hidden-value-icon')).toBeTruthy();
+
+    await user.click(configurationShowButton);
     expect(tokenInput).toHaveProperty('type', 'text');
+    expect(within(configurationShowButton).getByTestId('visible-value-icon')).toBeTruthy();
+  });
+
+  it('masks connection URI and URL fields on both wizard steps', async () => {
+    const user = userEvent.setup();
+    const credentialValues = {
+      URI: 'postgresql://alice:example-password@db.example:5432/app',
+      url: 'postgresql://bob:example-password@db.example:5432/app',
+      CONNECTION_STRING: 'postgresql://db.example/app?user=carol&password=example-password',
+    };
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              { name: 'URI', label: 'URI', required: true, type: 'string' },
+              { name: 'url', label: 'Connection URL', required: true, type: 'string' },
+              {
+                name: 'CONNECTION_STRING',
+                label: 'Connection string',
+                required: true,
+                type: 'string',
+              },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: credentialValues,
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    Object.values(credentialValues).forEach((value) => {
+      expect(screen.queryByText(value)).toBeNull();
+    });
+    ['URI', 'Connection URL', 'Connection string'].forEach((label) => {
+      expect(screen.getByLabelText(`${label} value hidden`).textContent).toBe('••••••••');
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Show URI' }));
+    await user.click(screen.getByRole('button', { name: 'Show Connection URL' }));
+    await user.click(screen.getByRole('button', { name: 'Show Connection string' }));
+    Object.values(credentialValues).forEach((value) => {
+      expect(screen.getByText(value)).toBeTruthy();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    Object.entries(credentialValues).forEach(([fieldName, value]) => {
+      const input = screen.getByTestId(`credential-${fieldName}`) as HTMLInputElement;
+      expect(input).toHaveProperty('type', 'password');
+      expect(input.value).toBe(value);
+    });
   });
 
   it('should resolve the initial step after merging required credential defaults', async () => {

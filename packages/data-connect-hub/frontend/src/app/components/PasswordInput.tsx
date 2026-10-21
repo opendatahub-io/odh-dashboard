@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, InputGroup, InputGroupItem, TextInput } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 
-type PasswordInputProps = React.ComponentProps<typeof TextInput> & {
+type PasswordInputProps = Omit<React.ComponentProps<typeof TextInput>, 'type'> & {
   ariaLabelShow?: string;
   ariaLabelHide?: string;
 };
@@ -25,7 +25,11 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
           variant="control"
           onClick={() => setIsValueHidden(!isValueHidden)}
         >
-          {isValueHidden ? <EyeSlashIcon /> : <EyeIcon />}
+          {isValueHidden ? (
+            <EyeSlashIcon data-testid="hidden-value-icon" />
+          ) : (
+            <EyeIcon data-testid="visible-value-icon" />
+          )}
         </Button>
       </InputGroupItem>
     </InputGroup>

@@ -464,7 +464,13 @@ const ReviewCredentialValue: React.FC<{
         <FlexItem>
           <Button
             variant="plain"
-            icon={isVisible ? <EyeSlashIcon /> : <EyeIcon />}
+            icon={
+              isVisible ? (
+                <EyeIcon data-testid="visible-value-icon" />
+              ) : (
+                <EyeSlashIcon data-testid="hidden-value-icon" />
+              )
+            }
             onClick={() => setIsVisible((visible) => !visible)}
             aria-label={isVisible ? `Hide ${field.label}` : `Show ${field.label}`}
             data-testid={`review-show-${field.name}`}

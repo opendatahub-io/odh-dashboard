@@ -10,6 +10,9 @@ const SENSITIVE_CREDENTIAL_FIELD_TERMS = [
   'credential',
   'apikey',
   'private',
+  'uri',
+  'url',
+  'connectionstring',
 ] as const;
 
 const normalizeCredentialFieldName = (value?: string | null): string =>
