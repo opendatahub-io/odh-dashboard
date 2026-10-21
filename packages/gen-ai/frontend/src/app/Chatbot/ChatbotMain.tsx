@@ -683,6 +683,8 @@ const ChatbotMain: React.FunctionComponent = () => {
                 // connected to them after reverting
                 const preserveInlineVectorStore =
                   baseline.knowledgeMode === 'inline' && currentConfig?.knowledgeMode === 'inline';
+                // resetConfiguration also persists mcpToolSelections to sessionStorage,
+                // so the starting MCP tool selections are restored in storage too
                 useChatbotConfigStore.getState().resetConfiguration({
                   ...baseline,
                   selectedVectorStoreId: preserveInlineVectorStore
