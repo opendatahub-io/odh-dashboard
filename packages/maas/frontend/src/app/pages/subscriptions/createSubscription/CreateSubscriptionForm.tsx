@@ -16,7 +16,6 @@ import {
 } from '@patternfly/react-core';
 import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
-import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
@@ -57,18 +56,6 @@ import {
 import SystemAuthenticatedWarning from '~/app/shared/SystemAuthenticatedWarning';
 import { hasInternalModelKind } from '~/app/utilities/subscriptions';
 import EditRateLimitsModal from './EditRateLimitsModal';
-
-const INFERENCE_PRIORITY_HELP = (
-  <>
-    <p>
-      Controls the scheduling priority for inference requests made under internal models in this
-      subscription. Higher values mean requests are scheduled first, while negative values place
-      requests below the default priority.
-    </p>
-    <br />
-    <p>This field is optional. If left unset, requests use the default priority.</p>
-  </>
-);
 
 type CreateSubscriptionFormProps = {
   groups: string[];
@@ -448,24 +435,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               resourceType="subscription"
             />
             {hasInternalModel ? (
-              <FormGroup
-                label="Inference priority"
-                fieldId="subscription-inference-priority"
-                labelHelp={
-                  <FieldGroupHelpLabelIcon
-                    title="Inference priority"
-                    content={INFERENCE_PRIORITY_HELP}
-                    buttonTestId="subscription-inference-priority-help"
-                    popoverBodyTestId="subscription-inference-priority-help-popover"
-                  />
-                }
-              >
+              <FormGroup label="Inference priority" fieldId="subscription-inference-priority">
                 <FormHelperText>
                   <HelperText>
                     <HelperTextItem variant="default">
-                      When capacity is limited, higher priority values are scheduled for inference
-                      first. Applies only to internal models in this subscription. External models
-                      are not affected.
+                      This value determines the scheduling order of inference requests for all
+                      internal models in this subscription. Requests with a higher priority value
+                      are scheduled first. If not specified, the default value of 0 is used.
                     </HelperTextItem>
                   </HelperText>
                 </FormHelperText>

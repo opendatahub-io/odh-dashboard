@@ -44,8 +44,8 @@ const modalTitle = () => (
     </StackItem>
     <StackItem>
       <Content component="small" data-testid="subtitle">
-        When capacity is limited, higher priority values are scheduled for inference first. Applies
-        only to internal models in this subscription. External models are not affected.
+        Inference priority determines the scheduling order of inference requests for all internal
+        models in this subscription. Requests with a higher priority value are scheduled first.
       </Content>
     </StackItem>
   </Stack>
@@ -84,7 +84,8 @@ const InferencePriorityStatusModal: React.FC<InferencePriorityStatusModalProps> 
               </FlexItem>
               <FlexItem>
                 <Content component="p">
-                  Status of inference priority for each internal model in this subscription.
+                  The following details show whether the inference priority is applied to each
+                  internal model in this subscription.
                 </Content>
               </FlexItem>
             </Flex>
@@ -103,7 +104,7 @@ const InferencePriorityStatusModal: React.FC<InferencePriorityStatusModalProps> 
               <Tbody>
                 {internalModelRefs.map((modelRef) => (
                   <Tr key={`${modelRef.namespace}/${modelRef.name}`}>
-                    <Td dataLabel="Model">
+                    <Td dataLabel="Model" data-testid={`${modelRef.name}-model`}>
                       <TableRowTitleDescription
                         title={<strong>{modelRef.displayName ?? modelRef.name}</strong>}
                         subtitle={<code>{modelRef.name}</code>}
@@ -111,8 +112,10 @@ const InferencePriorityStatusModal: React.FC<InferencePriorityStatusModalProps> 
                         truncateDescriptionLines={2}
                       />
                     </Td>
-                    <Td dataLabel="Project">{modelRef.namespace}</Td>
-                    <Td dataLabel="Applied">
+                    <Td dataLabel="Project" data-testid={`${modelRef.name}-project`}>
+                      {modelRef.namespace}
+                    </Td>
+                    <Td dataLabel="Applied" data-testid={`${modelRef.name}-applied`}>
                       <Label
                         status={modelRef.ready ? 'success' : 'danger'}
                         isClickable={false}
@@ -121,8 +124,12 @@ const InferencePriorityStatusModal: React.FC<InferencePriorityStatusModalProps> 
                         {formatReady(modelRef.ready)}
                       </Label>
                     </Td>
-                    <Td dataLabel="Reason">{modelRef.reason ?? '—'}</Td>
-                    <Td dataLabel="Message">{modelRef.message ?? '—'}</Td>
+                    <Td dataLabel="Reason" data-testid={`${modelRef.name}-reason`}>
+                      {modelRef.reason ?? '—'}
+                    </Td>
+                    <Td dataLabel="Message" data-testid={`${modelRef.name}-message`}>
+                      {modelRef.message ?? '—'}
+                    </Td>
                   </Tr>
                 ))}
               </Tbody>
@@ -131,7 +138,11 @@ const InferencePriorityStatusModal: React.FC<InferencePriorityStatusModalProps> 
         </Stack>
       </ModalBody>
       <ModalFooter>
-        <Button variant="primary" onClick={onClose}>
+        <Button
+          variant="primary"
+          onClick={onClose}
+          data-testid="inference-priority-status-modal-close-button"
+        >
           Close
         </Button>
       </ModalFooter>

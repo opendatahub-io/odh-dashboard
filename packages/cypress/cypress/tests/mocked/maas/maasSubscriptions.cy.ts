@@ -13,6 +13,7 @@ import {
   viewSubscriptionPage,
   maasGovernancePage,
   phaseModal,
+  inferencePriorityStatusModal,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptions,
@@ -21,6 +22,8 @@ import {
   interceptMaasGovernanceData,
   mockCreateSubscriptionResponse,
   mockUpdateSubscriptionResponse,
+  mockModelRefSummaries,
+  mockSubscriptionFormData,
 } from '../../../utils/maasUtils';
 import type { CapturedDownload } from '../../../utils/downloadUtils';
 import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
@@ -366,24 +369,59 @@ describe('View Subscription Page', () => {
     });
   });
 
-  it('should display model status and flow control status in the models table', () => {
+  it('should display inference priority status in the details section', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findDetailsSection().should('contain.text', 'Inference priority');
+    viewSubscriptionPage.findDetailsSection().should('contain.text', '0');
+    viewSubscriptionPage.findInferencePriorityStatusButton().click();
+    inferencePriorityStatusModal.findInferencePriorityStatusModal().should('exist');
+    inferencePriorityStatusModal
+      .findInferencePriorityStatusModelReason('granite-3-8b-instruct')
+      .should('contain.text', 'BackendNotReady');
+    inferencePriorityStatusModal
+      .findInferencePriorityStatusModelMessage('granite-3-8b-instruct')
+      .should('contain.text', 'Waiting for HTTPRoute to be created');
+    inferencePriorityStatusModal
+      .findInferencePriorityStatusModelProject('granite-3-8b-instruct')
+      .should('contain.text', 'maas-models');
+    inferencePriorityStatusModal
+      .findInferencePriorityStatusModelApplied('granite-3-8b-instruct')
+      .should('contain.text', 'Not ready');
+    inferencePriorityStatusModal
+      .findInferencePriorityStatusModelModel('granite-3-8b-instruct')
+      .should('contain.text', 'granite-3-8b-instruct');
+    inferencePriorityStatusModal.findInferencePriorityStatusModalCloseButton().click();
+    inferencePriorityStatusModal.shouldBeOpen(false);
+  });
+
+  it('should not surface inference priority when the subscription has no internal models', () => {
+    const info = mockSubscriptionInfo(subscriptionName);
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: subscriptionName } },
+      {
+        data: {
+          ...info,
+          modelRefs: info.modelRefs.map((modelRef) => ({
+            ...modelRef,
+            modelRef: { kind: 'InferenceService', name: modelRef.modelRef.name },
+          })),
+        },
+      },
+    );
+
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findDetailsSection().should('not.contain.text', 'Inference priority');
+    viewSubscriptionPage.findInferencePriorityStatusButton().should('not.exist');
+  });
+
+  it('should display model status in the models table', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
     viewSubscriptionPage.visit(subscriptionName);
     viewSubscriptionPage.findModelsTable().should('contain.text', 'granite-3-8b-instruct');
     viewSubscriptionPage.findModelsTable().should('contain.text', 'maas-models');
     viewSubscriptionPage.findModelsTable().should('contain.text', '100,000');
-    viewSubscriptionPage.findModelStatus('granite-3-8b-instruct').should('contain.text', 'Failed');
-    viewSubscriptionPage
-      .findFlowControlStatus('granite-3-8b-instruct')
-      .should('contain.text', 'Pending');
-    viewSubscriptionPage.findFlowControlStatus('granite-3-8b-instruct').click();
-    phaseModal.find().should('exist');
-    phaseModal.findAlert().should('exist');
-    phaseModal.findAlertBody().should('exist');
-    phaseModal.findApiDetailsButton().should('exist').click();
-    phaseModal.findAlertDetailsCodeBlock().should('exist');
-    phaseModal.findCloseButton().click();
-    phaseModal.shouldBeOpen(false);
     viewSubscriptionPage.findModelStatus('granite-3-8b-instruct').should('contain.text', 'Failed');
     viewSubscriptionPage.findModelStatus('granite-3-8b-instruct').click();
     phaseModal.find().should('exist');
@@ -517,6 +555,30 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.visit();
     createSubscriptionPage.selectGroup('system:authenticated');
     createSubscriptionPage.findSystemAuthenticatedWarning().should('exist');
+  });
+
+  it('should not show the inference priority input when no internal models are added', () => {
+    interceptMaasGovernanceData(
+      mockSubscriptionFormData({
+        modelRefs: mockModelRefSummaries().map((modelRef) => ({
+          ...modelRef,
+          modelRef: { kind: 'InferenceService', name: modelRef.modelRef.name },
+        })),
+      }),
+    );
+
+    createSubscriptionPage.visit();
+    createSubscriptionPage.findPriorityField().should('not.exist');
+
+    createSubscriptionPage.findAddModelsButton().click();
+    addModelsToSubscriptionModal.shouldBeOpen();
+    addModelsToSubscriptionModal
+      .findToggleModelButton('granite-3-8b-instruct', 'maas-models')
+      .click();
+    addModelsToSubscriptionModal.findConfirmButton().click();
+
+    createSubscriptionPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
+    createSubscriptionPage.findPriorityField().should('not.exist');
   });
 
   it('should create a subscription without inference priority and show 0 on the view page', () => {

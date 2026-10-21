@@ -97,6 +97,7 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
                       variant="link"
                       isInline
                       onClick={() => setShowInferencePriorityStatus(true)}
+                      data-testid="subscription-inference-priority-view-more-details"
                     >
                       View more details
                     </Button>
