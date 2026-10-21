@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Host-side CodeRabbit adapter for Fullsend review runs.
 #
-# The CodeRabbit API key is used only here, in the trusted context job. This
-# script writes a bounded, normalized finding envelope for the host-side
-# aggregator; raw CLI output and credentials never leave the runner.
+# The CodeRabbit API key is used only here, run by the review pre-script
+# (pre-review.sh) on the host. This script writes a bounded, normalized
+# finding envelope for the host-side aggregator; raw CLI output and
+# credentials never leave the runner.
 #
 # Usage:
 #   fetch-coderabbit-context.sh

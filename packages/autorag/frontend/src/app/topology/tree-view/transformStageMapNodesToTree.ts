@@ -5,9 +5,9 @@ import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
 import { getPatternRowLabel } from '~/app/topology/stageMapLabels';
 import {
   type BranchExpandOptions,
-  matchesWinnerPattern,
   resolvePatternRank,
   resolveVisibleBranchIndices,
+  resolveWinnerBranchIndex,
 } from './branchExpand';
 import type { TreeNodeModel, TreeTopologyData } from './types';
 import { TREE_EDGE_TYPE, TREE_NODE_TYPE } from './treeFactories';
@@ -229,6 +229,7 @@ const patternTerminusExtras = (
   options: BranchExpandOptions | undefined,
   isCollapsedSpine: boolean,
   hideLabel: boolean,
+  winnerBranchIndex?: number | null,
 ): Partial<TreeNodeData> => {
   const extras: Partial<TreeNodeData> = {};
   if (hideLabel) {
@@ -239,7 +240,8 @@ const patternTerminusExtras = (
   }
 
   const winnerRank = resolvePatternRank(topologyNode, options.patternRanks);
-  const isWinner = matchesWinnerPattern(topologyNode, options);
+  const branchIndex = getBranchIndex(topologyNode.id);
+  const isWinner = winnerBranchIndex != null && branchIndex === winnerBranchIndex;
   const isResolvedWinner = options.winnerResolved && isWinner;
   extras.isResolvedWinner = isResolvedWinner;
   extras.showWinnerStar = isResolvedWinner && winnerRank === 1;
@@ -267,7 +269,7 @@ const patternTerminusExtras = (
       ...extras,
       winnerRank: undefined,
       label: collapsedRowLabel,
-      labelSubtitle: 'winner',
+      labelSubtitle: options.winnerResolved ? undefined : 'winner',
       showWinnerStar: false,
     };
   }
@@ -314,6 +316,21 @@ export const transformStageMapNodesToTree = (
     winnerResolved: false,
   };
   const visibleBranchIndices = resolveVisibleBranchIndices(branchIndices, branches, expandOptions);
+  const exactWinnerBranches =
+    expandOptions.winnerResolved && expandOptions.winnerPatternKey
+      ? branchIndices.filter((branchIndex) =>
+          (branches.get(branchIndex) ?? []).some(
+            (node) => node.data?.patternKey === expandOptions.winnerPatternKey,
+          ),
+        )
+      : [];
+  const winnerBranchIndex = expandOptions.winnerResolved
+    ? exactWinnerBranches.length > 0
+      ? exactWinnerBranches.length === 1
+        ? exactWinnerBranches[0]
+        : null
+      : (resolveWinnerBranchIndex(branches, branchIndices, expandOptions) ?? null)
+    : undefined;
   const isCollapsedSpine = !expandOptions.patternsExpanded && branchIndices.length > 1;
   const hideExpandedBranchLabels = options?.patternsExpanded === true && branchIndices.length > 1;
   const includeAuxNodes = options != null && branchIndices.length > 1;
@@ -392,6 +409,7 @@ export const transformStageMapNodesToTree = (
               expandOptions,
               isCollapsedSpine,
               hideExpandedBranchLabels,
+              winnerBranchIndex,
             )
           : hideExpandedBranchLabels
             ? { hideLabel: true }
