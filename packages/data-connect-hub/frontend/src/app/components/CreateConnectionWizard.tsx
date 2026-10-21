@@ -40,9 +40,11 @@ import { EyeIcon, EyeSlashIcon, MinusCircleIcon, PlusCircleIcon } from '@pattern
 import { Tearsheet } from '@patternfly/react-component-groups';
 import { testCredentials } from '~/app/api/dch';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
+import PasswordInput from '~/app/components/PasswordInput';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useNotification } from '~/app/hooks/useNotification';
+import { SENSITIVE_CREDENTIAL_MASK, isSensitiveCredentialField } from '~/app/utilities/credentials';
 import type {
   ConnectionType,
   ConnectionTypeCredentialField,
@@ -281,6 +283,7 @@ type CredentialFieldProps = {
 const CredentialField: React.FC<CredentialFieldProps> = ({ field, value, onChange }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const hasOptions = Boolean(field.enum_values?.length);
+  const isSensitive = isSensitiveCredentialField(field);
 
   return (
     <FormGroup label={field.label} isRequired={field.required} fieldId={`credential-${field.name}`}>
@@ -314,10 +317,20 @@ const CredentialField: React.FC<CredentialFieldProps> = ({ field, value, onChang
             ))}
           </SelectList>
         </Select>
+      ) : isSensitive ? (
+        <PasswordInput
+          id={`credential-${field.name}`}
+          value={value}
+          onChange={(_event, nextValue) => onChange(nextValue)}
+          isRequired={field.required}
+          autoComplete="off"
+          ariaLabelShow={`Show ${field.label}`}
+          ariaLabelHide={`Hide ${field.label}`}
+          data-testid={`credential-${field.name}`}
+        />
       ) : (
         <TextInput
           id={`credential-${field.name}`}
-          type="password"
           value={value}
           onChange={(_event, nextValue) => onChange(nextValue)}
           isRequired={field.required}
@@ -426,8 +439,12 @@ type ReviewStepProps = {
   properties: Record<string, string>;
 };
 
-const ReviewCredentialValue: React.FC<{ label: string; value?: string }> = ({ label, value }) => {
+const ReviewCredentialValue: React.FC<{
+  field: ConnectionTypeCredentialField;
+  value?: string;
+}> = ({ field, value }) => {
   const [isVisible, setIsVisible] = React.useState(false);
+  const isSensitive = isSensitiveCredentialField(field);
   const displayValue = value?.trim() ? value : '-';
 
   return (
@@ -437,18 +454,20 @@ const ReviewCredentialValue: React.FC<{ label: string; value?: string }> = ({ la
       spaceItems={{ default: 'spaceItemsNone' }}
     >
       <FlexItem>
-        <span>
-          {isVisible || displayValue === '-' ? displayValue : '•'.repeat(displayValue.length)}
+        <span aria-label={isSensitive && !isVisible ? `${field.label} value hidden` : undefined}>
+          {isVisible || !isSensitive || displayValue === '-'
+            ? displayValue
+            : SENSITIVE_CREDENTIAL_MASK}
         </span>
       </FlexItem>
-      {displayValue !== '-' ? (
+      {isSensitive && displayValue !== '-' ? (
         <FlexItem>
           <Button
             variant="plain"
             icon={isVisible ? <EyeSlashIcon /> : <EyeIcon />}
             onClick={() => setIsVisible((visible) => !visible)}
-            aria-label={isVisible ? `Hide ${label}` : `Show ${label}`}
-            data-testid={`review-show-${label}`}
+            aria-label={isVisible ? `Hide ${field.label}` : `Show ${field.label}`}
+            data-testid={`review-show-${field.name}`}
           />
         </FlexItem>
       ) : null}
@@ -505,7 +524,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             <DescriptionListTerm>{field.label}</DescriptionListTerm>
             <DescriptionListDescription>
               <ReviewCredentialValue
-                label={field.label}
+                field={field}
                 value={credentials[field.name] ?? field.default_value}
               />
             </DescriptionListDescription>

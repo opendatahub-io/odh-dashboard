@@ -264,10 +264,8 @@ describe('CreateConnectionWizard', () => {
     expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
     expect(screen.getByText('existing-connection')).toBeTruthy();
     expect(screen.getByText('region: east')).toBeTruthy();
-    expect(screen.queryByText('postgres://example')).toBeNull();
-
-    await user.click(screen.getByRole('button', { name: 'Show URI' }));
     expect(screen.getByText('postgres://example')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Show URI' })).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
     await waitFor(() =>
@@ -285,6 +283,56 @@ describe('CreateConnectionWizard', () => {
         'test-project',
       ),
     );
+  });
+
+  it('uses a fixed mask and password input for sensitive credential fields', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              { name: 'API_TOKEN', label: 'API token', required: true, type: 'string' },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: { API_TOKEN: 'short-lived-token' },
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    expect(screen.getByLabelText('API token value hidden').textContent).toBe('••••••••');
+    expect(screen.queryByText('short-lived-token')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Show API token' }));
+    expect(screen.getByText('short-lived-token')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    const tokenInput = screen.getByTestId('credential-API_TOKEN') as HTMLInputElement;
+    expect(tokenInput).toHaveProperty('type', 'password');
+    expect(tokenInput.value).toBe('short-lived-token');
+
+    await user.click(screen.getByRole('button', { name: 'Show API token' }));
+    expect(tokenInput).toHaveProperty('type', 'text');
   });
 
   it('should resolve the initial step after merging required credential defaults', async () => {
