@@ -338,6 +338,12 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         checkMaaSSubscriptionState(`${subscriptionName}-2`, subscriptionNamespace);
       });
 
+      cy.step('Verify the second subscription is created');
+      subscriptionsPage.visit();
+      subscriptionsPage.findFilterInput().type(`${subscriptionName}-2`);
+      subscriptionsPage.findRows().should('have.length', 1);
+      subscriptionsPage.findRows().should('contain.text', `${subscriptionName}-2`);
+
       cy.step('Edit the second subscription description and groups');
       editSubscriptionPage.visit(`${subscriptionName}-2`);
       editSubscriptionPage.findNameInput().should('have.value', `${subscriptionName}-2`);
@@ -359,7 +365,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       subscriptionsPage.findRows().should('contain.text', `Updated - ${subscriptionDescription}`);
 
       cy.step('Verify the view subscription page');
-      viewSubscriptionPage.visit(`${subscriptionName}-2`);
+      subscriptionsPage.findViewDetailsButton(`${subscriptionName}-2`).click();
       cy.url().should('include', `/maas/maas-governance/subscriptions/view/${subscriptionName}-2`);
 
       viewSubscriptionPage.findTitle().should('contain.text', `${subscriptionName}-2`);

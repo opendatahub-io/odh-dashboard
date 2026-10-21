@@ -848,7 +848,7 @@ class CreateSubscriptionPage {
   }
 
   findPriorityField(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-testid="subscription-inference-priority"]');
+    return cy.findByTestId('subscription-inference-priority');
   }
 
   findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -954,7 +954,7 @@ class EditSubscriptionPage {
   }
 
   findPriorityField(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-testid="subscription-inference-priority"]');
+    return cy.findByTestId('subscription-inference-priority');
   }
 
   findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1176,7 +1176,7 @@ class ViewSubscriptionPage {
   }
 
   findInferencePriorityStatusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-testid="subscription-inference-priority-view-more-details"]');
+    return cy.findByTestId('subscription-inference-priority-view-more-details');
   }
 }
 
