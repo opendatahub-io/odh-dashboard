@@ -89,6 +89,11 @@ type SandboxEmbeddingModel struct {
 	Source SandboxEmbeddingModelSource
 	// EndpointURL is the inference endpoint for custom-endpoint and ISVC models.
 	EndpointURL string
+	// ModelID is the model ID the serving endpoint accepts in requests. It equals the
+	// store's reference except for ISVC-served models, where an LLMInferenceService
+	// may serve under spec.model.name, which differs from its resource name. Empty
+	// means the store's reference is the registration ID.
+	ModelID string
 	// SecretRef references the API key for keyed custom-endpoint models; zero value
 	// means no credential is needed.
 	SecretRef models.SecretRef
@@ -138,11 +143,14 @@ func BuildSandboxEmbeddingClassifier(
 				EndpointURL: provider.Config.BaseURL,
 				SecretRef:   provider.Config.CustomGenAI.APIKey.SecretRef,
 			}
-		} else if isvcURL, isvcErr := client.GetInferenceServiceURL(ctx, nil, namespace, embeddingModel); isvcErr == nil && isvcURL != "" {
-			// GetInferenceServiceURL returns ("", nil) when no matching resource exists.
+		} else if isvcURL, servedModelID, isvcErr := client.GetServingModelDetails(ctx, namespace, embeddingModel); isvcErr == nil && isvcURL != "" {
+			// GetServingModelDetails matches the reference against the resource name or the
+			// served model name (spec.model.name); servedModelID is the ID the endpoint
+			// accepts, which can differ from the store's reference.
 			resolved = SandboxEmbeddingModel{
 				Source:      SandboxEmbeddingSourceISVC,
 				EndpointURL: isvcURL,
+				ModelID:     servedModelID,
 			}
 		}
 		memo[embeddingModel] = resolved
@@ -330,7 +338,15 @@ func BuildSandboxLlamaStackConfig(
 					embeddingModelName, storeID,
 				)
 			}
-			registrationKey := string(classification.Source) + "|" + classification.EndpointURL + "|" + embeddingModelName
+			// The model registers under the ID the endpoint accepts in requests (the served
+			// model name), which can differ from the store's reference when an
+			// LLMInferenceService serves under spec.model.name. The store binds to the
+			// registered ID either way.
+			registeredModelID := classification.ModelID
+			if registeredModelID == "" {
+				registeredModelID = embeddingModelName
+			}
+			registrationKey := string(classification.Source) + "|" + classification.EndpointURL + "|" + registeredModelID
 			providerID, registered := registeredEmbeddings[registrationKey]
 			if !registered {
 				providerID = nextEmbeddingProviderID()
@@ -345,15 +361,15 @@ func BuildSandboxLlamaStackConfig(
 					},
 				}
 				cfg.AddInferenceProvider(NewProvider(providerID, "remote::vllm", providerConfig))
-				cfg.RegisterModel(NewModel(embeddingModelName, providerID, string(models.ModelTypeEmbedding), map[string]interface{}{
+				cfg.RegisterModel(NewModel(registeredModelID, providerID, string(models.ModelTypeEmbedding), map[string]interface{}{
 					"display_name":        embeddingModelName,
 					"embedding_dimension": vs.EmbeddingDimension,
 				}))
 				registeredEmbeddings[registrationKey] = providerID
 			}
-			vs.EmbeddingModel = providerID + "/" + embeddingModelName
+			vs.EmbeddingModel = providerID + "/" + registeredModelID
 			if defaultEmbeddingModelID == "" {
-				defaultEmbeddingModelID = embeddingModelName
+				defaultEmbeddingModelID = registeredModelID
 				defaultEmbeddingProviderID = providerID
 			}
 		default:

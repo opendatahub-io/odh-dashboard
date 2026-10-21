@@ -8,7 +8,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -371,6 +370,35 @@ func TestBuildSandboxLlamaStackConfig_ISVCEmbeddingModel(t *testing.T) {
 	assert.Equal(t, embeddingModel, cfg.VectorStores.DefaultEmbeddingModel.ModelID)
 }
 
+func TestBuildSandboxLlamaStackConfig_ISVCServedModelNameDiffers(t *testing.T) {
+	// An LLMInferenceService may serve under spec.model.name, which differs from its
+	// resource name. The store may reference either name; the model must register (and
+	// the store bind) under the served name the endpoint accepts in requests.
+	storeID := "vs-e2e-embed-service"
+	isvcURL := "http://embed-service-predictor.test.svc.cluster.local/v1"
+	storeRef := "embed-service"  // resource-name reference
+	servedName := "vendor/embed" // spec.model.name
+	profile := sandboxEmbeddingTestProfile(storeID)
+	storeDoc := sandboxEmbeddingTestStoreDoc(models.RegisteredVectorStore{
+		VectorStoreID:      storeID,
+		EmbeddingModel:     storeRef,
+		EmbeddingDimension: 768,
+	})
+	classify := func(string) kubernetes.SandboxEmbeddingModel {
+		return kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceISVC, EndpointURL: isvcURL, ModelID: servedName}
+	}
+
+	cfg, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, classify)
+	require.NoError(t, err)
+
+	require.Len(t, cfg.RegisteredResources.Models, 2)
+	assert.Equal(t, servedName, cfg.RegisteredResources.Models[1].ModelID)
+	assert.Equal(t, "agent-embedding-1", cfg.RegisteredResources.Models[1].ProviderID)
+	// The store binds to the registered (served) ID, not its own reference.
+	assert.Equal(t, "agent-embedding-1/"+servedName, cfg.RegisteredResources.VectorStores[0].EmbeddingModel)
+	assert.Equal(t, servedName, cfg.VectorStores.DefaultEmbeddingModel.ModelID)
+}
+
 func TestBuildSandboxLlamaStackConfig_MixedEmbeddingModelSources(t *testing.T) {
 	profile := sandboxEmbeddingTestProfile("vs-local", "vs-keyed", "vs-isvc")
 	storeDoc := sandboxEmbeddingTestStoreDoc(
@@ -504,6 +532,7 @@ type stubClassifierClient struct {
 	externalModels *models.ExternalModelsConfig
 	externalErr    error
 	isvcURL        string
+	isvcModelID    string
 	isvcCalls      int
 }
 
@@ -511,9 +540,18 @@ func (s *stubClassifierClient) GetExternalModelsConfig(_ context.Context, _ stri
 	return s.externalModels, s.externalErr
 }
 
-func (s *stubClassifierClient) GetInferenceServiceURL(_ context.Context, _ *integrations.RequestIdentity, _ string, _ string) (string, error) {
+// GetServingModelDetails mimics the real resolution: no match when isvcURL is empty;
+// otherwise the served model ID (defaulting to the reference, mirroring resources
+// whose served name equals their reference).
+func (s *stubClassifierClient) GetServingModelDetails(_ context.Context, _ string, modelRef string) (string, string, error) {
 	s.isvcCalls++
-	return s.isvcURL, nil
+	if s.isvcURL == "" {
+		return "", "", fmt.Errorf("no InferenceService or LLMInferenceService for model '%s'", modelRef)
+	}
+	if s.isvcModelID == "" {
+		return s.isvcURL, modelRef, nil
+	}
+	return s.isvcURL, s.isvcModelID, nil
 }
 
 // notFoundConfigMapErr mimics the controller-runtime error for an absent external
@@ -554,6 +592,7 @@ func TestBuildSandboxEmbeddingClassifier(t *testing.T) {
 		externalModels *models.ExternalModelsConfig
 		externalErr    error
 		isvcURL        string
+		isvcModelID    string
 		embeddingModel string
 		expected       kubernetes.SandboxEmbeddingModel
 	}{
@@ -584,6 +623,19 @@ func TestBuildSandboxEmbeddingClassifier(t *testing.T) {
 			expected: kubernetes.SandboxEmbeddingModel{
 				Source:      kubernetes.SandboxEmbeddingSourceISVC,
 				EndpointURL: "http://granite-embedding-r2-predictor.test.svc.cluster.local/v1",
+				ModelID:     "granite-embedding-r2",
+			},
+		},
+		{
+			name:           "ISVC serving under a different model name",
+			externalModels: externalModels,
+			isvcURL:        "http://embed-service-predictor.test.svc.cluster.local/v1",
+			isvcModelID:    "vendor/embed",
+			embeddingModel: "embed-service",
+			expected: kubernetes.SandboxEmbeddingModel{
+				Source:      kubernetes.SandboxEmbeddingSourceISVC,
+				EndpointURL: "http://embed-service-predictor.test.svc.cluster.local/v1",
+				ModelID:     "vendor/embed",
 			},
 		},
 		{
@@ -600,6 +652,7 @@ func TestBuildSandboxEmbeddingClassifier(t *testing.T) {
 			expected: kubernetes.SandboxEmbeddingModel{
 				Source:      kubernetes.SandboxEmbeddingSourceISVC,
 				EndpointURL: "http://granite-keyless.test.svc.cluster.local/v1",
+				ModelID:     "granite-embedding-keyless",
 			},
 		},
 		{
@@ -616,6 +669,7 @@ func TestBuildSandboxEmbeddingClassifier(t *testing.T) {
 				externalModels: tt.externalModels,
 				externalErr:    tt.externalErr,
 				isvcURL:        tt.isvcURL,
+				isvcModelID:    tt.isvcModelID,
 			}
 			classifier, err := kubernetes.BuildSandboxEmbeddingClassifier(context.Background(), client, "test-namespace", nil)
 			require.NoError(t, err)

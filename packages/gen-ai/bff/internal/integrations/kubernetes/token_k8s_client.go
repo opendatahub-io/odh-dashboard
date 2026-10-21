@@ -3139,6 +3139,40 @@ func (kc *TokenKubernetesClient) GetInferenceServiceURL(ctx context.Context, _ *
 	return details.endpointURL, nil
 }
 
+// GetServingModelDetails resolves a model reference to the internal endpoint URL of the
+// InferenceService or LLMInferenceService serving it, along with the model ID the server
+// accepts in requests (the served model name). The reference may match the resource name
+// or, for LLMInferenceServices, the served model name (spec.model.name) — vector stores
+// reference the served name, which can differ from the resource name.
+func (kc *TokenKubernetesClient) GetServingModelDetails(ctx context.Context, namespace, modelRef string) (string, string, error) {
+	details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, modelRef)
+	if err == nil {
+		return details.endpointURL, details.modelID, nil
+	}
+	// The reference may be the served model name of an LLMInferenceService whose resource
+	// name differs; match those before giving up.
+	var llmSvcList kservev1alpha1.LLMInferenceServiceList
+	if listErr := kc.Client.List(ctx, &llmSvcList, client.InNamespace(namespace)); listErr != nil {
+		kc.Logger.Debug("GetServingModelDetails: unable to list LLMInferenceServices",
+			"namespace", namespace, "error", listErr)
+		return "", "", err
+	}
+	for i := range llmSvcList.Items {
+		llmSvc := &llmSvcList.Items[i]
+		if llmSvc.Spec.Model.Name == nil || strings.TrimSpace(*llmSvc.Spec.Model.Name) != modelRef {
+			continue
+		}
+		endpointURL, extractErr := kc.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		if extractErr != nil {
+			return "", "", extractErr
+		}
+		kc.Logger.Debug("GetServingModelDetails: matched LLMInferenceService by served model name",
+			"modelRef", modelRef, "serviceName", llmSvc.Name, "endpoint", endpointURL)
+		return endpointURL, modelRef, nil
+	}
+	return "", "", err
+}
+
 // GetModelProviderInfo retrieves provider configuration for a model from LlamaStackConfig
 func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*genaitypes.ModelProviderInfo, error) {
 	// Load OGX config from the ConfigMap referenced by the namespace OGXServer
