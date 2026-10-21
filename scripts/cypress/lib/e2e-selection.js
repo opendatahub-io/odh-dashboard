@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const ts = require('typescript');
 
 const { buildDependencyIndex, isDocumentationOnly, normalizePath } = require('./mock-test-impact');
 const { listWorkspacePackagesFromManifest } = require('../../query-workspace-packages');
@@ -278,6 +279,8 @@ const resolveTagCapabilities = (environmentCapabilities, tag) => ({
 const isSpecFile = (file) =>
   normalizePath(file).endsWith('.cy.ts') && /(^|\/)cypress\/tests\/e2e\//.test(normalizePath(file));
 
+const isCypressTestFile = (file) => /(^|\/)cypress\/tests\//.test(normalizePath(file));
+
 const isCypressSupportFile = (file) => {
   const normalized = normalizePath(file);
   if (isDocumentationOnly(normalized)) {
@@ -286,11 +289,18 @@ const isCypressSupportFile = (file) => {
   if (normalized === `${DEFAULT_SPEC_ROOT}/non-ci-specs.json`) {
     return false;
   }
+  if (isCypressTestFile(normalized) && !isSpecFile(normalized)) {
+    return false;
+  }
   return (
     normalized.startsWith(`${DEFAULT_CYPRESS_SOURCE_ROOT}/`) ||
     /(^|\/)cypress\/(pages|fixtures|utils|support|commands|plugins)\//.test(normalized)
   );
 };
+
+const SAFE_SPEC_PATH_PATTERN = /^[A-Za-z0-9_./-]+\.cy\.ts$/;
+
+const isSafeSpecPath = (spec) => SAFE_SPEC_PATH_PATTERN.test(normalizePath(spec));
 
 const resolvePathImpact = ({
   changes = [],
@@ -593,37 +603,111 @@ const readNonCiSpecs = (root = DEFAULT_ROOT) => {
   );
 };
 
+const collectVariableInitializers = (sourceFile) => {
+  const initializers = new Map();
+  const visit = (node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+      initializers.set(node.name.text, node.initializer);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return initializers;
+};
+
+const resolveCallName = (node, initializers, seen = new Set()) => {
+  if (ts.isIdentifier(node)) {
+    if (seen.has(node.text)) {
+      return node.text;
+    }
+    const initializer = initializers.get(node.text);
+    return initializer
+      ? resolveCallName(initializer, initializers, new Set([...seen, node.text]))
+      : node.text;
+  }
+  if (ts.isPropertyAccessExpression(node)) {
+    const base = resolveCallName(node.expression, initializers, seen);
+    return base ? `${base}.${node.name.text}` : null;
+  }
+  return null;
+};
+
+const resolveTagsExpression = (node, initializers, seen = new Set()) => {
+  if (ts.isStringLiteralLike(node)) {
+    return [normalizeTag(node.text)];
+  }
+  if (ts.isIdentifier(node)) {
+    if (seen.has(node.text)) {
+      return null;
+    }
+    const initializer = initializers.get(node.text);
+    return initializer
+      ? resolveTagsExpression(initializer, initializers, new Set([...seen, node.text]))
+      : null;
+  }
+  if (ts.isArrayLiteralExpression(node)) {
+    const tags = [];
+    for (const element of node.elements) {
+      const elementTags = resolveTagsExpression(element, initializers, seen);
+      if (elementTags === null) {
+        return null;
+      }
+      tags.push(...elementTags);
+    }
+    return unique(tags);
+  }
+  if (ts.isSpreadElement(node)) {
+    return resolveTagsExpression(node.expression, initializers, seen);
+  }
+  if (ts.isAsExpression(node) || ts.isParenthesizedExpression(node)) {
+    return resolveTagsExpression(node.expression, initializers, seen);
+  }
+  return null;
+};
+
 const parseSpecSource = (source) => {
-  // eslint-disable-next-line global-require
-  const ts = require('typescript');
   const sourceFile = ts.createSourceFile('spec.cy.ts', source, ts.ScriptTarget.Latest, true);
+  const initializers = collectVariableInitializers(sourceFile);
   const tests = [];
 
-  const visit = (node) => {
+  const visit = (node, enclosingSkipped = false) => {
     if (ts.isCallExpression(node)) {
-      const expressionText = node.expression.getText(sourceFile);
-      if (/^(?:it|test)(?:\.only)?$/.test(expressionText)) {
-        const tags = [];
+      const expressionText = resolveCallName(node.expression, initializers);
+      if (
+        expressionText &&
+        /^(?:it|test)(?:\.(?:only|skip))?$/.test(expressionText) &&
+        !enclosingSkipped &&
+        !expressionText.endsWith('.skip')
+      ) {
+        let tags = [];
+        let tagsResolved = true;
         const options = node.arguments[1];
         if (options && ts.isObjectLiteralExpression(options)) {
           for (const property of options.properties) {
             if (
-              ts.isPropertyAssignment(property) &&
-              property.name.getText(sourceFile) === 'tags' &&
-              ts.isArrayLiteralExpression(property.initializer)
+              (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+              property.name.getText(sourceFile) === 'tags'
             ) {
-              for (const element of property.initializer.elements) {
-                if (ts.isStringLiteralLike(element)) {
-                  tags.push(normalizeTag(element.text));
-                }
-              }
+              const initializer = ts.isPropertyAssignment(property)
+                ? property.initializer
+                : property.name;
+              const resolvedTags = resolveTagsExpression(initializer, initializers);
+              tagsResolved = resolvedTags !== null;
+              tags = resolvedTags ?? [];
             }
           }
         }
-        tests.push({ tags: unique(tags) });
+        tests.push({ tags: tagsResolved ? unique(tags) : null });
       }
     }
-    ts.forEachChild(node, visit);
+    let childSkipped = enclosingSkipped;
+    if (ts.isCallExpression(node)) {
+      const expressionText = resolveCallName(node.expression, initializers);
+      childSkipped ||= Boolean(
+        expressionText && /^(?:describe|context)\.skip$/.test(expressionText),
+      );
+    }
+    ts.forEachChild(node, (child) => visit(child, childSkipped));
   };
   visit(sourceFile);
   return tests;
@@ -639,14 +723,15 @@ const buildSpecInventory = ({
   for (const spec of specs) {
     const tests = parseSpecSource(readFile(path.join(root, spec)));
     const executableTests = tests.filter(
-      (test) => !test.tags.some((tag) => skipTags.includes(tag)),
+      (test) => Array.isArray(test.tags) && !test.tags.some((tag) => skipTags.includes(tag)),
     );
     inventory[spec] = {
       path: spec,
       testCount: tests.length,
       executableTestCount: executableTests.length,
-      tags: unique(tests.flatMap((test) => test.tags)),
+      tags: unique(tests.flatMap((test) => test.tags ?? [])),
       executableTags: unique(executableTests.flatMap((test) => test.tags)),
+      executableTestTags: executableTests.map((test) => test.tags),
     };
   }
   return inventory;
@@ -657,7 +742,11 @@ const resolveSelectedTags = (selectedTags, inventory) => {
   const errors = [];
   for (const tag of selectedTags) {
     const specs = Object.values(inventory).filter((spec) => spec.executableTags.includes(tag));
-    const testCount = specs.reduce((total, spec) => total + spec.executableTestCount, 0);
+    const testCount = specs.reduce(
+      (total, spec) =>
+        total + (spec.executableTestTags ?? []).filter((tags) => tags.includes(tag)).length,
+      0,
+    );
     if (specs.length === 0 || testCount === 0) {
       errors.push(`Selected tag ${tag} resolves to zero executable tests`);
       continue;
@@ -860,15 +949,19 @@ const buildSelectionPlan = ({
   for (const change of changes) {
     const changedPath = normalizePath(change.path);
     const previousPath = change.previousPath ? normalizePath(change.previousPath) : undefined;
-    if (isSpecFile(changedPath) || (previousPath && isSpecFile(previousPath))) {
-      if (change.status === 'D' || !isSpecFile(changedPath)) {
+    const changedPathIsSpec = isSpecFile(changedPath);
+    const previousPathIsSpec = Boolean(previousPath && isSpecFile(previousPath));
+    if (changedPathIsSpec) {
+      if (change.status === 'D') {
         deletedSpecs.add(changedPath);
       } else {
         changedSpecs.add(changedPath);
       }
-      if (previousPath && isSpecFile(previousPath)) {
-        deletedSpecs.add(previousPath);
-      }
+    }
+    if (previousPathIsSpec) {
+      deletedSpecs.add(previousPath);
+    }
+    if (changedPathIsSpec) {
       continue;
     }
 
@@ -887,7 +980,12 @@ const buildSelectionPlan = ({
     if (/\.(ts|tsx|js)$/.test(changedPath)) {
       const consumers = dependencyIndex.consumers[changedPath] ?? [];
       if (consumers.length === 0) {
-        errors.push(`No Cypress consumer was found for changed support code: ${changedPath}`);
+        for (const spec of Object.keys(inventory)) {
+          if (isCiRunnableSpec(spec, inventory, ciTags)) {
+            impactedSpecs.add(spec);
+          }
+        }
+        details.push(`${changedPath}: no consumers found; scheduled all CI-runnable E2E specs`);
         continue;
       }
       const executableConsumers = consumers.filter((consumer) =>
@@ -909,7 +1007,12 @@ const buildSelectionPlan = ({
       fixturePath: changedPath,
     });
     if (consumers.length === 0) {
-      errors.push(`No Cypress consumer was found for changed fixture: ${changedPath}`);
+      for (const spec of Object.keys(inventory)) {
+        if (isCiRunnableSpec(spec, inventory, ciTags)) {
+          impactedSpecs.add(spec);
+        }
+      }
+      details.push(`${changedPath}: no consumers found; scheduled all CI-runnable E2E specs`);
       continue;
     }
     const executableConsumers = consumers.filter((consumer) =>
@@ -1017,33 +1120,42 @@ const buildSelectionPlan = ({
     explicitImpactSpecs = uncoveredImpactedSpecs;
   }
 
+  for (const spec of [...explicitChangedSpecs, ...explicitImpactSpecs]) {
+    if (!isSafeSpecPath(spec)) {
+      errors.push(`Cypress spec path contains unsupported characters: ${spec}`);
+    }
+  }
+
+  const calculateJobTestCount = (job) => {
+    if (job.run_mode === 'spec') {
+      return job.specs.reduce(
+        (jobTotal, spec) => jobTotal + (inventory[spec]?.executableTestCount ?? 0),
+        0,
+      );
+    }
+    const tags = job.tag.split(' ');
+    return Object.values(inventory).reduce(
+      (jobTotal, entry) =>
+        jobTotal +
+        (entry.executableTestTags ?? []).filter((testTags) =>
+          testTags.some((tag) => tags.includes(tag)),
+        ).length,
+      0,
+    );
+  };
+
   const matrix = [
     ...buildTagJobs(effectiveSelectedTags, effectiveAutoTags),
     ...createSpecJobs(explicitChangedSpecs, 'ChangedSpec'),
     ...impactedTagJobs,
     ...createSpecJobs(explicitImpactSpecs, 'ImpactedSpec'),
-  ];
+  ].map((job) => ({ ...job, plannedTestCount: calculateJobTestCount(job) }));
 
   if (matrix.length === 0) {
     errors.push('No Cypress E2E jobs were selected');
   }
 
-  const plannedTestCount = matrix.reduce((total, job) => {
-    if (job.run_mode === 'spec') {
-      return (
-        total +
-        job.specs.reduce(
-          (jobTotal, spec) => jobTotal + (inventory[spec]?.executableTestCount ?? 0),
-          0,
-        )
-      );
-    }
-    const tags = job.tag.split(' ');
-    const jobSpecs = Object.values(inventory).filter((entry) =>
-      tags.some((tag) => entry.executableTags.includes(tag)),
-    );
-    return total + jobSpecs.reduce((jobTotal, spec) => jobTotal + spec.executableTestCount, 0);
-  }, 0);
+  const plannedTestCount = matrix.reduce((total, job) => total + job.plannedTestCount, 0);
 
   return {
     valid: errors.length === 0,
@@ -1157,6 +1269,7 @@ module.exports = {
   groupTagsForJobs,
   isCypressSupportFile,
   isSpecFile,
+  isSafeSpecPath,
   normalizePath,
   normalizeTag,
   parseBoolean,

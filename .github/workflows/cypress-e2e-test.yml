@@ -478,13 +478,26 @@ jobs:
 
       - name: Resolve comparison refs
         id: refs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WR_BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
+          WR_HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            BASE_SHA="${{ github.event.workflow_run.pull_requests[0].base.sha || 'origin/main' }}"
+          BASE_SHA="origin/main"
+          if [[ "$EVENT_NAME" == "workflow_run" ]]; then
+            if [[ -z "$WR_BASE_SHA" ]]; then
+              BASE_SHA="origin/main"
+            elif [[ "$WR_BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              BASE_SHA="$WR_BASE_SHA"
+            else
+              echo "Invalid workflow-run base SHA"
+              exit 1
+            fi
           else
             BASE_SHA="origin/main"
           fi
-          HEAD_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          HEAD_SHA="$WR_HEAD_SHA"
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid head SHA"; exit 1; }
 
           echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
           echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
@@ -548,7 +561,7 @@ jobs:
         with:
           name: e2e-selection-summary
           path: packages/cypress/results/selection/
-          if-no-files-found: error
+          if-no-files-found: warn
 
   # ---------------------------------------------------------------------------
   # Ensure Cypress Builds - Check which per-package artifacts exist
@@ -1202,7 +1215,7 @@ jobs:
         run: |
           TAG="$MATRIX_TAG"
           TAG_DIR="$MATRIX_TAG_DIR"
-          echo "TAG_DIR=${TAG_DIR}" >> $GITHUB_ENV
+          echo "Selected tag directory: $TAG_DIR"
 
           echo "Running E2E tests for $MATRIX_TAG..."
           echo "Running tests against E2E proxy on port 4040"
@@ -1229,6 +1242,10 @@ jobs:
             mapfile -t SPEC_PATHS < <(jq -r '.[]' <<< "$MATRIX_SPECS")
             SPEC_LIST=""
             for spec in "${SPEC_PATHS[@]}"; do
+              if [[ ! "$spec" =~ ^[A-Za-z0-9_./-]+\.cy\.ts$ ]]; then
+                echo "Invalid spec path: $spec"
+                exit 1
+              fi
               SPEC_LIST+="${GITHUB_WORKSPACE}/${spec},"
             done
             printf -v ESCAPED_SPEC_LIST '%q' "${SPEC_LIST%,}"
@@ -1265,7 +1282,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: e2e-results-${{ env.TAG_DIR }}
+          name: e2e-results-${{ matrix.tag_dir }}
           path: |
             packages/cypress/results/
             packages/cypress/videos/
@@ -1285,7 +1302,7 @@ jobs:
   # Result Summary - Prove that selected coverage actually executed
   # ---------------------------------------------------------------------------
   summarize-e2e-results:
-    needs: [e2e-tests]
+    needs: [get-test-tags, e2e-tests]
     if: >-
       always() &&
       needs.e2e-tests.result != 'skipped' &&
@@ -1308,9 +1325,12 @@ jobs:
           path: e2e-results
 
       - name: Summarize and validate E2E results
+        env:
+          MATRIX_JSON: ${{ needs.get-test-tags.outputs.matrix }}
         run: |
           node scripts/cypress/summarize-e2e-results.js \
             --results-dir e2e-results \
+            --matrix-json "$MATRIX_JSON" \
             --summary-json e2e-results/e2e-results-summary.json \
             --summary-md e2e-results/e2e-results-summary.md
 

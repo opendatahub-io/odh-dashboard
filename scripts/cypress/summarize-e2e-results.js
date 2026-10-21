@@ -44,6 +44,28 @@ const findJunitReports = (directory) => {
   return mergedReports.length > 0 ? mergedReports : xmlFiles;
 };
 
+const findJunitReportsByJob = (directory) => {
+  const groupedFiles = new Map();
+  for (const file of findXmlFiles(directory)) {
+    const match = file
+      .split(path.sep)
+      .join('/')
+      .match(/packages\/cypress\/results\/([^/]+)\//);
+    const jobDir = match?.[1];
+    if (!jobDir) {
+      continue;
+    }
+    groupedFiles.set(jobDir, [...(groupedFiles.get(jobDir) ?? []), file]);
+  }
+
+  const reportsByJob = {};
+  for (const [jobDir, files] of groupedFiles) {
+    const mergedReports = files.filter((file) => path.basename(file) === 'junit-report.xml');
+    reportsByJob[jobDir] = mergedReports.length > 0 ? mergedReports : files;
+  }
+  return reportsByJob;
+};
+
 const writeFile = (file, contents) => {
   if (!file) {
     return;
@@ -64,15 +86,76 @@ const main = () => {
     throw new Error('No JUnit XML files were found');
   }
 
-  const totals = summarizeJunitFiles(files);
-  const error = validateResults(totals);
-  writeFile(options['summary-json'], `${JSON.stringify(totals, null, 2)}\n`);
-  writeFile(options['summary-md'], `${renderResultsMarkdown(totals)}\n`);
+  const matrixOption = options['matrix-json'];
+  const matrixJobs = matrixOption ? JSON.parse(matrixOption) : null;
+  if (matrixJobs && (!Array.isArray(matrixJobs) || matrixJobs.some((job) => !job.tag_dir))) {
+    throw new Error('A valid --matrix-json is required');
+  }
+
+  const jobResults = [];
+  const errors = [];
+  if (matrixJobs) {
+    const reportsByJob = findJunitReportsByJob(resultsDir);
+    const expectedJobDirs = new Set(matrixJobs.map((job) => job.tag_dir));
+    const unexpectedJobDirs = Object.keys(reportsByJob).filter(
+      (jobDir) => !expectedJobDirs.has(jobDir),
+    );
+    if (unexpectedJobDirs.length > 0) {
+      errors.push(`Unexpected E2E result job(s): ${unexpectedJobDirs.toSorted().join(', ')}`);
+    }
+
+    for (const job of matrixJobs) {
+      const tagDir = job.tag_dir;
+      const plannedTestCount = job.planned_test_count;
+      const jobFiles = reportsByJob[tagDir] ?? [];
+      const jobTotals = summarizeJunitFiles(jobFiles);
+      const jobResult = {
+        tagDir,
+        plannedTestCount,
+        ...jobTotals,
+        executed: jobTotals.tests - jobTotals.skipped,
+      };
+      jobResults.push(jobResult);
+      if (jobFiles.length === 0) {
+        errors.push(`No JUnit XML files were found for job ${tagDir}`);
+      } else {
+        const jobError = validateResults(jobTotals, plannedTestCount);
+        if (jobError) {
+          errors.push(`${tagDir}: ${jobError}`);
+        }
+      }
+    }
+  } else {
+    jobResults.push({
+      tagDir: 'all',
+      plannedTestCount: undefined,
+      ...summarizeJunitFiles(files),
+    });
+    jobResults[0].executed = jobResults[0].tests - jobResults[0].skipped;
+  }
+
+  const totals = jobResults.reduce(
+    (aggregate, job) => ({
+      tests: aggregate.tests + job.tests,
+      failures: aggregate.failures + job.failures,
+      skipped: aggregate.skipped + job.skipped,
+      executed: aggregate.executed + job.executed,
+    }),
+    { tests: 0, failures: 0, skipped: 0, executed: 0 },
+  );
+  const aggregateError = validateResults(totals);
+  if (errors.length === 0 && aggregateError) {
+    errors.push(aggregateError);
+  }
+
+  const summary = { ...totals, jobs: jobResults };
+  writeFile(options['summary-json'], `${JSON.stringify(summary, null, 2)}\n`);
+  writeFile(options['summary-md'], `${renderResultsMarkdown(summary)}\n`);
   console.log(
     `Cypress E2E results: executed=${totals.executed}, failed=${totals.failures}, skipped=${totals.skipped}, total=${totals.tests}`,
   );
-  if (error) {
-    throw new Error(error);
+  if (errors.length > 0) {
+    throw new Error(errors.join('\n'));
   }
 };
 
@@ -80,4 +163,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { findJunitReports, findXmlFiles, parseArgs };
+module.exports = { findJunitReports, findJunitReportsByJob, findXmlFiles, parseArgs };

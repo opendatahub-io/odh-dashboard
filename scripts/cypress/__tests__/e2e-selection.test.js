@@ -11,6 +11,8 @@ const {
   buildSelectionPlan,
   createSpecJobs,
   groupTagsForJobs,
+  isCypressSupportFile,
+  isSafeSpecPath,
   matchesPathPattern,
   parseSpecSource,
   parseTagSelection,
@@ -26,6 +28,7 @@ const inventoryEntry = (name, tags, executableTags = tags) => ({
   executableTestCount: executableTags.length > 0 ? 1 : 0,
   tags,
   executableTags,
+  executableTestTags: executableTags.length > 0 ? [executableTags] : [],
 });
 
 const inventory = {
@@ -52,6 +55,19 @@ const plan = (changes, options = {}) =>
     nonCiSpecs: options.nonCiSpecs ?? {},
     ...options,
   });
+
+const testPathImpactMap = (patterns) => ({
+  schemaVersion: 1,
+  mappings: patterns.map((pattern) => ({
+    id: `test-${pattern}`,
+    description: `Test mapping for ${pattern}`,
+    pathPatterns: [pattern],
+    selectionMode: 'none',
+    environments: [],
+    supportingChecks: [],
+    coverageInventoryIds: [],
+  })),
+});
 
 describe('parseTagSelection', () => {
   it('combines default, manual, label, and auto-detected tags', () => {
@@ -100,6 +116,21 @@ describe('resolveSelectedTags', () => {
     assert.deepEqual(result.errors, []);
     assert.deepEqual(result.resolved['@Tag'].specs, [specPath('alpha'), specPath('bravo')]);
     assert.equal(result.resolved['@Tag'].testCount, 2);
+  });
+
+  it('counts only tests that match the selected tag', () => {
+    const mixedInventory = {
+      [specPath('mixed')]: {
+        ...inventoryEntry('mixed', ['@Tag', '@Other']),
+        testCount: 2,
+        executableTestCount: 2,
+        executableTestTags: [['@Tag'], ['@Other']],
+      },
+    };
+    const result = resolveSelectedTags(['@Tag'], mixedInventory);
+
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.resolved['@Tag'].testCount, 1);
   });
 
   it('fails when a selected tag has no executable tests', () => {
@@ -179,6 +210,55 @@ describe('buildSelectionPlan', () => {
     assert.equal(result.valid, true);
     assert.deepEqual(result.summary.impactedSpecs, []);
     assert.equal(result.matrix.filter((job) => job.run_mode === 'spec').length, 0);
+  });
+
+  it('does not treat non-E2E Cypress test trees as support code', () => {
+    assert.equal(
+      isCypressSupportFile('packages/cypress/cypress/tests/mocked/example.cy.ts'),
+      false,
+    );
+  });
+
+  it('does not schedule full coverage when non-E2E Cypress test files are deleted', () => {
+    const result = plan(
+      [{ status: 'D', path: 'packages/cypress/cypress/tests/mocked/example.cy.ts' }],
+      {
+        pathImpactMap: testPathImpactMap(['packages/cypress/cypress/tests/mocked/**']),
+      },
+    );
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.impactMode, 'none');
+  });
+
+  it('schedules all CI-runnable specs when support code has no consumers', () => {
+    const result = plan([{ status: 'M', path: supportPath('pages/unknown') }], {
+      selectedTags: ['@Other'],
+      pathImpactMap: testPathImpactMap([supportPath('pages/unknown')]),
+    });
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.summary.impactedSpecs, [specPath('alpha'), specPath('bravo')]);
+  });
+
+  it('classifies only the previous path as deleted when a spec is renamed to support code', () => {
+    const renamedPath = supportPath('support/renamed');
+    const result = plan([{ status: 'R', path: renamedPath, previousPath: specPath('alpha') }], {
+      pathImpactMap: testPathImpactMap([specPath('alpha'), renamedPath]),
+      dependencyIndex: {
+        consumers: {
+          [renamedPath]: [specPath('bravo')],
+        },
+      },
+      baseInventory: {
+        [specPath('alpha')]: inventoryEntry('alpha', ['@Tag']),
+      },
+    });
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.summary.changedSpecs, []);
+    assert.deepEqual(result.summary.deletedSpecs, [specPath('alpha')]);
+    assert.deepEqual(result.summary.impactedSpecs, [specPath('bravo')]);
   });
 
   it('computes the reverse impact set for changed Cypress support code', () => {
@@ -551,6 +631,60 @@ describe('parseSpecSource', () => {
 
     assert.equal(tests.length, 1);
     assert.deepEqual(tests, [{ tags: ['@CI'] }]);
+  });
+
+  it('resolves same-file tag constants, references, and spreads', () => {
+    const tests = parseSpecSource(
+      [
+        "const BASE_TAGS = ['@CI'];",
+        "const EXTRA_TAG = '@Smoke';",
+        "it('runs', { tags: [...BASE_TAGS, EXTRA_TAG] }, () => {});",
+      ].join('\n'),
+    );
+
+    assert.deepEqual(tests, [{ tags: ['@CI', '@Smoke'] }]);
+  });
+
+  it('marks tests with unresolvable tag expressions as non-executable', () => {
+    const tests = parseSpecSource(
+      ['const getTags = () => ["@CI"];', "it('runs', { tags: getTags() }, () => {});"].join('\n'),
+    );
+
+    assert.deepEqual(tests, [{ tags: null }]);
+  });
+
+  it('excludes tests inside locally aliased skipped suites', () => {
+    const tests = parseSpecSource(
+      [
+        'const describeSkipped = describe.skip;',
+        "describeSkipped('skipped suite', () => {",
+        "  it('does not run', { tags: ['@CI'] }, () => {});",
+        '});',
+        "it('runs', { tags: ['@CI'] }, () => {});",
+      ].join('\n'),
+    );
+
+    assert.deepEqual(tests, [{ tags: ['@CI'] }]);
+  });
+});
+
+describe('spec path safety', () => {
+  it('accepts safe Cypress spec paths and rejects hostile paths', () => {
+    assert.equal(isSafeSpecPath(specPath('dashboard/example')), true);
+    assert.equal(isSafeSpecPath("packages/cypress/cypress/tests/e2e/evil'; rm -rf#.cy.ts"), false);
+  });
+
+  it('rejects hostile explicit spec paths during planning', () => {
+    const unsafePath = "packages/cypress/cypress/tests/e2e/evil'; rm -rf#.cy.ts";
+    const result = plan([{ status: 'A', path: unsafePath }], {
+      inventory: {
+        [unsafePath]: inventoryEntry("evil'; rm -rf#", ['@Tag']),
+      },
+      pathImpactMap: testPathImpactMap([unsafePath]),
+    });
+
+    assert.equal(result.valid, false);
+    assert.match(result.errors.join('\n'), /unsupported characters/);
   });
 });
 

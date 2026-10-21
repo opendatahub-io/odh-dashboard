@@ -84,6 +84,57 @@ describe('validateResults', () => {
   it('accepts a run with at least one executed test', () => {
     assert.equal(validateResults({ tests: 2, failures: 0, skipped: 1, executed: 1 }), null);
   });
+
+  it('fails when a job executes fewer tests than planned', () => {
+    assert.match(
+      validateResults({ tests: 1, failures: 0, skipped: 0, executed: 1 }, 2),
+      /Expected 2 Cypress test\(s\), but found 1/,
+    );
+  });
+
+  it('accepts a job that executes the planned number of tests', () => {
+    assert.equal(validateResults({ tests: 2, failures: 0, skipped: 0, executed: 2 }, 2), null);
+  });
+});
+
+describe('summarize-e2e-results CLI', () => {
+  it('validates each matrix job independently', async (test) => {
+    const { spawnSync } = require('node:child_process');
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-results-cli-'));
+    test.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+    const writeReport = (jobDir, attributes) => {
+      const reportDir = path.join(directory, 'packages/cypress/results', jobDir);
+      fs.mkdirSync(reportDir, { recursive: true });
+      fs.writeFileSync(path.join(reportDir, 'junit-report.xml'), junitXml(attributes));
+    };
+    writeReport('job-one', 'tests="2" failures="0" errors="0" skipped="0"');
+    writeReport('job-two', 'tests="0" failures="0" errors="0" skipped="0"');
+    const tagDirKey = 'tag_dir';
+    const plannedTestCountKey = 'planned_test_count';
+    const matrix = JSON.stringify([
+      { [tagDirKey]: 'job-one', [plannedTestCountKey]: 2 },
+      { [tagDirKey]: 'job-two', [plannedTestCountKey]: 2 },
+    ]);
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        'scripts/cypress/summarize-e2e-results.js',
+        '--results-dir',
+        directory,
+        '--matrix-json',
+        matrix,
+      ],
+      { encoding: 'utf8', cwd: path.join(__dirname, '../../..') },
+    );
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /job-two: Expected 2 Cypress test\(s\), but found 0/);
+  });
 });
 
 describe('renderResultsMarkdown', () => {

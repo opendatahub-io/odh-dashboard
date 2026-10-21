@@ -68,7 +68,7 @@ const readBaseSpecInventory = ({ root, base, specs, skipTags }) => {
     }
     const tests = parseSpecSource(source);
     const executableTests = tests.filter(
-      (test) => !test.tags.some((tag) => skipTags.includes(tag)),
+      (test) => Array.isArray(test.tags) && !test.tags.some((tag) => skipTags.includes(tag)),
     );
     inventory[spec] = {
       path: spec,
