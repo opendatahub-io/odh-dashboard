@@ -30,6 +30,10 @@ describe('Cypress E2E workflow', () => {
       path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
       'utf8',
     );
+    const genAiMakefile = fs.readFileSync(
+      path.join(__dirname, '../../../packages/gen-ai/bff/Makefile'),
+      'utf8',
+    );
 
     assert.ok(workflow.includes("BFF_MLFLOW_DEV_URL: 'http://localhost:9110/api/v1'"));
     assert.ok(workflow.includes("BFF_MLFLOW_AUTH_TOKEN_HEADER: 'Authorization'"));
@@ -39,5 +43,8 @@ describe('Cypress E2E workflow', () => {
       workflow.includes('oc port-forward -n redhat-ods-applications deployment/mlflow 18443:8443'),
     );
     assert.ok(workflow.includes('trap cleanup_mlflow_forward EXIT'));
+    assert.ok(
+      genAiMakefile.includes('BFF_MLFLOW_AUTH_TOKEN_PREFIX="$(BFF_MLFLOW_AUTH_TOKEN_PREFIX)"'),
+    );
   });
 });
