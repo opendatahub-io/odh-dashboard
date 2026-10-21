@@ -396,6 +396,12 @@ func TestNewPortForwardManager(t *testing.T) {
 	if len(pfm.forwards) != 0 {
 		t.Errorf("forwards map has %d entries, want 0", len(pfm.forwards))
 	}
+	if pfm.recentFailures == nil {
+		t.Error("recentFailures map is nil")
+	}
+	if pfm.closed == nil {
+		t.Error("closed channel is nil")
+	}
 	if pfm.logger != logger {
 		t.Error("logger not set correctly")
 	}
@@ -776,5 +782,165 @@ func TestClose_AbortsStalledStartup(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("stalled startup did not finish after Close() — shutdown cannot abort a pending SPDY upgrade")
+	}
+}
+
+// newUpgradingClusterSimulator returns a test server that behaves like a
+// healthy API server as far as port-forward startup is concerned: Endpoints
+// lookups succeed, and portforward POSTs are hijacked and answered with a
+// valid 101 Switching Protocols response after respondAfter. The upgraded
+// connection is then held open (the established "tunnel"); if the client
+// closes it, that is reported on the returned channel so tests can assert
+// abandoned tunnels are torn down.
+func newUpgradingClusterSimulator(t *testing.T, respondAfter time.Duration) (*kubernetes.Clientset, *rest.Config, chan struct{}, chan struct{}) {
+	t.Helper()
+	requestSeen := make(chan struct{}, 1)
+	tunnel := make(chan struct{})
+	clientClosed := make(chan struct{}, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/portforward") {
+			select {
+			case requestSeen <- struct{}{}:
+			default:
+			}
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				return
+			}
+			defer conn.Close()
+			if respondAfter > 0 {
+				select {
+				case <-time.After(respondAfter):
+				case <-tunnel:
+					return
+				}
+			}
+			// Complete the upgrade exactly as the client validates it: a 101
+			// with Connection/Upgrade headers and the negotiated protocol
+			// echoed back (ForwardPorts negotiates portforward.k8s.io over
+			// the SPDY/3.1 transport).
+			response := "HTTP/1.1 101 Switching Protocols\r\n" +
+				"Connection: Upgrade\r\n" +
+				"Upgrade: SPDY/3.1\r\n" +
+				"X-Stream-Protocol-Version: portforward.k8s.io\r\n\r\n"
+			if _, err := conn.Write([]byte(response)); err != nil {
+				return
+			}
+			go func() {
+				buf := make([]byte, 1)
+				for {
+					if _, err := conn.Read(buf); err != nil {
+						select {
+						case clientClosed <- struct{}{}:
+						default:
+						}
+						return
+					}
+				}
+			}()
+			<-tunnel
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"kind":"Endpoints","apiVersion":"v1","metadata":{"name":"milvus","namespace":"team-a"},"subsets":[{"addresses":[{"targetRef":{"kind":"Pod","name":"milvus-0"}}]}]}`)
+	}))
+	t.Cleanup(func() {
+		// Release the held tunnels so the server can drain before the test ends.
+		close(tunnel)
+		server.Close()
+	})
+	cfg := &rest.Config{Host: server.URL}
+	return kubernetes.NewForConfigOrDie(cfg), cfg, requestSeen, clientClosed
+}
+
+// TestCreateForward_SuccessfulUpgradeSurvivesDeadline verifies a healthy
+// upgrade becomes a ready forward well before the startup deadline, and that
+// the deadline passing afterwards does not truncate the established forward —
+// the startup context bounds startup only.
+func TestCreateForward_SuccessfulUpgradeSurvivesDeadline(t *testing.T) {
+	clientset, cfg, _, _ := newUpgradingClusterSimulator(t, 0)
+	pfm := &PortForwardManager{
+		forwards:   make(map[string]*activeForward),
+		restConfig: cfg,
+		clientset:  clientset,
+		logger:     slog.Default(),
+		closed:     make(chan struct{}),
+	}
+
+	deadline := 1500 * time.Millisecond
+	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+	defer cancel()
+
+	startedAt := time.Now()
+	fwd, err := pfm.createForward(ctx, "team-a", "milvus-0", 19530)
+	if err != nil {
+		t.Fatalf("createForward() against a healthy upgrade error = %v", err)
+	}
+	if fwd == nil || fwd.localPort == 0 {
+		t.Fatalf("createForward() = %+v, want ready forward with a local port", fwd)
+	}
+	if elapsed := time.Since(startedAt); elapsed >= deadline {
+		t.Fatalf("healthy upgrade became ready in %s, want before the %s startup deadline", elapsed, deadline)
+	}
+
+	// Let the startup deadline pass: the established forward must survive it.
+	time.Sleep(deadline)
+	select {
+	case err := <-fwd.errChan:
+		t.Fatalf("established forward did not survive the startup deadline: %v", err)
+	default:
+	}
+
+	close(fwd.stopChan)
+}
+
+// TestContextDialer_ClosesTunnelCompletedAfterDeadline verifies the
+// abandonment watcher tears down a tunnel the peer completes only after the
+// deadline already abandoned it — the late upgrade must not linger as a live
+// connection.
+func TestContextDialer_ClosesTunnelCompletedAfterDeadline(t *testing.T) {
+	_, cfg, _, clientClosed := newUpgradingClusterSimulator(t, 600*time.Millisecond)
+
+	transport, upgrader, err := spdy.RoundTripperFor(cfg)
+	if err != nil {
+		t.Fatalf("RoundTripperFor() error = %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	target, err := url.Parse(cfg.Host + "/api/v1/namespaces/team-a/pods/milvus-0/portforward")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := &contextDialer{
+		ctx:      ctx,
+		upgrader: upgrader,
+		client:   &http.Client{Transport: transport},
+		method:   http.MethodPost,
+		url:      target,
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		_, _, dialErr := d.Dial("SPDY/3.1")
+		done <- dialErr
+	}()
+
+	select {
+	case dialErr := <-done:
+		if dialErr == nil || !strings.Contains(dialErr.Error(), "abandon") {
+			t.Fatalf("dial error = %v, want abandoned negotiation error", dialErr)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("dial did not abandon the stalled upgrade at the deadline")
+	}
+
+	// The peer completes the upgrade only after the abandonment. The watcher
+	// must close that late tunnel instead of leaving it live.
+	select {
+	case <-clientClosed:
+	case <-time.After(10 * time.Second):
+		t.Fatal("tunnel completed after the deadline was not closed by the abandonment watcher")
 	}
 }

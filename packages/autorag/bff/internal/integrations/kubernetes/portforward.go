@@ -170,9 +170,15 @@ type negotiationResult struct {
 // response headers would block the negotiation — and with it the whole
 // port-forward worker — indefinitely. When the context fires first, Dial
 // returns promptly and hands the still-running negotiation to a watcher that
-// closes the tunnel if the peer ever completes it. The negotiation goroutine
-// itself can only exit once the peer responds or the connection breaks; that
-// residual is bounded by the manager's retry cooldown.
+// closes the tunnel if the peer ever completes it.
+//
+// The stalled connection itself cannot be closed from the outside: client-go's
+// SPDY round tripper keeps the upgrade connection private until the response
+// has been read, and the only construction hook that dials through custom code
+// (RoundTripperConfig's UpgradeTransport) drops the proxy support that
+// RoundTripperFor provides. The blocked negotiation goroutine and its watcher
+// therefore linger until the peer responds; the retry cooldown bounds how
+// many abandoned attempts can accumulate.
 func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string, error) {
 	req, err := http.NewRequestWithContext(d.ctx, d.method, d.url.String(), nil)
 	if err != nil {
@@ -190,6 +196,10 @@ func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string
 		return r.conn, r.protocol, r.err
 	case <-d.ctx.Done():
 		d.abandon(result)
+		// ctx.Err() is reported with %v rather than wrapped: createForward
+		// already joins the cancellation cause, and keeping this error free
+		// of it preserves the abandonment notice as a distinct startup
+		// diagnostic.
 		return nil, "", fmt.Errorf("abandoning stalled port-forward upgrade negotiation (%v); the API server did not complete the SPDY upgrade", d.ctx.Err())
 	}
 }
