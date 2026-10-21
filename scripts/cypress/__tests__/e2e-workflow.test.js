@@ -24,4 +24,15 @@ describe('Cypress E2E workflow', () => {
 
     assert.ok(workflow.includes('--test-reporter=spec'));
   });
+
+  it('routes Gen AI inter-BFF MLflow calls to the local E2E MLflow BFF', () => {
+    const workflow = fs.readFileSync(
+      path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
+      'utf8',
+    );
+
+    assert.ok(workflow.includes("BFF_MLFLOW_DEV_URL: 'http://localhost:9110/api/v1'"));
+    assert.ok(workflow.includes("BFF_MLFLOW_AUTH_TOKEN_HEADER: 'Authorization'"));
+    assert.ok(workflow.includes("BFF_MLFLOW_AUTH_TOKEN_PREFIX: 'Bearer '"));
+  });
 });

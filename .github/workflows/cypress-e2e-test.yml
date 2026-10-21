@@ -1308,6 +1308,9 @@ jobs:
           OC_SERVER_PRIMARY: ${{ secrets.OC_SERVER_PRIMARY }}
           OC_SERVER_SECONDARY: ${{ secrets.OC_SERVER }}
           CYPRESS_E2E_PROXY: 'true'
+          BFF_MLFLOW_DEV_URL: 'http://localhost:9110/api/v1'
+          BFF_MLFLOW_AUTH_TOKEN_HEADER: 'Authorization'
+          BFF_MLFLOW_AUTH_TOKEN_PREFIX: 'Bearer '
           TAG_SOURCE: ${{ needs.get-test-tags.outputs.source }}
         run: |
           TAG="$MATRIX_TAG"
