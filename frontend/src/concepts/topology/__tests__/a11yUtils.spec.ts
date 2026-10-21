@@ -10,7 +10,7 @@ import {
 } from '#~/concepts/topology/a11yUtils';
 
 describe('orderNodesForKeyboard', () => {
-  it('places graph nodes and group children in visual reading order', () => {
+  it('should place graph nodes and group children in visual reading order', () => {
     const controller = new Visualization();
     controller.registerElementFactory(pipelineElementFactory);
     controller.fromModel(
@@ -65,7 +65,7 @@ describe('orderNodesForKeyboard', () => {
 });
 
 describe('isHiddenByCollapsedAncestor', () => {
-  it('excludes nodes inside a collapsed group, while keeping the group keyboard accessible', () => {
+  it('should exclude nodes inside a collapsed group while keeping the group keyboard accessible', () => {
     const controller = new Visualization();
     controller.registerElementFactory(pipelineElementFactory);
     controller.fromModel(
@@ -101,7 +101,7 @@ describe('isHiddenByCollapsedAncestor', () => {
 });
 
 describe('panFocusedControlIntoView', () => {
-  it('pans an offscreen group control into the topology viewport', () => {
+  it('should pan an offscreen group control into the topology viewport', () => {
     const controller = new Visualization();
     controller.registerElementFactory(pipelineElementFactory);
     controller.fromModel(

@@ -154,10 +154,17 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       // from the original trigger, or from the body/group button after a popover trigger was removed.
       const { activeElement } = document;
       const triggerWasRemoved = !focusedAtSelection?.isConnected;
+      const selectedAndAncestorIds = new Set<string>([selectedId]);
+      let parent = controller.getNodeById(selectedId)?.getParent();
+      while (parent && isNode(parent)) {
+        selectedAndAncestorIds.add(parent.getId());
+        parent = parent.getParent();
+      }
       const focusReturnedToGroup =
         triggerWasRemoved &&
         activeElement instanceof HTMLButtonElement &&
-        activeElement.dataset.pipelineNodeId === selectedId;
+        !!activeElement.dataset.pipelineNodeId &&
+        selectedAndAncestorIds.has(activeElement.dataset.pipelineNodeId);
       if (
         activeElement !== focusedAtSelection &&
         !(triggerWasRemoved && activeElement === document.body) &&

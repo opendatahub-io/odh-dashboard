@@ -5,6 +5,11 @@ import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 import NodeStatusIcon from '#~/concepts/topology/NodeStatusIcon';
 
 describe('NodeStatusIcon', () => {
+  it('should show cached status without a run status', () => {
+    const { getByLabelText } = render(<NodeStatusIcon executionState={ExecutionStateKF.CACHED} />);
+    expect(getByLabelText('Cached')).toBeInTheDocument();
+  });
+
   it('should show cached status when the execution is cached but the run status is skipped', () => {
     const { getByLabelText } = render(
       <NodeStatusIcon runStatus={RunStatus.Skipped} executionState={ExecutionStateKF.CACHED} />,

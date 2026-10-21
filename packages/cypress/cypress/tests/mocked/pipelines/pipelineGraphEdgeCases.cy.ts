@@ -255,7 +255,7 @@ describe('Pipeline Graph Edge Cases', () => {
       );
 
       for (let i = 0; i < 8; i++) {
-        pipelineDetails.findControlBar().findByRole('button', { name: 'Zoom In' }).click();
+        pipelineDetails.findZoomInButton().click();
       }
 
       pipelineDetails.findVisualizationSurface().then(($graph) => {

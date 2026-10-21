@@ -17,11 +17,11 @@ describe('getRunStatusLabel', () => {
     [RunStatus.Pending, 'Pending'],
     [RunStatus.Idle, 'Pending'],
     [RunStatus.Skipped, 'Skipped'],
-  ])('announces %s as %s', (status, label) => {
+  ])('should announce %s as %s', (status, label) => {
     expect(getRunStatusLabel(status)).toBe(label);
   });
 
-  it('omits an unavailable status', () => {
+  it('should omit an unavailable status', () => {
     expect(getRunStatusLabel(undefined)).toBe('');
   });
 });
@@ -37,21 +37,21 @@ describe('getExecutionStateLabel', () => {
     [ExecutionStateKF.COMPLETE, 'Complete'],
     [ExecutionStateKF.FAILED, 'Failed'],
     [ExecutionStateKF.NEW, undefined],
-  ])('announces %s as %s', (state, label) => {
+  ])('should announce %s as %s', (state, label) => {
     expect(getExecutionStateLabel(state)).toBe(label);
   });
 });
 
 describe('getPipelineTaskStatusLabel', () => {
-  it('announces cached tasks as cached even when their run status is skipped', () => {
+  it('should announce cached tasks as cached even when their run status is skipped', () => {
     expect(getPipelineTaskStatusLabel(ExecutionStateKF.CACHED, RunStatus.Skipped)).toBe('Cached');
   });
 
-  it('uses run status when no execution state is available', () => {
+  it('should use run status when no execution state is available', () => {
     expect(getPipelineTaskStatusLabel(undefined, RunStatus.Failed)).toBe('Failed');
   });
 
-  it('uses run status when an execution state has no spoken label', () => {
+  it('should use run status when an execution state has no spoken label', () => {
     expect(getPipelineTaskStatusLabel(ExecutionStateKF.NEW, RunStatus.Pending)).toBe('Pending');
   });
 });

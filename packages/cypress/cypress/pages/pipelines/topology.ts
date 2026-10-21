@@ -93,7 +93,19 @@ class PipelinesTopology {
   }
 
   findGraphButtons() {
-    return cy.get('.odh-pipeline-node-button');
+    return cy.get(
+      'button[data-testid^="pipeline-node-button-"], ' +
+        'button[data-testid^="pipeline-group-button-"], ' +
+        'button[data-testid^="pipeline-group-toggle-"], ' +
+        'button[data-testid^="pipeline-expanded-group-details-"]',
+    );
+  }
+
+  findGroupLabelText(name: string) {
+    // PatternFly owns the SVG pill text; scope its class to the named group label.
+    return cy
+      .findByTestId(`pipeline-group-label-${name}`)
+      .find('.pf-topology-pipelines__pill-text');
   }
 
   findDrawerTaskTitle() {

@@ -414,6 +414,9 @@ describe('Pipeline topology', () => {
       cy.press(Cypress.Keyboard.Keys.ENTER);
       pipelineDetails.findGroupTask('simple-task').focus();
       cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').should('not.exist');
+      // PatternFly may return focus to the group's trigger as the popover closes.
+      pipelineDetails.findGroupButton('for-loop-2').focus();
       pipelineDetails.findDrawerTaskTitle().should('be.focused');
       pipelineDetails.findDrawerCloseButton().click();
       pipelineDetails.findGroupButton('for-loop-2').should('be.focused');
@@ -545,7 +548,8 @@ describe('Pipeline topology', () => {
 
       pipelineDetails.findGroupToggle('for-loop-2').focus();
       cy.press(Cypress.Keyboard.Keys.ENTER);
-      cy.get('[data-id="for-loop-2"] .pf-topology__node__label .pf-topology-pipelines__pill-text')
+      pipelineDetails
+        .findGroupLabelText('for-loop-2')
         .should('have.attr', 'tabindex', '-1')
         .and('have.attr', 'aria-hidden', 'true');
     });
@@ -619,7 +623,7 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.visit(projectId, mockRun.run_id);
 
       for (let i = 0; i < 8; i++) {
-        pipelineRunDetails.findControlBar().findByRole('button', { name: 'Zoom In' }).click();
+        pipelineRunDetails.findZoomInButton().click();
       }
 
       pipelineRunDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('exist');

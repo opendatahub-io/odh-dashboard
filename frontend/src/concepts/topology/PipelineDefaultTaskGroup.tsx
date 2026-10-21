@@ -259,7 +259,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
               >
                 <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
                   <FlexItem className="odh-pipeline-group-task-status" aria-hidden="true">
-                    {childRunStatus != null && childStatus ? (
+                    {childStatus ? (
                       <NodeStatusIcon runStatus={childRunStatus} executionState={childState} />
                     ) : null}
                   </FlexItem>
