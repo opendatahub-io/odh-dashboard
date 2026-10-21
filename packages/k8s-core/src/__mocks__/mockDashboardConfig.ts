@@ -47,6 +47,7 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  grid?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   genAiAgentDeployment?: boolean;
@@ -102,6 +103,7 @@ export const mockDashboardConfig = ({
   automl = true,
   autorag = true,
   modelAsService = true,
+  grid = false,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -313,6 +315,7 @@ export const mockDashboardConfig = ({
       automl,
       autorag,
       modelAsService,
+      grid,
       aiAssetCustomEndpoints,
       disableKServeAuth,
       disableKServeMetrics,
