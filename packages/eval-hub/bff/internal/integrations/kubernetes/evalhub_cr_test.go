@@ -3,7 +3,9 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"net"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,6 +16,16 @@ import (
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	k8stesting "k8s.io/client-go/testing"
 )
+
+// webhookNetTimeoutError simulates a client-side timeout from a hung conversion
+// webhook connection: a net.Error, not an API status error.
+type webhookNetTimeoutError struct{}
+
+func (webhookNetTimeoutError) Error() string   { return "net/http: request canceled (Client.Timeout exceeded)" }
+func (webhookNetTimeoutError) Timeout() bool   { return true }
+func (webhookNetTimeoutError) Temporary() bool { return true }
+
+var _ net.Error = webhookNetTimeoutError{}
 
 func newEvalHubCRTestClient(t *testing.T, objects ...runtime.Object) *dynamicfake.FakeDynamicClient {
 	t.Helper()
@@ -119,6 +131,14 @@ func TestListEvalHubCRsFallsBackOnConversionFailures(t *testing.T) {
 			err:  context.DeadlineExceeded,
 		},
 		{
+			name: "API timeout status from a webhook call",
+			err:  k8serrors.NewTimeoutError("conversion webhook call did not respond in time", 1),
+		},
+		{
+			name: "client-side net.Error timeout from a hung webhook connection",
+			err:  webhookNetTimeoutError{},
+		},
+		{
 			name: "error message mentioning the conversion webhook",
 			err:  fmt.Errorf("conversion webhook for evalhubs.trustyai.opendatahub.io failed"),
 		},
@@ -150,4 +170,81 @@ func TestListEvalHubCRsReturnsErrorWhenNoVersionServed(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, k8serrors.IsNotFound(err))
 	assert.Equal(t, []string{EvalHubCRDVersion, EvalHubCRDLegacyVersion}, listedEvalHubVersions(client))
+}
+
+// A client error (e.g. Forbidden) whose message happens to mention the
+// conversion webhook must still surface immediately: the message heuristic in
+// isConversionFailure only applies to server-side failures.
+func TestListEvalHubCRsSurfacesClientErrorsMentioningWebhook(t *testing.T) {
+	client := newEvalHubCRTestClient(t)
+	failEvalHubVersion(client, EvalHubCRDVersion,
+		k8serrors.NewForbidden(EvalHubGVR.GroupResource(), "",
+			fmt.Errorf("cannot read conversion webhook configuration")))
+
+	_, err := listEvalHubCRs(context.Background(), client, "test-ns")
+
+	require.Error(t, err)
+	assert.True(t, k8serrors.IsForbidden(err))
+	assert.Equal(t, []string{EvalHubCRDVersion}, listedEvalHubVersions(client))
+}
+
+// When the preferred version fails on the conversion webhook but the fallback
+// version is not served (NotFound), the conversion failure must be returned:
+// callers treat NotFound as non-fatal and would silently swallow the
+// operational webhook failure.
+func TestListEvalHubCRsPreservesConversionFailureOverFallbackNotFound(t *testing.T) {
+	client := newEvalHubCRTestClient(t)
+	failEvalHubVersion(client, EvalHubCRDVersion,
+		k8serrors.NewInternalError(fmt.Errorf(
+			"failed calling webhook \"%s.convert\": connection refused", EvalHubCRDResource)))
+	failEvalHubVersion(client, EvalHubCRDLegacyVersion,
+		k8serrors.NewNotFound(EvalHubLegacyGVR.GroupResource(), EvalHubCRDLegacyVersion))
+
+	_, err := listEvalHubCRs(context.Background(), client, "test-ns")
+
+	require.Error(t, err)
+	assert.True(t, k8serrors.IsInternalError(err),
+		"conversion failure must not be masked by the fallback's NotFound")
+	assert.Equal(t, []string{EvalHubCRDVersion, EvalHubCRDLegacyVersion}, listedEvalHubVersions(client))
+}
+
+func TestAttemptBudget(t *testing.T) {
+	t.Run("splits remaining time evenly across attempts", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		budget := attemptBudget(ctx, 2)
+
+		assert.Greater(t, budget, 10*time.Second)
+		assert.LessOrEqual(t, budget, 15*time.Second)
+	})
+
+	t.Run("last attempt gets all remaining time", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		budget := attemptBudget(ctx, 1)
+
+		assert.Greater(t, budget, 20*time.Second)
+		assert.LessOrEqual(t, budget, 30*time.Second)
+	})
+
+	t.Run("no deadline yields no budget", func(t *testing.T) {
+		assert.Zero(t, attemptBudget(context.Background(), 2))
+	})
+
+	t.Run("no attempts left yields no budget", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		assert.Zero(t, attemptBudget(ctx, 0))
+	})
+
+	t.Run("expired deadline yields non-positive budget", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+		defer cancel()
+		time.Sleep(time.Millisecond)
+
+		assert.LessOrEqual(t, attemptBudget(ctx, 2), time.Duration(0))
+	})
 }
