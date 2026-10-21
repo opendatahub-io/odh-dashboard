@@ -34,7 +34,7 @@ describe('Workbench page — Feature Store', () => {
         mockDscStatus({
           components: {
             [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+            [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Managed' },
           },
         }),
       );
@@ -191,9 +191,9 @@ describe('Workbench page — Feature Store', () => {
         createSpawnerPage.findFeatureStoreEmptyState().should('exist');
       });
 
-      it('should not display feature store section when Feast operator is not available', () => {
+      it('should not display feature store section when Feature Store is not available', () => {
         initIntercepts({ isEmpty: true });
-        initFeatureStoreSpawnerIntercepts({ feastOperatorState: 'Removed' });
+        initFeatureStoreSpawnerIntercepts({ featureStoreState: 'Removed' });
 
         visitCreateSpawner();
 
