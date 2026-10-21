@@ -47,9 +47,10 @@ DEPLOYMENT_MODE=federated PORT=9102 pnpm run start:dev
 ```
 
 Set `GEN_AI_REMOTE_PORT` when starting AutoRAG if the Gen AI frontend uses another port.
-The Gen AI BFF must also be reachable through the development API proxy and configured
-with `GATEWAY_DOMAIN` so its relay can reach the AutoRAG Responses endpoint. The drawer
-does not require an OGX playground connection.
+The Gen AI BFF must also be running on port `8080` (or configured with
+`GEN_AI_BFF_PROTOCOL`, `GEN_AI_BFF_HOST`, and `GEN_AI_BFF_PORT`) and configured with
+`GATEWAY_DOMAIN` so its relay can reach the AutoRAG Responses endpoint. The drawer does
+not require an OGX playground connection.
 
 For in-depth local run guidance review the [contribution guidelines](../../CONTRIBUTING.md).
 

@@ -366,6 +366,25 @@ describe('buildResponsesTemplate', () => {
       alpha: 0.3,
     });
   });
+
+  it('should reject unknown pgvector ranking strategies', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        store_binding: { provider_type: 'pgvector' as const, collection_name: 'chunks' },
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_strategy: 'unknown',
+        },
+      },
+    } as AutoragPattern;
+
+    expect(() => buildResponsesTemplate(pattern, 'run-123')).toThrow(
+      'Unsupported retrieval ranker: unknown',
+    );
+  });
 });
 
 describe('normalizeResponsesTemplate', () => {

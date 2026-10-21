@@ -221,6 +221,35 @@ func TestResponsesRepositoryResolveVectorDBForwardsMilvusURIWithoutMutatingSecre
 	assert.Equal(t, originalURI, string(secretData["MILVUS_URI"]))
 }
 
+func TestResponsesRepositoryResolveVectorDBNormalizesMilvusDefaultPortBeforeForwarding(t *testing.T) {
+	originalURI := "http://milvus.milvus.svc.cluster.local"
+	normalizedURI := "http://milvus.milvus.svc.cluster.local:19530"
+	secretData := map[string][]byte{"MILVUS_URI": []byte(originalURI)}
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: secretData}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(_ context.Context, rawURL string) (string, error) {
+			assert.Equal(t, normalizedURI, rawURL)
+			return "http://localhost:4321", nil
+		},
+	})
+	repo.newVectorDB = func(ctx context.Context, data map[string][]byte, forwardURL func(context.Context, string) (string, error)) (vectordb.VectorDB, error) {
+		forwarded, err := forwardURL(ctx, string(data["MILVUS_URI"]))
+		if err != nil {
+			return nil, err
+		}
+		assert.Equal(t, "http://localhost:4321", forwarded)
+		return &mockVectorDB{}, nil
+	}
+
+	db, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+	require.NoError(t, err)
+	require.NotNil(t, db)
+}
+
 func TestResponsesRepositoryResolveVectorDBWithoutForwarderPreservesURI(t *testing.T) {
 	originalURI := "http://milvus.milvus.svc.cluster.local:19530"
 	secretData := map[string][]byte{"MILVUS_URI": []byte(originalURI)}
@@ -527,6 +556,41 @@ func TestResponsesRepositoryValidateResponsesBoundsMilvusForwarding(t *testing.T
 		Namespace: "test-ns", DBSecretName: "database", MaasSecretName: "maas",
 	}, request))
 	assert.LessOrEqual(t, time.Until(observedDeadline), vectordb.MilvusOperationTimeout)
+}
+
+func TestResponsesRepositoryValidateResponsesNormalizesMilvusDefaultPortBeforeForwarding(t *testing.T) {
+	request := fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"collection"},
+	})
+	const normalizedURI = "http://milvus.milvus.svc.cluster.local:19530"
+	var observedURI string
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(_ context.Context, _, name string) (*v1.Secret, error) {
+			if name == "maas" {
+				return &v1.Secret{Data: map[string][]byte{
+					"MAAS_BASE_URL": []byte("https://maas.example"),
+					"MAAS_API_KEY":  []byte("test-key"),
+				}}, nil
+			}
+			return &v1.Secret{Data: map[string][]byte{
+				"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local"),
+			}}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(_ context.Context, rawURL string) (string, error) {
+			observedURI = rawURL
+			return rawURL, nil
+		},
+	})
+	repo.newMaaSClient = func(string, string) (*maas.Client, error) { return &maas.Client{}, nil }
+
+	err := repo.ValidateResponses(context.Background(), ResponsesParams{
+		Namespace: "test-ns", DBSecretName: "database", MaasSecretName: "maas",
+	}, request)
+
+	require.NoError(t, err)
+	assert.Equal(t, normalizedURI, observedURI)
 }
 
 // msgRole returns the role of a chat message param union, or "" if unset.

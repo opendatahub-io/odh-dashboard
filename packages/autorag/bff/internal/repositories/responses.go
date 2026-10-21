@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"net"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -69,6 +71,22 @@ type forwardedVectorDBData struct {
 	data map[string][]byte
 }
 
+func normalizeMilvusForwardURI(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	if parsed.Port() != "" {
+		return raw, nil
+	}
+	if parsed.Hostname() == "" {
+		return "", errors.New("Milvus URI must include a host")
+	}
+	parsed.Host = net.JoinHostPort(parsed.Hostname(), "19530")
+	return parsed.String(), nil
+}
+
 func NewResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service, forwarders ...URLForwarder) *ResponsesRepository {
 	return newResponsesRepository(logger, k8sService, nil, forwarders...)
 }
@@ -119,14 +137,18 @@ func (r *ResponsesRepository) forwardVectorDBEndpoint(requestCtx, operationCtx c
 	if r.urlForwarder == nil {
 		return forwardedVectorDBData{data: data}, nil
 	}
-	forwardedURI, err := r.urlForwarder.ForwardURL(operationCtx, namespace, uri)
+	forwardURI, err := normalizeMilvusForwardURI(uri)
+	if err != nil {
+		return forwardedVectorDBData{}, fmt.Errorf("invalid Milvus endpoint: %w", err)
+	}
+	forwardedURI, err := r.urlForwarder.ForwardURL(operationCtx, namespace, forwardURI)
 	if err != nil {
 		return forwardedVectorDBData{}, fmt.Errorf("failed to forward Milvus endpoint: %w", classifyForwardingError(requestCtx, operationCtx, err))
 	}
-	if forwardedURI == uri {
+	if forwardedURI == forwardURI {
 		return forwardedVectorDBData{data: data}, nil
 	}
-	if err := vectordb.ValidateForwardedMilvusEndpoint(uri, forwardedURI); err != nil {
+	if err := vectordb.ValidateForwardedMilvusEndpoint(forwardURI, forwardedURI); err != nil {
 		return forwardedVectorDBData{}, fmt.Errorf("invalid forwarded Milvus endpoint: %w", err)
 	}
 
@@ -188,7 +210,11 @@ func (r *ResponsesRepository) resolveVectorDB(ctx context.Context, namespace, se
 		var forwardURL func(context.Context, string) (string, error)
 		if r.urlForwarder != nil {
 			forwardURL = func(forwardCtx context.Context, uri string) (string, error) {
-				forwardedURI, forwardErr := r.urlForwarder.ForwardURL(forwardCtx, namespace, uri)
+				forwardURI, normalizeErr := normalizeMilvusForwardURI(uri)
+				if normalizeErr != nil {
+					return "", fmt.Errorf("invalid Milvus endpoint: %w", normalizeErr)
+				}
+				forwardedURI, forwardErr := r.urlForwarder.ForwardURL(forwardCtx, namespace, forwardURI)
 				if forwardErr != nil {
 					return "", fmt.Errorf("failed to forward Milvus endpoint: %w", classifyForwardingError(ctx, operationCtx, forwardErr))
 				}

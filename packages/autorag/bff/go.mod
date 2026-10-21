@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/autorag-library/bff
 
-go 1.26.9
+go 1.26.10
 
 replace github.com/opendatahub-io/odh-dashboard/packages/autox-core/services => ../../autox-core/services
 
