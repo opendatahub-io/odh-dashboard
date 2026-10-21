@@ -29,6 +29,10 @@ func CreateMaasFakeServer() *httptest.Server {
 				sendFakeResponse("maas-models-list.json", http.StatusOK, w)
 				return
 			}
+			if r.URL.Path == "/v1/me" {
+				sendFakeResponse("me-response.json", http.StatusOK, w)
+				return
+			}
 			if r.URL.Path == "/v1/subscriptions" {
 				sendFakeResponse("subscriptions-list.json", http.StatusOK, w)
 				return

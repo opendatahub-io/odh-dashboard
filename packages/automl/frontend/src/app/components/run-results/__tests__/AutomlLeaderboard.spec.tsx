@@ -3,12 +3,14 @@ import '@testing-library/jest-dom';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
 import AutomlLeaderboard from '~/app/components/run-results/AutomlLeaderboard';
 import {
   AutomlResultsContext,
   type AutomlModel,
   type AutomlResultsContextProps,
 } from '~/app/context/AutomlResultsContext';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { PRESET_FASTER } from '~/app/utilities/const';
@@ -21,6 +23,17 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
     <div data-testid="run-in-progress">Pipeline running, view runs at: {viewRunsRoute}</div>
   ),
 }));
+
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useTaskExecutorError: jest.fn(),
+}));
+
+const mockUseTaskExecutorError = jest.mocked(useTaskExecutorError);
+
+beforeEach(() => {
+  mockUseTaskExecutorError.mockReturnValue({ isLoading: false, isError: false });
+});
 
 // Mock DragDropSort to avoid createPortal issues in jsdom
 jest.mock('@patternfly/react-drag-drop', () => ({
@@ -227,6 +240,7 @@ interface RenderWithContextOptions {
   namespace?: string;
   onViewDetails?: (modelName: string, rank: number) => void;
   onClickSaveNotebook?: (modelName: string) => void;
+  componentStageMap?: ComponentStageMap;
 }
 
 type LeaderboardTestWrapperProps = {
@@ -268,6 +282,7 @@ const createMockContextValue = ({
   modelsLoadError,
   onRetryModels,
   taskType,
+  componentStageMap,
 }: RenderWithContextOptions = {}): AutomlResultsContextProps => {
   const finalTaskType =
     taskType || pipelineRun?.runtime_config?.parameters?.task_type || 'timeseries';
@@ -281,6 +296,7 @@ const createMockContextValue = ({
     modelsLoadError,
     onRetryModels,
     parameters: createMockParameters(finalTaskType),
+    componentStageMap,
   };
 };
 
@@ -478,14 +494,14 @@ describe('AutomlLeaderboard component', () => {
       [
         'when run failed',
         RuntimeStateKF.FAILED,
-        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
-        /pipeline configuration and logs/i,
+        'The pipeline run did not complete successfully. Please check the log for errors or pipeline configuration for more advanced details.',
+        /pipeline configuration/i,
       ],
       [
         'when run was canceled',
         RuntimeStateKF.CANCELED,
-        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
-        /pipeline configuration and logs/i,
+        'The pipeline run did not complete successfully. Please check the log for errors or pipeline configuration for more advanced details.',
+        /pipeline configuration/i,
       ],
       [
         'when pipelineRun is undefined',
@@ -531,6 +547,100 @@ describe('AutomlLeaderboard component', () => {
         'href',
         '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
       );
+    });
+
+    it('should open the executor log tearsheet from the failed-run message', () => {
+      const logText = '[KFP Executor ERROR]: ValueError: Invalid feature columns';
+      mockUseTaskExecutorError.mockReturnValue({ logText, isLoading: false, isError: false });
+      renderWithContext({
+        models: {},
+        componentStageMap: {
+          pipeline_id: 'automl-pipeline',
+          description: 'AutoML training pipeline',
+          kfp_run_id: 'test-run-123',
+          published_at: '2025-01-17T00:00:00Z',
+          components: [
+            { id: 'data_preparation', description: '', stages: [] },
+            { id: 'training', description: '', stages: [] },
+          ],
+        },
+        pipelineRun: {
+          ...createMockPipelineRun(RuntimeStateKF.FAILED),
+          run_details: {
+            task_details: [
+              // KFP system tasks fail alongside the run and precede the
+              // component tasks in the listing — the stage map identifies
+              // the step that actually failed.
+              {
+                task_id: 'uuid-0',
+                display_name: 'autogluon-timeseries-training-pipeline-vtx7r',
+                state: 'FAILED',
+              },
+              { task_id: 'uuid-1', display_name: 'data-preparation', state: 'SUCCEEDED' },
+              { task_id: 'uuid-2', display_name: 'training', state: 'FAILED' },
+            ],
+          },
+        },
+      });
+
+      // The log link targets the executor log of the first failed task.
+      expect(mockUseTaskExecutorError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          taskKey: 'training',
+          rootDir: 'autogluon-timeseries-training-pipeline',
+        }),
+      );
+
+      expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('leaderboard-failed-run-logs-link'));
+
+      expect(screen.getByTestId('executor-logs-content')).toHaveTextContent(logText);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument();
+    });
+
+    it('should fall back to the first failed non-system task without a stage map', () => {
+      const logText = '[KFP Executor ERROR]: stage map publisher crashed';
+      mockUseTaskExecutorError.mockReturnValue({ logText, isLoading: false, isError: false });
+      renderWithContext({
+        models: {},
+        pipelineRun: {
+          ...createMockPipelineRun(RuntimeStateKF.FAILED),
+          run_details: {
+            task_details: [
+              // No stage map (the publisher itself failed), so the component
+              // walk is unavailable — the fallback must skip the KFP system
+              // tasks via the pipeline name (the S3 rootDir).
+              {
+                task_id: 'uuid-0',
+                display_name: 'autogluon-timeseries-training-pipeline-vtx7r',
+                state: 'FAILED',
+              },
+              { task_id: 'uuid-1', display_name: 'root', state: 'FAILED' },
+              { task_id: 'uuid-2', display_name: 'executor', state: 'FAILED' },
+              {
+                task_id: 'uuid-3',
+                display_name: 'publish-component-stage-map',
+                state: 'FAILED',
+              },
+            ],
+          },
+        },
+      });
+
+      expect(mockUseTaskExecutorError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          taskKey: 'publish-component-stage-map',
+          rootDir: 'autogluon-timeseries-training-pipeline',
+        }),
+      );
+
+      fireEvent.click(screen.getByTestId('leaderboard-failed-run-logs-link'));
+
+      expect(screen.getByTestId('executor-logs-content')).toHaveTextContent(logText);
     });
 
     it('should render loading skeleton with correct structure', () => {
