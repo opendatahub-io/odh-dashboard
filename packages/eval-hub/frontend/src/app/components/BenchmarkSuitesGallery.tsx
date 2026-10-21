@@ -349,6 +349,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     [trackCollectionFilterApplied],
   );
   const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit);
+  const resetSearchInputTracking = searchInputTrackingProps.reset;
 
   const clearFilters = React.useCallback(() => {
     setNameFilter('');
@@ -360,7 +361,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     setModalityFilter([]);
     setMetricFilter([]);
     setBenchmarkFilter([]);
-  }, []);
+    resetSearchInputTracking();
+  }, [resetSearchInputTracking]);
   const queryFiltersKey = React.useMemo(
     () =>
       [
@@ -778,7 +780,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     setModalityFilter([]);
     setMetricFilter([]);
     setBenchmarkFilter([]);
-  }, [queryFiltersKey, scope]);
+    resetSearchInputTracking();
+  }, [queryFiltersKey, scope, resetSearchInputTracking]);
 
   const handleDeleteSelect = React.useCallback(
     (collection: Collection) => {
@@ -874,6 +877,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   labels={[]}
                   deleteLabel={() => {
                     setNameFilter('');
+                    resetSearchInputTracking();
                   }}
                   categoryName="Search"
                 >
@@ -888,6 +892,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     inputProps={searchInputTrackingProps.inputProps}
                     onClear={() => {
                       setNameFilter('');
+                      resetSearchInputTracking();
                     }}
                     data-testid="benchmark-suites-name-filter"
                   />

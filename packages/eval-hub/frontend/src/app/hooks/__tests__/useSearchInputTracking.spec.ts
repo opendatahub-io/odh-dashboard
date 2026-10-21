@@ -12,7 +12,10 @@ describe('useSearchInputTracking', () => {
   const renderTrackingHook = () => {
     const onCommit = jest.fn();
     const renderResult = renderHook(() => useSearchInputTracking(onCommit));
-    return { onCommit, props: renderResult.result.current as SearchInputTrackingProps };
+    return {
+      onCommit,
+      props: renderResult.result.current as SearchInputTrackingProps & { reset: () => void },
+    };
   };
 
   it('should report the trimmed input length on Enter', () => {
@@ -85,5 +88,33 @@ describe('useSearchInputTracking', () => {
     expect(onCommit).toHaveBeenCalledTimes(2);
     expect(onCommit).toHaveBeenNthCalledWith(1, 5);
     expect(onCommit).toHaveBeenNthCalledWith(2, 10);
+  });
+
+  it('should re-emit the same value after an empty commit clears the input', () => {
+    const { onCommit, props } = renderTrackingHook();
+
+    act(() => {
+      props.onSearch({} as React.SyntheticEvent<HTMLButtonElement>, 'suite');
+      props.onSearch({} as React.SyntheticEvent<HTMLButtonElement>, '');
+      props.onSearch({} as React.SyntheticEvent<HTMLButtonElement>, 'suite');
+    });
+
+    expect(onCommit).toHaveBeenCalledTimes(2);
+    expect(onCommit).toHaveBeenNthCalledWith(1, 5);
+    expect(onCommit).toHaveBeenNthCalledWith(2, 5);
+  });
+
+  it('should re-emit the same value after reset is called', () => {
+    const { onCommit, props } = renderTrackingHook();
+
+    act(() => {
+      props.onSearch({} as React.SyntheticEvent<HTMLButtonElement>, 'suite');
+    });
+    act(() => {
+      props.reset();
+      props.onSearch({} as React.SyntheticEvent<HTMLButtonElement>, 'suite');
+    });
+
+    expect(onCommit).toHaveBeenCalledTimes(2);
   });
 });

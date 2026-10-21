@@ -528,11 +528,17 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
 
   const handleStatusTabSelect = (_event: React.SyntheticEvent, key: string | number) => {
     const tab = String(key) === 'events-log' ? 'events_log' : 'progress';
-    trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED, {
-      evaluationName,
-      tab,
-    });
-    if (tab === 'events_log') {
+    const isTabChange = String(key) !== activeTab;
+    // Re-selecting Events log while a benchmark-specific log view is open still changes
+    // the displayed log scope to general logs, so the log-view event stays meaningful.
+    const isLogScopeChange = tab === 'events_log' && logBenchmarkIndex !== undefined;
+    if (isTabChange) {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED, {
+        evaluationName,
+        tab,
+      });
+    }
+    if (tab === 'events_log' && (isTabChange || isLogScopeChange)) {
       trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED, {
         evaluationName,
         source: 'status_tab',

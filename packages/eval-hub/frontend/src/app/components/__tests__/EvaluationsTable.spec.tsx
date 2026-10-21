@@ -427,6 +427,48 @@ describe('EvaluationsTable', () => {
       }
     });
 
+    it('should cancel pending text filter tracking when the filter type changes', () => {
+      jest.useFakeTimers();
+      try {
+        renderTable({ evaluations: mockJobs, loaded: true });
+        const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
+
+        fireEvent.change(searchInput, { target: { value: 'Alpha' } });
+        fireEvent.click(screen.getByTestId('filter-type-toggle'));
+        fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+
+        expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+          EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
+          expect.objectContaining({ filterAttribute: 'name' }),
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('should cancel pending text filter tracking when filters are cleared', () => {
+      jest.useFakeTimers();
+      try {
+        renderTable({ evaluations: mockJobs, loaded: true });
+        const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
+
+        fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+        fireEvent.click(screen.getByTestId('clear-filters-button'));
+
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+
+        expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it('should show empty filter state when no matches', () => {
       renderTable({ evaluations: mockJobs, loaded: true });
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;

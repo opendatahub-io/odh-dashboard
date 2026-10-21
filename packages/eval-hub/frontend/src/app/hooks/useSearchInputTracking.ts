@@ -10,22 +10,31 @@ export type SearchInputTrackingProps = {
 /**
  * SearchInput props that report filter telemetry only when the user commits a search
  * (Enter or blur), and only as the trimmed input length — never the raw text.
+ * `reset` ends the deduplication window so a cleared search can be re-reported.
  */
 const useSearchInputTracking = (
   onCommit: (trimmedLength: number) => void,
-): SearchInputTrackingProps => {
+): SearchInputTrackingProps & { reset: () => void } => {
   const lastCommittedValueRef = React.useRef('');
+
+  const reset = React.useCallback(() => {
+    lastCommittedValueRef.current = '';
+  }, []);
 
   const commitSearchValue = React.useCallback(
     (value: string) => {
       const trimmedValue = value.trim();
-      if (!trimmedValue || trimmedValue === lastCommittedValueRef.current) {
+      if (!trimmedValue) {
+        reset();
+        return;
+      }
+      if (trimmedValue === lastCommittedValueRef.current) {
         return;
       }
       lastCommittedValueRef.current = trimmedValue;
       onCommit(trimmedValue.length);
     },
-    [onCommit],
+    [onCommit, reset],
   );
 
   return React.useMemo(
@@ -34,8 +43,9 @@ const useSearchInputTracking = (
       inputProps: {
         onBlur: (event) => commitSearchValue(event.currentTarget.value),
       },
+      reset,
     }),
-    [commitSearchValue],
+    [commitSearchValue, reset],
   );
 };
 

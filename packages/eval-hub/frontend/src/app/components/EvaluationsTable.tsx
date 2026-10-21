@@ -372,9 +372,10 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   }, [filterValue, activeFilter, selectedStatus]);
 
   const handleClearFilters = React.useCallback(() => {
+    trackTextFilterAppliedDebounced.cancel();
     setFilterValue('');
     setSelectedStatus('');
-  }, []);
+  }, [trackTextFilterAppliedDebounced]);
 
   const handleSelectionChange = React.useCallback(
     (jobId: string, checked: boolean) => {
@@ -508,6 +509,9 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     ) {
                       setActiveFilter(key);
                     }
+                    // Switching filter type discards the text filter, so its pending
+                    // debounced event must not fire for the discarded value.
+                    trackTextFilterAppliedDebounced.cancel();
                     setFilterValue('');
                     setSelectedStatus('');
                     setIsFilterSelectOpen(false);
@@ -577,7 +581,10 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                       setFilterValue(value);
                       trackTextFilterAppliedDebounced(activeFilter, value);
                     }}
-                    onClear={() => setFilterValue('')}
+                    onClear={() => {
+                      trackTextFilterAppliedDebounced.cancel();
+                      setFilterValue('');
+                    }}
                     data-testid="filter-toolbar-text-field"
                   />
                 )}

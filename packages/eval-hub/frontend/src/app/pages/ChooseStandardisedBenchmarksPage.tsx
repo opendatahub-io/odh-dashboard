@@ -165,7 +165,8 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
 
   const onClearFilters = React.useCallback(() => {
     setFilterData(initialBenchmarkFilterData);
-  }, []);
+    searchInputTrackingProps.reset();
+  }, [searchInputTrackingProps]);
 
   const filteredBenchmarks = React.useMemo<FlatBenchmark[]>(
     () => filterBenchmarks(allBenchmarks, filterData),
@@ -312,6 +313,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                     ...prev,
                                     [BenchmarkFilterOptions.name]: '',
                                   }));
+                                  searchInputTrackingProps.reset();
                                 }}
                                 data-testid="benchmarks-name-filter"
                               />

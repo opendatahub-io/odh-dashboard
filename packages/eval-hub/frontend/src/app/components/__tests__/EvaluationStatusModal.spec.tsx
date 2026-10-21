@@ -147,6 +147,47 @@ describe('EvaluationStatusModal tab defaults', () => {
     );
   });
 
+  it('should not re-emit tab telemetry when re-selecting the active tab', () => {
+    renderModal(mockEvaluationJob({ state: 'running' }));
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+    mockTrackEvalHubEvent.mockClear();
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('progress-tab'));
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
+      expect.objectContaining({ tab: 'progress' }),
+    );
+  });
+
+  it('should track general logs when re-selecting Events log from a benchmark log view', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    const polledJob = mockEvaluationJob({ state: 'running' });
+    polledJob.status.benchmarks = makeBenchmarks([
+      { id: 'mmlu', status: 'completed', benchmark_index: 0 },
+    ]);
+
+    renderModal(job, polledJob);
+
+    fireEvent.click(screen.getByTestId('progress-view-logs-0'));
+    mockTrackEvalHubEvent.mockClear();
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
+      expect.anything(),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
+      expect.objectContaining({ source: 'status_tab' }),
+    );
+  });
+
   it('should not show the failure-info tab for a failed job', () => {
     renderModal(mockEvaluationJob({ state: 'failed' }));
     expect(screen.queryByTestId('failure-info-tab')).not.toBeInTheDocument();

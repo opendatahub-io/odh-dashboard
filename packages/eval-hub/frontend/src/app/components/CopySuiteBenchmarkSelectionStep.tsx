@@ -215,7 +215,8 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
   const onClearFilters = React.useCallback(() => {
     setFilterData(initialBenchmarkFilterData);
     setPage(1);
-  }, []);
+    searchInputTrackingProps.reset();
+  }, [searchInputTrackingProps]);
 
   const toggleSelection = React.useCallback((key: string) => {
     setPage(1);
@@ -288,6 +289,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                               [BenchmarkFilterOptions.name]: '',
                             }));
                             setPage(1);
+                            searchInputTrackingProps.reset();
                           }}
                           data-testid="benchmark-catalog-search"
                         />
