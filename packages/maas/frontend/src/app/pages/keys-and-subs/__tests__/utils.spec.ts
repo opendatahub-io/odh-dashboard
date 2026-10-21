@@ -257,6 +257,45 @@ describe('findMaaSModelBySubscriptionRef', () => {
     );
   });
 
+  it('should prefer exact owned_by namespace/name over another namespace with the same ref name', () => {
+    const colliding = [
+      {
+        id: 'publishers/team-a/models/Qwen/Qwen-A',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-a/qwen',
+      },
+      {
+        id: 'publishers/team-b/models/Qwen/Qwen-B',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b/qwen',
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(colliding, {
+        refName: 'qwen',
+        refNamespace: 'team-b',
+      })?.id,
+    ).toBe('publishers/team-b/models/Qwen/Qwen-B');
+  });
+
+  it('should not resolve owned_by by short name alone when multiple namespaces match', () => {
+    const colliding = [
+      {
+        id: 'publishers/team-a/models/Qwen/Qwen-A',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-a/qwen',
+      },
+      {
+        id: 'publishers/team-b/models/Qwen/Qwen-B',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b/qwen',
+      },
+    ];
+    // No refNamespace and ambiguous owned_by short-name matches → leave unresolved
+    // (last-segment fallback also does not uniquely identify either row).
+    expect(findMaaSModelBySubscriptionRef(colliding, { refName: 'qwen' })).toBeUndefined();
+  });
+
   it('should resolve via subscription entitlement when only one model is entitled', () => {
     expect(
       findMaaSModelBySubscriptionRef(models, {

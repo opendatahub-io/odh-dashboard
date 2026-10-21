@@ -173,7 +173,7 @@ type CatalogModelMatchFields = {
   subscriptions?: { name: string }[];
 };
 
-const ownedByMatchesRef = (ownedBy: string | undefined, refName: string): boolean => {
+const ownedByMatchesRefName = (ownedBy: string | undefined, refName: string): boolean => {
   if (!ownedBy || !refName) {
     return false;
   }
@@ -222,9 +222,18 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
     }
   }
 
-  const byOwnedBy = models.find((model) => ownedByMatchesRef(model.owned_by, refName));
-  if (byOwnedBy) {
-    return byOwnedBy;
+  // Prefer exact namespace/name owned_by. Never take the first name-only hit across
+  // namespaces (team-a/qwen vs team-b/qwen). Ambiguous short-name matches → skip.
+  if (refNamespace) {
+    const byOwnedByExact = models.find((model) => model.owned_by === `${refNamespace}/${refName}`);
+    if (byOwnedByExact) {
+      return byOwnedByExact;
+    }
+  } else {
+    const ownedByMatches = models.filter((model) => ownedByMatchesRefName(model.owned_by, refName));
+    if (ownedByMatches.length === 1) {
+      return ownedByMatches[0];
+    }
   }
 
   if (subscriptionId) {
