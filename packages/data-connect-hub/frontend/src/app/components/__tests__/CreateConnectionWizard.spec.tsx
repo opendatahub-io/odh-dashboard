@@ -469,6 +469,66 @@ describe('CreateConnectionWizard', () => {
     });
   });
 
+  it('masks password aliases and plural secret names on both wizard steps', async () => {
+    const user = userEvent.setup();
+    const credentialValues = {
+      PWD: 'password-alias-value',
+      PASSWD: 'passwd-alias-value',
+      DB_PWD: 'database-password-value',
+      passwords: 'password-collection-value',
+      secrets: 'secret-collection-value',
+      tokens: 'token-collection-value',
+    };
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: Object.keys(credentialValues).map((fieldName) => ({
+              name: fieldName,
+              label: fieldName,
+              required: true,
+              type: 'string',
+            })),
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: credentialValues,
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    Object.entries(credentialValues).forEach(([fieldName, value]) => {
+      expect(screen.queryByText(value)).toBeNull();
+      expect(screen.getByText(`${fieldName} value hidden`)).toBeTruthy();
+      expect(screen.getByRole('button', { name: `Show ${fieldName}` })).toBeTruthy();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    Object.entries(credentialValues).forEach(([fieldName, value]) => {
+      const input = screen.getByTestId(`credential-${fieldName}`) as HTMLInputElement;
+      expect(input.type).toBe('password');
+      expect(input.value).toBe(value);
+    });
+  });
+
   it('masks connection URI and URL fields on both wizard steps', async () => {
     const user = userEvent.setup();
     const credentialValues = {

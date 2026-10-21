@@ -8,7 +8,8 @@ const SENSITIVE_CREDENTIAL_FIELD_TERMS = [
   'secret',
   'token',
   'credential',
-  'credentials',
+  'pwd',
+  'passwd',
   'private',
   'uri',
   'url',
@@ -42,7 +43,9 @@ export const isSensitiveCredentialField = (
   ];
 
   return (
-    fieldTokens.some((token) => SENSITIVE_CREDENTIAL_FIELD_TERMS.some((term) => token === term)) ||
+    fieldTokens.some((token) =>
+      SENSITIVE_CREDENTIAL_FIELD_TERMS.some((term) => token === term || token === `${term}s`),
+    ) ||
     SENSITIVE_CREDENTIAL_COMPOUND_TERMS.some((term) =>
       normalizedValues.some((value) => value.includes(term)),
     )

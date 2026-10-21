@@ -21,6 +21,12 @@ describe('isSensitiveCredentialField', () => {
     ['accessToken', 'accessToken'],
     ['dbPassword', 'dbPassword'],
     ['privateKey', 'privateKey'],
+    ['PWD', 'PWD'],
+    ['PASSWD', 'PASSWD'],
+    ['DB_PWD', 'DB_PWD'],
+    ['passwords', 'passwords'],
+    ['secrets', 'secrets'],
+    ['tokens', 'tokens'],
   ])('identifies sensitive field %s', (name, label) => {
     expect(isSensitiveCredentialField(field(name, label))).toBe(true);
   });
