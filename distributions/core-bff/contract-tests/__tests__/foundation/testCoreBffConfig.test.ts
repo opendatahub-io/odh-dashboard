@@ -43,7 +43,7 @@ describe('Core BFF Config Endpoints', () => {
     it('should return an array (empty when CRD is absent)', async () => {
       const result = await apiClient.get('/api/components');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/ComponentsResponse/content/application/json/schema',
+        ref: '#/components/responses/ComponentsResponse/content/application~1json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);

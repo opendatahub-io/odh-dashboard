@@ -239,11 +239,19 @@ assert data["summary"] == "Trusted host snapshot", data
 print("PASS jira-snapshot: trusted precomputed context is preserved")
 PY
 
-  local jira_definition jira_prompt
-  jira_definition="$(jq -r '
-    (first(.dimensions[] | select(.id == "jira-snapshot") | .producer_file) // "") as $snapshot |
+  # The row that reads the snapshot names it by its sandbox path, which is the
+  # host_files dest the harness maps the producer file to.
+  local jira_definition jira_prompt jira_snapshot jira_dest
+  jira_snapshot="$(jq -r 'first(.dimensions[] | select(.id == "jira-snapshot") | .producer_file) // empty' \
+    "${_DIR}/../dimensions.json")"
+  jira_dest="$(awk -v src="${jira_snapshot}" '
+    $1 == "-" && $2 == "src:" { current = $3; next }
+    $1 == "src:" { current = $2; next }
+    $1 == "dest:" && current == src { print $2; exit }
+  ' "${_DIR}/../harness/review.yaml")"
+  jira_definition="$(jq -r --arg dest "${jira_dest}" '
     first(.dimensions[]
-      | select($snapshot != "" and ((.context_file // "") | endswith("/.fullsend/" + $snapshot)))
+      | select($dest != "" and (.context_file // "") == $dest)
       | .definition) // empty
   ' "${_DIR}/../dimensions.json")"
   jira_prompt="${_DIR}/../${jira_definition}"

@@ -1263,7 +1263,6 @@ components:
         - status
         - results
         - model
-        - benchmarks
       properties:
         resource:
           $ref: '#/components/schemas/JobResource'
@@ -2578,7 +2577,7 @@ components:
               clusterAdmin: true
 
     EvaluationJobsResponse:
-      description: Paginated list of evaluation jobs from EvalHub
+      description: List of evaluation jobs from EvalHub
       content:
         application/json:
           schema:
@@ -2587,16 +2586,11 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/EvaluationJobsData'
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationJob'
           example:
             data:
-              first:
-                href: '/api/v1/evaluations/jobs?offset=0&limit=50'
-              next:
-                href: '/api/v1/evaluations/jobs?offset=50&limit=50'
-              limit: 50
-              total_count: 2
-              items:
                 - resource:
                     id: 'eval-job-001'
                     tenant: 'MMLU Benchmark'
@@ -2627,7 +2621,6 @@ components:
                   benchmarks:
                     - id: 'hellaswag'
                       provider_id: 'lm_evaluation_harness'
-              errors: []
 
     CollectionsResponse:
       description: List of benchmark collections from EvalHub

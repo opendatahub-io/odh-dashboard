@@ -10,9 +10,11 @@ import { getWindowConfig } from '../../hooks/useWorkloadAdmissionMetrics';
 import {
   formatAdmissionMetricValue,
   formatAdmissionMetricHeadline,
-  formatAdmissionTooltipTimestamp,
+  formatAdmissionTimestamp,
+  getAdmissionMetricsXDomain,
   getAdmissionMetricHeadlineValue,
   getAdmissionMetricYInterval,
+  getAdmissionTickInterval,
 } from '../workloadAdmissions';
 
 const PROMETHEUS_CLUSTER_QUEUE_LABEL = 'cluster_queue';
@@ -27,6 +29,14 @@ describe('getWindowConfig', () => {
     ['30d', '8h'],
   ])('should use a %s rate window for the %s range', (timeWindow, rateWindow) => {
     expect(getWindowConfig(timeWindow).rateWindow).toBe(rateWindow);
+  });
+});
+
+describe('getAdmissionMetricsXDomain', () => {
+  it('uses selected range instead of returned data timestamps', () => {
+    expect(getAdmissionMetricsXDomain(7 * 24 * 60 * 60, 1_000_000)).toEqual([
+      -603_800_000, 1_000_000,
+    ]);
   });
 });
 
@@ -171,15 +181,118 @@ describe('mapAdmissionLeadTimeSeries', () => {
   });
 });
 
-describe('formatAdmissionTooltipTimestamp', () => {
+describe('formatAdmissionTimestamp', () => {
   const timestamp = new Date(2026, 9, 15, 22, 0).getTime();
 
-  it.each(['1h', '24h'])('uses time-only formatting for %s', (timeWindow) => {
-    expect(formatAdmissionTooltipTimestamp(timestamp, timeWindow)).toBe('10:00 PM');
+  it.each([
+    {
+      name: 'same-day ranges with a 12-hour time and AM/PM',
+      timeWindow: '1h',
+      domain: [new Date(2026, 9, 15, 21, 0).getTime(), new Date(2026, 9, 15, 23, 0).getTime()] as [
+        number,
+        number,
+      ],
+      expected: '10:00 PM',
+    },
+    {
+      name: '7-day ranges with date-only labels',
+      timeWindow: '7d',
+      domain: [new Date(2026, 9, 15, 22, 0).getTime(), new Date(2026, 9, 22, 22, 0).getTime()] as [
+        number,
+        number,
+      ],
+      expected: 'Oct 15',
+    },
+    {
+      name: '30-day ranges with date-only labels',
+      timeWindow: '30d',
+      domain: [new Date(2026, 9, 1, 22, 0).getTime(), new Date(2026, 9, 31, 22, 0).getTime()] as [
+        number,
+        number,
+      ],
+      expected: 'Oct 15',
+    },
+    {
+      name: 'shorter ranges crossing midnight with date and time',
+      timeWindow: '1h',
+      domain: [new Date(2026, 9, 15, 23, 0).getTime(), new Date(2026, 9, 16, 1, 0).getTime()] as [
+        number,
+        number,
+      ],
+      expected: 'Oct 15, 10:00 PM',
+    },
+    {
+      name: '24-hour ranges crossing midnight with time-only labels',
+      timeWindow: '24h',
+      domain: [new Date(2026, 9, 15, 23, 0).getTime(), new Date(2026, 9, 16, 1, 0).getTime()] as [
+        number,
+        number,
+      ],
+      expected: '10:00 PM',
+    },
+    {
+      name: 'same-day 24-hour ranges with time-only labels',
+      timeWindow: '24h',
+      domain: [new Date(2026, 9, 15, 8, 0).getTime(), new Date(2026, 9, 15, 23, 0).getTime()] as [
+        number,
+        number,
+      ],
+      expected: '10:00 PM',
+    },
+  ])('uses $name', ({ timeWindow, domain, expected }) => {
+    expect(formatAdmissionTimestamp(timestamp, timeWindow, domain)).toBe(expected);
+  });
+});
+
+describe('admission chart tooltip timestamps', () => {
+  const timestamp = new Date(2026, 9, 15, 22, 0).getTime();
+
+  it.each([
+    ['1h', [new Date(2026, 9, 15, 21, 0).getTime(), timestamp] as [number, number]],
+    ['24h', [new Date(2026, 9, 15, 8, 0).getTime(), timestamp] as [number, number]],
+  ])('uses 12-hour AM/PM time for the %s tooltip', (timeWindow, domain) => {
+    expect(formatAdmissionTimestamp(timestamp, timeWindow, domain)).toBe('10:00 PM');
   });
 
-  it('includes the date for multi-day windows', () => {
-    expect(formatAdmissionTooltipTimestamp(timestamp, '7d')).toBe('15 Oct');
+  it.each([
+    ['7d', [timestamp, new Date(2026, 9, 22, 22, 0).getTime()] as [number, number]],
+    [
+      '30d',
+      [new Date(2026, 9, 1, 22, 0).getTime(), new Date(2026, 9, 31, 22, 0).getTime()] as [
+        number,
+        number,
+      ],
+    ],
+  ])('uses date-only formatting for the %s tooltip', (timeWindow, domain) => {
+    expect(formatAdmissionTimestamp(timestamp, timeWindow, domain)).toBe('Oct 15');
+  });
+});
+
+describe('getAdmissionTickInterval', () => {
+  it.each([
+    ['7d', 2 * 24 * 60 * 60 * 1000],
+    ['30d', 6 * 24 * 60 * 60 * 1000],
+    ['1h', 15 * 60 * 1000],
+    ['24h', 5 * 60 * 60 * 1000],
+    ['unknown', undefined],
+  ])('returns the expected interval for %s', (timeWindow, expectedInterval) => {
+    expect(getAdmissionTickInterval(timeWindow)).toBe(expectedInterval);
+  });
+
+  it.each([
+    ['1h', 60 * 60 * 1000, 4],
+    ['24h', 24 * 60 * 60 * 1000, 4.8],
+    ['7d', 7 * 24 * 60 * 60 * 1000, 3.5],
+    ['30d', 30 * 24 * 60 * 60 * 1000, 5],
+  ])('uses a consistent numeric interval for the %s domain', (timeWindow, domain, segments) => {
+    const interval = getAdmissionTickInterval(timeWindow);
+
+    expect(interval).toBeDefined();
+    if (interval === undefined) {
+      throw new Error(`Expected an interval for ${timeWindow}`);
+    }
+
+    expect(domain / interval).toBe(segments);
   });
 });
 

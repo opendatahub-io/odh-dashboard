@@ -6,12 +6,13 @@
 # regenerate it.
 #
 # Local changes from the stock script:
-#   1. Host adapters: validate the cli-adapter rows of dimensions.json, run
-#      pre-review adapters, hydrate workflow-adapter artifacts and collect the
-#      envelopes into .run/collected.json. The sandbox receives sanitized
-#      adapter envelopes only, never credentials.
-#   2. --self-test, --validate-adapters and --adapter-gate modes, and a source
-#      guard for post-review.sh's self-test. They sit above upstream's
+#   1. Host adapters: validate the cli-adapter rows of dimensions.json, take
+#      their credentials out of the environment, run every adapter in
+#      parallel once the PR is known to be open, and collect the envelopes
+#      into .run/collected.json. The sandbox receives sanitized adapter
+#      envelopes only, never credentials.
+#   2. --self-test and --validate-adapters modes, and a source guard for
+#      post-review.sh's self-test. They sit above upstream's
 #      required-environment checks and bundled forge library, so the modes and
 #      a `source` of this file need neither PR_URL nor FULLSEND_FORGE.
 #   3. normalize_dispatch_context fills GITHUB_PR_URL and PR_NUMBER from the
@@ -37,7 +38,6 @@
 #   pre-review.sh                      # CI / harness pre_script
 #   pre-review.sh --self-test          # local checks, no GitHub
 #   pre-review.sh --validate-adapters  # cli-adapter registry check only
-#   pre-review.sh --adapter-gate       # adapter-plan job: skip adapters on a closed PR
 #
 # pre-review.sh — Validate review inputs before the agent runs.
 #
@@ -61,32 +61,6 @@ set -euo pipefail
 # modes and post-review.sh's `source` of this file do not provide.
 # ---------------------------------------------------------------------------
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Run by the adapter-plan workflow job, before any paid adapter. Skips adapters
-# on closed/merged PRs so a review that will be skipped does not first buy a
-# CodeRabbit review. Fails open: if the PR cannot be read, adapters run and the
-# review-time gate decides.
-adapter_gate() {
-  local decision="true" reason="" pr_json state
-  if [[ "${PR_NUMBER:-}" =~ ^[1-9][0-9]*$ && "${REPO_FULL_NAME:-}" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]] \
-    && pr_json="$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json state 2>/dev/null)"; then
-    state="$(jq -r '.state // empty' <<<"${pr_json}")"
-    if [[ -n "${state}" && "${state}" != "OPEN" ]]; then
-      decision="false"
-      reason="PR is $(printf '%s' "${state}" | tr '[:upper:]' '[:lower:]')"
-    fi
-  else
-    echo "::warning::Could not read PR #${PR_NUMBER:-?}; running host adapters and leaving the skip decision to the review"
-  fi
-  if [[ "${decision}" == "false" ]]; then
-    echo "::notice::Skipping host adapters — ${reason}"
-  fi
-  if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
-    echo "run_adapters=${decision}" >> "${GITHUB_OUTPUT}"
-  else
-    echo "run_adapters=${decision}"
-  fi
-}
 
 # `fullsend run` treats a bare exit 0 as "proceed": it still builds the sandbox
 # and runs the agent. A skip only takes effect when written to the pre-script
@@ -136,40 +110,59 @@ validate_dimension_registry() {
   "${_SCRIPT_DIR}/validate-dimensions.sh"
 }
 
+# Credential variable names a cli-adapter row may not claim. Capture unsets
+# every claimed name, and run_adapter forwards its value as
+# FULLSEND_ADAPTER_*, so a row naming one of these would remove a variable
+# this script or the runner needs (REVIEW_TOKEN, PATH, ...) or hand an
+# adapter a token it must not see (GH_TOKEN, GITHUB_TOKEN, ...).
+adapter_credential_name_reserved() {
+  [[ "$1" =~ ^(PATH|HOME|TMPDIR|LANG|LC_ALL|CI|REPO|GH_TOKEN|JIRA_TOKEN|JIRA_USER_EMAIL|JIRA_BASE_URL|PR_.*|REVIEW_.*|GITHUB_.*|FULLSEND_.*|RUNNER_.*|ACTIONS_.*|OTEL_.*|GOOGLE_.*|CLOUDSDK_.*|LD_.*)$ ]]
+}
+
+adapter_credential_names() {
+  jq -r '
+    [.dimensions[]
+      | select(.kind == "cli-adapter")
+      | .host.credentials // {}
+      | .url_env, .username_env, .token_env
+      | select(type == "string" and . != "")]
+    | unique[]
+  ' "${_SCRIPT_DIR}/../dimensions.json"
+}
+
 validate_adapter_registry() {
   local registry="${_SCRIPT_DIR}/../dimensions.json"
-  local runner setup_runner
+  local runner setup_runner name
   if ! jq -e '
     (.dimensions | type == "array") and
     (([.dimensions[] | select(.kind == "cli-adapter") | .id] | unique | length) ==
       ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
     (([.dimensions[] | select(.kind == "cli-adapter") | .producer_file] | unique | length) ==
       ([.dimensions[] | select(.kind == "cli-adapter")] | length)) and
-    (([.dimensions[] | select(.kind == "cli-adapter" and .host.execution == "workflow") | .host.artifact_name] | unique | length) ==
-      ([.dimensions[] | select(.kind == "cli-adapter" and .host.execution == "workflow")] | length)) and
     all(
       .dimensions[] | select(.kind == "cli-adapter");
       (.id | type == "string" and test("^[a-z0-9][a-z0-9-]*$")) and
       (.output | type == "string" and test("^(context|findings|check:[a-z0-9-]+)$")) and
       (.runner | type == "string" and test("^scripts/[A-Za-z0-9._/-]+\\.sh$")) and
       (.producer_file | type == "string" and test("^\\.run/[A-Za-z0-9._-]+\\.json$")) and
-      (.host.execution == "workflow" or .host.execution == "pre_review") and
-      (if .host.execution == "workflow" then
-        (.host.artifact_name | type == "string" and test("^[A-Za-z0-9._{}-]+$") and contains("{pr_number}")) and
-        (.host.artifact_file | type == "string" and test("^[A-Za-z0-9._-]+\\.json$")) and
-        (.host.artifact_file == (.producer_file | split("/") | last)) and
-        (.host.checkout_pr | type == "boolean") and
-        (.host.setup_runner | type == "string" and
-          (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
-        all(
-          [.host.credentials.url_secret, .host.credentials.username_secret, .host.credentials.token_secret][];
-          type == "string" and test("^[A-Z][A-Z0-9_]*$")
-        )
-      else true end)
+      (.host.execution == "pre_review") and
+      (.host.setup_runner | type == "string" and
+        (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
+      all(
+        [.host.credentials.url_env, .host.credentials.username_env, .host.credentials.token_env][];
+        type == "string" and test("^([A-Z][A-Z0-9_]*)?$")
+      )
     )
   ' "${registry}" >/dev/null; then
     return 1
   fi
+
+  while IFS= read -r name; do
+    if adapter_credential_name_reserved "${name}"; then
+      echo "::error::cli-adapter credential name ${name} is reserved" >&2
+      return 1
+    fi
+  done < <(adapter_credential_names)
 
   while IFS=$'\t' read -r runner setup_runner; do
     [[ -f "${_SCRIPT_DIR}/../${runner}" ]] || return 1
@@ -188,16 +181,6 @@ adapter_rows() {
     .dimensions[]
     | select(.kind == "cli-adapter")
     | [.id, .producer_file, .output]
-    | @tsv
-  ' "${registry}"
-}
-
-workflow_adapter_rows() {
-  local registry="${_SCRIPT_DIR}/../dimensions.json"
-  jq -r '
-    .dimensions[]
-    | select(.kind == "cli-adapter" and .host.execution == "workflow")
-    | [.id, .producer_file, .host.artifact_name, .host.artifact_file, .output]
     | @tsv
   ' "${registry}"
 }
@@ -225,65 +208,164 @@ aggregate_cli_adapters() {
   fi
 }
 
-run_pre_review_adapters() {
-  local runner
-  while IFS= read -r runner; do
-    [[ -n "${runner}" ]] && bash "${_SCRIPT_DIR}/../${runner}"
-  done < <(jq -r '
-    [.dimensions[]
-      | select(.kind == "cli-adapter" and .host.execution == "pre_review")
-      | .runner]
-    | unique[]
-  ' "${_SCRIPT_DIR}/../dimensions.json")
+# The shim sends this for a credential whose secret is not set: `fullsend run`
+# refuses both an unset env.runner reference and an empty value.
+ADAPTER_CREDENTIAL_UNSET="odh-adapter-credential-unset"
+
+# Adapter credentials arrive through env.runner (FULLSEND_GITHUB_RUNNER_SECRETS,
+# ADR 0136), so they sit in this script's environment and would reach every
+# child it starts. Move each name a registry row declares into an unexported
+# shell variable and unset it; only the jq that reads the registry runs
+# first. run_adapter then hands an adapter only its own row's values. Bash 3.2
+# has no associative arrays, hence the _ADAPTER_CRED_<NAME> variables.
+#
+# A reserved or malformed name fails the review here, before anything is
+# unset, rather than leaving the run without a variable it needs. The unset
+# placeholder is stored as empty.
+capture_adapter_credentials() {
+  local name names
+  names="$(adapter_credential_names)" || return 1
+  while IFS= read -r name; do
+    [[ -n "${name}" ]] || continue
+    if [[ ! "${name}" =~ ^[A-Z][A-Z0-9_]*$ ]] || adapter_credential_name_reserved "${name}"; then
+      echo "::error::cli-adapter credential name ${name} is reserved or invalid" >&2
+      return 1
+    fi
+  done <<< "${names}"
+  while IFS= read -r name; do
+    [[ -n "${name}" ]] || continue
+    if [[ "${!name:-}" == "${ADAPTER_CREDENTIAL_UNSET}" ]]; then
+      printf -v "_ADAPTER_CRED_${name}" '%s' ""
+    else
+      printf -v "_ADAPTER_CRED_${name}" '%s' "${!name:-}"
+    fi
+    unset "${name}"
+  done <<< "${names}"
 }
 
-hydrate_workflow_adapters() {
-  local id producer_file artifact_template artifact_file declared_output artifact_name
-  local artifact_dir source_file destination_file
+adapter_credential() {
+  local var="_ADAPTER_CRED_${1}"
+  if [[ -n "${1}" ]]; then
+    printf '%s' "${!var:-}"
+  fi
+}
 
+# The environment an adapter process starts from. The review job's
+# environment holds the minted review token (REVIEW_TOKEN, GH_TOKEN) and the
+# other host-script variables, and a setup step runs a vendor installer, so
+# neither setup nor runner inherits it: they get these names, plus what
+# run_adapter adds.
+adapter_base_env() {
+  local name
+  for name in PATH HOME TMPDIR LANG LC_ALL RUNNER_TEMP; do
+    [[ -n "${!name:-}" ]] && printf '%s=%s\0' "${name}" "${!name}"
+  done
+  printf 'CI=true\0'
+}
+
+# One adapter: optional setup, then the runner, with only this row's
+# credentials and the PR revision. A setup failure is not fatal; the runner
+# reports its missing tool in its own envelope. Setup is skipped when the row
+# needs a token and has none, since the runner then only writes "skipped".
+run_adapter() {
+  local id="$1" runner="$2" setup_runner="$3" url_env="$4" username_env="$5" token_env="$6"
+  local token env_file entry adapter_bin="" base_env=()
+  while IFS= read -r -d '' entry; do
+    base_env+=("${entry}")
+  done < <(adapter_base_env)
+  token="$(adapter_credential "${token_env}")"
+
+  if [[ -n "${setup_runner}" && ( -z "${token_env}" || -n "${token}" ) ]]; then
+    env_file="$(mktemp)"
+    if env -i "${base_env[@]}" FULLSEND_ADAPTER_ENV_FILE="${env_file}" \
+      bash "${_SCRIPT_DIR}/../${setup_runner}"; then
+      adapter_bin="$(sed -n 's/^FULLSEND_ADAPTER_BIN=//p' "${env_file}" | tail -n 1)"
+    else
+      echo "::warning::Setup for the ${id} adapter failed; it reports the missing tool itself"
+    fi
+    rm -f "${env_file}"
+  fi
+
+  env -i "${base_env[@]}" \
+    FULLSEND_ADAPTER_URL="$(adapter_credential "${url_env}")" \
+    FULLSEND_ADAPTER_USERNAME="$(adapter_credential "${username_env}")" \
+    FULLSEND_ADAPTER_TOKEN="${token}" \
+    FULLSEND_ADAPTER_BIN="${adapter_bin}" \
+    FULLSEND_ADAPTER_REPO="${REPO:-}" \
+    FULLSEND_ADAPTER_BASE_REF="${PR_BASE_REF:-}" \
+    FULLSEND_ADAPTER_BASE_SHA="${PR_BASE_SHA:-}" \
+    FULLSEND_ADAPTER_HEAD_SHA="${PR_HEAD_SHA:-}" \
+    REVIEW_PR_TITLE="${REVIEW_PR_TITLE:-}" \
+    REVIEW_PR_BODY="${REVIEW_PR_BODY:-}" \
+    bash "${_SCRIPT_DIR}/../${runner}"
+}
+
+# Adapters are independent, so they run at once and the review waits only for
+# the slowest (CodeRabbit, up to 20 minutes). Each one's output is buffered and
+# printed whole, in registry order. An adapter that exits non-zero, or exits
+# zero without writing its envelope, gets an `error` envelope in place of
+# whatever it left, so the review reports it as errored instead of missing. The review itself carries on, as it did when the
+# adapters were separate jobs: every adapter row is failure_severity "info".
+write_adapter_failure_envelope() {
+  local id="$1" output="$2" producer_file="$3" reason="$4" destination
+  destination="${_SCRIPT_DIR}/../${producer_file}"
+  mkdir -p "$(dirname "${destination}")"
+  jq -n --arg id "${id}" --arg output "${output}" --arg reason "${reason}" '
+    {id: $id, dimension: $id, kind: "cli-adapter", output: $output,
+     status: "error", reason: $reason}
+    + (if $output == "findings" then {findings: []} else {} end)
+  ' > "${destination}"
+}
+
+run_pre_review_adapters() {
+  local registry="${_SCRIPT_DIR}/../dimensions.json"
+  local id runner setup_runner url_env username_env token_env output producer_file i log_dir code
+  local ids=() pids=() outputs=() producer_files=()
+  log_dir="$(mktemp -d)"
+  # Fields are joined with "|", not @tsv: tab is IFS whitespace, so `read`
+  # would merge the empty credential fields and shift the columns. The registry
+  # check allows no "|" in any of these values.
+  while IFS='|' read -r id output producer_file runner setup_runner url_env username_env token_env; do
+    [[ -n "${id}" ]] || continue
+    rm -f "${_SCRIPT_DIR}/../${producer_file}"
+    run_adapter "${id}" "${runner}" "${setup_runner}" "${url_env}" "${username_env}" "${token_env}" \
+      > "${log_dir}/${id}.log" 2>&1 &
+    ids+=("${id}")
+    outputs+=("${output}")
+    producer_files+=("${producer_file}")
+    pids+=("$!")
+  done < <(jq -r '
+    .dimensions[]
+    | select(.kind == "cli-adapter" and .host.execution == "pre_review")
+    | [.id, .output, .producer_file, .runner, (.host.setup_runner // ""),
+       (.host.credentials.url_env // ""), (.host.credentials.username_env // ""),
+       (.host.credentials.token_env // "")]
+    | join("|")
+  ' "${registry}")
+  for ((i = 0; i < ${#ids[@]}; i++)); do
+    code=0
+    wait "${pids[i]}" || code=$?
+    if [[ "${code}" -ne 0 ]]; then
+      echo "::group::${ids[i]} adapter (exited ${code})"
+      write_adapter_failure_envelope "${ids[i]}" "${outputs[i]}" "${producer_files[i]}" "adapter-exited-${code}"
+    elif [[ ! -s "${_SCRIPT_DIR}/../${producer_files[i]}" ]]; then
+      echo "::group::${ids[i]} adapter (wrote no envelope)"
+      write_adapter_failure_envelope "${ids[i]}" "${outputs[i]}" "${producer_files[i]}" "adapter-wrote-no-output"
+    else
+      echo "::group::${ids[i]} adapter"
+    fi
+    cat "${log_dir}/${ids[i]}.log"
+    echo "::endgroup::"
+  done
+  rm -rf "${log_dir}"
+}
+
+prepare_cli_adapters() {
   if ! validate_adapter_registry; then
     echo "::error::Invalid cli-adapter host metadata in .fullsend/dimensions.json"
     return 1
   fi
-
-  while IFS=$'\t' read -r id producer_file artifact_template artifact_file declared_output; do
-    artifact_name="${artifact_template//\{pr_number\}/${PR_NUMBER}}"
-    artifact_dir="$(mktemp -d)"
-    source_file="${artifact_dir}/${artifact_file}"
-    destination_file="${_SCRIPT_DIR}/../${producer_file}"
-    rm -f "${destination_file}"
-
-    if GH_TOKEN="${REVIEW_TOKEN}" gh run download "${GITHUB_RUN_ID}" \
-      --repo "${REPO}" \
-      --name "${artifact_name}" \
-      --dir "${artifact_dir}" >/dev/null 2>&1; then
-      if [[ -f "${source_file}" ]] && jq -e --arg id "${id}" --arg output "${declared_output}" '
-        type == "object" and
-        .id == $id and
-        .dimension == $id and
-        .kind == "cli-adapter" and
-        .output == $output and
-        (.output != "findings" or (.findings | type == "array"))
-      ' "${source_file}" >/dev/null; then
-        mkdir -p "$(dirname "${destination_file}")"
-        cp "${source_file}" "${destination_file}"
-        echo "Loaded sanitized ${id} adapter output from workflow artifact ${artifact_name}"
-      else
-        echo "::warning::Adapter artifact ${artifact_name} did not contain a valid ${artifact_file} envelope"
-      fi
-    else
-      echo "::warning::Could not download adapter artifact ${artifact_name}; continuing without ${id}"
-    fi
-    rm -rf "${artifact_dir}"
-  done < <(workflow_adapter_rows)
-}
-
-prepare_cli_adapters() {
-  validate_adapter_registry
   run_pre_review_adapters
-  if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
-    hydrate_workflow_adapters
-  fi
   aggregate_cli_adapters
 }
 
@@ -412,7 +494,7 @@ run_self_test() {
   temp_dir="$(mktemp -d)"
   _SCRIPT_DIR="${temp_dir}/scripts"
   mkdir -p "${_SCRIPT_DIR}/../.run"
-  printf '%s\n' '{"dimensions":[{"id":"jira-snapshot","kind":"cli-adapter","output":"context","producer_file":".run/jira.json","host":{"artifact_name":"jira-{pr_number}","artifact_file":"jira.json"}},{"id":"coderabbit","kind":"cli-adapter","output":"findings","producer_file":".run/coderabbit.json","host":{"artifact_name":"coderabbit-{pr_number}","artifact_file":"coderabbit.json"}}]}' > "${_SCRIPT_DIR}/../dimensions.json"
+  printf '%s\n' '{"dimensions":[{"id":"jira-snapshot","kind":"cli-adapter","output":"context","producer_file":".run/jira.json","host":{"execution":"pre_review"}},{"id":"coderabbit","kind":"cli-adapter","output":"findings","producer_file":".run/coderabbit.json","host":{"execution":"pre_review"}}]}' > "${_SCRIPT_DIR}/../dimensions.json"
   printf '%s\n' '{"id":"jira-snapshot","dimension":"jira-snapshot","kind":"cli-adapter","output":"context","status":"ok"}' > "${_SCRIPT_DIR}/../.run/jira.json"
   printf '%s\n' '{"id":"coderabbit","dimension":"coderabbit","kind":"cli-adapter","output":"findings","status":"ok","findings":[{"severity":"medium","file":"src/example.ts"}]}' > "${_SCRIPT_DIR}/../.run/coderabbit.json"
   aggregate_cli_adapters
@@ -446,21 +528,92 @@ run_self_test() {
     fail=1
   fi
   rm -rf "${temp_dir}"
-  # The gh stub returns canned PR JSON, or fails when given none.
-  _gate_with() {
-    local json="$1"
-    (
-      gh() { [[ -n "${json}" ]] && printf '%s' "${json}"; }
-      unset GITHUB_OUTPUT
-      PR_NUMBER=1 REPO_FULL_NAME=o/r adapter_gate
-    ) | grep '^run_adapters='
-  }
-  if [[ "$(_gate_with "$(jq -cn '{state:"OPEN"}')")" == "run_adapters=true" ]] \
-    && [[ "$(_gate_with "$(jq -cn '{state:"MERGED"}')")" == "run_adapters=false" ]] \
-    && [[ "$(_gate_with "")" == "run_adapters=true" ]]; then
-    echo "PASS adapter readiness gate"
+  # Adapter credentials: each adapter sees only its own row's values, under
+  # the generic names; no child sees the raw names; setup hands over the tool
+  # path; and a row with no token skips its setup.
+  if (
+    temp_dir="$(mktemp -d)"
+    trap 'rm -rf "${temp_dir}"' EXIT
+    _SCRIPT_DIR="${temp_dir}/scripts"
+    mkdir -p "${_SCRIPT_DIR}" "${temp_dir}/.run"
+    printf '%s\n' '#!/usr/bin/env bash' \
+      'env | grep -E "^(FULLSEND_ADAPTER_|ALPHA_|BETA_|REVIEW_|GH_)" | sort > "${0%.sh}.env"' > "${_SCRIPT_DIR}/a.sh"
+    cp "${_SCRIPT_DIR}/a.sh" "${_SCRIPT_DIR}/b.sh"
+    cp "${_SCRIPT_DIR}/a.sh" "${_SCRIPT_DIR}/c.sh"
+    printf '%s\n' '#!/usr/bin/env bash' \
+      'env | grep -E "^(ALPHA_|BETA_|REVIEW_|GH_)" > "${0%.sh}.env" || true' \
+      'printf "FULLSEND_ADAPTER_BIN=/opt/tool\n" >> "${FULLSEND_ADAPTER_ENV_FILE}"' > "${_SCRIPT_DIR}/setup.sh"
+    cp "${_SCRIPT_DIR}/setup.sh" "${_SCRIPT_DIR}/setup-c.sh"
+    printf '%s\n' '#!/usr/bin/env bash' 'echo partial > "${0%/scripts/d.sh}/.run/d.json"' 'exit 3' > "${_SCRIPT_DIR}/d.sh"
+    jq -n '{dimensions: [
+      {id: "a", kind: "cli-adapter", output: "context", runner: "scripts/a.sh", producer_file: ".run/a.json",
+       host: {execution: "pre_review", setup_runner: "scripts/setup.sh",
+              credentials: {url_env: "ALPHA_URL", username_env: "", token_env: "ALPHA_TOKEN"}}},
+      {id: "b", kind: "cli-adapter", output: "findings", runner: "scripts/b.sh", producer_file: ".run/b.json",
+       host: {execution: "pre_review", setup_runner: "",
+              credentials: {url_env: "", username_env: "", token_env: "BETA_TOKEN"}}},
+      {id: "c", kind: "cli-adapter", output: "findings", runner: "scripts/c.sh", producer_file: ".run/c.json",
+       host: {execution: "pre_review", setup_runner: "scripts/setup-c.sh",
+              credentials: {url_env: "", username_env: "", token_env: "GAMMA_TOKEN"}}},
+      {id: "d", kind: "cli-adapter", output: "findings", runner: "scripts/d.sh", producer_file: ".run/d.json",
+       host: {execution: "pre_review", setup_runner: "",
+              credentials: {url_env: "", username_env: "", token_env: ""}}}
+    ]}' > "${temp_dir}/dimensions.json"
+    export ALPHA_URL="https://alpha.example.test" ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
+    export REVIEW_TOKEN="review-token-value" GH_TOKEN="gh-token-value"
+    # GAMMA's secret is not set, so the shim sends the placeholder.
+    export GAMMA_TOKEN="${ADAPTER_CREDENTIAL_UNSET}"
+    capture_adapter_credentials || exit 1
+    [[ -z "${GAMMA_TOKEN:-}" ]] || exit 1
+    [[ -z "${ALPHA_URL:-}" && -z "${ALPHA_TOKEN:-}" && -z "${BETA_TOKEN:-}" ]] || exit 1
+    REPO=o/r PR_BASE_REF=main PR_BASE_SHA="$(printf 'b%.0s' {1..40})" PR_HEAD_SHA="$(printf 'a%.0s' {1..40})" \
+      run_pre_review_adapters > /dev/null
+    # errexit does not apply inside an `if` condition, so every check exits.
+    expect_line() { grep -qx -- "$1" "${_SCRIPT_DIR}/$2" || exit 1; }
+    refuse_text() { if grep -qE -- "$1" "${@:2}"; then exit 1; fi; }
+    for f in a.env b.env c.env setup.env; do
+      [[ -f "${_SCRIPT_DIR}/${f}" ]] || exit 1
+    done
+    expect_line 'FULLSEND_ADAPTER_TOKEN=alpha-token-value' a.env
+    expect_line 'FULLSEND_ADAPTER_URL=https://alpha.example.test' a.env
+    expect_line 'FULLSEND_ADAPTER_BIN=/opt/tool' a.env
+    expect_line 'FULLSEND_ADAPTER_REPO=o/r' a.env
+    expect_line 'FULLSEND_ADAPTER_BASE_REF=main' a.env
+    expect_line 'FULLSEND_ADAPTER_TOKEN=beta-token-value' b.env
+    expect_line 'FULLSEND_ADAPTER_BIN=' b.env
+    expect_line 'FULLSEND_ADAPTER_TOKEN=' c.env
+    refuse_text 'alpha-token-value' "${_SCRIPT_DIR}/b.env"
+    refuse_text 'beta-token-value' "${_SCRIPT_DIR}/a.env"
+    refuse_text '^(ALPHA_|BETA_|REVIEW_TOKEN|GH_)' "${_SCRIPT_DIR}/a.env" "${_SCRIPT_DIR}/b.env" "${_SCRIPT_DIR}/c.env" "${_SCRIPT_DIR}/setup.env"
+    [[ ! -e "${_SCRIPT_DIR}/setup-c.env" ]] || exit 1
+    # An adapter that exits non-zero is reported as an error, not dropped,
+    # and its partial output is replaced.
+    jq -e '.id == "d" and .status == "error" and .reason == "adapter-exited-3"
+      and (.findings | length == 0)' "${temp_dir}/.run/d.json" >/dev/null || exit 1
+    # Exiting zero without an envelope is reported too (the stub runners only
+    # write their env dumps).
+    jq -e '.id == "a" and .status == "error" and .reason == "adapter-wrote-no-output"
+      and (has("findings") | not)' "${temp_dir}/.run/a.json" >/dev/null || exit 1
+    # A row that claims a reserved name fails capture and validation, and
+    # capture unsets nothing first. The fixture itself validates.
+    validate_adapter_registry || exit 1
+    for reserved in REVIEW_TOKEN GH_TOKEN PATH GITHUB_TOKEN FULLSEND_X JIRA_TOKEN; do
+      jq --arg n "${reserved}" '.dimensions[1].host.credentials.token_env = $n' \
+        "${temp_dir}/dimensions.json" > "${temp_dir}/reserved.json"
+      cp "${temp_dir}/dimensions.json" "${temp_dir}/good.json"
+      mv "${temp_dir}/reserved.json" "${temp_dir}/dimensions.json"
+      export ALPHA_TOKEN="alpha-token-value" REVIEW_TOKEN="review-token-value"
+      if (capture_adapter_credentials) 2>/dev/null; then exit 1; fi
+      if validate_adapter_registry 2>/dev/null; then exit 1; fi
+      capture_adapter_credentials 2>/dev/null && exit 1
+      [[ "${ALPHA_TOKEN:-}" == "alpha-token-value" && "${REVIEW_TOKEN:-}" == "review-token-value" ]] || exit 1
+      mv "${temp_dir}/good.json" "${temp_dir}/dimensions.json"
+    done
+    true
+  ); then
+    echo "PASS adapter credential isolation"
   else
-    echo "FAIL adapter readiness gate" >&2
+    echo "FAIL adapter credential isolation" >&2
     fail=1
   fi
   # Prior-review projection: only one valid, current-section marker survives.
@@ -513,16 +666,13 @@ if [[ "${1:-}" == "--validate-adapters" ]]; then
   exit 0
 fi
 
-if [[ "${1:-}" == "--adapter-gate" ]]; then
-  adapter_gate
-  exit 0
-fi
-
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
   return 0 2>/dev/null || exit 0
 fi
 
-# Main flow. Normalize first: upstream's checks below require PR_URL.
+# Main flow. Take adapter credentials out of the environment before any child
+# process starts, then normalize: upstream's checks below require PR_URL.
+capture_adapter_credentials || exit 1
 normalize_dispatch_context
 
 # Fail before sandbox packaging when a repository-relative skill link cannot
@@ -1206,13 +1356,17 @@ if [[ "${REVIEW_GIT_FETCH_DEPTH:-}" == "0" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Fetch title/body for trusted Jira-key parsing.
+# Fetch title/body for trusted Jira-key parsing, and the revisions CodeRabbit
+# reviews. They are read from the forge here, not taken from the event, so
+# adapter context matches the PR as the review starts (ADR 0106).
 # ---------------------------------------------------------------------------
 PR_VIEW="$(GH_TOKEN="${REVIEW_TOKEN}" gh pr view "${PR_NUMBER}" \
-  --repo "${REPO}" --json title,body,headRefOid 2>/dev/null || true)"
+  --repo "${REPO}" --json title,body,headRefOid,baseRefOid,baseRefName 2>/dev/null || true)"
 PR_TITLE="$(printf '%s' "${PR_VIEW}" | jq -r '.title // empty')"
 PR_BODY="$(printf '%s' "${PR_VIEW}" | jq -r '.body // empty')"
 PR_HEAD_SHA="$(printf '%s' "${PR_VIEW}" | jq -r '.headRefOid // empty')"
+PR_BASE_SHA="$(printf '%s' "${PR_VIEW}" | jq -r '.baseRefOid // empty')"
+PR_BASE_REF="$(printf '%s' "${PR_VIEW}" | jq -r '.baseRefName // empty')"
 if [[ ! "${PR_HEAD_SHA}" =~ ^[0-9a-fA-F]{40}$ ]]; then
   echo "::error::PR head SHA is missing or invalid (expected 40 hexadecimal characters), got: '${PR_HEAD_SHA:-}'"
   exit 1
@@ -1220,9 +1374,10 @@ fi
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
-# Run registered pre-review adapters, hydrate outputs from isolated workflow
-# adapter jobs, and collect every resulting envelope generically. Adapter
-# credentials never enter the sandbox.
+# Run the registered host adapters and collect every envelope generically.
+# This runs only after the state and author checks above, so a skipped review
+# buys no CodeRabbit run, and inside the review job, so a newer push cancels
+# it with the review. Adapter credentials never enter the sandbox.
 prepare_cli_adapters
 
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"
