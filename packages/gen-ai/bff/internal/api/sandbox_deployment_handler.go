@@ -231,8 +231,14 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 
 	// Classify each referenced store's embedding model (custom endpoint, ISVC-served, or
 	// local sentence-transformers) so the sandbox config registers providers that can
-	// actually serve query-time embedding calls.
-	embeddingClassifier := kubernetes.BuildSandboxEmbeddingClassifier(ctx, k8sClient, namespace, app.logger)
+	// actually serve query-time embedding calls. Lookup failures other than an absent
+	// ConfigMap fail here, before any resources are created — a misclassification would
+	// silently reintroduce empty file-search results.
+	embeddingClassifier, clsErr := kubernetes.BuildSandboxEmbeddingClassifier(ctx, k8sClient, namespace, app.logger)
+	if clsErr != nil {
+		app.serverErrorResponse(w, r, clsErr)
+		return
+	}
 
 	// Validate the embedding key requirement up front: a sandbox installs a single
 	// embedding API key, so conflicting key Secrets must fail before any resources are created.

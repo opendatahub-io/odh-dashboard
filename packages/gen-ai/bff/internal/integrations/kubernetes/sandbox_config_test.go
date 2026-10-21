@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -513,6 +516,12 @@ func (s *stubClassifierClient) GetInferenceServiceURL(_ context.Context, _ *inte
 	return s.isvcURL, nil
 }
 
+// notFoundConfigMapErr mimics the controller-runtime error for an absent external
+// models ConfigMap — the only lookup failure the classifier tolerates.
+func notFoundConfigMapErr() error {
+	return apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "gen-ai-aa-custom-model-endpoints")
+}
+
 func TestBuildSandboxEmbeddingClassifier(t *testing.T) {
 	externalModels := &models.ExternalModelsConfig{
 		Providers: models.ProvidersConfig{
@@ -585,7 +594,7 @@ func TestBuildSandboxEmbeddingClassifier(t *testing.T) {
 		},
 		{
 			name:           "missing external models ConfigMap falls back to ISVC lookup",
-			externalErr:    fmt.Errorf("configmap not found"),
+			externalErr:    notFoundConfigMapErr(),
 			isvcURL:        "http://granite-keyless.test.svc.cluster.local/v1",
 			embeddingModel: "granite-embedding-keyless",
 			expected: kubernetes.SandboxEmbeddingModel{
@@ -595,7 +604,7 @@ func TestBuildSandboxEmbeddingClassifier(t *testing.T) {
 		},
 		{
 			name:           "missing external models ConfigMap and no ISVC falls back to local",
-			externalErr:    fmt.Errorf("configmap not found"),
+			externalErr:    notFoundConfigMapErr(),
 			embeddingModel: "ibm-granite/granite-embedding-125m-english",
 			expected:       kubernetes.SandboxEmbeddingModel{Source: kubernetes.SandboxEmbeddingSourceSentenceTransformers},
 		},
@@ -608,18 +617,31 @@ func TestBuildSandboxEmbeddingClassifier(t *testing.T) {
 				externalErr:    tt.externalErr,
 				isvcURL:        tt.isvcURL,
 			}
-			classifier := kubernetes.BuildSandboxEmbeddingClassifier(context.Background(), client, "test-namespace", nil)
+			classifier, err := kubernetes.BuildSandboxEmbeddingClassifier(context.Background(), client, "test-namespace", nil)
+			require.NoError(t, err)
 			require.NotNil(t, classifier)
 			assert.Equal(t, tt.expected, classifier(tt.embeddingModel))
 		})
 	}
 }
 
+func TestBuildSandboxEmbeddingClassifier_PropagatesLookupErrors(t *testing.T) {
+	// RBAC, timeout, parse, and validation failures must not be mistaken for an
+	// absent ConfigMap — the classifier would fall back to sentence-transformers and
+	// silently break file search.
+	client := &stubClassifierClient{externalErr: fmt.Errorf("configmaps is forbidden")}
+	classifier, err := kubernetes.BuildSandboxEmbeddingClassifier(context.Background(), client, "test-namespace", nil)
+	require.Error(t, err)
+	assert.Nil(t, classifier)
+	assert.Contains(t, err.Error(), "external models configuration")
+}
+
 func TestBuildSandboxEmbeddingClassifier_MemoizesLookups(t *testing.T) {
 	// The handler and config builder may both classify the same model; k8s lookups
 	// must not be repeated per store.
-	client := &stubClassifierClient{externalErr: fmt.Errorf("configmap not found")}
-	classifier := kubernetes.BuildSandboxEmbeddingClassifier(context.Background(), client, "test-namespace", nil)
+	client := &stubClassifierClient{externalErr: notFoundConfigMapErr()}
+	classifier, err := kubernetes.BuildSandboxEmbeddingClassifier(context.Background(), client, "test-namespace", nil)
+	require.NoError(t, err)
 
 	assert.Equal(t, kubernetes.SandboxEmbeddingSourceSentenceTransformers, classifier("some-model").Source)
 	assert.Equal(t, kubernetes.SandboxEmbeddingSourceSentenceTransformers, classifier("some-model").Source)

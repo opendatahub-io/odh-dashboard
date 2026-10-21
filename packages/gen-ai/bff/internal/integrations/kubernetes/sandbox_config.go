@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -102,21 +104,26 @@ type SandboxEmbeddingClassifier func(embeddingModel string) SandboxEmbeddingMode
 // in the namespace, and everything else as a local sentence-transformers model — the
 // same resolution order the playground install flow uses.
 //
-// The external models ConfigMap is optional: absence means no custom endpoint models
-// exist. Load failures are logged (when logger is non-nil) and treated as absence so an
-// unreadable ConfigMap does not block deployments.
+// The external models ConfigMap is optional: NotFound means no custom endpoint
+// models exist. Any other lookup failure (RBAC, timeout, parse, validation)
+// propagates to the caller — treating it as absence would misclassify keyed or
+// ISVC-served models as local sentence-transformers and silently break file search.
 func BuildSandboxEmbeddingClassifier(
 	ctx context.Context,
 	client KubernetesClientInterface,
 	namespace string,
 	logger *slog.Logger,
-) SandboxEmbeddingClassifier {
+) (SandboxEmbeddingClassifier, error) {
 	var externalModelsConfig *models.ExternalModelsConfig
 	if cfg, err := client.GetExternalModelsConfig(ctx, namespace); err == nil {
 		externalModelsConfig = cfg
-	} else if logger != nil {
-		logger.Debug("Skipping custom-endpoint embedding model classification; external models ConfigMap unavailable",
-			"namespace", namespace, "error", err)
+	} else if apierrors.IsNotFound(err) {
+		if logger != nil {
+			logger.Debug("No external models ConfigMap; skipping custom-endpoint embedding model classification",
+				"namespace", namespace)
+		}
+	} else {
+		return nil, fmt.Errorf("failed to read external models configuration: %w", err)
 	}
 
 	memo := make(map[string]SandboxEmbeddingModel)
@@ -140,7 +147,7 @@ func BuildSandboxEmbeddingClassifier(
 		}
 		memo[embeddingModel] = resolved
 		return resolved
-	}
+	}, nil
 }
 
 // ogxSentenceTransformersModelID returns the OGX model_id for an inline sentence-transformers
