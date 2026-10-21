@@ -485,6 +485,58 @@ describe('EvaluationsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('should track collection filter values and ignore empty values', () => {
+    renderPage('test-project');
+
+    fireEvent.change(screen.getByPlaceholderText('Search collections'), {
+      target: { value: '  suite  ' },
+    });
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+      {
+        filterType: 'search',
+        value: 'suite',
+        surface: 'collection_gallery',
+      },
+      expect.objectContaining({ collectionType: 'system' }),
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    fireEvent.change(screen.getByPlaceholderText('Search collections'), {
+      target: { value: '' },
+    });
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    expect(mockTrackEvalHubEvent).toHaveBeenLastCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+      {
+        filterType: 'category',
+        value: 'code, trustworthiness',
+        surface: 'collection_gallery',
+      },
+      expect.objectContaining({ collectionType: 'system' }),
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+      {
+        filterType: 'category',
+        value: 'trustworthiness',
+        surface: 'collection_gallery',
+      },
+      expect.objectContaining({ collectionType: 'system' }),
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+  });
+
   it('should not gate the Evaluate tab on the Runs request', () => {
     mockUseEvaluationJobs.mockReturnValue([[], false, new Error('Runs unavailable'), mockRefresh]);
 

@@ -2,7 +2,15 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Provider } from '~/app/types';
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 jest.mock('~/app/components/CopySuiteBenchmarkDetailsOverlay', () => ({
   __esModule: true,
@@ -98,6 +106,10 @@ const renderSelectionStep = (
 };
 
 describe('CopySuiteBenchmarkSelectionStep', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render selected benchmarks on the flat page', () => {
     renderSelectionStep();
 
@@ -183,6 +195,24 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     expect(screen.getByTestId('benchmark-catalog-empty')).toHaveTextContent(
       'No benchmarks match the filter criteria. Try adjusting or clearing your filters.',
     );
+  });
+
+  it('should track catalog search values and ignore clearing the search', () => {
+    renderSelectionStep();
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search benchmarks' }), {
+      target: { value: '  knowledge  ' },
+    });
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_CATALOG_FILTER_APPLIED,
+      { filterType: 'search', value: 'knowledge' },
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search benchmarks' }), {
+      target: { value: '' },
+    });
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
   });
 
   it('should paginate the benchmark catalog', () => {
@@ -280,6 +310,9 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-catalog-name-mmlu'));
 
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED, {
+      source: 'suiteEditor',
+    });
     expect(screen.getByTestId('benchmark-catalog-checkbox-mmlu')).not.toBeChecked();
     expect(screen.getByTestId('copy-suite-benchmark-details-overlay')).toHaveTextContent(
       'Select benchmark',

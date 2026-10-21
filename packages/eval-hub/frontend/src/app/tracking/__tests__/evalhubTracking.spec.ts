@@ -34,6 +34,9 @@ describe('EvalHub tracking helper', () => {
       success: true,
       collectionName: 'my-safety-suite',
       saveMode: 'create',
+      action: 'save',
+      fromCurated: false,
+      countOfEvaluatesAssetTypes: 1,
     });
 
     expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
@@ -43,6 +46,9 @@ describe('EvalHub tracking helper', () => {
         success: true,
         collectionName: 'my-safety-suite',
         saveMode: 'create',
+        action: 'save',
+        fromCurated: false,
+        countOfEvaluatesAssetTypes: 1,
       }),
     );
     expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
@@ -69,7 +75,7 @@ describe('EvalHub tracking helper', () => {
   it('uses the BFF version after the bootstrap updates it', () => {
     setEvalHubServerVersion('2.4.1');
 
-    trackEvalHubEvent('evalhub.job.create.opened', { surface: 'benchmark_suites_page' });
+    trackEvalHubEvent(EVAL_HUB_EVENTS.JOB_CREATE_OPENED, { surface: 'benchmark_suites_page' });
 
     expect(getEvalHubServerVersion()).toBe('2.4.1');
     expect(mockFireMiscTrackingEvent.mock.calls[0][1]).toEqual(
@@ -90,11 +96,11 @@ describe('EvalHub tracking helper', () => {
   });
 
   it('emits once for a stable render key', () => {
-    trackEvalHubEventOnce('evalhub.comparison.view.rendered', 'run-1,run-2', {
+    trackEvalHubEventOnce(EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED, 'run-1,run-2', {
       surface: 'comparison_view',
       countOfRuns: 2,
     });
-    trackEvalHubEventOnce('evalhub.comparison.view.rendered', 'run-1,run-2', {
+    trackEvalHubEventOnce(EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED, 'run-1,run-2', {
       surface: 'comparison_view',
       countOfRuns: 2,
     });
@@ -105,18 +111,18 @@ describe('EvalHub tracking helper', () => {
   it('allows the same key to emit again in a new mounted-view visit', () => {
     const trackingScope = createEvalHubTrackingScope();
 
-    trackingScope.trackEventOnce('evalhub.comparison.view.rendered', 'run-1,run-2', {
+    trackingScope.trackEventOnce(EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED, 'run-1,run-2', {
       surface: 'comparison_view',
       countOfRuns: 2,
     });
-    trackingScope.trackEventOnce('evalhub.comparison.view.rendered', 'run-1,run-2', {
+    trackingScope.trackEventOnce(EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED, 'run-1,run-2', {
       surface: 'comparison_view',
       countOfRuns: 2,
     });
     expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
 
     trackingScope.clear();
-    trackingScope.trackEventOnce('evalhub.comparison.view.rendered', 'run-1,run-2', {
+    trackingScope.trackEventOnce(EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED, 'run-1,run-2', {
       surface: 'comparison_view',
       countOfRuns: 2,
     });

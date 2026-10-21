@@ -615,7 +615,7 @@ describe('BenchmarkSuiteCard', () => {
     expect(onSelect).toHaveBeenCalledWith(collection);
   });
 
-  it('should track tile clicks and drawer opens separately', () => {
+  it('should track drawer opens only when the tile click opens the drawer', () => {
     const collection = mockCollection({ id: 'tracked-suite' });
     const onSelect = jest.fn().mockReturnValueOnce(true).mockReturnValueOnce(false);
 
@@ -632,19 +632,9 @@ describe('BenchmarkSuiteCard', () => {
     fireEvent.click(nameButton);
     fireEvent.click(nameButton);
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(3);
-    expect(mockTrackEvalHubEvent).toHaveBeenNthCalledWith(
-      2,
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
-      expect.objectContaining({
-        collectionName: collection.name,
-        surface: 'my_benchmark_suites',
-      }),
-      expect.objectContaining({ collectionType: 'custom' }),
-    );
-    expect(mockTrackEvalHubEvent).toHaveBeenNthCalledWith(
-      3,
-      EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED,
       expect.objectContaining({
         collectionName: collection.name,
         surface: 'my_benchmark_suites',

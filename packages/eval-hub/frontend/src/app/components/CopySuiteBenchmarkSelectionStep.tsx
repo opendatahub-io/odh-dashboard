@@ -48,6 +48,11 @@ import {
   toggleBenchmarkSelectionKey,
 } from '~/app/utilities/benchmarkDetailsUtils';
 import type { FlatBenchmark, Provider } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import {
+  EVAL_HUB_EVENTS,
+  type BenchmarkCatalogFilterType,
+} from '~/app/tracking/evalhubTrackingConstants';
 
 import './CopySuiteBenchmarkSelectionStep.scss';
 
@@ -178,6 +183,26 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     ? selected.has(detailsBenchmarkKey)
     : false;
 
+  const trackBenchmarkCatalogFilter = React.useCallback(
+    (filterType: BenchmarkCatalogFilterType, selectedValues: string[]) => {
+      const normalizedSelectedValues = [
+        ...new Set(selectedValues.map((value) => value.trim()).filter(Boolean)),
+      ].toSorted((first, second) =>
+        first.localeCompare(second, undefined, { sensitivity: 'base' }),
+      );
+
+      if (normalizedSelectedValues.length === 0) {
+        return;
+      }
+
+      trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_FILTER_APPLIED, {
+        filterType,
+        value: normalizedSelectedValues.join(', '),
+      });
+    },
+    [],
+  );
+
   const onClearFilters = React.useCallback(() => {
     setFilterData(initialBenchmarkFilterData);
     setPage(1);
@@ -227,12 +252,12 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                             ? [filterData[BenchmarkFilterOptions.name]]
                             : []
                         }
-                        deleteLabel={() =>
+                        deleteLabel={() => {
                           setFilterData((prev) => ({
                             ...prev,
                             [BenchmarkFilterOptions.name]: '',
-                          }))
-                        }
+                          }));
+                        }}
                         categoryName="Search"
                       >
                         <SearchInput
@@ -244,6 +269,10 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                               ...prev,
                               [BenchmarkFilterOptions.name]: value,
                             }));
+                            trackBenchmarkCatalogFilter(
+                              'search',
+                              value.trim() ? [value.trim()] : [],
+                            );
                             setPage(1);
                           }}
                           onClear={() => {
@@ -262,16 +291,15 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                         selected={filterData[BenchmarkFilterOptions.category]}
                         formatLabel={formatCategory}
                         onToggleOption={(value) => {
+                          const selectedValues = filterData[BenchmarkFilterOptions.category];
+                          const nextSelectedValues = selectedValues.includes(value)
+                            ? selectedValues.filter((item) => item !== value)
+                            : [...selectedValues, value];
                           setFilterData((prev) => ({
                             ...prev,
-                            [BenchmarkFilterOptions.category]: prev[
-                              BenchmarkFilterOptions.category
-                            ].includes(value)
-                              ? prev[BenchmarkFilterOptions.category].filter(
-                                  (item) => item !== value,
-                                )
-                              : [...prev[BenchmarkFilterOptions.category], value],
+                            [BenchmarkFilterOptions.category]: nextSelectedValues,
                           }));
+                          trackBenchmarkCatalogFilter('category', nextSelectedValues);
                           setPage(1);
                         }}
                         onClearAll={() => {
@@ -289,16 +317,15 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                         selected={filterData[BenchmarkFilterOptions.framework]}
                         formatLabel={(value) => value}
                         onToggleOption={(value) => {
+                          const selectedValues = filterData[BenchmarkFilterOptions.framework];
+                          const nextSelectedValues = selectedValues.includes(value)
+                            ? selectedValues.filter((item) => item !== value)
+                            : [...selectedValues, value];
                           setFilterData((prev) => ({
                             ...prev,
-                            [BenchmarkFilterOptions.framework]: prev[
-                              BenchmarkFilterOptions.framework
-                            ].includes(value)
-                              ? prev[BenchmarkFilterOptions.framework].filter(
-                                  (item) => item !== value,
-                                )
-                              : [...prev[BenchmarkFilterOptions.framework], value],
+                            [BenchmarkFilterOptions.framework]: nextSelectedValues,
                           }));
+                          trackBenchmarkCatalogFilter('framework', nextSelectedValues);
                           setPage(1);
                         }}
                         onClearAll={() => {
@@ -316,16 +343,15 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                         selected={filterData[BenchmarkFilterOptions.metrics]}
                         formatLabel={getMetricDisplayName}
                         onToggleOption={(value) => {
+                          const selectedValues = filterData[BenchmarkFilterOptions.metrics];
+                          const nextSelectedValues = selectedValues.includes(value)
+                            ? selectedValues.filter((item) => item !== value)
+                            : [...selectedValues, value];
                           setFilterData((prev) => ({
                             ...prev,
-                            [BenchmarkFilterOptions.metrics]: prev[
-                              BenchmarkFilterOptions.metrics
-                            ].includes(value)
-                              ? prev[BenchmarkFilterOptions.metrics].filter(
-                                  (item) => item !== value,
-                                )
-                              : [...prev[BenchmarkFilterOptions.metrics], value],
+                            [BenchmarkFilterOptions.metrics]: nextSelectedValues,
                           }));
+                          trackBenchmarkCatalogFilter('metric', nextSelectedValues);
                           setPage(1);
                         }}
                         onClearAll={() => {
@@ -432,7 +458,12 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                             isInline
                             className="evalhub-copy-suite-benchmark-catalog__benchmark-name"
                             data-testid={`benchmark-catalog-name-${benchmark.id}`}
-                            onClick={() => setDetailsBenchmarkKey(benchmark.key)}
+                            onClick={() => {
+                              trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED, {
+                                source: 'suiteEditor',
+                              });
+                              setDetailsBenchmarkKey(benchmark.key);
+                            }}
                           >
                             {benchmark.name}
                           </Button>

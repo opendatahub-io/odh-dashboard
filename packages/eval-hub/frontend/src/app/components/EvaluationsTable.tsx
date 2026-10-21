@@ -23,7 +23,10 @@ import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import {
+  EVAL_HUB_EVENTS,
+  type EvaluationRunsFilterAttribute,
+} from '~/app/tracking/evalhubTrackingConstants';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import {
   getEvaluationName,
@@ -53,6 +56,16 @@ import EvaluationsTableRow from './EvaluationsTableRow';
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
 type StatusFilter = Exclude<ReturnType<typeof getEvaluationDisplayState>, 'not_started'>;
+
+const getRunsFilterAttribute = (filter: FilterOption): EvaluationRunsFilterAttribute => {
+  if (filter === 'name') {
+    return 'name';
+  }
+  if (filter === 'status') {
+    return 'status';
+  }
+  return 'type';
+};
 
 const FILTER_LABELS: Record<FilterOption, string> = {
   name: 'Evaluation name',
@@ -202,6 +215,18 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     direction: 'desc',
   });
   const [selectedEvaluationIds, setSelectedEvaluationIds] = React.useState<Set<string>>(new Set());
+
+  const trackFilterApplied = React.useCallback((filter: FilterOption, value: string) => {
+    const normalizedValue = value.trim();
+    if (!normalizedValue) {
+      return;
+    }
+
+    trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED, {
+      filterAttribute: getRunsFilterAttribute(filter),
+      value: normalizedValue,
+    });
+  }, []);
 
   React.useEffect(() => {
     if (!isKueueEnabled && KUEUE_STATUS_FILTERS.some((status) => status === selectedStatus)) {
@@ -507,6 +532,9 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     onSelect={(_event, value: string | number | undefined) => {
                       const matched = STATUS_OPTIONS.find((o) => o.value === String(value));
                       setSelectedStatus(matched ? matched.value : '');
+                      if (matched) {
+                        trackFilterApplied('status', matched.value);
+                      }
                       setIsStatusSelectOpen(false);
                     }}
                     onOpenChange={setIsStatusSelectOpen}
@@ -531,7 +559,10 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     aria-label={FILTER_PLACEHOLDERS[activeFilter] ?? ''}
                     placeholder={FILTER_PLACEHOLDERS[activeFilter] ?? ''}
                     value={filterValue}
-                    onChange={(_event, value) => setFilterValue(value)}
+                    onChange={(_event, value) => {
+                      setFilterValue(value);
+                      trackFilterApplied(activeFilter, value);
+                    }}
                     onClear={() => setFilterValue('')}
                     data-testid="filter-toolbar-text-field"
                   />

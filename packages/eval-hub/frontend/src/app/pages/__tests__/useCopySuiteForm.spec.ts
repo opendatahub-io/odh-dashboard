@@ -67,6 +67,7 @@ const sourceCollection: Collection = {
   name: 'Curated suite',
   description: 'A curated description',
   category: 'language',
+  curation_order: 1,
   domains: ['reasoning', 'trustworthiness'],
   tasks: ['text-generation'],
   modalities: ['text'],
@@ -629,6 +630,9 @@ describe('useCopySuiteForm', () => {
         outcome: 'submit',
         success: true,
         saveMode: 'create',
+        action: 'save',
+        fromCurated: false,
+        countOfEvaluatesAssetTypes: 1,
         suiteName: 'New suite',
         suiteDescription: 'A new suite',
         suiteDomains: JSON.stringify(['trustworthiness', 'reasoning']),
@@ -638,17 +642,10 @@ describe('useCopySuiteForm', () => {
         suiteEvaluates: JSON.stringify(['model']),
         suiteThreshold: 85,
         benchmarkCount: 1,
+        benchmarks: 'Benchmark One',
       }),
     );
-    expect(JSON.parse(String(savedCall?.[1].benchmarks))).toEqual([
-      expect.objectContaining({
-        id: 'benchmark-one',
-        primaryMetric: 'accuracy',
-        parameters: [{ key: 'num_examples', type: 'number', value: 250 }],
-        additionalParameters: '{"seed":42,"labels":["nightly"]}',
-        threshold: 70,
-      }),
-    ]);
+    expect(savedCall?.[1]).not.toHaveProperty('sourceCollectionId');
   });
 
   // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
@@ -745,6 +742,18 @@ describe('useCopySuiteForm', () => {
         countOfBenchmarks: 1,
       }),
     );
+    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(saveAndRunCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'create',
+        action: 'save_and_run',
+        fromCurated: false,
+      }),
+    );
+    expect(saveAndRunCall?.[1]).not.toHaveProperty('sourceCollectionId');
     expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
   });
 
@@ -1561,6 +1570,18 @@ describe('useCopySuiteForm', () => {
     expect(cloneFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(cloned).toEqual(clonedCollection);
     expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
+    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(saveAndRunCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'copy',
+        action: 'save_and_run',
+        sourceCollectionId: 'source-collection',
+        fromCurated: true,
+      }),
+    );
     expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
   });
 
@@ -1798,6 +1819,52 @@ describe('useCopySuiteForm', () => {
       '"Saved suite" has been added to your collections.',
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
+    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(copiedCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'copy',
+        action: 'save',
+        sourceCollectionId: 'source-collection',
+        fromCurated: true,
+      }),
+    );
+  });
+
+  it('should report fromCurated false when copying a non-curated collection', async () => {
+    const clonedCollection: Collection = {
+      resource: { id: 'saved-collection' },
+      name: 'Saved suite',
+    };
+    const cloneFetcher = jest.fn().mockResolvedValue(clonedCollection);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        resource: { ...sourceCollection.resource, tenant: 'test-tenant' },
+        curation_order: undefined,
+      },
+    });
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(copiedCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'copy',
+        action: 'save',
+        sourceCollectionId: 'source-collection',
+        fromCurated: false,
+      }),
+    );
   });
 
   it('should remain submitting while a save-only clone is pending', async () => {

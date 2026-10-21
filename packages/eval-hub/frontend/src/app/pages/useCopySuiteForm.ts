@@ -16,6 +16,7 @@ import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
 import { evaluationBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
+import { hasCuratedIndex } from '~/app/components/BenchmarkSuitesGallery';
 import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,
@@ -67,10 +68,8 @@ type CollectionSavedFormState = Pick<
 >;
 
 /**
- * Form tracking only accepts primitive property values, so keep the complete final
- * suite state in JSON strings. This intentionally preserves the raw benchmark
- * parameter fields, including user-entered advanced JSON, instead of only the
- * normalized API request.
+ * Form tracking only accepts primitive property values, so list-valued fields are
+ * kept as JSON strings and the benchmark selection as an alpha-ordered name list.
  */
 export const serializeCollectionSavedFormState = (
   values: CopySuiteFormValues,
@@ -84,21 +83,10 @@ export const serializeCollectionSavedFormState = (
   suiteEvaluates: JSON.stringify(values.suiteEvaluates),
   suiteThreshold: values.suiteThreshold,
   benchmarkCount: values.benchmarks.length,
-  benchmarks: JSON.stringify(
-    values.benchmarks.map((benchmark) => ({
-      id: benchmark.id,
-      providerId: benchmark.providerId,
-      name: benchmark.name,
-      weight: benchmark.weight,
-      primaryMetric: benchmark.primaryMetric,
-      lowerIsBetter: benchmark.lowerIsBetter,
-      metricDirections: benchmark.metricDirections,
-      parameters: benchmark.parameters,
-      additionalParameters: benchmark.additionalParameters ?? '',
-      threshold: benchmark.threshold,
-      availableMetrics: benchmark.availableMetrics,
-    })),
-  ),
+  benchmarks: values.benchmarks
+    .map((benchmark) => benchmark.name)
+    .toSorted((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' }))
+    .join(', '),
 });
 
 export const getBenchmarkKey = (benchmark: { providerId: string; id: string }): string =>
@@ -969,9 +957,14 @@ export function useCopySuiteForm({
     });
   }, [sourceCollection, form]);
 
+  // Curated gallery collections are system collections with curation_order > 0; clones reset it to 0.
+  const isSourceCollectionCurated =
+    sourceCollection !== undefined && hasCuratedIndex(sourceCollection);
+
   const trackCollectionSaved = React.useCallback(
     (
       values: CopySuiteFormValues,
+      action: CollectionSavedProperties['action'],
       result: Pick<CollectionSavedProperties, 'success' | 'collectionName' | 'error_category'>,
     ) => {
       trackEvalHubEvent(
@@ -979,13 +972,19 @@ export function useCopySuiteForm({
         {
           outcome: TrackingOutcome.submit,
           saveMode: isCreateMode ? 'create' : isEditMode ? 'edit' : 'copy',
+          action,
+          fromCurated: isSourceCollectionCurated,
+          countOfEvaluatesAssetTypes: values.suiteEvaluates.length,
+          ...(isCreateMode || isEditMode
+            ? {}
+            : { sourceCollectionId: sourceCollection?.resource.id }),
           ...serializeCollectionSavedFormState(values),
           ...result,
         },
         { collectionType: 'custom' },
       );
     },
-    [isCreateMode, isEditMode],
+    [isCreateMode, isEditMode, isSourceCollectionCurated, sourceCollection],
   );
 
   const cloneCollectionForRun = React.useCallback(
@@ -1032,7 +1031,7 @@ export function useCopySuiteForm({
 
         refreshCollections();
 
-        trackCollectionSaved(formValues, {
+        trackCollectionSaved(formValues, 'save_and_run', {
           success: true,
           collectionName: savedCollection.name,
         });
@@ -1055,7 +1054,7 @@ export function useCopySuiteForm({
       } catch (e) {
         if (!controller.signal.aborted) {
           const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-          trackCollectionSaved(form.getValues(), {
+          trackCollectionSaved(form.getValues(), 'save_and_run', {
             success: false,
             // eslint-disable-next-line camelcase -- API tracking field name.
             error_category: e instanceof Error ? e.name : 'unknown_error',
@@ -1119,7 +1118,7 @@ export function useCopySuiteForm({
 
         refreshCollections();
 
-        trackCollectionSaved(formValues, {
+        trackCollectionSaved(formValues, 'save_and_run', {
           success: true,
           collectionName: createdCollection.name,
         });
@@ -1142,7 +1141,7 @@ export function useCopySuiteForm({
       } catch (e) {
         if (!controller.signal.aborted) {
           const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-          trackCollectionSaved(form.getValues(), {
+          trackCollectionSaved(form.getValues(), 'save_and_run', {
             success: false,
             // eslint-disable-next-line camelcase -- API tracking field name.
             error_category: e instanceof Error ? e.name : 'unknown_error',
@@ -1213,7 +1212,10 @@ export function useCopySuiteForm({
               buildCloneRequest(),
             )({ signal: controller.signal });
 
-      trackCollectionSaved(formValues, { success: true, collectionName: savedCollection.name });
+      trackCollectionSaved(formValues, 'save', {
+        success: true,
+        collectionName: savedCollection.name,
+      });
 
       notification.success(
         isCreateMode
@@ -1230,7 +1232,7 @@ export function useCopySuiteForm({
     } catch (e) {
       if (controller && !controller.signal.aborted) {
         const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-        trackCollectionSaved(form.getValues(), {
+        trackCollectionSaved(form.getValues(), 'save', {
           success: false,
           // eslint-disable-next-line camelcase -- API tracking field name.
           error_category: e instanceof Error ? e.name : 'unknown_error',

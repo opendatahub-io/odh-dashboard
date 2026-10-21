@@ -24,27 +24,30 @@ export const EVAL_HUB_EVENTS = {
   SECURITY_INSIGHTS_FILTER_APPLIED: 'Security Insights Filter Applied',
   SECURITY_INSIGHTS_SORT_CHANGED: 'Security Insights Sort Changed',
   SECURITY_INSIGHTS_PAGINATION_CHANGED: 'Security Insights Pagination Changed',
-  BENCHMARK_CATALOG_OPENED: 'evalhub.benchmark.catalog.opened',
-  COLLECTION_CATEGORY_SELECTED: 'evalhub.collection.category.selected',
-  COLLECTION_GALLERY_VIEWED: 'evalhub.collection.gallery.viewed',
-  COLLECTION_TILE_CLICKED: 'evalhub.collection.gallery.tile_clicked',
-  COLLECTION_DETAIL_VIEWED: 'evalhub.collection.detail.viewed',
-  JOB_CREATE_OPENED: 'evalhub.job.create.opened',
-  JOB_CREATE_VALIDATION_FAILED: 'evalhub.job.create.validation_failed',
-  COMPARISON_VIEW_RENDERED: 'evalhub.comparison.view.rendered',
-  JOB_DETAIL_OPENED: 'evalhub.monitoring.job_detail_opened',
-  FAILURE_DETAIL_OPENED: 'evalhub.monitoring.failure_detail_opened',
-  COLLECTION_CUSTOMIZE_CLICKED: 'evalhub.collection.customize.clicked',
-  COLLECTION_EDIT_OPENED: 'evalhub.collection.edit.opened',
-  COLLECTION_CREATE_OPENED: 'evalhub.collection.create.opened',
-  COLLECTION_SAVED: 'evalhub.collection.saved',
-  REPORT_GENERATION_TRIGGERED: 'evalhub.report.generation.triggered',
-  COLLECTION_DELETED: 'evalhub.collection.deleted',
-  EVALUATION_STATUS_TAB_SELECTED: 'evalhub.monitoring.status_tab_selected',
-  EVALUATION_LOGS_VIEWED: 'evalhub.monitoring.logs_viewed',
-  EVALUATION_RESULTS_VIEWED: 'evalhub.monitoring.results_viewed',
-  EVALUATION_RECONFIGURE_SELECTED: 'evalhub.monitoring.reconfigure_selected',
-  COLLECTION_ALL_SUITES_OPENED: 'evalhub.collection.all_suites.opened',
+  BENCHMARK_CATALOG_OPENED: 'Evaluations Benchmark Catalog Opened',
+  BENCHMARK_CATALOG_FILTER_APPLIED: 'Evaluations Benchmark Catalog Filter Applied',
+  BENCHMARK_COLLECTION_FILTER_APPLIED: 'Evaluations Benchmark Collection Filter Applied',
+  EVALUATION_RUNS_FILTER_APPLIED: 'Evaluations Evaluation Runs Filter Applied',
+  BENCHMARK_DETAILS_VIEWED: 'Evaluations Benchmark Details Viewed',
+  COLLECTION_CATEGORY_SELECTED: 'Evaluations Collection Category Selected',
+  COLLECTION_GALLERY_VIEWED: 'Evaluations Collection Gallery Viewed',
+  COLLECTION_DETAIL_VIEWED: 'Benchmark Collection Details Viewed',
+  JOB_CREATE_OPENED: 'Evaluations Job Create Opened',
+  JOB_CREATE_VALIDATION_FAILED: 'Evaluations Job Create Validation Failed',
+  COMPARISON_VIEW_RENDERED: 'Evaluations Comparison View Rendered',
+  JOB_DETAIL_OPENED: 'Evaluations Job Detail Opened',
+  FAILURE_DETAIL_OPENED: 'Evaluations Failure Detail Opened',
+  COLLECTION_CUSTOMIZE_CLICKED: 'Evaluations Collection Customize Clicked',
+  COLLECTION_EDIT_OPENED: 'Evaluations Collection Edit Opened',
+  COLLECTION_CREATE_OPENED: 'Evaluations Collection Create Opened',
+  COLLECTION_SAVED: 'Evaluations Collection Saved',
+  REPORT_GENERATION_TRIGGERED: 'Evaluations Report Generation Triggered',
+  COLLECTION_DELETED: 'Evaluations Collection Deleted',
+  EVALUATION_STATUS_TAB_SELECTED: 'Evaluations Status Tab Selected',
+  EVALUATION_LOGS_VIEWED: 'Evaluations Logs Viewed',
+  EVALUATION_RESULTS_VIEWED: 'Evaluations Results Viewed',
+  EVALUATION_RECONFIGURE_SELECTED: 'Evaluations Reconfigure Selected',
+  COLLECTION_ALL_SUITES_OPENED: 'Evaluations Collection All Suites Opened',
 } as const;
 
 export type EvalHubCollectionSurface =
@@ -198,6 +201,41 @@ export type BenchmarkCatalogOpenedProperties = {
   surface: EvalHubCollectionSurface;
 };
 
+export type BenchmarkCatalogFilterType = 'category' | 'framework' | 'metric' | 'search';
+
+export type BenchmarkCatalogFilterAppliedProperties = {
+  filterType: BenchmarkCatalogFilterType;
+  value: string;
+};
+
+export type BenchmarkCollectionFilterType =
+  | 'search'
+  | 'category'
+  | 'benchmark'
+  | 'metric'
+  | 'evaluates'
+  | 'modality'
+  | 'task'
+  | 'industry'
+  | 'tag';
+
+export type BenchmarkCollectionFilterAppliedProperties = {
+  filterType: BenchmarkCollectionFilterType;
+  value: string;
+  surface: EvalHubCollectionSurface;
+};
+
+export type EvaluationRunsFilterAttribute = 'name' | 'type' | 'status';
+
+export type EvaluationRunsFilterAppliedProperties = {
+  filterAttribute: EvaluationRunsFilterAttribute;
+  value: string;
+};
+
+export type BenchmarkDetailsViewedProperties = {
+  source: 'catalogTable' | 'suiteEditor';
+};
+
 export type CollectionCategorySelectedProperties = {
   categoryId: string;
   evaluationTarget?: string;
@@ -268,6 +306,12 @@ export type CollectionSavedProperties = {
   success: boolean;
   collectionName?: string;
   saveMode: 'create' | 'edit' | 'copy';
+  /** Which submit button the user clicked — distinct from saveMode, which is the form's mode. */
+  action: 'save' | 'save_and_run';
+  fromCurated: boolean;
+  /** Present only when cloning an existing collection (saveMode 'copy'). */
+  sourceCollectionId?: string;
+  countOfEvaluatesAssetTypes: number;
   suiteName?: string;
   suiteDescription?: string;
   /** JSON-serialised values for each collection metadata form field. */
@@ -278,7 +322,7 @@ export type CollectionSavedProperties = {
   suiteEvaluates?: string;
   suiteThreshold?: number;
   benchmarkCount?: number;
-  /** JSON-serialised final benchmark form state, including user-entered parameters. */
+  /** Alpha-ordered, comma-separated names of the selected benchmarks. */
   benchmarks?: string;
   error_category?: string;
 };
@@ -317,9 +361,12 @@ export type EvalHubEventProperties = {
   [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED]: SecurityInsightsSortChangedProperties;
   [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED]: SecurityInsightsPaginationChangedProperties;
   [EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED]: BenchmarkCatalogOpenedProperties;
+  [EVAL_HUB_EVENTS.BENCHMARK_CATALOG_FILTER_APPLIED]: BenchmarkCatalogFilterAppliedProperties;
+  [EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED]: BenchmarkCollectionFilterAppliedProperties;
+  [EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED]: EvaluationRunsFilterAppliedProperties;
+  [EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED]: BenchmarkDetailsViewedProperties;
   [EVAL_HUB_EVENTS.COLLECTION_CATEGORY_SELECTED]: CollectionCategorySelectedProperties;
   [EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED]: CollectionGalleryViewedProperties;
-  [EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED]: CollectionTileProperties;
   [EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED]: CollectionTileProperties;
   [EVAL_HUB_EVENTS.JOB_CREATE_OPENED]: JobCreateOpenedProperties;
   [EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED]: JobCreateValidationFailedProperties;

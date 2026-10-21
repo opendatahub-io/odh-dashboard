@@ -5,6 +5,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockUseKueueAvailability = jest.fn();
 const mockUseKueueWorkloadStatuses = jest.fn();
@@ -35,6 +37,12 @@ jest.mock('~/app/hooks/useKueueAvailability', () => ({
 jest.mock('~/app/hooks/useKueueWorkloadStatuses', () => ({
   useKueueWorkloadStatuses: (...args: unknown[]) => mockUseKueueWorkloadStatuses(...args),
 }));
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -379,6 +387,32 @@ describe('EvaluationsTable', () => {
 
       expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
       expect(screen.queryByTestId('evaluation-row-1')).not.toBeInTheDocument();
+    });
+
+    it('should track run filter values and ignore clearing filters', () => {
+      renderTable({ evaluations: mockJobs, loaded: true });
+      const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
+
+      fireEvent.change(searchInput, { target: { value: '  Alpha  ' } });
+
+      expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+        EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
+        { filterAttribute: 'name', value: 'Alpha' },
+      );
+
+      mockTrackEvalHubEvent.mockClear();
+      fireEvent.change(searchInput, { target: { value: '' } });
+      expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Failed' }));
+
+      expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+        EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
+        { filterAttribute: 'status', value: 'failed' },
+      );
     });
 
     it('should show empty filter state when no matches', () => {

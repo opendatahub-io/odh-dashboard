@@ -592,17 +592,6 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             isInline
             className="evalhub-benchmark-suite-card__title-button"
             onClick={() => {
-              trackEvalHubEvent(
-                EVAL_HUB_EVENTS.COLLECTION_TILE_CLICKED,
-                {
-                  collectionName: collection.name,
-                  surface: trackingSurface,
-                },
-                {
-                  collectionType: collection.resource.read_only ? 'system' : 'custom',
-                  providerType: collection.benchmarks?.[0]?.provider_id,
-                },
-              );
               const didOpenDrawer = onSelect(collection);
               if (didOpenDrawer === true) {
                 trackEvalHubEvent(
