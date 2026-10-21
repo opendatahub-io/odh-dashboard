@@ -1,5 +1,6 @@
 import {
   Alert,
+  Button,
   Content,
   ContentVariants,
   DescriptionList,
@@ -24,8 +25,11 @@ import {
 import { ExclamationCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
+import { ExecutorLogsTearsheet } from '@odh-dashboard/autox-core/ui/components/feature';
+import { useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type { PipelineRun } from '~/app/types';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import {
@@ -64,6 +68,8 @@ type StepDetailsPanelProps = {
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
   showStageMapUnavailableNotice?: boolean;
+  /** Namespace of the run — used to fetch executor logs for failed steps. */
+  namespace?: string;
   onClose?: () => void;
 };
 
@@ -197,6 +203,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   componentStageMap,
   pipelineRun,
   showStageMapUnavailableNotice = false,
+  namespace,
   onClose,
 }) => {
   const { patterns, parameters, bestPatternKey, optimizationMetric } = useAutoragResultsContext();
@@ -211,6 +218,22 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
       ),
     [pipelineRun, componentStageMap, patterns, bestPatternKey, optimizationMetric],
   );
+
+  // Hooks must run unconditionally, above the early return below.
+  const parsedNodeId = selectedNodeId ? parseStageMapNodeId(selectedNodeId) : undefined;
+  const { rootDir } = useAutoragOutputDir(pipelineRun);
+  // Stage-map nodes resolve to their component; fallback-topology node ids are
+  // the KFP task names themselves.
+  const taskKey = selectedNodeId ? (parsedNodeId?.componentId ?? selectedNodeId) : undefined;
+  const executorError = useTaskExecutorError({
+    namespace,
+    runId: pipelineRun?.run_id,
+    pipelineRun,
+    taskKey,
+    rootDir,
+    enabled: nodeData?.stepState === 'failed',
+  });
+  const [isLogsTearsheetOpen, setIsLogsTearsheetOpen] = React.useState(false);
 
   if (!selectedNodeId || !nodeData) {
     const resolvedStatusFilter = statusFilter ?? 'loading';
@@ -278,7 +301,6 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     );
   }
 
-  const parsedNodeId = parseStageMapNodeId(selectedNodeId);
   const metadata = getStepMetadata(selectedNodeId, nodeData.label ?? '', nodeData.stepState, {
     componentStageMap,
     pipelineRun,
@@ -313,6 +335,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
             <StackItem>
               <Alert
                 variant="danger"
+                isInline
                 title="This step failed"
                 customIcon={<ExclamationCircleIcon />}
                 data-testid="step-failed-alert"
@@ -321,6 +344,25 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
                 {isBranchingStage
                   ? ' Branch steps are reported as a single group — remaining steps were not run.'
                   : null}
+                {executorError.isLoading ? (
+                  <div
+                    className="autorag-step-details__error-status"
+                    data-testid="step-failed-error-loading"
+                  >
+                    <Spinner size="sm" /> Retrieving failure details…
+                  </div>
+                ) : executorError.logText ? (
+                  <div className="autorag-step-details__logs-action">
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => setIsLogsTearsheetOpen(true)}
+                      data-testid="step-failed-view-logs"
+                    >
+                      View logs
+                    </Button>
+                  </div>
+                ) : null}
               </Alert>
             </StackItem>
           )}
@@ -368,6 +410,14 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
           )}
         </Stack>
       </DrawerPanelBody>
+      {executorError.logText ? (
+        <ExecutorLogsTearsheet
+          logText={executorError.logText}
+          isOpen={isLogsTearsheetOpen}
+          onClose={() => setIsLogsTearsheetOpen(false)}
+          stepLabel={panelTitle}
+        />
+      ) : null}
     </>
   );
 };
