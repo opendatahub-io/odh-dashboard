@@ -1,4 +1,4 @@
-import type { DashboardResource } from '@perses-dev/core';
+import type { DashboardResource, ListVariableDefinition } from '@perses-dev/core';
 
 export type NamespaceOption = {
   name: string;
@@ -6,23 +6,19 @@ export type NamespaceOption = {
 };
 
 /**
- * Transforms a dashboard resource by replacing the namespace variable's plugin
- * with a StaticListVariable for the given project names.
+ * Replaces the namespace variable with a StaticListVariable from the given projects
+ * so Perses does not race a Prometheus label-values query against Dashboard's project list.
  *
- * This prevents Perses from running a Prometheus query when we have project names
- * to inject, eliminating race conditions between the query and our manual options.
- *
- * @param dashboard - The original dashboard resource
- * @param projects - Array of projects to use as namespace options
- * @param initialNamespaceValue - Optional initial value for the namespace variable (from URL)
- * @returns A new dashboard resource with the namespace variable transformed
+ * For scoped PersesDatasources (`queryParams.namespace: ${namespace:queryparam}`),
+ * Project=All must not use a PromQL wildcard customAllValue (".*" / "(a|b)").
+ * Omitting customAllValue lets Perses expand All to the concrete list →
+ * namespace=a&namespace=b (SAR-checked per namespace).
  */
 export function transformNamespaceVariable(
   dashboard: DashboardResource,
   projects: NamespaceOption[] | string[],
   initialNamespaceValue?: string | string[],
 ): DashboardResource {
-  // If no project names provided, return dashboard unchanged
   if (projects.length === 0) {
     return dashboard;
   }
@@ -38,40 +34,54 @@ export function transformNamespaceVariable(
     return dashboard;
   }
 
-  // Find and transform the namespace variable
+  const staticListPlugin = {
+    kind: 'StaticListVariable' as const,
+    spec: {
+      values: namespaceOptions.map(({ name, label }) => ({
+        label,
+        value: name,
+      })),
+    },
+  };
+
   const transformedVariables = variables.map((variable) => {
-    // Check if this is the namespace variable with name 'namespace'
-    if ('name' in variable.spec && variable.spec.name === 'namespace') {
-      // Create a StaticListVariable with the project names
+    if (!('name' in variable.spec) || variable.spec.name !== 'namespace') {
+      return variable;
+    }
+
+    // ListVariable: preserve allowAllValue / allowMultiple; only drop wildcard All.
+    if (variable.kind === 'ListVariable') {
+      const { customAllValue: _omitCustomAll, ...listSpec } = variable.spec as ListVariableDefinition['spec'] & {
+        customAllValue?: string;
+      };
+
       return {
         kind: 'ListVariable' as const,
         spec: {
-          name: 'namespace',
-          display: {
-            name: 'Project',
-            description: 'Filter by project',
-          },
-          allowMultiple: true,
-          allowAllValue: true,
-          customAllValue: `(${namespaceOptions.map(({ name }) => name).join('|')})`,
-          // Use the initial value from URL if provided, otherwise keep the original default
-          defaultValue: initialNamespaceValue ?? '$__all',
-          plugin: {
-            kind: 'StaticListVariable',
-            spec: {
-              values: namespaceOptions.map(({ name, label }) => ({
-                label,
-                value: name,
-              })),
-            },
-          },
+          ...listSpec,
+          defaultValue: initialNamespaceValue ?? variable.spec.defaultValue,
+          plugin: staticListPlugin,
         },
       };
     }
-    return variable;
+
+    // TextVariable / other (e.g. Models dashboard): inject multi-select Project list.
+    return {
+      kind: 'ListVariable' as const,
+      spec: {
+        name: 'namespace',
+        display: {
+          name: 'Project',
+          description: 'Filter by project',
+        },
+        allowMultiple: true,
+        allowAllValue: true,
+        defaultValue: initialNamespaceValue ?? '$__all',
+        plugin: staticListPlugin,
+      },
+    };
   });
 
-  // Return a new dashboard resource with transformed variables
   return {
     ...dashboard,
     spec: {
