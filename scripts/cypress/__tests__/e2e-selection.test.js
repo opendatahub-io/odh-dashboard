@@ -29,14 +29,14 @@ const inventoryEntry = (name, tags, executableTags = tags) => ({
 
 const inventory = {
   [specPath('alpha')]: inventoryEntry('alpha', ['@Tag', '@CI']),
-  [specPath('bravo')]: inventoryEntry('bravo', ['@Tag', '@Other']),
+  [specPath('bravo')]: inventoryEntry('bravo', ['@Tag']),
   [specPath('other')]: inventoryEntry('other', ['@Other']),
   [specPath('skipped')]: inventoryEntry('skipped', ['@NonConcurrent'], []),
 };
 
 const dependencyIndex = {
   consumers: {
-    [supportPath('pages/shared')]: [specPath('alpha'), specPath('bravo')],
+    [supportPath('pages/shared')]: [specPath('alpha'), specPath('bravo'), specPath('skipped')],
   },
 };
 
@@ -137,12 +137,70 @@ describe('buildSelectionPlan', () => {
   });
 
   it('computes the reverse impact set for changed Cypress support code', () => {
-    const result = plan([{ status: 'M', path: supportPath('pages/shared') }]);
+    const result = plan([{ status: 'M', path: supportPath('pages/shared') }], {
+      selectedTags: ['@Other'],
+    });
 
     assert.equal(result.valid, true);
     assert.deepEqual(result.summary.impactedSpecs, [specPath('alpha'), specPath('bravo')]);
+    assert.equal(result.summary.impactMode, 'explicit-specs');
     const impactedJob = result.matrix.find((job) => job.tag.startsWith('@ImpactedSpec'));
     assert.deepEqual(impactedJob.specs, [specPath('alpha'), specPath('bravo')]);
+  });
+
+  it('does not schedule impacted specs with no executable tests', () => {
+    const result = plan([{ status: 'M', path: supportPath('pages/shared') }]);
+
+    assert.equal(result.valid, true);
+    assert.ok(!result.summary.impactedSpecs.includes(specPath('skipped')));
+    assert.ok(
+      result.matrix
+        .filter((job) => job.run_mode === 'spec')
+        .every((job) => !job.specs.includes(specPath('skipped'))),
+    );
+  });
+
+  it('maps broad reverse impact to package CI tags instead of every spec', () => {
+    const broadInventory = {};
+    const broadSpecs = Array.from({ length: 6 }, (_, index) => `broad-${index}`);
+    broadInventory[specPath('selector')] = inventoryEntry('selector', ['@Tag']);
+    broadInventory[specPath('wide')] = inventoryEntry('wide', ['@WideCI']);
+    for (const name of broadSpecs) {
+      broadInventory[specPath(name)] = inventoryEntry(name, ['@BroadCI', '@WideCI']);
+    }
+
+    const result = plan([{ status: 'M', path: supportPath('pages/shared') }], {
+      inventory: broadInventory,
+      dependencyIndex: {
+        consumers: {
+          [supportPath('pages/shared')]: broadSpecs.map((name) => specPath(name)),
+        },
+      },
+      ciTags: ['@Tag', '@BroadCI', '@WideCI'],
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.impactMode, 'ci-tags');
+    assert.equal(result.matrix.filter((job) => job.run_mode === 'spec').length, 0);
+    const impactedTagJob = result.matrix.find((job) => job.tag_dir === 'impacted-tag-01');
+    assert.equal(impactedTagJob.tag, '@BroadCI');
+  });
+
+  it('uses canonical full-coverage tag sets when support code is deleted', () => {
+    const fullInventory = {
+      [specPath('alpha')]: inventoryEntry('alpha', ['@Tag', '@SmokeSet1']),
+      [specPath('bravo')]: inventoryEntry('bravo', ['@Tag', '@SmokeSet2']),
+    };
+
+    const result = plan([{ status: 'D', path: supportPath('pages/shared') }], {
+      inventory: fullInventory,
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.impactMode, 'full-coverage-tags');
+    assert.equal(result.matrix.filter((job) => job.run_mode === 'spec').length, 0);
+    const fullCoverageJob = result.matrix.find((job) => job.tag_dir === 'full-coverage-01');
+    assert.equal(fullCoverageJob.tag, '@SmokeSet1 @SmokeSet2');
   });
 
   it('fails selection when a selected tag resolves to zero tests', () => {

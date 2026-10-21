@@ -233,7 +233,11 @@ it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@
 The GitHub Actions E2E workflow always schedules added, modified, and renamed
 Cypress specs in addition to the selected tag suites. Changes to page objects,
 fixtures, utilities, commands, support hooks, and other Cypress support code run
-their reverse-impact spec set.
+their executable reverse-impact specs. Small impact sets run as explicit specs;
+larger sets use the narrowest available package CI tags. Deleting Cypress
+support code, or encountering a broad impact set that cannot be mapped to
+package CI tags, falls back to the canonical `@SmokeSet1`–`@SmokeSet5` and
+`@SanitySet1`–`@SanitySet5` tag groups.
 
 Every selected tag must resolve to at least one executable test before the
 workflow starts. A selection fails when a required spec cannot be scheduled, a

@@ -124,8 +124,10 @@ jobs:
       - name: Validate E2E selection and result contracts
         run: |
           node --test \
+            --test-reporter=spec \
             scripts/cypress/__tests__/e2e-selection.test.js \
-            scripts/cypress/__tests__/e2e-results.test.js
+            scripts/cypress/__tests__/e2e-results.test.js \
+            scripts/cypress/__tests__/e2e-workflow.test.js
 
   # ---------------------------------------------------------------------------
   # Cluster Selection - Health check with automatic failover
@@ -1332,16 +1334,18 @@ jobs:
           # Cypress reads CYPRESS_* env vars natively — avoids arg escaping through concurrently
           export CYPRESS_OC_SERVER="$OC_SERVER"
           export CYPRESS_skipTags="@Bug @Maintain @NonConcurrent"
+          CYPRESS_COMMAND="pnpm --filter odh-dashboard-frontend cypress:run:chrome"
           if [[ "$MATRIX_RUN_MODE" == "spec" ]]; then
             mapfile -t SPEC_PATHS < <(jq -r '.[]' <<< "$MATRIX_SPECS")
             SPEC_LIST=""
             for spec in "${SPEC_PATHS[@]}"; do
               SPEC_LIST+="${GITHUB_WORKSPACE}/${spec},"
             done
-            export CYPRESS_spec="${SPEC_LIST%,}"
+            printf -v ESCAPED_SPEC_LIST '%q' "${SPEC_LIST%,}"
+            CYPRESS_COMMAND+=" --spec $ESCAPED_SPEC_LIST"
             export CYPRESS_grepTags=""
             export CYPRESS_grepFilterSpecs=false
-            echo "Running explicit Cypress specs: $CYPRESS_spec"
+            echo "Running explicit Cypress specs: ${SPEC_LIST%,}"
           else
             export CYPRESS_grepTags="$MATRIX_TAG"
             export CYPRESS_grepFilterSpecs=true
@@ -1364,7 +1368,7 @@ jobs:
           # Keep backend request logs out of the Actions output; Cypress remains visible as process 1.
           npx concurrently -P -k -s first --hide 0 \
             "pnpm cypress:server:e2e" \
-            "pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true pnpm --filter odh-dashboard-frontend cypress:run:chrome" \
+            "pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true $CYPRESS_COMMAND" \
             --
 
       - name: Upload test results

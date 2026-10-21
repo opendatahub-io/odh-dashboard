@@ -16,6 +16,19 @@ const MAX_EXTRA_TAGS = 5;
 const MAX_AUTO_TAGS_PER_JOB = 8;
 const MAX_SPEC_JOBS = 12;
 const MAX_SPECS_PER_JOB = 10;
+const MAX_EXPLICIT_IMPACTED_SPECS = 5;
+const FULL_COVERAGE_TAGS = [
+  '@SmokeSet1',
+  '@SmokeSet2',
+  '@SmokeSet3',
+  '@SmokeSet4',
+  '@SmokeSet5',
+  '@SanitySet1',
+  '@SanitySet2',
+  '@SanitySet3',
+  '@SanitySet4',
+  '@SanitySet5',
+];
 
 const normalizeTag = (tag) => (tag.startsWith('@') ? tag : `@${tag}`);
 
@@ -283,6 +296,15 @@ const buildTagJobs = (selectedTags, autoTags = []) =>
     timeout: Math.min(360, 30 + 7 * tags.length),
   }));
 
+const buildNamedTagJobs = (tagGroups, prefix) =>
+  tagGroups.map((tags, index) => ({
+    tag: tags.join(' '),
+    [tagDirKey]: `${sanitizeTagDir(prefix)}-${String(index + 1).padStart(2, '0')}`,
+    specs: [],
+    [runModeKey]: 'tag',
+    timeout: Math.min(360, 30 + 7 * tags.length),
+  }));
+
 const createSpecJobs = (specs, prefix) => {
   if (specs.length === 0) {
     return [];
@@ -344,6 +366,43 @@ const buildFixtureConsumers = ({ root, specs, dependencyIndex, fixturePath }) =>
   return [...consumers].toSorted();
 };
 
+const isExecutableSpec = (spec, inventory) => (inventory[spec]?.executableTestCount ?? 0) > 0;
+
+const resolveAvailableFullCoverageTags = (inventory) =>
+  FULL_COVERAGE_TAGS.filter((tag) =>
+    Object.values(inventory).some((entry) => entry.executableTags.includes(tag)),
+  );
+
+const selectImpactTags = (specs, inventory, ciTags) => {
+  const candidateTags = unique(ciTags.filter((tag) => tag !== DEFAULT_TAG && tag.endsWith('CI')));
+  const selectedTags = new Set();
+  const uncoveredSpecs = [];
+
+  for (const spec of specs) {
+    const candidates = candidateTags.filter((tag) => inventory[spec]?.executableTags.includes(tag));
+    if (candidates.length === 0) {
+      uncoveredSpecs.push(spec);
+      continue;
+    }
+
+    const tagCoverage = candidates.map((tag) => ({
+      tag,
+      testCount: Object.values(inventory)
+        .filter((entry) => entry.executableTags.includes(tag))
+        .reduce((total, entry) => total + entry.executableTestCount, 0),
+    }));
+    const sortedTagCoverage = tagCoverage.toSorted(
+      (first, second) => first.testCount - second.testCount || first.tag.localeCompare(second.tag),
+    );
+    selectedTags.add(sortedTagCoverage[0].tag);
+  }
+
+  return {
+    tags: [...selectedTags].toSorted(),
+    uncoveredSpecs: uncoveredSpecs.toSorted(),
+  };
+};
+
 const buildSelectionPlan = ({
   changes,
   inventory,
@@ -359,6 +418,7 @@ const buildSelectionPlan = ({
   const changedSpecs = new Set();
   const deletedSpecs = new Set();
   const impactedSpecs = new Set();
+  let fullCoverageRequired = false;
   const details = [];
 
   for (const change of changes) {
@@ -381,10 +441,10 @@ const buildSelectionPlan = ({
     }
 
     if (change.status === 'D') {
-      details.push(`${changedPath}: deleted support code requires the full E2E matrix`);
-      for (const spec of Object.keys(inventory)) {
-        impactedSpecs.add(spec);
-      }
+      fullCoverageRequired = true;
+      details.push(
+        `${changedPath}: deleted support code requires the canonical full-coverage tag sets`,
+      );
       continue;
     }
 
@@ -394,10 +454,15 @@ const buildSelectionPlan = ({
         errors.push(`No Cypress consumer was found for changed support code: ${changedPath}`);
         continue;
       }
-      for (const consumer of consumers) {
+      const executableConsumers = consumers.filter((consumer) =>
+        isExecutableSpec(consumer, inventory),
+      );
+      for (const consumer of executableConsumers) {
         impactedSpecs.add(consumer);
       }
-      details.push(`${changedPath}: ${consumers.length} importing spec(s)`);
+      details.push(
+        `${changedPath}: ${executableConsumers.length} executable importing spec(s) of ${consumers.length}`,
+      );
       continue;
     }
 
@@ -411,10 +476,15 @@ const buildSelectionPlan = ({
       errors.push(`No Cypress consumer was found for changed fixture: ${changedPath}`);
       continue;
     }
-    for (const consumer of consumers) {
+    const executableConsumers = consumers.filter((consumer) =>
+      isExecutableSpec(consumer, inventory),
+    );
+    for (const consumer of executableConsumers) {
       impactedSpecs.add(consumer);
     }
-    details.push(`${changedPath}: ${consumers.length} referencing spec(s)`);
+    details.push(
+      `${changedPath}: ${executableConsumers.length} executable referencing spec(s) of ${consumers.length}`,
+    );
   }
 
   for (const spec of changedSpecs) {
@@ -466,11 +536,56 @@ const buildSelectionPlan = ({
   const explicitImpactedSpecs = [...impactedSpecs]
     .filter((spec) => !changedSpecs.has(spec))
     .toSorted();
+  const selectedTagSet = new Set(selectedTags);
+  const uncoveredImpactedSpecs = explicitImpactedSpecs.filter(
+    (spec) => !inventory[spec]?.executableTags.some((tag) => selectedTagSet.has(tag)),
+  );
+  let impactMode = 'none';
+  let impactedTagJobs = [];
+  let explicitImpactSpecs = [];
+
+  if (fullCoverageRequired) {
+    impactMode = 'full-coverage-tags';
+    const fullCoverageTags = resolveAvailableFullCoverageTags(inventory);
+    if (fullCoverageTags.length === 0) {
+      errors.push('No canonical full-coverage tag sets contain executable tests');
+    } else {
+      impactedTagJobs = buildNamedTagJobs(
+        groupTagsForJobs(fullCoverageTags, fullCoverageTags),
+        'full-coverage',
+      );
+    }
+  } else if (uncoveredImpactedSpecs.length > MAX_EXPLICIT_IMPACTED_SPECS) {
+    const impactTags = selectImpactTags(uncoveredImpactedSpecs, inventory, ciTags);
+    if (impactTags.uncoveredSpecs.length > MAX_EXPLICIT_IMPACTED_SPECS) {
+      impactMode = 'full-coverage-tags';
+      const fullCoverageTags = resolveAvailableFullCoverageTags(inventory);
+      if (fullCoverageTags.length === 0) {
+        errors.push('No canonical full-coverage tag sets contain executable tests');
+      } else {
+        impactedTagJobs = buildNamedTagJobs(
+          groupTagsForJobs(fullCoverageTags, fullCoverageTags),
+          'full-coverage',
+        );
+      }
+    } else {
+      impactMode = 'ci-tags';
+      impactedTagJobs = buildNamedTagJobs(
+        groupTagsForJobs(impactTags.tags, impactTags.tags),
+        'impacted-tag',
+      );
+      explicitImpactSpecs = impactTags.uncoveredSpecs;
+    }
+  } else if (uncoveredImpactedSpecs.length > 0) {
+    impactMode = 'explicit-specs';
+    explicitImpactSpecs = uncoveredImpactedSpecs;
+  }
 
   const matrix = [
     ...buildTagJobs(selectedTags, autoTags),
     ...createSpecJobs(explicitChangedSpecs, 'ChangedSpec'),
-    ...createSpecJobs(explicitImpactedSpecs, 'ImpactedSpec'),
+    ...impactedTagJobs,
+    ...createSpecJobs(explicitImpactSpecs, 'ImpactedSpec'),
   ];
 
   if (matrix.length === 0) {
@@ -507,6 +622,7 @@ const buildSelectionPlan = ({
       changedSpecs: explicitChangedSpecs,
       deletedSpecs: [...deletedSpecs].toSorted(),
       impactedSpecs: explicitImpactedSpecs,
+      impactMode,
       selectedTags,
       resolvedTags: tagResolution.resolved,
       plannedTestCount,
@@ -533,6 +649,8 @@ const renderSelectionMarkdown = (summary) =>
     ...(summary.impactedSpecs.length > 0
       ? summary.impactedSpecs.map((spec) => `- ${spec}`)
       : ['- None']),
+    '',
+    `Impact strategy: ${summary.impactMode}`,
     '',
     '## Selected tags',
     ...(summary.selectedTags.length > 0
