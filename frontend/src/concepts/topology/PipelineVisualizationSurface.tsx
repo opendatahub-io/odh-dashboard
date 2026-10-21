@@ -27,6 +27,18 @@ type PipelineVisualizationSurfaceProps = {
   sidePanel?: React.ReactElement | null;
 };
 
+/**
+ * Build a string key that represents the graph structure (node IDs and their
+ * dependency edges) without including volatile data such as execution status.
+ * When this key is unchanged between renders the graph topology is the same and
+ * a full layout pass can be skipped — only the model data needs updating.
+ */
+export const buildStructureKey = (nodes: PipelineNodeModel[]): string =>
+  nodes
+    .map((n) => `${n.id}:${(n.runAfterTasks ?? []).join(',')}:${n.children?.join(',') ?? ''}`)
+    .toSorted()
+    .join('|');
+
 const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> = ({
   nodes,
   selectedIds,
@@ -34,6 +46,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
 }) => {
   const controller = useVisualizationController();
   const [error, setError] = React.useState<Error | null>();
+  const previousStructureKeyRef = React.useRef<string | null>(null);
 
   const selectedNode = React.useMemo(
     () => (selectedIds?.[0] ? controller.getNodeById(selectedIds[0]) || null : null),
@@ -93,6 +106,14 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     // TODO: We can have a weird edge issue if the node is off by a few pixels vertically from the center
     const edges = getEdgesFromNodes(renderNodes);
 
+    // Determine whether the graph structure (node IDs, edges, grouping)
+    // actually changed.  If only execution status / data changed we can
+    // update the model without re-running layout, which preserves the
+    // user's current zoom and pan position.
+    const structureKey = buildStructureKey(nodes);
+    const structureChanged = structureKey !== previousStructureKeyRef.current;
+    previousStructureKeyRef.current = structureKey;
+
     try {
       controller.fromModel(
         {
@@ -101,7 +122,9 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
         },
         true,
       );
-      controller.getGraph().layout();
+      if (structureChanged) {
+        controller.getGraph().layout();
+      }
     } catch (e) {
       if (e instanceof Error) {
         setError(e);
