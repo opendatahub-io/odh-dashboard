@@ -61,6 +61,10 @@ func NewDefaultHTTPClient(cfg MaaSClientConfig) *http.Client {
 	rt = limitMaaSResponseBody(rt)
 	return &http.Client{
 		Transport: rt,
+		// Backstop for callers that don't set their own deadline (e.g. Embed).
+		// Chat completions and streams are already bounded per request by
+		// maasRequestTimeout; ListModels applies its own shorter 30s deadline.
+		Timeout: maasRequestTimeout,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
