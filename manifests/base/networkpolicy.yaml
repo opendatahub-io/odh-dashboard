@@ -98,6 +98,22 @@ spec:
       ports:
         - port: 8443
           protocol: TCP
+    # Cross-namespace to user-project workloads: the Feast Feature Store registry REST server
+    # (feast-<name>-registry-rest). The Feast operator exposes this Service on port 443 (TLS) /
+    # 80 (non-TLS) but maps them to pod targetPort 6573 (TLS) / 6572 (non-TLS). NetworkPolicy
+    # egress is evaluated against the post-DNAT destination pod port, so the external 443/80
+    # ipBlock rule does not cover it. Scoped to namespaces opted into Feast via the
+    # opendatahub.io/feast=true label (the same label the dashboard backend uses to discover
+    # Feast projects; see backend/src/routes/api/featurestores/featureStoreUtils.ts). See RHAI-13640.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              opendatahub.io/feast: "true"
+      ports:
+        - port: 6573
+          protocol: TCP
+        - port: 6572
+          protocol: TCP
     # Cluster monitoring: the dashboard backend proxies storage/PVC metrics queries to
     # Thanos querier (thanos-querier.openshift-monitoring.svc) on the tenancy (9092) and
     # web (9091) ports. Scoped to the openshift-monitoring namespace.
