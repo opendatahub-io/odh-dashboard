@@ -265,7 +265,10 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByText('existing-connection')).toBeTruthy();
     expect(screen.getByText('region: east')).toBeTruthy();
     expect(screen.queryByText('postgres://example')).toBeNull();
-    expect(screen.getByLabelText('URI value hidden').textContent).toBe('••••••••');
+    expect(screen.getByText('URI value hidden')).toBeTruthy();
+    expect(
+      screen.getAllByText('••••••••').every((mask) => mask.getAttribute('aria-hidden') === 'true'),
+    ).toBe(true);
 
     await user.click(screen.getByRole('button', { name: 'Show URI' }));
     expect(screen.getByText('postgres://example')).toBeTruthy();
@@ -323,7 +326,10 @@ describe('CreateConnectionWizard', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
-    expect(screen.getByLabelText('API token value hidden').textContent).toBe('••••••••');
+    expect(screen.getByText('API token value hidden')).toBeTruthy();
+    expect(
+      screen.getAllByText('••••••••').every((mask) => mask.getAttribute('aria-hidden') === 'true'),
+    ).toBe(true);
     expect(screen.queryByText('short-lived-token')).toBeNull();
 
     const reviewShowButton = screen.getByRole('button', { name: 'Show API token' });
@@ -346,12 +352,74 @@ describe('CreateConnectionWizard', () => {
     expect(within(configurationShowButton).getByTestId('visible-value-icon')).toBeTruthy();
   });
 
+  it('keeps non-sensitive credential fields visible on both wizard steps', async () => {
+    const user = userEvent.setup();
+    const credentialValues = {
+      API_TOKEN: 'short-lived-token',
+      HOST: 'db.example',
+      CA_CERT: 'ca-certificate-value',
+      SSL_MODE: 'require',
+    };
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              { name: 'API_TOKEN', label: 'API token', required: true, type: 'string' },
+              { name: 'HOST', label: 'Host', required: true, type: 'string' },
+              { name: 'CA_CERT', label: 'CA certificate', required: true, type: 'string' },
+              { name: 'SSL_MODE', label: 'SSL mode', required: true, type: 'string' },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: credentialValues,
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    expect(screen.queryByText(credentialValues.API_TOKEN)).toBeNull();
+    expect(screen.getByText('API token value hidden')).toBeTruthy();
+    expect(screen.getByText(credentialValues.HOST)).toBeTruthy();
+    expect(screen.getByText(credentialValues.CA_CERT)).toBeTruthy();
+    expect(screen.getByText(credentialValues.SSL_MODE)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Show API token' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Show Host' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Show CA certificate' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Show SSL mode' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect((screen.getByTestId('credential-API_TOKEN') as HTMLInputElement).type).toBe('password');
+    expect((screen.getByTestId('credential-HOST') as HTMLInputElement).type).toBe('text');
+    expect((screen.getByTestId('credential-CA_CERT') as HTMLInputElement).type).toBe('text');
+    expect((screen.getByTestId('credential-SSL_MODE') as HTMLInputElement).type).toBe('text');
+  });
+
   it('masks connection URI and URL fields on both wizard steps', async () => {
     const user = userEvent.setup();
     const credentialValues = {
       URI: 'postgresql://alice:example-password@db.example:5432/app',
       url: 'postgresql://bob:example-password@db.example:5432/app',
       CONNECTION_STRING: 'postgresql://db.example/app?user=carol&password=example-password',
+      DSN: 'host=db.example user=dave password=example-password',
     };
     mockUseConnectionTypes.mockReturnValue([
       [
@@ -368,6 +436,7 @@ describe('CreateConnectionWizard', () => {
                 required: true,
                 type: 'string',
               },
+              { name: 'DSN', label: 'Data source name', required: true, type: 'string' },
             ],
           },
         },
@@ -396,13 +465,14 @@ describe('CreateConnectionWizard', () => {
     Object.values(credentialValues).forEach((value) => {
       expect(screen.queryByText(value)).toBeNull();
     });
-    ['URI', 'Connection URL', 'Connection string'].forEach((label) => {
-      expect(screen.getByLabelText(`${label} value hidden`).textContent).toBe('••••••••');
+    ['URI', 'Connection URL', 'Connection string', 'Data source name'].forEach((label) => {
+      expect(screen.getByText(`${label} value hidden`)).toBeTruthy();
     });
 
     await user.click(screen.getByRole('button', { name: 'Show URI' }));
     await user.click(screen.getByRole('button', { name: 'Show Connection URL' }));
     await user.click(screen.getByRole('button', { name: 'Show Connection string' }));
+    await user.click(screen.getByRole('button', { name: 'Show Data source name' }));
     Object.values(credentialValues).forEach((value) => {
       expect(screen.getByText(value)).toBeTruthy();
     });

@@ -446,6 +446,7 @@ const ReviewCredentialValue: React.FC<{
   const [isVisible, setIsVisible] = React.useState(false);
   const isSensitive = isSensitiveCredentialField(field);
   const displayValue = value?.trim() ? value : '-';
+  const isHidden = isSensitive && !isVisible && displayValue !== '-';
 
   return (
     <Flex
@@ -454,11 +455,14 @@ const ReviewCredentialValue: React.FC<{
       spaceItems={{ default: 'spaceItemsNone' }}
     >
       <FlexItem>
-        <span aria-label={isSensitive && !isVisible ? `${field.label} value hidden` : undefined}>
-          {isVisible || !isSensitive || displayValue === '-'
-            ? displayValue
-            : SENSITIVE_CREDENTIAL_MASK}
-        </span>
+        {isHidden ? (
+          <>
+            <span aria-hidden="true">{SENSITIVE_CREDENTIAL_MASK}</span>
+            <span className="pf-v6-u-screen-reader">{`${field.label} value hidden`}</span>
+          </>
+        ) : (
+          <span>{displayValue}</span>
+        )}
       </FlexItem>
       {isSensitive && displayValue !== '-' ? (
         <FlexItem>

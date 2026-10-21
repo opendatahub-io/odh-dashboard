@@ -16,6 +16,7 @@ describe('isSensitiveCredentialField', () => {
     ['URI', 'URI'],
     ['url', 'Connection URL'],
     ['CONNECTION_STRING', 'Connection string'],
+    ['DSN', 'Data source name'],
   ])('identifies sensitive field %s', (name, label) => {
     expect(isSensitiveCredentialField(field(name, label))).toBe(true);
   });
@@ -24,7 +25,7 @@ describe('isSensitiveCredentialField', () => {
     ['HOST', 'Host'],
     ['SSL_MODE', 'SSL mode'],
     ['AWS_ACCESS_KEY_ID', 'Access key ID'],
-    ['DSN', 'Data source name'],
+    ['SECURITY_PROTOCOL', 'Security protocol'],
   ])('does not identify non-sensitive field %s', (name, label) => {
     expect(isSensitiveCredentialField(field(name, label))).toBe(false);
   });

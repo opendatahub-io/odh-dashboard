@@ -8,23 +8,40 @@ const SENSITIVE_CREDENTIAL_FIELD_TERMS = [
   'secret',
   'token',
   'credential',
-  'apikey',
+  'credentials',
   'private',
   'uri',
   'url',
-  'connectionstring',
+  'dsn',
 ] as const;
 
-const normalizeCredentialFieldName = (value?: string | null): string =>
-  (value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const SENSITIVE_CREDENTIAL_COMPOUND_TERMS = ['apikey', 'connectionstring'] as const;
+
+const getCredentialFieldTokens = (value?: string | null): string[] =>
+  (value ?? '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+
+const getCredentialFieldNormalizedValue = (value?: string | null): string =>
+  getCredentialFieldTokens(value).join('');
 
 export const isSensitiveCredentialField = (
   field: Pick<ConnectionTypeCredentialField, 'name' | 'label'>,
 ): boolean => {
-  const fieldName = normalizeCredentialFieldName(field.name);
-  const fieldLabel = normalizeCredentialFieldName(field.label);
+  const fieldTokens = [
+    ...getCredentialFieldTokens(field.name),
+    ...getCredentialFieldTokens(field.label),
+  ];
+  const normalizedValues = [
+    getCredentialFieldNormalizedValue(field.name),
+    getCredentialFieldNormalizedValue(field.label),
+  ];
 
-  return SENSITIVE_CREDENTIAL_FIELD_TERMS.some(
-    (term) => fieldName.includes(term) || fieldLabel.includes(term),
+  return (
+    fieldTokens.some((token) => SENSITIVE_CREDENTIAL_FIELD_TERMS.some((term) => token === term)) ||
+    SENSITIVE_CREDENTIAL_COMPOUND_TERMS.some((term) =>
+      normalizedValues.some((value) => value.includes(term)),
+    )
   );
 };
