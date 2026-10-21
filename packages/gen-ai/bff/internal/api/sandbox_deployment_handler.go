@@ -229,8 +229,27 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		// Absence of the ConfigMap is non-fatal; vector stores will have IDs but no embedding details.
 	}
 
+	// Classify each referenced store's embedding model (custom endpoint, ISVC-served, or
+	// local sentence-transformers) so the sandbox config registers providers that can
+	// actually serve query-time embedding calls. Lookup failures other than an absent
+	// ConfigMap fail here, before any resources are created — a misclassification would
+	// silently reintroduce empty file-search results.
+	embeddingClassifier, clsErr := kubernetes.BuildSandboxEmbeddingClassifier(ctx, k8sClient, namespace, app.logger)
+	if clsErr != nil {
+		app.serverErrorResponse(w, r, clsErr)
+		return
+	}
+
+	// Validate the embedding key requirement up front: a sandbox installs a single
+	// embedding API key, so conflicting key Secrets must fail before any resources are created.
+	embeddingKeyRef, keyErr := kubernetes.RequiredSandboxEmbeddingKeyRef(profile, storeDoc, embeddingClassifier)
+	if keyErr != nil {
+		app.badRequestResponse(w, r, keyErr)
+		return
+	}
+
 	// Build the llama-stack config.yaml from the profile snapshot.
-	lsConfig, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc)
+	lsConfig, err := kubernetes.BuildSandboxLlamaStackConfig(profile, storeDoc, embeddingClassifier)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -389,6 +408,35 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
+	// Snapshot the embedding model's API key into a deployment-owned Secret, mirroring the
+	// AGENT_MODEL_API_KEY flow. The wrapper injects it as passthrough_api_key provider data
+	// so remote::passthrough embedding providers authenticate file-search calls with it.
+	var embeddingAuthSecret *kubernetes.SandboxSecretEnvVar
+	if embeddingKeyRef != nil {
+		apiKey, secretErr := k8sClient.GetSecretValue(ctx, nil, namespace, embeddingKeyRef.Name, embeddingKeyRef.Key)
+		if secretErr != nil {
+			rollback()
+			if apierrors.IsForbidden(secretErr) {
+				app.forbiddenResponse(w, r, fmt.Sprintf("access denied reading secret %q", embeddingKeyRef.Name))
+				return
+			}
+			app.serverErrorResponse(w, r, secretErr)
+			return
+		}
+		secret, secretErr := k8sClient.CreateSandboxModelAuthSecret(ctx, namespace, apiKey)
+		if secretErr != nil {
+			rollback()
+			if httpErr, ok := secretErr.(*integrations.HTTPError); ok && httpErr.StatusCode == http.StatusForbidden {
+				app.forbiddenResponse(w, r, httpErr.Message)
+				return
+			}
+			app.serverErrorResponse(w, r, secretErr)
+			return
+		}
+		resources.MCPAuthSecretNames = append(resources.MCPAuthSecretNames, secret.Name)
+		embeddingAuthSecret = &kubernetes.SandboxSecretEnvVar{Name: "AGENT_EMBEDDING_API_KEY", SecretName: secret.Name}
+	}
+
 	// Build Sandbox CR options from the profile snapshot and BFF config.
 	sandboxOpts := kubernetes.SandboxCROptions{
 		Name:                    sandboxName,
@@ -406,6 +454,7 @@ func (app *App) CreateAgentDeploymentHandler(w http.ResponseWriter, r *http.Requ
 		VectorStoreIDsJSON:      string(vectorStoreIDsJSON),
 		MCPAuthSecrets:          mcpAuthSecrets,
 		ModelAuthSecret:         modelAuthSecret,
+		EmbeddingAuthSecret:     embeddingAuthSecret,
 		PgvectorHost:            app.config.PgvectorHost,
 		PgvectorSecretName:      app.config.PgvectorPasswordSecretName,
 	}
