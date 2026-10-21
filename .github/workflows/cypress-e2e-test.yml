@@ -1395,7 +1395,7 @@ jobs:
           # Keep backend request logs out of the Actions output; Cypress remains visible as process 1.
           set +e
           npx concurrently -P -k -s first \
-            "pnpm exec turbo run cypress:server:e2e --concurrency=20 --ui=streaming --output-logs=full --log-order=stream >\"$E2E_SERVER_LOG\" 2>&1" \
+            "pnpm exec turbo run cypress:server:e2e --concurrency=20 --ui=stream --output-logs=full --log-order=stream >\"$E2E_SERVER_LOG\" 2>&1" \
             "pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true $CYPRESS_COMMAND" \
             --
           TEST_STATUS=$?
