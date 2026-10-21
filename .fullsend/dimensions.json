@@ -71,7 +71,8 @@
         "scope-exceeded", "tier-mismatch", "unauthorized-change", "scope-creep",
         "missing-authorization", "misleading-label", "design-direction",
         "complexity-ratio", "misplaced-abstraction", "architectural-conflict",
-        "design-smell", "over-engineering", "under-engineering"
+        "design-smell", "over-engineering", "under-engineering",
+        "scope-bundling"
       ]
     },
     {
