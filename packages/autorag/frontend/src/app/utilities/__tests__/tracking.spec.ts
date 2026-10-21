@@ -848,7 +848,7 @@ describe('fireAutoragPatternDetailsDownloadInitiated', () => {
 });
 
 describe('fireAutoragCodeSnippetsExported', () => {
-  it.each(['playground', 'resultsTable', 'patternDetails', 'other'] as const)(
+  it.each(['resultsTable', 'patternDetails', 'other'] as const)(
     'should fire AutoRAG Code Snippets Exported with action: viewed and entrySource: %s',
     (entrySource) => {
       fireAutoragCodeSnippetsExported('viewed', entrySource);
