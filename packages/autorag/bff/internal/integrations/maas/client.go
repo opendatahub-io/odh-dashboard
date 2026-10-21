@@ -27,6 +27,12 @@ const (
 	maxEmbeddingVectorDimensions = 16384
 )
 
+// maasRequestTimeout bounds every MaaS request, streaming response bodies
+// included. The OpenAI client applies it per request; the shared HTTP client
+// built by NewDefaultHTTPClient uses it as a backstop for callers that don't
+// set their own deadline.
+const maasRequestTimeout = 2 * time.Minute
+
 func appendStreamOutput(builder *strings.Builder, delta string) error {
 	if builder.Len()+len(delta) > maxStreamOutputBytes {
 		return ErrStreamOutputLimit
@@ -84,7 +90,7 @@ func NewClientWithHTTPClient(baseURL, apiKey string, httpClient *http.Client) (*
 	options := []option.RequestOption{
 		option.WithAPIKey(apiKey),
 		option.WithBaseURL(base + "/v1"),
-		option.WithRequestTimeout(2 * time.Minute),
+		option.WithRequestTimeout(maasRequestTimeout),
 		option.WithHTTPClient(httpClient),
 	}
 	return &Client{
