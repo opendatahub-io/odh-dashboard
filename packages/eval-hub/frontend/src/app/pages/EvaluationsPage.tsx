@@ -334,14 +334,12 @@ const EvaluationsPage: React.FC = () => {
               >
                 <Alert
                   isInline
+                  isPlain
                   variant="info"
-                  title="Technology Preview"
+                  title="The AI Evaluations user interface is provided as a Technology Preview, while the AI Evaluations back-end is generally available."
                   data-testid="evalhub-tech-preview-alert"
                   className="pf-v6-u-mb-lg"
-                >
-                  The AI Evaluations user interface is provided as a Technology Preview, while the
-                  AI Evaluations back-end is generally available.
-                </Alert>
+                />
                 <Tabs
                   activeKey={activeTab}
                   onSelect={onSelectTab}

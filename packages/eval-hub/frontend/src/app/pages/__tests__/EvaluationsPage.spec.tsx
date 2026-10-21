@@ -213,7 +213,6 @@ describe('EvaluationsPage', () => {
     renderPage('test-project');
     const alert = screen.getByTestId('evalhub-tech-preview-alert');
     expect(alert).toBeInTheDocument();
-    expect(alert).toHaveTextContent('Technology Preview');
     expect(alert).toHaveTextContent(
       'The AI Evaluations user interface is provided as a Technology Preview, while the AI Evaluations back-end is generally available.',
     );
