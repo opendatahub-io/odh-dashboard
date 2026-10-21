@@ -20,7 +20,7 @@ describe('EvalHub API Contract Tests', () => {
     it('should return API health and version status', async () => {
       const result = await apiClient.get('/eval-hub/api/v1/health');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthResponse/content/application/json/schema',
+        ref: '#/components/responses/HealthResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -30,7 +30,7 @@ describe('EvalHub API Contract Tests', () => {
     it('should successfully retrieve namespaces list', async () => {
       const result = await apiClient.get('/eval-hub/api/v1/namespaces');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/NamespacesResponse/content/application/json/schema',
+        ref: '#/components/responses/NamespacesResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -126,7 +126,7 @@ describe('EvalHub API Contract Tests', () => {
     it('should list evaluation jobs from EvalHub', async () => {
       const result = await apiClient.get('/eval-hub/api/v1/evaluations/jobs?namespace=default');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/EvaluationJobsResponse/content/application/json/schema',
+        ref: '#/components/responses/EvaluationJobsResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -138,7 +138,7 @@ describe('EvalHub API Contract Tests', () => {
         '/eval-hub/api/v1/evaluations/collections?namespace=default&scope=system&sort_by=curation_order',
       );
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/CollectionsResponse/content/application/json/schema',
+        ref: '#/components/responses/CollectionsResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -150,7 +150,7 @@ describe('EvalHub API Contract Tests', () => {
         '/eval-hub/api/v1/evaluations/collections/collection-001?namespace=default',
       );
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/CollectionResponse/content/application/json/schema',
+        ref: '#/components/responses/CollectionResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -161,7 +161,7 @@ describe('EvalHub API Contract Tests', () => {
         [{ op: 'replace', path: '/name', value: 'Updated collection' }],
       );
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/CollectionResponse/content/application/json/schema',
+        ref: '#/components/responses/CollectionResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -204,7 +204,7 @@ describe('EvalHub API Contract Tests', () => {
       );
 
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/CollectionResponse/content/application/json/schema',
+        ref: '#/components/responses/CollectionResponse/content/application~1json/schema',
         status: 201,
       });
       if (result.success) {
@@ -261,7 +261,7 @@ describe('EvalHub API Contract Tests', () => {
         cloneRequest,
       );
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/CollectionResponse/content/application/json/schema',
+        ref: '#/components/responses/CollectionResponse/content/application~1json/schema',
         status: 201,
       });
       if (result.success) {
@@ -297,7 +297,7 @@ describe('EvalHub API Contract Tests', () => {
         expect({ status: result.error.status, data: result.error.data }).toMatchContract(
           apiSchema,
           {
-            ref: '#/components/responses/NotFound/content/application/json/schema',
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
             status: 404,
           },
         );
@@ -329,7 +329,7 @@ describe('EvalHub API Contract Tests', () => {
       });
 
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/CreateEvaluationJobResponse/content/application/json/schema',
+        ref: '#/components/responses/CreateEvaluationJobResponse/content/application~1json/schema',
         status: 201,
       });
       if (result.success) {
@@ -353,7 +353,7 @@ describe('EvalHub API Contract Tests', () => {
         expect({ status: result.error.status, data: result.error.data }).toMatchContract(
           apiSchema,
           {
-            ref: '#/components/responses/BadRequest/content/application/json/schema',
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
             status: 400,
           },
         );

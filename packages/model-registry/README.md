@@ -32,6 +32,18 @@ This guide outlines how to run the upstream Model Registry and integrate it with
 
 For detailed instructions on how to run the Model Registry itself (covering local deployment, Kubeflow development, etc.), please refer to the official [Model Registry Documentation](./upstream/kubeflow/model-registry/docs/README.md).
 
+## Contract compatibility
+
+The Model Registry BFF contract tests run the real Go BFF with mocked Kubernetes, Model Registry, and Model Catalog clients. They exercise the Model Catalog endpoints that the dashboard consumes and validate the HTTP responses against the OpenAPI document:
+
+```bash
+pnpm --filter @odh-dashboard/model-registry test:contract
+```
+
+The automated upstream-sync workflow updates the vendored OpenAPI document from upstream `main`. For a clean sync, it runs these tests before publishing or updating the sync PR; a failure prevents that publication. If the sync has conflicts, the workflow publishes the conflict PR and skips the consumer tests.
+
+Pull requests that change the BFF OpenAPI document also run a static compatibility check through the shared [api-contract-tests](https://github.com/red-hat-data-services/api-contract-tests) workflow. The descriptor is stored in `.rhoai/contracts.yaml`, and the workflow compares the Model Catalog path prefix against the pull-request base.
+
 ## ODH Integration Point
 
 The integration of this upstream Model Registry with Open Data Hub is managed via plugin extensions. The primary extension definitions for this integration can be found in:
