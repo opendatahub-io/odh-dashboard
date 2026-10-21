@@ -4,7 +4,9 @@
 # upstream's multi-forge rewrite. The prior-findings projection, the
 # label_actions hardening, the PR file-list retry and the failed outcome for
 # action=failure are from ce2eedd097dcccf17e29f4a7cd337ec4d95d7194; the rest
-# is not synced past the first commit.
+# is not synced past the first commit. Compared with 2da538b8 (v0.48.1):
+# upstream's later changes are the finding-id ledger, the risk verdict gate
+# and GitLab paths, none of which this host uses (README "Upstream sync").
 #
 # Local changes from the stock script:
 #   1. Set the GitHub review action from findings (any medium+ →
