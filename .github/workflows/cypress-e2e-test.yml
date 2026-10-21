@@ -1389,10 +1389,13 @@ jobs:
           trap cleanup_mlflow_forward EXIT
           echo "Routing local MLflow BFF traffic through pod-local port 18443"
 
+          E2E_SERVER_LOG=/tmp/cypress-e2e-server.log
+          rm -f "$E2E_SERVER_LOG"
+
           # Keep backend request logs out of the Actions output; Cypress remains visible as process 1.
           set +e
-          npx concurrently -P -k -s first --hide 0 \
-            "pnpm cypress:server:e2e" \
+          npx concurrently -P -k -s first \
+            "pnpm cypress:server:e2e >\"$E2E_SERVER_LOG\" 2>&1" \
             "pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true $CYPRESS_COMMAND" \
             --
           TEST_STATUS=$?
@@ -1400,6 +1403,14 @@ jobs:
           if [ -s "$MLFLOW_FORWARD_LOG" ]; then
             echo "--- MLflow port-forward log ---"
             tail -n 50 "$MLFLOW_FORWARD_LOG"
+          fi
+          if [ -s "$E2E_SERVER_LOG" ]; then
+            E2E_SERVER_DIAGNOSTICS=/tmp/cypress-e2e-server-diagnostics.log
+            grep -Ei 'unauthorized|forbidden|failed|error|mlflow' "$E2E_SERVER_LOG" | tail -n 100 > "$E2E_SERVER_DIAGNOSTICS" || true
+            if [ -s "$E2E_SERVER_DIAGNOSTICS" ]; then
+              echo "--- E2E server diagnostics ---"
+              cat "$E2E_SERVER_DIAGNOSTICS"
+            fi
           fi
           exit "$TEST_STATUS"
 
