@@ -1050,8 +1050,7 @@ export type DataScienceClusterComponentSpec = {
 
 export type DataScienceClusterKindSpec = {
   components?: {
-    data?: {
-      featureStore?: DataScienceClusterComponentSpec;
+    feastoperator?: DataScienceClusterComponentSpec & {
       dataRegistry?: DataScienceClusterComponentSpec;
     };
   };

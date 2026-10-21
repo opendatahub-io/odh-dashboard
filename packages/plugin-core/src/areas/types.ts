@@ -230,7 +230,7 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.DS_PIPELINES]: 'Pipelines',
   [DataScienceStackComponent.KUEUE]: 'Kueue',
   [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
-  [DataScienceStackComponent.DATA]: 'Feast operator',
+  [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
   [DataScienceStackComponent.FEATURE_STORE]: 'Feature Store',
   [DataScienceStackComponent.DATA_REGISTRY]: 'Data Registry',
   [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',

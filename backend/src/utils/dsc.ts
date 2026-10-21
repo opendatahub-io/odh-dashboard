@@ -6,19 +6,17 @@ import {
 } from '../types';
 import { createCustomError } from './requestUtils';
 
-export const normalizeV3DscStatus = (dsc: DataScienceClusterKind): DataScienceClusterKindStatus => {
-  const components = dsc.status.components ?? {};
-  const data = dsc.spec.components?.data;
+export const normalizeV2DscStatus = (dsc: DataScienceClusterKind): DataScienceClusterKindStatus => {
+  const feastOperator = dsc.spec.components?.feastoperator;
 
   return {
     ...dsc.status,
     components: {
-      ...components,
-      // Keep the dashboard's established component keys while consuming the v3 DSC contract.
-      modelregistry: components.aiHub ?? {},
-      // Missing child states mean Removed, including for the About dialog's installed list.
-      featureStore: { managementState: data?.featureStore?.managementState ?? 'Removed' },
-      dataRegistry: { managementState: data?.dataRegistry?.managementState ?? 'Removed' },
+      ...dsc.status.components,
+      // The v2 conversion maps v3 data.featureStore to feastoperator.managementState.
+      // The feastoperator status itself represents the shared operand, not either child.
+      featureStore: { managementState: feastOperator?.managementState ?? 'Removed' },
+      dataRegistry: { managementState: feastOperator?.dataRegistry?.managementState ?? 'Removed' },
     },
   };
 };
@@ -27,7 +25,7 @@ export const fetchClusterStatus = async (
   fastify: KubeFastifyInstance,
 ): Promise<DataScienceClusterKindStatus> => {
   const result: DataScienceClusterKind | null = await fastify.kube.customObjectsApi
-    .listClusterCustomObject('datasciencecluster.opendatahub.io', 'v3', 'datascienceclusters')
+    .listClusterCustomObject('datasciencecluster.opendatahub.io', 'v2', 'datascienceclusters')
     .then((res) => (res.body as DataScienceClusterList).items[0])
     .catch((e) => {
       fastify.log.error(`Failure to fetch dsc: ${e.response.body}`);
@@ -35,9 +33,9 @@ export const fetchClusterStatus = async (
     });
 
   if (!result) {
-    // The v3 DSC is the dashboard lifecycle source of truth.
+    // The converted v2 DSC is unavailable.
     throw createCustomError('DSC Unavailable', 'Unable to get status', 404);
   }
 
-  return normalizeV3DscStatus(result);
+  return normalizeV2DscStatus(result);
 };

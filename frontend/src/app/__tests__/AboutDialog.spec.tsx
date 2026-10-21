@@ -212,7 +212,7 @@ describe('AboutDialog', () => {
       const sharedDataManaged = featureStore === 'Managed' || dataRegistry === 'Managed';
       dscStatus.components = {
         ...dscStatus.components,
-        [DataScienceStackComponent.DATA]: {
+        [DataScienceStackComponent.FEAST_OPERATOR]: {
           managementState: sharedDataManaged ? 'Managed' : 'Removed',
           releases: [
             { name: 'Feast', version: '0.64.0', repoUrl: 'https://github.com/feast-dev/feast' },

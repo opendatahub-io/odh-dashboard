@@ -365,8 +365,8 @@ export type DashboardConfigKind = K8sResourceCommon & {
 
 export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
 
-/** Dashboard availability keys normalized from the v3 DSC.
- * Data Registry and Feature Store are independent children of `spec.components.data`.
+/** The v2 DSC status component keys used by the dashboard, plus independent
+ * Feature Store and Data Registry availability keys derived from the converted v2 spec.
  */
 export enum DataScienceStackComponent {
   DASHBOARD = 'dashboard',
@@ -374,8 +374,8 @@ export enum DataScienceStackComponent {
   K_SERVE = 'kserve',
   KUEUE = 'kueue',
   MODEL_REGISTRY = 'modelregistry',
-  // Shared operand release metadata, not an individual data feature's availability.
-  DATA = 'data',
+  // Shared operand status and release metadata, not an individual feature's availability.
+  FEAST_OPERATOR = 'feastoperator',
   FEATURE_STORE = 'featureStore',
   DATA_REGISTRY = 'dataRegistry',
   RAY = 'ray',

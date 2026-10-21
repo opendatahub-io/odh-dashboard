@@ -91,4 +91,4 @@ Shared utilities are in `featureStoreUtils.ts`: ConfigMap parsing, service info 
 - Detail views rely on `include_relationships=true`; omitting it yields incomplete lineage-related data.
 - Lineage graph needs `/api/v1/lineage/complete`; older Feast builds may show an empty graph without a clear error.
 - Admin write operations (create/delete FeatureStore CRs) require both the `featureStoreAdmin` flag and appropriate RBAC permissions.
-- Nav visibility requires `spec.components.data.featureStore.managementState: Managed` in the v3 DataScienceCluster and `disableFeatureStore: false` on `OdhDashboardConfig`. Data Registry and the shared Data/Feast operand state do not enable Feature Store navigation. Instance discovery also uses the `feature-store-ui=enabled` label.
+- Nav visibility follows v3 `spec.components.data.featureStore.managementState` via its converted v2 `spec.components.feastoperator.managementState` field, and requires `disableFeatureStore: false` on `OdhDashboardConfig`. Data Registry and the shared Data/Feast operand status do not enable Feature Store navigation. Instance discovery also uses the `feature-store-ui=enabled` label.

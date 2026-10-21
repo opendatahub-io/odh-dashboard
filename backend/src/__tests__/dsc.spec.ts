@@ -21,38 +21,40 @@ describe('fetchClusterStatus', () => {
     { featureStore: 'Removed', dataRegistry: 'Removed' },
     { featureStore: 'Managed', dataRegistry: 'Managed' },
   ])(
-    'normalizes independent v3 data lifecycle states: Feature Store $featureStore / Data Registry $dataRegistry',
+    'normalizes independent converted v2 data lifecycle states: Feature Store $featureStore / Data Registry $dataRegistry',
     async ({ featureStore, dataRegistry }) => {
       const aggregateDataState: ManagementState =
         featureStore === 'Managed' || dataRegistry === 'Managed' ? 'Managed' : 'Removed';
       const dsc: DataScienceClusterKind = {
-        apiVersion: 'datasciencecluster.opendatahub.io/v3',
+        apiVersion: 'datasciencecluster.opendatahub.io/v2',
         kind: 'DataScienceCluster',
         metadata: { name: 'default-dsc' },
         spec: {
           components: {
-            data: {
-              featureStore: { managementState: featureStore },
+            feastoperator: {
+              managementState: featureStore,
               dataRegistry: { managementState: dataRegistry },
             },
           },
         },
         status: {
           components: {
-            data: {
+            feastoperator: {
               managementState: aggregateDataState,
               releases: [
                 { name: 'Feast', version: '0.64.0', repoUrl: 'https://github.com/feast-dev/feast' },
               ],
             },
-            aiHub: { managementState: 'Managed' },
+            modelregistry: { managementState: 'Managed' },
+            workbenches: { managementState: 'Removed' },
           },
           conditions: [],
+          release: { name: 'OpenShift AI', version: '3.6.0' },
         },
       };
       mockListClusterCustomObject.mockResolvedValue({
         body: {
-          apiVersion: 'datasciencecluster.opendatahub.io/v3',
+          apiVersion: 'datasciencecluster.opendatahub.io/v2',
           kind: 'DataScienceClusterList',
           items: [dsc],
         },
@@ -62,19 +64,20 @@ describe('fetchClusterStatus', () => {
 
       expect(mockListClusterCustomObject).toHaveBeenCalledWith(
         'datasciencecluster.opendatahub.io',
-        'v3',
+        'v2',
         'datascienceclusters',
       );
-      expect(result.components).toMatchObject({
-        data: { managementState: aggregateDataState },
-        dataRegistry: { managementState: dataRegistry },
-        featureStore: { managementState: featureStore },
-        modelregistry: { managementState: 'Managed' },
+      expect(result).toEqual({
+        ...dsc.status,
+        components: {
+          ...dsc.status.components,
+          featureStore: { managementState: featureStore },
+          dataRegistry: { managementState: dataRegistry },
+        },
       });
-      // Shared operand release metadata must survive independently of child availability.
-      expect(result.components?.data).toEqual(dsc.status.components?.data);
-      expect(result.components?.featureStore).toEqual({ managementState: featureStore });
-      expect(result.components?.dataRegistry).toEqual({ managementState: dataRegistry });
+      // The shared operand and unrelated v2 statuses retain their existing objects and metadata.
+      expect(result.components?.feastoperator).toBe(dsc.status.components?.feastoperator);
+      expect(result.components?.modelregistry).toBe(dsc.status.components?.modelregistry);
     },
   );
 
@@ -86,45 +89,45 @@ describe('fetchClusterStatus', () => {
   }>([
     { name: 'absent components', spec: {}, featureStore: 'Removed', dataRegistry: 'Removed' },
     {
-      name: 'absent data',
+      name: 'absent feastoperator',
       spec: { components: {} },
       featureStore: 'Removed',
       dataRegistry: 'Removed',
     },
     {
-      name: 'absent data children',
-      spec: { components: { data: {} } },
+      name: 'empty feastoperator',
+      spec: { components: { feastoperator: {} } },
       featureStore: 'Removed',
       dataRegistry: 'Removed',
     },
     {
-      name: 'empty data children',
-      spec: { components: { data: { featureStore: {}, dataRegistry: {} } } },
+      name: 'empty data registry child',
+      spec: { components: { feastoperator: { dataRegistry: {} } } },
       featureStore: 'Removed',
       dataRegistry: 'Removed',
     },
     {
       name: 'absent Data Registry with Feature Store managed',
-      spec: { components: { data: { featureStore: { managementState: 'Managed' } } } },
+      spec: { components: { feastoperator: { managementState: 'Managed' } } },
       featureStore: 'Managed',
       dataRegistry: 'Removed',
     },
     {
       name: 'absent Feature Store with Data Registry managed',
-      spec: { components: { data: { dataRegistry: { managementState: 'Managed' } } } },
+      spec: { components: { feastoperator: { dataRegistry: { managementState: 'Managed' } } } },
       featureStore: 'Removed',
       dataRegistry: 'Managed',
     },
   ])(
-    'should default $name to Removed without using aggregate data state',
+    'should default $name to Removed without using shared feastoperator status',
     async ({ spec, featureStore, dataRegistry }) => {
       const dsc: DataScienceClusterKind = {
-        apiVersion: 'datasciencecluster.opendatahub.io/v3',
+        apiVersion: 'datasciencecluster.opendatahub.io/v2',
         kind: 'DataScienceCluster',
         metadata: { name: 'default-dsc' },
         spec,
         status: {
-          components: { data: { managementState: 'Managed' } },
+          components: { feastoperator: { managementState: 'Managed' } },
           conditions: [],
         },
       };
@@ -138,4 +141,31 @@ describe('fetchClusterStatus', () => {
       expect(result.components?.dataRegistry).toEqual({ managementState: dataRegistry });
     },
   );
+
+  it('should preserve Unmanaged child states from the v2 spec', async () => {
+    const dsc: DataScienceClusterKind = {
+      apiVersion: 'datasciencecluster.opendatahub.io/v2',
+      kind: 'DataScienceCluster',
+      metadata: { name: 'default-dsc' },
+      spec: {
+        components: {
+          feastoperator: {
+            managementState: 'Unmanaged',
+            dataRegistry: { managementState: 'Unmanaged' },
+          },
+        },
+      },
+      status: { conditions: [] },
+    };
+    mockListClusterCustomObject.mockResolvedValue({
+      body: { kind: 'DataScienceClusterList', items: [dsc] },
+    });
+
+    const result = await fetchClusterStatus(mockFastify);
+
+    expect(result.components).toEqual({
+      featureStore: { managementState: 'Unmanaged' },
+      dataRegistry: { managementState: 'Unmanaged' },
+    });
+  });
 });
