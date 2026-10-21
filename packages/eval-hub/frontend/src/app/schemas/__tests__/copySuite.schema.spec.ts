@@ -42,7 +42,7 @@ describe('copySuiteSchema', () => {
     const result = copySuiteSchema.safeParse({
       ...validValues(),
       suiteEvaluates: ['model', 'agent'],
-      suiteDomains: ['safety', 'knowledge_and_reasoning'],
+      suiteDomains: ['trustworthiness', 'knowledge_and_reasoning'],
       suiteTasks: ['reasoning'],
       suiteModalities: ['text', 'vision'],
       suiteIndustries: ['health'],
