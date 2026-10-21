@@ -16,6 +16,8 @@ type MockEvaluationJobOptions = {
   metrics?: Record<string, unknown>;
   /** Override status.benchmarks directly for testing benchmark-level state (started_at, warnings, etc.) */
   benchmarkStatuses?: EvaluationJob['status']['benchmarks'];
+  /** Override results.benchmarks directly for testing result shapes (e.g. bare failed entries) */
+  resultBenchmarks?: EvaluationJob['results']['benchmarks'];
 };
 
 const DEFAULT_BENCHMARK_ID = 'default-benchmark';
@@ -37,21 +39,23 @@ export const mockEvaluationJob = (options: MockEvaluationJobOptions = {}): Evalu
   },
   results: {
     benchmarks:
-      options.score != null
-        ? [
-            {
-              id: options.benchmarkId ?? DEFAULT_BENCHMARK_ID,
-              test: { primary_score: options.score, pass: options.scorePass },
-            },
-          ]
-        : options.metrics
+      options.resultBenchmarks !== undefined
+        ? options.resultBenchmarks
+        : options.score != null
           ? [
               {
                 id: options.benchmarkId ?? DEFAULT_BENCHMARK_ID,
-                metrics: options.metrics,
+                test: { primary_score: options.score, pass: options.scorePass },
               },
             ]
-          : [],
+          : options.metrics
+            ? [
+                {
+                  id: options.benchmarkId ?? DEFAULT_BENCHMARK_ID,
+                  metrics: options.metrics,
+                },
+              ]
+            : [],
     test: options.score != null ? { score: options.score, pass: options.scorePass } : undefined,
   },
   name: options.name,
