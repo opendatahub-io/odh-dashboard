@@ -5,7 +5,11 @@ import {
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { evaluationErrorCategory, type EvaluationStatusMessage } from './evaluationErrorCategory';
-import type { EvalHubEventName, EvalHubEventProperties } from './evalhubTrackingConstants';
+import {
+  EVAL_HUB_EVENT_PROPERTY_ALLOWLIST,
+  type EvalHubEventName,
+  type EvalHubEventProperties,
+} from './evalhubTrackingConstants';
 
 export type { EvalHubCollectionSurface } from './evalhubTrackingConstants';
 
@@ -77,6 +81,18 @@ const sanitizeProperties = (properties: EvalHubTrackingProperties): EvalHubTrack
     }),
   );
 
+// Structural typing lets a value carrying keys beyond its declared type reach this
+// boundary, so only keys the event explicitly declares are forwarded.
+const dropDisallowedProperties = (
+  eventName: EvalHubEventName,
+  properties: EvalHubTrackingProperties,
+): EvalHubTrackingProperties => {
+  const allowedKeys: readonly string[] = EVAL_HUB_EVENT_PROPERTY_ALLOWLIST[eventName];
+  return Object.fromEntries(
+    Object.entries(properties).filter(([key]) => allowedKeys.includes(key)),
+  );
+};
+
 const isTrackingOutcome = (value: unknown): value is TrackingOutcome =>
   value === 'submit' || value === 'cancel';
 
@@ -104,7 +120,7 @@ export const trackEvalHubEvent = <TEventName extends EvalHubEventName>(
   context: EvalHubTrackingContext = {},
 ): void => {
   const enrichedProps = {
-    ...sanitizeProperties(properties),
+    ...dropDisallowedProperties(eventName, sanitizeProperties(properties)),
     event_source: 'evalhub_ui',
     evalhub_server_version: evalHubServerVersion,
     collection_type: context.collectionType ?? 'unknown',

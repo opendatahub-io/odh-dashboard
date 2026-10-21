@@ -12,6 +12,10 @@
       {
         "path": "/eval-hub/api",
         "pathRewrite": "/api"
+      },
+      {
+        "path": "/eval-hub/healthcheck",
+        "pathRewrite": "/healthcheck"
       }
     ],
     "local": {

@@ -49,6 +49,7 @@ import {
 } from '~/app/utilities/benchmarkDetailsUtils';
 import type { FlatBenchmark, Provider } from '~/app/types';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import useSearchInputTracking from '~/app/hooks/useSearchInputTracking';
 import {
   EVAL_HUB_EVENTS,
   type BenchmarkCatalogFilterType,
@@ -203,6 +204,14 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     [],
   );
 
+  const handleSearchCommit = React.useCallback(
+    (trimmedLength: number) => {
+      trackBenchmarkCatalogFilter('search', [String(trimmedLength)]);
+    },
+    [trackBenchmarkCatalogFilter],
+  );
+  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit);
+
   const onClearFilters = React.useCallback(() => {
     setFilterData(initialBenchmarkFilterData);
     setPage(1);
@@ -269,12 +278,10 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                               ...prev,
                               [BenchmarkFilterOptions.name]: value,
                             }));
-                            trackBenchmarkCatalogFilter(
-                              'search',
-                              value.trim() ? [value.trim()] : [],
-                            );
                             setPage(1);
                           }}
+                          onSearch={searchInputTrackingProps.onSearch}
+                          inputProps={searchInputTrackingProps.inputProps}
                           onClear={() => {
                             setFilterData((prev) => ({
                               ...prev,

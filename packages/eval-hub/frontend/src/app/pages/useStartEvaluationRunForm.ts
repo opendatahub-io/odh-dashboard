@@ -15,6 +15,7 @@ import {
   type RunParameterChangedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import type { EvalHubTrackingContext } from '~/app/tracking/evalhubTracking';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
@@ -55,6 +56,14 @@ const getProviderIds = (
       ].filter((providerId): providerId is string => Boolean(providerId?.trim())),
     ),
   );
+
+const getTrackingContext = (
+  benchmark: FlatBenchmark | undefined,
+  collection: Collection | undefined,
+): EvalHubTrackingContext => ({
+  collectionType: collection ? (collection.resource.read_only ? 'system' : 'custom') : 'unknown',
+  providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+});
 
 type UseStartEvaluationRunFormParams = {
   namespace: string | undefined;
@@ -179,14 +188,7 @@ export function useStartEvaluationRunForm({
   );
 
   const trackingContext = React.useMemo(
-    () => ({
-      collectionType: collection
-        ? collection.resource.read_only
-          ? ('system' as const)
-          : ('custom' as const)
-        : ('unknown' as const),
-      providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
-    }),
+    () => getTrackingContext(benchmark, collection),
     [benchmark, collection],
   );
 
@@ -702,11 +704,17 @@ export function useStartEvaluationRunForm({
     collection?: Collection;
     collectionWasCreated?: boolean;
   }) => {
+    const activeCollection = submitOverrides?.collection ?? collection;
+    const activeCollectionWasCreated = submitOverrides?.collectionWasCreated;
+    // Submission events report the collection actually sent in the request, which may
+    // be a modal-resolved copy that differs from the collection shown before submit.
+    const submissionTrackingContext = getTrackingContext(benchmark, activeCollection);
+
     if (!isValid) {
       trackEvalHubEvent(
         EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
         { validation_error_category: 'form_invalid' },
-        trackingContext,
+        submissionTrackingContext,
       );
       return;
     }
@@ -714,8 +722,6 @@ export function useStartEvaluationRunForm({
       return;
     }
 
-    const activeCollection = submitOverrides?.collection ?? collection;
-    const activeCollectionWasCreated = submitOverrides?.collectionWasCreated;
     const values = form.getValues();
 
     setIsSubmitting(true);
@@ -732,7 +738,7 @@ export function useStartEvaluationRunForm({
           trackEvalHubEvent(
             EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
             { validation_error_category: 'parameters_not_object' },
-            trackingContext,
+            submissionTrackingContext,
           );
           setIsSubmitting(false);
           return;
@@ -747,7 +753,11 @@ export function useStartEvaluationRunForm({
             benchmarkName: benchmarkDisplayName,
             isDefault: false,
           };
-          trackEvalHubEvent(EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED, paramProps, trackingContext);
+          trackEvalHubEvent(
+            EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED,
+            paramProps,
+            submissionTrackingContext,
+          );
         }
       } catch {
         notification.error(
@@ -757,7 +767,7 @@ export function useStartEvaluationRunForm({
         trackEvalHubEvent(
           EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
           { validation_error_category: 'parameters_invalid_json' },
-          trackingContext,
+          submissionTrackingContext,
         );
         setIsSubmitting(false);
         return;
@@ -847,7 +857,7 @@ export function useStartEvaluationRunForm({
             : 'existing',
         experimentName,
       },
-      trackingContext,
+      submissionTrackingContext,
     );
 
     const sourceTypeLabel =
@@ -920,7 +930,7 @@ export function useStartEvaluationRunForm({
           outcome: TrackingOutcome.submit,
           success: true,
         },
-        trackingContext,
+        submissionTrackingContext,
       );
       notification.success(
         'Evaluation started',
@@ -947,7 +957,7 @@ export function useStartEvaluationRunForm({
           success: false,
           errorName: e instanceof Error ? e.name : 'UnknownError',
         },
-        trackingContext,
+        submissionTrackingContext,
       );
       let cleanupError: unknown;
       try {

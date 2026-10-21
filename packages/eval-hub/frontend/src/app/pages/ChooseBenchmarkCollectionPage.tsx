@@ -111,6 +111,20 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     return map;
   }, [providers]);
 
+  // The drawer tracks BENCHMARK_RUN_SELECTED itself before invoking this callback
+  const navigateToRun = React.useCallback(
+    (c: Collection) => {
+      const params = new URLSearchParams({
+        type: 'collection',
+        collectionId: c.resource.id,
+      });
+      navigate(`${evaluationStartRoute(namespace)}?${params.toString()}`, {
+        state: { collection: c },
+      });
+    },
+    [navigate, namespace],
+  );
+
   const handleRunCollection = React.useCallback(
     (c: Collection) => {
       trackEvalHubEvent(
@@ -126,15 +140,9 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
           providerType: c.benchmarks?.[0]?.provider_id,
         },
       );
-      const params = new URLSearchParams({
-        type: 'collection',
-        collectionId: c.resource.id,
-      });
-      navigate(`${evaluationStartRoute(namespace)}?${params.toString()}`, {
-        state: { collection: c },
-      });
+      navigateToRun(c);
     },
-    [navigate, namespace],
+    [navigateToRun],
   );
 
   const handleCustomizeCollection = React.useCallback(
@@ -154,7 +162,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             collection={selectedCollection}
             benchmarkDetailsMap={benchmarkDetailsMap}
             onClose={() => setSelectedCollection(undefined)}
-            onRunCollection={handleRunCollection}
+            onRunCollection={navigateToRun}
             onCustomizeCollection={handleCustomizeCollection}
             prerequisites={
               selectedCollection && !selectedCollection.resource.tenant

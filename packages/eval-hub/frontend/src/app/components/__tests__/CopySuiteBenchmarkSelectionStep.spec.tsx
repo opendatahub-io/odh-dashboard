@@ -200,18 +200,23 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
   it('should track catalog search values and ignore clearing the search', () => {
     renderSelectionStep();
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search benchmarks' }), {
+    const searchInput = screen.getByRole('textbox', { name: 'Search benchmarks' });
+    fireEvent.change(searchInput, {
       target: { value: '  knowledge  ' },
     });
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
     expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_CATALOG_FILTER_APPLIED,
-      { filterType: 'search', value: 'knowledge' },
+      { filterType: 'search', value: '9' },
     );
 
     mockTrackEvalHubEvent.mockClear();
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search benchmarks' }), {
+    fireEvent.change(searchInput, {
       target: { value: '' },
     });
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
     expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
   });
 

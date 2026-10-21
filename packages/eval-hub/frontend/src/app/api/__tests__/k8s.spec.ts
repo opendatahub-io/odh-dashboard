@@ -76,6 +76,7 @@ describe('getEvalHubServerHealth', () => {
     const result = await getEvalHubServerHealth('')({});
 
     expect(result).toEqual(health);
+    expect(mockRestGET).toHaveBeenCalledWith('', '/eval-hub/healthcheck', {}, {});
     expect(mockIsModArchResponse).not.toHaveBeenCalled();
   });
 

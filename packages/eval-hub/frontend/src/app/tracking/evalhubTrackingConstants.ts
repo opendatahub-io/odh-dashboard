@@ -205,6 +205,7 @@ export type BenchmarkCatalogFilterType = 'category' | 'framework' | 'metric' | '
 
 export type BenchmarkCatalogFilterAppliedProperties = {
   filterType: BenchmarkCatalogFilterType;
+  // For the search filter, value is the trimmed input length — raw search text is never reported.
   value: string;
 };
 
@@ -221,16 +222,24 @@ export type BenchmarkCollectionFilterType =
 
 export type BenchmarkCollectionFilterAppliedProperties = {
   filterType: BenchmarkCollectionFilterType;
+  // For the search filter, value is the trimmed input length — raw search text is never reported.
   value: string;
   surface: EvalHubCollectionSurface;
 };
 
 export type EvaluationRunsFilterAttribute = 'name' | 'type' | 'status';
 
-export type EvaluationRunsFilterAppliedProperties = {
-  filterAttribute: EvaluationRunsFilterAttribute;
-  value: string;
-};
+export type EvaluationRunsFilterAppliedProperties =
+  | {
+      filterAttribute: 'status';
+      /** Status values are non-PII enums (e.g. 'failed') and are tracked as-is. */
+      value: string;
+    }
+  | {
+      filterAttribute: Exclude<EvaluationRunsFilterAttribute, 'status'>;
+      /** Redacted shape descriptor (e.g. "string(12)") — never the raw value. */
+      valueShape: string;
+    };
 
 export type BenchmarkDetailsViewedProperties = {
   source: 'catalogTable' | 'suiteEditor';
@@ -312,8 +321,6 @@ export type CollectionSavedProperties = {
   /** Present only when cloning an existing collection (saveMode 'copy'). */
   sourceCollectionId?: string;
   countOfEvaluatesAssetTypes: number;
-  suiteName?: string;
-  suiteDescription?: string;
   /** JSON-serialised values for each collection metadata form field. */
   suiteDomains?: string;
   suiteTasks?: string;
@@ -324,6 +331,10 @@ export type CollectionSavedProperties = {
   benchmarkCount?: number;
   /** Alpha-ordered, comma-separated names of the selected benchmarks. */
   benchmarks?: string;
+  /** JSON-serialised, unique, alpha-ordered benchmark parameter keys — never raw values. */
+  benchmarkParameterKeys?: string;
+  /** Whether any selected benchmark has user-entered advanced (additional) parameters. */
+  hasAdditionalParameters?: boolean;
   error_category?: string;
 };
 
@@ -336,6 +347,10 @@ export type CollectionDeletedProperties = {
 };
 
 export type EvalHubEventName = (typeof EVAL_HUB_EVENTS)[keyof typeof EVAL_HUB_EVENTS];
+
+// Distributes keyof over union property types so every arm (e.g. both members of
+// EvaluationRunsFilterAppliedProperties) yields its keys.
+type UnionPropertyKeys<T> = T extends unknown ? keyof T & string : never;
 
 export type EvalHubEventProperties = {
   [EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED]: EvaluationRunStartedProperties;
@@ -385,3 +400,121 @@ export type EvalHubEventProperties = {
   [EVAL_HUB_EVENTS.REPORT_GENERATION_TRIGGERED]: ReportGenerationTriggeredProperties;
   [EVAL_HUB_EVENTS.COLLECTION_DELETED]: CollectionDeletedProperties;
 };
+
+/**
+ * Runtime allowlist of property keys per event. The `satisfies` check keeps it in sync
+ * with the property types at compile time, but structural typing permits callers to
+ * pass values carrying extra keys — those are dropped before dispatch.
+ */
+export const EVAL_HUB_EVENT_PROPERTY_ALLOWLIST = {
+  [EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED]: [
+    'source',
+    'evaluationName',
+    'sourceType',
+    'modelName',
+    'endpointOrigin',
+    'hasAPIKey',
+    'sourceName',
+    'hasDatasetURL',
+    'hasAccessToken',
+    'hasAdditionalArguments',
+    'countOfAdditionalArguments',
+    'outcome',
+    'success',
+    'errorName',
+  ],
+  [EVAL_HUB_EVENTS.EVALUATION_COMPLETED]: [
+    'evaluationName',
+    'runOutcome',
+    'durationMs',
+    'benchmarkTypes',
+    'error',
+  ],
+  [EVAL_HUB_EVENTS.EVALUATION_DELETED]: ['evaluationName', 'previousState'],
+  [EVAL_HUB_EVENTS.EVALUATION_STOPPED]: ['evaluationName', 'previousState'],
+  [EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED]: ['url', 'benchmarkId', 'surface'],
+  [EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED]: ['experimentSelection', 'experimentName'],
+  [EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED]: [
+    'benchmarkId',
+    'evaluationName',
+    'collectionName',
+  ],
+  [EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED]: [
+    'collectionName',
+    'benchmarkTypes',
+    'runType',
+    'countOfBenchmarks',
+  ],
+  [EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED]: [
+    'evaluationName',
+    'evaluationType',
+    'isSelected',
+    'countOfRuns',
+  ],
+  [EVAL_HUB_EVENTS.COMPARE_INITIATED]: ['countOfRuns', 'runTypes', 'hasCollections'],
+  [EVAL_HUB_EVENTS.COMPARE_BENCHMARK_CHOSEN]: [
+    'countOfBenchmarks',
+    'totalAvailable',
+    'benchmarkNames',
+  ],
+  [EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED]: ['sourceType'],
+  [EVAL_HUB_EVENTS.RUN_MODEL_SELECTED]: ['selectedModel', 'isExternal'],
+  [EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED]: ['outcome', 'endpointType', 'error'],
+  [EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED]: ['thresholdValue', 'benchmarkName'],
+  [EVAL_HUB_EVENTS.RUN_METRIC_SELECTED]: ['metricName', 'isDefault', 'benchmarkName'],
+  [EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED]: [
+    'parameterName',
+    'parameterValueShape',
+    'benchmarkName',
+    'isDefault',
+  ],
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED]: ['sourceId', 'modelName', 'insightCount'],
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED]: ['previousFilterType', 'newFilterType'],
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED]: ['filterType', 'hasResults', 'resultCount'],
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED]: ['column', 'direction'],
+  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED]: ['page', 'perPage', 'totalItems'],
+  [EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED]: ['surface'],
+  [EVAL_HUB_EVENTS.BENCHMARK_CATALOG_FILTER_APPLIED]: ['filterType', 'value'],
+  [EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED]: ['filterType', 'value', 'surface'],
+  [EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED]: ['filterAttribute', 'value', 'valueShape'],
+  [EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED]: ['source'],
+  [EVAL_HUB_EVENTS.COLLECTION_CATEGORY_SELECTED]: ['categoryId', 'evaluationTarget', 'surface'],
+  [EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED]: ['surface'],
+  [EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED]: ['collectionName', 'surface'],
+  [EVAL_HUB_EVENTS.JOB_CREATE_OPENED]: ['surface'],
+  [EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED]: ['validation_error_category'],
+  [EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED]: ['surface', 'countOfRuns'],
+  [EVAL_HUB_EVENTS.JOB_DETAIL_OPENED]: ['evaluationName', 'state'],
+  [EVAL_HUB_EVENTS.FAILURE_DETAIL_OPENED]: ['evaluationName', 'failure_category', 'benchmarkIndex'],
+  [EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED]: ['evaluationName', 'tab'],
+  [EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED]: ['evaluationName', 'benchmarkIndex', 'source'],
+  [EVAL_HUB_EVENTS.EVALUATION_RESULTS_VIEWED]: ['evaluationName'],
+  [EVAL_HUB_EVENTS.EVALUATION_RECONFIGURE_SELECTED]: ['evaluationName', 'previousState'],
+  [EVAL_HUB_EVENTS.COLLECTION_ALL_SUITES_OPENED]: ['surface'],
+  [EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED]: ['collectionName', 'surface'],
+  [EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED]: ['collectionName', 'surface'],
+  [EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED]: ['surface'],
+  [EVAL_HUB_EVENTS.COLLECTION_SAVED]: [
+    'outcome',
+    'success',
+    'collectionName',
+    'saveMode',
+    'action',
+    'fromCurated',
+    'sourceCollectionId',
+    'countOfEvaluatesAssetTypes',
+    'suiteDomains',
+    'suiteTasks',
+    'suiteModalities',
+    'suiteIndustries',
+    'suiteEvaluates',
+    'suiteThreshold',
+    'benchmarkCount',
+    'benchmarks',
+    'benchmarkParameterKeys',
+    'hasAdditionalParameters',
+    'error_category',
+  ],
+  [EVAL_HUB_EVENTS.REPORT_GENERATION_TRIGGERED]: [],
+  [EVAL_HUB_EVENTS.COLLECTION_DELETED]: ['collectionName', 'outcome', 'error_category'],
+} satisfies { [K in EvalHubEventName]: readonly UnionPropertyKeys<EvalHubEventProperties[K]>[] };

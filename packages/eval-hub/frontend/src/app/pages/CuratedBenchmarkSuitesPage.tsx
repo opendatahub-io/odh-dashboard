@@ -191,7 +191,7 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
                     )}
                     onCreateSuite={handleCreateSuite}
                     onPrimaryAction={handleRunCollection}
-                    onDropdownAction={handleCustomizeCollection}
+                    onDropdownAction={trackCustomizeCollection}
                     onDuplicateCollection={handleCustomizeCollection}
                     onSelectCollection={selectCollection}
                   />

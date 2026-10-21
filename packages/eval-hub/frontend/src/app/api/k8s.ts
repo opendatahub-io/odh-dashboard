@@ -226,12 +226,14 @@ export const getEvalHubHealth =
 export const getEvalHubServerHealth =
   (hostPath: string) =>
   (opts: APIOptions): Promise<EvalHubServerHealthResponse> =>
-    handleRestFailures(restGET(hostPath, '/healthcheck', {}, opts)).then((response) => {
-      if (isEvalHubServerHealthResponse(response)) {
-        return response;
-      }
-      throw new Error('Invalid server health response format');
-    });
+    handleRestFailures(restGET(hostPath, `${URL_PREFIX}/healthcheck`, {}, opts)).then(
+      (response) => {
+        if (isEvalHubServerHealthResponse(response)) {
+          return response;
+        }
+        throw new Error('Invalid server health response format');
+      },
+    );
 
 export const getKueueAvailability =
   (hostPath: string, namespace: string) =>

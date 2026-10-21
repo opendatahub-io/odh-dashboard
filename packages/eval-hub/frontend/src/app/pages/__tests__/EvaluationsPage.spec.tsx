@@ -488,23 +488,24 @@ describe('EvaluationsPage', () => {
   it('should track collection filter values and ignore empty values', () => {
     renderPage('test-project');
 
-    fireEvent.change(screen.getByPlaceholderText('Search collections'), {
-      target: { value: '  suite  ' },
-    });
+    const searchInput = screen.getByPlaceholderText('Search collections');
+    fireEvent.change(searchInput, { target: { value: '  suite  ' } });
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
     expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
       {
         filterType: 'search',
-        value: 'suite',
+        value: '5',
         surface: 'collection_gallery',
       },
       expect.objectContaining({ collectionType: 'system' }),
     );
 
     mockTrackEvalHubEvent.mockClear();
-    fireEvent.change(screen.getByPlaceholderText('Search collections'), {
-      target: { value: '' },
-    });
+    fireEvent.change(searchInput, { target: { value: '' } });
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
     expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));

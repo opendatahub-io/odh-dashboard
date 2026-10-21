@@ -55,8 +55,6 @@ export type CopySuiteBenchmark = CopySuiteFormValues['benchmarks'][number];
 
 type CollectionSavedFormState = Pick<
   CollectionSavedProperties,
-  | 'suiteName'
-  | 'suiteDescription'
   | 'suiteDomains'
   | 'suiteTasks'
   | 'suiteModalities'
@@ -65,17 +63,19 @@ type CollectionSavedFormState = Pick<
   | 'suiteThreshold'
   | 'benchmarkCount'
   | 'benchmarks'
+  | 'benchmarkParameterKeys'
+  | 'hasAdditionalParameters'
 >;
 
 /**
  * Form tracking only accepts primitive property values, so list-valued fields are
  * kept as JSON strings and the benchmark selection as an alpha-ordered name list.
+ * Free-text fields (suite name/description) and parameter values are never emitted —
+ * only parameter keys and whether advanced additional parameters exist.
  */
 export const serializeCollectionSavedFormState = (
   values: CopySuiteFormValues,
 ): CollectionSavedFormState => ({
-  suiteName: values.suiteName.trim(),
-  suiteDescription: values.suiteDescription.trim(),
   suiteDomains: JSON.stringify(values.suiteDomains),
   suiteTasks: JSON.stringify(values.suiteTasks),
   suiteModalities: JSON.stringify(values.suiteModalities),
@@ -87,6 +87,14 @@ export const serializeCollectionSavedFormState = (
     .map((benchmark) => benchmark.name)
     .toSorted((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' }))
     .join(', '),
+  benchmarkParameterKeys: JSON.stringify(
+    [
+      ...new Set(values.benchmarks.flatMap((benchmark) => benchmark.parameters.map((p) => p.key))),
+    ].toSorted((first, second) => first.localeCompare(second)),
+  ),
+  hasAdditionalParameters: values.benchmarks.some(
+    (benchmark) => (benchmark.additionalParameters ?? '').trim() !== '',
+  ),
 });
 
 export const getBenchmarkKey = (benchmark: { providerId: string; id: string }): string =>

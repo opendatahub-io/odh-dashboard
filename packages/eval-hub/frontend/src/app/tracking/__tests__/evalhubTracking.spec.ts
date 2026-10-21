@@ -11,7 +11,10 @@ import {
   trackEvalHubEvent,
   trackEvalHubEventOnce,
 } from '~/app/tracking/evalhubTracking';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import {
+  EVAL_HUB_EVENTS,
+  type CollectionSavedProperties,
+} from '~/app/tracking/evalhubTrackingConstants';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -92,6 +95,50 @@ describe('EvalHub tracking helper', () => {
 
     expect(mockFireMiscTrackingEvent.mock.calls[0][1]).toEqual(
       expect.objectContaining({ url: 'https://example.com' }),
+    );
+  });
+
+  it('drops properties that are not in the event allowlist', () => {
+    const extraFields = {
+      username: 'secret-user',
+      credentials: { token: 'secret-token' },
+    };
+    const properties = { surface: 'benchmark_suites_page', ...extraFields };
+
+    trackEvalHubEvent(EVAL_HUB_EVENTS.JOB_CREATE_OPENED, properties);
+
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
+    const payload = mockFireMiscTrackingEvent.mock.calls[0][1];
+    expect(payload).not.toHaveProperty('username');
+    expect(payload).not.toHaveProperty('credentials');
+    expect(payload).toEqual({
+      surface: 'benchmark_suites_page',
+      event_source: 'evalhub_ui',
+      evalhub_server_version: 'unknown',
+      collection_type: 'unknown',
+      provider_type: 'unknown',
+    });
+  });
+
+  it('drops non-allowlisted properties from form events too', () => {
+    const validProperties: CollectionSavedProperties = {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      collectionName: 'my-safety-suite',
+      saveMode: 'create',
+      action: 'save',
+      fromCurated: false,
+      countOfEvaluatesAssetTypes: 1,
+    };
+    const properties = { ...validProperties, apiKey: 'secret-key' };
+
+    trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_SAVED, properties);
+
+    expect(mockFireFormTrackingEvent).toHaveBeenCalledTimes(1);
+    const payload = mockFireFormTrackingEvent.mock.calls[0][1];
+    expect(payload).not.toHaveProperty('apiKey');
+    expect(payload).toEqual(
+      expect.objectContaining({ success: true, collectionName: 'my-safety-suite' }),
     );
   });
 

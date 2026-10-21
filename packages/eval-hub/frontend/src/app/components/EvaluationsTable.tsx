@@ -1,4 +1,5 @@
 import * as React from 'react';
+import debounce from 'lodash-es/debounce';
 import {
   Alert,
   Button,
@@ -55,14 +56,14 @@ import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTableRow from './EvaluationsTableRow';
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
+type TextFilterOption = Exclude<FilterOption, 'status'>;
 type StatusFilter = Exclude<ReturnType<typeof getEvaluationDisplayState>, 'not_started'>;
 
-const getRunsFilterAttribute = (filter: FilterOption): EvaluationRunsFilterAttribute => {
+const getRunsFilterAttribute = (
+  filter: TextFilterOption,
+): Exclude<EvaluationRunsFilterAttribute, 'status'> => {
   if (filter === 'name') {
     return 'name';
-  }
-  if (filter === 'status') {
-    return 'status';
   }
   return 'type';
 };
@@ -216,7 +217,9 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   });
   const [selectedEvaluationIds, setSelectedEvaluationIds] = React.useState<Set<string>>(new Set());
 
-  const trackFilterApplied = React.useCallback((filter: FilterOption, value: string) => {
+  // Text filter values are user-entered names — track only a redacted shape, debounced so
+  // analytics fire when typing pauses instead of on every keystroke.
+  const trackTextFilterApplied = React.useCallback((filter: TextFilterOption, value: string) => {
     const normalizedValue = value.trim();
     if (!normalizedValue) {
       return;
@@ -224,9 +227,17 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
 
     trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED, {
       filterAttribute: getRunsFilterAttribute(filter),
-      value: normalizedValue,
+      valueShape: `string(${normalizedValue.length})`,
     });
   }, []);
+  const trackTextFilterAppliedDebounced = React.useMemo(
+    () => debounce(trackTextFilterApplied, 500),
+    [trackTextFilterApplied],
+  );
+  React.useEffect(
+    () => () => trackTextFilterAppliedDebounced.cancel(),
+    [trackTextFilterAppliedDebounced],
+  );
 
   React.useEffect(() => {
     if (!isKueueEnabled && KUEUE_STATUS_FILTERS.some((status) => status === selectedStatus)) {
@@ -533,7 +544,10 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                       const matched = STATUS_OPTIONS.find((o) => o.value === String(value));
                       setSelectedStatus(matched ? matched.value : '');
                       if (matched) {
-                        trackFilterApplied('status', matched.value);
+                        trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED, {
+                          filterAttribute: 'status',
+                          value: matched.value,
+                        });
                       }
                       setIsStatusSelectOpen(false);
                     }}
@@ -561,7 +575,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     value={filterValue}
                     onChange={(_event, value) => {
                       setFilterValue(value);
-                      trackFilterApplied(activeFilter, value);
+                      trackTextFilterAppliedDebounced(activeFilter, value);
                     }}
                     onClear={() => setFilterValue('')}
                     data-testid="filter-toolbar-text-field"

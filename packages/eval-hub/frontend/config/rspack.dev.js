@@ -99,7 +99,13 @@ module.exports = merge(
       open: false,
       proxy: [
         {
-          context: ['/api', '/mod-arch/api', '/eval-hub/api'],
+          context: [
+            '/api',
+            '/mod-arch/api',
+            '/eval-hub/api',
+            '/eval-hub/healthcheck',
+            '/healthcheck',
+          ],
           target: {
             host: PROXY_HOST,
             protocol: PROXY_PROTOCOL,

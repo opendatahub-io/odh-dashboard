@@ -41,6 +41,7 @@ import { Link } from 'react-router-dom';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
+import useSearchInputTracking from '~/app/hooks/useSearchInputTracking';
 import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
 import BenchmarkSuiteCard, { isPopularCollection } from '~/app/components/BenchmarkSuiteCard';
 import BenchmarkSuiteCardSkeleton from '~/app/components/BenchmarkSuiteCardSkeleton';
@@ -341,13 +342,13 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     [trackCollectionFilterApplied],
   );
 
-  const handleSearchChange = React.useCallback(
-    (value: string) => {
-      setNameFilter(value);
-      trackCollectionFilterApplied('search', value.trim() ? [value.trim()] : []);
+  const handleSearchCommit = React.useCallback(
+    (trimmedLength: number) => {
+      trackCollectionFilterApplied('search', [String(trimmedLength)]);
     },
     [trackCollectionFilterApplied],
   );
+  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit);
 
   const clearFilters = React.useCallback(() => {
     setNameFilter('');
@@ -882,7 +883,9 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     placeholder="Search collections"
                     value={nameFilter}
                     isDisabled={areFiltersDisabled}
-                    onChange={(_event, value) => handleSearchChange(value)}
+                    onChange={(_event, value) => setNameFilter(value)}
+                    onSearch={searchInputTrackingProps.onSearch}
+                    inputProps={searchInputTrackingProps.inputProps}
                     onClear={() => {
                       setNameFilter('');
                     }}
@@ -1349,6 +1352,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                         : primaryActionRoute?.(collection),
                       state: hasPrerequisite ? dropdownActionState : primaryActionState,
                       variant: hasPrerequisite ? 'secondary' : primaryActionVariant,
+                      tracksRunSelection: !hasPrerequisite,
                       onClick: () =>
                         hasPrerequisite
                           ? onDropdownAction?.(collection)

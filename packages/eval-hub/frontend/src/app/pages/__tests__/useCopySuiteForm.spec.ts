@@ -633,8 +633,6 @@ describe('useCopySuiteForm', () => {
         action: 'save',
         fromCurated: false,
         countOfEvaluatesAssetTypes: 1,
-        suiteName: 'New suite',
-        suiteDescription: 'A new suite',
         suiteDomains: JSON.stringify(['trustworthiness', 'reasoning']),
         suiteTasks: JSON.stringify(['classification']),
         suiteModalities: JSON.stringify(['text']),
@@ -643,9 +641,13 @@ describe('useCopySuiteForm', () => {
         suiteThreshold: 85,
         benchmarkCount: 1,
         benchmarks: 'Benchmark One',
+        benchmarkParameterKeys: JSON.stringify(['num_examples']),
+        hasAdditionalParameters: true,
       }),
     );
     expect(savedCall?.[1]).not.toHaveProperty('sourceCollectionId');
+    expect(savedCall?.[1]).not.toHaveProperty('suiteName');
+    expect(savedCall?.[1]).not.toHaveProperty('suiteDescription');
   });
 
   // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.

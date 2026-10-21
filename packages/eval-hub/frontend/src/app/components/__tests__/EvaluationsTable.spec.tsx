@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
@@ -389,30 +389,42 @@ describe('EvaluationsTable', () => {
       expect(screen.queryByTestId('evaluation-row-1')).not.toBeInTheDocument();
     });
 
-    it('should track run filter values and ignore clearing filters', () => {
-      renderTable({ evaluations: mockJobs, loaded: true });
-      const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
+    it('should track redacted text filter shapes after a debounce and ignore clearing filters', () => {
+      jest.useFakeTimers();
+      try {
+        renderTable({ evaluations: mockJobs, loaded: true });
+        const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
 
-      fireEvent.change(searchInput, { target: { value: '  Alpha  ' } });
+        fireEvent.change(searchInput, { target: { value: '  Alpha  ' } });
+        expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
 
-      expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
-        EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
-        { filterAttribute: 'name', value: 'Alpha' },
-      );
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+        expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+          EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
+          { filterAttribute: 'name', valueShape: 'string(5)' },
+        );
 
-      mockTrackEvalHubEvent.mockClear();
-      fireEvent.change(searchInput, { target: { value: '' } });
-      expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+        mockTrackEvalHubEvent.mockClear();
+        fireEvent.change(searchInput, { target: { value: '' } });
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+        expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
 
-      fireEvent.click(screen.getByTestId('filter-type-toggle'));
-      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
-      fireEvent.click(screen.getByTestId('filter-status-toggle'));
-      fireEvent.click(screen.getByRole('option', { name: 'Failed' }));
+        fireEvent.click(screen.getByTestId('filter-type-toggle'));
+        fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+        fireEvent.click(screen.getByTestId('filter-status-toggle'));
+        fireEvent.click(screen.getByRole('option', { name: 'Failed' }));
 
-      expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
-        EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
-        { filterAttribute: 'status', value: 'failed' },
-      );
+        expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+          EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
+          { filterAttribute: 'status', value: 'failed' },
+        );
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('should show empty filter state when no matches', () => {

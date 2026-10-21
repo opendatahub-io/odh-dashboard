@@ -522,6 +522,31 @@ describe('BenchmarkSuiteCard', () => {
     );
   });
 
+  it('should not emit BENCHMARK_RUN_SELECTED when the primary action is not a run', () => {
+    const onClick = jest.fn();
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({ id: 'prerequisite-suite' })}
+        prerequisite="Requires a compatible model."
+        primaryAction={{
+          label: 'Customize',
+          onClick,
+          variant: 'secondary',
+          tracksRunSelection: false,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-prerequisite-suite'));
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
   it('should render Run as the split button action and Customize in its menu', () => {
     const onRun = jest.fn();
     const onCustomize = jest.fn();

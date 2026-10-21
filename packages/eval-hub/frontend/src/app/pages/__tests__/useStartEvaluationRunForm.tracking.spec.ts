@@ -582,6 +582,42 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
+    it('should derive submission tracking context from the collection resolved at submit', async () => {
+      const systemCollection: Collection = {
+        ...mockCollection,
+        resource: { id: 'col-1', read_only: true },
+      };
+      const copiedCollection: Collection = {
+        ...mockCollection,
+        resource: { id: 'col-2', read_only: false },
+      };
+      const renderResult = renderForm({
+        benchmark: undefined,
+        collection: systemCollection,
+        isCollectionFlow: true,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit({
+          collection: copiedCollection,
+          collectionWasCreated: true,
+        });
+      });
+
+      const runStartedCalls = mockTrack.mock.calls.filter(
+        ([event]) => event === EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
+      );
+      expect(runStartedCalls).toHaveLength(1);
+      expect(runStartedCalls[0][2]).toEqual({
+        collectionType: 'custom',
+        providerType: 'lm_harness',
+      });
+    });
+
     it('should submit when advisory compatibility fails and a collection omits provider IDs', async () => {
       mockHardwareProfiles = [mockCompatibleHardwareProfile];
       mockKueueAvailability = mockKueueEnabled;

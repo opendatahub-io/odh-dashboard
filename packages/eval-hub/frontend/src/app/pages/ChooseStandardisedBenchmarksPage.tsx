@@ -33,6 +33,7 @@ import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useProviders } from '~/app/hooks/useProviders';
+import useSearchInputTracking from '~/app/hooks/useSearchInputTracking';
 import { FlatBenchmark } from '~/app/types';
 import { evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import {
@@ -153,6 +154,14 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
     },
     [],
   );
+
+  const handleSearchCommit = React.useCallback(
+    (trimmedLength: number) => {
+      trackBenchmarkCatalogFilter('search', [String(trimmedLength)]);
+    },
+    [trackBenchmarkCatalogFilter],
+  );
+  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit);
 
   const onClearFilters = React.useCallback(() => {
     setFilterData(initialBenchmarkFilterData);
@@ -295,11 +304,9 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                     ...prev,
                                     [BenchmarkFilterOptions.name]: value,
                                   }));
-                                  trackBenchmarkCatalogFilter(
-                                    'search',
-                                    value.trim() ? [value.trim()] : [],
-                                  );
                                 }}
+                                onSearch={searchInputTrackingProps.onSearch}
+                                inputProps={searchInputTrackingProps.inputProps}
                                 onClear={() => {
                                   setFilterData((prev) => ({
                                     ...prev,

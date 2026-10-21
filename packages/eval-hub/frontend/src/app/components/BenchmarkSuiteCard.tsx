@@ -165,6 +165,8 @@ type BenchmarkSuiteCardButton = {
   href?: string;
   state?: unknown;
   variant?: 'primary' | 'secondary' | 'tertiary';
+  /** Whether the button represents selecting a run; set false for actions like Customize. */
+  tracksRunSelection?: boolean;
 };
 
 type BenchmarkSuiteCardProps = {
@@ -421,7 +423,9 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
     );
   }, [collection]);
   const handlePrimaryAction = React.useCallback(() => {
-    trackRunSelected();
+    if (primaryAction.tracksRunSelection !== false) {
+      trackRunSelected();
+    }
     primaryAction.onClick();
   }, [primaryAction, trackRunSelected]);
   const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
