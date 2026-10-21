@@ -18,6 +18,9 @@ type MockCollectionOptions = Partial<{
   benchmarkIds: string[];
   // Mock-only values mapped to each benchmark's primary_score.metric field.
   benchmarkMetrics: string[];
+  // Adds judge_model to the first benchmark's parameters, matching collections
+  // the EvalHub API flags as requiring a judge model.
+  judgeModel: boolean;
   threshold: number;
 }>;
 
@@ -40,6 +43,7 @@ export const mockCollection = (options: MockCollectionOptions = {}): Collection 
     primary_score: options.benchmarkMetrics?.[index]
       ? { metric: options.benchmarkMetrics[index], lower_is_better: false }
       : undefined,
+    parameters: options.judgeModel && index === 0 ? { judge_model: '' } : undefined,
   })),
 });
 
