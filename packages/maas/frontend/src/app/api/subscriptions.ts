@@ -136,6 +136,7 @@ const isTokenRateLimitInfo = (v: unknown): v is TokenRateLimitInfo =>
 const isModelRefInfo = (v: unknown): v is ModelRefInfo =>
   isRecord(v) &&
   typeof v.name === 'string' &&
+  (v.model_name === undefined || typeof v.model_name === 'string') &&
   (v.namespace === undefined || typeof v.namespace === 'string') &&
   (v.token_rate_limits == null ||
     (Array.isArray(v.token_rate_limits) && v.token_rate_limits.every(isTokenRateLimitInfo)));

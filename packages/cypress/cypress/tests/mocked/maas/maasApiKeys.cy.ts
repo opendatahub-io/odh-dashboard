@@ -892,10 +892,16 @@ describe('API Keys Page', () => {
     copyApiKeyModal.findApiKeyName().should('contain.text', 'production-backend');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '1 days');
 
-    copyApiKeyModal.findAccessDetails().should('exist');
-    copyApiKeyModal.expandAccessDetails();
+    copyApiKeyModal.findSubscriptionName().should('contain.text', 'Premium Team');
+    copyApiKeyModal.findSubscriptionInfoButton().click();
     copyApiKeyModal.findSubscriptionID().should('have.value', 'premium-team-sub');
-    copyApiKeyModal.findModelID().should('have.value', 'granite-3-8b-instruct');
+    copyApiKeyModal
+      .findSubscriptionInfoPopoverBody()
+      .should('contain.text', 'Premium Team Subscription');
+    copyApiKeyModal.expandAccessDetails();
+    copyApiKeyModal
+      .findModelID()
+      .should('have.value', 'publishers/maas-models/models/granite-3-8b-instruct');
     copyApiKeyModal.findAvailableModelsToggle().should('exist');
     copyApiKeyModal
       .findBaseURL()
@@ -916,13 +922,14 @@ describe('API Keys Page', () => {
     copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Granite 3 8B Instruct');
     copyApiKeyModal.selectAvailableModel('flan-t5-small');
     copyApiKeyModal.findAvailableModelsToggle().should('contain.text', 'Flan T5 Small');
-    copyApiKeyModal.findModelID().should('have.value', 'flan-t5-small');
+    copyApiKeyModal
+      .findModelID()
+      .should('have.value', 'publishers/maas-models/models/flan-t5-small');
     copyApiKeyModal.findBaseURL().should('have.value', 'https://example.com/models/flan-t5-small');
     copyApiKeyModal
       .findUsageExample()
       .should('contain.text', '"model":"publishers/maas-models/models/flan-t5-small"')
-      .and('contain.text', 'https://example.com/models/flan-t5-small/v1/chat/completions')
-      .and('contain.text', 'X-MAAS-SUBSCRIPTION: premium-team-sub');
+      .and('contain.text', 'https://example.com/models/flan-t5-small/v1/chat/completions');
   });
 
   it('should show a validation error for an out-of-range after-days value', () => {
