@@ -23,12 +23,15 @@ type SubscriptionsToolbarProps = {
     value?: string | { label: string; value: string },
   ) => void;
   returnTo?: string;
+  /** Read-only viewers cannot create subscriptions. Defaults to true. */
+  showCreateButton?: boolean;
 };
 
 const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
   filterData,
   onFilterUpdate,
   returnTo,
+  showCreateButton = true,
 }) => (
   <FilterToolbar<SubscriptionsFilterOptions>
     data-testid="subscriptions-table-toolbar"
@@ -57,21 +60,23 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
     onFilterUpdate={onFilterUpdate}
   >
     <ToolbarGroup>
-      <ToolbarItem>
-        <Button
-          variant="primary"
-          component={(props) => (
-            <Link
-              {...props}
-              to={getSubscriptionCreateUrl()}
-              state={returnTo ? { returnTo } : undefined}
-            />
-          )}
-          data-testid="create-subscription-button"
-        >
-          Create subscription
-        </Button>
-      </ToolbarItem>
+      {showCreateButton && (
+        <ToolbarItem>
+          <Button
+            variant="primary"
+            component={(props) => (
+              <Link
+                {...props}
+                to={getSubscriptionCreateUrl()}
+                state={returnTo ? { returnTo } : undefined}
+              />
+            )}
+            data-testid="create-subscription-button"
+          >
+            Create subscription
+          </Button>
+        </ToolbarItem>
+      )}
     </ToolbarGroup>
   </FilterToolbar>
 );
