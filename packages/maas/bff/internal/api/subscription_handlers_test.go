@@ -244,6 +244,92 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 		})
 	})
 
+	var _ = Describe("ListAdminSubscriptionsHandler", Ordered, func() {
+		BeforeAll(func() {
+			// A CR seeded in the cluster: the admin listing must NOT read Kubernetes, so this
+			// subscription must not show up in /admin-subscriptions (it only appears in
+			// /all-subscriptions).
+			_, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
+				http.MethodPost,
+				"/api/v1/new-subscription",
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: "admin-list-test-sub",
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
+		})
+
+		It("returns only subscriptions with the admin role shaped like all-subscriptions", func() {
+			adminSubscriptions, rs, err := setupApiTest[Envelope[[]models.MaaSSubscription, None]](
+				http.MethodGet,
+				"/api/v1/admin-subscriptions",
+				nil,
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(adminSubscriptions.Data).NotTo(BeNil())
+			// Only premium has the admin role; basic is excluded.
+			Expect(adminSubscriptions.Data).To(HaveLen(1))
+			Expect(adminSubscriptions.Data[0].Name).To(Equal("premium-team-sub"))
+
+			premium := adminSubscriptions.Data[0]
+			Expect(premium.DisplayName).To(Equal("Premium Team"))
+			Expect(premium.Description).To(Equal("Premium Team Subscription"))
+			Expect(premium.Namespace).To(Equal("maas-system"))
+			Expect(premium.InferencePriority).NotTo(BeNil())
+			Expect(*premium.InferencePriority).To(Equal(int32(10)))
+			Expect(premium.TokenMetadata).NotTo(BeNil())
+			Expect(premium.TokenMetadata.OrganizationID).To(Equal("org-123"))
+			Expect(premium.TokenMetadata.CostCenter).To(Equal("engineering"))
+			// owner.groups is not exposed by the maas-api passthrough, but the field must still
+			// be present (non-nil) so the payload stays compatible with all-subscriptions.
+			Expect(premium.Owner.Groups).NotTo(BeNil())
+			Expect(premium.Owner.Groups).To(BeEmpty())
+			Expect(premium.ModelRefs).To(HaveLen(2))
+			Expect(premium.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
+			Expect(premium.ModelRefs[0].Namespace).To(Equal("maas-models"))
+			Expect(premium.ModelRefs[0].DisplayName).To(Equal("Granite 3 8B Instruct"))
+			Expect(premium.ModelRefs[0].TokenRateLimits).To(HaveLen(1))
+			Expect(premium.ModelRefs[0].TokenRateLimits[0].Limit).To(Equal(int64(100000)))
+			Expect(premium.ModelRefs[0].TokenRateLimits[0].Window).To(Equal("24h"))
+		})
+
+		It("does not read Kubernetes resources", func() {
+			adminSubscriptions, rs, err := setupApiTest[Envelope[[]models.MaaSSubscription, None]](
+				http.MethodGet,
+				"/api/v1/admin-subscriptions",
+				nil,
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+
+			for _, sub := range adminSubscriptions.Data {
+				Expect(sub.Name).NotTo(Equal("admin-list-test-sub"),
+					"admin-subscriptions is served by maas-api, not by the Kubernetes API")
+				Expect(sub.ModelRefs).NotTo(BeEmpty())
+				for _, ref := range sub.ModelRefs {
+					Expect(ref.Namespace).NotTo(BeEmpty(),
+						"model refs must be namespaced for the all-subscriptions contract")
+				}
+			}
+		})
+	})
+
 	var _ = Describe("GetSubscriptionInfoHandler", Ordered, func() {
 		BeforeAll(func() {
 			_, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
