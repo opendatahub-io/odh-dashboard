@@ -272,6 +272,13 @@ coverage gaps, and unmatched impactful paths. After execution, it also uploads a
 results summary with executed, failed, and skipped test counts. A green run with no
 executed tests is rejected.
 
+The pre-cluster Node contract job uses compact dot progress plus a TAP-derived final
+summary with pass, failure, skipped, todo, total, and pass-rate counts.
+`scripts/cypress/__tests__/e2e-historical-impact.test.js` replays escaped impact
+classes from the six-month blocker audit, including dashboard network policies,
+changed Model Catalog specs and support code, package-to-CI-tag gaps, explicit
+fallbacks, workflow changes, and deleted support code.
+
 ### Test Contents
 
 `cy.step` is used to explain the test behavior in a human-readable format:

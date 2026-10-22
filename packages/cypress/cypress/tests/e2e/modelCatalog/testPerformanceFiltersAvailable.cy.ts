@@ -63,7 +63,9 @@ describe('Verify Performance Filters are available', () => {
 
   it(
     'Performance view toggle enables filters and shows benchmark data on validated models',
-    { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
+    {
+      tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog', '@ModelCatalogCI'],
+    },
     () => {
       if (skipTest) {
         cy.log('Skipping test - model-catalog deployment not found.');

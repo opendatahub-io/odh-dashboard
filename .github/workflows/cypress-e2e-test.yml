@@ -116,11 +116,20 @@ jobs:
 
       - name: Validate E2E selection and result contracts
         run: |
+          tap_file="${RUNNER_TEMP}/e2e-selection-contracts.tap"
+          exit_code=0
           node --test \
             --test-reporter=dot \
+            --test-reporter-destination=stdout \
+            --test-reporter=tap \
+            --test-reporter-destination="$tap_file" \
             scripts/cypress/__tests__/e2e-selection.test.js \
             scripts/cypress/__tests__/e2e-results.test.js \
-            scripts/cypress/__tests__/e2e-workflow.test.js
+            scripts/cypress/__tests__/e2e-workflow.test.js \
+            scripts/cypress/__tests__/e2e-historical-impact.test.js \
+            scripts/cypress/__tests__/node-test-results.test.js || exit_code=$?
+          node scripts/cypress/summarize-node-test-results.js "$tap_file"
+          exit "$exit_code"
 
   # ---------------------------------------------------------------------------
   # Cluster Selection - Health check with automatic failover

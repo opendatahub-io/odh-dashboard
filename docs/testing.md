@@ -179,6 +179,12 @@ skipped counts after the run. Dashboard base and RHOAI network-policy changes ru
 the Pipelines, Workbenches, and Feature Store suites because those flows exercise
 dashboard egress to the pipeline server, Thanos, and Feast.
 
+Before cluster jobs start, the workflow runs the selection contracts in
+`scripts/cypress/__tests__`. The Node test step keeps progress compact with the dot
+reporter, records machine-readable TAP totals, and prints pass, failure, skipped,
+todo, total, and pass-rate counts. Historical impact simulations replay escaped
+network-policy, changed-spec, support-code, package-tag, and fallback scenarios.
+
 Referenced behaviors must exist in
 `scripts/cypress/e2e-coverage-inventory.json` and declare a terminal-state assertion.
 Selected tags must exist in `scripts/cypress/e2e-environment-capabilities.json`,
