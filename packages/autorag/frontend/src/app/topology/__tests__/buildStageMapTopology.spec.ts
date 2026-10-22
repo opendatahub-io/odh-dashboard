@@ -184,10 +184,18 @@ describe('buildStageMapTopology', () => {
         ]),
       ]);
       const nodes = buildStageMapTopology(stageMap);
-      const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+      const patternNodes = nodes.filter(
+        (node) => node.id.includes('__pattern__') && node.type !== 'DEFAULT_SPACER_NODE',
+      );
 
-      expect(patternNodes.map((node) => node.label)).toEqual(['Pattern\u00a0A', 'Pattern\u00a0B']);
-      expect(patternNodes.map((node) => node.data?.patternKey)).toEqual(['Pattern1', 'Pattern2']);
+      expect(patternNodes.map((node) => node.label)).toStrictEqual([
+        'Pattern\u00a0A',
+        'Pattern\u00a0B',
+      ]);
+      expect(patternNodes.map((node) => node.data?.patternKey)).toStrictEqual([
+        'Pattern1',
+        'Pattern2',
+      ]);
     });
 
     it('should normalize display-name branch identifiers to loaded pattern record keys', () => {
