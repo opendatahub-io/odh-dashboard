@@ -37,15 +37,20 @@ const CompareEvaluationsPage: React.FC = () => {
 
   const showCompare = deploymentMode === DeploymentMode.Federated && hasValidParams;
 
-  React.useEffect(() => {
-    if (showCompare) {
-      trackingScope.trackEventOnce(
-        EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED,
-        `${namespace ?? ''}:${runUuids.join(',')}:${experimentIds.join(',')}`,
-        { surface: 'comparison_view', countOfRuns: runUuids.length },
-      );
-    }
-  }, [experimentIds, namespace, runUuids, showCompare, trackingScope]);
+  // Emitted only from a confirmed remote render — a compare view that is still
+  // loading or fell back to the unavailable state is not a successful render.
+  const handleRemoteReady = React.useCallback(
+    (available: boolean) => {
+      if (available) {
+        trackingScope.trackEventOnce(
+          EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED,
+          `${namespace ?? ''}:${runUuids.join(',')}:${experimentIds.join(',')}`,
+          { surface: 'comparison_view', countOfRuns: runUuids.length },
+        );
+      }
+    },
+    [experimentIds, namespace, runUuids, trackingScope],
+  );
 
   const title = React.useMemo(() => {
     if (evaluationNames.length < 2) {
@@ -81,6 +86,7 @@ const CompareEvaluationsPage: React.FC = () => {
           experimentIds={experimentIds}
           runUuids={runUuids}
           workspace={namespace}
+          onRemoteReady={handleRemoteReady}
         />
       ) : null}
     </ApplicationsPage>
