@@ -17,9 +17,14 @@ import (
 // while still picking up policy changes without a pod restart.
 const DefaultReloadInterval = time.Minute
 
-// shutdownTimeout bounds the graceful shutdown of a listener generation before
-// it is restarted with a new configuration.
+// shutdownTimeout bounds the graceful drain of a listener generation before it is
+// restarted with a new configuration (a brief, rare reload event).
 const shutdownTimeout = 10 * time.Second
+
+// terminationShutdownTimeout bounds the graceful drain on process shutdown
+// (context cancellation, e.g. SIGTERM). It matches the 30s budget the BFF entry
+// points use for plain HTTP so TLS and plain modes drain equally on termination.
+const terminationShutdownTimeout = 30 * time.Second
 
 // ServerFactory builds a fresh *http.Server for a resolved TLS configuration. It
 // is called once at startup and again after each detected profile change — a new
@@ -40,16 +45,17 @@ type configResolver func(ctx context.Context) (*tls.Config, error)
 //
 // It blocks until ctx is cancelled (returns nil after the running server is shut
 // down) or the server stops serving for a reason other than a reload- or
-// shutdown-triggered close (returns that error). The initial profile read is
-// fail-closed: if it errors, no server is started and the error is returned.
+// shutdown-triggered close (returns that error).
+//
+// The initial read is lenient (ServerTLSConfig): a transient API error at startup
+// falls back to Intermediate defaults rather than crash-looping the pod during an
+// API-server brownout. Reload polling is strict (ServerTLSConfigStrict): a
+// transient error there retains the running configuration instead of downgrading
+// an already-resolved Modern/Custom listener to Intermediate.
 func ServeTLSWithReload(ctx context.Context, logger *slog.Logger, factory ServerFactory, certFile, keyFile string) error {
-	return serveTLSWithReload(ctx, logger, factory, certFile, keyFile, DefaultReloadInterval,
-		func(c context.Context) (*tls.Config, error) {
-			// Strict resolution: a transient read error retains the running
-			// configuration (watchForReload keeps current on resolver error)
-			// rather than downgrading the listener to Intermediate defaults.
-			return ServerTLSConfigStrict(c, logger)
-		})
+	initial := func(c context.Context) (*tls.Config, error) { return ServerTLSConfig(c, logger) }
+	poll := func(c context.Context) (*tls.Config, error) { return ServerTLSConfigStrict(c, logger) }
+	return serveTLSWithReload(ctx, logger, factory, certFile, keyFile, DefaultReloadInterval, initial, poll)
 }
 
 // ListenAndServeTLSWithReload is a drop-in replacement for
@@ -87,9 +93,10 @@ func serveTLSWithReload(
 	factory ServerFactory,
 	certFile, keyFile string,
 	interval time.Duration,
-	resolve configResolver,
+	initial configResolver,
+	poll configResolver,
 ) error {
-	tlsCfg, err := resolve(ctx)
+	tlsCfg, err := initial(ctx)
 	if err != nil {
 		return fmt.Errorf("initial TLS profile resolution failed: %w", err)
 	}
@@ -111,7 +118,7 @@ func serveTLSWithReload(
 		}()
 
 		ticker := time.NewTicker(interval)
-		nextCfg, outcome, serveErr := watchForReload(ctx, logger, ticker.C, tlsCfg, resolve, serveErrCh)
+		nextCfg, outcome, serveErr := watchForReload(ctx, logger, ticker.C, tlsCfg, poll, serveErrCh)
 		ticker.Stop()
 
 		switch outcome {
@@ -123,7 +130,8 @@ func serveTLSWithReload(
 			tlsCfg = nextCfg
 			continue
 		case contextCancelled:
-			gracefulShutdown(logger, srv, shutdownTimeout)
+			// Process shutdown: use the full termination drain budget.
+			gracefulShutdown(logger, srv, terminationShutdownTimeout)
 			<-serveErrCh
 			return nil
 		default: // serverStopped

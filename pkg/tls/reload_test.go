@@ -138,10 +138,11 @@ func TestWatchForReloadContextCancelled(t *testing.T) {
 }
 
 func TestServeTLSWithReloadInitialResolveErrorFailsClosed(t *testing.T) {
+	failing := func(context.Context) (*tls.Config, error) { return nil, fmt.Errorf("denied") }
 	err := serveTLSWithReload(context.Background(), testLogger(),
 		func(*tls.Config) *http.Server { return &http.Server{} },
 		"cert.pem", "key.pem", time.Millisecond,
-		func(context.Context) (*tls.Config, error) { return nil, fmt.Errorf("denied") })
+		failing, failing)
 	if err == nil {
 		t.Fatal("expected error when initial resolve fails, got nil")
 	}
@@ -177,7 +178,7 @@ func TestServeTLSWithReloadServesAndRestartsOnChange(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- serveTLSWithReload(ctx, testLogger(), factory, certFile, keyFile, 20*time.Millisecond, resolve)
+		errCh <- serveTLSWithReload(ctx, testLogger(), factory, certFile, keyFile, 20*time.Millisecond, resolve, resolve)
 	}()
 
 	// Wait until at least a second server generation is built (the reload happened).
@@ -193,7 +194,7 @@ func TestServeTLSWithReloadServesAndRestartsOnChange(t *testing.T) {
 	}
 
 	// The current generation should serve over TLS.
-	assertServesTLS(t, addr)
+	assertServesTLS(t, addr, certFile)
 
 	cancel()
 	select {
@@ -317,9 +318,17 @@ func freeAddr(t *testing.T) string {
 	return addr
 }
 
-func assertServesTLS(t *testing.T, addr string) {
+func assertServesTLS(t *testing.T, addr, certFile string) {
 	t.Helper()
-	dialer := &tls.Dialer{Config: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec // test-only self-signed cert
+	pemBytes, err := os.ReadFile(certFile)
+	if err != nil {
+		t.Fatalf("read cert: %v", err)
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pemBytes) {
+		t.Fatal("append cert to pool")
+	}
+	dialer := &tls.Dialer{Config: &tls.Config{RootCAs: pool, ServerName: "127.0.0.1", MinVersion: tls.VersionTLS12}}
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
