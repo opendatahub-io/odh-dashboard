@@ -171,7 +171,12 @@ func (s *Server) shutdown(svc *http.Server) {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	if err := svc.Shutdown(shutdownCtx); err != nil {
-		s.logger.Error("error shutting down server", "error", err)
+		// The graceful drain did not finish in time; force-close so the old
+		// generation's connections do not leak across a reload restart.
+		s.logger.Error("graceful shutdown timed out; forcing close", "error", err)
+		if closeErr := svc.Close(); closeErr != nil {
+			s.logger.Error("force close of server failed", "error", closeErr)
+		}
 	}
 }
 

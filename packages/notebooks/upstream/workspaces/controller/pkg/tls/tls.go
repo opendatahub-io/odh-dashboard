@@ -62,11 +62,21 @@ var apiServerGVK = schema.GroupVersionKind{
 	Group: "config.openshift.io", Version: "v1", Kind: "APIServer",
 }
 
-// openSSLToGoCipher maps OpenSSL cipher suite names to Go crypto/tls constants.
+// tls13CipherNames are TLS 1.3 cipher names Go manages automatically; they are
+// skipped during cipher resolution (not placed in tls.Config.CipherSuites, which
+// controls TLS ≤1.2 only) rather than treated as unsupported.
+var tls13CipherNames = map[string]bool{
+	"TLS_AES_128_GCM_SHA256":       true,
+	"TLS_AES_256_GCM_SHA384":       true,
+	"TLS_CHACHA20_POLY1305_SHA256": true,
+}
+
+// openSSLToGoCipher maps OpenSSL and IANA TLS ≤1.2 cipher suite names (as used by
+// OpenShift TLS profiles) to Go crypto/tls cipher suite IDs. Kept in sync with
+// pkg/tls (the shared BFF resolver) and the dashboard operator so the same Custom
+// profile resolves identically across all three.
 var openSSLToGoCipher = map[string]uint16{
-	"TLS_AES_128_GCM_SHA256":               tls.TLS_AES_128_GCM_SHA256,
-	"TLS_AES_256_GCM_SHA384":               tls.TLS_AES_256_GCM_SHA384,
-	"TLS_CHACHA20_POLY1305_SHA256":         tls.TLS_CHACHA20_POLY1305_SHA256,
+	// TLS 1.2 ciphers (OpenSSL names)
 	openSSLCipherECDHEECDSAAES128GCMSHA256: tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 	"ECDHE-RSA-AES128-GCM-SHA256":          tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 	"ECDHE-ECDSA-AES256-GCM-SHA384":        tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
@@ -75,6 +85,33 @@ var openSSLToGoCipher = map[string]uint16{
 	"ECDHE-RSA-CHACHA20-POLY1305-SHA256":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
 	"ECDHE-ECDSA-CHACHA20-POLY1305":        tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
 	"ECDHE-RSA-CHACHA20-POLY1305":          tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+	"ECDHE-ECDSA-AES128-SHA256":            tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	"ECDHE-RSA-AES128-SHA256":              tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	"ECDHE-ECDSA-AES128-SHA":               tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	"ECDHE-RSA-AES128-SHA":                 tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	"ECDHE-ECDSA-AES256-SHA":               tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	"ECDHE-RSA-AES256-SHA":                 tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	"AES128-GCM-SHA256":                    tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+	"AES256-GCM-SHA384":                    tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	"AES128-SHA256":                        tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+	"AES128-SHA":                           tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+	"AES256-SHA":                           tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	// IANA names (some profiles use these)
+	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384":       tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":         tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":          tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":            tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_RSA_WITH_AES_128_GCM_SHA256":               tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+	"TLS_RSA_WITH_AES_256_GCM_SHA384":               tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	"TLS_RSA_WITH_AES_128_CBC_SHA256":               tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+	"TLS_RSA_WITH_AES_128_CBC_SHA":                  tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_RSA_WITH_AES_256_CBC_SHA":                  tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 }
 
 // IntermediateCiphers is the Mozilla Intermediate cipher suite set.
@@ -189,8 +226,10 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 
 	minVersion, ciphers, curves, degraded := parseProfile(apiServer)
 	result.Degraded = degraded
-	// A Custom profile that enumerated ciphers must leave at least one usable one.
-	if ciphers != nil && len(ciphers) == 0 {
+	// A Custom profile that enumerated TLS ≤1.2 ciphers must leave at least one
+	// usable one. A TLS 1.3 profile legitimately resolves to no ≤1.2 ciphers
+	// (Go manages TLS 1.3 suites), so only enforce below TLS 1.3.
+	if minVersion < tls.VersionTLS13 && ciphers != nil && len(ciphers) == 0 {
 		return result, fmt.Errorf("custom TLS profile specified ciphers but none are supported by Go")
 	}
 	// A Custom profile that restricts groups must leave at least one usable curve.
@@ -292,7 +331,11 @@ func parseCustomProfile(spec map[string]any) (uint16, []uint16, []tls.CurveID, b
 // dropping any name Go does not support or the running runtime cannot negotiate.
 func resolveCipherNames(names []string) []uint16 {
 	ciphers := make([]uint16, 0, len(names))
+	seen := make(map[uint16]bool)
 	for _, name := range names {
+		if tls13CipherNames[name] {
+			continue // Go manages TLS 1.3 ciphers; not configurable via CipherSuites
+		}
 		id, ok := openSSLToGoCipher[name]
 		if !ok {
 			log.Info("Dropping unsupported cipher from custom TLS profile", "cipher", name)
@@ -302,6 +345,10 @@ func resolveCipherNames(names []string) []uint16 {
 			log.Info("Dropping cipher the running Go runtime cannot negotiate", "cipher", name)
 			continue
 		}
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
 		ciphers = append(ciphers, id)
 	}
 	return ciphers
