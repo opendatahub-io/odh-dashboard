@@ -214,7 +214,7 @@ describe('EvaluationsPage', () => {
     const alert = screen.getByTestId('evalhub-tech-preview-alert');
     expect(alert).toBeInTheDocument();
     expect(alert).toHaveTextContent(
-      'The AI Evaluations UI is in Technology Preview; the AI Evaluations back end is generally available',
+      'The AI Evaluations UI is in Technology Preview; the AI Evaluations back end is generally available.',
     );
     // The notification sits above the page tabs.
     expect(alert.compareDocumentPosition(screen.getByTestId('evaluations-page-tabs'))).toBe(
