@@ -199,8 +199,10 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	const saPrefix = "system:serviceaccount:"
 	if strings.HasPrefix(username, saPrefix) {
 		parts := strings.SplitN(strings.TrimPrefix(username, saPrefix), ":", 2)
-		if len(parts) == 2 {
-			return parts[1], nil // Return just the service account name
+		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+			// Preserve the canonical namespace-qualified username so service accounts with
+			// the same name in different namespaces remain distinguishable upstream.
+			return username, nil
 		}
 		kc.Logger.Warn("malformed service account username", "username", username)
 	}
