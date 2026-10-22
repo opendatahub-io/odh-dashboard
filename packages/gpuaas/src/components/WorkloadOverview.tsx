@@ -15,10 +15,12 @@ import {
   Spinner,
   Stack,
   Tab,
+  TabContent,
   Tabs,
   TabTitleText,
   Title,
 } from '@patternfly/react-core';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import {
   t_chart_color_blue_300 as chartBlue,
   t_chart_color_green_300 as chartGreen,
@@ -27,6 +29,7 @@ import {
   t_chart_global_danger_color_100 as chartRed,
 } from '@patternfly/react-tokens';
 import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
+import { ADMISSION_TIME_WINDOW_OPTIONS } from '../utils/workloadAdmissions';
 import {
   overviewBuckets,
   summarizeOverview,
@@ -49,6 +52,11 @@ type WorkloadOverviewProps = {
 };
 
 const WorkloadAdmissionsTab = React.lazy(() => import('./WorkloadAdmissionsTab'));
+
+enum WorkloadOverviewTab {
+  Status = 'status',
+  Admissions = 'admissions',
+}
 
 const admissionMetricLabels = [
   'Admission rate',
@@ -230,8 +238,12 @@ const WorkloadStatusCounts: React.FC<WorkloadStatusCountsProps> = ({
         >
           {counts[bucket] > 0 ? (
             <Button variant="plain" isInline data-testid={`workload-count-${bucket}`}>
-              <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <Title headingLevel="h3" size="lg">
+              <Flex
+                className="gpuaas-workload-overview__count-content"
+                direction={{ default: 'column' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
+                <Title headingLevel="h3" size="2xl">
                   {counts[bucket]}
                 </Title>
                 <Content component="p">{labels[bucket]}</Content>
@@ -239,8 +251,12 @@ const WorkloadStatusCounts: React.FC<WorkloadStatusCountsProps> = ({
             </Button>
           ) : (
             <div data-testid={`workload-count-${bucket}`}>
-              <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <Title headingLevel="h3" size="lg">
+              <Flex
+                className="gpuaas-workload-overview__count-content"
+                direction={{ default: 'column' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
+                <Title headingLevel="h3" size="2xl">
                   {counts[bucket]}
                 </Title>
                 <Content component="p">{labels[bucket]}</Content>
@@ -271,10 +287,18 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
   <Stack className="gpuaas-workload-overview__status" data-testid="workload-overview-status">
     <Flex className="gpuaas-workload-overview__counts">
       <FlexItem className="gpuaas-workload-overview__total">
-        <Content component="h3">{total}</Content>
-        <Content component="p">
-          <strong>Total workloads</strong>
-        </Content>
+        <Flex
+          className="gpuaas-workload-overview__count-content"
+          direction={{ default: 'column' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+        >
+          <Title headingLevel="h3" size="2xl">
+            {total}
+          </Title>
+          <Content component="p" className="gpuaas-workload-overview__total-label">
+            <strong>Total workloads</strong>
+          </Content>
+        </Flex>
       </FlexItem>
       <WorkloadStatusCounts
         counts={counts}
@@ -347,12 +371,12 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   onViewInTable,
 }) => {
   const [expanded, setExpanded] = React.useState(true);
-  const [activeTab, setActiveTab] = React.useState<string | number>('status');
+  const [activeTab, setActiveTab] = React.useState<string | number>(WorkloadOverviewTab.Status);
   const [timeWindow, setTimeWindow] = React.useState('24h');
   const admissionMetrics = useWorkloadAdmissionMetrics(
     namespace,
     timeWindow,
-    kueueAvailable && activeTab === 'admissions',
+    kueueAvailable && activeTab === WorkloadOverviewTab.Admissions,
     canAccessAdminMetrics,
     refreshTrigger,
   );
@@ -392,12 +416,58 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                   Counts include only workload types and resources that loaded successfully.
                 </Alert>
               )}
-              <Tabs
-                activeKey={activeTab}
-                onSelect={(_event, eventKey) => setActiveTab(eventKey)}
-                aria-label="Workload overview tabs"
-              >
-                <Tab eventKey="status" title={<TabTitleText>Status</TabTitleText>}>
+              <div>
+                <Flex
+                  className="gpuaas-workload-overview__tabs-row"
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapMd' }}
+                >
+                  <FlexItem flex={{ default: 'flex_1' }}>
+                    <Tabs
+                      activeKey={activeTab}
+                      onSelect={(_event, eventKey) => setActiveTab(eventKey)}
+                      aria-label="Workload overview tabs"
+                    >
+                      <Tab
+                        eventKey={WorkloadOverviewTab.Status}
+                        title={<TabTitleText>Status</TabTitleText>}
+                        tabContentId="workload-status-panel"
+                      />
+                      {kueueAvailable && canAccessAdminMetrics && (
+                        <Tab
+                          eventKey={WorkloadOverviewTab.Admissions}
+                          tabContentId="workload-admissions-panel"
+                          title={
+                            <TabTitleText>
+                              <span data-testid="workload-overview-tab-admissions">Admissions</span>
+                            </TabTitleText>
+                          }
+                        />
+                      )}
+                    </Tabs>
+                  </FlexItem>
+                  {activeTab === WorkloadOverviewTab.Admissions && (
+                    <FlexItem>
+                      <SimpleSelect
+                        options={ADMISSION_TIME_WINDOW_OPTIONS}
+                        value={timeWindow}
+                        onChange={setTimeWindow}
+                        ariaLabel="Admission time window"
+                        dataTestId="admission-time-window"
+                        toggleProps={{
+                          className: 'gpuaas-workload-overview__admission-time-window-toggle',
+                        }}
+                        popperProps={{ maxWidth: undefined }}
+                      />
+                    </FlexItem>
+                  )}
+                </Flex>
+                <TabContent
+                  id="workload-status-panel"
+                  eventKey={WorkloadOverviewTab.Status}
+                  activeKey={activeTab}
+                  hidden={activeTab !== WorkloadOverviewTab.Status}
+                >
                   {total === 0 ? (
                     <WorkloadOverviewEmptyState />
                   ) : (
@@ -411,29 +481,24 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                       onViewInTable={onViewInTable}
                     />
                   )}
-                </Tab>
+                </TabContent>
                 {kueueAvailable && canAccessAdminMetrics && (
-                  <Tab
-                    eventKey="admissions"
-                    title={
-                      <TabTitleText>
-                        <span data-testid="workload-overview-tab-admissions">Admissions</span>
-                      </TabTitleText>
-                    }
+                  <TabContent
+                    id="workload-admissions-panel"
+                    eventKey={WorkloadOverviewTab.Admissions}
+                    activeKey={activeTab}
+                    hidden={activeTab !== WorkloadOverviewTab.Admissions}
                   >
-                    {activeTab === 'admissions' && (
-                      <React.Suspense fallback={<AdmissionMetricsLoading />}>
-                        <WorkloadAdmissionsTab
-                          metrics={admissionMetrics}
-                          timeWindow={timeWindow}
-                          onTimeWindowChange={setTimeWindow}
-                          canAccessAdminMetrics={canAccessAdminMetrics}
-                        />
-                      </React.Suspense>
-                    )}
-                  </Tab>
+                    <React.Suspense fallback={<AdmissionMetricsLoading />}>
+                      <WorkloadAdmissionsTab
+                        metrics={admissionMetrics}
+                        timeWindow={timeWindow}
+                        canAccessAdminMetrics={canAccessAdminMetrics}
+                      />
+                    </React.Suspense>
+                  </TabContent>
                 )}
-              </Tabs>
+              </div>
             </>
           )}
         </ExpandableSection>

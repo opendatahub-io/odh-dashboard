@@ -6,6 +6,26 @@ import type {
 
 export type AdmissionMetricPoint = { x: number; y: number };
 
+export const ADMISSION_METRIC_IDS = {
+  rate: 'admission-rate',
+  leadTime: 'admission-lead-time',
+  waiting: 'waiting-workloads',
+  active: 'active-workloads',
+} as const;
+
+const RATE_LABEL_WIDTH_FOR_EXTRA_GRID = 6;
+const LEAD_TIME_LABEL_WIDTH_FOR_EXTRA_GRID = 5;
+
+export const getAdmissionChartGridLeft = (metricId: string, labelWidth: number): number => {
+  if (metricId === ADMISSION_METRIC_IDS.rate) {
+    return labelWidth >= RATE_LABEL_WIDTH_FOR_EXTRA_GRID ? 45 : 35;
+  }
+  if (metricId === ADMISSION_METRIC_IDS.leadTime) {
+    return labelWidth >= LEAD_TIME_LABEL_WIDTH_FOR_EXTRA_GRID ? 50 : 30;
+  }
+  return 20;
+};
+
 export type AdmissionMetricSeries = {
   value: number | null;
   data: AdmissionMetricPoint[];

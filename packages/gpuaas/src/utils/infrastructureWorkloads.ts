@@ -46,7 +46,12 @@ import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettled
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { NotebookState } from '@odh-dashboard/internal/pages/projects/notebook/types';
 import { fetchNamespaceWorkloads } from './clusterQueueWorkloads';
-import { mapWorkloadStatusToOverview, type WorkloadOverviewRow } from './workloadOverview';
+import {
+  mapWorkloadStatusToOverview,
+  OverviewBuckets,
+  resolveTrainJobOverview,
+  type WorkloadOverviewRow,
+} from './workloadOverview';
 import {
   buildHardwareProfileKey,
   getHardwareProfileRefFromAnnotations,
@@ -300,14 +305,24 @@ export const getWorkloadOverviewRow = (
   workload: InfrastructureWorkloadRow,
 ): WorkloadOverviewRow | undefined => {
   const { status: workloadResourceStatus, kueueStatus } = workload;
-  const { label: workloadStatus } = workloadResourceStatus;
-  const kueueOverview = kueueStatus ? mapWorkloadStatusToOverview(kueueStatus) : undefined;
+  const workloadStatus = workloadResourceStatus.label;
   const workloadOverview = mapWorkloadStatusToOverview(workloadStatus);
-  const kueueOverridesWorkload =
-    kueueOverview?.bucket === 'waiting' || kueueOverview?.bucket === 'blockers';
-  const overview = kueueOverridesWorkload ? kueueOverview : workloadOverview ?? kueueOverview;
-  const primaryStatus = kueueOverridesWorkload || !workloadOverview ? kueueStatus : workloadStatus;
-
+  const kueueOverview = kueueStatus ? mapWorkloadStatusToOverview(kueueStatus) : undefined;
+  const isTrainJobWorkload = workload.resource.kind === InfrastructureWorkloadKind.TrainJob;
+  const kueueBlocksWorkload =
+    kueueOverview?.bucket === OverviewBuckets.Waiting ||
+    kueueOverview?.bucket === OverviewBuckets.Blockers;
+  const overview = isTrainJobWorkload
+    ? resolveTrainJobOverview(workloadOverview, kueueOverview)
+    : kueueBlocksWorkload
+    ? kueueOverview
+    : workloadOverview ?? kueueOverview;
+  const primaryStatus =
+    isTrainJobWorkload && overview === workloadOverview
+      ? workloadStatus
+      : overview === kueueOverview
+      ? kueueStatus
+      : workloadStatus;
   return overview
     ? {
         ...overview,
@@ -361,6 +376,7 @@ const getInfrastructureModelDeploymentStatus = (
 const getInfrastructureWorkloadFilterStatus = (
   resource: SupportedResource,
   deploymentStatus?: InfrastructureWorkloadRow['deploymentStatus'],
+  jobStatus?: InfrastructureWorkloadRow['jobStatus'],
 ): InfrastructureWorkloadStatus => {
   /** Creates a job status object using the shared label-to-variant mapping. */
   const getJobStatus = (label: string, message?: string): InfrastructureWorkloadStatus => ({
@@ -373,7 +389,7 @@ const getInfrastructureWorkloadFilterStatus = (
   switch (kind) {
     case InfrastructureWorkloadKind.TrainJob:
       if (isTrainJob(resource)) {
-        const status = getTrainingJobStatusSync(resource);
+        const status = jobStatus ?? getTrainingJobStatusSync(resource);
         return getJobStatus(
           getStatusInfo(status).label,
           resource.status?.conditions?.find((condition) => condition.status === 'False')?.message,
@@ -425,7 +441,14 @@ const getInfrastructureJobStatus = (
     if (kueueStatus?.status === KueueWorkloadStatus.Inadmissible) {
       return TrainingJobState.INADMISSIBLE;
     }
-    return getTrainingJobStatusSync(resource);
+    const status = getTrainingJobStatusSync(resource);
+    if (resource.spec.suspend === true) {
+      return TrainingJobState.PAUSED;
+    }
+    if (resource.status?.jobsStatus?.some((jobStatus) => (jobStatus.active ?? 0) > 0)) {
+      return TrainingJobState.RUNNING;
+    }
+    return status;
   }
 
   if (isRayJob(resource)) {
@@ -595,7 +618,7 @@ const toTopLevelRow = (
     namespace: resource.metadata.namespace,
     resource,
     type,
-    status: getInfrastructureWorkloadFilterStatus(resource, deploymentStatus),
+    status: getInfrastructureWorkloadFilterStatus(resource, deploymentStatus, jobStatus),
     jobStatus,
     kueueStatus: kueueStatus?.status,
     deploymentStatus,

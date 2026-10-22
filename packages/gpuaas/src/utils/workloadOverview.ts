@@ -1,8 +1,16 @@
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
+import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 
-export const overviewBuckets = ['completed', 'active', 'waiting', 'blockers', 'failed'] as const;
-export type OverviewBucket = (typeof overviewBuckets)[number];
+export const OverviewBuckets = {
+  Completed: 'completed',
+  Active: 'active',
+  Waiting: 'waiting',
+  Blockers: 'blockers',
+  Failed: 'failed',
+} as const;
+export type OverviewBucket = (typeof OverviewBuckets)[keyof typeof OverviewBuckets];
+export const overviewBuckets = Object.values(OverviewBuckets);
 
 export type WorkloadOverviewRow = {
   bucket: OverviewBucket;
@@ -13,6 +21,22 @@ export type OverviewSummary = {
   counts: Record<OverviewBucket, number>;
   details: Record<OverviewBucket, Record<string, number>>;
   total: number;
+};
+
+export const resolveTrainJobOverview = (
+  workloadOverview: WorkloadOverviewRow | undefined,
+  kueueOverview: WorkloadOverviewRow | undefined,
+): WorkloadOverviewRow | undefined => {
+  if (workloadOverview?.statusFilters.includes(TrainingJobState.PAUSED)) {
+    return workloadOverview;
+  }
+  if (
+    kueueOverview?.bucket === OverviewBuckets.Waiting ||
+    kueueOverview?.bucket === OverviewBuckets.Blockers
+  ) {
+    return kueueOverview;
+  }
+  return workloadOverview ?? kueueOverview;
 };
 
 const statusBuckets: Record<OverviewBucket, readonly string[]> = {

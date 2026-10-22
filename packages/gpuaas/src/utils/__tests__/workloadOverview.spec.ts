@@ -1,19 +1,21 @@
 import {
   mapWorkloadStatusToOverview,
+  OverviewBuckets,
+  resolveTrainJobOverview,
   summarizeOverview,
   type WorkloadOverviewRow,
 } from '../workloadOverview';
 
 describe('mapWorkloadStatusToOverview', () => {
   it.each([
-    ['Succeeded', 'completed', 'complete'],
-    ['Running', 'active', 'running'],
-    ['Admitted', 'active', 'admitted'],
-    ['Ready', 'active', 'ready'],
-    ['Pending', 'waiting', 'pending'],
-    ['Queued', 'waiting', 'queued'],
-    ['Inadmissible', 'blockers', 'inadmissible'],
-    ['Failed', 'failed', 'failed'],
+    ['Succeeded', OverviewBuckets.Completed, 'complete'],
+    ['Running', OverviewBuckets.Active, 'running'],
+    ['Admitted', OverviewBuckets.Active, 'admitted'],
+    ['Ready', OverviewBuckets.Active, 'ready'],
+    ['Pending', OverviewBuckets.Waiting, 'pending'],
+    ['Queued', OverviewBuckets.Waiting, 'queued'],
+    ['Inadmissible', OverviewBuckets.Blockers, 'inadmissible'],
+    ['Failed', OverviewBuckets.Failed, 'failed'],
   ])('should map %s to %s', (status, bucket, detail) => {
     expect(mapWorkloadStatusToOverview(status)).toEqual({
       bucket,
@@ -24,6 +26,30 @@ describe('mapWorkloadStatusToOverview', () => {
 
   it('should not classify unknown statuses', () => {
     expect(mapWorkloadStatusToOverview('Unknown')).toBeUndefined();
+  });
+});
+
+describe('resolveTrainJobOverview', () => {
+  it.each([
+    [
+      { bucket: OverviewBuckets.Blockers, detail: 'paused', statusFilters: ['Paused'] },
+      { bucket: OverviewBuckets.Blockers, detail: 'evicted', statusFilters: ['Evicted'] },
+      'Paused',
+    ],
+    [
+      { bucket: OverviewBuckets.Active, detail: 'running', statusFilters: ['Running'] },
+      { bucket: OverviewBuckets.Blockers, detail: 'evicted', statusFilters: ['Evicted'] },
+      'Evicted',
+    ],
+    [
+      { bucket: OverviewBuckets.Active, detail: 'running', statusFilters: ['Running'] },
+      { bucket: OverviewBuckets.Active, detail: 'admitted', statusFilters: ['Admitted'] },
+      'Running',
+    ],
+  ])('resolves combined statuses to %s', (workloadOverview, kueueOverview, expected) => {
+    expect(
+      resolveTrainJobOverview(workloadOverview as never, kueueOverview as never)?.statusFilters[0],
+    ).toBe(expected);
   });
 });
 

@@ -11,11 +11,9 @@ import {
   t_chart_color_blue_300 as chartBlue,
   t_chart_color_orange_300 as chartOrange,
 } from '@patternfly/react-tokens';
-import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
-
 import useWorkloadAdmissionMetrics, { getWindowConfig } from '../hooks/useWorkloadAdmissionMetrics';
+import { getAdmissionChartGridLeft } from '../utils/admissionMetrics';
 import {
-  ADMISSION_TIME_WINDOW_OPTIONS,
   buildAdmissionMetrics,
   formatAdmissionMetricHeadline,
   formatAdmissionTimestamp,
@@ -53,7 +51,6 @@ const getAdmissionChartTheme = (): Record<string, unknown> => ({
 type WorkloadAdmissionsTabProps = {
   metrics: ReturnType<typeof useWorkloadAdmissionMetrics>;
   timeWindow: string;
-  onTimeWindowChange: (value: string) => void;
   canAccessAdminMetrics: boolean;
 };
 
@@ -73,14 +70,27 @@ const AdmissionMetricChartComponent: React.FC<{
   const theme = React.useMemo(() => getAdmissionChartTheme(), []);
   const data = getValidAdmissionMetricPoints(metric.data);
   const { yMin, yMax, yPadding } = getAdmissionMetricYBounds(data);
+  const yDomain = React.useMemo<[number, number]>(
+    () => [Math.max(0, yMin - yPadding), yMax + yPadding],
+    [yMax, yMin, yPadding],
+  );
+  const yAxisLabelWidth = Math.max(
+    ...yDomain.map((value) => formatAdmissionMetricValue(metric.id, value).length),
+  );
+  const gridLeft = getAdmissionChartGridLeft(metric.id, yAxisLabelWidth);
   const option = React.useMemo(() => {
-    const yDomain: [number, number] = [Math.max(0, yMin - yPadding), yMax + yPadding];
     return {
       animation: animateOnMount,
       animationDuration: animateOnMount ? 1200 : 0,
       animationEasing: animateOnMount ? ('cubicOut' as const) : undefined,
       animationDurationUpdate: 0,
-      grid: { left: 48, right: 20, top: 8, bottom: 28, containLabel: true },
+      grid: {
+        left: gridLeft,
+        right: 0,
+        top: 8,
+        bottom: 28,
+        containLabel: false,
+      },
       xAxis: {
         type: 'value' as const,
         min: xDomain[0],
@@ -90,7 +100,7 @@ const AdmissionMetricChartComponent: React.FC<{
         axisTick: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
         axisLabel: {
           color: 'var(--pf-t--global--text--color--subtle)',
-          fontSize: 9,
+          fontSize: 10,
           hideOverlap: true,
           showMinLabel: true,
           showMaxLabel: false,
@@ -115,7 +125,7 @@ const AdmissionMetricChartComponent: React.FC<{
         axisTick: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
         axisLabel: {
           color: 'var(--pf-t--global--text--color--subtle)',
-          fontSize: 9,
+          fontSize: 10,
           formatter: (value: number) => formatAdmissionMetricValue(metric.id, value),
         },
         splitLine: {
@@ -179,9 +189,9 @@ const AdmissionMetricChartComponent: React.FC<{
     metric.interpolation,
     timeWindow,
     xDomain,
-    yMin,
     yMax,
-    yPadding,
+    yDomain,
+    gridLeft,
   ]);
 
   React.useEffect(() => {
@@ -264,12 +274,14 @@ const AdmissionMetricCard: React.FC<{
         </>
       ) : (
         <>
-          <div data-testid={`admission-metric-value-${metric.id}`}>
-            <Content component="h3" className="gpuaas-workload-overview__admission-value">
-              {formattedValue}
-            </Content>
+          <div className="gpuaas-workload-overview__admission-header">
+            <div data-testid={`admission-metric-value-${metric.id}`}>
+              <Content component="h3" className="gpuaas-workload-overview__admission-value">
+                {formattedValue}
+              </Content>
+            </div>
+            <Content component="p">{metric.label}</Content>
           </div>
-          <Content component="p">{metric.label}</Content>
         </>
       )}
       {!isLoading && (
@@ -288,34 +300,18 @@ const AdmissionMetricCard: React.FC<{
 const WorkloadAdmissionsTab: React.FC<WorkloadAdmissionsTabProps> = ({
   metrics,
   timeWindow,
-  onTimeWindowChange,
   canAccessAdminMetrics,
 }) => {
-  const renderedTimeWindow = React.useRef(timeWindow);
   const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
-  const [timeWindowChangePending, setTimeWindowChangePending] = React.useState(false);
   const isInitialLoading = !hasLoadedOnce;
-  const isSelectedWindowLoading =
-    isInitialLoading ||
-    metrics.loading ||
-    timeWindowChangePending ||
-    renderedTimeWindow.current !== timeWindow;
-  const animateOnMount = !hasLoadedOnce && !timeWindowChangePending;
+  const isSelectedWindowLoading = isInitialLoading || metrics.loading;
+  const animateOnMount = !hasLoadedOnce;
 
   React.useEffect(() => {
     if (!metrics.loading && (metrics.loaded || metrics.error)) {
       setHasLoadedOnce(true);
     }
-    if (timeWindowChangePending && !metrics.loading) {
-      renderedTimeWindow.current = timeWindow;
-      setTimeWindowChangePending(false);
-    }
-  }, [metrics.error, metrics.loaded, metrics.loading, timeWindow, timeWindowChangePending]);
-
-  const handleTimeWindowChange = (value: string) => {
-    setTimeWindowChangePending(true);
-    onTimeWindowChange(value);
-  };
+  }, [metrics.error, metrics.loaded, metrics.loading]);
 
   const metricSeries = buildAdmissionMetrics(
     metrics,
@@ -340,17 +336,6 @@ const WorkloadAdmissionsTab: React.FC<WorkloadAdmissionsTabProps> = ({
           Some metrics could not be loaded. Refresh to try again.
         </Alert>
       )}
-      <div className="gpuaas-workload-overview__admissions-window">
-        <SimpleSelect
-          options={ADMISSION_TIME_WINDOW_OPTIONS}
-          value={timeWindow}
-          onChange={handleTimeWindowChange}
-          ariaLabel="Admission time window"
-          dataTestId="admission-time-window"
-          toggleProps={{ className: 'gpuaas-workload-overview__admission-time-window-toggle' }}
-          popperProps={{ maxWidth: undefined }}
-        />
-      </div>
       <div
         className={`gpuaas-workload-overview__admission-metrics ${
           canAccessAdminMetrics ? '' : 'gpuaas-workload-overview__admission-metrics--two'
