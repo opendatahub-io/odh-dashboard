@@ -37,8 +37,8 @@ cd distributions/maas-portal
 make grid-start-mock
 ```
 
-Open http://localhost:4020/maas-portal/ for either setup. Stop with `Ctrl+C` or
-`make grid-stop` before switching modes. View saved logs with `make grid-logs`.
+Open http://localhost:4020/maas-portal/ for either setup. Stop with `Ctrl+C` before
+switching modes. View saved logs with `make grid-logs`.
 
 ## Running locally
 

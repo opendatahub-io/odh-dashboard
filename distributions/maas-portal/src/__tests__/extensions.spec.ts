@@ -255,15 +255,12 @@ describe('MaaS Portal extensions', () => {
     expect(orphaned).toHaveLength(0);
   });
 
-  it('should order AI asset endpoints, API keys, and Playground at top level', () => {
+  it('should order AI asset endpoints and API keys at top level', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
 
     const exts = store.getExtensions();
 
-    const playground = exts.find(
-      (e) => e.type === 'app.navigation/href' && e.properties.id === 'chat-playground',
-    );
     const aiAssets = exts.find(
       (e) => e.type === 'app.navigation/href' && e.properties.id === 'ai-assets',
     );
@@ -282,17 +279,22 @@ describe('MaaS Portal extensions', () => {
     expect(apiKeys?.properties.group).toBe('2_api_keys');
     expect(apiKeys?.properties.title).toBe('API keys');
 
-    expect(playground).toBeDefined();
-    expect(playground?.properties.section).toBeUndefined();
-    expect(playground?.properties.group).toBe('3_playground');
-    expect(playground?.properties.label).toBeUndefined();
-    expect(playground?.properties.href).toBe('/gen-ai-studio/playground');
-
     expect(
-      [aiAssets, apiKeys, playground]
+      [aiAssets, apiKeys]
         .toSorted((a, b) => String(a?.properties.group).localeCompare(String(b?.properties.group)))
         .map((extension) => extension?.properties.title),
-    ).toEqual(['AI asset endpoints', 'API keys', 'Playground']);
+    ).toEqual(['AI asset endpoints', 'API keys']);
+  });
+
+  it('should suppress the Playground navigation item in the MaaS Portal', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    expect(
+      store
+        .getExtensions()
+        .some((e) => e.type === 'app.navigation/href' && e.properties.id === 'chat-playground'),
+    ).toBe(false);
   });
 
   it('should show the MaaS governance navigation item and route only for MaaS admins', () => {
