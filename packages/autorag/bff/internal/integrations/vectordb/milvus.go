@@ -166,6 +166,9 @@ func (m *milvusDB) Search(ctx context.Context, collection string, queryVec []flo
 	if options.Ranker == "rrf" && options.AlphaSpecified {
 		return nil, fmt.Errorf("%w: Milvus RRF does not use alpha; omit alpha or select weighted ranking", ErrUnsupportedSearch)
 	}
+	if options.Ranker == "rrf" && !ValidMilvusRRFK(options.RankerK) {
+		return nil, fmt.Errorf("%w: Milvus RRF ranker_k must be greater than 0 and less than %d", ErrUnsupportedSearch, MaxMilvusRRFK)
+	}
 	timeout := m.operationTimeout
 	if timeout <= 0 {
 		timeout = MilvusOperationTimeout

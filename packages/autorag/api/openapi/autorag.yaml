@@ -2079,6 +2079,8 @@ components:
                     type: number
                     minimum: 0
                     exclusiveMinimum: true
+                    maximum: 16384
+                    exclusiveMaximum: true
         tool_choice:
           type: object
           maxProperties: 1

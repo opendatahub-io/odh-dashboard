@@ -8,6 +8,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"math"
 	"math/big"
 	"testing"
 	"time"
@@ -150,6 +152,46 @@ func TestMilvusSearchRejectsRRFAlphaBeforeConnecting(t *testing.T) {
 		TopK: 5, Ranker: "rrf", Alpha: 0.5, AlphaSpecified: true, RankerK: 60,
 	})
 	require.ErrorIs(t, err, ErrUnsupportedSearch)
+}
+
+func TestMilvusSearchRejectsInvalidRRFKBeforeConnecting(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		value float64
+	}{
+		{name: "zero", value: 0},
+		{name: "negative", value: -1},
+		{name: "maximum", value: MaxMilvusRRFK},
+		{name: "above maximum", value: MaxMilvusRRFK + 1},
+		{name: "NaN", value: math.NaN()},
+		{name: "negative infinity", value: math.Inf(-1)},
+		{name: "positive infinity", value: math.Inf(1)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := &milvusDB{}
+			_, err := db.Search(context.Background(), "documents", nil, "query", SearchOptions{
+				TopK: 5, Ranker: "rrf", RankerK: tc.value,
+			})
+
+			require.ErrorIs(t, err, ErrUnsupportedSearch)
+		})
+	}
+}
+
+func TestMilvusSearchAllowsRRFKBelowMaximum(t *testing.T) {
+	for _, value := range []float64{0.001, MaxMilvusRRFK - 0.001} {
+		t.Run(fmt.Sprintf("%v", value), func(t *testing.T) {
+			client := &captureMilvusClient{}
+			db := &milvusDB{client: client}
+
+			_, err := db.Search(context.Background(), "documents", []float32{0.1}, "query", SearchOptions{
+				TopK: 5, Ranker: "rrf", RankerK: value,
+			})
+
+			require.NoError(t, err)
+			require.NotNil(t, client.hybridOption)
+		})
+	}
 }
 
 func TestMilvusSearch_RespectsCallerDeadlineAndPreservesDeadline(t *testing.T) {

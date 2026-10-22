@@ -218,6 +218,12 @@ func (r *ResponsesRepository) resolveVectorDB(ctx context.Context, namespace, se
 				if forwardErr != nil {
 					return "", fmt.Errorf("failed to forward Milvus endpoint: %w", classifyForwardingError(ctx, operationCtx, forwardErr))
 				}
+				// Normalization alone must not look like a port-forward. The vector DB
+				// factory compares this result with the original Secret value to
+				// distinguish external endpoints from in-cluster endpoints.
+				if forwardedURI == forwardURI {
+					return strings.TrimSpace(uri), nil
+				}
 				return forwardedURI, nil
 			}
 		}
@@ -528,8 +534,8 @@ func parseFileSearchTool(req *models.ResponsesRequest) (collection string, topK 
 			if tool.RankingOptions.Ranker != "rrf" {
 				return "", 0, 0, false, fmt.Errorf("ranking_options.ranker_k requires rrf ranking")
 			}
-			if math.IsNaN(*tool.RankingOptions.RankerK) || math.IsInf(*tool.RankingOptions.RankerK, 0) || *tool.RankingOptions.RankerK <= 0 {
-				return "", 0, 0, false, fmt.Errorf("ranking_options.ranker_k must be positive")
+			if !vectordb.ValidMilvusRRFK(*tool.RankingOptions.RankerK) {
+				return "", 0, 0, false, fmt.Errorf("ranking_options.ranker_k must be greater than 0 and less than %d", vectordb.MaxMilvusRRFK)
 			}
 		}
 	}

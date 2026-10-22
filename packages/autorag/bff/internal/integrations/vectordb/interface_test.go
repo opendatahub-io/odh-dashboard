@@ -23,6 +23,8 @@ func TestValidateSearchOptionsByProvider(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "milvus rrf", secret: milvus, options: SearchOptions{Ranker: "rrf", RankerK: 42}},
+		{name: "milvus rrf at maximum", secret: milvus, options: SearchOptions{Ranker: "rrf", RankerK: MaxMilvusRRFK}, wantErr: true},
+		{name: "milvus rrf below maximum", secret: milvus, options: SearchOptions{Ranker: "rrf", RankerK: MaxMilvusRRFK - 0.001}},
 		{name: "milvus weighted", secret: milvus, options: SearchOptions{Ranker: "weighted", Alpha: 0.3}},
 		{name: "milvus rrf alpha", secret: milvus, options: SearchOptions{Ranker: "rrf", RankerK: 60, AlphaSpecified: true}, wantErr: true},
 		{name: "pgvector rrf", secret: pgvector, options: SearchOptions{Ranker: "rrf", RankerK: 60, AlphaSpecified: true}},

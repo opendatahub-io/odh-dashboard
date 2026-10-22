@@ -327,6 +327,43 @@ describe('buildResponsesTemplate', () => {
     });
   });
 
+  it('should reject a Milvus RRF ranker_k at the exclusive maximum', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_k: 16384,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(() => buildResponsesTemplate(pattern, 'run-123')).toThrow(
+      'Milvus RRF ranker_k must be greater than 0 and less than 16384',
+    );
+  });
+
+  it('should preserve a valid Milvus RRF ranker_k below the exclusive maximum', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_k: 16383.999,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      ranker_k: 16383.999,
+    });
+  });
+
   it('should preserve an explicitly configured zero alpha', () => {
     const pattern = {
       ...mockPatterns['pattern-1'],
@@ -427,6 +464,56 @@ describe('normalizeResponsesTemplate', () => {
       alpha: 0.2,
     });
   });
+
+  it('should fall back from an invalid persisted Milvus RRF ranker_k', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const invalidTemplate = {
+      ...template,
+      tools: [
+        { ...template.tools[0], ranking_options: { ranker: 'rrf' as const, ranker_k: 16384 } },
+      ],
+    };
+
+    expect(normalizeResponsesTemplate(invalidTemplate, 'milvus').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      ranker_k: 60,
+    });
+  });
+
+  it('should fall back from an invalid legacy Milvus impact_factor', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const invalidTemplate = {
+      ...template,
+      tools: [
+        { ...template.tools[0], ranking_options: { ranker: 'rrf' as const, impact_factor: 16384 } },
+      ],
+    };
+
+    expect(normalizeResponsesTemplate(invalidTemplate, 'milvus').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      ranker_k: 60,
+    });
+  });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'should fall back from an invalid persisted Milvus RRF value %p',
+    (value) => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const invalidTemplate = {
+        ...template,
+        tools: [
+          { ...template.tools[0], ranking_options: { ranker: 'rrf' as const, ranker_k: value } },
+        ],
+      };
+
+      expect(
+        normalizeResponsesTemplate(invalidTemplate, 'milvus').tools[0].ranking_options,
+      ).toEqual({
+        ranker: 'rrf',
+        ranker_k: 60,
+      });
+    },
+  );
 });
 
 const createMockPipelineRun = (

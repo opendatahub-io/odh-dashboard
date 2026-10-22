@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 )
@@ -21,7 +22,14 @@ var ErrResultContentLimit = errors.New("vector result content limit exceeded")
 const (
 	MaxVectorResultBytes      = 1 << 20
 	MaxVectorResultTotalBytes = 4 << 20
+	MaxMilvusRRFK             = 16384
 )
+
+// ValidMilvusRRFK reports whether a Milvus RRF constant is within Milvus's
+// supported range.
+func ValidMilvusRRFK(value float64) bool {
+	return !math.IsNaN(value) && !math.IsInf(value, 0) && value > 0 && value < MaxMilvusRRFK
+}
 
 func validateResultTextSize(totalBytes int, text string) (int, error) {
 	if len(text) > MaxVectorResultBytes || totalBytes > MaxVectorResultTotalBytes-len(text) {
@@ -50,8 +58,13 @@ func ValidateSearchOptions(data map[string][]byte, options SearchOptions) error 
 		return fmt.Errorf("%w: pgvector weighted hybrid search is not supported", ErrUnsupportedSearch)
 	}
 	if options.Ranker == "rrf" {
-		if milvus && options.AlphaSpecified {
-			return fmt.Errorf("%w: Milvus RRF does not use alpha; omit alpha or select weighted ranking", ErrUnsupportedSearch)
+		if milvus {
+			if !ValidMilvusRRFK(options.RankerK) {
+				return fmt.Errorf("%w: Milvus RRF ranker_k must be greater than 0 and less than %d", ErrUnsupportedSearch, MaxMilvusRRFK)
+			}
+			if options.AlphaSpecified {
+				return fmt.Errorf("%w: Milvus RRF does not use alpha; omit alpha or select weighted ranking", ErrUnsupportedSearch)
+			}
 		}
 		if !milvus && options.RankerK != 60 {
 			return fmt.Errorf("%w: pgvector RRF uses a fixed ranker_k of 60", ErrUnsupportedSearch)

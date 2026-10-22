@@ -270,8 +270,8 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 			if tool.RankingOptions.Ranker != "rrf" {
 				return fmt.Errorf("file_search ranking_options.ranker_k requires rrf ranking")
 			}
-			if math.IsNaN(*tool.RankingOptions.RankerK) || math.IsInf(*tool.RankingOptions.RankerK, 0) || *tool.RankingOptions.RankerK <= 0 {
-				return fmt.Errorf("file_search ranking_options.ranker_k must be positive")
+			if !vectordb.ValidMilvusRRFK(*tool.RankingOptions.RankerK) {
+				return fmt.Errorf("file_search ranking_options.ranker_k must be greater than 0 and less than %d", vectordb.MaxMilvusRRFK)
 			}
 		}
 	}

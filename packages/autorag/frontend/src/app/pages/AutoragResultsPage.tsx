@@ -85,6 +85,10 @@ const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successful
 const ARTIFACT_CHECKING_TOOLTIP = 'Checking artifact availability...';
 const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
 const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
+const MAX_MILVUS_RRF_K = 16384;
+
+const isValidMilvusRRFK = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 && value < MAX_MILVUS_RRF_K;
 
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError';
@@ -115,7 +119,13 @@ export const buildResponsesTemplate = (
       }
       rankingOptions = { ranker: 'rrf', alpha: retrieval.ranker_alpha ?? 0.5 };
     } else if (retrieval.ranker_strategy === undefined || retrieval.ranker_strategy === 'rrf') {
-      rankingOptions = { ranker: 'rrf', ranker_k: retrieval.ranker_k ?? 60 };
+      const rankerK = retrieval.ranker_k ?? 60;
+      if (!isValidMilvusRRFK(rankerK)) {
+        throw new Error(
+          `Milvus RRF ranker_k must be greater than 0 and less than ${MAX_MILVUS_RRF_K}`,
+        );
+      }
+      rankingOptions = { ranker: 'rrf', ranker_k: rankerK };
     } else if (retrieval.ranker_strategy === 'weighted') {
       rankingOptions = { ranker: 'weighted', alpha: retrieval.ranker_alpha ?? 0.5 };
     } else {
@@ -179,16 +189,11 @@ export const normalizeResponsesTemplate = (
         throw new Error('Weighted ranking is not supported for pgvector');
       }
       const weighted = provider !== 'pgvector' && ranker === 'weighted';
-      const rankerK =
-        typeof ranking.ranker_k === 'number' &&
-        Number.isFinite(ranking.ranker_k) &&
-        ranking.ranker_k > 0
-          ? ranking.ranker_k
-          : typeof ranking.impact_factor === 'number' &&
-              Number.isFinite(ranking.impact_factor) &&
-              ranking.impact_factor > 0
-            ? ranking.impact_factor
-            : 60;
+      const rankerK = isValidMilvusRRFK(ranking.ranker_k)
+        ? ranking.ranker_k
+        : isValidMilvusRRFK(ranking.impact_factor)
+          ? ranking.impact_factor
+          : 60;
       return {
         ...tool,
         ranking_options: weighted
