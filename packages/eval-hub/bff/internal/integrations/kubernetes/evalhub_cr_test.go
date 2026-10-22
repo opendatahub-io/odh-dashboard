@@ -21,7 +21,9 @@ import (
 // webhook connection: a net.Error, not an API status error.
 type webhookNetTimeoutError struct{}
 
-func (webhookNetTimeoutError) Error() string   { return "net/http: request canceled (Client.Timeout exceeded)" }
+func (webhookNetTimeoutError) Error() string {
+	return "net/http: request canceled (Client.Timeout exceeded)"
+}
 func (webhookNetTimeoutError) Timeout() bool   { return true }
 func (webhookNetTimeoutError) Temporary() bool { return true }
 
