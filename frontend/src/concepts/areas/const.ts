@@ -339,10 +339,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['dataRegistry'],
     reliantAreas: [SupportedArea.DATA_REGISTRY],
   },
-  [SupportedArea.GUIDED_TOUR]: {
-    // Dev-only flag — not in OdhDashboardConfig CRD. Off by default.
-    devFlags: ['guidedTour'],
-  },
+  [SupportedArea.GUIDED_TOUR]: {},
   [SupportedArea.UNIFIED_PROJECT_SELECTOR]: {
     // Dev-only gate — not in OdhDashboardConfig CRD. Off by default.
     devFlags: ['unifiedProjectSelector'],
