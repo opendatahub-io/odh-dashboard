@@ -90,6 +90,29 @@ const MAX_MILVUS_RRF_K = 16384;
 const isValidMilvusRRFK = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0 && value < MAX_MILVUS_RRF_K;
 
+const isValidRankingAlpha = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+
+const getRankingAlpha = (value: unknown, errorMessage: string): number => {
+  if (value === undefined) {
+    return 0.5;
+  }
+  if (!isValidRankingAlpha(value)) {
+    throw new Error(errorMessage);
+  }
+  return value;
+};
+
+const validatePersistedMilvusRRFK = (
+  value: unknown,
+  field: 'ranker_k' | 'impact_factor',
+): number => {
+  if (!isValidMilvusRRFK(value)) {
+    throw new Error(`Invalid persisted Milvus RRF ${field}`);
+  }
+  return value;
+};
+
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError';
 
@@ -117,9 +140,12 @@ export const buildResponsesTemplate = (
       if (retrieval.ranker_strategy !== undefined && retrieval.ranker_strategy !== 'rrf') {
         throw new Error(`Unsupported retrieval ranker: ${retrieval.ranker_strategy}`);
       }
-      rankingOptions = { ranker: 'rrf', alpha: retrieval.ranker_alpha ?? 0.5 };
+      rankingOptions = {
+        ranker: 'rrf',
+        alpha: getRankingAlpha(retrieval.ranker_alpha, 'Ranking alpha must be between 0 and 1'),
+      };
     } else if (retrieval.ranker_strategy === undefined || retrieval.ranker_strategy === 'rrf') {
-      const rankerK = retrieval.ranker_k ?? 60;
+      const rankerK = retrieval.ranker_k === undefined ? 60 : retrieval.ranker_k;
       if (!isValidMilvusRRFK(rankerK)) {
         throw new Error(
           `Milvus RRF ranker_k must be greater than 0 and less than ${MAX_MILVUS_RRF_K}`,
@@ -127,7 +153,10 @@ export const buildResponsesTemplate = (
       }
       rankingOptions = { ranker: 'rrf', ranker_k: rankerK };
     } else if (retrieval.ranker_strategy === 'weighted') {
-      rankingOptions = { ranker: 'weighted', alpha: retrieval.ranker_alpha ?? 0.5 };
+      rankingOptions = {
+        ranker: 'weighted',
+        alpha: getRankingAlpha(retrieval.ranker_alpha, 'Ranking alpha must be between 0 and 1'),
+      };
     } else {
       throw new Error(`Unsupported retrieval ranker: ${retrieval.ranker_strategy}`);
     }
@@ -189,28 +218,25 @@ export const normalizeResponsesTemplate = (
         throw new Error('Weighted ranking is not supported for pgvector');
       }
       const weighted = provider !== 'pgvector' && ranker === 'weighted';
-      const rankerK = isValidMilvusRRFK(ranking.ranker_k)
-        ? ranking.ranker_k
-        : isValidMilvusRRFK(ranking.impact_factor)
-          ? ranking.impact_factor
+      const rankerK =
+        provider === 'milvus' && ranker === 'rrf'
+          ? ranking.ranker_k !== undefined
+            ? validatePersistedMilvusRRFK(ranking.ranker_k, 'ranker_k')
+            : ranking.impact_factor !== undefined
+              ? validatePersistedMilvusRRFK(ranking.impact_factor, 'impact_factor')
+              : 60
           : 60;
       return {
         ...tool,
         ranking_options: weighted
           ? {
               ranker: 'weighted',
-              alpha:
-                typeof ranking.alpha === 'number' && Number.isFinite(ranking.alpha)
-                  ? ranking.alpha
-                  : 0.5,
+              alpha: getRankingAlpha(ranking.alpha, 'Invalid persisted ranking alpha'),
             }
           : provider === 'pgvector'
             ? {
                 ranker: 'rrf',
-                alpha:
-                  typeof ranking.alpha === 'number' && Number.isFinite(ranking.alpha)
-                    ? ranking.alpha
-                    : 0.5,
+                alpha: getRankingAlpha(ranking.alpha, 'Invalid persisted ranking alpha'),
               }
             : { ranker: 'rrf', ranker_k: rankerK },
       };
@@ -274,6 +300,46 @@ const unavailableResponsesTemplate = (patternName: string): AutoRAGResponsesTemp
   include: ['file_search_call.results'],
 });
 /* eslint-enable camelcase */
+
+export const getResponsesTemplateForPattern = (
+  pattern: AutoragPattern,
+  provider: 'milvus' | 'pgvector' | 'neo4j',
+  runId: string | undefined,
+): AutoRAGResponsesTemplate | undefined => {
+  const persistedTemplate = pattern.inference?.responses_template;
+  if (persistedTemplate) {
+    try {
+      const embeddingModel = getPatternEmbeddingModel(pattern);
+      const candidate = {
+        ...persistedTemplate,
+        metadata: {
+          ...persistedTemplate.metadata,
+          ...(embeddingModel
+            ? {
+                // eslint-disable-next-line camelcase
+                embedding_model: embeddingModel,
+              }
+            : {}),
+        },
+      };
+      if (isUsableResponsesTemplate(candidate)) {
+        return normalizeResponsesTemplate(candidate, provider);
+      }
+    } catch {
+      // Build the generated fallback only after the persisted template is unusable.
+    }
+  }
+
+  try {
+    const fallback = buildResponsesTemplate(pattern, runId);
+    return isUsableResponsesTemplate(fallback)
+      ? normalizeResponsesTemplate(fallback, provider)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const location = useLocation();
@@ -692,36 +758,9 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!provider) {
         return false;
       }
-      let responsesTemplate: AutoRAGResponsesTemplate;
-      try {
-        const persistedTemplate = pattern.inference?.responses_template;
-        const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
-        const candidate = persistedTemplate
-          ? {
-              ...persistedTemplate,
-              metadata: {
-                ...(persistedTemplate.metadata || {}),
-                ...(getPatternEmbeddingModel(pattern)
-                  ? {
-                      // eslint-disable-next-line camelcase
-                      embedding_model: getPatternEmbeddingModel(pattern),
-                    }
-                  : {}),
-              },
-            }
-          : fallback;
-        // The generated fallback is validated too — buildResponsesTemplate can
-        // emit an empty model or vector_store_ids, and the drawer state should
-        // carry the explicit unavailable marker rather than a half-valid
-        // template.
-        responsesTemplate = isUsableResponsesTemplate(candidate)
-          ? normalizeResponsesTemplate(candidate, provider)
-          : isUsableResponsesTemplate(fallback)
-            ? normalizeResponsesTemplate(fallback, provider)
-            : unavailableResponsesTemplate(patternName);
-      } catch {
-        responsesTemplate = unavailableResponsesTemplate(patternName);
-      }
+      const responsesTemplate =
+        getResponsesTemplateForPattern(pattern, provider, pipelineRun?.run_id) ??
+        unavailableResponsesTemplate(patternName);
 
       const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
@@ -763,42 +802,16 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern || !canUseResponsesForPattern(contextValue.parameters, pattern)) {
         return;
       }
-      const persistedTemplate = pattern.inference?.responses_template;
       const provider = getPatternStoreProvider(pattern);
       if (!provider) {
         return;
       }
-      let responsesTemplate: AutoRAGResponsesTemplate;
-      try {
-        const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
-        const candidate = persistedTemplate
-          ? {
-              ...persistedTemplate,
-              metadata: {
-                ...persistedTemplate.metadata,
-                ...(getPatternEmbeddingModel(pattern)
-                  ? {
-                      // eslint-disable-next-line camelcase
-                      embedding_model: getPatternEmbeddingModel(pattern),
-                    }
-                  : {}),
-              },
-            }
-          : fallback;
-        // The generated fallback is validated too — buildResponsesTemplate can
-        // emit an empty model, and the code snippets must not be built from a
-        // half-valid template. When neither template is usable, View code
-        // stays closed.
-        const usable = isUsableResponsesTemplate(candidate)
-          ? candidate
-          : isUsableResponsesTemplate(fallback)
-            ? fallback
-            : undefined;
-        if (!usable) {
-          return;
-        }
-        responsesTemplate = normalizeResponsesTemplate(usable, provider);
-      } catch {
+      const responsesTemplate = getResponsesTemplateForPattern(
+        pattern,
+        provider,
+        pipelineRun?.run_id,
+      );
+      if (!responsesTemplate) {
         return;
       }
       setViewCodePattern({ patternName, responsesTemplate });
