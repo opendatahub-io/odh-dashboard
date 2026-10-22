@@ -189,13 +189,7 @@ describe('A user can deploy LLMD models with multi-gateway selection', () => {
   it(
     'Verify User Can Deploy an LLMD Model with multiple gateways and preserve refs on edit',
     {
-      tags: [
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@LLMDServingCI',
-        '@ModelServingCI',
-      ],
+      tags: ['@Dashboard', '@ModelServing', '@NonConcurrent', '@LLMDServingCI', '@ModelServingCI'],
     },
     () => {
       const modelName = `${testData.singleModelName}-multi`;
