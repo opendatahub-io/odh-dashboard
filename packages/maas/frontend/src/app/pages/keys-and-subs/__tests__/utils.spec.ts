@@ -297,13 +297,33 @@ describe('findMaaSModelBySubscriptionRef', () => {
     expect(findMaaSModelBySubscriptionRef(colliding, { refName: 'qwen' })).toBeUndefined();
   });
 
-  it('should resolve via subscription entitlement when only one model is entitled', () => {
+  it('should resolve via entitlement only when only one model_ref', () => {
     expect(
       findMaaSModelBySubscriptionRef(models, {
         refName: 'unknown-ref',
         subscriptionId: 'qwen25-free-subscription',
+        subscriptionModelRefCount: 1,
       })?.id,
     ).toBe('publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct');
+  });
+
+  it('should not substitute an entitled catalog model when the subscription has multiple refs', () => {
+    const catalog = [
+      {
+        id: 'publishers/team/models/model-123',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team/model-123',
+        subscriptions: [{ name: 'griffin-sub' }],
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, {
+        refName: 'a',
+        refNamespace: 'team',
+        subscriptionId: 'griffin-sub',
+        subscriptionModelRefCount: 2,
+      }),
+    ).toBeUndefined();
   });
 
   it('should fall back to matching the last path segment', () => {

@@ -518,6 +518,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
           refNamespace: selectedModelRef?.namespace,
           catalogModelId: selectedModelRef?.model_name,
           subscriptionId: subscriptionIdHeader,
+          subscriptionModelRefCount: selectedSubscription?.model_refs.length,
         })
       : undefined;
   const usageExampleModelId = selectedMaaSModel?.id ?? '';

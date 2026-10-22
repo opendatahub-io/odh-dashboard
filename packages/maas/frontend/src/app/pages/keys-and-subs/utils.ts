@@ -165,6 +165,7 @@ export type FindMaaSModelBySubscriptionRefOptions = {
   catalogModelId?: string;
   /** Subscription id header — used with catalog `subscriptions[].name`. */
   subscriptionId?: string;
+  subscriptionModelRefCount?: number;
 };
 
 type CatalogModelMatchFields = {
@@ -190,7 +191,8 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
   models: T[],
   options: FindMaaSModelBySubscriptionRefOptions,
 ): T | undefined => {
-  const { refName, refNamespace, catalogModelId, subscriptionId } = options;
+  const { refName, refNamespace, catalogModelId, subscriptionId, subscriptionModelRefCount } =
+    options;
   if (!refName && !catalogModelId) {
     return undefined;
   }
@@ -236,7 +238,7 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
     }
   }
 
-  if (subscriptionId) {
+  if (subscriptionId && subscriptionModelRefCount === 1) {
     const entitled = models.filter((model) =>
       model.subscriptions?.some((sub) => sub.name === subscriptionId),
     );
