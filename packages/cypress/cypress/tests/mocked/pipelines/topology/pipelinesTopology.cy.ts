@@ -422,6 +422,27 @@ describe('Pipeline topology', () => {
       pipelineDetails.findGroupButton('for-loop-2').should('be.focused');
     });
 
+    it('focuses the open drawer when the same collapsed-group task is selected again', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+    });
+
     it('keeps focus on the group toggle after leaving a selected task', () => {
       initIntercepts(mockGroupedVersion);
       pipelineDetails.visit(

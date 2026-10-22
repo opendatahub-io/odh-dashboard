@@ -23,7 +23,7 @@ import { BanIcon } from '@patternfly/react-icons';
 import { PipelineNodeModelExpanded, StandardTaskNodeData } from '#~/concepts/topology/types';
 import NodeStatusIcon from '#~/concepts/topology/NodeStatusIcon';
 import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
-import { getPipelineTaskStatusLabel, getRunStatusLabel } from '#~/concepts/topology/utils';
+import { getPipelineTaskStatusLabel } from '#~/concepts/topology/utils';
 import {
   hideSvgTaskLabelsFromKeyboard,
   isHiddenByCollapsedAncestor,
@@ -47,18 +47,24 @@ type PipelinesDefaultGroupInnerProps = Omit<PipelinesDefaultGroupProps, 'element
   element: Node<PipelineNodeModel, StandardTaskNodeData>;
 };
 
-type AccessibleTaskGroupPillLabelProps = React.ComponentProps<typeof TaskGroupPillLabel> & {
+type TaskGroupLabelContextValue = {
   groupLabel: string;
+  badgeText?: string;
+  status?: RunStatus;
   onActionChange: (handler: ((event: React.MouseEvent) => void) | undefined) => void;
   onLabelLayoutChange: (label: SVGGElement) => void;
 };
 
-const AccessibleTaskGroupPillLabel: React.FC<AccessibleTaskGroupPillLabelProps> = ({
-  groupLabel,
-  onActionChange,
-  onLabelLayoutChange,
-  ...props
-}) => {
+const TaskGroupLabelContext = React.createContext<TaskGroupLabelContextValue | null>(null);
+
+const AccessibleTaskGroupPillLabel: React.FC<React.ComponentProps<typeof TaskGroupPillLabel>> = (
+  props,
+) => {
+  const context = React.useContext(TaskGroupLabelContext);
+  if (!context) {
+    throw new Error('AccessibleTaskGroupPillLabel requires TaskGroupLabelContext');
+  }
+  const { groupLabel, badgeText, status, onActionChange, onLabelLayoutChange } = context;
   const labelRef = React.useRef<SVGGElement>(null);
 
   React.useLayoutEffect(() => {
@@ -91,7 +97,11 @@ const AccessibleTaskGroupPillLabel: React.FC<AccessibleTaskGroupPillLabelProps> 
 
   return (
     <g ref={labelRef} data-testid={`pipeline-group-label-${groupLabel}`}>
-      <TaskGroupPillLabel {...props} />
+      <TaskGroupPillLabel
+        {...props}
+        badge={badgeText}
+        customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
+      />
     </g>
   );
 };
@@ -295,7 +305,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         : undefined;
     const badgeText = iterationCount != null ? `x${iterationCount}` : undefined;
     const groupLabel = element.getLabel();
-    const groupStatusLabel = getRunStatusLabel(status);
+    const groupStatusLabel = getPipelineTaskStatusLabel(state, status);
     const groupAriaLabel = groupStatusLabel
       ? `${groupLabel} task group, ${childCount} ${
           childCount === 1 ? 'task' : 'tasks'
@@ -316,46 +326,45 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       width: NODE_WIDTH / 2 + EXPANDED_TOGGLE_OFFSET_FROM_CENTER,
       height: 26,
     };
-    const GroupLabelComponent = React.useCallback(
-      (props: React.ComponentProps<typeof TaskGroupPillLabel>) => (
-        <AccessibleTaskGroupPillLabel
-          {...props}
-          groupLabel={groupLabel}
-          onActionChange={setExpandedAction}
-          onLabelLayoutChange={updateExpandedControlBounds}
-          badge={badgeText}
-          customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
-        />
-      ),
+    const labelContext = React.useMemo<TaskGroupLabelContextValue>(
+      () => ({
+        groupLabel,
+        badgeText,
+        status,
+        onActionChange: setExpandedAction,
+        onLabelLayoutChange: updateExpandedControlBounds,
+      }),
       [badgeText, groupLabel, setExpandedAction, status, updateExpandedControlBounds],
     );
 
     const groupNode = (
-      <DefaultTaskGroup
-        element={element}
-        collapsible
-        recreateLayoutOnCollapseChange
-        GroupLabelComponent={GroupLabelComponent}
-        selected={selected}
-        onSelect={onSelect}
-        hideDetailsAtMedium
-        centerLabelOnEdge
-        labelPosition={LabelPosition.top}
-        showStatusState
-        hover={isCollapsed ? hover || toggleFocused : toggleFocused || undefined}
-        scaleNode={(hover || toggleFocused) && detailsLevel !== ScaleDetailsLevel.high}
-        customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
-        showLabelOnHover
-        status={status}
-        hiddenDetailsShownStatuses={[
-          RunStatus.Succeeded,
-          RunStatus.Pending,
-          RunStatus.Failed,
-          RunStatus.Cancelled,
-        ]}
-        collapsedHeight={NODE_HEIGHT}
-        collapsedWidth={NODE_WIDTH}
-      />
+      <TaskGroupLabelContext.Provider value={labelContext}>
+        <DefaultTaskGroup
+          element={element}
+          collapsible
+          recreateLayoutOnCollapseChange
+          GroupLabelComponent={AccessibleTaskGroupPillLabel}
+          selected={selected}
+          onSelect={onSelect}
+          hideDetailsAtMedium
+          centerLabelOnEdge
+          labelPosition={LabelPosition.top}
+          showStatusState
+          hover={isCollapsed ? hover || toggleFocused : toggleFocused || undefined}
+          scaleNode={(hover || toggleFocused) && detailsLevel !== ScaleDetailsLevel.high}
+          customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
+          showLabelOnHover
+          status={status}
+          hiddenDetailsShownStatuses={[
+            RunStatus.Succeeded,
+            RunStatus.Pending,
+            RunStatus.Failed,
+            RunStatus.Cancelled,
+          ]}
+          collapsedHeight={NODE_HEIGHT}
+          collapsedWidth={NODE_WIDTH}
+        />
+      </TaskGroupLabelContext.Provider>
     );
 
     return (
