@@ -2,13 +2,13 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -341,38 +341,23 @@ func (c *SimpleMCPClient) createMCPSessionWithInit(ctx context.Context, serverCo
 	return session, initResult, nil
 }
 
-// convertMCPInputSchema converts MCP JSON schema to our generic format
-func convertMCPInputSchema(mcpSchema *jsonschema.Schema) map[string]interface{} {
+// convertMCPInputSchema converts the MCP tool input schema to our generic format.
+// The SDK types InputSchema as any; from a client it holds the server's schema
+// as a JSON value (typically map[string]any). Normalize it via a JSON
+// round-trip so any JSON-marshalable representation becomes a plain map.
+func convertMCPInputSchema(mcpSchema any) map[string]interface{} {
 	if mcpSchema == nil {
 		return map[string]interface{}{}
 	}
 
-	result := make(map[string]interface{})
-
-	if mcpSchema.Type != "" {
-		result["type"] = mcpSchema.Type
-	}
-	if mcpSchema.Title != "" {
-		result["title"] = mcpSchema.Title
-	}
-	if mcpSchema.Description != "" {
-		result["description"] = mcpSchema.Description
+	data, err := json.Marshal(mcpSchema)
+	if err != nil {
+		return map[string]interface{}{}
 	}
 
-	if len(mcpSchema.Properties) > 0 {
-		properties := make(map[string]interface{})
-		for propName, propSchema := range mcpSchema.Properties {
-			properties[propName] = convertMCPInputSchema(propSchema)
-		}
-		result["properties"] = properties
-	}
-
-	if len(mcpSchema.Required) > 0 {
-		result["required"] = mcpSchema.Required
-	}
-
-	if len(mcpSchema.Enum) > 0 {
-		result["enum"] = mcpSchema.Enum
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil || result == nil {
+		return map[string]interface{}{}
 	}
 
 	return result
