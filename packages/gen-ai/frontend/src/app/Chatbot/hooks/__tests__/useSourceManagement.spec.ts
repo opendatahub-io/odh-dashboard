@@ -280,8 +280,48 @@ describe('useSourceManagement', () => {
       expect(mockOnShowSuccessAlert).toHaveBeenCalled();
       expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
 
-      // Check that file status was updated to uploaded
-      expect(result.current.filesWithSettings[0].status).toBe('uploaded');
+      // The completed file is removed from the temporary upload queue immediately
+      expect(result.current.filesWithSettings).toHaveLength(0);
+    });
+
+    it('should show a file during upload and remove its temporary row on success', async () => {
+      let finishUpload: (value: { success: boolean }) => void = () => {
+        throw new Error('Upload has not started');
+      };
+      mockUploadFile.mockImplementation(
+        () =>
+          new Promise<{ success: boolean }>((resolve) => {
+            finishUpload = resolve;
+          }),
+      );
+      const onFileUploadComplete = jest.fn();
+      const { result } = renderHook(() =>
+        useSourceManagement({
+          onShowSuccessAlert: mockOnShowSuccessAlert,
+          onShowErrorAlert: mockOnShowErrorAlert,
+          onFileUploadComplete,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
+      });
+
+      let submitPromise: Promise<void> = Promise.resolve();
+      act(() => {
+        submitPromise = result.current.handleSourceSettingsSubmit(mockSourceSettings);
+      });
+
+      expect(result.current.filesWithSettings).toHaveLength(1);
+      expect(result.current.filesWithSettings[0].status).toBe('uploading');
+
+      await act(async () => {
+        finishUpload({ success: true });
+        await submitPromise;
+      });
+
+      expect(result.current.filesWithSettings).toHaveLength(0);
+      expect(onFileUploadComplete).toHaveBeenCalledTimes(1);
     });
 
     it('should handle upload failure and show error alert', async () => {
