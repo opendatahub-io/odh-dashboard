@@ -14,7 +14,7 @@ type MeEnvelope Envelope[*models.MaaSCallerIdentity, None]
 func localCallerIdentity() *models.MaaSCallerIdentity {
 	return &models.MaaSCallerIdentity{
 		Sub:   "00u7a1b2c3d4e5f6g7h8",
-		Email: "alix@grid-tenant-1.com",
+		Email: "alice@grid-tenant-1.com",
 		Name:  "Alice Smith",
 		Orgs: []models.MaaSOrg{
 			{

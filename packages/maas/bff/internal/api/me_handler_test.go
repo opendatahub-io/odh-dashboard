@@ -35,11 +35,11 @@ func TestGetMeHandlerReturnsHardcodedIdentity(t *testing.T) {
 	if me.Sub != "00u7a1b2c3d4e5f6g7h8" {
 		t.Errorf("sub = %q, want 00u7a1b2c3d4e5f6g7h8", me.Sub)
 	}
-	if me.Email != "alex@grid-tenant-1.com" {
-		t.Errorf("email = %q, want alex@grid-tenant-1.com", me.Email)
+	if me.Email != "alice@grid-tenant-1.com" {
+		t.Errorf("email = %q, want alice@grid-tenant-1.com", me.Email)
 	}
-	if me.Name != "Alex Doe" {
-		t.Errorf("name = %q, want Alex Doe", me.Name)
+	if me.Name != "Alice Smith" {
+		t.Errorf("name = %q, want Alice Smith", me.Name)
 	}
 	if len(me.Orgs) != 1 {
 		t.Fatalf("orgs = %d, want 1", len(me.Orgs))
@@ -48,8 +48,8 @@ func TestGetMeHandlerReturnsHardcodedIdentity(t *testing.T) {
 	if org.OrganizationID != "42c3e46f-2477-44d7-a85b-d3b43f6b31fa" {
 		t.Errorf("organization_id = %q, want 42c3e46f-2477-44d7-a85b-d3b43f6b31fa", org.OrganizationID)
 	}
-	if org.OrganizationName != "coke" {
-		t.Errorf("organization_name = %q, want coke", org.OrganizationName)
+	if org.OrganizationName != "acme" {
+		t.Errorf("organization_name = %q, want acme", org.OrganizationName)
 	}
 	if org.Roles == nil {
 		t.Error("roles is nil, want an empty array")

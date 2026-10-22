@@ -2,7 +2,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
@@ -40,7 +40,12 @@ const mockNotificationWarning = jest.fn();
 const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
 let mockConnectionModalProps: ConnectionModalProps | undefined;
 let mockS3FileExplorerProps:
-  { selectableExtensions?: string[]; unselectableReason?: string } | undefined;
+  | {
+      selectableExtensions?: string[];
+      unselectableReason?: string;
+      modalDescription?: React.ReactNode;
+    }
+  | undefined;
 
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
@@ -234,16 +239,19 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
     onClose,
     selectableExtensions,
     unselectableReason,
+    modalDescription,
   }: {
     isOpen: boolean;
     onSelectFiles: (files: ExplorerFiles) => void;
     onClose: () => void;
     selectableExtensions?: string[];
     unselectableReason?: string;
+    modalDescription?: React.ReactNode;
   }) => {
-    mockS3FileExplorerProps = { selectableExtensions, unselectableReason };
+    mockS3FileExplorerProps = { selectableExtensions, unselectableReason, modalDescription };
     return isOpen ? (
       <div data-testid="file-explorer-modal">
+        <div data-testid="file-explorer-modal-description">{modalDescription}</div>
         <button
           data-testid="file-explorer-select-file"
           onClick={() => {
@@ -667,6 +675,15 @@ describe('AutoragConfigure', () => {
       ).toBeInTheDocument();
     });
 
+    it('should expose supported file types from the knowledge setup heading', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      const helpButton = screen.getByRole('button', { name: 'View supported file types' });
+      fireEvent.click(helpButton);
+      expect(screen.getByText('Supported file types')).toBeInTheDocument();
+    });
+
     it('should NOT show document input toggle when no secret is selected', () => {
       renderComponent();
 
@@ -724,6 +741,11 @@ describe('AutoragConfigure', () => {
 
       // Verify the "Select file or folder" section is displayed
       expect(screen.getByRole('heading', { name: 'Select file or folder' })).toBeInTheDocument();
+      expect(
+        screen.getAllByText(
+          'Select or upload documents to use as the knowledge for your experiment.',
+        ).length,
+      ).toBeGreaterThan(0);
     });
 
     it('should display the "Browse bucket" button when a secret is selected', () => {
@@ -758,6 +780,24 @@ describe('AutoragConfigure', () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
       expect(screen.getByText(/Drop a file here or browse to select a file/)).toBeInTheDocument();
+    });
+
+    it('should expose supported file types from both knowledge setup headings', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      expect(screen.getAllByRole('button', { name: 'View supported file types' })).toHaveLength(1);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      expect(
+        within(screen.getByTestId('file-explorer-modal-description')).getByRole('button', {
+          name: 'View supported file types',
+        }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('file-explorer-cancel'));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+      expect(screen.getAllByRole('button', { name: 'View supported file types' })).toHaveLength(1);
     });
 
     it('should not upload an oversized file and should show a notification', () => {
