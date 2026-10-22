@@ -699,6 +699,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: source
           description: |-
             Filter models by source. This parameter may be included multiple
@@ -747,6 +748,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
       responses:
         "200":
           $ref: "#/components/responses/FilterOptionsResponse"
@@ -767,6 +769,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - $ref: "#/components/parameters/name"
         - $ref: "#/components/parameters/assetType"
         - $ref: "#/components/parameters/pageSize"
@@ -796,6 +799,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - $ref: "#/components/parameters/assetType"
         - $ref: "#/components/parameters/pageSize"
         - $ref: "#/components/parameters/orderBy"
@@ -823,6 +827,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -854,6 +859,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -888,6 +894,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -924,6 +931,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -2447,6 +2455,14 @@ components:
         - $ref: "#/components/schemas/BaseArtifactCreate"
         - $ref: "#/components/schemas/ModelArtifactUpdate"
     Error:
+      description: BFF error response envelope.
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+    ErrorDetail:
       description: Error code and message.
       required:
         - code
@@ -4999,37 +5015,67 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogModelArtifactList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogModelArtifactList"
       description: A response containing a list of CatalogArtifact entities.
     CatalogModelListResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogModelList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogModelList"
       description: A response containing a list of CatalogModel entities.
     CatalogModelResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogModel"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogModel"
       description: A response containing a `CatalogModel` entity.
     CatalogSourceListResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogSourceList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogSourceList"
       description: A response containing a list of CatalogSource entities.
     CatalogLabelListResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogLabelList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogLabelList"
       description: A response containing a list of CatalogLabel entities.
     FilterOptionsResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/FilterOptionsList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/FilterOptionsList"
       description: A response containing options for a `filterQuery` parameter.
     CatalogSourcePreviewResponse:
       content:
@@ -5369,6 +5415,14 @@ components:
         type: string
       in: query
       required: false
+    modelCatalogNamespace:
+      name: namespace
+      description: The namespace to read Model Catalog resources from.
+      schema:
+        type: string
+        minLength: 1
+      in: query
+      required: true
     filterQuery:
       examples:
         filterQuery:

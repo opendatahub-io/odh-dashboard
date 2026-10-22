@@ -93,6 +93,13 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 	// Create external model
 	response, err := app.repositories.ExternalModels.CreateExternalModel(client, ctx, identity, namespace, req)
 	if err != nil {
+		// A duplicate model ID is a deterministic registration conflict, not a
+		// server failure — surface it as 409 so clients can distinguish it.
+		var dupErr *kubernetes.DuplicateModelError
+		if errors.As(err, &dupErr) {
+			app.conflictResponse(w, r, err)
+			return
+		}
 		app.serverErrorResponse(w, r, err)
 		return
 	}

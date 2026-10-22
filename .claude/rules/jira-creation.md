@@ -24,7 +24,6 @@ User requests Jira creation (e.g., "create jira", "make jira tickets", "log a bu
   | Tangerine | RHAI Tangerine | `9679da1b-1866-4348-b65c-5ba033e9b761` | `dashboard-tangerine-scrum` |
   | Crimson | RHAI Crimson | `c6e27e7d-7675-4a9c-98cc-1625898636ba` | `dashboard-crimson-scrum` |
   | Razzmatazz | RHAI Razzmatazz | `a3b9f319-0849-47bb-a8ee-ac908b882105` | `dashboard-razzmatazz-scrum` |
-  | Onyx | RHAI Onyx | `2c35865b-83c2-4931-911f-041d57c82532` | `dashboard-onyx-scrum` |
   | Zaffre | RHAI Zaffre | `c1466179-4c13-43a4-895d-c632789ded28` | `dashboard-zaffre-scrum` |
   | Green | RHAI Green | `cffa1fd0-e59a-4305-b39e-1d40ae31112e` | `dashboard-green-scrum` |
   | Purple | RHAI Purple | `2cddc7b3-7a62-4be8-942d-1e160767cef1` | `dashboard-purple-scrum` |
@@ -464,7 +463,6 @@ Always include the scrum team label when creating an issue. These correspond to 
 * `dashboard-tangerine-scrum`
 * `dashboard-crimson-scrum`
 * `dashboard-razzmatazz-scrum`
-* `dashboard-onyx-scrum`
 * `dashboard-zaffre-scrum`
 * `dashboard-green-scrum`
 * `dashboard-purple-scrum`

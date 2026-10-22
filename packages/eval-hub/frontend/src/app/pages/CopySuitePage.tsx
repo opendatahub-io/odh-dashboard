@@ -32,8 +32,8 @@ import {
 } from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
 import {
-  CURATED_COLLECTION_PREREQUISITES,
   CURATED_SUITE_PAGE_CONFIG,
+  getCuratedCollectionConfig,
   isCuratedEvaluationTarget,
   type CuratedEvaluationTarget,
 } from '~/app/curatedSuiteConfig';
@@ -41,7 +41,6 @@ import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
 import CopySuiteSettingsStep from '~/app/pages/CopySuiteSettingsStep';
-import { suiteEvaluatesToSourceMode } from '~/app/utilities/startEvaluationRunUtils';
 import type { Collection } from '~/app/types';
 import { useCopySuiteForm } from './useCopySuiteForm';
 
@@ -87,10 +86,11 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     { initialPromisePurity: true },
   );
   const sourceCollection = isCreateMode ? undefined : fetchedCollection;
-  const prerequisite =
+  const curatedCollectionConfig =
     mode === 'copy' && sourceCollection && !sourceCollection.resource.tenant
-      ? CURATED_COLLECTION_PREREQUISITES[sourceCollection.resource.id]
+      ? getCuratedCollectionConfig(sourceCollection)
       : undefined;
+  const prerequisite = curatedCollectionConfig?.prerequisite.long;
 
   const navigationState = location.state;
   const isEvaluateOrigin =
@@ -450,6 +450,8 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
               <CopySuiteBenchmarkSelectionStep
                 providers={providers}
                 selectedBenchmarkKeys={form.selectedBenchmarkKeys}
+                collectionCategories={form.suiteDomains}
+                prefilterProviders={!isCreateMode}
                 isInteractionDisabled={isPageInteractionDisabled}
                 onNext={(selectedKeys) => {
                   form.applyBenchmarkSelection(selectedKeys);
@@ -468,6 +470,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
                 isValid={form.isValid}
                 isSubmitting={isPageInteractionDisabled}
                 isInteractionDisabled={isPageInteractionDisabled}
+                parameterConfig={curatedCollectionConfig?.parameters}
                 onUpdateBenchmark={form.updateBenchmark}
                 onWeightsChange={form.handleWeightsChange}
                 onBack={() => setCurrentStep('selectBenchmarks')}
@@ -494,7 +497,6 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             collection={pendingCollection}
             isCollectionFlow
             defaultEvaluationName={form.suiteName}
-            defaultSourceMode={suiteEvaluatesToSourceMode(form.suiteEvaluates)}
             modalId={
               isCreateMode
                 ? 'create-suite-run-evaluation-modal'

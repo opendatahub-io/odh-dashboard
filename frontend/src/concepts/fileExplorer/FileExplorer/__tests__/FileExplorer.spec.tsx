@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import type { ExplorerFile, ExplorerFiles } from '#~/concepts/fileExplorer/types';
 import FileExplorer, {
@@ -62,6 +63,88 @@ describe('FileExplorer', () => {
     });
   });
   describe('file table', () => {
+    it.each([
+      {
+        description: 'file names that fit',
+        createFile: () => mockFile({ name: 'short.csv', path: '/short.csv' }),
+        textWidth: 40,
+      },
+      {
+        description: 'file names that overflow',
+        createFile: () =>
+          mockFile({
+            name: 'a-very-long-file-name-that-needs-to-be-truncated.csv',
+            path: '/a-very-long-file-name-that-needs-to-be-truncated.csv',
+          }),
+        textWidth: 320,
+      },
+      {
+        description: 'folder names that fit',
+        createFile: () => mockFolder({ name: 'data', path: '/data' }),
+        textWidth: 40,
+      },
+      {
+        description: 'folder names that overflow',
+        createFile: () =>
+          mockFolder({
+            name: 'a-very-long-folder-name-that-needs-to-be-truncated',
+            path: '/a-very-long-folder-name-that-needs-to-be-truncated',
+          }),
+        textWidth: 320,
+      },
+    ])('should show exactly one tooltip for $description', async ({ createFile, textWidth }) => {
+      const user = userEvent.setup();
+      const file = createFile();
+      const originalScrollWidth = Object.getOwnPropertyDescriptor(
+        HTMLElement.prototype,
+        'scrollWidth',
+      );
+      // Truncate captures the text width on mount, before its resize callback runs.
+      Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+        configurable: true,
+        get() {
+          return this.textContent === file.name ? textWidth : 0;
+        },
+      });
+      try {
+        render(<FileExplorer {...defaultProps} files={[file]} />);
+
+        const row = screen.getByTestId(`file-explorer-row-${sanitizeId(file.path)}`);
+        const name = within(row).getByText(file.name);
+        const truncateWrapper = name.parentElement;
+        const widthContainer = truncateWrapper?.parentElement;
+        if (!truncateWrapper || !(widthContainer instanceof HTMLElement)) {
+          throw new Error('Expected Truncate to render inside a measurable container');
+        }
+
+        // jsdom has no layout. Supply the container width, then trigger the
+        // debounced measurement for both fitting and overflowing names.
+        widthContainer.style.width = '120px';
+        widthContainer.style.padding = '0px';
+        widthContainer.style.border = '0px solid';
+        jest.useFakeTimers();
+        act(() => {
+          fireEvent.resize(window);
+          jest.advanceTimersByTime(500);
+        });
+        jest.useRealTimers();
+
+        expect(truncateWrapper.hasAttribute('tabindex')).toBe(textWidth >= 120);
+        await user.hover(name);
+
+        const tooltips = await screen.findAllByRole('tooltip');
+        expect(tooltips).toHaveLength(1);
+        expect(tooltips[0]).toHaveTextContent(file.name);
+      } finally {
+        jest.useRealTimers();
+        if (originalScrollWidth) {
+          Object.defineProperty(HTMLElement.prototype, 'scrollWidth', originalScrollWidth);
+        } else {
+          Reflect.deleteProperty(HTMLElement.prototype, 'scrollWidth');
+        }
+      }
+    });
+
     it('should render file rows', () => {
       const files = mockFiles(3);
       render(<FileExplorer {...defaultProps} files={files} />);

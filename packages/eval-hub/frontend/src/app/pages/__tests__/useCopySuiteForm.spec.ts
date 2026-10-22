@@ -62,7 +62,7 @@ const sourceCollection: Collection = {
   name: 'Curated suite',
   description: 'A curated description',
   category: 'language',
-  domains: ['reasoning', 'safety'],
+  domains: ['reasoning', 'trustworthiness'],
   tasks: ['text-generation'],
   modalities: ['text'],
   industries: ['technology'],
@@ -202,7 +202,7 @@ describe('createBenchmarkFromKey', () => {
       buildPendingCollection({
         suiteName: 'New suite',
         suiteDescription: 'A new description',
-        suiteDomains: ['safety'],
+        suiteDomains: ['trustworthiness'],
         suiteTasks: [],
         suiteModalities: [],
         suiteIndustries: [],
@@ -259,7 +259,7 @@ describe('useCopySuiteForm', () => {
     );
 
     expect(result.result.current.suiteDescription).toBe('A curated description');
-    expect(result.result.current.suiteDomains).toEqual(['reasoning', 'safety']);
+    expect(result.result.current.suiteDomains).toEqual(['reasoning', 'trustworthiness']);
     expect(result.result.current.suiteTasks).toEqual(['text-generation']);
     expect(result.result.current.suiteModalities).toEqual(['text']);
     expect(result.result.current.suiteIndustries).toEqual(['technology']);
@@ -497,14 +497,28 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.suiteIndustries).toEqual(['technology']);
   });
 
-  it('should fall back to the source category when domains are absent', async () => {
+  it('should fall back to a supported source category when domains are absent', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        domains: undefined,
+        category: 'trustworthiness',
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteDomains).toEqual(['trustworthiness']);
+  });
+
+  it('should not copy a legacy category into domains when it is not supported', async () => {
     const result = renderForm({
       sourceCollection: { ...sourceCollection, domains: undefined, category: 'safety' },
     });
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteDomains).toEqual(['safety']);
+    expect(result.result.current.suiteDomains).toEqual([]);
   });
 
   it('should preserve an explicitly empty domains array instead of falling back to category', async () => {
@@ -536,7 +550,7 @@ describe('useCopySuiteForm', () => {
       result.result.current.form.setValue('suiteDescription', 'A new suite', {
         shouldValidate: true,
       });
-      result.result.current.form.setValue('suiteDomains', ['safety', 'reasoning'], {
+      result.result.current.form.setValue('suiteDomains', ['trustworthiness', 'reasoning'], {
         shouldValidate: true,
       });
       result.result.current.form.setValue('suiteEvaluates', ['model'], {
@@ -565,7 +579,7 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({
         name: 'New suite',
         description: 'A new suite',
-        domains: ['safety', 'reasoning'],
+        domains: ['trustworthiness', 'reasoning'],
         evaluation_targets: ['model'],
         benchmarks: [
           expect.objectContaining({
@@ -1234,6 +1248,43 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.benchmarks[1].id).toBe('benchmark-two');
   });
 
+  it('should show the judge model field only on benchmarks that define it', async () => {
+    const trustworthinessCollection: Collection = {
+      ...sourceCollection,
+      resource: { id: 'trustworthiness-v1' },
+      benchmarks: [
+        {
+          ...sourceCollection.benchmarks![0],
+          parameters: { ...sourceCollection.benchmarks![0].parameters, judge_model: '' },
+        },
+      ],
+    };
+    const result = renderForm({ sourceCollection: trustworthinessCollection });
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    expect(result.result.current.benchmarks[0].parameters).toEqual([
+      { key: 'judge_model', type: 'text', value: '' },
+      { key: 'num_examples', type: 'number', value: 250 },
+      { key: 'num_few_shot', type: 'number', value: 3 },
+    ]);
+
+    act(() =>
+      result.result.current.applyBenchmarkSelection([
+        'provider-one:benchmark-one',
+        'provider-two:benchmark-two',
+      ]),
+    );
+
+    expect(result.result.current.benchmarks).toHaveLength(2);
+    const addedBenchmark = result.result.current.benchmarks.find(
+      ({ id }) => id === 'benchmark-two',
+    );
+    expect(addedBenchmark?.parameters).toEqual([
+      { key: 'num_examples', type: 'number', value: 100 },
+      { key: 'num_few_shot', type: 'number', value: 2 },
+    ]);
+  });
+
   it('should preserve nonuniform weights when saving an unchanged catalog selection', async () => {
     const collectionWithNonuniformWeights: Collection = {
       ...sourceCollection,
@@ -1475,7 +1526,7 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({
         name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
-        domains: ['reasoning', 'safety'],
+        domains: ['reasoning', 'trustworthiness'],
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
@@ -1655,7 +1706,7 @@ describe('useCopySuiteForm', () => {
         name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
         category: 'language',
-        domains: ['reasoning', 'safety'],
+        domains: ['reasoning', 'trustworthiness'],
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],

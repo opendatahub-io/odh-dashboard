@@ -27,6 +27,8 @@ import TypeaheadSelect, {
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { useLabels } from '~/app/hooks/useLabels';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import {
   DEFAULT_FORMATS,
   STRUCTURED_FORMAT_OPTIONS,
@@ -37,6 +39,7 @@ type AssetFormData = RegisterDataFormData | EditAssetFormData;
 
 type EditModeProps = {
   isEditMode?: boolean;
+  project?: string;
 };
 
 export const RegistrationIdentitySection: React.FC<EditModeProps> = ({ isEditMode = false }) => {
@@ -105,8 +108,12 @@ export const RegistrationIdentitySection: React.FC<EditModeProps> = ({ isEditMod
   );
 };
 
-export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEditMode = false }) => {
+export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({
+  isEditMode = false,
+  project,
+}) => {
   const { control, setValue, watch } = useFormContext<AssetFormData>();
+  const trackEvent = useDataRegistryTrackEvent();
   const assetType = watch('assetType');
   const [isAssetTypeOpen, setIsAssetTypeOpen] = React.useState(false);
   const [isFormatOpen, setIsFormatOpen] = React.useState(false);
@@ -148,6 +155,16 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
                 selected={field.value}
                 onSelect={(_event, value) => {
                   const newType = String(value);
+                  if (
+                    project &&
+                    newType !== field.value &&
+                    (newType === 'structured' || newType === 'unstructured')
+                  ) {
+                    trackEvent({
+                      eventName: DATA_REGISTRY_EVENT_NAMES.assetTypeSelected,
+                      properties: { assetType: newType, project },
+                    });
+                  }
                   field.onChange(newType);
                   setValue('format', DEFAULT_FORMATS[newType]);
                   setValue('schemaFields', []);
@@ -197,7 +214,14 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({ isEdit
               isOpen={isFormatOpen}
               selected={field.value}
               onSelect={(_event, value) => {
-                field.onChange(String(value));
+                const newFormat = String(value);
+                if (!isEditMode && project && newFormat !== field.value) {
+                  trackEvent({
+                    eventName: DATA_REGISTRY_EVENT_NAMES.formatSelected,
+                    properties: { format: newFormat, project },
+                  });
+                }
+                field.onChange(newFormat);
                 setIsFormatOpen(false);
               }}
               onOpenChange={setIsFormatOpen}
@@ -258,6 +282,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
     watch,
   } = useFormContext<AssetFormData>();
   const [availableLabels] = useLabels(project);
+  const trackEvent = useDataRegistryTrackEvent();
   const labels = watch('labels');
   const [isCollectionOpen, setIsCollectionOpen] = React.useState(false);
   const [createdLabels, setCreatedLabels] = React.useState<string[]>([]);
@@ -341,7 +366,18 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
                     onManageCollections?.();
                     return;
                   }
-                  field.onChange(String(value));
+                  const newCollection = String(value);
+                  if (newCollection !== field.value) {
+                    trackEvent({
+                      eventName: DATA_REGISTRY_EVENT_NAMES.collectionSelectionChanged,
+                      properties: {
+                        initialCollection: 'none',
+                        selectedCollection: newCollection === 'default' ? 'default' : 'custom',
+                        project,
+                      },
+                    });
+                  }
+                  field.onChange(newCollection);
                   setIsCollectionOpen(false);
                 }}
                 onOpenChange={setIsCollectionOpen}
@@ -408,14 +444,31 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
                 maxMenuHeight="20rem"
                 onSelect={(_event, value) => {
                   const selectedLabel = String(value);
+                  const currentLabels = getValues('labels');
+                  const isDuplicate = currentLabels.some(
+                    (currentLabel, currentIndex) =>
+                      currentIndex !== index &&
+                      currentLabel.trim().toLocaleLowerCase() ===
+                        selectedLabel.trim().toLocaleLowerCase(),
+                  );
+                  if (
+                    !isEditMode &&
+                    selectedLabel.trim() &&
+                    selectedLabel !== currentLabels[index] &&
+                    !isDuplicate
+                  ) {
+                    trackEvent({
+                      eventName: DATA_REGISTRY_EVENT_NAMES.labelAdded,
+                      properties: { project },
+                    });
+                  }
                   if (!labelOptions.some((option) => option.value === selectedLabel)) {
-                    setCreatedLabels((currentLabels) =>
-                      currentLabels.includes(selectedLabel)
-                        ? currentLabels
-                        : [...currentLabels, selectedLabel],
+                    setCreatedLabels((existingCreatedLabels) =>
+                      existingCreatedLabels.includes(selectedLabel)
+                        ? existingCreatedLabels
+                        : [...existingCreatedLabels, selectedLabel],
                     );
                   }
-                  const currentLabels = getValues('labels');
                   setValue(
                     'labels',
                     currentLabels.map((currentLabel, currentIndex) =>

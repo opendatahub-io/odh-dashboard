@@ -34,6 +34,7 @@ export type AWSS3BucketDetails = {
 export type AWSS3Buckets = {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
+  AWS_CA_BUNDLE?: string;
   BUCKET_1: AWSS3BucketDetails;
   BUCKET_2: AWSS3BucketDetails;
   BUCKET_3: AWSS3BucketDetails;
@@ -158,6 +159,26 @@ export type KueueQuotaUsageNavigationTestData = {
   acceleratorQuota: number;
   cohortTypeLabel: string;
   clusterQueueTypeLabel: string;
+};
+
+export type InfrastructureWorkloadsTestData = {
+  managedProjectName: string;
+  nonKueueProjectName: string;
+  emptyProjectName: string;
+  trainJobName: string;
+  trainingRuntimeName: string;
+  managedProjectWorkbenchName: string;
+  nonKueueProjectWorkbenchName: string;
+  resourceFlavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  initialCpuQuota: number;
+  memoryQuota: number;
+  notebookImage: string;
+  hardwareProfileName: string;
+  nonKueueLabel: string;
+  priorityClassColumnLabel: string;
+  expectedQueuePosition: number;
 };
 
 export type WBControlSuiteTestData = {
@@ -303,6 +324,7 @@ export type TestConfig = {
   TEST_USER_5: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
+  AWS_CLI_IMAGE?: string;
   APPLICATIONS_NAMESPACE: NamespaceConfig;
   ODH_DASHBOARD_PROJECT_NAME: string;
   PIP_INDEX_URL: string;
@@ -405,6 +427,18 @@ export type RoutingTestData = DataScienceProjectData & {
   modelLocationURI: string;
   deploymentMethod: string;
   defaultRoutingLabel: string;
+};
+
+/** Gateway MultiSelection option identity (UI label is `${name} | ${namespace}`). */
+export type MultiGatewayFixtureRef = {
+  name: string;
+  namespace: string;
+};
+
+export type MultiGatewayTestData = DataScienceProjectData & {
+  gatewayA: MultiGatewayFixtureRef;
+  gatewayB: MultiGatewayFixtureRef;
+  cpuContainerImage: string;
 };
 
 export type AcceleratorTestData = DataScienceProjectData & {

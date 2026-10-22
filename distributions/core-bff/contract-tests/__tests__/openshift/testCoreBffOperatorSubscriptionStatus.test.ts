@@ -37,7 +37,7 @@ describe('Core BFF Operator Subscription Status - OpenShift Platform', () => {
       for (const client of [apiClient, restrictedClient]) {
         const result = expectSuccess(await client.get('/api/operator-subscription-status'));
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/OperatorSubscriptionStatusResponse/content/application/json/schema',
+          ref: '#/components/responses/OperatorSubscriptionStatusResponse/content/application~1json/schema',
           status: 200,
         });
         expect(result.response.data).toEqual({

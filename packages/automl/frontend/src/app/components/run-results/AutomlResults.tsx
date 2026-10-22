@@ -264,6 +264,7 @@ function AutomlResults(): React.JSX.Element {
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
+            namespace={namespace}
             showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
               hasStageMapTask,
               hasComponentStageMap: Boolean(componentStageMap),

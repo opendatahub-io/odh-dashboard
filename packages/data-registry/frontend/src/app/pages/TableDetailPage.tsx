@@ -35,6 +35,8 @@ import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import { browseUrl } from '~/app/utilities/routes';
 import { getAssetDetailConnectionWarnings } from '~/app/utilities/connectionUtils';
 import { useNotification } from '~/app/hooks/useNotification';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import EditAssetModal from '~/app/components/EditAssetModal';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
@@ -51,6 +53,7 @@ const TableDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const notification = useNotification();
+  const trackEvent = useDataRegistryTrackEvent();
 
   const isVolume = assetType === 'volume';
 
@@ -247,7 +250,15 @@ const TableDetailPage: React.FC = () => {
         <DropdownList>
           <DropdownItem
             key="edit"
-            onClick={() => setIsEditModalOpen(true)}
+            onClick={() => {
+              if (project) {
+                trackEvent({
+                  eventName: DATA_REGISTRY_EVENT_NAMES.assetEditInitiated,
+                  properties: { project },
+                });
+              }
+              setIsEditModalOpen(true);
+            }}
             isDisabled={!hasWriteAccess}
             data-testid="asset-action-edit"
           >
@@ -256,7 +267,15 @@ const TableDetailPage: React.FC = () => {
           <Divider component="li" />
           <DropdownItem
             key="delete"
-            onClick={() => setIsDeleteModalOpen(true)}
+            onClick={() => {
+              if (project) {
+                trackEvent({
+                  eventName: DATA_REGISTRY_EVENT_NAMES.assetDeleteInitiated,
+                  properties: { project },
+                });
+              }
+              setIsDeleteModalOpen(true);
+            }}
             isDisabled={!hasWriteAccess}
             isDanger
             data-testid="asset-action-delete"

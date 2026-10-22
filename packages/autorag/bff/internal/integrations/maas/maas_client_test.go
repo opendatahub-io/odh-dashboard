@@ -126,6 +126,20 @@ func TestDefaultHTTPClientRejectsActualRequestWithoutConfiguredRootCA(t *testing
 	assert.ErrorAs(t, err, &unknownAuthority)
 }
 
+func TestDefaultHTTPClientHasTimeoutBackstop(t *testing.T) {
+	client := NewDefaultHTTPClient(MaaSClientConfig{})
+	assert.Equal(t, maasRequestTimeout, client.Timeout,
+		"default MaaS HTTP client must carry a timeout backstop for callers without their own deadline")
+}
+
+func TestClientFactoryInheritsTimeoutBackstop(t *testing.T) {
+	factory := NewClientFactoryWithHTTPClient(NewDefaultHTTPClient(MaaSClientConfig{}))
+	client, err := factory("https://maas.example.com", "test-key")
+	require.NoError(t, err)
+	assert.Equal(t, maasRequestTimeout, client.http.Timeout,
+		"per-secret clients cloned by the factory must keep the timeout backstop")
+}
+
 func TestClientFactoryDevInsecureTLSReachesResponsesClient(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

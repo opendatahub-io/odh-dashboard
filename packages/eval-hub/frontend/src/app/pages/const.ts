@@ -1,5 +1,6 @@
 export enum BenchmarkFilterOptions {
   category = 'Category',
+  evaluates = 'Evaluates',
   name = 'Name',
   metrics = 'Metrics',
   framework = 'Framework',
@@ -7,6 +8,7 @@ export enum BenchmarkFilterOptions {
 
 export type BenchmarkFilterDataType = {
   [BenchmarkFilterOptions.category]: string[];
+  [BenchmarkFilterOptions.evaluates]: string[];
   [BenchmarkFilterOptions.name]: string;
   [BenchmarkFilterOptions.metrics]: string[];
   [BenchmarkFilterOptions.framework]: string[];
@@ -14,6 +16,7 @@ export type BenchmarkFilterDataType = {
 
 export const initialBenchmarkFilterData: BenchmarkFilterDataType = {
   [BenchmarkFilterOptions.category]: [],
+  [BenchmarkFilterOptions.evaluates]: [],
   [BenchmarkFilterOptions.name]: '',
   [BenchmarkFilterOptions.metrics]: [],
   [BenchmarkFilterOptions.framework]: [],
@@ -32,18 +35,26 @@ export const SUITE_EVALUATES_MENU_OPTIONS = [
   // 'traces',
 ] as const;
 
+export const COLLECTION_CATEGORY_OPTIONS = [
+  'grounded_document_understanding',
+  'instruction_and_output_reliability',
+  'knowledge_and_reasoning',
+  'multilingual',
+  'multimodal',
+  'software',
+  'tool_use_and_function_calling',
+  'trustworthiness',
+] as const;
+
+export type CollectionCategory = (typeof COLLECTION_CATEGORY_OPTIONS)[number];
+
+const COLLECTION_CATEGORY_SET = new Set<string>(COLLECTION_CATEGORY_OPTIONS);
+
+export const isCollectionCategory = (value: unknown): value is CollectionCategory =>
+  typeof value === 'string' && COLLECTION_CATEGORY_SET.has(value);
+
 export const COLLECTION_METADATA_OPTIONS = {
-  domains: [
-    'grounded_document_understanding',
-    'instruction_and_output_reliability',
-    'knowledge_and_reasoning',
-    'multilingual',
-    'multimodal',
-    'safety',
-    'software',
-    'tool_use_and_function_calling',
-    'trustworthiness',
-  ],
+  domains: COLLECTION_CATEGORY_OPTIONS,
   tasks: [
     'abstention',
     'adversarial_injection',

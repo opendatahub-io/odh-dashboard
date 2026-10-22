@@ -8,6 +8,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -1424,6 +1425,58 @@ func TestSetDefaultPgvectorProvider(t *testing.T) {
 		assert.Len(t, config.RegisteredResources.Models, 1, "registered models unchanged")
 		assert.Equal(t, "sentence-transformers", config.VectorStores.DefaultEmbeddingModel.ProviderID,
 			"default embedding model unchanged")
+	})
+}
+
+func TestAddProxyRoutedEmbeddingModel(t *testing.T) {
+	t.Run("registers model under genai-bff-proxy with embedding type and no provider entry", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddProxyRoutedEmbeddingModel("gemini-embedding-001", map[string]interface{}{
+			"display_name": "Gemini Embedding",
+		}, nil)
+
+		// No inference provider entry is created — genai-bff-proxy is added separately by
+		// the caller (NewDefaultLlamaStackConfig seeds only the sentence-transformers provider).
+		require.Len(t, config.Providers.Inference, 1)
+		assert.Equal(t, "sentence-transformers", config.Providers.Inference[0].ProviderID)
+		for _, p := range config.Providers.Inference {
+			assert.NotEqual(t, constants.PassthroughProviderID, p.ProviderID,
+				"AddProxyRoutedEmbeddingModel must not create the genai-bff-proxy provider entry")
+		}
+
+		require.Len(t, config.RegisteredResources.Models, 1)
+		m := config.RegisteredResources.Models[0]
+		assert.Equal(t, constants.PassthroughProviderID, m.ProviderID)
+		assert.Equal(t, "gemini-embedding-001", m.ModelID)
+		assert.Equal(t, string(models.ModelTypeEmbedding), m.ModelType)
+		assert.Equal(t, "Gemini Embedding", m.Metadata["display_name"])
+	})
+
+	t.Run("caller-supplied dimension takes precedence", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		dim := 3072
+		config.AddProxyRoutedEmbeddingModel("gemini-embedding-001", nil, &dim)
+
+		m := config.RegisteredResources.Models[0]
+		assert.Equal(t, 3072, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("existing metadata dimension is preserved when no dimension supplied", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddProxyRoutedEmbeddingModel("model-a", map[string]interface{}{
+			"embedding_dimension": 768,
+		}, nil)
+
+		m := config.RegisteredResources.Models[0]
+		assert.Equal(t, 768, m.Metadata["embedding_dimension"])
+	})
+
+	t.Run("defaults to 128 when no dimension in metadata or arguments", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddProxyRoutedEmbeddingModel("model-a", nil, nil)
+
+		m := config.RegisteredResources.Models[0]
+		assert.Equal(t, 128, m.Metadata["embedding_dimension"])
 	})
 }
 

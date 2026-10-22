@@ -129,6 +129,7 @@ describe('Verify Hugging Face catalog source add, validate, and preview', () => 
       modelCatalog.visit();
       waitForModelCatalogCards();
       modelCatalog.findSourceCategoryBlock(testData.catalogCategoryBlockId).click();
+      modelCatalog.searchByName(testData.publicModel);
       modelCatalog.findModelCatalogCard(testData.publicModel).should('exist');
 
       cy.step('Add a second source for RedHatAI private model access');
@@ -159,6 +160,7 @@ describe('Verify Hugging Face catalog source add, validate, and preview', () => 
       modelCatalog.visit();
       waitForModelCatalogCards();
       modelCatalog.findSourceCategoryBlock(testData.catalogCategoryBlockId).click();
+      modelCatalog.searchByName(testData.privateModel);
       modelCatalog.findModelCatalogCard(testData.privateModel).should('exist');
     },
   );

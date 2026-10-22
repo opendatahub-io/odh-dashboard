@@ -65,7 +65,8 @@ make run LOG_LEVEL=DEBUG
 | `-key-file`                     | `KEY_FILE`                     | TLS key path                                                                                                          |
 | `-insecure-skip-verify`         | `INSECURE_SKIP_VERIFY`         | Skip upstream TLS verify (dev only)                                                                                   |
 | `-mock-bff-clients`             | `MOCK_BFF_CLIENTS`             | Use mock BFF clients (no real HTTP calls to other BFFs)                                                               |
-| `-data-registry-api-url`        | `DATA_REGISTRY_API_URL`        | Base URL of the upstream Data Registry API. Overrides the ConfigMap lookup when set (local dev/tests)                 |
+| `-bff-clients-allow-insecure-http` | `BFF_CLIENTS_ALLOW_INSECURE_HTTP` | Allow plaintext inter-BFF HTTP in development only; default `false`                                                   |
+| `-data-registry-api-url`        | `DATA_REGISTRY_API_URL`        | HTTPS base URL for remote upstreams; HTTP is allowed only for loopback IP literals in local dev/tests. Overrides ConfigMap lookup when set |
 | `-data-registry-configmap-name` | `DATA_REGISTRY_CONFIGMAP_NAME` | Name of the ConfigMap (in the pod's own namespace) holding the Data Registry API URL (default `data-registry-config`) |
 | `-data-registry-configmap-key`  | `DATA_REGISTRY_CONFIGMAP_KEY`  | Key within that ConfigMap holding the URL (default `apiURL`)                                                          |
 
@@ -170,18 +171,25 @@ authorization, data persistence, or business logic of its own. See
   string matters for e.g. `/api/v1/{project}/search`). Headers are forwarded unchanged **except**
   `Authorization` (always rebuilt, see above), the configured incoming auth-token header (e.g.
   `x-forwarded-access-token` — see `-auth-token-header` above; never relayed verbatim either, for
-  the same reason as `Authorization`), and `X-User` plus legacy Kubeflow identity headers (always
-  stripped) — the upstream contract trusts those identity headers for attribution, so a
-  caller-supplied value is never relayed as-is. The upstream response
+  the same reason as `Authorization`), and caller-supplied `X-User` plus legacy Kubeflow identity
+  headers — the upstream contract trusts those identity headers for attribution, so caller values
+  are always stripped. The BFF sets `X-User` from the verified Kubernetes identity; service
+  accounts retain the canonical `system:serviceaccount:<namespace>:<name>` form so equal names in
+  different namespaces remain distinguishable. The upstream response
   status, body, and headers are relayed back verbatim by `httputil.ReverseProxy` — including error
   responses, so Iceberg REST error shapes (`{"error": {"message", "type", "code"}}`) reach the
   frontend untransformed.
 - **Configuration**: the upstream base URL comes from `-data-registry-api-url`/`DATA_REGISTRY_API_URL`
   when set (local dev/tests), otherwise from a ConfigMap in the pod's own namespace, resolved via a
   bounded-timeout lookup at startup (name/key configurable, see flags table above). Validation
-  (`internal/helpers/url.go`, `ValidateUpstreamURL`) requires an absolute `http`/`https` URL with
-  no userinfo, query, or fragment; a base path (if any) is preserved and prepended to every
-  forwarded request.
+  (`internal/helpers/url.go`, `ValidateUpstreamURL`) requires an absolute HTTPS URL with no
+  userinfo, query, or fragment. Plain HTTP is accepted only for loopback IP literals such as
+  `127.0.0.1` and `::1` for local development and tests; use `http://127.0.0.1:PORT` or
+  `http://[::1]:PORT` for these endpoints. `http://localhost:PORT` is rejected because only IP
+  literals qualify for the plaintext exception. Remote HTTP is rejected because the BFF forwards
+  the caller's bearer token. A base path (if any) is preserved and prepended to every
+  forwarded request. HTTPS verification uses system roots and private CA bundles configured with
+  `BUNDLE_PATHS`; keep `INSECURE_SKIP_VERIFY` disabled outside local development.
   If the ConfigMap isn't available yet at startup — e.g. the Data Registry backend from
   [RHAISTRAT-2381](https://redhat.atlassian.net/browse/RHAISTRAT-2381) hasn't been deployed —
   the BFF logs a warning, every `/api/v1/*` proxy route returns `503 Service Unavailable`, and a
@@ -206,7 +214,7 @@ The BFF includes a `bffclient` package (`internal/integrations/bffclient/`) that
 │         │                  │                    │            │
 │  ┌──────────────┐          │                    │            │
 │  │  MLflow BFF  │──────────┴────────────────────┘            │
-│  │    :8343     │     Inter-BFF HTTP Calls                   │
+│  │    :8343     │     Inter-BFF HTTPS Calls (default)         │
 │  └──────────────┘  (K8s service DNS or localhost)            │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -220,6 +228,19 @@ The BFF includes a `bffclient` package (`internal/integrations/bffclient/`) that
 5. Wire routes in `Routes()`
 
 See the `bffclient` package README and the implementation spec for detailed guidance.
+
+#### Inter-BFF transport security
+
+The built-in MaaS, Gen-AI, Model Registry and MLflow clients use HTTPS by default. Keep TLS
+certificate verification enabled and add private service CA bundles through `BUNDLE_PATHS` when
+needed.
+
+For local development against a BFF that only serves HTTP, set
+`BFF_CLIENTS_ALLOW_INSECURE_HTTP=true` (or `--bff-clients-allow-insecure-http`) together with
+`DEV_MODE=true`. This opt-out is rejected outside development mode. Plaintext HTTP exposes
+forwarded bearer tokens to anyone who can observe the connection, so do not enable it in a
+deployed environment. The separate DCH client also uses HTTPS by default; its local-only opt-out
+is `BFF_DCH_TLS_ENABLED=false`, which is accepted only when DCH is enabled and `DEV_MODE=true`.
 
 ### Authentication
 
@@ -259,7 +280,7 @@ X-Forwarded-Access-Token: <your-token>
 
 ### Enabling CORS
 
-When serving the UI directly from the BFF there is no need for any CORS headers to be served, by default they are turned off for security reasons.
+When serving the UI directly from the BFF, same-origin requests need no CORS headers. By default, the BFF grants no CORS access to other origins; configure `ALLOWED_ORIGINS` to allow specific cross-origin browser clients. Simple cross-origin requests may still reach the BFF, so this setting does not replace CSRF protections.
 
 If you need to enable CORS for any reasons you can add origins to the allow-list in several ways:
 
@@ -340,12 +361,17 @@ The client trusts the CA bundles already loaded by `--bundle-paths`. It forwards
 user token through `x-forwarded-access-token`. For a standalone DCH BFF expecting a different
 header, set `BFF_DCH_AUTH_TOKEN_HEADER=Authorization` and `BFF_DCH_AUTH_TOKEN_PREFIX="Bearer "`.
 `BFF_DCH_DEV_URL` overrides the service URL for local testing and must include `/api/v1`;
-the service name must still be set. Set `BFF_DCH_TLS_ENABLED=false` only for a local HTTP
-endpoint. Production must retain certificate verification.
+the service name must still be set. Set `BFF_DCH_TLS_ENABLED=false` only for local HTTP testing
+with `DEV_MODE=true`; startup rejects this setting outside development mode when DCH is enabled.
+Production must keep TLS enabled and certificate verification on.
 
 `BFF_DCH_TIMEOUT_SECONDS` bounds both requests together (default 5 seconds). Network errors,
-timeouts and upstream 5xx trigger Secret fallback using the original request context.
-401/403 are access errors; other 4xx and invalid contracts return 502 without fallback.
+timeouts, upstream 5xx, and 404 responses from either DCH collection endpoint trigger Secret
+fallback using the original request context. Treating collection-endpoint 404s as unavailable
+supports clusters where the DCH BFF is present before its backend API is installed. 401/403,
+other 4xx (excluding these collection-endpoint 404s), and invalid contracts do not trigger
+fallback. DCH authentication failures return 401, access denials return 403, and other
+non-fallback errors return 502.
 A missing connector type omits that connection and returns a warning. The service does not
 probe DCH during startup, cache user connection lists, or convert saved references.
 

@@ -64,6 +64,14 @@ class CopySuitePage {
     return cy.findByTestId('copy-suite-step-benchmarks');
   }
 
+  findBenchmarkParameterInput(index: number, parameterKey: string) {
+    return cy.findByTestId(`benchmark-${index}-parameter-input-${parameterKey}`);
+  }
+
+  findBenchmarkParameterError(index: number, parameterKey: string) {
+    return cy.findByTestId(`benchmark-${index}-parameter-error-${parameterKey}`);
+  }
+
   findSaveOnlyButton() {
     return cy.findByTestId('copy-suite-save-only');
   }

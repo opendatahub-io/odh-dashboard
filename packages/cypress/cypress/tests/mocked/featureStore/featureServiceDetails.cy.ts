@@ -28,7 +28,7 @@ const initIntercept = () => {
     'GET /api/dsc/status',
     mockDscStatus({
       components: {
-        [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+        [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Managed' },
       },
     }),
   );

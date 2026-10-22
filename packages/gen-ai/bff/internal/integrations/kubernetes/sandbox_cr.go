@@ -56,6 +56,11 @@ type SandboxCROptions struct {
 	MCPServersJSON string
 	// ModelAuthSecret is set for custom endpoint models and injected as AGENT_MODEL_API_KEY.
 	ModelAuthSecret *SandboxSecretEnvVar
+	// EmbeddingAuthSecret is set when a vector store's embedding model is a keyed custom
+	// endpoint model and injected as AGENT_EMBEDDING_API_KEY. The wrapper forwards it as
+	// passthrough_api_key provider data so remote::passthrough embedding providers
+	// authenticate with it.
+	EmbeddingAuthSecret *SandboxSecretEnvVar
 	// VectorStoreIDsJSON describes the vector stores selected by the profile. The
 	// wrapper uses it to add a file_search tool to every Responses API request.
 	VectorStoreIDsJSON string
@@ -224,7 +229,6 @@ func buildSandboxEnvVars(opts SandboxCROptions, namespace, pgvectorHost, pgvecto
 	vars := []interface{}{
 		sandboxEnvVar("OGX_CONFIG", "/etc/ogx/config.yaml"),
 		sandboxEnvVar("OGX_CONFIG_DIR", "/opt/app-root/src/.ogx/distributions/rh/"),
-		sandboxEnvVar("VLLM_TLS_VERIFY", "false"),
 		sandboxEnvVar("FAISS_STORE_DIR", "/opt/app-root/.llama/faiss"),
 		sandboxEnvVar("MAAS_GATEWAY_URL", opts.MaaSGatewayURL),
 		sandboxEnvVar("MAAS_SUBSCRIPTION", opts.MaaSSubscription),
@@ -251,6 +255,9 @@ func buildSandboxEnvVars(opts SandboxCROptions, namespace, pgvectorHost, pgvecto
 	}
 	if opts.ModelAuthSecret != nil {
 		vars = append(vars, sandboxEnvVarFromSecret(opts.ModelAuthSecret.Name, opts.ModelAuthSecret.SecretName, sandboxMCPAuthSecretKey))
+	}
+	if opts.EmbeddingAuthSecret != nil {
+		vars = append(vars, sandboxEnvVarFromSecret(opts.EmbeddingAuthSecret.Name, opts.EmbeddingAuthSecret.SecretName, sandboxMCPAuthSecretKey))
 	}
 
 	return vars

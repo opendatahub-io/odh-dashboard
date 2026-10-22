@@ -35,6 +35,7 @@ const provider = mockProvider({
 const sourceCollection = mockCollection({
   id: 'source-suite',
   name: 'Source suite',
+  domains: ['trustworthiness'],
   benchmarkIds: ['bench-alpha'],
 });
 
@@ -131,6 +132,73 @@ describe('Suite editor benchmark selection', () => {
         op: 'replace',
         path: '/name',
         value: 'Updated suite',
+      });
+    });
+    cy.url().should('include', `/evaluation/${NAMESPACE}/collections`);
+  });
+});
+
+describe('Suite editor curated collection prerequisites', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should require a judge model when customizing a curated collection', () => {
+    const curatedCollection = mockCollection({
+      id: 'trustworthiness-v1',
+      name: 'Trustworthiness Suite',
+      domains: ['trustworthiness'],
+      benchmarkIds: ['bench-alpha'],
+      judgeModel: true,
+    });
+    cy.interceptApi(
+      'GET /api/:apiVersion/evaluations/collections/:collectionId',
+      { path: { ...API_VERSION, collectionId: 'trustworthiness-v1' } },
+      curatedCollection,
+    );
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: '/eval-hub/api/v1/evaluations/collections/trustworthiness-v1/clones',
+      },
+      {
+        statusCode: 201,
+        body: mockModArchResponse({
+          ...curatedCollection,
+          resource: { ...curatedCollection.resource, id: 'trustworthiness-copy' },
+        }),
+      },
+    ).as('cloneCuratedSuite');
+
+    copySuitePage.visitCopy(NAMESPACE, 'trustworthiness-v1');
+    copySuitePage.findSettingsNextButton().click();
+
+    copySuitePage.findBenchmarkCheckbox('bench-alpha').should('be.checked');
+    copySuitePage.findSelectBenchmarksNextButton().click();
+    copySuitePage.findConfigurationStep().should('exist');
+
+    // The judge model field comes from the source benchmark's parameters, and the
+    // validation error only surfaces after the field is edited.
+    copySuitePage.findBenchmarkParameterInput(0, 'judge_model').should('have.value', '');
+    copySuitePage.findBenchmarkParameterError(0, 'judge_model').should('not.exist');
+    copySuitePage.findSaveOnlyButton().should('be.disabled');
+
+    copySuitePage.findBenchmarkParameterInput(0, 'judge_model').type('gpt-4o');
+    copySuitePage.findBenchmarkParameterError(0, 'judge_model').should('not.exist');
+
+    copySuitePage.findBenchmarkParameterInput(0, 'judge_model').clear();
+    copySuitePage
+      .findBenchmarkParameterError(0, 'judge_model')
+      .should('contain.text', 'Judge model is required.');
+    copySuitePage.findSaveOnlyButton().should('be.disabled');
+
+    copySuitePage.findBenchmarkParameterInput(0, 'judge_model').type('gpt-4o');
+    copySuitePage.findBenchmarkParameterError(0, 'judge_model').should('not.exist');
+    copySuitePage.findSaveOnlyButton().should('be.enabled').click();
+
+    cy.wait('@cloneCuratedSuite').then((interception) => {
+      expect(interception.request.body.benchmarks[0].parameters).to.deep.include({
+        judge_model: 'gpt-4o',
       });
     });
     cy.url().should('include', `/evaluation/${NAMESPACE}/collections`);

@@ -10,6 +10,8 @@ func TestValidateUpstreamURL(t *testing.T) {
 	}{
 		{name: "valid https URL", raw: "https://data-registry.svc.cluster.local:8443", wantErr: false},
 		{name: "valid http URL (local dev/test)", raw: "http://127.0.0.1:8080", wantErr: false},
+		{name: "localhost hostname is not a loopback IP literal", raw: "http://localhost:8080", wantErr: true},
+		{name: "valid IPv6 loopback URL", raw: "http://[::1]:8080", wantErr: false},
 		{name: "valid URL with a base path", raw: "https://data-registry.svc.cluster.local:8443/data-registry-api", wantErr: false},
 		{name: "empty string", raw: "", wantErr: true},
 		{name: "missing scheme", raw: "data-registry.svc.cluster.local", wantErr: true},

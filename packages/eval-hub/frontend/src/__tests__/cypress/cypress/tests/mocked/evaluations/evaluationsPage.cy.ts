@@ -109,6 +109,11 @@ describe('Evaluations Page - Tabs', () => {
       .map((collection, index) => ({
         ...collection,
         resource: { ...collection.resource, id: ids[index] },
+        benchmarks: collection.benchmarks?.map((benchmark, benchmarkIndex) =>
+          index === 0 && benchmarkIndex === 0
+            ? { ...benchmark, parameters: { ...benchmark.parameters, judge_model: '' } }
+            : benchmark,
+        ),
       }));
     initIntercepts({ collections, collectionsTotalCount: collections.length });
 
@@ -138,7 +143,10 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteName('trustworthiness-v1').click();
     evaluationsPage
       .findCollectionDrawerPrerequisite()
-      .should('contain.text', 'Requires a judge model.');
+      .should(
+        'contain.text',
+        'Requires a judge model in addition to the model you are evaluating.',
+      );
     evaluationsPage
       .findCollectionDrawerPanel()
       .find('[data-testid="use-benchmark-suite-button"]')
@@ -209,7 +217,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
     evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
-    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'safety').click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'trustworthiness').click();
 
     evaluationsPage.findBenchmarkSuitesCategoryFilterBadge().should('contain.text', '2');
     evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
@@ -262,9 +270,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('finance-evaluation-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('guardrails-compliance-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
-    evaluationsPage
-      .findBenchmarkSuitesSummary()
-      .should('contain.text', 'View all my benchmark collections');
+    evaluationsPage.findBenchmarkSuitesViewAllButton().should('contain.text', 'View all');
   });
 
   it('should filter benchmark suites by industry client-side and clear the filter', () => {
@@ -295,16 +301,13 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run');
   });
 
-  it('should render curated suite category cards and link to filtered collections', () => {
+  it('should hide Red Hat validated collections until more evaluation targets are available', () => {
     initIntercepts({ collections: mockBenchmarkSuiteCollections() });
 
     evaluationsPage.visitEvaluate(NAMESPACE);
 
-    evaluationsPage.findCuratedSuiteCategories().should('exist');
-    evaluationsPage.findCuratedSuiteCategoryCard('models').should('contain.text', 'Models');
-    evaluationsPage.findCuratedSuiteCategoryCard('agents').should('not.exist');
-    evaluationsPage.findCuratedSuiteCategoryCard('models').click();
-    cy.url().should('include', `/evaluation/${NAMESPACE}/collections/model`);
+    evaluationsPage.findCuratedSuiteCategories().should('not.exist');
+    evaluationsPage.findBrowseAllBenchmarksExploreButton().should('exist');
   });
 
   it('should show suite contextual actions and the delete confirmation modal', () => {

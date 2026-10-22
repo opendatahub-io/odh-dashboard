@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -527,6 +528,30 @@ func TestClientConfigWithDefaults(t *testing.T) {
 	}
 	if custom.PartSizeBytes != 1 {
 		t.Error("should preserve explicit PartSizeBytes")
+	}
+}
+
+// --- awsClientProvider.buildHTTPClient ---
+
+// TestBuildHTTPClient_TransportTimeouts pins the transport-level bounds that the
+// deliberate absence of a client-level Timeout relies on (see buildHTTPClient).
+// Connection establishment and the wait for response headers must stay bounded;
+// payload body streaming must stay unbounded by a blanket deadline.
+func TestBuildHTTPClient_TransportTimeouts(t *testing.T) {
+	hc := (&awsClientProvider{cfg: ClientConfig{}}).buildHTTPClient()
+
+	transport, ok := hc.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("Transport is %T, want *http.Transport", hc.Transport)
+	}
+	if transport.TLSHandshakeTimeout != s3ConnectTimeout {
+		t.Errorf("TLSHandshakeTimeout = %v, want %v", transport.TLSHandshakeTimeout, s3ConnectTimeout)
+	}
+	if transport.ResponseHeaderTimeout != s3ResponseHeaderTimeout {
+		t.Errorf("ResponseHeaderTimeout = %v, want %v", transport.ResponseHeaderTimeout, s3ResponseHeaderTimeout)
+	}
+	if hc.Timeout != 0 {
+		t.Errorf("client Timeout = %v, want 0 — a blanket deadline truncates large transfers; bound the transport phases instead (see buildHTTPClient)", hc.Timeout)
 	}
 }
 
