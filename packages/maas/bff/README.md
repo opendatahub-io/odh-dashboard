@@ -1,95 +1,172 @@
-# Modular Architecture Starter BFF (Minimal)
+# MaaS BFF
 
-Minimal backend-for-frontend providing only core endpoints required by the starter UI.
+Go Backend-for-Frontend that sits between the MaaS React UI and the backing systems: Kubernetes (MaaSSubscription, MaaSAuthPolicy, MaaSModelRef, Tenant CRDs) and the MaaS API (key minting, model listing, gateway discovery).
 
 ## Dependencies
 
 - Go >= 1.26
 
-## Scope
-
-This trimmed service exposes ONLY:
-
-- GET `/healthcheck` – liveness probe
-- GET `/api/v1/user` – returns the authenticated (mock) user
-- GET `/api/v1/whoami` – returns MaaS `/v1/me` identity metadata
-- GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
-
-All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
-
 ## Development
 
-Run the following command to build the BFF:
+Build the BFF binary:
 
 ```shell
 make build
 ```
 
-After building it, you can run our app with:
+Run in mock mode (no cluster or MaaS API required — recommended for local UI development):
 
 ```shell
-make run
+make run MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true
 ```
 
-If you want to use a different port or mock kubernetes client you can run:
+Run on a custom port with debug logging:
 
 ```shell
-make run PORT=8000 MOCK_K8S_CLIENT=true
+make run PORT=8000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true LOG_LEVEL=DEBUG
 ```
 
-If you want to change the log level on deployment, add the LOG_LEVEL argument when running, supported levels are: ERROR, WARN, INFO, DEBUG. The default level is INFO.
+From the package root, the Makefile targets wrap common configurations:
 
 ```shell
-# Run with debug logging
-make run LOG_LEVEL=DEBUG
+# Standalone mock mode (port 4000)
+make dev-bff
+
+# Federated mode against a real cluster (port 8081)
+make dev-bff-federated
+
+# Federated mode with mocks (port 8081, no cluster)
+make dev-bff-federated-mock
 ```
 
 ## Flags / Environment Variables
 
-| Flag | Env Var | Description |
-|------|---------|-------------|
-| `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
-| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
-| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
-| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
-| `-auth-method` | `AUTH_METHOD` | `internal` (mock) or `user_token` |
-| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization) |
-| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer) |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
-| `-key-file` | `KEY_FILE` | TLS key path |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
+| Flag                    | Env Var                | Description                                               | Default         |
+| ----------------------- | ---------------------- | --------------------------------------------------------- | --------------- |
+| `-port`                 | `PORT`                 | Listen port                                               | `4000`          |
+| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone`, `kubeflow`, or `federated`                  | `standalone`    |
+| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors (e.g. namespace listing)        | `false`         |
+| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in-memory stub for Kubernetes                         | `false`         |
+| `-mock-http-client`     | `MOCK_HTTP_CLIENT`     | Use in-memory stub for MaaS API                           | `false`         |
+| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve SPA frontend assets                    | _(none)_        |
+| `-log-level`            | `LOG_LEVEL`            | `ERROR`, `WARN`, `INFO`, `DEBUG`                          | `INFO`          |
+| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins                              | _(none)_        |
+| `-auth-method`          | `AUTH_METHOD`          | `internal`, `user_token`, or `disabled`                   | `internal`      |
+| `-auth-header`          | `AUTH_HEADER`          | Header to read the bearer token from                      | `Authorization` |
+| `-auth-prefix`          | `AUTH_PREFIX`          | Expected token prefix                                     | `Bearer`        |
+| `-cert-file`            | `CERT_FILE`            | TLS certificate path (enables HTTPS when paired with key) | _(none)_        |
+| `-key-file`             | `KEY_FILE`             | TLS key path                                              | _(none)_        |
+| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verification (**dev only**)             | `false`         |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+## Endpoints
 
-## Running the linter locally
+The BFF exposes the following API groups under `/api/v1/`:
 
-The BFF directory uses golangci-lint to combine multiple linters for a more comprehensive linting process. To install and run simply use:
+| Group           | Sample paths                                                                                                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health          | `GET /healthcheck`                                                                                                                                                                        |
+| User / identity | `GET /api/v1/user`, `GET /api/v1/me`                                                                                                                                                      |
+| Namespaces      | `GET /api/v1/namespaces` (dev / mock mode only)                                                                                                                                           |
+| Models          | `GET /api/v1/models`                                                                                                                                                                      |
+| Gateway         | `GET /api/v1/gateway-url`                                                                                                                                                                 |
+| API keys        | `POST /api/v1/api-keys`, `GET /api/v1/api-keys`, `DELETE /api/v1/api-keys/:id`                                                                                                            |
+| Subscriptions   | `GET /api/v1/all-subscriptions`, `GET /api/v1/subscription-info/:name`, `POST /api/v1/subscription-info`, `PUT /api/v1/subscription-info/:name`, `DELETE /api/v1/subscription-info/:name` |
+| Auth policies   | `GET /api/v1/auth-policies`, `GET /api/v1/auth-policies/:name`                                                                                                                            |
+
+See [`openapi.yaml`](./openapi.yaml) for full request/response shapes and [`CONSUMERS.md`](./CONSUMERS.md) for the stable inter-BFF contract.
+
+## Sample Local Calls
+
+When running with mocked clients (`MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true`), the user `user@example.com` has access to all endpoints.
 
 ```shell
-cd clients/ui/bff
-make lint
+curl -i localhost:4000/healthcheck
+
+curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
+
+curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/models
+
+# Namespaces — only available in dev/mock mode
+curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces
 ```
 
-For more information on configuring golangci-lint see the [documentation](https://golangci-lint.run/).
+## Authentication Modes
+
+Set via `--auth-method` / `AUTH_METHOD`:
+
+- **`internal`** (default): Impersonates the user identified in the `kubeflow-userid` (and optional `kubeflow-groups`) headers using cluster or local kubeconfig credentials. Used for standalone and kubeflow modes.
+- **`user_token`**: Extracts a bearer token from the configured header/prefix and performs a `SelfSubjectAccessReview`. Used for federated/RHOAI mode.
+- **`disabled`**: No authentication. For testing only.
+
+### Overriding the token header / prefix
+
+If your proxy passes the token in a non-standard header:
+
+```shell
+make run AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX=""
+```
+
+## CORS
+
+CORS headers are disabled by default. Enable them via `ALLOWED_ORIGINS`:
+
+```shell
+# Allow a specific origin
+make run ALLOWED_ORIGINS="http://localhost:9104"
+
+# Allow all origins (not recommended for production)
+make run ALLOWED_ORIGINS="*"
+```
+
+Alternatively, set the `ALLOWED_ORIGINS` environment variable or pass `--allowed-origins=<origins>` on the command line.
+
+## TLS
+
+To enable HTTPS, provide both `CERT_FILE` and `KEY_FILE`:
+
+```shell
+make run CERT_FILE=/path/to/tls.crt KEY_FILE=/path/to/tls.key
+```
+
+For local development against a cluster with self-signed certificates:
+
+```shell
+make run INSECURE_SKIP_VERIFY=true
+```
+
+> **Warning:** `INSECURE_SKIP_VERIFY=true` must never be used in production.
+
+## Linting
+
+```shell
+cd packages/maas/bff && make lint
+```
+
+Uses `golangci-lint`. Install it locally with:
+
+```shell
+make golangci-lint
+```
 
 ## Building and Deploying
 
-Run the following command to build the BFF:
+Build the binary:
 
 ```shell
 make build
 ```
 
-The BFF binary will be inside `bin` directory
-
-You can also build BFF docker image with:
+The binary is written to `bin/`. You can also build container images from the package root:
 
 ```shell
-make docker-build
+# Federated (PatternFly) image
+make docker-build-federated
+
+# Standalone (MUI) image
+make docker-build-standalone
 ```
+
+<<<<<<< HEAD
 
 ## Endpoints
 
@@ -190,7 +267,7 @@ For local Kubeflow installations with self-signed certificates, you may need to 
 ```yaml
 env:
   - name: INSECURE_SKIP_VERIFY
-    value: "true"
+    value: 'true'
 ```
 
 **Local development:**
@@ -201,4 +278,6 @@ env:
 export INSECURE_SKIP_VERIFY=true
 ```
 
-> **Warning:** Only use in development. Keep TLS verification enabled in production.
+> # **Warning:** Only use in development. Keep TLS verification enabled in production.
+>
+> > > > > > > 0f6cba65a (Refresh maas docs)
