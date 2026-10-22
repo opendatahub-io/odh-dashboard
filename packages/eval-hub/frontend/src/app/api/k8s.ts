@@ -17,7 +17,6 @@ import {
   CollectionsListResponse,
   EvalHubCRStatus,
   EvalHubHealthResponse,
-  EvalHubServerHealthResponse,
   CreateEvaluationJobRequest,
   CreateEvaluationJobResponse,
   HardwareProfileValidationRequest,
@@ -88,19 +87,6 @@ const validateEvaluationJob = (data: unknown): void => {
     throw new Error('Invalid evaluation job: results.benchmarks is not an array');
   }
 };
-
-const isEvalHubServerHealthResponse = (
-  response: unknown,
-): response is EvalHubServerHealthResponse =>
-  response != null &&
-  typeof response === 'object' &&
-  'status' in response &&
-  typeof response.status === 'string' &&
-  'system_info' in response &&
-  response.system_info != null &&
-  typeof response.system_info === 'object' &&
-  'version' in response.system_info &&
-  typeof response.system_info.version === 'string';
 
 const isString = (v: unknown): v is string => typeof v === 'string';
 
@@ -221,18 +207,6 @@ export const getEvalHubHealth =
       }
       throw new Error('Invalid health response format');
     });
-
-export const getEvalHubServerHealth =
-  (hostPath: string) =>
-  (opts: APIOptions): Promise<EvalHubServerHealthResponse> =>
-    handleRestFailures(restGET(hostPath, `${URL_PREFIX}/healthcheck`, {}, opts)).then(
-      (response) => {
-        if (isEvalHubServerHealthResponse(response)) {
-          return response;
-        }
-        throw new Error('Invalid server health response format');
-      },
-    );
 
 export const getKueueAvailability =
   (hostPath: string, namespace: string) =>

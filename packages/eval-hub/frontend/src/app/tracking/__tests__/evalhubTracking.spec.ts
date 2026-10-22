@@ -6,8 +6,6 @@ import {
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   createEvalHubTrackingScope,
-  getEvalHubServerVersion,
-  setEvalHubServerVersion,
   trackEvalHubEvent,
   trackEvalHubEventOnce,
 } from '~/app/tracking/evalhubTracking';
@@ -27,7 +25,6 @@ const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 describe('EvalHub tracking helper', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    setEvalHubServerVersion(undefined);
     window.__evalHubTrackingEvents?.clear();
   });
 
@@ -69,21 +66,9 @@ describe('EvalHub tracking helper', () => {
       benchmarkName: 'ARC Easy',
       isDefault: false,
       event_source: 'evalhub_ui',
-      evalhub_server_version: 'unknown',
       collection_type: 'custom',
       provider_type: 'lmeval',
     });
-  });
-
-  it('uses the BFF version after the bootstrap updates it', () => {
-    setEvalHubServerVersion('2.4.1');
-
-    trackEvalHubEvent(EVAL_HUB_EVENTS.JOB_CREATE_OPENED, { surface: 'benchmark_suites_page' });
-
-    expect(getEvalHubServerVersion()).toBe('2.4.1');
-    expect(mockFireMiscTrackingEvent.mock.calls[0][1]).toEqual(
-      expect.objectContaining({ evalhub_server_version: '2.4.1' }),
-    );
   });
 
   it('redacts URL values without removing the existing key', () => {
@@ -114,7 +99,6 @@ describe('EvalHub tracking helper', () => {
     expect(payload).toEqual({
       surface: 'benchmark_suites_page',
       event_source: 'evalhub_ui',
-      evalhub_server_version: 'unknown',
       collection_type: 'unknown',
       provider_type: 'unknown',
     });

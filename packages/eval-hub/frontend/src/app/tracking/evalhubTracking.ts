@@ -41,14 +41,6 @@ export type EvalHubTrackingScope = {
   clear: () => void;
 };
 
-let evalHubServerVersion = 'unknown';
-
-export const setEvalHubServerVersion = (version?: string): void => {
-  evalHubServerVersion = version?.trim() || 'unknown';
-};
-
-export const getEvalHubServerVersion = (): string => evalHubServerVersion;
-
 const redactUrl = (value: unknown): unknown => {
   if (typeof value !== 'string' || value.length === 0) {
     return value;
@@ -132,7 +124,6 @@ export const trackEvalHubEvent = <TEventName extends EvalHubEventName>(
   const enrichedProps = {
     ...dropDisallowedProperties(eventName, sanitizeProperties(properties, context)),
     event_source: 'evalhub_ui',
-    evalhub_server_version: evalHubServerVersion,
     collection_type: context.collectionType ?? 'unknown',
     provider_type: context.providerType ?? 'unknown',
   };

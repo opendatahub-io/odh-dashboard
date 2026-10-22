@@ -309,7 +309,6 @@ func (app *App) Routes() http.Handler {
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthHandler)
 	combinedMux.Handle(HealthPath, healthHandler)
-	combinedMux.Handle(PathPrefix+HealthCheckPath, http.StripPrefix(PathPrefix, healthHandler))
 	combinedMux.Handle(PathPrefix+HealthPath, http.StripPrefix(PathPrefix, healthHandler))
 
 	// OpenAPI / Swagger UI routes (unprotected)

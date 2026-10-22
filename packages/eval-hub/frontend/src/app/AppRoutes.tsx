@@ -18,7 +18,6 @@ import ChooseCompareBenchmarksPage from './pages/ChooseCompareBenchmarksPage';
 import { evaluationComparePathSegment } from './routes';
 import EvaluationReconfigureLoader from './pages/EvaluationReconfigureLoader';
 import CopySuitePage, { CreateSuitePage, EditSuitePage } from './pages/CopySuitePage';
-import useEvalHubTrackingBootstrap from './hooks/useEvalHubTrackingBootstrap';
 
 export const useNavData = (): NavDataItem[] => [
   {
@@ -28,54 +27,47 @@ export const useNavData = (): NavDataItem[] => [
   },
 ];
 
-const AppRoutes: React.FC = () => {
-  useEvalHubTrackingBootstrap();
-
-  return (
-    <>
-      <ToastNotifications />
-      <Routes>
+const AppRoutes: React.FC = () => (
+  <>
+    <ToastNotifications />
+    <Routes>
+      <Route
+        path="/"
+        element={<EvalHubCoreLoader getInvalidRedirectPath={evalHubEvaluationsRoute} />}
+      >
+        <Route path=":namespace" element={<EvaluationsPage />} />
+        <Route path=":namespace/collections" element={<BenchmarkSuitesPage />} />
         <Route
-          path="/"
-          element={<EvalHubCoreLoader getInvalidRedirectPath={evalHubEvaluationsRoute} />}
-        >
-          <Route path=":namespace" element={<EvaluationsPage />} />
-          <Route path=":namespace/collections" element={<BenchmarkSuitesPage />} />
-          <Route
-            path=":namespace/collections/:evaluationTarget"
-            element={<CuratedBenchmarkSuitesPage />}
-          />
-          <Route path=":namespace/results/:jobId" element={<EvaluationResultsPage />} />
-          <Route
-            path={`:namespace/${evaluationComparePathSegment}/benchmarks`}
-            element={<ChooseCompareBenchmarksPage />}
-          />
-          <Route
-            path={`:namespace/${evaluationComparePathSegment}`}
-            element={<CompareEvaluationsPage />}
-          />
-          <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
-          <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
-          <Route path=":namespace/create/collections/new" element={<CreateSuitePage />} />
-          <Route
-            path=":namespace/create/collections/:collectionId/edit"
-            element={<EditSuitePage />}
-          />
-          <Route
-            path=":namespace/create/collections/:collectionId/copy"
-            element={<CopySuitePage />}
-          />
-          <Route
-            path=":namespace/create/benchmarks"
-            element={<ChooseStandardisedBenchmarksPage />}
-          />
-          <Route path=":namespace/create/start" element={<StartEvaluationRunPage />} />
-          <Route path=":namespace/reconfigure/:jobId" element={<EvaluationReconfigureLoader />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </>
-  );
-};
+          path=":namespace/collections/:evaluationTarget"
+          element={<CuratedBenchmarkSuitesPage />}
+        />
+        <Route path=":namespace/results/:jobId" element={<EvaluationResultsPage />} />
+        <Route
+          path={`:namespace/${evaluationComparePathSegment}/benchmarks`}
+          element={<ChooseCompareBenchmarksPage />}
+        />
+        <Route
+          path={`:namespace/${evaluationComparePathSegment}`}
+          element={<CompareEvaluationsPage />}
+        />
+        <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
+        <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
+        <Route path=":namespace/create/collections/new" element={<CreateSuitePage />} />
+        <Route
+          path=":namespace/create/collections/:collectionId/edit"
+          element={<EditSuitePage />}
+        />
+        <Route
+          path=":namespace/create/collections/:collectionId/copy"
+          element={<CopySuitePage />}
+        />
+        <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />
+        <Route path=":namespace/create/start" element={<StartEvaluationRunPage />} />
+        <Route path=":namespace/reconfigure/:jobId" element={<EvaluationReconfigureLoader />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </>
+);
 
 export default AppRoutes;

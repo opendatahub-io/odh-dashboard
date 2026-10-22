@@ -46,13 +46,6 @@ export type EvalHubHealthResponse = {
   available: boolean;
 };
 
-export type EvalHubServerHealthResponse = {
-  status: string;
-  system_info: {
-    version: string;
-  };
-};
-
 export type KueueAvailability = {
   enabled: boolean;
   scheduling_ready: boolean;

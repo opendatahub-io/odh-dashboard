@@ -26,16 +26,6 @@ describe('EvalHub API Contract Tests', () => {
     });
   });
 
-  describe('Prefixed Health Check Endpoint', () => {
-    it('should return BFF health status under the /eval-hub path prefix', async () => {
-      const result = await apiClient.get('/eval-hub/healthcheck');
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
-        status: 200,
-      });
-    });
-  });
-
   describe('Namespaces Endpoint', () => {
     it('should successfully retrieve namespaces list', async () => {
       const result = await apiClient.get('/eval-hub/api/v1/namespaces');
