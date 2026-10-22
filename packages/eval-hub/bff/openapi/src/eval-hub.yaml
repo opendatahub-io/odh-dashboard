@@ -2705,9 +2705,12 @@ components:
         type: integer
         minimum: 1
         maximum: 100
-        default: 50
       required: false
-      description: Maximum number of evaluations to return
+      description: >-
+        Maximum number of evaluation jobs to return in single-page mode. When
+        both limit and offset are omitted, the BFF aggregates upstream pages
+        and returns up to 1,000 jobs. Supplying either limit or offset selects
+        single-page mode.
     offset:
       in: query
       name: offset

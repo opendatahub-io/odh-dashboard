@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -208,18 +209,21 @@ func TestEvalHubClient_ListEvaluationJobs_FetchesAllPages(t *testing.T) {
 
 func TestEvalHubClient_ListEvaluationJobs_TruncatesAtMaxItems(t *testing.T) {
 	const upstreamTotal = 2500
-	var requestCount int
+	var requestCount atomic.Int32
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "100", r.URL.Query().Get("limit"))
 		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
-		require.NoError(t, err)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
 		items := make([]EvaluationJob, 0, evaluationJobsPageSize)
 		for i := 0; i < evaluationJobsPageSize; i++ {
 			items = append(items, EvaluationJob{Resource: JobResource{ID: fmt.Sprintf("job-%d", offset+i)}})
 		}
-		requestCount++
+		requestCount.Add(1)
 
 		resp := EvaluationJobsResponse{
 			TotalCount: upstreamTotal,
@@ -241,7 +245,7 @@ func TestEvalHubClient_ListEvaluationJobs_TruncatesAtMaxItems(t *testing.T) {
 	assert.True(t, result.Truncated)
 	assert.Equal(t, "job-999", result.Items[evaluationJobsMaxItems-1].Resource.ID)
 	// No further pages are requested once the cap is reached.
-	assert.Equal(t, evaluationJobsMaxItems/evaluationJobsPageSize, requestCount)
+	assert.Equal(t, evaluationJobsMaxItems/evaluationJobsPageSize, int(requestCount.Load()))
 }
 
 func TestEvalHubClient_ListEvaluationJobs_EmptyNamespace(t *testing.T) {

@@ -654,13 +654,22 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvalu
 	}
 
 	var jobs []EvaluationJob
+	// Offset-based pagination can re-serve a job on a later page when jobs are
+	// created or deleted concurrently; deduplicate by ID to keep the aggregate exact.
+	seen := make(map[string]struct{})
 	for {
 		resp, err := c.listEvaluationJobsPage(ctx, pageParams, headers)
 		if err != nil {
 			return EvaluationJobsResult{}, wrapClientError(err, "ListEvaluationJobs")
 		}
 
-		jobs = append(jobs, resp.Items...)
+		for _, job := range resp.Items {
+			if _, duplicate := seen[job.Resource.ID]; duplicate {
+				continue
+			}
+			seen[job.Resource.ID] = struct{}{}
+			jobs = append(jobs, job)
+		}
 		if !fetchAllPages || resp.Next == nil || len(resp.Items) == 0 ||
 			(resp.TotalCount > 0 && len(jobs) >= resp.TotalCount) {
 			return EvaluationJobsResult{Items: jobs, TotalCount: resp.TotalCount}, nil
