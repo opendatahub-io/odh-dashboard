@@ -119,7 +119,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       To make the endpoint accessible to users, an admin must configure subscriptions and
       authorization policies under <strong>Settings &gt; MaaS governance</strong>. To view their API
       keys, subscriptions, and accessible models, users can go to{' '}
-      <strong>Gen AI Studio &gt; API keys</strong>.
+      <strong>Gen AI studio &gt; API keys</strong>.
     </Alert>
   );
 
