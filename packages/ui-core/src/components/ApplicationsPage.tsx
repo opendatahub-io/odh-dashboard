@@ -61,7 +61,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   noTitle,
 }) => {
   const renderHeader = () => (
-    <PageSection hasBodyWrapper={false}>
+    <PageSection hasBodyWrapper={false} className="odh-dashboard-applications-page-header">
       <Stack hasGutter>
         <StackItem>
           <Flex
@@ -72,13 +72,13 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
               {!noTitle && (
                 <Content
                   component="h1"
-                  className="odh-dashboard-page-header__title"
+                  className="odh-dashboard-applications-page-header__title"
                   data-testid="app-page-title"
                 >
                   {title}
                 </Content>
               )}
-              <Stack className="odh-dashboard-page-header__description">
+              <Stack hasGutter className="odh-dashboard-applications-page-header__description">
                 {subtext && <StackItem>{subtext}</StackItem>}
                 {description && (
                   <StackItem data-testid="app-page-description">{description}</StackItem>

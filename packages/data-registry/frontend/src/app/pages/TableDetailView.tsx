@@ -55,6 +55,7 @@ const hasWellKnownPropertyLabel = (key: string): boolean =>
 const getPropertyLabel = (key: string): string =>
   hasWellKnownPropertyLabel(key) ? WELL_KNOWN_PROPERTY_LABELS[key] : key;
 
+// Keep the tooltip order unambiguous across locales while retaining the explicit UTC suffix.
 const formatUtcTimestamp = (date: Date): string =>
   new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',

@@ -37,7 +37,7 @@ import {
   RegistrationIdentitySection,
   RegistrationOrganizationSection,
 } from './register-data/RegistrationAssetSections';
-import './register-data/RegistrationForm.scss';
+import styles from './register-data/RegistrationForm.module.scss';
 
 type RegisterDataModalProps = {
   isOpen: boolean;
@@ -288,7 +288,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
           </Alert>
         ) : null}
         <FormProvider {...form}>
-          <Form className="odh-data-registry-registration-form">
+          <Form className={styles.registrationForm}>
             <RegistrationIdentitySection />
             <DataLocationSection
               project={project}

@@ -4,6 +4,7 @@ import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
+import styles from './RegistrationForm.module.scss';
 
 const CustomPropertiesSection: React.FC = () => {
   const { control, register } = useFormContext<RegisterDataFormData | EditAssetFormData>();
@@ -14,7 +15,7 @@ const CustomPropertiesSection: React.FC = () => {
       label="Key-value pairs"
       fieldId="data-custom-properties"
       isStack
-      className="odh-data-registry-registration-form__described-group"
+      className={styles.describedGroup}
     >
       <Content component="p">Optionally define custom properties using key-value pairs.</Content>
       {fields.length > 0 ? (
@@ -33,7 +34,7 @@ const CustomPropertiesSection: React.FC = () => {
               Value
             </Content>
           </FlexItem>
-          <FlexItem className="odh-data-registry-registration-form__custom-property-header-spacer">
+          <FlexItem className={styles.customPropertyHeaderSpacer}>
             <Button variant="plain" aria-hidden tabIndex={-1}>
               <MinusCircleIcon />
             </Button>
@@ -75,7 +76,7 @@ const CustomPropertiesSection: React.FC = () => {
       <Button
         variant="link"
         icon={<PlusCircleIcon />}
-        className="odh-data-registry-registration-form__add-custom-property"
+        className={styles.addCustomProperty}
         onClick={() => append({ id: Date.now(), key: '', value: '' })}
         data-testid="data-add-custom-property"
       >

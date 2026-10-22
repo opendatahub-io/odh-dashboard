@@ -34,6 +34,7 @@ import {
   STRUCTURED_FORMAT_OPTIONS,
   UNSTRUCTURED_FORMAT_OPTIONS,
 } from '~/app/utilities/formatUtils';
+import styles from './RegistrationForm.module.scss';
 
 type AssetFormData = RegisterDataFormData | EditAssetFormData;
 
@@ -121,11 +122,7 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({
     assetType === 'structured' ? STRUCTURED_FORMAT_OPTIONS : UNSTRUCTURED_FORMAT_OPTIONS;
 
   return (
-    <FormSection
-      title="Data asset format"
-      titleElement="h2"
-      className="odh-data-registry-registration-form__asset-format-section"
-    >
+    <FormSection title="Data asset format" titleElement="h2" className={styles.assetFormatSection}>
       <Content component="p">
         Specify the data’s format and whether it is structured or unstructured.
       </Content>
@@ -213,11 +210,7 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({
         name="format"
         control={control}
         render={({ field }) => (
-          <FormGroup
-            label="Format"
-            fieldId="data-format"
-            className="odh-data-registry-registration-form__format-group"
-          >
+          <FormGroup label="Format" fieldId="data-format" className={styles.formatGroup}>
             <Select
               isOpen={isFormatOpen}
               selected={field.value}
@@ -336,11 +329,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
   );
 
   return (
-    <FormSection
-      title="Organization"
-      titleElement="h2"
-      className="odh-data-registry-registration-form__organization-section"
-    >
+    <FormSection title="Organization" titleElement="h2" className={styles.organizationSection}>
       <Content component="p">
         Optionally organize and annotate this data asset so it is easier to find later.
       </Content>
@@ -350,7 +339,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         isRequired
         fieldId="data-collection"
         isStack
-        className="odh-data-registry-registration-form__described-group"
+        className={styles.describedGroup}
       >
         <Content component="p">
           Organize this data into a collection.{' '}
@@ -436,12 +425,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         ) : null}
       </FormGroup>
 
-      <FormGroup
-        label="Labels"
-        fieldId="data-labels"
-        isStack
-        className="odh-data-registry-registration-form__described-group"
-      >
+      <FormGroup label="Labels" fieldId="data-labels" isStack className={styles.describedGroup}>
         <Content component="p">
           Optionally add labels to this data asset to make it easier to find later.{' '}
           <Button variant="link" isInline isDisabled={!onManageLabels} onClick={onManageLabels}>
@@ -519,7 +503,7 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
           variant="link"
           icon={<PlusCircleIcon />}
           onClick={handleAddLabel}
-          className="odh-data-registry-registration-form__add-label"
+          className={styles.addLabel}
           data-testid="data-add-label-button"
         >
           Add label

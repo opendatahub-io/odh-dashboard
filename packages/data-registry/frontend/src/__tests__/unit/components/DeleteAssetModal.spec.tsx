@@ -26,7 +26,9 @@ describe('DeleteAssetModal', () => {
       name: 'To confirm deletion, type my-table:',
     });
     expect(
-      confirmation.closest('.pf-v6-c-form__group')?.querySelector('.pf-v6-c-form__label-required'),
+      confirmation
+        .closest('.pf-v6-c-form__group')
+        ?.querySelector('.pf-v6-u-text-color-status-danger'),
     ).toHaveTextContent('*');
     expect(confirmation).toHaveAttribute('id', 'delete-asset-confirmation');
     expect(confirmation).toHaveAttribute('required');

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useParams } from 'react-router-dom';
 import * as useCollectionDetailHook from '~/app/hooks/useCollectionDetail';
 import * as useAssetsHook from '~/app/hooks/useAssets';
 import * as useCollectionsHook from '~/app/hooks/useCollections';
@@ -17,7 +17,7 @@ jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useLabels');
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ project: 'demo-user-1', collection: 'default' }),
+  useParams: jest.fn(() => ({ project: 'demo-user-1', collection: 'default' })),
   useNavigate: () => jest.fn(),
 }));
 
@@ -35,6 +35,7 @@ const mockCollectionDetail: CollectionDetail = {
 describe('CollectionDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(useParams).mockReturnValue({ project: 'demo-user-1', collection: 'default' });
 
     jest
       .mocked(useCollectionDetailHook.useCollectionDetail)
@@ -140,6 +141,7 @@ describe('CollectionDetailPage', () => {
     jest
       .mocked(useCollectionDetailHook.useCollectionDetail)
       .mockReturnValue([nonDefaultCollection, true, undefined, jest.fn()]);
+    jest.mocked(useParams).mockReturnValue({ project: 'demo-user-1', collection: 'analytics' });
 
     render(
       <BrowserRouter>
@@ -198,6 +200,7 @@ describe('CollectionDetailPage', () => {
     jest
       .mocked(useCollectionDetailHook.useCollectionDetail)
       .mockReturnValue([emptyCollectionDetail, true, undefined, jest.fn()]);
+    jest.mocked(useParams).mockReturnValue({ project: 'demo-user-1', collection: 'analytics' });
 
     render(
       <BrowserRouter>

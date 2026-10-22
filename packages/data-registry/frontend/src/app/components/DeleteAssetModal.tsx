@@ -11,7 +11,6 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import './DeleteAssetModal.scss';
 
 type DeleteAssetModalProps = {
   assetName: string;
@@ -55,10 +54,11 @@ const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({ assetName, onDelete
               label={
                 <>
                   To confirm deletion, type <strong>{assetName}</strong>&#58;
+                  <span aria-hidden="true" className="pf-v6-u-text-color-status-danger">
+                    *
+                  </span>
                 </>
               }
-              isRequired
-              className="odh-data-registry-delete-confirmation"
               fieldId="delete-asset-confirmation"
             >
               <TextInput

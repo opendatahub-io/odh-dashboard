@@ -34,12 +34,12 @@ import RegisterDataModal from '~/app/components/RegisterDataModal';
 import type { CollectionInfo } from '~/app/hooks/useCollections';
 import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
 import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
+import {
+  DEFAULT_COLLECTION_DELETE_MESSAGE,
+  DEFAULT_COLLECTION_NAME,
+  NON_EMPTY_COLLECTION_DELETE_MESSAGE,
+} from '~/app/utilities/collectionConstants';
 import CollectionDetailView from './CollectionDetailView';
-
-const DEFAULT_COLLECTION_NAME = 'default';
-const DEFAULT_COLLECTION_DELETE_MESSAGE = 'The default collection cannot be deleted.';
-const NON_EMPTY_COLLECTION_DELETE_MESSAGE =
-  'Remove all associated assets to delete this collection';
 
 const CollectionDetailPage: React.FC = () => {
   const { project, collection } = useParams<{
@@ -91,7 +91,7 @@ const CollectionDetailPage: React.FC = () => {
 
   const displayName = collection || 'Loading...';
   const hasAssets = (collectionDetail?.assets.length ?? 0) > 0;
-  const isDefaultCollection = collectionDetail?.name === DEFAULT_COLLECTION_NAME;
+  const isDefaultCollection = collection === DEFAULT_COLLECTION_NAME;
   const isDeleteDisabled = hasAssets || isDefaultCollection;
 
   // Convert CollectionDetail to CollectionInfo for the DeleteCollectionModal
