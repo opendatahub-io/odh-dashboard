@@ -3,6 +3,7 @@ import { ROW_LABEL_GAP, ROW_LABEL_WIDTH } from '@odh-dashboard/autox-core/ui/uti
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
 import { getPatternRowLabel } from '~/app/topology/stageMapLabels';
+import { formatPatternName } from '~/app/utilities/utils';
 import {
   type BranchExpandOptions,
   resolvePatternRank,
@@ -23,7 +24,7 @@ import {
 const STANDARD_NODE_SIZE = 40;
 /** Branch corridor dots — half the stage-node diameter (collapsed spine design). */
 const BRANCH_STEP_NODE_SIZE = 20;
-/** Row-label box stays tall enough for "Pattern N" while the dots shrink. */
+/** Row-label box stays tall enough for "Pattern A" while the dots shrink. */
 const ROW_LABEL_HEIGHT = 32;
 const X_START = 40;
 const X_GAP = 120;
@@ -256,7 +257,7 @@ const patternTerminusExtras = (
       collapsedBranchIndex === undefined ? 'Pattern' : getPatternRowLabel(collapsedBranchIndex);
   }
 
-  // Collapsed spine: "Pattern N" over "winner" — do not use the API display name here.
+  // Collapsed spine: branch-order label over "winner" — do not use the API display name here.
   if (collapsedRowLabel !== undefined) {
     if (options.winnerResolved && isWinner) {
       return {
@@ -278,7 +279,7 @@ const patternTerminusExtras = (
   if (options.winnerResolved && isWinner) {
     return {
       ...extras,
-      label: options.winnerPatternLabel ?? topologyNode.label,
+      label: formatPatternName(options.winnerPatternLabel ?? topologyNode.label),
       labelSubtitle: 'winner',
     };
   }

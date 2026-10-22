@@ -185,11 +185,22 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Insert a non-breaking space between a word prefix and trailing digits.
- * e.g. "Pattern7" → "Pattern\u00a07"
- */
+/** Display numbered pattern identifiers as letters while keeping the label together. */
 export function formatPatternName(name: string): string {
+  const match = /^pattern\s*(\d+)$/i.exec(name);
+  if (match) {
+    let index = BigInt(match[1]);
+    if (index > 0n) {
+      let letters = '';
+      while (index > 0n) {
+        index -= 1n;
+        letters = String.fromCharCode(65 + Number(index % 26n)) + letters;
+        index /= 26n;
+      }
+      return `Pattern\u00a0${letters}`;
+    }
+  }
+
   return name.replace(/(\S)\s*(\d+)$/, '$1\u00a0$2');
 }
 

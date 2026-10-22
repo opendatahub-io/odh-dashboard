@@ -311,7 +311,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern 1');
+    expect(patternNodes[0].data.label).toBe('Pattern\u00a0A');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
     expect(patternNodes[0].data.winnerRank).toBeUndefined();
@@ -347,7 +347,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern 1');
+    expect(patternNodes[0].data.label).toBe('Pattern\u00a0A');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
   });
@@ -363,7 +363,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern 1');
+    expect(patternNodes[0].data.label).toBe('Pattern\u00a0A');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
     expect(patternNodes[0].data.winnerRank).toBeUndefined();
@@ -441,7 +441,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(nodes.some((node) => node.data.nodeRole === 'column-header')).toBe(true);
     expect(nodes.some((node) => node.data.nodeRole === 'column-rule')).toBe(true);
     const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
-    expect(rowLabels.map((node) => node.data.label)).toEqual(['Pattern 1', 'Pattern 2']);
+    expect(rowLabels.map((node) => node.data.label)).toEqual(['Pattern\u00a0A', 'Pattern\u00a0B']);
     const rowLabelXs = [...new Set(rowLabels.map((node) => node.x ?? 0))];
     expect(rowLabelXs).toHaveLength(1);
     expect(rowLabels.every((node) => node.width === 68)).toBe(true);

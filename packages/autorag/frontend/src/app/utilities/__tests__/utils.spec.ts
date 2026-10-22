@@ -380,17 +380,23 @@ describe('parseErrorStatus', () => {
 });
 
 describe('formatPatternName', () => {
-  it('should insert non-breaking space before trailing digits', () => {
-    expect(formatPatternName('Pattern7')).toBe('Pattern 7');
-    expect(formatPatternName('Pattern12')).toBe('Pattern 12');
+  it('should map numbered pattern identifiers to letters', () => {
+    expect(formatPatternName('pattern1')).toBe('Pattern\u00a0A');
+    expect(formatPatternName('Pattern2')).toBe('Pattern\u00a0B');
+    expect(formatPatternName('Pattern7')).toBe('Pattern\u00a0G');
+    expect(formatPatternName('Pattern26')).toBe('Pattern\u00a0Z');
+    expect(formatPatternName('Pattern27')).toBe('Pattern\u00a0AA');
+    expect(formatPatternName('Pattern53')).toBe('Pattern\u00a0BA');
   });
 
-  it('should handle names without trailing digits', () => {
+  it('should preserve custom names and non-pattern numeric suffixes', () => {
     expect(formatPatternName('MyPattern')).toBe('MyPattern');
+    expect(formatPatternName('MyPattern7')).toBe('MyPattern\u00a07');
+    expect(formatPatternName('Pattern0')).toBe('Pattern\u00a00');
   });
 
-  it('should handle names with space before digits', () => {
-    expect(formatPatternName('Pattern 7')).toBe('Pattern 7');
+  it('should map an already spaced pattern identifier', () => {
+    expect(formatPatternName('Pattern 7')).toBe('Pattern\u00a0G');
   });
 });
 
