@@ -8,6 +8,7 @@ const SENSITIVE_CREDENTIAL_FIELD_TERMS = [
   'secret',
   'token',
   'credential',
+  'authorization',
   'pwd',
   'passwd',
   'passcode',

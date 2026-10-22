@@ -489,6 +489,7 @@ describe('CreateConnectionWizard', () => {
       SSH_KEY: 'ssh-key-value',
       SAS: 'shared-access-signature-value',
       PASSCODE: 'passcode-value',
+      AUTHORIZATION: 'authorization-value',
     };
     mockUseConnectionTypes.mockReturnValue([
       [

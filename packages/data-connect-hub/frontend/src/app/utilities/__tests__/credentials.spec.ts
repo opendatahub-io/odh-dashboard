@@ -16,6 +16,7 @@ describe('isSensitiveCredentialField', () => {
     ['SSH_KEY', 'SSH key'],
     ['SAS', 'SAS'],
     ['PASSCODE', 'Passcode'],
+    ['AUTHORIZATION', 'Authorization'],
     ['URI', 'URI'],
     ['url', 'Connection URL'],
     ['CONNECTION_STRING', 'Connection string'],
