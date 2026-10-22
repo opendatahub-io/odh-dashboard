@@ -549,7 +549,7 @@ describe('getNotebookEventStatus', () => {
       fieldPath: 'spec.containers{my-workbench}',
     },
   ])(
-    'maps Kubernetes 1.35 event message "$message" using its field path',
+    'should map Kubernetes 1.35 event message "$message" using its field path',
     ({ reason, message, fieldPath }) => {
       const result = getNotebookEventStatus(
         makeEvent(reason, message, 'Normal', undefined, fieldPath),
@@ -573,7 +573,7 @@ describe('getNotebookEventStatus', () => {
       collision: 'started',
     },
   ])(
-    'parses Kubernetes 1.35 "$message" before matching a container named "$collision"',
+    'should parse Kubernetes 1.35 "$message" before matching a container named "$collision"',
     ({ reason, message, fieldPath, collision }) => {
       const result = getNotebookEventStatus(
         makeEvent(reason, message, 'Normal', undefined, fieldPath),
