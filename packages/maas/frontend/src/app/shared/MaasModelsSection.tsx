@@ -22,22 +22,17 @@ import { EllipsisVIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr, type ThProps } from '@patternfly/react-table';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { MaaSModelRefSummary, ModelSubscriptionRef } from '~/app/types/subscriptions';
-import {
-  findModelSubscriptionRef,
-  formatTokenLimits,
-  getModelFlowControlPhase,
-} from '~/app/pages/subscriptions/viewSubscription/utils';
+import { formatTokenLimits } from '~/app/pages/subscriptions/viewSubscription/utils';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
-type ModelColumnKey = 'name' | 'project' | 'status' | 'tokenLimits' | 'flowControlStatus';
+type ModelColumnKey = 'name' | 'project' | 'status' | 'tokenLimits';
 
 const COLUMNS: { key: ModelColumnKey; label: string; width?: ThProps['width'] }[] = [
   { key: 'name', label: 'Name', width: 30 },
   { key: 'project', label: 'Project', width: 20 },
   { key: 'tokenLimits', label: 'Token limits', width: 20 },
   { key: 'status', label: 'Status', width: 15 }, //model status
-  { key: 'flowControlStatus', label: 'Flow control status', width: 15 }, //flow control status
 ];
 
 export type MaasModelsSectionProps = {
@@ -98,12 +93,6 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
       </Thead>
       <Tbody>
         {modelRefSummaries.map((modelRef, index) => {
-          const subscriptionRef = findModelSubscriptionRef(
-            modelRefsWithRateLimits,
-            modelRef.namespace,
-            modelRef.name,
-          );
-          const flowControlPhase = getModelFlowControlPhase(subscriptionRef);
           const tokenLimitsLines = formatTokenLimits(
             modelRefsWithRateLimits,
             modelRef.namespace,
@@ -183,23 +172,6 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                   )
                 ) : (
                   tokenLimitsDisplay
-                )}
-              </Td>
-            ),
-            flowControlStatus: (
-              <Td key="flowControlStatus" dataLabel="Flow control status">
-                {flowControlPhase && subscriptionRef ? (
-                  <PhaseLabel
-                    phase={flowControlPhase}
-                    resourceType={PhaseResourceType.FLOW_CONTROL_STATUS}
-                    statusMessage={subscriptionRef.message}
-                    reason={subscriptionRef.reason}
-                    resourceName={modelRef.displayName ?? modelRef.name}
-                    hideSubtext
-                    testId={`model-flow-control-status-${modelRef.name}`}
-                  />
-                ) : (
-                  '—'
                 )}
               </Td>
             ),

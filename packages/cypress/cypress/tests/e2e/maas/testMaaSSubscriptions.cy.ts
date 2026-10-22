@@ -63,8 +63,6 @@ let projectName: string;
 let resourceName: string;
 let modelName: string;
 let subscriptionDescription: string;
-let subscriptionPriority: number;
-let secondSubscriptionPriority: number;
 let subscriptionGroups: string[];
 let subscriptionName: string;
 let subscriptionNamespace: string;
@@ -94,8 +92,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionNamespace = testData.subscriptionNamespace;
         subscriptionDescription = 'This is a test MaaS subscription';
-        subscriptionPriority = 256;
-        secondSubscriptionPriority = subscriptionPriority + 1;
         subscriptionGroups = ['rhods-admins'];
         apiKeyName = `maas-api-key-${uuid}`;
         tokenRateLimit = {
@@ -250,7 +246,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       subscriptionsPage.findCreateSubscriptionButton().click();
       createSubscriptionPage.findDisplayNameInput().clear().type(subscriptionName);
       createSubscriptionPage.findDescriptionInput().clear().type(subscriptionDescription);
-      createSubscriptionPage.findPriorityInput().clear().type(subscriptionPriority.toString());
 
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[0]);
 
@@ -303,17 +298,12 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .findExpandedModelDescription()
         .should('contain.text', testData.singleModelDescription);
       subscriptionRow.findExpandedModelTokenLimits().should('contain.text', tokenLimit);
-      subscriptionRow.findPriority().should('contain.text', subscriptionPriority);
 
-      cy.step('Create another subscription to test edit and delete');
+      cy.step('Create another subscription');
+      subscriptionsPage.visit();
       subscriptionsPage.findCreateSubscriptionButton().click();
       createSubscriptionPage.findDisplayNameInput().clear().type(`${subscriptionName}-2`);
       createSubscriptionPage.findDescriptionInput().clear().type(`${subscriptionDescription}-2`);
-      createSubscriptionPage
-        .findPriorityInput()
-        .clear()
-        .type(secondSubscriptionPriority.toString());
-      // Select groups and add a custom one
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[0]);
 
       // Add a model to the subscription
@@ -354,14 +344,10 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       subscriptionsPage.findRows().should('have.length', 1);
       subscriptionsPage.findRows().should('contain.text', `${subscriptionName}-2`);
 
-      cy.step('Edit the second subscription');
+      cy.step('Edit the second subscription description and groups');
       editSubscriptionPage.visit(`${subscriptionName}-2`);
       editSubscriptionPage.findNameInput().should('have.value', `${subscriptionName}-2`);
-      editSubscriptionPage
-        .findPriorityInput()
-        .should('have.value', secondSubscriptionPriority.toString());
       editSubscriptionPage.typeCustomGroup('premium-users');
-      editSubscriptionPage.findPolicyChangeWarning().should('exist');
       editSubscriptionPage.findPolicyChangeWarning().should('exist');
       editSubscriptionPage.findModelsTable().should('contain.text', modelName);
 
@@ -428,11 +414,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       subscriptionsPage.findDeleteButton(`${subscriptionName}-2`).click();
       deleteSubscriptionModal.findInput().type(`${subscriptionName}-2`);
       deleteSubscriptionModal.findSubmitButton().click();
-      // Sometimes the page isn't refreshing fast enough, reloading for now
-      subscriptionsPage.reload();
-      subscriptionsPage.findFilterInput().type(`${subscriptionName}-2`);
-      subscriptionsPage.findRows().should('have.length', 0);
-      subscriptionsPage.findTable().should('not.contain', `${subscriptionName}-2`);
 
       cy.step('Verify the second subscription is deleted from the cluster');
       cy.then(() => {
@@ -440,6 +421,12 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
           expectDeleted: true,
         });
       });
+
+      // Sometimes the page isn't refreshing fast enough, reloading for now
+      subscriptionsPage.reload();
+      subscriptionsPage.findFilterInput().type(`${subscriptionName}-2`);
+      subscriptionsPage.findRows().should('have.length', 0);
+      subscriptionsPage.findTable().should('not.contain', `${subscriptionName}-2`);
 
       cy.step('Create an API key for the subscription');
       apiKeysPage.visit();

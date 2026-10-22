@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Vendored from fullsend-ai/agents scripts/pre-review.sh
-# @ ce2eedd097dcccf17e29f4a7cd337ec4d95d7194, a generated bundle upstream
+# @ 2da538b8b62ad6d7b91c43d8cf139f4738cfbf51 (v0.48.1), a generated bundle upstream
 # (pre-review.src.sh plus the scripts/lib forge libraries, `make script-build`).
 # This copy is edited by hand: rebase it onto a newer upstream bundle, do not
 # regenerate it.
@@ -31,6 +31,10 @@
 #   8. Prior findings reach the sandbox only for `app-verified` provenance.
 #      Upstream also accepts GitLab's weaker `bot-verified`, which nothing on
 #      GitHub produces.
+#   9. Upstream's finding-id ledger is not carried: no mint_missing_prior_ids
+#      and no apply_human_dismissals step, because post-review.sh writes no
+#      ids or dispositions and posts no inline threads to dismiss. Their forge
+#      helpers stay in the bundled library unused.
 # The local main-flow steps call `gh` directly, so this copy only completes a
 # review on GitHub; the GitLab library is carried as bundled.
 #
@@ -806,6 +810,101 @@ forge_get_recent_redispatch_comments() {
      | length'
 }
 
+# Return a JSON object mapping finding ids to the review-comment URL of the
+# review agent's original inline comment. This is best-effort context for
+# carried blockers; the ledger itself remains metadata-only. Only comments
+# authored by the current viewer are considered, so a human cannot forge a
+# finding link by mentioning an id in a reply.
+forge_get_finding_comment_links() {
+  local owner name query cursor has_next page response page_nodes nodes_json links
+  local -a gh_args
+
+  owner="${REPO%%/*}"
+  name="${REPO##*/}"
+  cursor=""
+  has_next="true"
+  page=0
+  nodes_json="[]"
+
+  query='query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
+    repository(owner: $owner, name: $name) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 100, after: $cursor) {
+          pageInfo { hasNextPage endCursor }
+          nodes {
+            comments(first: 100) {
+              pageInfo { hasNextPage }
+              nodes { body viewerDidAuthor url }
+            }
+          }
+        }
+      }
+    }
+  }'
+
+  while [[ "${has_next}" == "true" ]]; do
+    page=$((page + 1))
+    if [[ "${page}" -gt 20 ]]; then
+      echo "::warning::Review thread pagination hit page cap — finding links may be incomplete" >&2
+      break
+    fi
+
+    gh_args=(api graphql
+      -f owner="${owner}"
+      -f name="${name}"
+      -F number="${PR_NUMBER}"
+      -f query="${query}")
+    if [[ -n "${cursor}" ]]; then
+      gh_args+=(-f cursor="${cursor}")
+    fi
+
+    if ! response=$(GH_TOKEN="${REVIEW_TOKEN}" gh "${gh_args[@]}" 2>/dev/null); then
+      echo "::warning::Failed to fetch review threads — blocking finding links unavailable" >&2
+      echo '{}'
+      return 0
+    fi
+    if echo "${response}" | jq -e '.errors | type == "array" and length > 0' >/dev/null 2>&1; then
+      echo "::warning::Review thread query returned errors — blocking finding links unavailable" >&2
+      echo '{}'
+      return 0
+    fi
+
+    page_nodes=$(echo "${response}" | jq -c '.data.repository.pullRequest.reviewThreads.nodes // []' 2>/dev/null) || {
+      echo "::warning::Failed to parse review threads — blocking finding links unavailable" >&2
+      echo '{}'
+      return 0
+    }
+    nodes_json=$(jq -c --argjson page "${page_nodes}" '. + $page' <<< "${nodes_json}" 2>/dev/null) || {
+      echo "::warning::Failed to merge review thread pages — blocking finding links unavailable" >&2
+      echo '{}'
+      return 0
+    }
+
+    has_next=$(echo "${response}" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage // false' 2>/dev/null) || has_next="false"
+    cursor=$(echo "${response}" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor // empty' 2>/dev/null) || cursor=""
+    if [[ "${has_next}" == "true" && -z "${cursor}" ]]; then
+      echo "::warning::Review thread page missing cursor — blocking finding links may be incomplete" >&2
+      break
+    fi
+  done
+
+  links=$(jq -c --arg base "${PR_URL}" '
+    [ .[]
+      | (.comments.nodes // [])[]
+      | select(.viewerDidAuthor == true)
+      | . as $comment
+      | (($comment.body // "") | scan("finding:(f_[A-Za-z0-9]+)") | .[0]) as $id
+      | select(($id | type) == "string")
+      | select(($comment.url // "") | startswith($base + "#discussion_r"))
+      | select(($comment.url // "") | test("#discussion_r[0-9]+$"))
+      | {id: $id, url: $comment.url}
+    ]
+    | reduce .[] as $match ({}; .[$match.id] //= $match.url)
+  ' <<< "${nodes_json}" 2>/dev/null) || links='{}'
+  jq -e 'type == "object"' <<< "${links}" >/dev/null 2>&1 || links='{}'
+  printf '%s\n' "${links}"
+}
+
 # --- Review threads ---
 
 # Select GitHub review-thread node IDs that are safe to auto-resolve.
@@ -951,6 +1050,8 @@ forge_resolve_outdated_review_threads() {
   fi
   return 0
 }
+
+# --- Human dismissals ---
 
 # --- Labels ---
 
@@ -1196,6 +1297,12 @@ forge_get_recent_redispatch_comments() {
      | length'
 }
 
+# GitLab notes do not expose the same GitHub review-comment URL shape. Keep
+# the caller forge-neutral and let it fall back to the finding context.
+forge_get_finding_comment_links() {
+  echo '{}'
+}
+
 # GitHub-only: GitLab discussions have no isOutdated equivalent in this
 # issue's scope. No-op so post-review can call this unconditionally.
 forge_resolve_outdated_review_threads() {
@@ -1257,6 +1364,110 @@ forge_list_repo_labels() {
     exit 1
     ;;
 esac
+
+# Fetch resolved review threads once per stage and return rich, verified
+# records for both pre-review ledger updates and post-review result checks.
+# Comment bodies never leave the host: only authors and exact finding-ID
+# stamps are retained in the returned records.
+forge_get_human_dismissals() {
+  local pr_author response trusted_reviewers
+  local -a fetch_args
+
+  pr_author="$(forge_get_pr_author)"
+  if [[ -z "${pr_author}" ]]; then
+    echo "::warning::Could not determine the PR author — human dismissals cannot be verified" >&2
+    echo '[]'
+    return 0
+  fi
+
+  case "${FULLSEND_FORGE}" in
+    github)
+      local org app_set
+      org="${REPO%%/*}"
+      app_set="${FULLSEND_APP_SET:-}"
+      trusted_reviewers="$(jq -nc \
+        --arg org "${org}" \
+        --arg app_set "${app_set}" '
+          [
+            ($org + "-review"), ($org + "-review[bot]"),
+            "fullsend-ai-review", "fullsend-ai-review[bot]",
+            (if $app_set == "" then empty else ($app_set + "-review"), ($app_set + "-review[bot]") end)
+          ] | unique
+        ')"
+      ;;
+    gitlab)
+      local review_actor
+      review_actor="$(_gitlab_api GET "/user" 2>/dev/null | jq -r '.username // empty' 2>/dev/null)" || review_actor=""
+      if [[ -z "${review_actor}" ]]; then
+        echo "::warning::Could not determine the GitLab review bot — human dismissals cannot be verified" >&2
+        echo '[]'
+        return 0
+      fi
+      trusted_reviewers="$(jq -nc --arg actor "${review_actor}" '[$actor]')"
+      ;;
+  esac
+
+  fetch_args=(fetch-review-threads --forge "${FULLSEND_FORGE}" --repo "${REPO}" --pr "${PR_NUMBER}")
+  if [[ "${FULLSEND_FORGE}" == "gitlab" && -n "${CI_SERVER_URL:-}" ]]; then
+    fetch_args+=(--base-url "${CI_SERVER_URL}")
+  fi
+  if ! response="$(GH_TOKEN="${REVIEW_TOKEN:-${GH_TOKEN:-}}" \
+    GITLAB_TOKEN="${REVIEW_TOKEN:-${GITLAB_TOKEN:-}}" \
+    fullsend "${fetch_args[@]}" 2>/dev/null)"; then
+    echo "::warning::Failed to fetch review threads — human dismissals cannot be verified" >&2
+    echo '[]'
+    return 0
+  fi
+
+  if ! jq -e 'type == "object" and (.threads | type == "array") and (.truncated == false)' \
+    <<< "${response}" >/dev/null 2>&1; then
+    echo "::warning::Review thread fetch was invalid or truncated — human dismissals cannot be verified" >&2
+    echo '[]'
+    return 0
+  fi
+
+  jq -c --arg author "${pr_author}" --arg forge "${FULLSEND_FORGE}" --argjson trusted "${trusted_reviewers}" '
+    [ .threads[]
+      | select(type == "object")
+      | select(.is_resolved == true)
+      | select(.resolved_by_type == "User")
+      | select(.resolved_by_role_verified == true)
+      | select(.resolved_by_role | IN("write", "maintain", "admin"))
+      | select((.resolved_by | ascii_downcase) != ($author | ascii_downcase))
+      | select(.comments_truncated == false)
+      | . as $thread
+      | [ $thread.comments[]?
+          | {
+              author: (.author // ""),
+              author_type: (.author_type // ""),
+              finding_ids: [(.body // "" | scan("<!--[[:space:]]+finding:(f_[A-Za-z0-9]+)[[:space:]]+-->") | .[0])] | unique
+            }
+        ] as $comments
+      | [ $comments[]
+          | select(
+              if $forge == "github" then
+                (.author_type == "Bot") and
+                (.author as $login | ($trusted | map(ascii_downcase) | index($login | ascii_downcase)) != null)
+              else
+                (.author as $login | ($trusted | map(ascii_downcase) | index($login | ascii_downcase)) != null)
+              end
+            )
+        ] as $trusted_comments
+      | select(($trusted_comments | length) > 0)
+      | {
+          path: $thread.path,
+          line: $thread.line,
+          original_line: $thread.original_line,
+          resolved_by: $thread.resolved_by,
+          resolved_by_type: $thread.resolved_by_type,
+          resolved_by_role: $thread.resolved_by_role,
+          resolved_by_role_verified: $thread.resolved_by_role_verified,
+          comment_authors: ($comments | map({author, author_type})),
+          finding_ids: ([$trusted_comments[].finding_ids[]] | unique)
+        }
+    ]
+  ' <<< "${response}" 2>/dev/null || echo '[]'
+}
 # END bundled: lib/review-ops.lib.sh
 
 forge_validate_pr_url

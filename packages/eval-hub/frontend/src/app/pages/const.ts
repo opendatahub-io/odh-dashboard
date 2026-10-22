@@ -1,5 +1,6 @@
 export enum BenchmarkFilterOptions {
   category = 'Category',
+  evaluates = 'Evaluates',
   name = 'Name',
   metrics = 'Metrics',
   framework = 'Framework',
@@ -7,6 +8,7 @@ export enum BenchmarkFilterOptions {
 
 export type BenchmarkFilterDataType = {
   [BenchmarkFilterOptions.category]: string[];
+  [BenchmarkFilterOptions.evaluates]: string[];
   [BenchmarkFilterOptions.name]: string;
   [BenchmarkFilterOptions.metrics]: string[];
   [BenchmarkFilterOptions.framework]: string[];
@@ -14,6 +16,7 @@ export type BenchmarkFilterDataType = {
 
 export const initialBenchmarkFilterData: BenchmarkFilterDataType = {
   [BenchmarkFilterOptions.category]: [],
+  [BenchmarkFilterOptions.evaluates]: [],
   [BenchmarkFilterOptions.name]: '',
   [BenchmarkFilterOptions.metrics]: [],
   [BenchmarkFilterOptions.framework]: [],

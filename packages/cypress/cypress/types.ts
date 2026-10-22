@@ -160,6 +160,26 @@ export type KueueQuotaUsageNavigationTestData = {
   clusterQueueTypeLabel: string;
 };
 
+export type InfrastructureWorkloadsTestData = {
+  managedProjectName: string;
+  nonKueueProjectName: string;
+  emptyProjectName: string;
+  trainJobName: string;
+  trainingRuntimeName: string;
+  managedProjectWorkbenchName: string;
+  nonKueueProjectWorkbenchName: string;
+  resourceFlavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  initialCpuQuota: number;
+  memoryQuota: number;
+  notebookImage: string;
+  hardwareProfileName: string;
+  nonKueueLabel: string;
+  priorityClassColumnLabel: string;
+  expectedQueuePosition: number;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;

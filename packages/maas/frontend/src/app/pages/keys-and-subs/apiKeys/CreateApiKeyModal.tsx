@@ -868,7 +868,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       <MaasModelsSection
                         modelRefSummaries={modelRefSummaries}
                         modelRefsWithRateLimits={subscriptionModelRefs}
-                        hideColumns={['project', 'flowControlStatus', 'status']}
+                        hideColumns={['project', 'status']}
                         titleHeadingLevel="h3"
                         titleSize="md"
                         resourceType="subscription"

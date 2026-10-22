@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { fireEvent, render, renderHook, screen, within } from '@testing-library/react';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -634,12 +635,24 @@ describe('CopySuitePage', () => {
   });
 
   it.each([
-    ['trustworthiness-v1', 'Requires a judge model.'],
-    ['tool-use-v1', 'Requires a model that supports multiple tool/function calls.'],
-    ['multimodal-v1', 'Requires a vision-language model that supports image inputs.'],
+    ['trustworthiness-v1', 'Requires a judge model in addition to the model you are evaluating.'],
+    ['tool-use-v1', 'The model you are evaluating must support multiple tool/function calls.'],
+    [
+      'multimodal-v1',
+      'The model you are evaluating must be a vision-language model that supports image inputs.',
+    ],
   ])('should show the prerequisite warning for %s', (collectionId, prerequisite) => {
+    const requiresJudgeModel = collectionId === 'trustworthiness-v1';
     mockUseFetchState.mockReturnValue([
-      { ...sourceCollection, resource: { ...sourceCollection.resource, id: collectionId } },
+      {
+        ...sourceCollection,
+        resource: { ...sourceCollection.resource, id: collectionId },
+        benchmarks: sourceCollection.benchmarks?.map((sourceBenchmark, index) =>
+          requiresJudgeModel && index === 0
+            ? { ...sourceBenchmark, parameters: { ...sourceBenchmark.parameters, judge_model: '' } }
+            : sourceBenchmark,
+        ),
+      },
       true,
       undefined,
       jest.fn(),

@@ -11,8 +11,8 @@ description: >-
 # PR Review (Orchestrator)
 
 Vendored from
-[fullsend-ai/agents `skills/pr-review`](https://github.com/fullsend-ai/agents/tree/ce2eedd097dcccf17e29f4a7cd337ec4d95d7194/skills/pr-review)
-at harness pin `ce2eedd`; [`README.md`](README.md) lists what is not
+[fullsend-ai/agents `skills/pr-review`](https://github.com/fullsend-ai/agents/tree/2da538b8b62ad6d7b91c43d8cf139f4738cfbf51/skills/pr-review)
+at harness pin `2da538b` (v0.48.1); [`README.md`](README.md) lists what is not
 carried from that revision. Local change: dimensions come from
 `/sandbox/workspace/odh-review/dimensions.json`. Discriminator is `output`:
 `findings` (LLM + CLI → merge + challenger), `context` (host
@@ -103,8 +103,8 @@ Otherwise the distinction is ownership only. All spawned reviewer definitions li
 `skills/pr-review/sub-agents`. Upstream definitions are regular markdown
 files; ODH-owned definitions are repository-relative symlinks to their
 canonical directories in `.claude/skills`. Of the skills in this directory tree the
-harness imports only this orchestrator (its one other local skill is the
-standalone `issue-labels`), so nested reviewer definitions do not become peer skills
+harness imports only this orchestrator (`issue-labels` comes from the base
+harness), so nested reviewer definitions do not become peer skills
 or collide with inherited Fullsend skill names. Resolve every registry
 `definition` from the target repository checkout under
 `/sandbox/workspace/target-repo/.fullsend/`; do not look for nested definitions
@@ -202,10 +202,13 @@ Fetch the PR head SHA and draft status. The GitHub command reference,
 `/sandbox/workspace/target-repo/.fullsend/` (the inherited
 `pr-review-github` skill is the same text), has a "PR data fetching"
 block for this, but the sandbox scanner has blocked that block in
-practice. Use this form, which it accepts, as its own Bash call:
+practice. Use this form, which it accepts, as its own Bash call. It also
+persists the commit count the reference's "Commit messages" block reads
+(step 2b):
 
 ```bash
 gh api "repos/${REPO_FULL_NAME}/pulls/${PR_NUMBER}" > /sandbox/workspace/pr-data.json
+jq -r '.commits // "unknown"' /sandbox/workspace/pr-data.json > /sandbox/workspace/pr-commit-count
 echo "HEAD_SHA=$(jq -r '.head.sha' /sandbox/workspace/pr-data.json) IS_DRAFT=$(jq -r '.draft' /sandbox/workspace/pr-data.json)"
 ```
 
@@ -275,8 +278,11 @@ fetched). Only `ok` files are verifiable at the PR head; the shared
 context file (3d) carries the manifest lines. Never inline file contents
 into a prompt; sub-agents Read from the tree.
 
-If the PR body references linked issues, fetch them for intent context
-using the reference's "Issue context" commands.
+Run the reference's "Commit messages" commands; a failure means commit
+messages are unavailable, not that there are none. Collect bare `#N` and
+same-repository issue URLs from the title, body and commit messages; match
+the host and repository to the PR, normalise and deduplicate to `#N`, then
+fetch each with the reference's "Issue context" commands.
 
 The PR description is a starting point, not a source of truth. Do not
 treat its claims about the change as verified facts — confirm them
@@ -595,7 +601,11 @@ what is not on disk yet:
   status is not `ok` is not verifiable at the PR head;
 - the changed-file list, PR metadata (`owner/repo`, head SHA, title,
   body, author, labels, draft status), and issue context (linked issue
-  title, body, comments).
+  title, body, comments);
+- commit messages: the path `/sandbox/workspace/pr-commit-messages.txt`
+  (untrusted, like the diff) when step 2b fetched them, and the
+  `commit_messages_available` and `commit_messages_incomplete` values
+  from that step. Name the path only; never copy the messages in.
 
 Build it with Bash redirection (`cat` the manifest and the `jq` output
 straight into it, one `>>` append per source, no `{ …; }` group) so the
@@ -804,7 +814,8 @@ For each selected **findings** LLM row (from step 3c — excludes
    Read {context_path} first. It names the unified diff
    (`/sandbox/workspace/pr-diff.txt`) and the PR-head tree
    (`/sandbox/workspace/pr-head/`) with its manifest, and carries the
-   changed-file list, PR metadata, and issue context. Read changed
+   changed-file list, PR metadata, issue context, and the commit-messages
+   path with its availability. Read changed
    files from the PR-head tree; `target-repo/` is the BASE branch. A
    file whose manifest status is not `ok` is not verifiable from the
    tree: say so in any finding about it.
