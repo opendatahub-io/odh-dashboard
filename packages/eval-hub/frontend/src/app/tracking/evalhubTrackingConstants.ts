@@ -98,6 +98,8 @@ export type MlflowExperimentSelectedProperties = {
   experimentName?: string;
 };
 
+export type MlflowRunTabsLoadFailedProperties = Record<string, never>;
+
 export type ResultBenchmarkCardSelectedProperties = {
   benchmarkId: string;
   evaluationName?: string;
@@ -333,6 +335,7 @@ export type EvalHubEventProperties = {
   [EVAL_HUB_EVENTS.EVALUATION_STOPPED]: EvaluationDeletedProperties;
   [EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED]: ExternalLinkClickedProperties;
   [EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED]: MlflowExperimentSelectedProperties;
+  [EVAL_HUB_EVENTS.MLFLOW_RUN_TABS_LOAD_FAILED]: MlflowRunTabsLoadFailedProperties;
   [EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED]: ResultBenchmarkCardSelectedProperties;
   [EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED]: BenchmarkRunSelectedProperties;
   [EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED]: CompareRunSelectedProperties;
@@ -403,6 +406,7 @@ export const EVAL_HUB_EVENT_PROPERTY_ALLOWLIST = {
   [EVAL_HUB_EVENTS.EVALUATION_STOPPED]: ['evaluationName', 'previousState'],
   [EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED]: ['url', 'benchmarkId', 'surface'],
   [EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED]: ['experimentSelection', 'experimentName'],
+  [EVAL_HUB_EVENTS.MLFLOW_RUN_TABS_LOAD_FAILED]: [],
   [EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED]: [
     'benchmarkId',
     'evaluationName',
