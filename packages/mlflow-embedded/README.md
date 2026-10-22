@@ -37,8 +37,12 @@ This package has no build step of its own -- its TSX files are compiled by the h
 2. Start the dashboard: `pnpm run dev` (from repo root)
 3. Navigate to **Develop and Train > Experiments**, **Observe & monitor > Agent traces**, or **AI hub > Skills** in the dashboard
 
+## Availability
+
+Experiments and Agent traces remain in navigation when the MLflow Operator is disabled. Prompts remains reachable by direct URL for setup guidance. Dashboard administrators with `create` and either `update` or `patch` permission on the cluster-scoped MLflow custom resource see administrator setup guidance; everyone else sees user guidance. The pages show this guidance until the operator is enabled and an MLflow custom resource is available, including when no project exists.
+
+If the MLflow status check fails before any successful response, the pages show a service-unavailable state instead of setup guidance. Later transient failures retain the last known availability state.
+
 ## Feature Flags
 
-The embedded MLflow pages require the MLflow component to be `Managed` in the DataScienceCluster. Some also need an `OdhDashboardConfig` flag: Prompts needs `genAiStudio`, and the MCP registry tab needs `mcpCatalog` and `mcpRegistry`.
-
-The **Skills** page also requires `skillRegistry: true` in `OdhDashboardConfig` (Tech Preview, off by default) and an MLflow image that exposes `MlflowSkillRegistryWrapper` ([opendatahub-io/mlflow#411](https://github.com/opendatahub-io/mlflow/pull/411)).
+Prompts navigation and its task shortcut require Gen AI Studio (`genAiStudio` in `OdhDashboardConfig`) and the MLflow component to be `Managed`. Its direct route remains available for prompt links from Experiments and Agent traces. The Experiments Home task requires the MLflow component, while its navigation item remains visible for setup guidance. The **Skills** page requires the MLflow component to be `Managed` in the DataScienceCluster, `skillRegistry: true` in `OdhDashboardConfig` (Tech Preview, off by default), and an MLflow image that exposes `MlflowSkillRegistryWrapper` ([opendatahub-io/mlflow#411](https://github.com/opendatahub-io/mlflow/pull/411)). The MCP registry tab requires the MLflow component and the `mcpCatalog` and `mcpRegistry` flags.
