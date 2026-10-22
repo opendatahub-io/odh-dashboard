@@ -7,7 +7,7 @@ import { getClusterArchitecture } from './oc_commands/baseCommands';
 /** Skips the entire suite (including its setup hooks) when the cluster is ARM. */
 export const skipOnArm = (): void => {
   before(function skipSuiteOnArm() {
-    return getClusterArchitecture().then((architecture) => {
+    return getClusterArchitecture({ strict: true }).then((architecture) => {
       if (architecture === 'arm64') {
         this.skip();
       }
