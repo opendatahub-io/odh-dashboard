@@ -153,6 +153,7 @@
     "joi": "^17.13.8",
     "source-map-js": "^1.2.2",
     "proxy-addr": "^2.0.8",
-    "handlebars": "^4.7.10"
+    "handlebars": "^4.7.10",
+    "undici": "^7.30.1"
   }
 }
