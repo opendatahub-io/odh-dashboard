@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -22,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -116,6 +118,12 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	})
 	require.NoError(t, err)
 	ctx, cancel := context.WithCancel(context.Background())
+	// Register the informers before starting the manager, as SetupWithManager
+	// does in production. Strict cache reads must not create informers lazily.
+	for _, object := range objects {
+		_, err = mgr.GetCache().GetInformer(ctx, object)
+		require.NoErrorf(t, err, "registering informer for %T", object)
+	}
 	managerErr := make(chan error, 1)
 	go func() { managerErr <- mgr.Start(ctx) }()
 	t.Cleanup(func() {
@@ -136,6 +144,14 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	}
 	err = mgr.GetCache().Get(ctx, client.ObjectKeyFromObject(wrongNamespace), &appsv1.Deployment{})
 	assert.ErrorContains(t, err, "unknown namespace for the cache")
+
+	var notCached *ctrlcache.ErrResourceNotCached
+	err = mgr.GetClient().List(ctx, &batchv1.JobList{})
+	require.ErrorAs(t, err, &notCached)
+	require.NoError(t, mgr.GetAPIReader().List(ctx, &batchv1.JobList{}))
+	notCached = nil
+	err = mgr.GetClient().List(ctx, &batchv1.JobList{})
+	require.ErrorAs(t, err, &notCached, "an APIReader request must not create a shared-cache informer")
 
 	reconciler := &ctrlpkg.DashboardReconciler{
 		Client:                mgr.GetClient(),
