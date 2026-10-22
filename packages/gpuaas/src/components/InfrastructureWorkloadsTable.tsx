@@ -95,12 +95,18 @@ const InfrastructureWorkloadTableRow: React.FC<InfrastructureWorkloadTableRowPro
         <StatusCell workload={workload} notebookState={notebookState} onClick={onStatusClick} />
       </Td>
       {kueueEnabled && (
-        <Td dataLabel="Queue position">
+        <Td
+          dataLabel="Queue position"
+          data-testid={`infrastructure-workload-queue-position-${workload.name}`}
+        >
           {formatInfrastructureWorkloadKueueValue(workload.queuePosition, workload.kueueState)}
         </Td>
       )}
       {kueueEnabled && (
-        <Td dataLabel="Priority class">
+        <Td
+          dataLabel="Priority class"
+          data-testid={`infrastructure-workload-priority-class-${workload.name}`}
+        >
           {formatInfrastructureWorkloadKueueValue(workload.priority, workload.kueueState)}
         </Td>
       )}
