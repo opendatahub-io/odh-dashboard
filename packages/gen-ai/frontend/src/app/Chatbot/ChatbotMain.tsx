@@ -187,6 +187,9 @@ const ChatbotMain: React.FunctionComponent = () => {
     {},
   );
   const configurations = useChatbotConfigStore((s) => s.configurations);
+  // The helpers below are recreated every render so the dirty check always sees the
+  // latest models and store state — they are not stable references and must never
+  // go into a useCallback/useEffect dependency array.
   // The subscription SubscriptionDropdown auto-picks (highest priority) for a model
   const getAutoSubscription = (model: string, isMaaSModel = false): string =>
     getModelSubscriptions(model, maasModels, isMaaSModel)[0]?.name ?? '';
@@ -420,7 +423,9 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, []);
 
   // Revert restores the pane's starting values in place — compare mode, sibling panes,
-  // and the active pane all stay intact
+  // and the active pane all stay intact. Empty deps are intentional: this only closes
+  // over configBaselinesRef (a ref) and the module-level DEFAULT_CONFIGURATION, and
+  // reads the store via getState() at call time.
   const handleRevertToDefaults = React.useCallback((configId: string) => {
     const state = useChatbotConfigStore.getState();
     const currentConfig = state.configurations[configId];
