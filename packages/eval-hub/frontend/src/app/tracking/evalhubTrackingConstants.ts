@@ -239,7 +239,7 @@ export type JobCreateOpenedProperties = {
 };
 
 export type JobCreateValidationFailedProperties = {
-  validation_error_category: 'form_invalid' | 'parameters_not_object' | 'parameters_invalid_json';
+  validation_error_category: 'parameters_not_object' | 'parameters_invalid_json';
 };
 
 export type ComparisonViewRenderedProperties = {

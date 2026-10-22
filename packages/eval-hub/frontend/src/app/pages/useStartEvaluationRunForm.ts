@@ -710,15 +710,7 @@ export function useStartEvaluationRunForm({
     // be a modal-resolved copy that differs from the collection shown before submit.
     const submissionTrackingContext = getTrackingContext(benchmark, activeCollection);
 
-    if (!isValid) {
-      trackEvalHubEvent(
-        EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
-        { validation_error_category: 'form_invalid' },
-        submissionTrackingContext,
-      );
-      return;
-    }
-    if (isSubmitting) {
+    if (!isValid || isSubmitting) {
       return;
     }
 
