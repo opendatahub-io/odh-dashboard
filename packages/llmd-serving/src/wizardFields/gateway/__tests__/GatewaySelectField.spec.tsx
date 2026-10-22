@@ -281,6 +281,26 @@ describe('GatewaySelectFieldComponent', () => {
       expect(getCombobox()).toHaveAttribute('placeholder', 'Select gateways');
     });
 
+    it('should stay enabled when missing selections exist as chips', () => {
+      const missingGateway = makeGateway('gw-removed', 'ns-old');
+
+      renderComponent({
+        value: { selections: [missingGateway] },
+        initialValue: { selections: [missingGateway] },
+        externalData: { data: [], loaded: true },
+      });
+
+      // Discovery empty, but preserved missing chips must remain deselectable
+      expect(screen.getByTestId('gateway-select')).not.toHaveAttribute('disabled');
+      expect(screen.getByText('gw-removed | ns-old')).toBeInTheDocument();
+      expect(screen.getByText(GATEWAY_MISSING_SELECTION_MESSAGE)).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'No Gateways found. Make sure Gateway resources are created and configured',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
     it('should not show the empty warning when gateways exist', () => {
       renderComponent({
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },

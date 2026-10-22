@@ -36,8 +36,6 @@ import {
   type LLMInferenceServiceGatewayRef,
 } from '../../../../utils/oc_commands/modelServing';
 
-const GATEWAY_FEATURE_FLAGS = 'llmGatewayField=true';
-
 /** MultiSelection option label format expected by the gateway page object. */
 const gatewayOptionLabel = (ref: MultiGatewayFixtureRef): string =>
   `${ref.name} | ${ref.namespace}`;
@@ -60,7 +58,8 @@ const uuid = generateTestUUID();
 
 const loginAndOpenDeployWizard = (): void => {
   cy.step('Log into the application as admin');
-  cy.visitWithLogin(`/?devFeatureFlags=${GATEWAY_FEATURE_FLAGS}`, HTPASSWD_CLUSTER_ADMIN_USER);
+  // llmGatewayField defaults to true — exercise GA/default-enabled behavior (no devFeatureFlags)
+  cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
   cy.step(`Navigate to the Project list tab and search for ${projectName}`);
   // Prefer direct visit — sidebar nav labels differ across ODH/RHOAI product branding
