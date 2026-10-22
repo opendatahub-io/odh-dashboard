@@ -7,6 +7,7 @@ export type {
   HardwareProfileResource,
   HardwareProfileBindingStateInfo,
   HardwareProfileBindingConfig,
+  HardwareProfileBinding,
   CrPathConfig,
   HardwareProfileOptions,
   ModelServingPodSpecOptions,

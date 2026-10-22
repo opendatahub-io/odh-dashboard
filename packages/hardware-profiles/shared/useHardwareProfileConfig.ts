@@ -21,7 +21,19 @@ import {
   useKueueConfiguration,
 } from './kueueUtils';
 import { isHardwareProfileConfigValid } from './validationUtils';
-import { getContainerResourcesFromHardwareProfile, isDRAHardwareProfile } from './utils';
+import {
+  findHardwareProfileForBinding,
+  getClaimTemplateMissingText,
+  getContainerResourcesFromHardwareProfile,
+  isDRAHardwareProfile,
+  isSameHardwareProfileBinding,
+} from './utils';
+import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
+import {
+  type ResourceClaimTemplateNamesResult,
+  useResourceClaimTemplateNames,
+} from './useResourceClaimTemplateNames';
+import type { HardwareProfileBinding } from './types';
 
 export type HardwareProfileConfig = {
   selectedProfile?: HardwareProfileKind;
@@ -32,6 +44,11 @@ export type HardwareProfileConfig = {
 export type UseHardwareProfileConfigResult = {
   formData: HardwareProfileConfig;
   initialHardwareProfile?: HardwareProfileKind;
+  initialResources?: ContainerResources;
+  existingBinding: HardwareProfileBinding;
+  excludeDRAProfiles: boolean;
+  claimTemplateNames?: ResourceClaimTemplateNamesResult;
+  claimTemplateMissingText?: string;
   isFormDataValid: boolean;
   setFormData: UpdateObjectAtPropAndValue<HardwareProfileConfig>;
   resetFormData: () => void;
@@ -120,7 +137,13 @@ export const useHardwareProfileConfig = (
   visibleIn?: HardwareProfileFeatureVisibility[],
   resourceNamespace?: string,
   hardwareProfileNamespace?: string | null,
+  options: { allowDRAProfiles?: boolean | 'pending'; project?: string } = {},
 ): UseHardwareProfileConfigResult => {
+  const isDRAEnabled = useIsDRAHardwareProfileEnabled();
+  const requestedExcludeDRAProfiles =
+    isDRAEnabled && options.allowDRAProfiles === 'pending'
+      ? undefined
+      : !(isDRAEnabled && options.allowDRAProfiles);
   const { dashboardNamespace } = useDashboardNamespace();
   const { currentProject } = React.useContext(CurrentProjectContext);
   const { localQueues } = React.useContext(LocalQueuesContext);
@@ -132,13 +155,19 @@ export const useHardwareProfileConfig = (
       projectScopedProfilesLoaded,
       projectScopedProfilesLoadError,
     ],
-  } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace, { includeDRA: true });
+  } = useHardwareProfilesByFeatureVisibility(visibleIn, resourceNamespace, { dra: 'all' });
 
   const initialHardwareProfile = useRef<HardwareProfileKind | undefined>(undefined);
+  const initialResources = useRef<ContainerResources | undefined>(undefined);
   const [formData, setFormData, resetFormData] = useGenericObjectState<HardwareProfileConfig>({
     selectedProfile: undefined,
     useExistingSettings: false,
   });
+
+  const [knownExcludeDRAProfiles, setKnownExcludeDRAProfiles] = React.useState(
+    requestedExcludeDRAProfiles,
+  );
+  const excludeDRAProfiles = requestedExcludeDRAProfiles ?? knownExcludeDRAProfiles;
 
   const profiles = React.useMemo(
     () => [...dashboardProfiles, ...projectScopedProfiles],
@@ -148,10 +177,71 @@ export const useHardwareProfileConfig = (
     () => profiles.filter((profile) => !isDRAHardwareProfile(profile)),
     [profiles],
   );
+  const assignedProfile = React.useMemo(
+    () =>
+      findHardwareProfileForBinding(
+        profiles,
+        { name: existingHardwareProfileName, namespace: hardwareProfileNamespace || undefined },
+        resourceNamespace,
+        dashboardNamespace,
+      ),
+    [
+      profiles,
+      existingHardwareProfileName,
+      hardwareProfileNamespace,
+      resourceNamespace,
+      dashboardNamespace,
+    ],
+  );
+  const existingBinding = React.useMemo<HardwareProfileBinding>(
+    () => ({
+      name: existingHardwareProfileName,
+      namespace: hardwareProfileNamespace || resourceNamespace,
+    }),
+    [existingHardwareProfileName, hardwareProfileNamespace, resourceNamespace],
+  );
+
+  const { selectedProfile: currentSelectedProfile } = formData;
+  if (
+    requestedExcludeDRAProfiles !== undefined &&
+    requestedExcludeDRAProfiles !== knownExcludeDRAProfiles
+  ) {
+    setKnownExcludeDRAProfiles(requestedExcludeDRAProfiles);
+    if (
+      knownExcludeDRAProfiles !== undefined &&
+      currentSelectedProfile &&
+      isDRAHardwareProfile(currentSelectedProfile) &&
+      (isSameHardwareProfileBinding(currentSelectedProfile.metadata, existingBinding) ||
+        requestedExcludeDRAProfiles)
+    ) {
+      resetFormData();
+    }
+  }
+
   const profilesLoaded = dashboardProfilesLoaded && projectScopedProfilesLoaded;
   const profilesLoadError = dashboardProfilesLoadError || projectScopedProfilesLoadError;
 
-  const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
+  const claimTemplateNamespace =
+    options.project &&
+    excludeDRAProfiles === false &&
+    ((!!currentSelectedProfile && isDRAHardwareProfile(currentSelectedProfile)) ||
+      profiles.some(isDRAHardwareProfile))
+      ? options.project
+      : undefined;
+  const claimTemplateNamesResult = useResourceClaimTemplateNames(claimTemplateNamespace);
+  const claimTemplateNames = claimTemplateNamespace ? claimTemplateNamesResult : undefined;
+  const claimTemplateMissingText =
+    claimTemplateNames &&
+    currentSelectedProfile &&
+    isDRAHardwareProfile(currentSelectedProfile) &&
+    !isSameHardwareProfileBinding(currentSelectedProfile.metadata, existingBinding)
+      ? getClaimTemplateMissingText(currentSelectedProfile, claimTemplateNames)
+      : undefined;
+
+  const isFormDataValid = React.useMemo(
+    () => isHardwareProfileConfigValid(formData) && !claimTemplateMissingText,
+    [formData, claimTemplateMissingText],
+  );
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
 
   const { data: lqData, loaded: lqLoaded, error: lqError } = localQueues;
@@ -161,35 +251,32 @@ export const useHardwareProfileConfig = (
   }, [lqData, lqLoaded, lqError]);
 
   React.useEffect(() => {
-    if (!profilesLoaded || formData.selectedProfile) {
+    if (!profilesLoaded || excludeDRAProfiles === undefined || formData.selectedProfile) {
       return;
     }
     // only set form state if not already set
     if (!formData.resources) {
       let selectedProfile: HardwareProfileKind | undefined;
 
-      let assignedProfile: HardwareProfileKind | undefined;
-      if (existingHardwareProfileName && hardwareProfileNamespace) {
-        assignedProfile =
-          hardwareProfileNamespace === dashboardNamespace
-            ? dashboardProfiles.find(
-                (profile) => profile.metadata.name === existingHardwareProfileName,
-              )
-            : projectScopedProfiles.find(
-                (profile) =>
-                  profile.metadata.name === existingHardwareProfileName &&
-                  profile.metadata.namespace === hardwareProfileNamespace,
-              );
-      }
-
       if (assignedProfile && isDRAHardwareProfile(assignedProfile)) {
-        initialHardwareProfile.current = assignedProfile;
-        setFormData('resources', {
+        const existingResources: ContainerResources = {
           ...resources,
           requests: resources?.requests ?? {},
           limits: resources?.limits ?? {},
-        });
-        setFormData('useExistingSettings', true);
+        };
+        const hasExistingRequestsOrLimits =
+          Object.keys(existingResources.requests ?? {}).length > 0 ||
+          Object.keys(existingResources.limits ?? {}).length > 0;
+        const assignedResources =
+          !excludeDRAProfiles &&
+          assignedProfile.spec.identifiers?.length &&
+          hasExistingRequestsOrLimits
+            ? mergeProfileIdentifiersIntoResources(existingResources, assignedProfile)
+            : existingResources;
+        initialHardwareProfile.current = assignedProfile;
+        initialResources.current = assignedResources;
+        setFormData('resources', assignedResources);
+        setFormData('useExistingSettings', excludeDRAProfiles);
         setFormData('selectedProfile', assignedProfile);
         return;
       }
@@ -197,7 +284,7 @@ export const useHardwareProfileConfig = (
       // if editing, try to select existing profile
       if (resources) {
         // try to match to existing profile
-        if (existingHardwareProfileName && hardwareProfileNamespace) {
+        if (assignedProfile || (existingHardwareProfileName && hardwareProfileNamespace)) {
           selectedProfile = assignedProfile;
         } else if (!resources.claims?.length) {
           selectedProfile = matchToHardwareProfile(
@@ -251,18 +338,22 @@ export const useHardwareProfileConfig = (
     formData.resources,
     formData.selectedProfile,
     hardwareProfileNamespace,
-    projectScopedProfiles,
-    dashboardProfiles,
-    dashboardNamespace,
+    assignedProfile,
     kueueFilteringState,
     availableLocalQueueNames,
     lqLoaded,
     lqError,
+    excludeDRAProfiles,
   ]);
 
   return {
     formData,
     initialHardwareProfile: initialHardwareProfile.current,
+    initialResources: initialResources.current,
+    existingBinding,
+    excludeDRAProfiles: excludeDRAProfiles ?? true,
+    claimTemplateNames,
+    claimTemplateMissingText,
     isFormDataValid,
     setFormData,
     resetFormData,
@@ -275,8 +366,9 @@ const mergeProfileIdentifiersIntoResources = (
   existingResources: ContainerResources,
   hardwareProfile: HardwareProfileKind,
 ): ContainerResources => {
+  const claims = existingResources.claims?.length ? { claims: existingResources.claims } : {};
   if (!hardwareProfile.spec.identifiers || hardwareProfile.spec.identifiers.length === 0) {
-    return { requests: {}, limits: {} };
+    return { requests: {}, limits: {}, ...claims };
   }
   const profileResources = getContainerResourcesFromHardwareProfile(hardwareProfile);
   const profileIdentifierKeys = new Set(
@@ -309,5 +401,6 @@ const mergeProfileIdentifiersIntoResources = (
   return {
     requests: mergedRequests,
     limits: mergedLimits,
+    ...claims,
   };
 };

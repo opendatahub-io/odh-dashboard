@@ -6,7 +6,6 @@ import {
   HardwareProfileOptions,
   CrPathConfig,
 } from './types';
-import { isHardwareProfileConfigValid } from './validationUtils';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -32,7 +31,7 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
   cr: T | null | undefined,
   hardwareProfileOptions: HardwareProfileOptions,
 ): UseAssignHardwareProfileResult<T> => {
-  const { visibleIn, paths } = hardwareProfileOptions;
+  const { visibleIn, paths, allowDRAProfiles, project } = hardwareProfileOptions;
   const { name: hwpName, namespace: hwpNamespace } = getExistingHardwareProfileData(cr);
   const existingResources = getExistingResources(cr, paths);
   const { existingContainerResources, existingTolerations, existingNodeSelector } =
@@ -46,6 +45,7 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
     visibleIn,
     namespace,
     hwpNamespace,
+    { allowDRAProfiles, project },
   );
   const podSpecOptions = assemblePodSpecOptions(hardwareProfileConfig, existingResources);
 
@@ -60,14 +60,16 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
         targetResource,
         hardwareProfileConfig.formData,
         resourcePaths || paths,
+        hardwareProfileConfig.existingBinding,
       );
     },
-    [paths, hardwareProfileConfig.formData],
+    [paths, hardwareProfileConfig.formData, hardwareProfileConfig.existingBinding],
   );
 
-  const validateHardwareProfileForm = React.useCallback((): boolean => {
-    return isHardwareProfileConfigValid(hardwareProfileConfig.formData);
-  }, [hardwareProfileConfig.formData]);
+  const validateHardwareProfileForm = React.useCallback(
+    (): boolean => hardwareProfileConfig.isFormDataValid,
+    [hardwareProfileConfig.isFormDataValid],
+  );
 
   return {
     podSpecOptionsState,
