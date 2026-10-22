@@ -29,6 +29,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | ProjectDetail
       section: 'settings-environment-setup',
       path: '/notebooks/workspacekinds/*',
       label: 'Dev Preview',
+      accessReview: {
+        group: 'kubeflow.org',
+        resource: 'workspacekinds',
+        verb: 'create',
+      },
     },
   },
   {
