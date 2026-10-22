@@ -480,6 +480,60 @@ func TestResolve_CustomAllUnsupportedGroupsFailsClosed(t *testing.T) {
 	}
 }
 
+func TestResolve_CustomRSACiphersSupported(t *testing.T) {
+	// Parity with pkg/tls and the operator: an RSA GCM cipher the other resolvers
+	// accept must also resolve here (regression for the incomplete cipher map).
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName12,
+			fieldCiphers:       []any{"AES128-GCM-SHA256", "ECDHE-RSA-AES128-SHA256"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (RSA/CBC ciphers should be supported)", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	want := []uint16{tls.TLS_RSA_WITH_AES_128_GCM_SHA256, tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256}
+	if len(cfg.CipherSuites) != len(want) {
+		t.Fatalf("expected %d cipher suites, got %d (%v)", len(want), len(cfg.CipherSuites), cfg.CipherSuites)
+	}
+	for i, c := range want {
+		if cfg.CipherSuites[i] != c {
+			t.Errorf("cipher[%d] = %d, want %d", i, cfg.CipherSuites[i], c)
+		}
+	}
+}
+
+func TestResolve_CustomTLS13CiphersResolve(t *testing.T) {
+	// A TLS 1.3 Custom profile listing only TLS 1.3 cipher names must resolve
+	// (they are Go-managed/skipped), not fail closed as "no usable ciphers".
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName13,
+			fieldCiphers:       []any{"TLS_AES_128_GCM_SHA256"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (TLS 1.3 custom profile should resolve)", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	if cfg.MinVersion != tls.VersionTLS13 {
+		t.Errorf("expected TLS 1.3, got %d", cfg.MinVersion)
+	}
+}
+
 func TestProfileWatcher_CallbackErrorDoesNotAdvanceLastProfile(t *testing.T) {
 	apiServer := newAPIServer(map[string]any{fieldType: profileTypeModern})
 	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()

@@ -118,12 +118,12 @@ func serveTLSWithReload(
 		case reloadRequested:
 			logger.Info("cluster TLS profile changed; restarting HTTPS listener",
 				"oldMinVersion", tlsCfg.MinVersion, "newMinVersion", nextCfg.MinVersion)
-			gracefulShutdown(logger, srv)
+			gracefulShutdown(logger, srv, shutdownTimeout)
 			<-serveErrCh // wait for the serve goroutine to unwind
 			tlsCfg = nextCfg
 			continue
 		case contextCancelled:
-			gracefulShutdown(logger, srv)
+			gracefulShutdown(logger, srv, shutdownTimeout)
 			<-serveErrCh
 			return nil
 		default: // serverStopped
@@ -175,12 +175,18 @@ func watchForReload(
 	}
 }
 
-// gracefulShutdown shuts a listener generation down within shutdownTimeout.
-func gracefulShutdown(logger *slog.Logger, srv *http.Server) {
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+// gracefulShutdown shuts a listener generation down within timeout. If the
+// graceful drain does not complete in time, the server is force-closed so its
+// connections and handlers do not leak across reload generations (Shutdown with a
+// deadline does not itself close still-active connections).
+func gracefulShutdown(logger *slog.Logger, srv *http.Server, timeout time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("graceful shutdown of HTTPS listener failed", "error", err)
+		logger.Error("graceful shutdown of HTTPS listener timed out; forcing close", "error", err)
+		if closeErr := srv.Close(); closeErr != nil {
+			logger.Error("force close of HTTPS listener failed", "error", closeErr)
+		}
 	}
 }
 

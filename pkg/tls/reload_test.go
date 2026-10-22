@@ -206,6 +206,65 @@ func TestServeTLSWithReloadServesAndRestartsOnChange(t *testing.T) {
 	}
 }
 
+// TestGracefulShutdownForceClosesOnTimeout verifies that when the graceful drain
+// deadline passes with a request still in-flight, the server is force-closed so
+// the connection does not leak across a reload generation.
+func TestGracefulShutdownForceClosesOnTimeout(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	addr := ln.Addr().String()
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	defer close(release)
+
+	srv := &http.Server{
+		Handler: http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+			close(started)
+			<-release // block well past the drain deadline
+		}),
+	}
+	go func() { _ = srv.Serve(ln) }()
+
+	reqErr := make(chan error, 1)
+	go func() {
+		resp, err := http.Get("http://" + addr + "/") //nolint:noctx // test
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		reqErr <- err
+	}()
+
+	select {
+	case <-started:
+	case <-time.After(3 * time.Second):
+		t.Fatal("handler never received the request")
+	}
+
+	done := make(chan struct{})
+	go func() {
+		gracefulShutdown(testLogger(), srv, 50*time.Millisecond)
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("gracefulShutdown did not return")
+	}
+
+	// The force-close must terminate the in-flight request rather than leak it.
+	select {
+	case err := <-reqErr:
+		if err == nil {
+			t.Error("expected in-flight request to fail after force-close")
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("in-flight request was not force-closed (connection leaked)")
+	}
+}
+
 // --- test helpers ---
 
 func writeSelfSignedCert(t *testing.T) (certFile, keyFile string) {
