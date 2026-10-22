@@ -127,7 +127,10 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
         .findSaveConnectionInput()
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .click({ force: true });
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 2: Model deployment - select Test vLLM CPU LLMInferenceServiceConfig');
