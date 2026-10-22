@@ -2448,7 +2448,21 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/EvaluationJob'
+              metadata:
+                type: object
+                description: >-
+                  List metadata. total_count is the upstream total number of
+                  matching jobs. truncated is true when the BFF capped the
+                  aggregated result at its maximum item count.
+                properties:
+                  total_count:
+                    type: integer
+                  truncated:
+                    type: boolean
           example:
+            metadata:
+              total_count: 2
+              truncated: false
             data:
                 - resource:
                     id: 'eval-job-001'

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { EvaluationJob } from '~/app/types';
+import { EvaluationJobsResult } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import {
   mockBenchmarkSuiteCollections,
@@ -18,7 +18,7 @@ const mockDeleteCollection = jest.fn();
 const mockNotificationSuccess = jest.fn();
 const mockNotificationError = jest.fn();
 const mockUseEvaluationJobs = jest.fn<
-  [EvaluationJob[], boolean, Error | undefined, jest.Mock],
+  [EvaluationJobsResult, boolean, Error | undefined, jest.Mock],
   []
 >();
 
@@ -189,7 +189,12 @@ describe('EvaluationsPage', () => {
     jest.clearAllMocks();
     queryClient.clear();
     mockUseEvalHubHealth.mockReturnValue({ isHealthy: true, loaded: true, error: undefined });
-    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [], totalCount: 0, truncated: false },
+      true,
+      undefined,
+      mockRefresh,
+    ]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
     mockDeleteCollection.mockResolvedValue(undefined);
     mockUseDeleteCollectionMutation.mockReturnValue({
@@ -481,7 +486,12 @@ describe('EvaluationsPage', () => {
   });
 
   it('should not gate the Evaluate tab on the Runs request', () => {
-    mockUseEvaluationJobs.mockReturnValue([[], false, new Error('Runs unavailable'), mockRefresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [], totalCount: 0, truncated: false },
+      false,
+      new Error('Runs unavailable'),
+      mockRefresh,
+    ]);
 
     renderPage('test-project', '?tab=evaluate');
 
@@ -695,7 +705,12 @@ describe('EvaluationsPage', () => {
           resolveRefresh = resolve;
         }),
     );
-    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, refresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [], totalCount: 0, truncated: false },
+      true,
+      undefined,
+      refresh,
+    ]);
     renderPage('test-project', '?tab=evaluate');
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Run' })[0]);
@@ -719,7 +734,12 @@ describe('EvaluationsPage', () => {
           resolveRefresh = resolve;
         }),
     );
-    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, refresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [], totalCount: 0, truncated: false },
+      true,
+      undefined,
+      refresh,
+    ]);
     renderPage('test-project');
 
     fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-clawbench'));
@@ -737,7 +757,12 @@ describe('EvaluationsPage', () => {
 
   it('should use the Runs tab from the URL and render its content description', () => {
     const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
-    mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs, totalCount: jobs.length, truncated: false },
+      true,
+      undefined,
+      mockRefresh,
+    ]);
     renderPage('test-project', '?tab=runs');
 
     expect(screen.getByTestId('runs-tab')).toHaveAttribute('aria-selected', 'true');
@@ -748,6 +773,34 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('runs-tab-description')).toHaveTextContent(
       'Start and manage evaluation runs for models, agents, and datasets.',
     );
+  });
+
+  it('should show a truncation alert when the evaluation jobs list is truncated', () => {
+    const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs, totalCount: 2500, truncated: true },
+      true,
+      undefined,
+      mockRefresh,
+    ]);
+    renderPage('test-project', '?tab=runs');
+
+    const alert = screen.getByTestId('evaluations-truncated-alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent('Showing 1 of 2500 evaluation runs.');
+  });
+
+  it('should not show a truncation alert when the list is complete', () => {
+    const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs, totalCount: jobs.length, truncated: false },
+      true,
+      undefined,
+      mockRefresh,
+    ]);
+    renderPage('test-project', '?tab=runs');
+
+    expect(screen.queryByTestId('evaluations-truncated-alert')).not.toBeInTheDocument();
   });
 
   it('should persist tab selection in the URL when switching tabs', () => {
@@ -835,7 +888,12 @@ describe('EvaluationsPage', () => {
 
     it('should render the evaluations table when evaluations exist', () => {
       const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
-      mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs, totalCount: jobs.length, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
       renderPage('test-project');
       selectRunsTab();
 
@@ -845,7 +903,12 @@ describe('EvaluationsPage', () => {
 
     it('should clear the selected job when navigating to a different namespace', async () => {
       const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'failed' })];
-      mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs, totalCount: jobs.length, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
 
       const NavigateHelper: React.FC = () => {
         const navigate = useNavigate();

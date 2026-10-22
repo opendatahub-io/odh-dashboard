@@ -340,6 +340,12 @@ export type ListEvaluationJobsParams = {
   tags?: string;
 };
 
+export type EvaluationJobsResult = {
+  jobs: EvaluationJob[];
+  totalCount: number;
+  truncated: boolean;
+};
+
 // ---------------------------------------------------------------------------
 // Collection / Benchmark Suite types
 // ---------------------------------------------------------------------------

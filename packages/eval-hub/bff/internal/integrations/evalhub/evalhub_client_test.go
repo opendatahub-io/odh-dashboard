@@ -3,9 +3,11 @@ package evalhub
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -141,6 +143,8 @@ func TestEvalHubClient_ListEvaluationJobs(t *testing.T) {
 		assert.Equal(t, "/api/v1/evaluations/jobs", r.URL.Path)
 		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
 		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+		assert.Equal(t, "100", r.URL.Query().Get("limit"))
+		assert.Equal(t, "0", r.URL.Query().Get("offset"))
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(resp)
 	}))
@@ -150,10 +154,94 @@ func TestEvalHubClient_ListEvaluationJobs(t *testing.T) {
 	result, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{Namespace: "my-ns"})
 
 	require.NoError(t, err)
-	assert.Len(t, result, 2)
-	assert.Equal(t, "job-1", result[0].Resource.ID)
-	assert.Equal(t, "completed", result[0].Status.State)
-	assert.Equal(t, "test-model", result[0].Model.Name)
+	assert.Len(t, result.Items, 2)
+	assert.Equal(t, 2, result.TotalCount)
+	assert.False(t, result.Truncated)
+	assert.Equal(t, "job-1", result.Items[0].Resource.ID)
+	assert.Equal(t, "completed", result.Items[0].Status.State)
+	assert.Equal(t, "test-model", result.Items[0].Model.Name)
+}
+
+func TestEvalHubClient_ListEvaluationJobs_FetchesAllPages(t *testing.T) {
+	firstPage := EvaluationJobsResponse{
+		TotalCount: 3,
+		Limit:      2,
+		Next:       &PaginationLink{Href: "/api/v1/evaluations/jobs?limit=2&offset=2"},
+		Items: []EvaluationJob{
+			{Resource: JobResource{ID: "job-1"}},
+			{Resource: JobResource{ID: "job-2"}},
+		},
+	}
+	secondPage := EvaluationJobsResponse{
+		TotalCount: 3,
+		Limit:      2,
+		Items:      []EvaluationJob{{Resource: JobResource{ID: "job-3"}}},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/jobs", r.URL.Path)
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+		assert.Equal(t, "100", r.URL.Query().Get("limit"))
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("offset") == "0" {
+			_ = json.NewEncoder(w).Encode(firstPage)
+			return
+		}
+		assert.Equal(t, "2", r.URL.Query().Get("offset"))
+		_ = json.NewEncoder(w).Encode(secondPage)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{Namespace: "my-ns"})
+
+	require.NoError(t, err)
+	require.Len(t, result.Items, 3)
+	assert.Equal(t, 3, result.TotalCount)
+	assert.False(t, result.Truncated)
+	assert.Equal(t, []string{"job-1", "job-2", "job-3"}, []string{
+		result.Items[0].Resource.ID,
+		result.Items[1].Resource.ID,
+		result.Items[2].Resource.ID,
+	})
+}
+
+func TestEvalHubClient_ListEvaluationJobs_TruncatesAtMaxItems(t *testing.T) {
+	const upstreamTotal = 2500
+	var requestCount int
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "100", r.URL.Query().Get("limit"))
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		require.NoError(t, err)
+
+		items := make([]EvaluationJob, 0, evaluationJobsPageSize)
+		for i := 0; i < evaluationJobsPageSize; i++ {
+			items = append(items, EvaluationJob{Resource: JobResource{ID: fmt.Sprintf("job-%d", offset+i)}})
+		}
+		requestCount++
+
+		resp := EvaluationJobsResponse{
+			TotalCount: upstreamTotal,
+			Limit:      evaluationJobsPageSize,
+			Next:       &PaginationLink{Href: "/api/v1/evaluations/jobs"},
+			Items:      items,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{Namespace: "my-ns"})
+
+	require.NoError(t, err)
+	assert.Len(t, result.Items, evaluationJobsMaxItems)
+	assert.Equal(t, upstreamTotal, result.TotalCount)
+	assert.True(t, result.Truncated)
+	assert.Equal(t, "job-999", result.Items[evaluationJobsMaxItems-1].Resource.ID)
+	// No further pages are requested once the cap is reached.
+	assert.Equal(t, evaluationJobsMaxItems/evaluationJobsPageSize, requestCount)
 }
 
 func TestEvalHubClient_ListEvaluationJobs_EmptyNamespace(t *testing.T) {
@@ -203,8 +291,8 @@ func TestEvalHubClient_ListEvaluationJobs_WithParams(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	assert.Len(t, result, 1)
-	assert.Equal(t, "job-1", result[0].Resource.ID)
+	assert.Len(t, result.Items, 1)
+	assert.Equal(t, "job-1", result.Items[0].Resource.ID)
 }
 
 func TestEvalHubClient_ListEvaluationJobs_ServerError(t *testing.T) {
