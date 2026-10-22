@@ -349,7 +349,9 @@ describe('ChatbotMain - Empty State Logic', () => {
     expect(useChatbotConfigStore.getState().configurations.default?.selectedModel).toBe('');
     selectedModel = 'test-model';
     rerender(renderMain());
-    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    // An already-initialized configuration without a baseline is adopted as the
+    // baseline — retained settings are not flagged as dirty
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     selectedModel = '';
     rerender(renderMain());
     act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
@@ -542,6 +544,41 @@ describe('ChatbotMain - Empty State Logic', () => {
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     // RAG stays connected to the uploaded documents after reverting
     expect(actualStore.getState().configurations.default?.selectedVectorStoreId).toBe('doc-store');
+    act(() => actualStore.getState().resetConfiguration());
+  });
+
+  it('should keep the conversation vision image flag when reverting to the starting settings', () => {
+    const actualStore = renderWithActualStore([]);
+
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    // A conversation image upload sets the vision flag — not a user edit
+    act(() => actualStore.getState().updateHasVisionImage('default', true));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    act(() => actualStore.getState().updateTemperature('default', 0.5));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    // The conversation still holds the uploaded image — the flag survives the revert
+    expect(actualStore.getState().configurations.default?.hasVisionImage).toBe(true);
+    act(() => actualStore.getState().resetConfiguration());
+  });
+
+  it('should adopt the retained configuration as the baseline when no baseline exists', () => {
+    const actualStore = renderWithActualStore([]);
+
+    // Simulate a remount: the singleton store keeps an initialized configuration
+    // while the component's baselines start empty — the playground never re-reports
+    // its initial model because one is already selected
+    act(() => actualStore.getState().updateTemperature('default', 0.5));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    // Revert restores the retained settings, not raw defaults
+    act(() => actualStore.getState().updateTemperature('default', 0.9));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
+    expect(actualStore.getState().configurations.default?.temperature).toBe(0.5);
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     act(() => actualStore.getState().resetConfiguration());
   });
 

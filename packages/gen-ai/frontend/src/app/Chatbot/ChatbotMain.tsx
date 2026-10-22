@@ -230,6 +230,15 @@ const ChatbotMain: React.FunctionComponent = () => {
     if (!config) {
       return false;
     }
+    // The store is a singleton but the baselines are component-local — after a remount
+    // an already-initialized configuration can outlive its baseline. Adopt it instead
+    // of comparing against raw defaults, which would flag retained settings as dirty.
+    // Only capture once a model is selected so a pre-initialization state is never
+    // frozen as the baseline. Capturing before the comparison keeps the dirty check
+    // correct on this very render.
+    if (configBaselinesRef.current[configId] === undefined && config.selectedModel) {
+      configBaselinesRef.current[configId] = config;
+    }
     const baseline = configBaselinesRef.current[configId];
     const hasBaseline = baseline !== undefined;
     return (
@@ -428,6 +437,9 @@ const ChatbotMain: React.FunctionComponent = () => {
     // so the starting MCP tool selections are restored in storage too
     state.resetConfigurationValues(configId, {
       ...baseline,
+      // The vision image flag is set by conversation image uploads, not a setting —
+      // keep it so view code stays consistent with the still-attached image
+      hasVisionImage: currentConfig.hasVisionImage,
       selectedVectorStoreId: preserveInlineVectorStore
         ? (currentConfig.selectedVectorStoreId ?? baseline.selectedVectorStoreId)
         : baseline.selectedVectorStoreId,
