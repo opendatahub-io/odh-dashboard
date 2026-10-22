@@ -100,7 +100,6 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.selectUriConnectionTypeIfExists();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
@@ -109,6 +108,10 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         .findSaveConnectionInput()
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
+      // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .click({ force: true });
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 2: Model deployment');

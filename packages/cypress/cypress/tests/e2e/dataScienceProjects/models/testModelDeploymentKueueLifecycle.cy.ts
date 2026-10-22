@@ -136,7 +136,8 @@ const deployModelViaWizard = (ctx: TestContext, modelName: string) => {
     .findSaveConnectionInput()
     .clear()
     .type(`${modelName}${FIXTURE.connectionNameSuffix}`);
-  modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+  // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+  modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click({ force: true });
   modelServingWizard.findNextButton().should('be.enabled').click();
 
   modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);

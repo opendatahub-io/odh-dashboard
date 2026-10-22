@@ -193,7 +193,10 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .findSaveConnectionInput()
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .click({ force: true });
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 2: Model deployment - select LLM-d inference simulator config');
