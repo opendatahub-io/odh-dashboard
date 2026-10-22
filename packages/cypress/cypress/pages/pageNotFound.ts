@@ -1,6 +1,6 @@
 class PageNotFound {
-  visit() {
-    cy.visitWithLogin(`/force-not-found-page`);
+  visit(path = '/force-not-found-page') {
+    cy.visitWithLogin(path);
     this.wait();
   }
 

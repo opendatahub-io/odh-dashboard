@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import MlflowExperimentsPage, {
   MlflowExperimentWrapperProps,
   UnsupportedTabInfo,
@@ -25,7 +26,22 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
-  ApplicationsPage: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  ApplicationsPage: ({
+    children,
+    empty,
+    emptyStatePage,
+    headerContent,
+  }: {
+    children?: React.ReactNode;
+    empty?: boolean;
+    emptyStatePage?: React.ReactNode;
+    headerContent?: React.ReactNode;
+  }) => (
+    <div>
+      {headerContent}
+      {empty ? emptyStatePage : children}
+    </div>
+  ),
   ProjectObjectType: jest.requireActual<typeof import('@odh-dashboard/ui-core/design')>(
     '@odh-dashboard/ui-core/design',
   ).ProjectObjectType,
@@ -42,8 +58,17 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 
 jest.mock('@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
   __esModule: true,
-  default: () => ({ available: true, loaded: true, error: false }),
+  default: jest.fn(),
 }));
+
+jest.mock('../../shared/MLflowNotConfigured', () => ({
+  __esModule: true,
+  default: ({ featureName }: { featureName: string }) => (
+    <div data-testid="mlflow-setup-feature-name">{featureName}</div>
+  ),
+}));
+
+const mockUseIsMlflowCRAvailable = jest.mocked(useIsMlflowCRAvailable);
 
 const reportUnsupportedTab = (info: UnsupportedTabInfo) => {
   const onUnsupportedTab = capturedWrapperProps?.onUnsupportedTab;
@@ -57,6 +82,7 @@ describe('MlflowExperimentsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     capturedWrapperProps = undefined;
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: true, loaded: true, error: false });
   });
 
   it('should lock the MLflow wrapper to the Model training workflow type', () => {
@@ -82,6 +108,17 @@ describe('MlflowExperimentsPage', () => {
 
     expect(capturedWrapperProps?.basename).toBe('/observe-and-monitor/agent-traces');
     expect(capturedWrapperProps?.workflowType).toBe(WorkflowType.GENAI);
+  });
+
+  it('should use agent observability in the Agent traces setup guidance', () => {
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: true, error: false });
+
+    render(<MlflowAgentObservabilityPage />);
+
+    expect(screen.getByTestId('mlflow-setup-feature-name')).toHaveTextContent(
+      'agent observability',
+    );
+    expect(screen.queryByTestId('mlflow-embedded-jump-link')).not.toBeInTheDocument();
   });
 
   describe('onUnsupportedTab', () => {
