@@ -277,9 +277,10 @@ const patternTerminusExtras = (
 
   // Succeeded + matched winner branch (expanded): pattern name + "winner" subtitle + star.
   if (options.winnerResolved && isWinner) {
+    const winnerLabel = options.winnerPatternLabel ?? topologyNode.label;
     return {
       ...extras,
-      label: formatPatternName(options.winnerPatternLabel ?? topologyNode.label),
+      label: winnerLabel === undefined ? undefined : formatPatternName(winnerLabel),
       labelSubtitle: 'winner',
     };
   }

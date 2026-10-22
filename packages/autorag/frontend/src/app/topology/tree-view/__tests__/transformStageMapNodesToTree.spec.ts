@@ -384,6 +384,27 @@ describe('transformStageMapNodesToTree', () => {
     expect(winner?.data.showWinnerStar).toBe(false);
   });
 
+  it('should handle a resolved winner without a display label', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const winnerTopologyNode = topologyNodes.find(
+      (node) => node.id.includes('__pattern__') && node.data?.patternKey === 'PatternHyDE',
+    );
+    if (!winnerTopologyNode) {
+      throw new Error('expected a pattern terminus for the winner');
+    }
+    winnerTopologyNode.label = undefined;
+
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: true,
+      winnerResolved: true,
+      winnerPatternKey: 'PatternHyDE',
+    });
+
+    const winner = nodes.find((node) => node.data.isResolvedWinner);
+    expect(winner?.data.label).toBeUndefined();
+    expect(winner?.data.labelSubtitle).toBe('winner');
+  });
+
   it('does not annotate ambiguous display-name matches as winners', () => {
     const stageMap = makeStageMap([
       makeComponent('rag_optimization', [
