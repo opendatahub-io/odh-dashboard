@@ -197,12 +197,9 @@ describeAdminOnly('Infrastructure Workloads visibility', () => {
         .findWorkloadQueuePosition(config.trainJobName)
         .should('have.text', String(testData.expectedQueuePosition));
 
-      cy.step('Verify project-user Admission metrics');
-      infrastructurePage.findAdmissionsTab().scrollIntoView().should('be.visible').click();
-      infrastructurePage.findWaitingWorkloadsMetric().should('be.visible');
-      infrastructurePage.findActiveWorkloadsMetric().should('be.visible');
-      infrastructurePage.findAdmissionRateMetric().should('not.exist');
-      infrastructurePage.findAdmissionLeadTimeMetric().should('not.exist');
+      cy.step('Verify Admissions stays hidden for a project user');
+      infrastructurePage.findWorkloadOverview().should('be.visible');
+      infrastructurePage.findAdmissionsTab().should('not.exist');
 
       cy.step('Switch to the non-Kueue project and verify its Workbench remains visible');
       infrastructurePage.selectProjectByName(testContext.nonKueueProjectName);
@@ -213,6 +210,14 @@ describeAdminOnly('Infrastructure Workloads visibility', () => {
       infrastructurePage
         .findWorkloadWorkbenchStatus(testContext.nonKueueProjectWorkbenchName)
         .should('have.text', NotebookStatusLabel.Ready);
+      infrastructurePage
+        .findWorkloadCount('active')
+        .findByRole('heading', { level: 3 })
+        .should('have.text', '1');
+      infrastructurePage
+        .findWorkloadCount('blockers')
+        .findByRole('heading', { level: 3 })
+        .should('have.text', '0');
       infrastructurePage
         .findWorkloadQueuePosition(testContext.nonKueueProjectWorkbenchName)
         .should('not.exist');
