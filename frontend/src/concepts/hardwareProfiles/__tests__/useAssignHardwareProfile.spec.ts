@@ -2,13 +2,16 @@ import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   HardwareProfileFeatureVisibility,
+  IdentifierResourceType,
   TolerationEffect,
   TolerationOperator,
   type NodeSelector,
   type Toleration,
 } from '@odh-dashboard/k8s-core';
+import * as pluginCore from '@odh-dashboard/plugin-core';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import * as useHardwareProfileConfigModule from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig';
+import { useResourceClaimTemplateNames } from '@odh-dashboard/hardware-profiles/shared/useResourceClaimTemplateNames';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
@@ -17,14 +20,23 @@ import * as appContext from '#~/app/AppContext';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '#~/concepts/hardwareProfiles/const';
+import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core'),
+  useDashboardNamespace: jest.fn(),
+}));
 jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
+}));
+jest.mock('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
+jest.mock('@odh-dashboard/hardware-profiles/shared/useResourceClaimTemplateNames', () => ({
+  useResourceClaimTemplateNames: jest.fn(),
 }));
 jest.mock('@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig', () => ({
   useHardwareProfileConfig: jest.fn(),
@@ -34,6 +46,11 @@ const mockUseAppContext = jest.mocked(appContext.useAppContext);
 const mockUseHardwareProfileConfig = jest.mocked(
   useHardwareProfileConfigModule.useHardwareProfileConfig,
 );
+const mockUseDashboardNamespace = jest.mocked(pluginCore.useDashboardNamespace);
+const mockUseHardwareProfiles = jest.mocked(
+  useHardwareProfilesModule.useHardwareProfilesByFeatureVisibility,
+);
+const mockUseResourceClaimTemplateNames = jest.mocked(useResourceClaimTemplateNames);
 type TestConfig<T extends K8sResourceCommon> = {
   resourceType: string;
   createMockResource: (opts?: Record<string, unknown>) => T;
@@ -97,6 +114,8 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
         },
       },
       initialHardwareProfile: hardwareProfile,
+      excludeDRAProfiles: false,
+      existingBinding: {},
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
@@ -139,6 +158,8 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
         },
       },
       initialHardwareProfile: undefined,
+      excludeDRAProfiles: false,
+      existingBinding: {},
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
@@ -191,6 +212,8 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
         resources: existingResources,
       },
       initialHardwareProfile: undefined,
+      excludeDRAProfiles: false,
+      existingBinding: {},
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
@@ -242,6 +265,8 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
         },
       },
       initialHardwareProfile: undefined,
+      excludeDRAProfiles: false,
+      existingBinding: {},
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
@@ -275,6 +300,8 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
         resources: customResources,
       },
       initialHardwareProfile: undefined,
+      excludeDRAProfiles: false,
+      existingBinding: {},
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
@@ -332,6 +359,8 @@ describe('useAssignHardwareProfile', () => {
         resources: { requests: {}, limits: {} },
       },
       initialHardwareProfile: undefined,
+      excludeDRAProfiles: false,
+      existingBinding: {},
       isFormDataValid: true,
       setFormData: jest.fn(),
       resetFormData: jest.fn(),
@@ -339,6 +368,143 @@ describe('useAssignHardwareProfile', () => {
       profilesLoadError: undefined,
     });
   });
+
+  it('should keep the resource version when applying the DRA hardware profile of the resolved existing binding', () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      namespace: 'opendatahub',
+      resourceVersion: '2',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const notebook = mockNotebookK8sResource({ hardwareProfileName: 'dra-profile' });
+    mockUseHardwareProfileConfig.mockReturnValue({
+      formData: { selectedProfile: draProfile, useExistingSettings: false },
+      initialHardwareProfile: undefined,
+      excludeDRAProfiles: false,
+      existingBinding: { name: 'dra-profile', namespace: 'opendatahub' },
+      isFormDataValid: true,
+      setFormData: jest.fn(),
+      resetFormData: jest.fn(),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
+    });
+
+    const renderResult = testHook(useAssignHardwareProfile)(notebook, {
+      visibleIn: [HardwareProfileFeatureVisibility.WORKBENCH],
+      paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
+    });
+    const result = renderResult.result.current.applyToResource(notebook);
+
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
+      'opendatahub',
+    );
+    expect(result.metadata.annotations).not.toHaveProperty(
+      'opendatahub.io/hardware-profile-resource-version',
+    );
+  });
+
+  it('should pass the project to the hardware profile config and report its validity', () => {
+    mockUseHardwareProfileConfig.mockReturnValue({
+      formData: { selectedProfile: undefined, useExistingSettings: false },
+      initialHardwareProfile: undefined,
+      excludeDRAProfiles: false,
+      existingBinding: {},
+      claimTemplateMissingText: 'The claim template single-gpu does not exist in this project.',
+      isFormDataValid: false,
+      setFormData: jest.fn(),
+      resetFormData: jest.fn(),
+      profilesLoaded: true,
+      profilesLoadError: undefined,
+    });
+
+    const renderResult = testHook(useAssignHardwareProfile)(null, {
+      visibleIn: [HardwareProfileFeatureVisibility.WORKBENCH],
+      paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
+      project: 'test-project',
+    });
+
+    expect(mockUseHardwareProfileConfig).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      [HardwareProfileFeatureVisibility.WORKBENCH],
+      undefined,
+      undefined,
+      { allowDRAProfiles: undefined, project: 'test-project' },
+    );
+    expect(renderResult.result.current.validateHardwareProfileForm()).toBe(false);
+  });
+
+  describe('DRA-bound workloads in read-only views', () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      namespace: 'opendatahub',
+      identifiers: [
+        {
+          displayName: 'GPU',
+          identifier: 'nvidia.com/gpu',
+          minCount: 1,
+          maxCount: 2,
+          defaultCount: 1,
+          resourceType: IdentifierResourceType.ACCELERATOR,
+        },
+      ],
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const workloadResources = {
+      requests: { cpu: '2', memory: '8Gi' },
+      limits: { cpu: '4', memory: '16Gi' },
+    };
+    const binding = {
+      resources: workloadResources,
+      hardwareProfileName: 'dra-profile',
+      hardwareProfileNamespace: 'opendatahub',
+    };
+
+    beforeEach(() => {
+      mockUseHardwareProfileConfig.mockImplementation(
+        jest.requireActual<typeof useHardwareProfileConfigModule>(
+          '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig',
+        ).useHardwareProfileConfig,
+      );
+      mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'opendatahub' });
+      mockUseResourceClaimTemplateNames.mockReturnValue({ status: 'unavailable' });
+      mockUseHardwareProfiles.mockReturnValue({
+        projectProfiles: [[], true, undefined],
+        globalProfiles: [[draProfile], true, undefined],
+      });
+    });
+
+    it.each([
+      [
+        'workbench',
+        mockNotebookK8sResource(binding),
+        HardwareProfileFeatureVisibility.WORKBENCH,
+        NOTEBOOK_HARDWARE_PROFILE_PATHS,
+      ],
+      [
+        'model deployment',
+        mockInferenceServiceK8sResource(binding),
+        HardwareProfileFeatureVisibility.MODEL_SERVING,
+        INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+      ],
+    ])(
+      'should keep the own resources of a %s bound to a DRA hardware profile when DRA profiles are excluded',
+      (_, resource: K8sResourceCommon, visibility, paths) => {
+        const renderResult = testHook(useAssignHardwareProfile)(resource, {
+          visibleIn: [visibility],
+          paths,
+        });
+        const { podSpecOptions, hardwareProfile } = renderResult.result.current.podSpecOptionsState;
+
+        expect(hardwareProfile.formData.selectedProfile).toEqual(draProfile);
+        expect(hardwareProfile.formData.useExistingSettings).toBe(true);
+        expect(podSpecOptions.resources).toEqual(workloadResources);
+      },
+    );
+  });
+
   describe('Workbenches', () => {
     createSharedTests({
       resourceType: 'notebook',

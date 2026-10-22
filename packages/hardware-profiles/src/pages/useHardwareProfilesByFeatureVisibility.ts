@@ -8,8 +8,10 @@ import { HardwareProfilesContext } from '@odh-dashboard/ui-core/context/Hardware
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { ProjectHardwareProfilesContext } from '@odh-dashboard/ui-core/context/ProjectHardwareProfilesContext';
 import { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
-import { filterRecognizedVisibility, isHardwareProfileValid } from './utils';
+import { isHardwareProfileValid, isHardwareProfileVisibleIn } from './utils';
 import { isDRAHardwareProfile } from '../../shared/utils';
+
+export type DRAProfileFilter = 'none' | 'valid' | 'all';
 
 /**
  * Hook to get hardware profiles filtered by feature visibility.
@@ -26,15 +28,14 @@ import { isDRAHardwareProfile } from '../../shared/utils';
  *
  * @param visibility - Feature visibility filter
  * @param namespace - Optional namespace for project-scoped profiles
- * @param options - `includeDRA` keeps profiles that use dynamic resource allocation, including ones
- * without identifiers. They are excluded by default because they cannot be selected for workloads in
- * the dashboard; callers that resolve an already-assigned profile (rather than offering a choice)
- * should opt in.
+ * @param options - `dra` controls profiles that use dynamic resource allocation: `'none'` (default)
+ * excludes them, `'valid'` keeps them under the same validity rules as other profiles, and `'all'`
+ * keeps every one, including ones without identifiers, for resolving an already-assigned profile.
  */
 export const useHardwareProfilesByFeatureVisibility = (
   visibility?: HardwareProfileFeatureVisibility[],
   namespace?: string,
-  options?: { includeDRA?: boolean },
+  options?: { dra?: DRAProfileFilter },
 ): {
   projectProfiles: [data: HardwareProfileKind[], loaded: boolean, loadError: Error | undefined];
   globalProfiles: [data: HardwareProfileKind[], loaded: boolean, loadError: Error | undefined];
@@ -86,14 +87,14 @@ export const useHardwareProfilesByFeatureVisibility = (
 
   const [projectProfiles, projectProfilesLoaded, projectProfilesError] = projectProfilesResult;
 
-  const includeDRA = options?.includeDRA ?? false;
+  const dra = options?.dra ?? 'none';
   const projectProfilesFiltered = React.useMemo(
-    () => filterHardwareProfileByFeatureVisibility(projectProfiles, visibility, includeDRA),
-    [projectProfiles, visibility, includeDRA],
+    () => filterHardwareProfileByFeatureVisibility(projectProfiles, visibility, dra),
+    [projectProfiles, visibility, dra],
   );
   const globalProfilesFiltered = React.useMemo(
-    () => filterHardwareProfileByFeatureVisibility(globalProfiles, visibility, includeDRA),
-    [globalProfiles, visibility, includeDRA],
+    () => filterHardwareProfileByFeatureVisibility(globalProfiles, visibility, dra),
+    [globalProfiles, visibility, dra],
   );
   return {
     projectProfiles: [projectProfilesFiltered, projectProfilesLoaded, projectProfilesError],
@@ -104,33 +105,18 @@ export const useHardwareProfilesByFeatureVisibility = (
 export const filterHardwareProfileByFeatureVisibility = (
   hardwareProfiles: HardwareProfileKind[],
   visibility?: HardwareProfileFeatureVisibility[],
-  includeDRA = false,
+  dra: DRAProfileFilter = 'none',
 ): HardwareProfileKind[] => {
-  const validHardwareProfiles = hardwareProfiles.filter((profile) =>
-    isDRAHardwareProfile(profile) ? includeDRA : isHardwareProfileValid(profile),
-  );
-
-  const filteredHardwareProfiles = validHardwareProfiles.filter((profile) => {
-    try {
-      if (!profile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']) {
-        return true;
-      }
-
-      const visibleIn: string[] = JSON.parse(
-        profile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
-      );
-
-      const recognized = filterRecognizedVisibility(visibleIn);
-
-      if (recognized.length === 0) {
-        return true;
-      }
-
-      return visibility ? visibility.some((a) => recognized.includes(a)) : true;
-    } catch (error) {
-      return true;
+  const validHardwareProfiles = hardwareProfiles.filter((profile) => {
+    if (!isDRAHardwareProfile(profile)) {
+      return isHardwareProfileValid(profile);
     }
+    return dra === 'all' || (dra === 'valid' && isHardwareProfileValid(profile));
   });
+
+  const filteredHardwareProfiles = validHardwareProfiles.filter((profile) =>
+    isHardwareProfileVisibleIn(profile, visibility),
+  );
 
   return filteredHardwareProfiles;
 };

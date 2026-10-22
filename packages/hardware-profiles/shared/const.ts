@@ -16,6 +16,7 @@ export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
   containerResourcesPath: 'spec.predictor.model.resources',
   tolerationsPath: 'spec.predictor.tolerations',
   nodeSelectorPath: 'spec.predictor.nodeSelector',
+  podSpecPath: 'spec.predictor',
 };
 
 export const HARDWARE_PROFILE_BINDING_CONFIG: Record<

@@ -2,7 +2,10 @@ import type {
   InitialWizardFormData,
   WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
-import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type {
+  DeployMethodActivationInput,
+  DeploymentAssemblyFn,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { deployKServeDeployment } from '@odh-dashboard/kserve/deploy';
 import { KServeDeployment } from '@odh-dashboard/kserve/types';
@@ -19,7 +22,7 @@ import {
   removeNIMServingRuntimeResources,
 } from '../api/servingruntime/utils';
 
-export const isNIMKServeDeployActive = (wizardData: WizardFormData['state']): boolean =>
+export const isNIMKServeDeployActive = (wizardData: DeployMethodActivationInput): boolean =>
   wizardData.modelLocationData.data?.type === NIMModelLocationKey;
 
 /**

@@ -16,6 +16,7 @@ export const LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
   containerResourcesPath: 'spec.template.containers.0.resources',
   tolerationsPath: 'spec.template.tolerations',
   nodeSelectorPath: 'spec.template.nodeSelector',
+  podSpecPath: 'spec.template',
 };
 
 export const extractHardwareProfileConfig = (
