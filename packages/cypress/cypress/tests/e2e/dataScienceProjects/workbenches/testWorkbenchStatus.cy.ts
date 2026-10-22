@@ -23,6 +23,9 @@ describe('Workbenches - status tests', () => {
   let projectDescription: string;
   let notebookImage: string;
   let hardwareProfileName: string;
+  let createdContainerEventPattern: string;
+  let startedContainerEventPattern: string;
+  let pulledImageEventText: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -33,6 +36,9 @@ describe('Workbenches - status tests', () => {
         projectDescription = fixtureData.wbStatusTestDescription;
         notebookImage = fixtureData.notebookImage;
         hardwareProfileName = fixtureData.hardwareProfileName;
+        createdContainerEventPattern = fixtureData.createdContainerEventPattern;
+        startedContainerEventPattern = fixtureData.startedContainerEventPattern;
+        pulledImageEventText = fixtureData.pulledImageEventText;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -112,9 +118,9 @@ describe('Workbenches - status tests', () => {
             // Click on the Events log and validate that successful list messages display.
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');
             workbenchStatusModal.findEventlogTab().click();
-            workbenchStatusModal.findLogEntry(/Created container|Container created/);
-            workbenchStatusModal.findLogEntry(/Started container|Container started/);
-            workbenchStatusModal.findLogEntry('Successfully pulled image');
+            workbenchStatusModal.findLogEntry(new RegExp(createdContainerEventPattern));
+            workbenchStatusModal.findLogEntry(new RegExp(startedContainerEventPattern));
+            workbenchStatusModal.findLogEntry(pulledImageEventText);
           });
         },
       );

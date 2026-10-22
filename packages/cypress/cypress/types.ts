@@ -260,6 +260,9 @@ export type WBStatusTestData = {
   wbStatusTestDescription: string;
   notebookImage: string;
   hardwareProfileName: string;
+  createdContainerEventPattern: string;
+  startedContainerEventPattern: string;
+  pulledImageEventText: string;
 };
 
 export type WBStorageClassesTestData = {
