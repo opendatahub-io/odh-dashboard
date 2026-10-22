@@ -103,7 +103,6 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
           successAlert={alerts.uploadSuccessAlert}
           errorAlert={alerts.errorAlert}
           handleSourceDrop={sourceManagement.handleSourceDrop}
-          removeUploadedSource={sourceManagement.removeUploadedSource}
           filesWithSettings={sourceManagement.filesWithSettings}
           uploadedFilesCount={fileManagement.files.length}
           maxFilesAllowed={10}
