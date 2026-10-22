@@ -293,6 +293,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                   ...prev,
                                   [BenchmarkFilterOptions.name]: '',
                                 }));
+                                searchInputTrackingProps.reset();
                               }}
                               categoryName="Name or ID"
                             >

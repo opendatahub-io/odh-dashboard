@@ -350,12 +350,13 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                             ? [filterData[BenchmarkFilterOptions.name]]
                             : []
                         }
-                        deleteLabel={() =>
+                        deleteLabel={() => {
                           setFilterDataFromUser((prev) => ({
                             ...prev,
                             [BenchmarkFilterOptions.name]: '',
-                          }))
-                        }
+                          }));
+                          searchInputTrackingProps.reset();
+                        }}
                         categoryName="Search"
                         className="evalhub-copy-suite-benchmark-catalog__search"
                       >

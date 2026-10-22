@@ -105,10 +105,12 @@ export type MlflowExperimentSelectedProperties = {
 export type ResultBenchmarkCardSelectedProperties = {
   benchmarkId: string;
   evaluationName?: string;
+  /** Only reported for system (curated) collections — custom suite names are dropped at dispatch (PII exclusion). */
   collectionName?: string;
 };
 
 export type BenchmarkRunSelectedProperties = {
+  /** Only reported for system (curated) collections — custom suite names are dropped at dispatch (PII exclusion). */
   collectionName?: string;
   /** JSON-serialised array of benchmark type IDs. */
   benchmarkTypes: string;
@@ -257,6 +259,7 @@ export type CollectionGalleryViewedProperties = {
 };
 
 export type CollectionTileProperties = {
+  /** Only reported for system (curated) collections — custom suite names are dropped at dispatch (PII exclusion). */
   collectionName: string;
   surface: EvalHubCollectionSurface;
 };
@@ -314,6 +317,7 @@ export type CollectionCreateOpenedProperties = {
 export type CollectionSavedProperties = {
   outcome: TrackingOutcome.submit;
   success: boolean;
+  /** Dropped at dispatch — saved suites are always custom, so the name is user-entered (PII exclusion). */
   collectionName?: string;
   saveMode: 'create' | 'edit' | 'copy';
   /** Which submit button the user clicked — distinct from saveMode, which is the form's mode. */
@@ -342,6 +346,7 @@ export type CollectionSavedProperties = {
 export type ReportGenerationTriggeredProperties = Record<string, never>;
 
 export type CollectionDeletedProperties = {
+  /** Only reported for system (curated) collections — custom suite names are dropped at dispatch (PII exclusion). */
   collectionName: string;
   outcome: 'success' | 'error';
   error_category?: string;

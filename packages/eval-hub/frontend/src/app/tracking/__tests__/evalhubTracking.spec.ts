@@ -47,13 +47,13 @@ describe('EvalHub tracking helper', () => {
       expect.objectContaining({
         outcome: TrackingOutcome.submit,
         success: true,
-        collectionName: 'my-safety-suite',
         saveMode: 'create',
         action: 'save',
         fromCurated: false,
         countOfEvaluatesAssetTypes: 1,
       }),
     );
+    expect(mockFireFormTrackingEvent.mock.calls[0][1]).not.toHaveProperty('collectionName');
     expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
   });
 
@@ -137,9 +137,48 @@ describe('EvalHub tracking helper', () => {
     expect(mockFireFormTrackingEvent).toHaveBeenCalledTimes(1);
     const payload = mockFireFormTrackingEvent.mock.calls[0][1];
     expect(payload).not.toHaveProperty('apiKey');
-    expect(payload).toEqual(
-      expect.objectContaining({ success: true, collectionName: 'my-safety-suite' }),
+    expect(payload).not.toHaveProperty('collectionName');
+    expect(payload).toEqual(expect.objectContaining({ success: true }));
+  });
+
+  it('drops user-entered collection names for custom suites', () => {
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.COLLECTION_DELETED,
+      { collectionName: 'my-safety-suite', outcome: 'success' },
+      { collectionType: 'custom' },
     );
+
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
+    const payload = mockFireMiscTrackingEvent.mock.calls[0][1];
+    expect(payload).not.toHaveProperty('collectionName');
+    expect(payload).toEqual(
+      expect.objectContaining({ outcome: 'success', collection_type: 'custom' }),
+    );
+  });
+
+  it('keeps collection names for curated (system) collections', () => {
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
+      { collectionName: 'Safety benchmarks', surface: 'curated_gallery' },
+      { collectionType: 'system' },
+    );
+
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
+      expect.objectContaining({
+        collectionName: 'Safety benchmarks',
+        collection_type: 'system',
+      }),
+    );
+  });
+
+  it('drops collection names when the collection type is unknown', () => {
+    trackEvalHubEvent(EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED, {
+      benchmarkId: 'toxicity',
+      collectionName: 'some-collection',
+    });
+
+    expect(mockFireMiscTrackingEvent.mock.calls[0][1]).not.toHaveProperty('collectionName');
   });
 
   it('emits once for a stable render key', () => {

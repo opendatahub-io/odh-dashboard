@@ -1150,9 +1150,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   selected={nameFilter ? [nameFilter] : []}
                   onRemove={() => {
                     setNameFilter('');
+                    resetSearchInputTracking();
                   }}
                   onClearAll={() => {
                     setNameFilter('');
+                    resetSearchInputTracking();
                   }}
                   testId="benchmark-suites-active-search"
                 />

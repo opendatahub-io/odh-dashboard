@@ -735,15 +735,18 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({ name: 'New suite' }),
     );
     expect(createFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+    const runSelectedCall = mockFireMiscTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+    );
+    expect(runSelectedCall?.[1]).toEqual(
       expect.objectContaining({
         runType: 'collection',
-        collectionName: 'New suite',
         benchmarkTypes: JSON.stringify(['benchmark-one']),
         countOfBenchmarks: 1,
+        collection_type: 'custom',
       }),
     );
+    expect(runSelectedCall?.[1]).not.toHaveProperty('collectionName');
     const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );

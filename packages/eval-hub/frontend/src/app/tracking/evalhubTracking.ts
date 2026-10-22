@@ -5,6 +5,7 @@ import {
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { evaluationErrorCategory, type EvaluationStatusMessage } from './evaluationErrorCategory';
+import { registerEvalHubPageContextRedaction } from './evalhubPageContextRedaction';
 import {
   EVAL_HUB_EVENT_PROPERTY_ALLOWLIST,
   type EvalHubEventName,
@@ -68,17 +69,25 @@ const isEvaluationStatusMessage = (value: unknown): value is EvaluationStatusMes
 const sanitizeError = (value: unknown): unknown =>
   isEvaluationStatusMessage(value) ? evaluationErrorCategory(value) : value;
 
-const sanitizeProperties = (properties: EvalHubTrackingProperties): EvalHubTrackingProperties =>
+// Custom suite names are user-entered free text and can embed PII (RHAI-838 R4:
+// no PII in Segment payloads). Only curated (system) collections — whose names are
+// product-defined taxonomy — are reported; unknown provenance fails closed.
+const sanitizeProperties = (
+  properties: EvalHubTrackingProperties,
+  context: EvalHubTrackingContext,
+): EvalHubTrackingProperties =>
   Object.fromEntries(
-    Object.entries(properties).map(([key, value]) => {
-      if (key === 'url' || key === 'href') {
-        return [key, redactUrl(value)];
-      }
-      if (key === 'error') {
-        return [key, sanitizeError(value)];
-      }
-      return [key, value];
-    }),
+    Object.entries(properties)
+      .filter(([key]) => key !== 'collectionName' || context.collectionType === 'system')
+      .map(([key, value]) => {
+        if (key === 'url' || key === 'href') {
+          return [key, redactUrl(value)];
+        }
+        if (key === 'error') {
+          return [key, sanitizeError(value)];
+        }
+        return [key, value];
+      }),
   );
 
 // Structural typing lets a value carrying keys beyond its declared type reach this
@@ -119,8 +128,9 @@ export const trackEvalHubEvent = <TEventName extends EvalHubEventName>(
   properties: EvalHubEventProperties[TEventName],
   context: EvalHubTrackingContext = {},
 ): void => {
+  registerEvalHubPageContextRedaction();
   const enrichedProps = {
-    ...dropDisallowedProperties(eventName, sanitizeProperties(properties)),
+    ...dropDisallowedProperties(eventName, sanitizeProperties(properties, context)),
     event_source: 'evalhub_ui',
     evalhub_server_version: evalHubServerVersion,
     collection_type: context.collectionType ?? 'unknown',

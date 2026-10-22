@@ -63,6 +63,8 @@ describe('Evaluation failure tracking', () => {
           statusMessageCode: code,
         }),
       );
+      // POLL_INTERVAL is effectively disabled in the cypress server build, but this wait
+      // succeeds because useFetchState refires on visibility/health-readiness changes.
       cy.wait('@failedPoll', { timeout: 45000 });
       expectSafeTracking('Evaluations Evaluation Completed', { error: expected }, marker);
       evaluationsPage.clickStatusBadge(0);
