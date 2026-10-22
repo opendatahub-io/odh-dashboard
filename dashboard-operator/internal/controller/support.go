@@ -102,7 +102,7 @@ func validateOCIBaseImage(image string) error {
 		(registry != "localhost" && !strings.ContainsAny(registry, ".:")) {
 		return fmt.Errorf("spec.modelRegistryOCIBaseImage must include a registry hostname, for example mirror.example.com/library/busybox")
 	}
-	if _, err := reference.ParseNamed(image); err != nil {
+	if _, err := reference.ParseNormalizedNamed(image); err != nil {
 		return fmt.Errorf("spec.modelRegistryOCIBaseImage is not a valid image reference: %w", err)
 	}
 	return nil
