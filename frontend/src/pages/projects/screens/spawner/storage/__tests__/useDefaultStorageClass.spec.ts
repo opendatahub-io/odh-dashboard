@@ -169,4 +169,42 @@ describe('useDefaultStorageClass', () => {
     const [storageClass] = result.current;
     expect(storageClass).toBeNull();
   });
+
+  it('should fall through to OpenShift default when storage class fetch fails', async () => {
+    const openshiftDefault = createMockStorageClass('gp3-csi', { isOpenshiftDefault: true });
+
+    mockUseStorageClasses.mockReturnValue([[], false, new Error('API error')]);
+    mockAppContextValue = {
+      dashboardConfig: { spec: {} },
+      storageClasses: [openshiftDefault],
+    };
+
+    const { result } = renderHook(() => useDefaultStorageClass());
+
+    await waitFor(() => {
+      const [, loaded] = result.current;
+      expect(loaded).toBe(true);
+    });
+
+    const [storageClass] = result.current;
+    expect(storageClass?.metadata.name).toBe('gp3-csi');
+  });
+
+  it('should fall through to preferred storage class when storage class fetch fails', async () => {
+    mockUseStorageClasses.mockReturnValue([[], false, new Error('API error')]);
+    mockAppContextValue = {
+      dashboardConfig: { spec: { notebookController: { storageClassName: 'preferred-sc' } } },
+      storageClasses: [createMockStorageClass('preferred-sc')],
+    };
+
+    const { result } = renderHook(() => useDefaultStorageClass());
+
+    await waitFor(() => {
+      const [, loaded] = result.current;
+      expect(loaded).toBe(true);
+    });
+
+    const [storageClass] = result.current;
+    expect(storageClass?.metadata.name).toBe('preferred-sc');
+  });
 });

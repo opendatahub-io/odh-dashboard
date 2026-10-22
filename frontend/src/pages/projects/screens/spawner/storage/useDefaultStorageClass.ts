@@ -20,14 +20,13 @@ const useAdminDefaultStorageClassInternal = (): FetchState<StorageClassKind | nu
     React.useCallback(
       () =>
         new Promise((resolve, reject) => {
-          if (!isStorageClassesAvailable) {
+          if (!isStorageClassesAvailable || storageClassesError) {
             resolve(null);
+            return;
           }
           if (!storageClassesLoaded) {
             reject(new NotReadyError('Storage classes are not loaded'));
-          }
-          if (storageClassesError) {
-            resolve(null);
+            return;
           }
 
           const enabledStorageClasses = storageClasses.filter(
@@ -38,11 +37,7 @@ const useAdminDefaultStorageClassInternal = (): FetchState<StorageClassKind | nu
             (sc) => getStorageClassConfig(sc)?.isDefault === true,
           );
 
-          if (defaultSc) {
-            resolve(defaultSc);
-          } else {
-            resolve(null);
-          }
+          resolve(defaultSc ?? null);
         }),
       [storageClasses, storageClassesLoaded, storageClassesError, isStorageClassesAvailable],
     );

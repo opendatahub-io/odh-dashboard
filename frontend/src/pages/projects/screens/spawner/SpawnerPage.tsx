@@ -157,7 +157,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     if (!existingNotebook && defaultStorageClassName) {
       setStorageData((prev) =>
         prev.map((entry, index) =>
-          index === 0 && entry.storageType === StorageType.NEW_PVC
+          index === 0 && entry.storageType === StorageType.NEW_PVC && !entry.storageClassName
             ? { ...entry, storageClassName: defaultStorageClassName }
             : entry,
         ),

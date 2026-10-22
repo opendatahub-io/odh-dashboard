@@ -178,14 +178,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     if (pvc?.spec.storageClassName) {
       // If a deployed storage class exists, use it.
       setStorageClassName(pvc.spec.storageClassName);
-    } else if (defaultStorageClassName && !deployedStorageClassName) {
-      // No deployed PVC — sync to the resolved default storage class.
-      setStorageClassName(defaultStorageClassName);
+    } else if (defaultStorageClassName) {
+      // New deployment: fill in the resolved default only if nothing has been picked yet.
+      setStorageClassName((prev) => prev || defaultStorageClassName);
     }
-    // storageClassName is intentionally excluded: including it would reset
-    // user selections back to the default whenever the dropdown changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pvc, defaultStorageClassName, deployedStorageClassName]);
+  }, [pvc, defaultStorageClassName]);
 
   React.useEffect(() => {
     if (currentProjectName) {
@@ -210,6 +207,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !baseInputValueValid ||
     !validateHardwareProfileForm() ||
     !isExistingPvcValid ||
+    (pvcMode === 'create-new' && !storageClassName) ||
     createDataInferenceService.servingRuntimeEnvVars?.some(
       (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
     );

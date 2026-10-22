@@ -58,10 +58,10 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
 
       if (storageType === StorageType.NEW_PVC) {
         setStorageData((prevData) =>
-          prevData.map((data) =>
-            initialStorageData.id === 0
+          prevData.map((data, index) =>
+            index === 0
               ? {
-                  ...initialStorageData,
+                  ...data,
                   name: workbenchName
                     ? (!pvcName.includes('-') ? `${workbenchName}-${pvcName}` : pvcName).replace(
                         /.*(?=-)/,
