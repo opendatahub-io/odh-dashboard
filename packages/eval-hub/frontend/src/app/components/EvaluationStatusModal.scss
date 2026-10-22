@@ -82,7 +82,9 @@
   padding-top: var(--pf-t--global--spacer--md);
 }
 
-.evalhub-status-modal__failure-summary--clamped {
+// TODO: PatternFly has no built-in clamped/scrollable long-form text component;
+// replace this custom styling when one is available upstream (RHAI-10244).
+.evalhub-status-modal__failure-summary.m-clamped {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -90,8 +92,10 @@
 }
 
 // Expanded summary is capped and scrolls within itself so the modal keeps a
-// stable height instead of growing with the message (RHAI-10244).
-.evalhub-status-modal__failure-summary--expanded {
+// stable height instead of growing with the message (RHAI-10244). The scroll
+// region is keyboard-focusable (see the tabIndex/role in the component) so the
+// hidden text stays reachable without a pointer.
+.evalhub-status-modal__failure-summary.m-expanded {
   max-height: 10lh;
   overflow-y: auto;
 }

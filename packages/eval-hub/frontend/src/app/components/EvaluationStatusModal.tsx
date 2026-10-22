@@ -639,12 +639,16 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     <>
                       <p
                         ref={failureSummaryRef}
-                        className={
-                          isFailureSummaryExpanded
-                            ? 'evalhub-status-modal__failure-summary--expanded'
-                            : 'evalhub-status-modal__failure-summary--clamped'
-                        }
+                        className={`evalhub-status-modal__failure-summary ${
+                          isFailureSummaryExpanded ? 'm-expanded' : 'm-clamped'
+                        }`}
                         data-testid="failure-summary-text"
+                        // Only the expanded state is a scrollable region — make it
+                        // keyboard-focusable so the clipped text is reachable
+                        // without a pointer (RHAI-10244).
+                        tabIndex={isFailureSummaryExpanded ? 0 : undefined}
+                        role={isFailureSummaryExpanded ? 'region' : undefined}
+                        aria-label={isFailureSummaryExpanded ? 'Failure summary' : undefined}
                       >
                         {failureSummary}
                       </p>
