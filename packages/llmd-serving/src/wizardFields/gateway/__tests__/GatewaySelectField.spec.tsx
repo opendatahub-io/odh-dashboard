@@ -271,6 +271,16 @@ describe('GatewaySelectFieldComponent', () => {
       ).toBeInTheDocument();
     });
 
+    it('should disable the select when there are 0 gateways', () => {
+      renderComponent({
+        externalData: { data: [], loaded: true },
+      });
+
+      // PatternFly MenuToggle is a div; disabled state is via attribute + pf-m-disabled
+      expect(screen.getByTestId('gateway-select')).toHaveAttribute('disabled');
+      expect(getCombobox()).toHaveAttribute('placeholder', 'Select gateways');
+    });
+
     it('should not show the empty warning when gateways exist', () => {
       renderComponent({
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
@@ -281,6 +291,7 @@ describe('GatewaySelectFieldComponent', () => {
           'No Gateways found. Make sure Gateway resources are created and configured',
         ),
       ).not.toBeInTheDocument();
+      expect(screen.getByTestId('gateway-select')).not.toHaveAttribute('disabled');
     });
 
     it('should not show the empty warning when there is a loadError', () => {

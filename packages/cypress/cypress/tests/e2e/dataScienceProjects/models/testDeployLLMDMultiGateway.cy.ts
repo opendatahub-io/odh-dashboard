@@ -190,7 +190,6 @@ describe('A user can deploy LLMD models with multi-gateway selection', () => {
     'Verify User Can Deploy an LLMD Model with multiple gateways and preserve refs on edit',
     {
       tags: [
-        '@Featureflagged',
         '@Dashboard',
         '@ModelServing',
         '@NonConcurrent',
