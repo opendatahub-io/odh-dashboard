@@ -2717,9 +2717,11 @@ components:
       schema:
         type: integer
         minimum: 0
-        default: 0
       required: false
-      description: Offset for pagination
+      description: >-
+        Pagination start index for single-page mode. Omitting offset (and
+        limit) selects aggregated mode; explicitly supplying offset — even
+        offset=0 — selects single-page mode, so no default is declared.
     statusFilter:
       in: query
       name: status

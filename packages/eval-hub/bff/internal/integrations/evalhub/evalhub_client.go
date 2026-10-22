@@ -698,7 +698,23 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvalu
 		if pageSize <= 0 {
 			return EvaluationJobsResult{Items: jobs, TotalCount: resp.TotalCount}, nil
 		}
-		pageParams.Offset = strconv.Itoa(offset + pageSize)
+		nextOffset := offset + pageSize
+		// In a well-behaved flow the item cap above returns before the offset
+		// reaches the cap; paging past it means the upstream is re-serving
+		// duplicates or short pages, so stop and flag the result truncated.
+		if nextOffset >= evaluationJobsMaxItems {
+			slog.Warn("evaluation jobs page budget exhausted",
+				"max_items", evaluationJobsMaxItems,
+				"next_offset", nextOffset,
+				"total_count", resp.TotalCount,
+			)
+			return EvaluationJobsResult{
+				Items:      jobs,
+				TotalCount: resp.TotalCount,
+				Truncated:  true,
+			}, nil
+		}
+		pageParams.Offset = strconv.Itoa(nextOffset)
 	}
 }
 

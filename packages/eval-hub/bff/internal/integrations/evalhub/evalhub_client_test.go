@@ -248,6 +248,49 @@ func TestEvalHubClient_ListEvaluationJobs_TruncatesAtMaxItems(t *testing.T) {
 	assert.Equal(t, evaluationJobsMaxItems/evaluationJobsPageSize, int(requestCount.Load()))
 }
 
+func TestEvalHubClient_ListEvaluationJobs_StopsAtPageBudget(t *testing.T) {
+	// Misbehaving upstream: always signals a next page, reports total_count 0,
+	// and re-serves the same items so dedup keeps the aggregate below the item
+	// cap. The offset budget must terminate the loop.
+	var requestCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "100", r.URL.Query().Get("limit"))
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		items := make([]EvaluationJob, 0, evaluationJobsPageSize)
+		for i := 0; i < evaluationJobsPageSize; i++ {
+			items = append(items, EvaluationJob{Resource: JobResource{ID: fmt.Sprintf("job-%d", offset%(2*evaluationJobsPageSize)+i)}})
+		}
+		requestCount.Add(1)
+
+		resp := EvaluationJobsResponse{
+			TotalCount: 0,
+			Limit:      evaluationJobsPageSize,
+			Next:       &PaginationLink{Href: "/api/v1/evaluations/jobs"},
+			Items:      items,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{Namespace: "my-ns"})
+
+	require.NoError(t, err)
+	assert.True(t, result.Truncated)
+	assert.Equal(t, 0, result.TotalCount)
+	// The loop stops once the offset reaches the item cap, i.e. after
+	// maxItems/pageSize requests, even though every page re-serves duplicates.
+	assert.Equal(t, evaluationJobsMaxItems/evaluationJobsPageSize, int(requestCount.Load()))
+	assert.NotEmpty(t, result.Items)
+}
+
 func TestEvalHubClient_ListEvaluationJobs_EmptyNamespace(t *testing.T) {
 	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
 	_, err := client.ListEvaluationJobs(context.Background(), ListEvaluationJobsParams{})
