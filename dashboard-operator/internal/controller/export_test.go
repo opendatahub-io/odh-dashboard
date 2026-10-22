@@ -24,6 +24,16 @@ const FederationHashAnnotation = federationHashAnnotation
 
 const CommunityPluginsNamespace = communityPluginsNamespace
 
+const ODHDashboardResourceName = odhDashboardResourceName
+
+const RHOAIDashboardResourceName = rhoaiDashboardResourceName
+
+const RHAIIDashboardResourceName = rhaiiDashboardResourceName
+
+const DashboardAvailableCondition = conditionDashboardAvailable
+
+const RemovedConditionReason = conditionReasonRemoved
+
 func BuildFederationConfigMap(r *DashboardReconciler, statuses map[string]v1alpha1.ModuleStatus, dashboard *v1alpha1.Dashboard) (*corev1.ConfigMap, error) {
 	return r.buildFederationConfigMap(context.Background(), statuses, dashboard)
 }
@@ -36,8 +46,8 @@ func (r *DashboardReconciler) DeleteModuleResources(ctx context.Context, statuse
 	return r.deleteModuleResources(ctx, statuses)
 }
 
-func (r *DashboardReconciler) ReconcileModuleDemand(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
-	return r.reconcileModuleDemand(ctx, dashboard)
+func (r *DashboardReconciler) ReconcileModuleResources(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
+	return r.reconcileModuleResources(ctx, dashboard)
 }
 
 func (r *DashboardReconciler) CleanupLegacyResources(ctx context.Context) error {

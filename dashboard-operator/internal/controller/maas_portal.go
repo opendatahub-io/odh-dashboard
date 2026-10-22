@@ -81,15 +81,16 @@ func maasPortalURL(domain string) (string, bool) {
 
 // reconcileMaaSPortalOperand applies federation configuration before
 // reconciling the portal bundle and availability in either core management state.
-// If observability detection failed, preserve only the existing Perses entry.
+// If observability configuration cannot be resolved, preserve only the
+// existing Perses entry.
 func (r *DashboardReconciler) reconcileMaaSPortalOperand(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	statuses map[string]v1alpha1.ModuleStatus,
-	observabilityKnown bool,
+	observabilityConfigResolved bool,
 ) time.Duration {
-	if err := r.deployMaaSPortalFederationConfigMap(ctx, dashboard, statuses, observabilityKnown); err != nil {
+	if err := r.deployMaaSPortalFederationConfigMap(ctx, dashboard, statuses, observabilityConfigResolved); err != nil {
 		r.markMaaSPortalFederationConfigMapFailed(cm, err)
 		log.FromContext(ctx).Error(err, "Failed to deploy MaaS Portal federation ConfigMap")
 	}
@@ -200,12 +201,19 @@ func (r *DashboardReconciler) reconcileUnsupportedMaaSPortal(ctx context.Context
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		return maasPortalRetryInterval
 	}
+	markMaaSPortalUnsupported(dashboard, cm)
+	return 0
+}
+
+// markMaaSPortalUnsupported reports an unsupported portal request without
+// reconciling or cleaning up portal resources. ODH uses this to retain the
+// projected-CR validation contract while keeping resource ownership in RHOAI.
+func markMaaSPortalUnsupported(dashboard *v1alpha1.Dashboard, cm *conditions.Manager) {
 	setMaaSPortalURL(&dashboard.Status, "")
 	cm.MarkFalse(conditionMaaSPortalAvailable,
 		conditions.WithReason(reasonMaaSPortalUnsupportedPlatform),
 		conditions.WithMessage("%s", ErrMaaSPortalUnsupportedPlatform),
 		conditions.WithSeverity(common.ConditionSeverityInfo))
-	return 0
 }
 
 func (r *DashboardReconciler) reconcileMaaSPortalAvailability(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, statuses map[string]v1alpha1.ModuleStatus) time.Duration {
@@ -220,7 +228,7 @@ func (r *DashboardReconciler) reconcileMaaSPortalAvailability(ctx context.Contex
 			conditions.WithMessage("getting MaaS Portal HTTPRoute: %s", err))
 		return maasPortalRetryInterval
 	}
-	if !portalRouteReady(&route) {
+	if !httpRouteAvailable(&route) {
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason(reasonMaaSPortalRouteNotReady),
 			conditions.WithMessage("MaaS Portal HTTPRoute is not accepted and resolved by Gateway %q", maasPortalGatewayName))
@@ -241,7 +249,7 @@ func (r *DashboardReconciler) reconcileMaaSPortalAvailability(ctx context.Contex
 }
 
 func maasPortalSupportedPlatform(platform cluster.Platform) bool {
-	return platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai
+	return platform == cluster.SelfManagedRhoai
 }
 
 func (r *DashboardReconciler) maasPortalManaged(dashboard *v1alpha1.Dashboard) bool {
@@ -255,35 +263,6 @@ func portalGatewayDomain(d *v1alpha1.Dashboard) string {
 		return d.Spec.Gateway.Domain
 	}
 	return ""
-}
-
-func deploymentAvailable(dep *appsv1.Deployment) bool {
-	if dep.Status.ObservedGeneration != dep.Generation {
-		return false
-	}
-	for _, c := range dep.Status.Conditions {
-		if c.Type == appsv1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
-func portalRouteReady(route *gatewayv1.HTTPRoute) bool {
-	for _, p := range route.Status.Parents {
-		accepted, resolved := false, false
-		for _, c := range p.Conditions {
-			if c.Type == string(gatewayv1.RouteConditionAccepted) && c.Status == metav1.ConditionTrue && c.ObservedGeneration == route.Generation {
-				accepted = true
-			}
-			if c.Type == string(gatewayv1.RouteConditionResolvedRefs) && c.Status == metav1.ConditionTrue && c.ObservedGeneration == route.Generation {
-				resolved = true
-			}
-		}
-		if accepted && resolved {
-			return true
-		}
-	}
-	return false
 }
 
 func (r *DashboardReconciler) deployMaaSPortalBundle(ctx context.Context, dashboard *v1alpha1.Dashboard) (maasPortalMigrationResult, error) {
@@ -340,7 +319,7 @@ func splitMaaSPortalRoutes(resources []unstructured.Unstructured) (workloads, ro
 }
 
 func (r *DashboardReconciler) deployMaaSPortalResources(ctx context.Context, dashboard *v1alpha1.Dashboard, resources []unstructured.Unstructured) error {
-	deployer := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"), deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf), deploy.WithApplyOrder())
+	deployer := deploy.NewDeployer(deploy.WithFieldOwner(dashboardFieldOwner), deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf), deploy.WithApplyOrder())
 	return deployer.Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard,
 		Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: resources})
 }
