@@ -43,16 +43,11 @@
   }
 
   &__tabs-row {
-    position: relative;
+    border-block-end: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
 
-    &::after {
-      position: absolute;
-      inset-inline-end: 0;
-      inset-block-end: 0;
-      width: calc(11rem + var(--pf-t--global--spacer--md));
-      border-block-end: var(--pf-t--global--border--width--regular) solid
-        var(--pf-t--global--border--color--default);
-      content: '';
+    .pf-v6-c-tabs {
+      --pf-v6-c-tabs--before--BorderBlockEndWidth: 0;
     }
   }
 
