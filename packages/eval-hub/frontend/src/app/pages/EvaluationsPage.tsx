@@ -336,7 +336,14 @@ const EvaluationsPage: React.FC = () => {
                   isInline
                   isPlain
                   variant="info"
-                  title="The AI Evaluations user interface is provided as a Technology Preview, while the AI Evaluations back-end is generally available."
+                  title={
+                    <>
+                      The AI Evaluations UI is in Technology Preview;{' '}
+                      <span className="pf-v6-u-font-weight-normal">
+                        the AI Evaluations back end is generally available
+                      </span>
+                    </>
+                  }
                   data-testid="evalhub-tech-preview-alert"
                   className="pf-v6-u-mb-lg"
                 />
