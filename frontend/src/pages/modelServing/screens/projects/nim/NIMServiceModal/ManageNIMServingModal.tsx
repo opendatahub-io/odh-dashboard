@@ -283,6 +283,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   const submit = () => {
+    if (pvcMode === 'create-new' && !storageClassName) {
+      return;
+    }
     setError(undefined);
     setActionInProgress(true);
 
