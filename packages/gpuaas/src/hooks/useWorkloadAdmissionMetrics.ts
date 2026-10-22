@@ -15,6 +15,7 @@ import {
 import { PROMETHEUS_CLUSTER_QUERY_RANGE_PATH, TREND_REFRESH_INTERVAL } from '../const';
 
 export type WorkloadAdmissionMetrics = {
+  endInMs: number;
   admissionRate: AdmissionMetricSeries;
   admissionLeadTime: AdmissionMetricSeries;
   waitingWorkloads: AdmissionMetricSeries;
@@ -112,7 +113,7 @@ const useWorkloadAdmissionMetrics = (
 
   const localQueueNames = localQueues.map((queue) => queue.metadata?.name ?? '').filter(Boolean);
   const clusterQueueNames = localQueues.map((queue) => queue.spec.clusterQueue).filter(Boolean);
-  const queriesActive = active && localQueuesLoaded && localQueueNames.length > 0;
+  const queriesActive = adminActive && localQueuesLoaded && localQueueNames.length > 0;
   const adminQueriesActive = adminActive && localQueuesLoaded && clusterQueueNames.length > 0;
 
   const admissionRate = usePrometheusQueryRange(
@@ -166,6 +167,7 @@ const useWorkloadAdmissionMetrics = (
   const activeQueriesSettled = activeQueryStates.every(([, loaded, error]) => loaded || error);
 
   return {
+    endInMs,
     admissionRate: mapAdmissionMetricSeries(admissionRate[0]),
     admissionLeadTime: mapAdmissionLeadTimeSeries(admissionLeadTime[0]),
     waitingWorkloads: mapAdmissionMetricSeries(waitingWorkloads[0], Math.round),

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 import { useSettings } from 'mod-arch-core';
+import { getMaaSMe } from '@odh-dashboard/maas/api/me';
 
 import { PORTAL_BASE_PATH } from '../portalPaths';
 
@@ -19,11 +20,8 @@ export const portalLogout = (redirect = navigateTo): void => {
   redirect(PORTAL_SIGN_OUT_PATH);
 };
 
-const UserDropdown: React.FC = () => {
+const UserDropdownMenu: React.FC<{ displayName: string }> = ({ displayName }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const { userSettings } = useSettings();
-
-  const displayName = userSettings?.userId ?? 'User';
 
   return (
     <Dropdown
@@ -49,5 +47,34 @@ const UserDropdown: React.FC = () => {
     </Dropdown>
   );
 };
+
+const LegacyUserDropdown: React.FC = () => {
+  const { userSettings } = useSettings();
+  return <UserDropdownMenu displayName={userSettings?.userId ?? 'User'} />;
+};
+
+const GridUserDropdown: React.FC = () => {
+  const [displayName, setDisplayName] = React.useState('User');
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void getMaaSMe()({})
+      .then((me) => {
+        if (!cancelled) {
+          setDisplayName(me.name || me.email || me.sub);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return <UserDropdownMenu displayName={displayName} />;
+};
+
+const UserDropdown: React.FC = () =>
+  window.__MAAS_CONSUMER_PORTAL_GRID__ === true ? <GridUserDropdown /> : <LegacyUserDropdown />;
 
 export default UserDropdown;

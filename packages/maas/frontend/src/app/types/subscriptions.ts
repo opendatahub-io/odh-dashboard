@@ -157,6 +157,7 @@ export type BillingRateInfo = {
 
 export type ModelRefInfo = {
   name: string;
+  model_name?: string;
   display_name?: string;
   source?: string;
   description?: string;
@@ -228,20 +229,3 @@ export type ModelOverviewItem = {
 };
 
 export const SYSTEM_AUTHENTICATED_GROUP = 'system:authenticated';
-
-export enum FlowControlStatusReason {
-  ObjectiveFailure = 'ObjectiveFailure',
-  PendingPoolDiscovery = 'PendingPoolDiscovery',
-  ObjectiveReconciled = 'ObjectiveReconciled',
-  Reconciled = 'Reconciled',
-  NotApplicable = 'NotApplicable',
-  Unsupported = 'Unsupported',
-  NoObjectiveRequired = 'NoObjectiveRequired',
-  Unmanaged = 'Unmanaged',
-  PoolPending = 'PoolPending',
-  ObjectivePending = 'ObjectivePending',
-  NotOnTenantGateway = 'NotOnTenantGateway',
-  ObjectiveConflict = 'ObjectiveConflict',
-  InferenceObjectiveAPIUnavailable = 'InferenceObjectiveAPIUnavailable',
-  ReconcileFailed = 'ReconcileFailed',
-}

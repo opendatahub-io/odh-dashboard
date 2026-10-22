@@ -547,8 +547,19 @@ class CopyApiKeyModal extends Modal {
     this.findAvailableModelsOption(value).click();
   }
 
+  findSubscriptionInfoButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-subscription-info-button');
+  }
+
+  findSubscriptionInfoPopoverBody(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-subscription-info-popover-body');
+  }
+
   findSubscriptionID(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('#api-key-subscription-id');
+    return this.findSubscriptionInfoPopoverBody()
+      .findByTestId('api-key-subscription-id-copy')
+      .find('input, textarea')
+      .first();
   }
 
   findModelID(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -847,20 +858,20 @@ class CreateSubscriptionPage {
     return cy.findByTestId('subscription-name-desc-description');
   }
 
+  findPriorityField(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-inference-priority');
+  }
+
   findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-inference-priority').find('input[type="number"]');
+    return this.findPriorityField().find('input[type="number"]');
   }
 
   findPriorityPlusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy
-      .findByTestId('subscription-inference-priority')
-      .findByRole('button', { name: 'Plus' });
+    return this.findPriorityField().findByRole('button', { name: 'Plus' });
   }
 
   findPriorityMinusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy
-      .findByTestId('subscription-inference-priority')
-      .findByRole('button', { name: 'Minus' });
+    return this.findPriorityField().findByRole('button', { name: 'Minus' });
   }
 
   findPriorityValidationError(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -953,8 +964,12 @@ class EditSubscriptionPage {
     return cy.findByTestId('subscription-name-desc-description');
   }
 
+  findPriorityField(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-inference-priority');
+  }
+
   findPriorityInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-inference-priority').find('input[type="number"]');
+    return this.findPriorityField().find('input[type="number"]');
   }
 
   findGroupsSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -994,7 +1009,7 @@ class EditSubscriptionPage {
   }
 
   findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByText('Failed to update subscription');
+    return cy.findByTestId('subscription-submit-error');
   }
 }
 
@@ -1171,8 +1186,54 @@ class ViewSubscriptionPage {
     return cy.findByTestId(`model-status-${modelName}`);
   }
 
-  findFlowControlStatus(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`model-flow-control-status-${modelName}`);
+  findInferencePriorityStatusButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-inference-priority-view-more-details');
+  }
+}
+
+class InferencePriorityStatusModal extends Modal {
+  constructor() {
+    super('Inference priority details');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('inference-priority-status-modal');
+  }
+
+  findInferencePriorityStatusModalCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('inference-priority-status-modal-close-button');
+  }
+
+  findInferencePriorityStatusModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('inference-priority-status-modal');
+  }
+
+  findInferencePriorityStatusModelReason(
+    modelName: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`${modelName}-reason`);
+  }
+
+  findInferencePriorityStatusModelMessage(
+    modelName: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`${modelName}-message`);
+  }
+
+  findInferencePriorityStatusModelProject(
+    modelName: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`${modelName}-project`);
+  }
+
+  findInferencePriorityStatusModelApplied(
+    modelName: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`${modelName}-applied`);
+  }
+
+  findInferencePriorityStatusModelModel(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`${modelName}-model`);
   }
 }
 
@@ -3049,3 +3110,4 @@ export const externalProvidersPage = new ExternalProvidersPage();
 export const createExternalProviderModal = new CreateExternalProviderModal();
 export const editExternalProviderModal = new EditExternalProviderModal();
 export const deleteExternalProviderModal = new DeleteExternalProviderModal();
+export const inferencePriorityStatusModal = new InferencePriorityStatusModal();

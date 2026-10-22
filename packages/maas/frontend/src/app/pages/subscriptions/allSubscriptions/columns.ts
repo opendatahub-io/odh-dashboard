@@ -30,11 +30,4 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       a.modelRefs.length - b.modelRefs.length,
   },
-  {
-    label: 'Inference Priority',
-    field: 'inferencePriority',
-    width: 10,
-    sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
-      (a.inferencePriority ?? 0) - (b.inferencePriority ?? 0),
-  },
 ];

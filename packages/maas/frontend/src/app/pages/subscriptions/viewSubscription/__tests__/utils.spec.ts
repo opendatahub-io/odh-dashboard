@@ -1,9 +1,5 @@
 import { ModelSubscriptionRef } from '~/app/types/subscriptions';
-import {
-  formatTokenLimits,
-  getModelFlowControlPhase,
-} from '~/app/pages/subscriptions/viewSubscription/utils';
-import { PhaseStatus } from '~/app/utilities/phaseLabelUtils';
+import { formatTokenLimits } from '~/app/pages/subscriptions/viewSubscription/utils';
 
 const Namespace = 'test-namespace';
 
@@ -14,22 +10,6 @@ const makeRef = (
   name,
   namespace: Namespace,
   tokenRateLimits,
-});
-
-describe('getModelFlowControlPhase', () => {
-  it('returns undefined when ready is unset', () => {
-    expect(getModelFlowControlPhase(makeRef('model-a', []))).toBeUndefined();
-    expect(getModelFlowControlPhase(undefined)).toBeUndefined();
-  });
-
-  it('maps ready true to Ready and ready false to Pending', () => {
-    expect(getModelFlowControlPhase({ ...makeRef('model-a', []), ready: true })).toBe(
-      PhaseStatus.READY,
-    );
-    expect(getModelFlowControlPhase({ ...makeRef('model-a', []), ready: false })).toBe(
-      PhaseStatus.PENDING,
-    );
-  });
 });
 
 describe('formatTokenLimits', () => {

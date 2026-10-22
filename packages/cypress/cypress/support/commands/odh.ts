@@ -1325,6 +1325,11 @@ declare global {
                 owned_by: string;
                 ready: boolean;
                 url?: string;
+                subscriptions?: Array<{
+                  name: string;
+                  displayName?: string;
+                  description?: string;
+                }>;
               }>;
             };
           }>,

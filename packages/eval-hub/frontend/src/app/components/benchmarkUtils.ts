@@ -1,4 +1,4 @@
-import type { CollectionBenchmark, Provider } from '~/app/types';
+import type { CollectionBenchmark, Provider, ProviderAgentMetadata } from '~/app/types';
 
 export type BenchmarkNameMap = ReadonlyMap<string, string>;
 
@@ -156,6 +156,20 @@ export const toTitleCase = (value: string): string => {
 
 export const formatCategory = (value: string): string => capitalizeFirst(value.replace(/_/g, ' '));
 
+export const getBenchmarkTargetTypes = (agent?: ProviderAgentMetadata): string[] => {
+  const targetTypes = [
+    ...(agent?.evaluates ?? []),
+    ...(agent?.target_type ? [agent.target_type] : []),
+  ].filter((targetType, index, values) => values.indexOf(targetType) === index);
+
+  return (targetTypes.includes('model') ? targetTypes : [...targetTypes, 'model']).toSorted(
+    (left, right) =>
+      formatCategory(left).localeCompare(formatCategory(right), undefined, {
+        sensitivity: 'base',
+      }),
+  );
+};
+
 export const getCollectionCategoryValues = (collection: {
   category?: string;
   domains?: string[];
@@ -262,6 +276,14 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   'user_over_sysprompt/mean': 'User over system prompt',
 };
 /* eslint-enable camelcase */
+
+export const getBenchmarkParameterLabel = (key: string): string => {
+  const words = key
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : key;
+};
 
 export const getMetricDisplayName = (metric: string): string =>
   Object.hasOwn(METRIC_DISPLAY_NAMES, metric)

@@ -37,8 +37,8 @@ cd distributions/maas-portal
 make grid-start-mock
 ```
 
-Open http://localhost:4020/maas-portal/ for either setup. Stop with `Ctrl+C` or
-`make grid-stop` before switching modes. View saved logs with `make grid-logs`.
+Open http://localhost:4020/maas-portal/ for either setup. Stop with `Ctrl+C` before
+switching modes. View saved logs with `make grid-logs`.
 
 ## Running locally
 
@@ -170,7 +170,7 @@ The local Rspack dev proxy sends portal Perses API requests directly to `PERSES_
 | `src/bootstrap.tsx` | App entry — mounts providers via `createDistribution` |
 | `src/extensions.ts` | Distribution nav (`app.suppress` / `app.patch`), redirects, user dropdown |
 | `src/PortalContextProvider.tsx` | Composes the standalone MaaS BFF and portal authorization providers |
-| `src/MaaSAuthzProvider.tsx` | Publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility |
+| `src/MaaSAuthzProvider.tsx` | When the `grid` feature flag is off, publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility. When `grid` is on, skips the check and keeps `ADMIN_USER` false. |
 | `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
 | `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package |
 

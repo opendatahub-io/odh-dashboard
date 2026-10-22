@@ -2,7 +2,11 @@ import { DEFAULT_SPACER_NODE_TYPE, RunStatus } from '@patternfly/react-topology'
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { resolveModelDisplayName } from '~/app/utilities/utils';
+import {
+  normalizePipelineRunState,
+  resolveModelDisplayName,
+  resolveModelRecordKey,
+} from '~/app/utilities/utils';
 import { getModelRowLabel, resolveStageLabel, resolveStepLabel } from './stageMapLabels';
 import {
   BRANCHING_STAGE_ID,
@@ -23,6 +27,7 @@ import {
 } from './stageMapStatus';
 import { capModelSelectionSteps } from './stageMapConstants';
 import { createNode } from './utils';
+import { inferUniqueFailedNode } from './inferTerminalFailure';
 
 export const buildStageMapTopology = (
   componentStageMap: ComponentStageMap,
@@ -163,6 +168,7 @@ export const buildStageMapTopology = (
     // terminus nodes use the stage sync decorator (no center pulse glyph).
     for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
       const modelId = models[modelIdx];
+      const modelKey = resolveModelRecordKey(modelRecords ?? {}, modelId) ?? modelId;
       const resolvedName = resolveModelDisplayName(modelRecords ?? {}, modelId) ?? modelId;
       const modelLabel = isPlaceholder ? getModelRowLabel(modelIdx) : resolvedName;
       const branchKey = `branch-${modelIdx}`;
@@ -199,7 +205,7 @@ export const buildStageMapTopology = (
           id: modelNodeId,
           label: modelLabel,
           pipelineTask: { type: 'task', name: modelLabel },
-          modelKey: modelId,
+          modelKey,
           runAfterTasks: [branchPreviousNodeId],
           runStatus: branchStatus,
         }),
@@ -265,5 +271,54 @@ export const buildStageMapTopology = (
     }
   }
 
-  return promoteWaitingFrontierToInProgress(nodes, runState);
+  return promoteWaitingFrontierToInProgress(
+    inferFailedNodeForTerminalRun(nodes, runState, hasExplicitFailureInPipeline),
+    runState,
+  );
+};
+
+const isCompletedNode = (node: PipelineNodeModelExpanded): boolean =>
+  node.data?.runStatus === RunStatus.Succeeded || node.data?.runStatus === RunStatus.Skipped;
+
+const inferFailedNodeForTerminalRun = (
+  nodes: PipelineNodeModelExpanded[],
+  runState?: string,
+  hasExplicitFailureEvidence = false,
+): PipelineNodeModelExpanded[] => {
+  const statusById = new Map(nodes.map((node) => [node.id, node.data?.runStatus]));
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  let inferredNodeId: string | undefined;
+  const inferredStatusById = inferUniqueFailedNode({
+    nodeIds: nodes.map((node) => node.id),
+    statusById,
+    dependenciesById: new Map(nodes.map((node) => [node.id, node.runAfterTasks ?? []])),
+    shouldInfer: normalizePipelineRunState(runState) === 'FAILED' && !hasExplicitFailureEvidence,
+    isCandidate: (nodeId) => nodeById.get(nodeId)?.type !== DEFAULT_SPACER_NODE_TYPE,
+    isUnresolved: (nodeId) => {
+      const node = nodeById.get(nodeId);
+      return (
+        node?.data?.runStatus == null ||
+        node.data.runStatus === RunStatus.Pending ||
+        node.data.runStatus === RunStatus.Failed
+      );
+    },
+    isTransparent: (nodeId) => nodeById.get(nodeId)?.type === DEFAULT_SPACER_NODE_TYPE,
+    onInferredNode: (nodeId) => {
+      inferredNodeId = nodeId;
+    },
+  });
+
+  return nodes.map((node) => {
+    if (!node.data) {
+      return node;
+    }
+    const inferredStatus = inferredStatusById.get(node.id);
+    if (inferredStatus === RunStatus.Failed && node.id === inferredNodeId) {
+      return { ...node, data: { ...node.data, runStatus: inferredStatus } };
+    }
+    if (inferredStatus === RunStatus.Pending && !isCompletedNode(node)) {
+      return { ...node, data: { ...node.data, runStatus: inferredStatus } };
+    }
+    return node;
+  });
 };

@@ -53,10 +53,11 @@ federated development configuration use the same user-token authentication path.
 ## Connection Lookup
 
 Data Registry uses DCH connections when the DCH BFF is configured and both its connection
-and connection-type lookups succeed. Otherwise, an unconfigured or unavailable DCH BFF
-falls back to the existing project Secret lookup. An empty DCH list is a successful result.
-Authorization denials, other request errors and malformed responses remain errors;
-unresolved connector types produce a warning and omit only the affected connections.
+and connection-type lookups succeed. An unconfigured or unavailable DCH integration falls back
+to the existing project Secret lookup; a 404 from either DCH collection endpoint is treated as
+unavailable so clusters can fall back while the DCH backend API is absent. An empty DCH list is a
+successful result. Authorization denials, other 4xx responses and malformed responses remain
+errors; unresolved connector types produce a warning and omit only the affected connections.
 
 Names and provider labels are temporary display information. Asset requests contain only
 the source and stable identifier. Existing references are preserved when unavailable,

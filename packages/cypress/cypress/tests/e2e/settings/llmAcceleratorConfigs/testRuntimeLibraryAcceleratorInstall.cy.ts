@@ -125,13 +125,8 @@ describe('Install an LLM accelerator configuration from the Runtime library', ()
           testData,
         );
       });
-      runtimeCatalogDetailsPage
-        .findRuntimeHeading()
-        .invoke('text')
-        .then((runtimeImageName) => {
-          runtimeCatalogDetailsPage.findInstallAction().scrollIntoView().click();
-          runtimeImageInstallPage.findPageTitle(runtimeImageName).should('be.visible');
-        });
+      runtimeCatalogDetailsPage.findCreateAction().scrollIntoView().click();
+      runtimeImageInstallPage.findPageTitle().should('be.visible');
 
       cy.step('Verify complete YAML, name, resource name, and optional version prefill');
       runtimeImageInstallPage.findAcceleratorRadio().should('be.enabled').check();

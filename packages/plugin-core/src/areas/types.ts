@@ -63,6 +63,7 @@ export enum SupportedArea {
   NIM_SERVICE_OPERATOR = 'nim-service-operator',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
+  INFERENCE_PRIORITY_FIELD = 'inference-priority-field',
   LLMD_SERVING = 'llmd-serving',
   LLMD_TOPOLOGY_CONFIGS = 'llmd-topology-configs',
   YAML_VIEWER = 'yaml-viewer',
@@ -98,6 +99,9 @@ export enum SupportedArea {
   /* Feature store */
   FEATURE_STORE = 'feature-store',
   FEATURE_STORE_ADMIN = 'feature-store-admin',
+
+  /* Data Registry */
+  DATA_REGISTRY = 'data-registry',
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',
@@ -234,6 +238,8 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.KUEUE]: 'Kueue',
   [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
   [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
+  [DataScienceStackComponent.FEATURE_STORE]: 'Feature Store',
+  [DataScienceStackComponent.DATA_REGISTRY]: 'Data Registry',
   [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
   [DataScienceStackComponent.RAY]: 'Ray',
   [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',

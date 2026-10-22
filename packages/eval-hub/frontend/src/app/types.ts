@@ -162,7 +162,7 @@ type JobStatus = {
   queue?: string;
 };
 
-type BenchmarkState = {
+export type BenchmarkState = {
   provider_id?: string;
   id: string;
   benchmark_index?: number;
