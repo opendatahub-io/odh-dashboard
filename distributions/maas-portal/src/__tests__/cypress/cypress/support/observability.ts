@@ -1,4 +1,4 @@
-import type { DashboardResource } from '@perses-dev/core';
+import type { DashboardResource } from '@odh-dashboard/observability/embeddable';
 import { mockPersesDashboard } from '@odh-dashboard/observability/__mocks__/observabilityFixtures';
 import { maasApi, portalPath } from './portal';
 
@@ -24,20 +24,10 @@ export const setupObservabilityMocks = ({
   cy.intercept(
     'POST',
     portalPath('/api/k8s/apis/authorization.k8s.io/v1/selfsubjectaccessreviews'),
-    (request) => {
-      expect(request.body.spec.resourceAttributes).to.deep.include({
-        group: 'monitoring.coreos.com',
-        resource: 'prometheuses',
-        subresource: 'api',
-        name: 'k8s',
-        namespace: 'openshift-monitoring',
-        verb: 'get',
-      });
-      request.reply({
-        apiVersion: 'authorization.k8s.io/v1',
-        kind: 'SelfSubjectAccessReview',
-        status: { allowed: clusterMetricsAllowed },
-      });
+    {
+      apiVersion: 'authorization.k8s.io/v1',
+      kind: 'SelfSubjectAccessReview',
+      status: { allowed: clusterMetricsAllowed },
     },
   ).as('metricsAccess');
 };

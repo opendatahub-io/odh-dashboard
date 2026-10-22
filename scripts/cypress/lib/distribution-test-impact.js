@@ -136,7 +136,9 @@ function selectDistributionTests(root, options) {
   } catch (error) {
     plan = {
       run: true,
-      reason: `Impact selection failed; run distribution tests: ${error.message}`,
+      reason: `Impact selection failed; run distribution tests: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     };
   }
   return plan;

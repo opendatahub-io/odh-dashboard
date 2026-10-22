@@ -70,8 +70,9 @@ describe('Portal API keys', () => {
     cy.intercept('POST', maasApi('/api-keys/search'), {
       // eslint-disable-next-line camelcase
       data: { object: 'list', data: [], has_more: false },
-    });
+    }).as('emptyKeys');
     portal.visit('/maas/keys-and-subs');
+    cy.wait('@emptyKeys');
     apiKeysPage.findEmptyState().should('contain.text', 'No API keys');
     apiKeysPage.findCreateApiKeyButton().should('be.enabled');
   });
@@ -80,8 +81,9 @@ describe('Portal API keys', () => {
     cy.intercept('POST', maasApi('/api-keys/search'), {
       statusCode: 500,
       body: { error: { code: '500', message: 'Portal API keys unavailable' } },
-    });
+    }).as('searchKeysFailure');
     portal.visit('/maas/keys-and-subs');
+    cy.wait('@searchKeysFailure');
     apiKeysPage.findErrorState().should('contain.text', 'Portal API keys unavailable');
     portal.findNavLink('AI asset endpoints').should('be.visible');
   });

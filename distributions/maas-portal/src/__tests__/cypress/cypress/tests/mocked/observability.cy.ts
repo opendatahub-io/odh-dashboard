@@ -60,7 +60,14 @@ describe('Portal observability', () => {
         ],
       });
       portal.visit(dashboardRoute);
-      cy.wait('@metricsAccess');
+      cy.wait('@metricsAccess').its('request.body.spec.resourceAttributes').should('deep.include', {
+        group: 'monitoring.coreos.com',
+        resource: 'prometheuses',
+        subresource: 'api',
+        name: 'k8s',
+        namespace: 'openshift-monitoring',
+        verb: 'get',
+      });
       observabilityDashboardPage.findTab('Model').should('be.visible');
       observabilityDashboardPage.findTab('Cluster').should(allowed ? 'be.visible' : 'not.exist');
     });
