@@ -28,6 +28,7 @@ const RayJobStatus = ({
 
   return (
     <Label
+      variant={onClick ? 'filled' : 'outline'}
       isCompact
       status={statusInfo.status}
       color={statusInfo.color}
