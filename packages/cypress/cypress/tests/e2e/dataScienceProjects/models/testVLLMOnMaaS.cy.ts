@@ -120,6 +120,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
 
       cy.step('Step 1: Model details - select Generative type');
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectUriConnectionTypeIfExists();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard

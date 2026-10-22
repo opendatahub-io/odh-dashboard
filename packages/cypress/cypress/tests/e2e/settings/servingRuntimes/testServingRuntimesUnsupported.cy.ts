@@ -41,6 +41,7 @@ const openDeployWizardToDeploymentStep = (modelURI: string) => {
   modelServingGlobal.findDeployModelButton().click();
 
   modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+  modelServingWizard.selectUriConnectionTypeIfExists();
   modelServingWizard.findUrilocationInput().clear().type(modelURI);
   modelServingWizard.findSaveConnectionCheckbox().uncheck();
   modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();

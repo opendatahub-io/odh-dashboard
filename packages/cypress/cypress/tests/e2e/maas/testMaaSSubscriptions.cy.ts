@@ -180,6 +180,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Step 1: Model details - select Generative type');
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectUriConnectionTypeIfExists();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard
