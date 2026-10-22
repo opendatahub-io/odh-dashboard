@@ -135,7 +135,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
             label="Connection"
             fieldId="data-connection"
             isStack
-            className="odh-data-registry-registration-form__described-group"
+            className="odh-data-registry-registration-form__described-group odh-data-registry-registration-form__connection-group"
           >
             <Content component="p">
               Select the connection in this project where the data is located.

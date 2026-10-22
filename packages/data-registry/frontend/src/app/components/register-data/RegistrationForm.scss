@@ -37,7 +37,12 @@
   // the first field is a direct child of the section.
   .odh-data-registry-registration-form__asset-format-section
     > .pf-v6-c-content--p
-    + .pf-v6-c-form__group,
+    + .pf-v6-c-form__group {
+    margin-block-start: calc(
+      var(--pf-t--global--spacer--sm) - var(--pf-t--global--spacer--md)
+    );
+  }
+
   .odh-data-registry-schema-section > .pf-v6-c-content--p + .pf-v6-c-form__group {
     margin-block-start: calc(
       var(--pf-t--global--spacer--xs) - var(--pf-t--global--spacer--md)
@@ -55,9 +60,7 @@
   .odh-data-registry-registration-form__asset-location-section
     > .pf-v6-c-form__group
     + .pf-v6-c-form__group {
-    margin-block-start: calc(
-      var(--pf-t--global--spacer--sm) - var(--pf-t--global--spacer--md)
-    );
+    margin-block-start: 0;
   }
 
   .pf-v6-c-form__section.odh-data-registry-registration-form__asset-location-section,
@@ -74,18 +77,29 @@
     );
   }
 
-  .odh-data-registry-registration-form__format-group {
-    margin-block-start: calc(
-      var(--pf-t--global--spacer--xs) - var(--pf-t--global--spacer--md)
+  .odh-data-registry-registration-form__asset-location-section,
+  .odh-data-registry-registration-form__asset-format-section,
+  .odh-data-registry-schema-section,
+  .odh-data-registry-registration-form__organization-section {
+    --pf-v6-c-form__section-title--MarginBlockEnd: calc(
+      0px - var(--pf-t--global--spacer--md)
     );
   }
 
+  .odh-data-registry-registration-form__format-group {
+    margin-block-start: 0;
+  }
+
   .odh-data-registry-schema-section {
-    margin-block-start: var(--pf-t--global--spacer--sm);
+    margin-block-start: var(--pf-t--global--spacer--md);
   }
 
   .odh-data-registry-registration-form__described-group {
-    --pf-v6-c-form__group--Gap: var(--pf-t--global--spacer--xs);
+    --pf-v6-c-form__group--Gap: 0;
     --pf-v6-c-form__group-control--m-stack--Gap: var(--pf-t--global--spacer--xs);
+  }
+
+  .odh-data-registry-registration-form__connection-group {
+    --pf-v6-c-form__group--Gap: 0;
   }
 }

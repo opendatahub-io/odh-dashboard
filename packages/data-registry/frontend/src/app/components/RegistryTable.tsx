@@ -824,7 +824,11 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           ) : null}
         </Toolbar>
 
-        <Table aria-label="Registry assets" borders={false} data-testid="registry-table">
+        <Table
+          aria-label="Registry assets"
+          borders={assets.length > 0}
+          data-testid="registry-table"
+        >
           {assets.length > 0 ? (
             <Thead>
               <Tr>

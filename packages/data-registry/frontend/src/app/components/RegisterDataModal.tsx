@@ -276,16 +276,12 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
       variant="medium"
       data-testid="register-data-modal"
     >
-      <ModalHeader
-        title="Create data asset"
-        description={
-          <Content component="p">
-            A data asset is a metadata record that helps users discover and understand external
-            data. It stores information like location, format, and schema, but not the data itself.
-          </Content>
-        }
-      />
+      <ModalHeader title="Create data asset" />
       <ModalBody>
+        <Content component="p">
+          A data asset is a metadata record that helps users discover and understand external data.
+          It stores information like location, format, and schema, but not the data itself.
+        </Content>
         {error ? (
           <Alert variant="danger" isInline title="Error registering data asset">
             {error}
