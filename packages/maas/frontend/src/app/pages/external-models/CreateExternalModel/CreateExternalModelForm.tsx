@@ -418,8 +418,9 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
           isInline
         >
           To make the endpoint accessible to users, an admin must configure subscriptions and
-          authorization policies on the <strong>MaaS governance</strong> page. Users can view their
-          subscriptions, accessible models, and API keys on the <strong>API keys</strong> page.
+          authorization policies under <strong>Settings &gt; MaaS governance</strong>. To view their
+          API keys, subscriptions, and accessible models, users can go to{' '}
+          <strong>Gen AI Studio &gt; API keys</strong>.
         </Alert>
 
         {submitError && (
