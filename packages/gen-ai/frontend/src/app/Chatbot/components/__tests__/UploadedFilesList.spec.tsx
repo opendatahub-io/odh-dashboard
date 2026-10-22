@@ -79,14 +79,14 @@ describe('UploadedFilesList', () => {
     expect(screen.getByText('Uploaded files')).toBeInTheDocument();
     expect(screen.getByText('document1.pdf')).toBeInTheDocument();
     expect(screen.getByText('document2.txt')).toBeInTheDocument();
-    expect(screen.getByText('1000 KB')).toBeInTheDocument();
-    expect(screen.getByText('512 Bytes')).toBeInTheDocument();
+    expect(screen.getByText('1000 KB - 01-01-2021')).toBeInTheDocument();
+    expect(screen.getByText('512 Bytes - 01-02-2021')).toBeInTheDocument();
   });
 
   it('formats file dates correctly', () => {
     render(<UploadedFilesList {...defaultProps} />);
 
-    expect(screen.getByText('01-01-2021')).toBeInTheDocument();
+    expect(screen.getByText('1000 KB - 01-01-2021')).toBeInTheDocument();
   });
 
   it('opens delete modal when delete button is clicked', async () => {
@@ -160,9 +160,9 @@ describe('UploadedFilesList', () => {
 
     render(<UploadedFilesList {...defaultProps} files={filesWithVariousSizes} />);
 
-    expect(screen.getByText('0 Bytes')).toBeInTheDocument();
-    expect(screen.getByText('2 KB')).toBeInTheDocument();
-    expect(screen.getByText('5 MB')).toBeInTheDocument();
-    expect(screen.getByText('2 GB')).toBeInTheDocument();
+    expect(screen.getByText('0 Bytes - 01-01-2021')).toBeInTheDocument();
+    expect(screen.getByText('2 KB - 01-01-2021')).toBeInTheDocument();
+    expect(screen.getByText('5 MB - 01-01-2021')).toBeInTheDocument();
+    expect(screen.getByText('2 GB - 01-01-2021')).toBeInTheDocument();
   });
 });

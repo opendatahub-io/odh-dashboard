@@ -1,5 +1,8 @@
 import * as React from 'react';
 import {
+  Alert,
+  AlertActionCloseButton,
+  AlertGroup,
   Flex,
   FlexItem,
   Label,
@@ -14,6 +17,166 @@ import type { DetailTabProperties } from '../../extension-points/detail-tabs';
 import { isValidExtensionId, sortExtensionsByGroup } from '../../extension-points/utils';
 
 const DEFAULT_GROUP = '5_default';
+const EMPTY_COMPONENT_PROPS: Record<string, unknown> = {};
+type ShouldShowResult = {
+  visible: boolean;
+  props: Record<string, unknown>;
+  error?: unknown;
+};
+type CachedShouldShowResult = Pick<ShouldShowResult, 'visible' | 'error'>;
+type ShouldShowCacheEntry = {
+  promise: Promise<boolean>;
+  props: Record<string, unknown>;
+  result?: CachedShouldShowResult;
+};
+
+const areComponentPropsEqual = (
+  first: Record<string, unknown>,
+  second: Record<string, unknown>,
+): boolean => {
+  const firstKeys = Object.keys(first);
+  const secondKeys = Object.keys(second);
+  if (firstKeys.length !== secondKeys.length) {
+    return false;
+  }
+
+  return firstKeys.every((key) => Object.hasOwn(second, key) && Object.is(first[key], second[key]));
+};
+
+/**
+ * Evaluates tab visibility predicates in an effect so async predicates never
+ * run during render. The cache deduplicates calls across React StrictMode's
+ * double mount and is invalidated when component props change.
+ */
+const useShouldShowResults = <TExtension extends Extension<string, DetailTabProperties>>(
+  extensions: LoadedExtension<TExtension>[],
+  componentProps: Record<string, unknown>,
+): Partial<Record<string, ShouldShowResult>> => {
+  const [results, setResults] = React.useState<Partial<Record<string, ShouldShowResult>>>({});
+  const cacheRef = React.useRef(new Map<string, ShouldShowCacheEntry>());
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    const syncBatch: Record<string, ShouldShowResult> = {};
+    const pendingUids = new Set<string>();
+    const activeUids = new Set<string>();
+
+    extensions.forEach((ext) => {
+      const { shouldShow } = ext.properties;
+      if (!shouldShow) {
+        return;
+      }
+
+      activeUids.add(ext.uid);
+      const cached = cacheRef.current.get(ext.uid);
+      let promise: Promise<boolean> | undefined;
+      let cacheEntry: ShouldShowCacheEntry;
+
+      if (cached && areComponentPropsEqual(cached.props, componentProps)) {
+        if (cached.result) {
+          syncBatch[ext.uid] = { ...cached.result, props: componentProps };
+          return;
+        }
+
+        cacheEntry = cached;
+        promise = cached.promise;
+      } else {
+        let result: boolean | Promise<boolean>;
+        try {
+          result = shouldShow(componentProps);
+        } catch (error) {
+          result = Promise.reject(error);
+        }
+
+        if (typeof result === 'boolean') {
+          syncBatch[ext.uid] = { visible: result, props: componentProps };
+          cacheRef.current.delete(ext.uid);
+          return;
+        }
+
+        promise = result;
+        cacheEntry = { promise, props: componentProps };
+        cacheRef.current.set(ext.uid, cacheEntry);
+      }
+
+      pendingUids.add(ext.uid);
+      promise.then(
+        (visible) => {
+          cacheEntry.result = { visible };
+          if (!controller.signal.aborted) {
+            setResults((prev) => {
+              const previous = prev[ext.uid];
+              return previous?.visible === visible &&
+                previous.error === undefined &&
+                areComponentPropsEqual(previous.props, componentProps)
+                ? prev
+                : { ...prev, [ext.uid]: { visible, props: componentProps } };
+            });
+          }
+        },
+        (error) => {
+          cacheEntry.result = { visible: false, error };
+          if (!controller.signal.aborted) {
+            setResults((prev) => {
+              const previous = prev[ext.uid];
+              return previous?.visible === false &&
+                previous.error !== undefined &&
+                areComponentPropsEqual(previous.props, componentProps)
+                ? prev
+                : { ...prev, [ext.uid]: { visible: false, props: componentProps, error } };
+            });
+          }
+        },
+      );
+    });
+
+    for (const uid of cacheRef.current.keys()) {
+      if (!activeUids.has(uid)) {
+        cacheRef.current.delete(uid);
+      }
+    }
+
+    setResults((prev) => {
+      let next: Partial<Record<string, ShouldShowResult>> | undefined;
+
+      for (const uid of Object.keys(prev)) {
+        if (
+          !activeUids.has(uid) ||
+          pendingUids.has(uid) ||
+          !prev[uid] ||
+          !areComponentPropsEqual(prev[uid].props, componentProps)
+        ) {
+          if (!next) {
+            next = { ...prev };
+          }
+          delete next[uid];
+        }
+      }
+
+      for (const uid of Object.keys(syncBatch)) {
+        const previous = (next ?? prev)[uid];
+        const current = syncBatch[uid];
+        if (
+          !previous ||
+          previous.visible !== current.visible ||
+          previous.error !== current.error ||
+          !areComponentPropsEqual(previous.props, current.props)
+        ) {
+          if (!next) {
+            next = { ...prev };
+          }
+          next[uid] = current;
+        }
+      }
+
+      return next ?? prev;
+    });
+
+    return () => controller.abort();
+  }, [extensions, componentProps]);
+
+  return results;
+};
 
 type StaticTab = {
   id: string;
@@ -24,8 +187,12 @@ type StaticTab = {
 type ExtensibleDetailTabsProps<TExtension extends Extension<string, DetailTabProperties>> = {
   /** The currently active tab key (typically from URL params). */
   activeKey: string;
-  /** Callback fired when a tab is selected. Receives the new tab key. */
-  onSelect: (tabKey: string) => void;
+  /**
+   * Callback fired when a tab is selected. Receives the new tab key and, for
+   * redirects away from an unavailable tab, `replace: true` so callers can
+   * replace the history entry instead of pushing a new one.
+   */
+  onSelect: (tabKey: string, options?: { replace?: boolean }) => void;
   /** Static (built-in) tabs rendered before extension tabs. */
   staticTabs?: StaticTab[];
   /** Loaded extension tabs (from `useExtensions`). */
@@ -36,7 +203,10 @@ type ExtensibleDetailTabsProps<TExtension extends Extension<string, DetailTabPro
    * the tabs targeting the current page.
    */
   group?: string;
-  /** Extra props passed to each lazy-loaded extension component. */
+  /**
+   * Extra props passed to each lazy-loaded extension component. Memoize this object when using
+   * `shouldShow` predicates so their results can be reused across renders.
+   */
   componentProps?: Record<string, unknown>;
   /** Accessible label for the Tabs component. */
   ariaLabel?: string;
@@ -99,16 +269,87 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   unmountOnExit = false,
   tabContentIsFilled = true,
 }: ExtensibleDetailTabsProps<TExtension>): React.ReactElement | null => {
+  const eligibleExtensions = React.useMemo(
+    () =>
+      (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs)
+        .filter((ext) => (group ? ext.properties.group === group : true))
+        .filter((ext) => isValidExtensionId(ext.properties.id)),
+    [extensionTabs, filterExtension, group],
+  );
+
+  const shouldShowResults = useShouldShowResults(
+    eligibleExtensions,
+    componentProps ?? EMPTY_COMPONENT_PROPS,
+  );
+  const effectiveComponentProps = componentProps ?? EMPTY_COMPONENT_PROPS;
+
   const filteredExtensions = React.useMemo(
     () =>
       sortExtensionsByGroup(
-        (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs)
-          .filter((ext) => (group ? ext.properties.group === group : true))
-          .filter((ext) => isValidExtensionId(ext.properties.id)),
+        eligibleExtensions.filter((ext) => {
+          if (!ext.properties.shouldShow) {
+            return true;
+          }
+          const result = shouldShowResults[ext.uid];
+          if (!result || !areComponentPropsEqual(result.props, effectiveComponentProps)) {
+            return ext.properties.id === activeKey;
+          }
+          return result.visible;
+        }),
         DEFAULT_GROUP,
       ),
-    [extensionTabs, filterExtension, group],
+    [eligibleExtensions, shouldShowResults, activeKey, effectiveComponentProps],
   );
+
+  const visibilityErrorExtensions = React.useMemo(
+    () =>
+      eligibleExtensions.filter((ext) => {
+        const result = shouldShowResults[ext.uid];
+        return (
+          result?.error !== undefined &&
+          ext.properties.visibilityErrorMessage !== undefined &&
+          areComponentPropsEqual(result.props, effectiveComponentProps)
+        );
+      }),
+    [eligibleExtensions, shouldShowResults, effectiveComponentProps],
+  );
+
+  const [dismissedVisibilityErrors, setDismissedVisibilityErrors] = React.useState<Set<string>>(
+    new Set(),
+  );
+
+  React.useEffect(() => {
+    setDismissedVisibilityErrors((previous) => {
+      const activeErrorIds = new Set(visibilityErrorExtensions.map((ext) => ext.uid));
+      const next = new Set([...previous].filter((uid) => activeErrorIds.has(uid)));
+      return next.size === previous.size ? previous : next;
+    });
+  }, [visibilityErrorExtensions]);
+
+  const visibilityErrorAlerts = visibilityErrorExtensions
+    .filter((ext) => !dismissedVisibilityErrors.has(ext.uid))
+    .map((ext) => (
+      <Alert
+        key={`${ext.uid}-visibility-error`}
+        variant="danger"
+        title={ext.properties.visibilityErrorMessage}
+        actionClose={
+          <AlertActionCloseButton
+            onClose={() =>
+              setDismissedVisibilityErrors((previous) => new Set(previous).add(ext.uid))
+            }
+          />
+        }
+        data-testid={`${ext.properties.id}-visibility-error`}
+      />
+    ));
+
+  const visibilityErrorAlertGroup =
+    visibilityErrorAlerts.length > 0 ? (
+      <AlertGroup isToast isLiveRegion data-testid="visibility-error-alert-group">
+        {visibilityErrorAlerts}
+      </AlertGroup>
+    ) : null;
 
   const allTabs = React.useMemo(
     () => [
@@ -124,78 +365,100 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
     [staticTabs, filteredExtensions],
   );
 
+  const effectiveActiveKey =
+    allTabs.length > 0 && !allTabs.some((tab) => tab.id === activeKey) ? allTabs[0].id : activeKey;
+
+  React.useEffect(() => {
+    if (effectiveActiveKey !== activeKey) {
+      // Replace rather than push so redirecting away from an unavailable tab
+      // (e.g. a deep link to a tab with no data) does not trap the Back button.
+      onSelect(effectiveActiveKey, { replace: true });
+    }
+  }, [effectiveActiveKey, activeKey, onSelect]);
+
   if (allTabs.length === 0) {
-    return null;
+    return visibilityErrorAlertGroup;
   }
 
   if (allTabs.length === 1) {
     const singleTab = allTabs[0];
     if (singleTab.type === 'static') {
-      return <>{singleTab.content}</>;
+      return (
+        <>
+          {visibilityErrorAlertGroup}
+          {singleTab.content}
+        </>
+      );
     }
     return (
-      <LazyCodeRefComponent
-        component={singleTab.extension.properties.component}
-        props={componentProps}
-      />
+      <>
+        {visibilityErrorAlertGroup}
+        <LazyCodeRefComponent
+          component={singleTab.extension.properties.component}
+          props={componentProps}
+        />
+      </>
     );
   }
 
   return (
-    <Tabs
-      activeKey={activeKey}
-      aria-label={ariaLabel}
-      role="region"
-      data-testid={testId}
-      isSubtab={isSubtab}
-      mountOnEnter={mountOnEnter}
-      unmountOnExit={unmountOnExit}
-      onSelect={(_event, eventKey) => onSelect(String(eventKey))}
-    >
-      {allTabs.map((tab) => {
-        const titleNode = (
-          <TabTitleText>
-            {tab.type === 'extension'
-              ? renderTabTitle(tab.title, tab.label)
-              : renderTabTitle(tab.title)}
-          </TabTitleText>
-        );
-        const content =
-          tab.type === 'static' ? (
-            tab.content
-          ) : (
-            <LazyCodeRefComponent
-              component={tab.extension.properties.component}
-              props={componentProps}
-            />
+    <>
+      {visibilityErrorAlertGroup}
+      <Tabs
+        activeKey={effectiveActiveKey}
+        aria-label={ariaLabel}
+        role="region"
+        data-testid={testId}
+        isSubtab={isSubtab}
+        mountOnEnter={mountOnEnter}
+        unmountOnExit={unmountOnExit}
+        onSelect={(_event, eventKey) => onSelect(String(eventKey))}
+      >
+        {allTabs.map((tab) => {
+          const titleNode = (
+            <TabTitleText>
+              {tab.type === 'extension'
+                ? renderTabTitle(tab.title, tab.label)
+                : renderTabTitle(tab.title)}
+            </TabTitleText>
           );
+          const content =
+            tab.type === 'static' ? (
+              tab.content
+            ) : (
+              <LazyCodeRefComponent
+                component={tab.extension.properties.component}
+                props={componentProps}
+              />
+            );
 
-        return (
-          <Tab
-            key={tab.id}
-            eventKey={tab.id}
-            title={titleNode}
-            aria-label={`${tab.title} tab`}
-            data-testid={`${tab.id}-tab`}
-          >
-            <PageSection
-              hasBodyWrapper={false}
-              isFilled={tabContentIsFilled}
-              style={
-                tabContentIsFilled
-                  ? undefined
-                  : {
-                      paddingTop: 'var(--pf-t--global--spacer--md)',
-                      paddingBottom: 0,
-                    }
-              }
-              data-testid={`${tab.id}-tab-content`}
+          return (
+            <Tab
+              key={tab.id}
+              eventKey={tab.id}
+              title={titleNode}
+              aria-label={`${tab.title} tab`}
+              data-testid={`${tab.id}-tab`}
             >
-              {content}
-            </PageSection>
-          </Tab>
-        );
-      })}
-    </Tabs>
+              <PageSection
+                hasBodyWrapper={false}
+                isFilled={tabContentIsFilled}
+                style={
+                  tabContentIsFilled
+                    ? undefined
+                    : {
+                        paddingTop: 'var(--pf-t--global--spacer--md)',
+                        paddingBottom: 0,
+                      }
+                }
+                data-testid={`${tab.id}-tab-content`}
+              >
+                {content}
+              </PageSection>
+            </Tab>
+          );
+        })}
+      </Tabs>
+    </>
   );
 };

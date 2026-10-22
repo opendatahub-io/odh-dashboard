@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
-import { mapArtifactToInsight } from '~/app/pages/modelCatalog/securityInsightsTypes';
-import type { CatalogSecurityArtifact } from '~/app/pages/modelCatalog/securityInsightsTypes';
+import { mapArtifactToInsight } from '../securityInsightsTypes';
+import type { CatalogSecurityArtifact } from '../securityInsightsTypes';
 
 describe('mapArtifactToInsight', () => {
   it('should map a fully-populated artifact to a SecurityInsight', () => {

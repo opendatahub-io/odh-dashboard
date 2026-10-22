@@ -2724,6 +2724,12 @@ components:
           type: string
           description: Name of the MaaSModelRef
           example: granite-3-8b-instruct
+        model_name:
+          type: string
+          description: >
+            Optional catalog model id from upstream maas-api (e.g. publishers/llm/models/Qwen/...).
+            Used by the UI to resolve Access Details Model ID and usage examples.
+          example: publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct
         display_name:
           type: string
           description: Human-readable display name of the model (from openshift.io/display-name annotation)
