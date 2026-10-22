@@ -235,7 +235,7 @@ func (r *DashboardReconciler) deleteModuleResources(
 		}
 
 		var configMaps corev1.ConfigMapList
-		if err := r.List(ctx, &configMaps, matchLabels, inNamespace); err != nil {
+		if err := r.apiReader().List(ctx, &configMaps, matchLabels, inNamespace); err != nil {
 			errs = append(errs, fmt.Errorf("listing configmaps for module %s: %w", name, err))
 		} else {
 			for i := range configMaps.Items {
@@ -370,7 +370,7 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 ) (*corev1.ConfigMap, error) {
 	dashboardEntries := r.dashboardFederationEntries(statuses, dashboard)
 
-	communityEntries, err := communityFederationEntries(ctx, r.Client)
+	communityEntries, err := communityFederationEntries(ctx, r.apiReader())
 	if err != nil {
 		// The community source is optional. Retain its last-known-good entries so
 		// a read failure cannot block Dashboard federation updates or cause a
@@ -532,7 +532,7 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 // an absent ConfigMap does not prevent a first installation from starting.
 func (r *DashboardReconciler) preservePersesFederationEntry(ctx context.Context, desired *corev1.ConfigMap) error {
 	existing := &corev1.ConfigMap{}
-	if err := r.Get(ctx, client.ObjectKeyFromObject(desired), existing); err != nil {
+	if err := r.apiReader().Get(ctx, client.ObjectKeyFromObject(desired), existing); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
