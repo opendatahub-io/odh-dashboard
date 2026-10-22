@@ -36,7 +36,7 @@ export const techPreviewFlags = {
   genAiAgentDeployment: false,
   vLLMDeploymentOnMaaS: false,
   llmdTemplates: false,
-  llmGatewayField: false,
+  llmGatewayField: true,
   globalProjectPrompts: false,
   agentOps: false,
   dataRegistry: false,
