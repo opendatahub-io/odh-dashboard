@@ -15,7 +15,7 @@
     "axios": "^1.15.0",
     "shell-quote": ">=1.8.4",
     "@types/react": "18.3.31",
-    "dompurify": "^3.4.16"
+    "dompurify": "^3.4.17"
   },
   "scripts": {
     "build": "run-s build:prod",
