@@ -156,7 +156,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   );
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const [defaultSc] = useDefaultStorageClass();
+  const [defaultSc, defaultScLoaded] = useDefaultStorageClass();
   const defaultStorageClassName = defaultSc?.metadata.name ?? '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
   const [storageClassName, setStorageClassName] = React.useState(
@@ -207,7 +207,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !baseInputValueValid ||
     !validateHardwareProfileForm() ||
     !isExistingPvcValid ||
-    (!editInfo && pvcMode === 'create-new' && !storageClassName) ||
+    (!editInfo && pvcMode === 'create-new' && !defaultScLoaded) ||
     createDataInferenceService.servingRuntimeEnvVars?.some(
       (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
     );
@@ -283,7 +283,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   const submit = () => {
-    if (!editInfo && pvcMode === 'create-new' && !storageClassName) {
+    if (!editInfo && pvcMode === 'create-new' && !defaultScLoaded) {
       return;
     }
     setError(undefined);
