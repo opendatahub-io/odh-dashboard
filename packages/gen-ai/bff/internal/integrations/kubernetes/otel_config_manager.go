@@ -48,14 +48,31 @@ const (
 // the platform "data-science-collector" CR, whose spec.config is fully rendered
 // from a Go template by an operator on reconciliation, so this avoids our changes being overwritten.
 type otelConfigManager struct {
-	mu                  sync.Mutex // serializes read-modify-write on the collector CR
-	dynClient           dynamic.Interface
-	logger              *slog.Logger
-	collectorNamespace  string
-	mlflowK8sServiceURL string // in-cluster K8s service URL for collector exporter, e.g. "https://mlflow.opendatahub.svc:8443"
-	mlflowURL           string // URL reachable from BFF for API calls, e.g. "https://localhost:5001" or same as K8s service URL
-	httpClient          *http.Client
-	bearerToken         string // from kubeconfig (local dev) or SA token (in-cluster)
+	mu                      sync.Mutex // serializes read-modify-write on the collector CR
+	dynClient               dynamic.Interface
+	logger                  *slog.Logger
+	collectorNamespace      string
+	mlflowCollectorEndpoint string // MLflow endpoint for collector exporters, includes the /mlflow static prefix, e.g. "https://mlflow.opendatahub.svc:8443/mlflow"
+	mlflowURL               string // URL reachable from BFF for API calls, e.g. "https://localhost:5001" or same as K8s service URL
+	httpClient              *http.Client
+	bearerToken             string // from kubeconfig (local dev) or SA token (in-cluster)
+}
+
+// mlflowCollectorExporterEndpoint returns the MLflow endpoint for the
+// collector's otlphttp exporters.
+//
+// MLflow serves all of its routes under the /mlflow static prefix, and since
+// MLflow 3.16 (mlflow/mlflow#24511) that includes the OTLP trace ingestion
+// endpoint: /mlflow/v1/traces. The otlphttp exporter appends /v1/traces to
+// its endpoint, so the exporter must target <service>/mlflow. A prefix-less
+// endpoint makes the collector POST to /v1/traces, which MLflow answers with
+// 404 — silently dropping every span (RHOAIENG-101620).
+//
+// The discovered service URL may or may not already carry the /mlflow path;
+// the result always targets the prefixed endpoint.
+func mlflowCollectorExporterEndpoint(mlflowServiceURL string) string {
+	root := strings.TrimSuffix(strings.TrimSuffix(mlflowServiceURL, "/"), "/mlflow")
+	return root + "/mlflow"
 }
 
 // newOTelConfigManager creates a manager that owns a dedicated gen-ai
@@ -98,28 +115,31 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x5
 		return nil, nil
 	}
 
-	// The collector exporter always uses the in-cluster service URL.
-	mlflowK8sSvc := strings.TrimSuffix(strings.TrimSuffix(mlflowURL, "/mlflow"), "/")
+	// The collector exporter always uses the in-cluster service URL, with the
+	// /mlflow static prefix included — see mlflowCollectorExporterEndpoint.
+	mlflowCollectorEndpoint := mlflowCollectorExporterEndpoint(mlflowURL)
 
+	// The BFF's own API calls use the service root (their request paths carry
+	// the /mlflow prefix) or the local dev override when set.
 	mlflowBFFURL := strings.TrimSuffix(cfg.MLflowURL, "/")
 	if mlflowBFFURL == "" {
-		mlflowBFFURL = mlflowK8sSvc
+		mlflowBFFURL = strings.TrimSuffix(strings.TrimSuffix(mlflowURL, "/mlflow"), "/")
 	}
 
 	logger.Info("OTel config manager initialized",
 		"collectorNamespace", collectorNS,
 		"collectorCR", constants.GenAICollectorName,
-		"mlflowK8sServiceURL", mlflowK8sSvc,
+		"mlflowCollectorEndpoint", mlflowCollectorEndpoint,
 		"mlflowURL", mlflowBFFURL,
 	)
 
 	return &otelConfigManager{
-		dynClient:           dynClient,
-		logger:              logger,
-		collectorNamespace:  collectorNS,
-		mlflowK8sServiceURL: mlflowK8sSvc,
-		mlflowURL:           mlflowBFFURL,
-		bearerToken:         restCfg.BearerToken,
+		dynClient:               dynClient,
+		logger:                  logger,
+		collectorNamespace:      collectorNS,
+		mlflowCollectorEndpoint: mlflowCollectorEndpoint,
+		mlflowURL:               mlflowBFFURL,
+		bearerToken:             restCfg.BearerToken,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
@@ -193,7 +213,7 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, u
 		}
 
 		changed := ensureRoutingConnector(collectorCfg)
-		changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowK8sServiceURL, experimentID) || changed
+		changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowCollectorEndpoint, experimentID) || changed
 
 		if !changed {
 			m.logger.Info("collector config already has route for namespace, no patch needed", "namespace", namespace)

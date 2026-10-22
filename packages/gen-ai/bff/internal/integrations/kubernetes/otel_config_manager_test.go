@@ -97,6 +97,40 @@ func TestEnsureRoutingConnector_StructuredConfig(t *testing.T) {
 	assert.Equal(t, []interface{}{routingConnectorKey}, traces["exporters"])
 }
 
+func TestMLflowCollectorExporterEndpoint(t *testing.T) {
+	tests := []struct {
+		name             string
+		mlflowServiceURL string
+		want             string
+	}{
+		{
+			name:             "service URL with static prefix is kept as-is",
+			mlflowServiceURL: "https://mlflow.redhat-ods-applications.svc:8443/mlflow",
+			want:             "https://mlflow.redhat-ods-applications.svc:8443/mlflow",
+		},
+		{
+			name:             "pathless service URL gets the static prefix appended",
+			mlflowServiceURL: "https://mlflow.redhat-ods-applications.svc:8443",
+			want:             "https://mlflow.redhat-ods-applications.svc:8443/mlflow",
+		},
+		{
+			name:             "trailing slash is normalized",
+			mlflowServiceURL: "https://mlflow.redhat-ods-applications.svc:8443/",
+			want:             "https://mlflow.redhat-ods-applications.svc:8443/mlflow",
+		},
+		{
+			name:             "static prefix with trailing slash is normalized",
+			mlflowServiceURL: "https://mlflow.redhat-ods-applications.svc:8443/mlflow/",
+			want:             "https://mlflow.redhat-ods-applications.svc:8443/mlflow",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, mlflowCollectorExporterEndpoint(tt.mlflowServiceURL))
+		})
+	}
+}
+
 func TestAddNamespaceRoute(t *testing.T) {
 	cfg, err := parseCollectorConfig(baseGenAICollectorConfigYAML)
 	require.NoError(t, err)
