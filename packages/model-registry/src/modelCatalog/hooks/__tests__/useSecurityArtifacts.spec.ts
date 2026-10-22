@@ -1,18 +1,20 @@
 /* eslint-disable camelcase */
-import { useFetchState } from 'mod-arch-core';
-import useSecurityArtifacts from '~/app/hooks/useSecurityArtifacts';
-import { getCatalogSecurityArtifacts } from '~/app/api/k8s';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import useFetchState from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
+import useSecurityArtifacts from '../useSecurityArtifacts';
+import { getCatalogSecurityArtifacts } from '../../api';
 import type {
   CatalogSecurityArtifact,
   CatalogSecurityArtifactList,
-} from '~/app/pages/modelCatalog/securityInsightsTypes';
+} from '../../securityInsightsTypes';
 
-jest.mock('mod-arch-core', () => ({
-  useFetchState: jest.fn(),
+jest.mock('@odh-dashboard/ui-core/hooks/useFetchState', () => ({
+  __esModule: true,
+  default: jest.fn(),
+  NotReadyError: class NotReadyError extends Error {},
 }));
 
-jest.mock('~/app/api/k8s', () => ({
+jest.mock('../../api', () => ({
   getCatalogSecurityArtifacts: jest.fn(),
 }));
 
@@ -38,7 +40,7 @@ const mockArtifact: CatalogSecurityArtifact = {
 describe('useSecurityArtifacts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetCatalogSecurityArtifacts.mockReturnValue(jest.fn());
+    mockGetCatalogSecurityArtifacts.mockResolvedValue(emptyList);
     mockUseFetchState.mockReturnValue([emptyList, false, undefined, jest.fn()]);
   });
 
@@ -89,9 +91,6 @@ describe('useSecurityArtifacts', () => {
   });
 
   it('should call getCatalogSecurityArtifacts with correct arguments', () => {
-    const mockFetcher = jest.fn().mockResolvedValue(emptyList);
-    mockGetCatalogSecurityArtifacts.mockReturnValue(mockFetcher);
-
     testHook(useSecurityArtifacts)('my-source', 'my-model', 'my-ns');
 
     const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
@@ -101,19 +100,15 @@ describe('useSecurityArtifacts', () => {
     fetchCallback(mockOpts);
 
     expect(mockGetCatalogSecurityArtifacts).toHaveBeenCalledWith(
-      '',
       'my-source',
       'my-model',
       'my-ns',
       undefined,
+      mockOpts,
     );
-    expect(mockFetcher).toHaveBeenCalledWith(mockOpts);
   });
 
   it('should pass pageSize when provided', () => {
-    const mockFetcher = jest.fn().mockResolvedValue(emptyList);
-    mockGetCatalogSecurityArtifacts.mockReturnValue(mockFetcher);
-
     testHook(useSecurityArtifacts)('my-source', 'my-model', 'my-ns', 25);
 
     const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
@@ -122,11 +117,22 @@ describe('useSecurityArtifacts', () => {
     fetchCallback({});
 
     expect(mockGetCatalogSecurityArtifacts).toHaveBeenCalledWith(
-      '',
       'my-source',
       'my-model',
       'my-ns',
       25,
+      {},
     );
+  });
+
+  it('should keep loading without fetching while the namespace is unresolved', async () => {
+    testHook(useSecurityArtifacts)('my-source', 'my-model', '');
+
+    const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
+      (opts: unknown) => Promise<CatalogSecurityArtifactList>,
+    ];
+
+    await expect(fetchCallback({})).rejects.toThrow('Catalog instances namespace is not resolved');
+    expect(mockGetCatalogSecurityArtifacts).not.toHaveBeenCalled();
   });
 });
