@@ -165,6 +165,7 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
       {isDetachModalOpen && selectedStorage && (
         <ClusterStorageDetachModal
           onConfirm={() => {
+            hasUpdatedDefaultNameRef.current = true;
             setStorageData(() => storageData.filter((storage) => storage.id !== selectedId));
             setIsDetachModalOpen(false);
           }}
