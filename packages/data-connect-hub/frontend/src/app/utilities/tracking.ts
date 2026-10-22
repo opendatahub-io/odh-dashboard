@@ -91,7 +91,7 @@ export const getCreateConnectionAbandonStep = (stepIndex: number): DataConnectHu
 export const getConnectionCreationErrorCategory = (error: unknown): string => {
   if (error instanceof Error) {
     const match = error.message.match(
-      /\b(?:status code|status|code|api error|http)[\s:=]{1,3}(\d{3})\b/i,
+      /\b(?:status code|http status|http code|api error|http)[\s:=]{1,3}(\d{3})\b/i,
     );
     const status = match ? Number(match[1]) : undefined;
     if (status !== undefined && status >= 100 && status <= 599) {
@@ -101,8 +101,7 @@ export const getConnectionCreationErrorCategory = (error: unknown): string => {
 
   if (isRecord(error)) {
     const response = isRecord(error.response) ? error.response : {};
-    const status =
-      error.status ?? error.statusCode ?? error[STATUS_CODE_KEY] ?? error.code ?? response.status;
+    const status = error.status ?? error.statusCode ?? error[STATUS_CODE_KEY] ?? response.status;
     if (typeof status === 'number' && status >= 100 && status <= 599) {
       return `http_${status}`;
     }

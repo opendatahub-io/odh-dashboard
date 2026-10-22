@@ -236,8 +236,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       clearTimeout(nameFilterTrackingTimerRef.current);
       nameFilterTrackingTimerRef.current = undefined;
     }
-    setNameFilter('');
-    trackListFilterApplied('name');
+    if (nameFilter !== '') {
+      setNameFilter('');
+      trackListFilterApplied('name');
+    }
   };
 
   const handleVerify = async (id: string) => {

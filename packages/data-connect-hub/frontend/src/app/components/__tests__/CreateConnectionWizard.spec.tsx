@@ -12,25 +12,7 @@ import type { CreateConnectionRequest } from '~/app/types';
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
 jest.mock('~/app/utilities/tracking', () => ({
-  DATA_CONNECT_HUB_EVENT_NAMES: {
-    typeSelected: 'Connections Type Selected',
-    connectionCreated: 'Connections Connection Created',
-    createCanceled: 'Connections Create Canceled',
-  },
-  getCreateConnectionAbandonStep: (stepIndex: number) =>
-    stepIndex <= 1
-      ? 'type_selection'
-      : stepIndex === 2
-        ? 'connection_details'
-        : stepIndex === 3
-          ? 'configuration'
-          : 'review',
-  getConnectionCreationErrorCategory: (error: unknown) =>
-    error instanceof Error && error.message.includes('409') ? 'http_409' : 'unknown_error',
-  getConnectionTypeProvider: (connectionType?: { resource: { provider: string } }) =>
-    connectionType?.resource.provider,
-  isGlobalConnectionType: (connectionType: { metadata: { tenant_id?: string } }) =>
-    !connectionType.metadata.tenant_id,
+  ...jest.requireActual<typeof import('~/app/utilities/tracking')>('~/app/utilities/tracking'),
   fireDataConnectHubTrackEvent: jest.fn(),
 }));
 const mockNotificationSuccess = jest.fn();

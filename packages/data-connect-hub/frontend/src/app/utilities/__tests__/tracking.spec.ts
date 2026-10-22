@@ -40,6 +40,13 @@ describe('getConnectionCreationErrorCategory', () => {
 
   it('should return unknown_error without exposing the error message', () => {
     expect(getConnectionCreationErrorCategory(new Error('customer secret'))).toBe('unknown_error');
+    expect(
+      getConnectionCreationErrorCategory(new Error('status unchanged since 304 days ago')),
+    ).toBe('unknown_error');
+    expect(getConnectionCreationErrorCategory(new Error('Error code 201 items found'))).toBe(
+      'unknown_error',
+    );
+    expect(getConnectionCreationErrorCategory({ code: 104 })).toBe('unknown_error');
   });
 });
 

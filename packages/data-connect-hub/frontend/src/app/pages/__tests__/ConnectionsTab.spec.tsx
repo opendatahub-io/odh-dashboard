@@ -289,22 +289,45 @@ describe('ConnectionsTab', () => {
 
   it('tracks a name filter after typing stops', async () => {
     jest.useFakeTimers();
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    renderConnectionsTab({ namespace: 'test-project' });
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderConnectionsTab({ namespace: 'test-project' });
 
-    await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
-    expect(mockTrackEvent).not.toHaveBeenCalledWith({
-      eventName: 'Connections List Filter Applied',
-      properties: { filterType: 'name', project: 'test-project' },
-    });
+      await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
+      expect(mockTrackEvent).not.toHaveBeenCalledWith({
+        eventName: 'Connections List Filter Applied',
+        properties: { filterType: 'name', project: 'test-project' },
+      });
 
-    jest.advanceTimersByTime(750);
+      jest.advanceTimersByTime(750);
 
-    expect(mockTrackEvent).toHaveBeenCalledWith({
-      eventName: 'Connections List Filter Applied',
-      properties: { filterType: 'name', project: 'test-project' },
-    });
-    jest.useRealTimers();
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Connections List Filter Applied',
+        properties: { filterType: 'name', project: 'test-project' },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('tracks clearing a name filter once when cleared before the debounce fires', async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderConnectionsTab({ namespace: 'test-project' });
+
+      await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
+      await user.click(screen.getByRole('button', { name: 'Reset' }));
+      jest.advanceTimersByTime(750);
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Connections List Filter Applied',
+        properties: { filterType: 'name', project: 'test-project' },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('tracks a type filter when a type is deselected', async () => {
