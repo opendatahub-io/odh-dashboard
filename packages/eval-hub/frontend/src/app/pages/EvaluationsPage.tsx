@@ -338,7 +338,8 @@ const EvaluationsPage: React.FC = () => {
                   variant="info"
                   title={
                     <>
-                      The AI Evaluations UI is in Technology Preview;{' '}
+                      <span className="pf-v6-u-font-weight-normal">The </span>
+                      AI Evaluations UI is in Technology Preview;{' '}
                       <span className="pf-v6-u-font-weight-normal">
                         the AI Evaluations back end is generally available
                       </span>
