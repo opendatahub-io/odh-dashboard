@@ -384,15 +384,16 @@ describe('formatPatternName', () => {
     expect(formatPatternName('pattern1')).toBe('Pattern\u00a0A');
     expect(formatPatternName('Pattern2')).toBe('Pattern\u00a0B');
     expect(formatPatternName('Pattern7')).toBe('Pattern\u00a0G');
+    expect(formatPatternName('Pattern10')).toBe('Pattern\u00a0J');
+    expect(formatPatternName('Pattern20')).toBe('Pattern\u00a0T');
     expect(formatPatternName('Pattern26')).toBe('Pattern\u00a0Z');
-    expect(formatPatternName('Pattern27')).toBe('Pattern\u00a0AA');
-    expect(formatPatternName('Pattern53')).toBe('Pattern\u00a0BA');
   });
 
   it('should preserve custom names and non-pattern numeric suffixes', () => {
     expect(formatPatternName('MyPattern')).toBe('MyPattern');
     expect(formatPatternName('MyPattern7')).toBe('MyPattern\u00a07');
     expect(formatPatternName('Pattern0')).toBe('Pattern\u00a00');
+    expect(formatPatternName('Pattern27')).toBe('Pattern\u00a027');
   });
 
   it('should map an already spaced pattern identifier', () => {

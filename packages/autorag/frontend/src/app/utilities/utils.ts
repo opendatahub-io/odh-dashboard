@@ -189,15 +189,9 @@ export function downloadBlob(blob: Blob, filename: string): void {
 export function formatPatternName(name: string): string {
   const match = /^pattern\s*(\d+)$/i.exec(name);
   if (match) {
-    let index = BigInt(match[1]);
-    if (index > 0n) {
-      let letters = '';
-      while (index > 0n) {
-        index -= 1n;
-        letters = String.fromCharCode(65 + Number(index % 26n)) + letters;
-        index /= 26n;
-      }
-      return `Pattern\u00a0${letters}`;
+    const letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Number(match[1]) - 1];
+    if (letter) {
+      return `Pattern\u00a0${letter}`;
     }
   }
 

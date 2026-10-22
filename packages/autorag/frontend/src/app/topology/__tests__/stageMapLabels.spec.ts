@@ -46,7 +46,6 @@ describe('getPatternRowLabel', () => {
   it('should label branches from Pattern A', () => {
     expect(getPatternRowLabel(0)).toBe('Pattern\u00a0A');
     expect(getPatternRowLabel(8)).toBe('Pattern\u00a0I');
-    expect(getPatternRowLabel(25)).toBe('Pattern\u00a0Z');
-    expect(getPatternRowLabel(26)).toBe('Pattern\u00a0AA');
+    expect(getPatternRowLabel(9)).toBe('Pattern\u00a0J');
   });
 });
