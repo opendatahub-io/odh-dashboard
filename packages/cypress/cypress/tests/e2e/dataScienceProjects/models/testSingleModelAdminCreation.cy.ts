@@ -101,6 +101,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectUriConnectionTypeIfExists();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard

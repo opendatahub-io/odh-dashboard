@@ -129,6 +129,7 @@ const deployModelViaWizard = (ctx: TestContext, modelName: string) => {
   modelServingGlobal.findDeployModelButton().should('be.visible').click();
 
   modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+  modelServingWizard.selectUriConnectionTypeIfExists();
   modelServingWizard.findUrilocationInput().clear().type(FIXTURE.modelLocationURI);
   modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
   modelServingWizard

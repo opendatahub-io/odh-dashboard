@@ -86,6 +86,7 @@ describe('LLMD Topology Configurations - Admin Settings', () => {
 
       cy.step('Fill model details and advance to deployment step');
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectUriConnectionTypeIfExists();
       modelServingWizard.findUrilocationInput().clear().type('hf://facebook/opt-125m');
       modelServingWizard.findSaveConnectionCheckbox().uncheck();
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();

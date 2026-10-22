@@ -1266,6 +1266,15 @@ class ModelServingWizard extends Wizard {
     return this.findModelLocationSelect().findSelectOption(name);
   }
 
+  /** Select the built-in URI type when multiple URI-compatible types are available. */
+  selectUriConnectionTypeIfExists() {
+    return cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="custom-type-select"]').length > 0) {
+        this.findCustomModelLocationSelectOption('URI - v1').click();
+      }
+    });
+  }
+
   findCustomModelLocationSelect() {
     return cy.findByTestId('custom-type-select');
   }
