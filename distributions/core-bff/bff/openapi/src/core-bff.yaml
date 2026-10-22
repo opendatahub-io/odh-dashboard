@@ -71,8 +71,6 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/UserResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -83,22 +81,64 @@ paths:
   /api/v1/namespaces:
     summary: Accessible namespaces
     description: >-
-      Returns the list of Kubernetes namespaces accessible to the authenticated user.
-      Requires authentication.
+      Lists namespaces using the authenticated caller's Kubernetes credentials.
+      A user without list permission receives 403; an empty successful list returns data: null.
     get:
       tags:
         - Namespaces
       responses:
         '200':
           $ref: '#/components/responses/NamespacesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/NamespaceUnavailable'
+        '504':
+          $ref: '#/components/responses/NamespaceTimeout'
+      operationId: getNamespaces
+      summary: List accessible namespaces
+
+  /api/v1/namespaces/{name}:
+    get:
+      tags:
+        - Namespaces
+      operationId: getNamespaceByName
+      summary: Look up one namespace by its exact Kubernetes name
+      description: >-
+        Read-only lookup using the authenticated caller's Kubernetes credentials.
+        A cluster-scoped SelfSubjectAccessReview for get on namespaces/<name> is
+        performed before reading the Namespace. Does not require list permission.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: DNS-1123 Namespace resource name
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespaceResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      operationId: getNamespaces
-      summary: List accessible namespaces
+        '503':
+          $ref: '#/components/responses/NamespaceUnavailable'
+        '504':
+          $ref: '#/components/responses/NamespaceTimeout'
 
   # =============================================================================
   # KUBERNETES API PROXY
@@ -1323,8 +1363,40 @@ components:
           description: 'Kubernetes namespace name'
         displayName:
           type: string
-          example: 'Open Data Hub'
-          description: 'Human-readable namespace display name'
+          example: 'opendatahub'
+          description: 'Kubernetes namespace name (legacy list display name)'
+        isAiProject:
+          type: boolean
+          description: 'Present when the opendatahub.io/dashboard label is set; true only when its value is exactly true'
+
+    NamespaceLookup:
+      type: object
+      required:
+        - name
+        - displayName
+        - phase
+        - isAiProject
+      properties:
+        name:
+          type: string
+          description: 'Kubernetes namespace name'
+        displayName:
+          type: string
+          description: 'openshift.io/display-name annotation, falling back to the namespace name'
+        phase:
+          type: string
+          description: 'Kubernetes Namespace status.phase (empty when not reported)'
+        isAiProject:
+          type: boolean
+          description: 'True only when the opendatahub.io/dashboard label is exactly true'
+
+    NamespaceEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/NamespaceLookup'
 
     NamespacesEnvelope:
       type: object
@@ -1333,6 +1405,7 @@ components:
       properties:
         data:
           type: array
+          nullable: true
           items:
             $ref: '#/components/schemas/Namespace'
 
@@ -1686,9 +1759,45 @@ components:
           example:
             data:
               - name: 'opendatahub'
-                displayName: 'Open Data Hub'
+                displayName: 'opendatahub'
+                isAiProject: true
               - name: 'my-project'
-                displayName: 'My Project'
+                displayName: 'my-project'
+
+    NamespaceResponse:
+      description: Namespace returned by exact lookup
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceEnvelope'
+          example:
+            data:
+              name: 'opendatahub'
+              displayName: 'Open Data Hub'
+              phase: 'Active'
+              isAiProject: true
+
+    NamespaceTimeout:
+      description: Timed out contacting the Kubernetes API
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'GATEWAY_TIMEOUT'
+              message: 'the Kubernetes request timed out'
+
+    NamespaceUnavailable:
+      description: Kubernetes API temporarily unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'SERVICE_UNAVAILABLE'
+              message: 'the Kubernetes API is temporarily unavailable'
 
     StatusResponse:
       description: User session status
