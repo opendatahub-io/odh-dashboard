@@ -491,8 +491,13 @@ func (m *otelConfigManager) getAuthToken() string {
 }
 
 func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace string, token string) (string, error) {
-	filterString := url.QueryEscape(fmt.Sprintf("name='%s'", mlflowExperimentName))
-	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1&filter_string=%s", m.mlflowURL, mlflowExperimentsAPI, filterString)
+	// MLflow's REST API reads the experiment filter from the "filter"
+	// query parameter. "filter_string" is the Python SDK's kwarg name — the
+	// SDK translates it to "filter" on the wire — so sending "filter_string"
+	// directly makes MLflow ignore the filter and return the first
+	// experiments in the workspace (RHOAIENG-101622).
+	filterValue := url.QueryEscape(fmt.Sprintf("name='%s'", mlflowExperimentName))
+	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1&filter=%s", m.mlflowURL, mlflowExperimentsAPI, filterValue)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -514,16 +519,22 @@ func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace stri
 	var result struct {
 		Experiments []struct {
 			ExperimentID string `json:"experiment_id"`
+			Name         string `json:"name"`
 		} `json:"experiments"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", err
 	}
 
-	if len(result.Experiments) > 0 {
-		return result.Experiments[0].ExperimentID, nil
+	// Only accept an experiment whose name actually matches. If the filter
+	// were ever ignored again (e.g., a mis-addressed query parameter), an
+	// unfiltered search result must not be mistaken for a match.
+	for _, exp := range result.Experiments {
+		if exp.Name == mlflowExperimentName {
+			return exp.ExperimentID, nil
+		}
 	}
-	return "", fmt.Errorf("no experiments found")
+	return "", fmt.Errorf("no experiment named %q found", mlflowExperimentName)
 }
 
 func (m *otelConfigManager) createExperiment(ctx context.Context, workspace string, token string) (string, error) {
