@@ -52,6 +52,25 @@ For key-based detection, a secret must contain **ALL** required keys for a type 
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
 
+### S3 upload checksums
+
+The S3 connection Secret can optionally include `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM`.
+Accepted values are `CRC32`, `CRC32C`, `SHA1`, `SHA256`, and `SHA512`
+(case-insensitive). This is a Secret key, not a BFF environment variable.
+
+By default (key absent or empty), local-file uploads omit optional SDK-generated
+checksums, though the SDK still calculates any checksum required by the S3 API
+operation. A bucket configuration such as
+[Amazon S3 Object Lock retention](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html)
+can require a checksum even when the API operation does not. Set a supported
+algorithm (for example, `CRC32`) for a connection to such a bucket. With an algorithm
+configured, non-seekable uploads send a streaming checksum trailer. Keep the key
+absent or empty for S3-compatible endpoints that reject
+`STREAMING-UNSIGNED-PAYLOAD-TRAILER`, including
+[affected NetApp ONTAP versions](https://kb.netapp.com/on-prem/ontap/da/S3/S3-Issues/CONTAP-576720).
+The setting applies only to uploads through this S3 connection; selecting or
+downloading existing objects is unaffected.
+
 ## Response Format
 
 The response follows the envelope pattern:
