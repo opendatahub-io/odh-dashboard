@@ -77,6 +77,52 @@ describe('buildStructureKey', () => {
     expect(buildStructureKey(nodesA)).toBe(buildStructureKey(nodesB));
   });
 
+  it('should produce the same key regardless of dependency order within a node', () => {
+    const nodesA: PipelineNodeModel[] = [
+      {
+        id: 'task-3',
+        type: 'DEFAULT_TASK_NODE',
+        label: 'Task 3',
+        runAfterTasks: ['task-1', 'task-2'],
+      },
+    ];
+    const nodesB: PipelineNodeModel[] = [
+      {
+        id: 'task-3',
+        type: 'DEFAULT_TASK_NODE',
+        label: 'Task 3',
+        runAfterTasks: ['task-2', 'task-1'],
+      },
+    ];
+
+    expect(buildStructureKey(nodesA)).toBe(buildStructureKey(nodesB));
+  });
+
+  it('should produce the same key regardless of children order within a group', () => {
+    const nodesA: PipelineNodeModel[] = [
+      {
+        id: 'group-1',
+        type: 'DEFAULT_TASK_GROUP',
+        label: 'Group',
+        group: true,
+        children: ['task-a', 'task-b', 'task-c'],
+        runAfterTasks: [],
+      },
+    ];
+    const nodesB: PipelineNodeModel[] = [
+      {
+        id: 'group-1',
+        type: 'DEFAULT_TASK_GROUP',
+        label: 'Group',
+        group: true,
+        children: ['task-c', 'task-a', 'task-b'],
+        runAfterTasks: [],
+      },
+    ];
+
+    expect(buildStructureKey(nodesA)).toBe(buildStructureKey(nodesB));
+  });
+
   it('should include children in the key for group nodes', () => {
     const nodesA: PipelineNodeModel[] = [
       {

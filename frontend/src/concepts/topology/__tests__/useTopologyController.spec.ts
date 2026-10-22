@@ -5,15 +5,32 @@ const mockGraph = {
   fit: jest.fn(),
 };
 
+// Track registered listeners so we can dispatch events and verify removal
+const listeners = new Map<string, Set<() => void>>();
+
 const mockVisualization = {
   setFitToScreenOnLayout: jest.fn(),
   registerElementFactory: jest.fn(),
   registerComponentFactory: jest.fn(),
   registerLayoutFactory: jest.fn(),
   fromModel: jest.fn(),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
+  addEventListener: jest.fn((event: string, handler: () => void) => {
+    if (!listeners.has(event)) {
+      listeners.set(event, new Set());
+    }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    listeners.get(event)!.add(handler);
+  }),
+  removeEventListener: jest.fn((event: string, handler: () => void) => {
+    listeners.get(event)?.delete(handler);
+  }),
   getGraph: jest.fn().mockReturnValue(mockGraph),
+};
+
+const dispatchEvent = (event: string) => {
+  // Snapshot the current handlers to avoid mutation during iteration
+  const handlers = [...(listeners.get(event) ?? [])];
+  handlers.forEach((h) => h());
 };
 
 jest.mock('@patternfly/react-topology', () => ({
@@ -37,6 +54,7 @@ import useTopologyController from '#~/concepts/topology/useTopologyController';
 describe('useTopologyController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    listeners.clear();
   });
 
   it('should create a Visualization with fitToScreenOnLayout enabled', () => {
@@ -58,23 +76,27 @@ describe('useTopologyController', () => {
   it('should disable fitToScreenOnLayout after the first layout end event', () => {
     testHook(useTopologyController)('g1');
 
-    // Extract the registered GRAPH_LAYOUT_END_EVENT handler
-    const addEventCall = mockVisualization.addEventListener.mock.calls.find(
-      ([event]: [string]) => event === GRAPH_LAYOUT_END_EVENT,
-    );
-    expect(addEventCall).toBeDefined();
-    const layoutEndHandler = addEventCall[1] as () => void;
-
-    // Simulate the first layout end
-    layoutEndHandler();
+    // Dispatch the first layout end event
+    dispatchEvent(GRAPH_LAYOUT_END_EVENT);
 
     // Should fit, then disable auto-fit and unregister itself
     expect(mockGraph.fit).toHaveBeenCalledWith(75);
     expect(mockVisualization.setFitToScreenOnLayout).toHaveBeenCalledWith(false);
     expect(mockVisualization.removeEventListener).toHaveBeenCalledWith(
       GRAPH_LAYOUT_END_EVENT,
-      layoutEndHandler,
+      expect.any(Function),
     );
+  });
+
+  it('should only call fit once even when multiple layout end events fire', () => {
+    testHook(useTopologyController)('g1');
+
+    // Dispatch two layout end events
+    dispatchEvent(GRAPH_LAYOUT_END_EVENT);
+    dispatchEvent(GRAPH_LAYOUT_END_EVENT);
+
+    // fit should have been called exactly once — the handler unregisters after the first
+    expect(mockGraph.fit).toHaveBeenCalledTimes(1);
   });
 
   it('should return the controller', () => {

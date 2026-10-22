@@ -35,7 +35,12 @@ type PipelineVisualizationSurfaceProps = {
  */
 export const buildStructureKey = (nodes: PipelineNodeModel[]): string =>
   nodes
-    .map((n) => `${n.id}:${(n.runAfterTasks ?? []).join(',')}:${n.children?.join(',') ?? ''}`)
+    .map(
+      (n) =>
+        `${n.id}:${[...(n.runAfterTasks ?? [])].toSorted().join(',')}:${[...(n.children ?? [])]
+          .toSorted()
+          .join(',')}`,
+    )
     .toSorted()
     .join('|');
 
@@ -47,6 +52,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
   const controller = useVisualizationController();
   const [error, setError] = React.useState<Error | null>();
   const previousStructureKeyRef = React.useRef<string | null>(null);
+  const previousControllerRef = React.useRef<typeof controller | null>(null);
 
   const selectedNode = React.useMemo(
     () => (selectedIds?.[0] ? controller.getNodeById(selectedIds[0]) || null : null),
@@ -111,8 +117,10 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     // update the model without re-running layout, which preserves the
     // user's current zoom and pan position.
     const structureKey = buildStructureKey(nodes);
-    const structureChanged = structureKey !== previousStructureKeyRef.current;
+    const controllerChanged = controller !== previousControllerRef.current;
+    const structureChanged = structureKey !== previousStructureKeyRef.current || controllerChanged;
     previousStructureKeyRef.current = structureKey;
+    previousControllerRef.current = controller;
 
     try {
       controller.fromModel(
@@ -219,6 +227,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
               resetViewCallback: action(() => {
                 controller.getGraph().reset();
                 controller.getGraph().layout();
+                controller.getGraph().fit(80);
               }),
               expandAllCallback: action(() => {
                 collapseAllCallback(false);
