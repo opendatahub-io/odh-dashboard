@@ -135,6 +135,10 @@ func TestListEvalHubCRsFallsBackOnConversionFailures(t *testing.T) {
 			err:  k8serrors.NewTimeoutError("conversion webhook call did not respond in time", 1),
 		},
 		{
+			name: "server timeout status without webhook-specific message",
+			err:  k8serrors.NewServerTimeout(EvalHubGVR.GroupResource(), "", 1),
+		},
+		{
 			name: "client-side net.Error timeout from a hung webhook connection",
 			err:  webhookNetTimeoutError{},
 		},

@@ -192,10 +192,12 @@ func attemptBudget(ctx context.Context, remainingAttempts int) time.Duration {
 // isConversionFailure reports whether err indicates a List failed because the
 // API server could not convert existing objects to the requested version — most
 // commonly because the EvalHub CRD conversion webhook is unavailable. Conversion
-// failures surface as request timeouts, 503s, or internal errors (optionally
-// mentioning the conversion webhook), depending on how the webhook call failed.
+// failures surface as request timeouts, server timeouts, 503s, or internal
+// errors (optionally mentioning the conversion webhook), depending on how the
+// webhook call failed.
 func isConversionFailure(err error) bool {
-	if k8serrors.IsTimeout(err) || k8serrors.IsServiceUnavailable(err) || k8serrors.IsInternalError(err) {
+	if k8serrors.IsTimeout(err) || k8serrors.IsServerTimeout(err) ||
+		k8serrors.IsServiceUnavailable(err) || k8serrors.IsInternalError(err) {
 		return true
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
