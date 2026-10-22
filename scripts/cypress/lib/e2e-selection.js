@@ -1144,18 +1144,20 @@ const buildSelectionPlan = ({
     );
   };
 
+  const plannedTestCountKey = 'planned_test_count';
+
   const matrix = [
     ...buildTagJobs(effectiveSelectedTags, effectiveAutoTags),
     ...createSpecJobs(explicitChangedSpecs, 'ChangedSpec'),
     ...impactedTagJobs,
     ...createSpecJobs(explicitImpactSpecs, 'ImpactedSpec'),
-  ].map((job) => ({ ...job, plannedTestCount: calculateJobTestCount(job) }));
+  ].map((job) => ({ ...job, [plannedTestCountKey]: calculateJobTestCount(job) }));
 
   if (matrix.length === 0) {
     errors.push('No Cypress E2E jobs were selected');
   }
 
-  const plannedTestCount = matrix.reduce((total, job) => total + job.plannedTestCount, 0);
+  const plannedTestCount = matrix.reduce((total, job) => total + job[plannedTestCountKey], 0);
 
   return {
     valid: errors.length === 0,

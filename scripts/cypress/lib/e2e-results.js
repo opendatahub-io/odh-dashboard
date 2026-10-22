@@ -18,14 +18,19 @@ const parseJunitXml = (xml) => {
     failures: 0,
     skipped: 0,
   };
-  const suitePattern = /<testsuite\b[^>]*>/g;
-  let match = suitePattern.exec(xml);
-  while (match !== null) {
-    const attributes = parseJunitAttributes(match[0]);
-    totals.tests += Number(attributes.tests ?? 0);
-    totals.failures += Number(attributes.failures ?? 0) + Number(attributes.errors ?? 0);
-    totals.skipped += Number(attributes.skipped ?? 0);
-    match = suitePattern.exec(xml);
+  const testcasePattern = /<testcase\b[^>]*>[\s\S]*?<\/testcase>|<testcase\b[^>]*\/>/g;
+  const testcases = xml.match(testcasePattern) ?? [];
+  totals.tests = testcases.length;
+  for (const testcase of testcases) {
+    if (/<failure\b/.test(testcase)) {
+      totals.failures += 1;
+    }
+    if (/<error\b/.test(testcase)) {
+      totals.failures += 1;
+    }
+    if (/<skipped\b/.test(testcase)) {
+      totals.skipped += 1;
+    }
   }
   return totals;
 };

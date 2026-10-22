@@ -10,18 +10,34 @@ const {
   validateResults,
 } = require('../lib/e2e-results');
 
-const junitXml = (attributes) => `<testsuite name="example" ${attributes}></testsuite>`;
+const junitXml = (attributes, body = '') =>
+  `<testsuite name="example" ${attributes}>${body}</testsuite>`;
+const testcase = (result = '') => `<testcase name="example">${result}</testcase>`;
 
 describe('parseJunitXml', () => {
-  it('sums tests, failures, errors, and skipped counts', () => {
+  it('sums testcase failures, errors, and skipped counts', () => {
     const totals = parseJunitXml(
       [
-        junitXml('tests="3" failures="1" errors="0" skipped="1"'),
-        junitXml('tests="2" failures="0" errors="1" skipped="0"'),
+        junitXml(
+          'tests="3" failures="1" errors="0" skipped="1"',
+          `${testcase('<failure message="failed"></failure>')}${testcase(
+            '<skipped></skipped>',
+          )}${testcase()}`,
+        ),
+        junitXml(
+          'tests="2" failures="0" errors="1" skipped="0"',
+          `${testcase('<error message="failed"></error>')}${testcase()}`,
+        ),
       ].join(''),
     );
 
     assert.deepEqual(totals, { tests: 5, failures: 2, skipped: 1 });
+  });
+
+  it('counts executed testcases instead of suite-level filtered test counts', () => {
+    const totals = parseJunitXml(junitXml('tests="4" failures="0" skipped="0"', testcase()));
+
+    assert.deepEqual(totals, { tests: 1, failures: 0, skipped: 0 });
   });
 });
 
@@ -34,11 +50,17 @@ describe('summarizeJunitFiles', () => {
     test.after(() => fs.rmSync(directory, { recursive: true, force: true }));
     fs.writeFileSync(
       path.join(directory, 'one.xml'),
-      junitXml('tests="2" failures="1" skipped="0"'),
+      junitXml(
+        'tests="2" failures="1" skipped="0"',
+        `${testcase('<failure></failure>')}${testcase()}`,
+      ),
     );
     fs.writeFileSync(
       path.join(directory, 'two.xml'),
-      junitXml('tests="2" failures="0" skipped="1"'),
+      junitXml(
+        'tests="2" failures="0" skipped="1"',
+        `${testcase('<skipped></skipped>')}${testcase()}`,
+      ),
     );
 
     const totals = summarizeJunitFiles([
@@ -106,13 +128,17 @@ describe('summarize-e2e-results CLI', () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-results-cli-'));
     test.after(() => fs.rmSync(directory, { recursive: true, force: true }));
 
-    const writeReport = (jobDir, attributes) => {
+    const writeReport = (jobDir, attributes, body) => {
       const reportDir = path.join(directory, 'packages/cypress/results', jobDir);
       fs.mkdirSync(reportDir, { recursive: true });
-      fs.writeFileSync(path.join(reportDir, 'junit-report.xml'), junitXml(attributes));
+      fs.writeFileSync(path.join(reportDir, 'junit-report.xml'), junitXml(attributes, body));
     };
-    writeReport('job-one', 'tests="2" failures="0" errors="0" skipped="0"');
-    writeReport('job-two', 'tests="0" failures="0" errors="0" skipped="0"');
+    writeReport(
+      'job-one',
+      'tests="2" failures="0" errors="0" skipped="0"',
+      `${testcase()}${testcase()}`,
+    );
+    writeReport('job-two', 'tests="0" failures="0" errors="0" skipped="0"', '');
     const tagDirKey = 'tag_dir';
     const plannedTestCountKey = 'planned_test_count';
     const matrix = JSON.stringify([
@@ -148,7 +174,7 @@ describe('summarize-e2e-results CLI', () => {
     fs.mkdirSync(reportDir, { recursive: true });
     fs.writeFileSync(
       path.join(reportDir, 'junit-report.xml'),
-      junitXml('tests="1" failures="0" errors="0" skipped="0"'),
+      junitXml('tests="1" failures="0" errors="0" skipped="0"', testcase()),
     );
     const tagDirKey = 'tag_dir';
     const plannedTestCountKey = 'planned_test_count';

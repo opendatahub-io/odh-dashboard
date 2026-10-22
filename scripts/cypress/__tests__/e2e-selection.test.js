@@ -176,9 +176,17 @@ describe('buildSelectionPlan', () => {
 
     assert.equal(result.valid, true);
     assert.deepEqual(result.summary.changedSpecs, [specPath('alpha')]);
-    assert.ok(result.matrix.some((job) => job.run_mode === 'tag' && job.tag === '@Tag'));
-    assert.ok(
-      result.matrix.some((job) => job.run_mode === 'spec' && job.specs.includes(specPath('alpha'))),
+    const tagJob = result.matrix.find((job) => job.run_mode === 'tag');
+    const specJob = result.matrix.find((job) => job.run_mode === 'spec');
+    assert.equal(tagJob.tag, '@Tag');
+    assert.equal(tagJob.planned_test_count, 2);
+    assert.equal(specJob.specs.includes(specPath('alpha')), true);
+    assert.equal(specJob.planned_test_count, 1);
+    assert.equal(
+      result.matrix.every(
+        (job) => Number.isInteger(job.planned_test_count) && job.planned_test_count > 0,
+      ),
+      true,
     );
   });
 
