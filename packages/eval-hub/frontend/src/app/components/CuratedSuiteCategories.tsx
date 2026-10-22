@@ -7,6 +7,9 @@ import { Link } from 'react-router-dom';
 import { evaluationCuratedBenchmarkSuitesRoute } from '~/app/routes';
 import './CuratedSuiteCategories.scss';
 
+// TEMP: This component is not rendered anywhere until EvalHub supports more evaluation_targets.
+// Restore <CuratedSuiteCategories /> in EvaluateTab when support is added.
+
 type CuratedCategory = {
   id: string;
   title: string;

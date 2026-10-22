@@ -1,6 +1,6 @@
 projectName: lifecycle-test
 trainJobName: lifecycle-train-job
-trainingRuntimeName: lifecycle-training-runtime
+trainingRuntimeName: torch-distributed-cpu
 flavorName: lifecycle-flavor
 clusterQueueName: lifecycle-cq
 localQueueName: lifecycle-lq
