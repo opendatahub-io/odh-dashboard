@@ -244,10 +244,13 @@ class EvaluationsPage {
       .findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
   }
 
-  findBenchmarkSuitesSummary() {
-    return cy.findByTestId('benchmark-suites-summary');
+  findBenchmarkSuitesViewAllButton() {
+    return cy.findByTestId('benchmark-suites-view-all');
   }
 
+  // TEMP: The curated suite categories section is hidden from the Evaluate tab until EvalHub
+  // supports more evaluation_targets. Keep these selectors for the tests asserting it stays
+  // hidden, and restore findCuratedSuiteCategoryCard usage when the section returns.
   findCuratedSuiteCategories() {
     return cy.findByTestId('curated-suite-categories');
   }

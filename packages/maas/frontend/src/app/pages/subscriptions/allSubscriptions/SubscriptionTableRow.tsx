@@ -2,7 +2,6 @@ import * as React from 'react';
 import { ResourceTr, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Content, ContentVariants } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -153,17 +152,6 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
     </Td>
   );
 
-  const priorityCell = (
-    <Td dataLabel={subscriptionsColumns[4].label}>
-      <Content
-        component={ContentVariants.p}
-        className="pf-v6-u-font-weight-bold pf-v6-u-text-align-center"
-      >
-        {subscription.inferencePriority !== undefined ? subscription.inferencePriority : '0'}
-      </Content>
-    </Td>
-  );
-
   const actionsCell = (
     <Td isActionCell>
       <ActionsColumn
@@ -250,7 +238,6 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         >
           <CompoundExpandCountCell count={modelsCount} />
         </Td>
-        {priorityCell}
         {actionsCell}
       </ResourceTr>
       <Tr isExpanded={expandedPanel === 'groups'}>

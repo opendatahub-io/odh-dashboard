@@ -5,6 +5,7 @@ import type {
   SuppressExtension,
   PatchExtension,
   NavPatch,
+  HrefNavItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
 const extensions: Extension[] = [
@@ -64,6 +65,35 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
+  // Suppression is unconditional, so restore AAE below only when grid is disabled.
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'app.navigation/href',
+      targetId: 'ai-assets',
+    },
+  } satisfies SuppressExtension,
+
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['plugin-gen-ai'], disallowed: ['grid'] },
+    properties: {
+      id: 'ai-assets',
+      title: 'AI asset endpoints',
+      href: '/gen-ai-studio/assets',
+      path: '/gen-ai-studio/assets/*',
+    },
+  } satisfies HrefNavItemExtension,
+
+  // Hide the Playground navigation item in the MaaS Portal.
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'app.navigation/href',
+      targetId: 'chat-playground',
+    },
+  } satisfies SuppressExtension,
+
   // Patch package-owned nav items: clear section (flatten) and set top-level group order
   {
     type: 'app.patch',
@@ -79,14 +109,6 @@ const extensions: Extension[] = [
       targetType: 'app.navigation/href',
       targetId: 'maas-tokens-subscriptions-view',
       patch: { section: null, group: '2_api_keys' },
-    },
-  } satisfies PatchExtension<NavPatch>,
-  {
-    type: 'app.patch',
-    properties: {
-      targetType: 'app.navigation/href',
-      targetId: 'chat-playground',
-      patch: { section: null, group: '3_playground', label: null },
     },
   } satisfies PatchExtension<NavPatch>,
   {
@@ -108,6 +130,25 @@ const extensions: Extension[] = [
       patch: { section: null, group: '5_maas_governance' },
     },
   } satisfies PatchExtension<NavPatch>,
+  {
+    type: 'app.route',
+    flags: { required: ['grid'] },
+    properties: {
+      path: '/maas/models/*',
+      component: () => import('@odh-dashboard/gen-ai/MaaSModelsPageProvider'),
+    },
+  } satisfies RouteExtension,
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['grid'] },
+    properties: {
+      id: 'maas-models',
+      title: 'Models endpoints',
+      href: '/maas/models',
+      path: '/maas/models/*',
+      group: '1_models',
+    },
+  },
 ];
 
 export default extensions;

@@ -10,8 +10,7 @@ import { createCleanProject } from '../../../../utils/projectChecker';
 import {
   createTrainJob,
   createTrainingKueueResources,
-  createTrainingRuntime,
-  deleteTrainingRuntime,
+  verifyClusterTrainingRuntimeAvailable,
 } from '../../../../utils/oc_commands/trainingJobs';
 import { deleteKueueResources } from '../../../../utils/oc_commands/distributedWorkloads';
 import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
@@ -67,7 +66,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
           projectName = `${testData.projectName}-${uuid}`;
           trainJobName = `${testData.trainJobName}-${uuid}`;
-          trainingRuntimeName = `${testData.trainingRuntimeName}-${uuid}`;
+          trainingRuntimeName = testData.trainingRuntimeName;
           flavorName = `${testData.flavorName}-${uuid}`;
           clusterQueueName = `${testData.clusterQueueName}-${uuid}`;
           localQueueName = `${testData.localQueueName}-${uuid}`;
@@ -82,6 +81,10 @@ describe('Verify project access for user types in Training Jobs', () => {
           createCleanProject(projectName);
         })
         .then(() => {
+          cy.step('Verify operator-managed ClusterTrainingRuntime');
+          verifyClusterTrainingRuntimeAvailable(trainingRuntimeName);
+        })
+        .then(() => {
           cy.step('Setup Kueue resources (ResourceFlavor, ClusterQueue, LocalQueue)');
           createTrainingKueueResources(
             flavorName,
@@ -92,10 +95,6 @@ describe('Verify project access for user types in Training Jobs', () => {
             memoryQuota,
             gpuQuota,
           );
-        })
-        .then(() => {
-          cy.step('Setup TrainingRuntime');
-          createTrainingRuntime(projectName, trainingRuntimeName);
         })
         .then(() => {
           cy.step('Create TrainJob');
@@ -112,9 +111,6 @@ describe('Verify project access for user types in Training Jobs', () => {
 
     cy.step('Restore admin oc session for cleanup');
     ensureAdminOcSession();
-
-    cy.step('Delete TrainingRuntime');
-    deleteTrainingRuntime(trainingRuntimeName, projectName, { ignoreNotFound: true });
 
     cy.step('Delete Kueue resources');
     deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
