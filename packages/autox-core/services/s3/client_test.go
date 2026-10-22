@@ -65,6 +65,36 @@ func testOpts() ConnectionOptions {
 	return ConnectionOptions{AccessKeyID: "AK", SecretAccessKey: "SK", Region: "us-east-1", BaseEndpoint: "https://s3.example.com"}
 }
 
+func TestParseChecksumAlgorithm(t *testing.T) {
+	tests := []struct {
+		value string
+		want  string
+	}{
+		{value: "", want: ""},
+		{value: " crc32 ", want: "CRC32"},
+		{value: "CRC32C", want: "CRC32C"},
+		{value: "sha1", want: "SHA1"},
+		{value: "sha256", want: "SHA256"},
+		{value: "sha512", want: "SHA512"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			got, err := ParseChecksumAlgorithm(tt.value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != tt.want {
+				t.Errorf("ParseChecksumAlgorithm(%q) = %q, want %q", tt.value, got, tt.want)
+			}
+		})
+	}
+
+	if _, err := ParseChecksumAlgorithm("not-a-checksum"); err == nil {
+		t.Fatal("expected unsupported checksum algorithm to fail")
+	}
+}
+
 // --- GetObject ---
 
 func TestClient_GetObject(t *testing.T) {

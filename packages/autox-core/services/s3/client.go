@@ -52,6 +52,9 @@ type ConnectionOptions struct {
 	SecretAccessKey string
 	Region          string
 	BaseEndpoint    string
+	// ChecksumAlgorithm is an optional upload checksum setting from the S3 connection.
+	// Leave empty for S3-compatible endpoints that reject streaming checksum trailers.
+	ChecksumAlgorithm ChecksumAlgorithm
 }
 
 // ClientConfig holds knobs for the default S3 client provider.

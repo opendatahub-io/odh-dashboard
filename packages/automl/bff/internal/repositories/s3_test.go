@@ -192,8 +192,32 @@ func TestExtractAWSS3ConnectionOptions(t *testing.T) {
 		if opts.Region != "us-east-1" || opts.BaseEndpoint != "https://s3.example.com" {
 			t.Errorf("region/endpoint: %+v", opts)
 		}
+		if opts.ChecksumAlgorithm != "" {
+			t.Errorf("ChecksumAlgorithm = %q, want empty by default", opts.ChecksumAlgorithm)
+		}
 		if bucket != "my-bucket" {
 			t.Errorf("bucket = %q", bucket)
+		}
+	})
+
+	t.Run("reads optional checksum algorithm", func(t *testing.T) {
+		data := standardSecretData()
+		data[s3.ChecksumAlgorithmSecretKey] = []byte("crc32c")
+		opts, _, err := extractAWSS3ConnectionOptions(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if opts.ChecksumAlgorithm != "CRC32C" {
+			t.Errorf("ChecksumAlgorithm = %q, want CRC32C", opts.ChecksumAlgorithm)
+		}
+	})
+
+	t.Run("rejects unsupported checksum algorithm", func(t *testing.T) {
+		data := standardSecretData()
+		data[s3.ChecksumAlgorithmSecretKey] = []byte("invalid")
+		_, _, err := extractAWSS3ConnectionOptions(data)
+		if err == nil || !strings.Contains(err.Error(), s3.ChecksumAlgorithmSecretKey) {
+			t.Errorf("expected checksum configuration error, got %v", err)
 		}
 	})
 
@@ -401,8 +425,9 @@ func TestResolveFromDSPA(t *testing.T) {
 		k8s := &mockK8sService{
 			getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 				return makeK8sSecret("dspa-secret", "ns", map[string][]byte{
-					"access_key": []byte("dspa-ak"),
-					"secret_key": []byte("dspa-sk"),
+					"access_key":                  []byte("dspa-ak"),
+					"secret_key":                  []byte("dspa-sk"),
+					s3.ChecksumAlgorithmSecretKey: []byte("SHA256"),
 				}), nil
 			},
 		}
@@ -428,6 +453,9 @@ func TestResolveFromDSPA(t *testing.T) {
 		}
 		if opts.Region != "us-west-2" {
 			t.Errorf("Region = %q", opts.Region)
+		}
+		if opts.ChecksumAlgorithm != "SHA256" {
+			t.Errorf("ChecksumAlgorithm = %q, want SHA256", opts.ChecksumAlgorithm)
 		}
 		if opts.BaseEndpoint != "https://minio.ns.svc:9000" {
 			t.Errorf("BaseEndpoint = %q", opts.BaseEndpoint)
@@ -640,13 +668,14 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 				return makeK8sSecret("s", "ns", standardSecretData()), nil
 			},
 		}
-		var uploadedKey string
+		var uploadedKey, uploadedChecksum string
 		s3svc := &mockS3Service{
 			resolveNonCollidingKeyFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.ResolveNonCollidingKeyInput) (string, error) {
 				return input.Key, nil
 			},
 			uploadObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.UploadObjectInput) error {
 				uploadedKey = input.Key
+				uploadedChecksum = string(input.ChecksumAlgorithm)
 				return nil
 			},
 		}
@@ -660,6 +689,40 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 		}
 		if key != "data/file.csv" || uploadedKey != "data/file.csv" {
 			t.Errorf("key = %q, uploaded = %q", key, uploadedKey)
+		}
+		if uploadedChecksum != "" {
+			t.Errorf("ChecksumAlgorithm = %q, want empty for default connection", uploadedChecksum)
+		}
+	})
+
+	t.Run("passes configured checksum to upload", func(t *testing.T) {
+		secretData := standardSecretData()
+		secretData[s3.ChecksumAlgorithmSecretKey] = []byte("CRC32")
+		k8s := &mockK8sService{
+			getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+				return makeK8sSecret("s", "ns", secretData), nil
+			},
+		}
+		var uploadedChecksum string
+		s3svc := &mockS3Service{
+			resolveNonCollidingKeyFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.ResolveNonCollidingKeyInput) (string, error) {
+				return input.Key, nil
+			},
+			uploadObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.UploadObjectInput) error {
+				uploadedChecksum = string(input.ChecksumAlgorithm)
+				return nil
+			},
+		}
+		repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+
+		_, err := repo.UploadCSVFile(context.Background(),
+			S3RequestContext{Namespace: "ns", SecretName: "s"},
+			"data/file.csv", strings.NewReader("csv-data"), "text/csv", "file.csv", 5)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if uploadedChecksum != "CRC32" {
+			t.Errorf("ChecksumAlgorithm = %q, want CRC32", uploadedChecksum)
 		}
 	})
 
@@ -722,6 +785,32 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 			t.Errorf("expected ErrObjectAlreadyExists, got %v", err)
 		}
 	})
+}
+
+func TestS3Repository_UploadObjectPassesConfiguredChecksum(t *testing.T) {
+	secretData := standardSecretData()
+	secretData[s3.ChecksumAlgorithmSecretKey] = []byte("SHA1")
+	k8s := &mockK8sService{
+		getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+			return makeK8sSecret("s", "ns", secretData), nil
+		},
+	}
+	var uploadedChecksum string
+	s3svc := &mockS3Service{
+		uploadObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.UploadObjectInput) error {
+			uploadedChecksum = string(input.ChecksumAlgorithm)
+			return nil
+		},
+	}
+	repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+
+	if err := repo.UploadObject(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"},
+		"data/file.txt", strings.NewReader("data"), "text/plain"); err != nil {
+		t.Fatal(err)
+	}
+	if uploadedChecksum != "SHA1" {
+		t.Errorf("ChecksumAlgorithm = %q, want SHA1", uploadedChecksum)
+	}
 }
 
 func TestS3Repository_GetCSVSchema(t *testing.T) {

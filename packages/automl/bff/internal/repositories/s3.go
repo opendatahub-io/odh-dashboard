@@ -175,12 +175,17 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 	} else if secretBucket != "" {
 		bucket = secretBucket
 	}
+	checksumAlgorithm, err := parseS3ChecksumAlgorithm(secret.Data)
+	if err != nil {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q: %v", ErrDSPAConfiguration, spec.SecretName, err)
+	}
 
 	return s3.ConnectionOptions{
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-		Region:          region,
-		BaseEndpoint:    endpointURL,
+		AccessKeyID:       accessKeyID,
+		SecretAccessKey:   secretAccessKey,
+		Region:            region,
+		BaseEndpoint:      endpointURL,
+		ChecksumAlgorithm: checksumAlgorithm,
 	}, bucket, nil
 }
 
@@ -211,7 +216,13 @@ func (r *S3Repository) UploadObject(ctx context.Context, req S3RequestContext, k
 	if err != nil {
 		return err
 	}
-	return r.s3Service.UploadObject(ctx, opts, s3.UploadObjectInput{Bucket: bucket, Key: key, Body: body, ContentType: contentType})
+	return r.s3Service.UploadObject(ctx, opts, s3.UploadObjectInput{
+		Bucket:            bucket,
+		Key:               key,
+		Body:              body,
+		ContentType:       contentType,
+		ChecksumAlgorithm: opts.ChecksumAlgorithm,
+	})
 }
 
 // ListObjects resolves credentials from req and lists objects using options.
@@ -297,6 +308,10 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions
 	if err != nil {
 		return s3.ConnectionOptions{}, "", err
 	}
+	checksumAlgorithm, err := parseS3ChecksumAlgorithm(data)
+	if err != nil {
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: %v", ErrS3Configuration, err)
+	}
 
 	if accessKeyID == "" {
 		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_ACCESS_KEY_ID", ErrS3Configuration)
@@ -312,11 +327,25 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions
 	}
 
 	return s3.ConnectionOptions{
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-		Region:          region,
-		BaseEndpoint:    endpoint,
+		AccessKeyID:       accessKeyID,
+		SecretAccessKey:   secretAccessKey,
+		Region:            region,
+		BaseEndpoint:      endpoint,
+		ChecksumAlgorithm: checksumAlgorithm,
 	}, bucket, nil
+}
+
+func parseS3ChecksumAlgorithm(data map[string][]byte) (s3.ChecksumAlgorithm, error) {
+	value, err := kubernetes.LookupSecretValue(data, s3.ChecksumAlgorithmSecretKey)
+	if err != nil {
+		return "", fmt.Errorf("field %s: %w", s3.ChecksumAlgorithmSecretKey, err)
+	}
+
+	algorithm, err := s3.ParseChecksumAlgorithm(value)
+	if err != nil {
+		return "", fmt.Errorf("field %s: %w", s3.ChecksumAlgorithmSecretKey, err)
+	}
+	return algorithm, nil
 }
 
 // UploadCSVFile validates the upload is a CSV, resolves a non-colliding key, and uploads
@@ -350,10 +379,11 @@ func (r *S3Repository) UploadCSVFile(ctx context.Context, req S3RequestContext, 
 	}
 
 	return resolvedKey, r.s3Service.UploadObject(ctx, opts, s3.UploadObjectInput{
-		Bucket:      bucket,
-		Key:         resolvedKey,
-		Body:        body,
-		ContentType: contentType,
+		Bucket:            bucket,
+		Key:               resolvedKey,
+		Body:              body,
+		ContentType:       contentType,
+		ChecksumAlgorithm: opts.ChecksumAlgorithm,
 	})
 }
 
