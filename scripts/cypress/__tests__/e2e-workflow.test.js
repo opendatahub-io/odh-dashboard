@@ -16,13 +16,14 @@ describe('Cypress E2E workflow', () => {
     assert.ok(!workflow.includes('export CYPRESS_spec='));
   });
 
-  it('uses the human-readable Node test reporter', () => {
+  it('uses the compact Node test reporter', () => {
     const workflow = fs.readFileSync(
       path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
       'utf8',
     );
 
-    assert.ok(workflow.includes('--test-reporter=spec'));
+    assert.ok(workflow.includes('--test-reporter=dot'));
+    assert.ok(!workflow.includes('--test-reporter=spec'));
   });
 
   it('keeps backend logs hidden', () => {

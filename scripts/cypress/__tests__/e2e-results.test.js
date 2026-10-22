@@ -135,6 +135,40 @@ describe('summarize-e2e-results CLI', () => {
     assert.equal(result.status, 1);
     assert.match(result.stderr, /job-two: Expected 2 Cypress test\(s\), but found 0/);
   });
+
+  it('reads reports from the artifact-relative results layout', async (test) => {
+    const { spawnSync } = require('node:child_process');
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-results-artifact-'));
+    test.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+    const reportDir = path.join(directory, 'results', 'changedspec-01');
+    fs.mkdirSync(reportDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(reportDir, 'junit-report.xml'),
+      junitXml('tests="1" failures="0" errors="0" skipped="0"'),
+    );
+    const tagDirKey = 'tag_dir';
+    const plannedTestCountKey = 'planned_test_count';
+    const matrix = JSON.stringify([{ [tagDirKey]: 'changedspec-01', [plannedTestCountKey]: 1 }]);
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        'scripts/cypress/summarize-e2e-results.js',
+        '--results-dir',
+        directory,
+        '--matrix-json',
+        matrix,
+      ],
+      { encoding: 'utf8', cwd: path.join(__dirname, '../../..') },
+    );
+
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /executed=1, failed=0, skipped=0, total=1/);
+  });
 });
 
 describe('renderResultsMarkdown', () => {

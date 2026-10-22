@@ -117,7 +117,7 @@ jobs:
       - name: Validate E2E selection and result contracts
         run: |
           node --test \
-            --test-reporter=spec \
+            --test-reporter=dot \
             scripts/cypress/__tests__/e2e-selection.test.js \
             scripts/cypress/__tests__/e2e-results.test.js \
             scripts/cypress/__tests__/e2e-workflow.test.js

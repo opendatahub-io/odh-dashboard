@@ -50,7 +50,7 @@ const findJunitReportsByJob = (directory) => {
     const match = file
       .split(path.sep)
       .join('/')
-      .match(/packages\/cypress\/results\/([^/]+)\//);
+      .match(/(?:^|\/)(?:packages\/cypress\/)?results\/([^/]+)\//);
     const jobDir = match?.[1];
     if (!jobDir) {
       continue;
