@@ -546,11 +546,14 @@ const CONTAINER_EVENT_REASONS: Set<string> = new Set([
 ]);
 
 /**
- * Attempts to parse a container name directly from "Created container <name>"
- * or "Started container <name>" event messages.
+ * Attempts to parse a container name directly from "Created container <name>",
+ * "Started container <name>", "Container created[:] <name>", or
+ * "Container started[:] <name>" event messages.
  */
 const parseContainerNameFromMessage = (message: string): string | undefined => {
-  const match = /^(?:Created|Started) container (\S+)/.exec(message);
+  const match = /^(?:(?:Created|Started) container|Container (?:created|started)):?\s+(\S+)/i.exec(
+    message,
+  );
   return match?.[1];
 };
 
