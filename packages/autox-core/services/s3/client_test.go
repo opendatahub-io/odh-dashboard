@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+	transfertypes "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
@@ -204,6 +205,9 @@ func TestClient_UploadObject(t *testing.T) {
 				if aws.ToString(params.IfNoneMatch) != "*" {
 					t.Error("expected If-None-Match: * for conditional create")
 				}
+				if params.ChecksumAlgorithm != transfertypes.ChecksumAlgorithmCrc32 {
+					t.Errorf("ChecksumAlgorithm = %q, want %q", params.ChecksumAlgorithm, transfertypes.ChecksumAlgorithmCrc32)
+				}
 				return &transfermanager.UploadObjectOutput{}, nil
 			},
 		}
@@ -211,6 +215,7 @@ func TestClient_UploadObject(t *testing.T) {
 
 		err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{
 			Bucket: "b", Key: "k", Body: bytes.NewReader([]byte("data")), ContentType: "text/plain",
+			ChecksumAlgorithm: transfertypes.ChecksumAlgorithmCrc32,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -252,11 +257,13 @@ func TestDefaultClient_UploadObjectWithoutChecksumTrailer(t *testing.T) {
 	const content = "small PDF payload"
 	var receivedBody string
 	var receivedSHA256 string
+	var receivedChecksumAlgorithm string
 
 	c := NewDefaultClient(ClientConfig{
 		WrapTransport: func(http.RoundTripper) http.RoundTripper {
 			return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 				receivedSHA256 = req.Header.Get("X-Amz-Content-Sha256")
+				receivedChecksumAlgorithm = req.Header.Get("X-Amz-Sdk-Checksum-Algorithm")
 				if got := req.Header.Get("If-None-Match"); got != "*" {
 					t.Errorf("If-None-Match = %q, want *", got)
 				}
@@ -293,8 +300,55 @@ func TestDefaultClient_UploadObjectWithoutChecksumTrailer(t *testing.T) {
 	if receivedSHA256 != "UNSIGNED-PAYLOAD" {
 		t.Errorf("x-amz-content-sha256 = %q, want UNSIGNED-PAYLOAD", receivedSHA256)
 	}
+	if receivedChecksumAlgorithm != "" {
+		t.Errorf("x-amz-sdk-checksum-algorithm = %q, want no optional checksum", receivedChecksumAlgorithm)
+	}
 	if receivedBody != content {
 		t.Errorf("uploaded body = %q, want %q", receivedBody, content)
+	}
+}
+
+func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
+	const content = "retention-protected object"
+	var receivedChecksumAlgorithm string
+	var receivedChecksumTrailer string
+	var receivedWireBody []byte
+
+	c := NewDefaultClient(ClientConfig{
+		WrapTransport: func(http.RoundTripper) http.RoundTripper {
+			return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				receivedChecksumAlgorithm = req.Header.Get("X-Amz-Sdk-Checksum-Algorithm")
+				receivedChecksumTrailer = req.Header.Get("X-Amz-Trailer")
+				var err error
+				receivedWireBody, err = io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     http.Header{"Etag": []string{`"test-etag"`}},
+					Body:       io.NopCloser(strings.NewReader("")),
+					Request:    req,
+				}, nil
+			})
+		},
+	})
+
+	err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{
+		Bucket: "bucket", Key: "locked-file.pdf", Body: strings.NewReader(content), ContentType: "application/pdf",
+		ChecksumAlgorithm: transfertypes.ChecksumAlgorithmCrc32,
+	})
+	if err != nil {
+		t.Fatalf("upload with an explicit checksum failed: %v", err)
+	}
+	if receivedChecksumAlgorithm != string(transfertypes.ChecksumAlgorithmCrc32) {
+		t.Errorf("x-amz-sdk-checksum-algorithm = %q, want %q", receivedChecksumAlgorithm, transfertypes.ChecksumAlgorithmCrc32)
+	}
+	if receivedChecksumTrailer != "x-amz-checksum-crc32" {
+		t.Errorf("x-amz-trailer = %q, want x-amz-checksum-crc32", receivedChecksumTrailer)
+	}
+	if !strings.Contains(string(receivedWireBody), "x-amz-checksum-crc32:") {
+		t.Errorf("checksum trailer missing from wire body %q", receivedWireBody)
 	}
 }
 

@@ -1,6 +1,10 @@
 package s3
 
-import "io"
+import (
+	"io"
+
+	transfertypes "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
+)
 
 // ObjectInfo represents a single S3 object in the listing response.
 type ObjectInfo struct {
@@ -65,6 +69,10 @@ type UploadObjectInput struct {
 	Key         string
 	Body        io.Reader
 	ContentType string
+	// ChecksumAlgorithm opts this upload into checksum calculation. Leave it empty
+	// for endpoints that reject optional streaming checksum trailers; set a
+	// supported algorithm when the bucket requires a checksum, such as with Object Lock.
+	ChecksumAlgorithm transfertypes.ChecksumAlgorithm
 }
 
 // ObjectExistsInput holds the parameters for an ObjectExists operation.

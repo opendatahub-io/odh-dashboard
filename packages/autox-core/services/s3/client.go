@@ -200,11 +200,12 @@ func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input
 	}
 
 	_, err = transferClient.UploadObject(ctx, &transfermanager.UploadObjectInput{
-		Bucket:      aws.String(input.Bucket),
-		Key:         aws.String(input.Key),
-		Body:        input.Body,
-		ContentType: aws.String(input.ContentType),
-		IfNoneMatch: aws.String("*"),
+		Bucket:            aws.String(input.Bucket),
+		Key:               aws.String(input.Key),
+		Body:              input.Body,
+		ContentType:       aws.String(input.ContentType),
+		IfNoneMatch:       aws.String("*"),
+		ChecksumAlgorithm: input.ChecksumAlgorithm,
 	})
 	if err != nil {
 		if isS3ConditionalCreateConflict(err) {
@@ -300,8 +301,9 @@ func (p *awsClientProvider) CreateTransferClient(opts ConnectionOptions) (Transf
 		o.GetObjectBufferSize = cfg.GetObjectBufSize
 		o.PartBodyMaxRetries = cfg.PartBodyMaxRetries
 		o.DisableChecksumValidation = false
-		// Some S3-compatible stores reject the optional CRC32 streaming trailer.
-		// Required checksums are still calculated when the operation needs one.
+		// Keep checksums opt-in per upload: some S3-compatible stores reject the
+		// optional CRC32 streaming trailer. Callers can set UploadObjectInput's
+		// ChecksumAlgorithm when the bucket requires a checksum, such as with Object Lock.
 		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 	}), nil
 }
