@@ -207,4 +207,20 @@ describe('useDefaultStorageClass', () => {
     const [storageClass] = result.current;
     expect(storageClass?.metadata.name).toBe('preferred-sc');
   });
+
+  it('should not return fallbackToFirst while admin default is still loading', () => {
+    const firstSc = createMockStorageClass('first-sc', { isEnabled: true });
+
+    mockUseStorageClasses.mockReturnValue([[firstSc], false, undefined]);
+    mockAppContextValue = {
+      dashboardConfig: { spec: {} },
+      storageClasses: [firstSc],
+    };
+
+    const { result } = renderHook(() => useDefaultStorageClass(true));
+    const [storageClass, loaded] = result.current;
+
+    expect(loaded).toBe(false);
+    expect(storageClass).toBeNull();
+  });
 });

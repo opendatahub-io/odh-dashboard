@@ -142,7 +142,7 @@ export const useDefaultStorageClass = (
   }
 
   // 4. Fourth priority: first storage class in the list (if fallbackToFirst is true)
-  if (!storageClass && fallbackToFirst && (storageClassesLoaded || storageClassesError)) {
+  if (!storageClass && loaded && fallbackToFirst && (storageClassesLoaded || storageClassesError)) {
     storageClass = storageClasses[0] || null;
     error = storageClassesError;
     loaded = storageClassesLoaded;

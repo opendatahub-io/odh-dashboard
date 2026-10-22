@@ -207,7 +207,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     !baseInputValueValid ||
     !validateHardwareProfileForm() ||
     !isExistingPvcValid ||
-    (pvcMode === 'create-new' && !storageClassName) ||
+    (!editInfo && pvcMode === 'create-new' && !storageClassName) ||
     createDataInferenceService.servingRuntimeEnvVars?.some(
       (envVar) => !envVar.name || !!validateEnvVarName(envVar.name),
     );
@@ -283,7 +283,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   const submit = () => {
-    if (pvcMode === 'create-new' && !storageClassName) {
+    if (!editInfo && pvcMode === 'create-new' && !storageClassName) {
       return;
     }
     setError(undefined);

@@ -112,7 +112,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageStream: undefined,
     imageVersion: undefined,
   });
-  const [defaultStorageClass] = useDefaultStorageClass();
+  const [defaultStorageClass, defaultStorageClassLoaded] = useDefaultStorageClass();
 
   const {
     data: storages,
@@ -526,6 +526,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   featureStoresLoading={featureStoresLoading}
                   existingNotebook={existingNotebook}
                   existingSecretsData={existingSecretsData}
+                  defaultStorageClassLoaded={defaultStorageClassLoaded}
                 />
               )}
             </CanEnableElyraPipelinesCheck>
