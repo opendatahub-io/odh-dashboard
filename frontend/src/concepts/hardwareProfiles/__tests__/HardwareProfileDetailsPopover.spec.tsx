@@ -12,6 +12,7 @@ import { IdentifierResourceType, SchedulingType, type Identifier } from '@odh-da
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { useIsDRAHardwareProfileEnabled } from '@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -22,6 +23,12 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   useK8sWatchResource: jest.fn(),
 }));
 
+jest.mock('@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled', () => ({
+  useIsDRAHardwareProfileEnabled: jest.fn(),
+}));
+
+const useIsDRAHardwareProfileEnabledMock = jest.mocked(useIsDRAHardwareProfileEnabled);
+
 const renderWithContext = (ui: React.ReactElement) =>
   render(
     <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
@@ -30,6 +37,10 @@ const renderWithContext = (ui: React.ReactElement) =>
   );
 
 describe('HardwareProfileDetailsPopover', () => {
+  beforeEach(() => {
+    useIsDRAHardwareProfileEnabledMock.mockReturnValue(false);
+  });
+
   describe('with a matched hardware profile', () => {
     it('should display the profile name in the popover trigger button', () => {
       const profile = mockHardwareProfile({
@@ -174,6 +185,10 @@ describe('HardwareProfileDetailsPopover', () => {
   describe('DRA claim template', () => {
     const dra = { resourceClaimTemplateName: 'single-mig-partition' };
     const descriptionAnnotation = 'opendatahub.io/resource-claim-description';
+
+    beforeEach(() => {
+      useIsDRAHardwareProfileEnabledMock.mockReturnValue(true);
+    });
 
     afterEach(() => {
       jest.useRealTimers();
@@ -392,6 +407,18 @@ describe('HardwareProfileDetailsPopover', () => {
       expect(k8sListResource).not.toHaveBeenCalled();
       expect(k8sListResourceItems).not.toHaveBeenCalled();
       expect(useK8sWatchResource).not.toHaveBeenCalled();
+    });
+
+    it('should not render DRA details when DRA hardware profiles are disabled', async () => {
+      useIsDRAHardwareProfileEnabledMock.mockReturnValue(false);
+      await openPopover({ [descriptionAnnotation]: 'Some description' });
+
+      expect(screen.queryByTestId('hardware-profile-dra-details')).not.toBeInTheDocument();
+      const details = screen.getByTestId('hardware-profile-details');
+      expect(details).not.toHaveTextContent('Claim template');
+      expect(details).not.toHaveTextContent('single-mig-partition');
+      expect(details).not.toHaveTextContent('Tech Preview');
+      expect(details).toHaveTextContent('Default = 1 Cores, Min = 1 Cores, Max = 2 Cores');
     });
 
     it('should not render DRA details for a non-DRA profile', async () => {

@@ -62,6 +62,7 @@ export type {
   PodKind,
   TemplateKind,
   HardwareProfileKind,
+  ResourceClaimTemplateKind,
   AcceleratorProfileKind,
   DashboardCommonConfig,
   DashboardConfigKind,

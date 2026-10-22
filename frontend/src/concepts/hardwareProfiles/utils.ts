@@ -28,6 +28,7 @@ export {
   applyHardwareProfileConfig,
   getLocalQueueLabel,
   isDRAHardwareProfile,
+  isSameHardwareProfileBinding,
   getDRAHardwareProfileDetails,
 } from '@odh-dashboard/hardware-profiles/shared/utils';
 

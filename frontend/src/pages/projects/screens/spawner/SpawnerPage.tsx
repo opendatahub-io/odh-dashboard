@@ -261,7 +261,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   );
 
   const hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind> =
-    useNotebookHardwareProfile(existingNotebook);
+    useNotebookHardwareProfile(existingNotebook, {
+      allowDRAProfiles: true,
+      project: currentProject.metadata.name,
+    });
   const { podSpecOptionsState } = hardwareProfileOptions;
   const {
     hardwareProfile: { formData: hardwareProfileFormData },

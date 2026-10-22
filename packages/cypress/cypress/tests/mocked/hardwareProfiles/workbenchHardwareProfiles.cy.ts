@@ -13,12 +13,18 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { LocalQueueModel, SecretModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
+import {
+  LocalQueueModel,
+  SecretModel,
+  PodModel,
+  ResourceClaimTemplateModel,
+} from '@odh-dashboard/k8s-core/api/models';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { projectDetails } from '../../../pages/projects';
 import { workbenchPage, editSpawnerPage, createSpawnerPage } from '../../../pages/workbench';
@@ -38,12 +44,14 @@ type HandlersProps = {
   isEmpty?: boolean;
   mockPodList?: PodKind[];
   disableProjectScoped?: boolean;
+  hardwareProfileDRA?: boolean;
 };
 
 const initIntercepts = ({
   isEmpty = false,
   mockPodList = [mockPodK8sResource({})],
   disableProjectScoped = true,
+  hardwareProfileDRA = false,
 }: HandlersProps = {}) => {
   asProductAdminUser();
 
@@ -72,6 +80,7 @@ const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableProjectScoped,
+      hardwareProfileDRA,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -714,8 +723,8 @@ describe('Workbench Hardware Profiles', () => {
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
     });
 
-    it('should show an assigned DRA hardware profile as selected with the locked message and no customization', () => {
-      initIntercepts();
+    it('should show an assigned DRA hardware profile as selected with the customization section', () => {
+      initIntercepts({ hardwareProfileDRA: true });
       cy.interceptK8sList(
         { model: HardwareProfileModel, ns: 'opendatahub' },
         mockK8sResourceList([
@@ -748,8 +757,7 @@ describe('Workbench Hardware Profiles', () => {
       editSpawnerPage.visit('test-notebook');
       hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
       hardwareProfileSection.findSelect().should('be.enabled');
-      hardwareProfileSection.findDRALockedMessage().should('exist');
-      hardwareProfileSection.findCustomizeSection().should('not.exist');
+      hardwareProfileSection.findCustomizeSection().should('exist');
 
       hardwareProfileSection.findDetailsPopover().click();
       hardwareProfileSection
@@ -1450,8 +1458,8 @@ describe('Workbench Hardware Profiles', () => {
       },
     });
 
-    const initDRAIntercepts = (hardwareProfileName: string) => {
-      initIntercepts();
+    const initDRAIntercepts = (hardwareProfileName: string, hardwareProfileDRA = true) => {
+      initIntercepts({ hardwareProfileDRA });
       cy.interceptK8sList(
         { model: HardwareProfileModel, ns: 'opendatahub' },
         mockK8sResourceList([...mockGlobalScopedHardwareProfiles, draProfile]),
@@ -1501,6 +1509,23 @@ describe('Workbench Hardware Profiles', () => {
       cy.get('@resourceClaimRequest.all').should('have.length', 0);
     });
 
+    it('should not show the claim template of the bound DRA hardware profile when DRA hardware profiles are disabled', () => {
+      initDRAIntercepts('dra-profile', false);
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+      notebookRow.findHardwareProfileColumn().should('contain.text', 'DRA Profile');
+      notebookRow.findExpansionButton().click();
+
+      notebookRow.findLimitsDetails().should('contain.text', 'Limits');
+      notebookRow.findHardwareProfileDRADetails().should('not.exist');
+      notebookRow.findLimitsDetails().should('not.contain.text', 'Claim template');
+      notebookRow.findLimitsDetails().should('not.contain.text', 'Tech Preview');
+      cy.testA11y();
+      cy.get('@resourceClaimRequest.all').should('have.length', 0);
+    });
+
     it('should not show DRA details for a non-DRA hardware profile', () => {
       initDRAIntercepts('small-profile');
 
@@ -1512,6 +1537,240 @@ describe('Workbench Hardware Profiles', () => {
       notebookRow.findLimitsDetails().should('contain.text', 'Limits');
       notebookRow.findHardwareProfileDRADetails().should('not.exist');
       cy.get('@resourceClaimRequest.all').should('have.length', 0);
+    });
+  });
+
+  describe('DRA hardware profiles whose claim template is missing from the project', () => {
+    const missingTemplateText =
+      'The claim template single-mig-partition does not exist in this project. Ask your administrator to create it, or select a different hardware profile.';
+
+    const initClaimTemplateIntercepts = () => {
+      initIntercepts({ hardwareProfileDRA: true });
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          ...mockGlobalScopedHardwareProfiles,
+          mockHardwareProfile({
+            name: 'dra-missing-template',
+            displayName: 'DRA Missing Template',
+            dra: { resourceClaimTemplateName: 'single-mig-partition' },
+          }),
+          mockHardwareProfile({
+            name: 'dra-existing-template',
+            displayName: 'DRA Existing Template',
+            dra: { resourceClaimTemplateName: 'single-gpu' },
+          }),
+        ]),
+      ).as('hardwareProfiles');
+      cy.interceptK8sList(
+        { model: ResourceClaimTemplateModel, ns: 'test-project' },
+        mockK8sResourceList([mockResourceClaimTemplate({ name: 'single-gpu' })]),
+      ).as('resourceClaimTemplates');
+    };
+
+    it('should disable a DRA hardware profile whose claim template does not exist in the project', () => {
+      initClaimTemplateIntercepts();
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+      cy.wait('@resourceClaimTemplates');
+
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection
+        .findProfileOption(/DRA Missing Template/)
+        .should('have.attr', 'aria-disabled', 'true')
+        .and('contain.text', 'Claim template: single-mig-partition');
+      hardwareProfileSection
+        .findProfileOptionClaimTemplateMissingIcon(/DRA Missing Template/)
+        .should('exist');
+      hardwareProfileSection.findProfileOption(/DRA Missing Template/).trigger('mouseenter');
+      hardwareProfileSection.findTooltip().should('contain.text', missingTemplateText);
+      hardwareProfileSection.findProfileOption(/DRA Missing Template/).trigger('mouseleave');
+      hardwareProfileSection.findTooltip().should('not.exist');
+
+      hardwareProfileSection
+        .findProfileOption(/DRA Existing Template/)
+        .should('not.have.attr', 'aria-disabled');
+      hardwareProfileSection
+        .findProfileOptionClaimTemplateMissingIcon(/DRA Existing Template/)
+        .should('not.exist');
+      hardwareProfileSection.selectProfileContaining('DRA Existing Template');
+      hardwareProfileSection.findSelect().should('contain.text', 'DRA Existing Template');
+      cy.testA11y();
+    });
+
+    it('should block creating a workbench with a newly selected DRA hardware profile once its claim template is removed', () => {
+      initClaimTemplateIntercepts();
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+      cy.wait('@resourceClaimTemplates');
+
+      createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-workbench');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.selectProfileContaining('DRA Existing Template');
+      hardwareProfileSection.findClaimTemplateMissingError().should('not.exist');
+      createSpawnerPage.findSubmitButton().should('be.enabled');
+
+      cy.wsK8s(
+        'DELETED',
+        ResourceClaimTemplateModel,
+        mockResourceClaimTemplate({ name: 'single-gpu' }),
+      );
+
+      hardwareProfileSection
+        .findClaimTemplateMissingError()
+        .should(
+          'contain.text',
+          'The claim template single-gpu does not exist in this project. Ask your administrator to create it, or select a different hardware profile.',
+        );
+      createSpawnerPage.findSubmitButton().should('be.disabled');
+      cy.testA11y();
+
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.selectProfileContaining('Small Profile');
+      hardwareProfileSection.findClaimTemplateMissingError().should('not.exist');
+      createSpawnerPage.findSubmitButton().should('be.enabled');
+    });
+
+    it('should keep the assigned DRA hardware profile selected with a warning when its claim template is missing', () => {
+      initClaimTemplateIntercepts();
+      cy.interceptK8sList(
+        { model: NotebookModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'dra-missing-template',
+            hardwareProfileNamespace: 'opendatahub',
+            displayName: 'Test Notebook',
+          }),
+        ]),
+      );
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+      );
+
+      editSpawnerPage.visit('test-notebook');
+      cy.wait('@resourceClaimTemplates');
+
+      hardwareProfileSection.findSelect().should('contain.text', 'DRA Missing Template');
+      cy.testA11y();
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection
+        .findProfileOption(/DRA Missing Template/)
+        .should('not.have.attr', 'aria-disabled');
+      hardwareProfileSection
+        .findProfileOptionClaimTemplateMissingIcon(/DRA Missing Template/)
+        .should('exist');
+      hardwareProfileSection.findProfileOption(/DRA Missing Template/).trigger('mouseenter');
+      hardwareProfileSection.findTooltip().should('contain.text', missingTemplateText);
+    });
+  });
+
+  describe('DRA hardware profiles when DRA hardware profile selection is disabled', () => {
+    it('should not offer DRA hardware profiles and should lock an assigned DRA hardware profile', () => {
+      initIntercepts();
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          ...mockGlobalScopedHardwareProfiles,
+          mockHardwareProfile({
+            name: 'dra-profile',
+            displayName: 'DRA Profile',
+            dra: { resourceClaimTemplateName: 'single-gpu' },
+          }),
+        ]),
+      ).as('hardwareProfiles');
+      cy.interceptK8sList(
+        { model: ResourceClaimTemplateModel, ns: 'test-project' },
+        mockK8sResourceList([mockResourceClaimTemplate({ name: 'single-gpu' })]),
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.findProfileOption(/Small Profile/).should('exist');
+      hardwareProfileSection.findProfileOption(/DRA Profile/).should('not.exist');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.findProfileList().should('not.exist');
+      cy.testA11y();
+
+      cy.interceptK8sList(
+        NotebookModel,
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'dra-profile',
+            hardwareProfileNamespace: 'opendatahub',
+            displayName: 'Test Notebook',
+          }),
+        ]),
+      );
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+      );
+
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
+      hardwareProfileSection.findDRALockedMessage().should('exist');
+      hardwareProfileSection.findCustomizeSection().should('not.exist');
+      cy.testA11y();
+    });
+
+    it('should not show the claim template of an assigned DRA hardware profile', () => {
+      initIntercepts();
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          ...mockGlobalScopedHardwareProfiles,
+          mockHardwareProfile({
+            name: 'dra-profile',
+            displayName: 'DRA Profile',
+            dra: { resourceClaimTemplateName: 'single-gpu' },
+          }),
+        ]),
+      );
+      cy.interceptK8sList(
+        NotebookModel,
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            hardwareProfileName: 'dra-profile',
+            hardwareProfileNamespace: 'opendatahub',
+            displayName: 'Test Notebook',
+          }),
+        ]),
+      );
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+      );
+
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
+      hardwareProfileSection.findSection().should('not.contain.text', 'Claim template');
+
+      hardwareProfileSection.findDetailsPopover().click();
+      hardwareProfileSection.findDetails().should('exist');
+      hardwareProfileSection.findDRADetails().should('not.exist');
+      hardwareProfileSection.findDetails().should('not.contain.text', 'Claim template');
+      hardwareProfileSection.findDetails().should('not.contain.text', 'Tech Preview');
+      hardwareProfileSection.findDetailsPopover().click();
+      hardwareProfileSection.findDetails().should('not.exist');
+
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection
+        .findProfileOption(/DRA Profile/)
+        .should('not.contain.text', 'Claim template');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.findProfileList().should('not.exist');
+      cy.testA11y();
     });
   });
 });
