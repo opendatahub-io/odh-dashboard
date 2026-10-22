@@ -44,10 +44,6 @@ export type CatalogSecurityArtifactList = {
   items: CatalogSecurityArtifact[];
 };
 
-export type CatalogSecurityArtifactListEnvelope = {
-  data: CatalogSecurityArtifactList;
-};
-
 export type SecurityInsightsViewProps = {
   sourceId: string;
   modelName: string;
@@ -62,7 +58,7 @@ export type SecurityInsight = {
   result: string;
 };
 
-const formatRate = (value: number | undefined, lowerIsBetter = false): string => {
+export const formatRate = (value: number | undefined, lowerIsBetter = false): string => {
   if (value === undefined) {
     return '';
   }
