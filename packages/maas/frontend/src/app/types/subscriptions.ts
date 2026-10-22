@@ -157,6 +157,7 @@ export type BillingRateInfo = {
 
 export type ModelRefInfo = {
   name: string;
+  model_name?: string;
   display_name?: string;
   source?: string;
   description?: string;

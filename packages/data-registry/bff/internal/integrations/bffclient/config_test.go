@@ -19,6 +19,9 @@ func TestNewDefaultBFFClientConfig(t *testing.T) {
 	assert.NotNil(t, cfg.GetServiceConfig(BFFTargetGenAI))
 	assert.NotNil(t, cfg.GetServiceConfig(BFFTargetModelRegistry))
 	assert.NotNil(t, cfg.GetServiceConfig(BFFTargetMLflow))
+	for _, target := range []BFFTarget{BFFTargetMaaS, BFFTargetGenAI, BFFTargetModelRegistry, BFFTargetMLflow} {
+		assert.True(t, cfg.GetServiceConfig(target).TLSEnabled, "%s should use TLS by default", target)
+	}
 }
 
 func TestBFFServiceConfig_GetURL_DevOverride(t *testing.T) {

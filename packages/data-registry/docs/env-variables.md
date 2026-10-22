@@ -29,7 +29,7 @@ tokens in `.env.local`.
 | `AUTH_TOKEN_HEADER`, `AUTH_TOKEN_PREFIX` | Identify the caller token. Federated development uses `x-forwarded-access-token` with an empty prefix. |
 | `MOCK_K8S_CLIENT` | Use the local envtest Kubernetes client instead of a cluster. |
 | `MOCK_HTTP_CLIENT` | Accepted by the BFF CLI and Makefile, but it does not mock Data Registry API requests; those still require `DATA_REGISTRY_API_URL`. |
-| `DATA_REGISTRY_API_URL` | Explicit upstream Data Registry API URL; takes precedence over ConfigMap discovery. |
+| `DATA_REGISTRY_API_URL` | Explicit upstream Data Registry API URL; takes precedence over ConfigMap discovery. Use HTTPS for remote upstreams; HTTP is accepted only for loopback IP literals in development and tests. |
 | `DATA_REGISTRY_CONFIGMAP_NAME`, `DATA_REGISTRY_CONFIGMAP_KEY` | ConfigMap discovery settings; defaults are `data-registry-config` and `apiURL`. |
 | `STATIC_ASSETS_DIR` | Directory served by the BFF in standalone mode. |
 | `INSECURE_SKIP_VERIFY` | Disable upstream TLS verification for local development only. |

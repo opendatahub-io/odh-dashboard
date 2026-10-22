@@ -19,11 +19,6 @@ export const EVAL_HUB_EVENTS = {
   RUN_THRESHOLD_CHANGED: 'Evaluations Run Threshold Changed',
   RUN_METRIC_SELECTED: 'Evaluations Run Metric Selected',
   RUN_PARAMETER_CHANGED: 'Evaluations Run Parameter Changed',
-  SECURITY_INSIGHTS_VIEWED: 'Security Insights Viewed',
-  SECURITY_INSIGHTS_FILTER_TYPE_CHANGED: 'Security Insights Filter Type Changed',
-  SECURITY_INSIGHTS_FILTER_APPLIED: 'Security Insights Filter Applied',
-  SECURITY_INSIGHTS_SORT_CHANGED: 'Security Insights Sort Changed',
-  SECURITY_INSIGHTS_PAGINATION_CHANGED: 'Security Insights Pagination Changed',
   BENCHMARK_CATALOG_OPENED: 'Evaluations Benchmark Catalog Opened',
   BENCHMARK_CATALOG_FILTER_APPLIED: 'Evaluations Benchmark Catalog Filter Applied',
   BENCHMARK_COLLECTION_FILTER_APPLIED: 'Evaluations Benchmark Collection Filter Applied',
@@ -169,34 +164,6 @@ export type RunParameterChangedProperties = {
   parameterValueShape: string;
   benchmarkName: string;
   isDefault: boolean;
-};
-
-export type SecurityInsightsViewedProperties = {
-  sourceId: string;
-  modelName: string;
-  insightCount: number;
-};
-
-export type SecurityInsightsFilterTypeChangedProperties = {
-  previousFilterType: string;
-  newFilterType: string;
-};
-
-export type SecurityInsightsFilterAppliedProperties = {
-  filterType: string;
-  hasResults: boolean;
-  resultCount: number;
-};
-
-export type SecurityInsightsSortChangedProperties = {
-  column: string;
-  direction: 'asc' | 'desc';
-};
-
-export type SecurityInsightsPaginationChangedProperties = {
-  page: number;
-  perPage: number;
-  totalItems: number;
 };
 
 export type BenchmarkCatalogOpenedProperties = {
@@ -376,11 +343,6 @@ export type EvalHubEventProperties = {
   [EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED]: RunThresholdChangedProperties;
   [EVAL_HUB_EVENTS.RUN_METRIC_SELECTED]: RunMetricSelectedProperties;
   [EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED]: RunParameterChangedProperties;
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED]: SecurityInsightsViewedProperties;
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED]: SecurityInsightsFilterTypeChangedProperties;
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED]: SecurityInsightsFilterAppliedProperties;
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED]: SecurityInsightsSortChangedProperties;
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED]: SecurityInsightsPaginationChangedProperties;
   [EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED]: BenchmarkCatalogOpenedProperties;
   [EVAL_HUB_EVENTS.BENCHMARK_CATALOG_FILTER_APPLIED]: BenchmarkCatalogFilterAppliedProperties;
   [EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED]: BenchmarkCollectionFilterAppliedProperties;
@@ -474,11 +436,6 @@ export const EVAL_HUB_EVENT_PROPERTY_ALLOWLIST = {
     'benchmarkName',
     'isDefault',
   ],
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED]: ['sourceId', 'modelName', 'insightCount'],
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED]: ['previousFilterType', 'newFilterType'],
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED]: ['filterType', 'hasResults', 'resultCount'],
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED]: ['column', 'direction'],
-  [EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED]: ['page', 'perPage', 'totalItems'],
   [EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED]: ['surface'],
   [EVAL_HUB_EVENTS.BENCHMARK_CATALOG_FILTER_APPLIED]: ['filterType', 'value'],
   [EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED]: ['filterType', 'value', 'surface'],

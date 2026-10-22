@@ -211,6 +211,36 @@ func TestListSubscriptionsForApiKeys_ValidDataPassedThrough(t *testing.T) {
 	}
 }
 
+func TestListSubscriptionsForApiKeys_ModelNamePassedThrough(t *testing.T) {
+	// Upstream JSON includes model_name; BFF must keep it for catalog id resolution in the UI.
+	const catalogID = "publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct"
+	raw := `[{
+		"subscription_id_header": "qwen25-free-subscription",
+		"subscription_description": "Qwen free",
+		"model_refs": [{
+			"name": "qwen2-5-0-5b-instruct",
+			"model_name": "` + catalogID + `",
+			"namespace": "llm",
+			"token_rate_limits": []
+		}]
+	}]`
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(raw))
+	}))
+
+	result, err := client.ListSubscriptionsForApiKeys(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) != 1 || len(result[0].ModelRefs) != 1 {
+		t.Fatalf("expected 1 subscription with 1 model_ref, got %+v", result)
+	}
+	if got := result[0].ModelRefs[0].ModelName; got != catalogID {
+		t.Errorf("model_name = %q, want %q", got, catalogID)
+	}
+}
+
 func TestListModels_ForwardsRequestHeaders(t *testing.T) {
 	body := models.MaaSModelsResponse{
 		Object: "list",

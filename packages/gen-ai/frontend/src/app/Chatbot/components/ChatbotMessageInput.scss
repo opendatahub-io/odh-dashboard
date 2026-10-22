@@ -1,3 +1,8 @@
+.gen-ai-chatbot-image-file-label {
+  // Match the height of the completed label, including its close button.
+  min-block-size: calc(1lh + var(--pf-t--global--spacer--xl));
+}
+
 .gen-ai-chatbot-document-attachments {
   padding-top: var(--pf-t--global--spacer--md);
   position: relative;

@@ -13,26 +13,29 @@ The ODH Dashboard implements a powerful extensibility system that allows for mod
 **Extension**: An extension is a concrete **instance** that implements an extension point specification. Extensions provide the actual functionality, components, or configuration that gets integrated into the application.
 
 Think of it like this:
+
 - Extension Point = Interface/Contract
 - Extension = Implementation
 
 ### Extension Point Naming Convention
 
 Extension point types should follow the naming convention:
+
 ```
 namespace.feature[/sub-feature]
 ```
 
 **Components:**
+
 - `namespace`: Identifies the application or plugin context (e.g., `app`, `my-plugin`)
 - `feature`: Describes the main functional area (e.g., `navigation`, `table`, `model-catalog`)
 - `sub-feature`: (Optional) Provides further classification for related extension points (e.g., `item`, `column`)
 
 **Examples:**
+
 - `app.route` - Core application routes
 - `app.navigation/href` - Navigation link items
 - `my-plugin.dashboard/widget` - Dashboard widgets from a specific plugin
-
 
 ### Extension Flags
 
@@ -47,14 +50,14 @@ Extensions can be conditionally enabled using feature flags:
 const appRouteExtension = {
   type: 'app.route',
   flags: {
-    required: ['MODEL_SERVING'],    // Must be enabled
-    disallowed: ['LEGACY_MODE'],    // Must not be enabled
+    required: ['MODEL_SERVING'], // Must be enabled
+    disallowed: ['LEGACY_MODE'], // Must not be enabled
   },
   properties: {
     path: '/model-serving',
     component: () => import('./ModelServingPage'),
   },
-}
+};
 ```
 
 ## Design Principles for Extension Points
@@ -66,6 +69,7 @@ Extension points should follow these design principles:
 3. **Lazy Resolution**: Resolve code references only when user interaction demands it
 
 **Good Extension Design:**
+
 ```typescript
 export type FeatureExtension = Extension<
   'app.feature',
@@ -75,7 +79,7 @@ export type FeatureExtension = Extension<
     title: string;
     description: string;
     category: string;
-    
+
     // Code references - resolved only when needed
     component: ComponentCodeRef;
   }
@@ -93,6 +97,7 @@ Code references are a fundamental aspect of the extension system. They enable **
 A `CodeRef` is a function that returns a Promise from a dynamic import, allowing lazy loading of any JavaScript value.
 
 **Basic CodeRef Example:**
+
 ```typescript
 // Async function that fetches status from an endpoint
 // In './utils/getStatus.ts':
@@ -105,14 +110,16 @@ export const getStatus = async (): Promise<{ status: string; message: string }> 
 };
 
 // CodeRef to that function
-const statusCodeRef: CodeRef<typeof getStatus> = () => import('./utils/getStatus').then(m => m.getStatus);
+const statusCodeRef: CodeRef<typeof getStatus> = () =>
+  import('./utils/getStatus').then((m) => m.getStatus);
 ```
 
 **ComponentCodeRef (Specialized for React):**
+
 ```typescript
 // ComponentCodeRef is a specialized CodeRef for React components
-export type ComponentCodeRef<Props = AnyObject> = CodeRef<{ 
-  default: React.ComponentType<Props> 
+export type ComponentCodeRef<Props = AnyObject> = CodeRef<{
+  default: React.ComponentType<Props>;
 }>;
 
 // Example:
@@ -137,6 +144,7 @@ The extensibility system provides specialized helper components for working with
 **Usage Patterns:**
 
 **Route Components:**
+
 ```tsx
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 
@@ -163,12 +171,14 @@ const AppRoutes: React.FC = () => {
 ```
 
 **Benefits:**
+
 - Works with any React component
 - No need to use `useResolvedExtensions` for component rendering
 - Components are loaded only when actually rendered
 - Better performance through lazy loading
 
 **Component Signature:**
+
 ```typescript
 type LazyCodeRefComponentProps<T> = {
   component: () => Promise<React.ComponentType<T> | { default: React.ComponentType<T> }>;
@@ -182,6 +192,7 @@ type LazyCodeRefComponentProps<T> = {
 `HookNotify` allows you to execute React hooks from code references and get notified when their values change.
 
 **Usage Pattern:**
+
 ```tsx
 import { HookNotify } from '@odh-dashboard/plugin-core';
 
@@ -206,13 +217,13 @@ const StatusManager: React.FC = () => {
           key={extension.uid}
           useHook={extension.properties.statusProviderHook}
           onNotify={(status) => {
-            setStatusReports(prev => ({
+            setStatusReports((prev) => ({
               ...prev,
-              [extension.properties.id]: status
+              [extension.properties.id]: status,
             }));
           }}
           onUnmount={() => {
-            setStatusReports(prev => {
+            setStatusReports((prev) => {
               const { [extension.properties.id]: removed, ...rest } = prev;
               return rest;
             });
@@ -225,11 +236,13 @@ const StatusManager: React.FC = () => {
 ```
 
 **Benefits:**
+
 - Execute hooks from code references
 - Automatic cleanup when extensions are removed
 - Efficient for gathering data from multiple hook-based extensions
 
 **Component Signature:**
+
 ```typescript
 type HookNotifyProps<H> = {
   useHook: H;
@@ -258,6 +271,7 @@ const extensions = useExtensions(isRouteExtension);
 ```
 
 **When to use:**
+
 - When you only need extension metadata
 - When you'll resolve code references later or conditionally
 - For better performance when resolution isn't immediately needed
@@ -272,30 +286,32 @@ const [resolvedExtensions, resolved, errors] = useResolvedExtensions(isRouteExte
 ```
 
 **Return Value:**
+
 - `resolvedExtensions`: Extensions with resolved code references
 - `resolved`: Boolean indicating if resolution is complete
 - `errors`: Array of any resolution errors
 
 **When to use:**
+
 - When you need to execute extension code immediately
 - When rendering components from extensions
 - When you need the actual resolved values
 
 ### Key Differences
 
-| Aspect | `useExtensions` | `useResolvedExtensions` |
-|--------|----------------|------------------------|
-| Code References | Unresolved (CodeRef functions) | Resolved (actual values) |
-| Performance | Faster, no async operations | Slower, involves async resolution |
-| Use Case | Metadata access, conditional loading | Immediate code execution |
-| Return Type | Extension[] | [Extension[], boolean, unknown[]] |
-
+| Aspect          | `useExtensions`                      | `useResolvedExtensions`           |
+| --------------- | ------------------------------------ | --------------------------------- |
+| Code References | Unresolved (CodeRef functions)       | Resolved (actual values)          |
+| Performance     | Faster, no async operations          | Slower, involves async resolution |
+| Use Case        | Metadata access, conditional loading | Immediate code execution          |
+| Return Type     | Extension[]                          | [Extension[], boolean, unknown[]] |
 
 ## Creating Extension Points
 
 To create a new extension point:
 
 1. **Define the Extension Type**:
+
 ```typescript
 export type MyExtension = Extension<
   'my-plugin.dashboard/widget',
@@ -309,8 +325,9 @@ export type MyExtension = Extension<
 ```
 
 2. **Create Type Guard**:
+
 ```typescript
-export const isMyExtension = (e: Extension): e is MyExtension => 
+export const isMyExtension = (e: Extension): e is MyExtension =>
   e.type === 'my-plugin.dashboard/widget';
 ```
 
@@ -322,6 +339,7 @@ A **type guard** is a function used to filter extensions when using `useExtensio
 2. **Extension Filtering**: They determine which extensions match your criteria
 
 **Type Guard Usage:**
+
 ```typescript
 const routeExtensions = useExtensions(isMyExtension);
 // routeExtensions is now typed as LoadedExtension<RouteExtension>[]
@@ -345,9 +363,55 @@ const categoryFilter = React.useCallback(isDashboardWidget('charts'), []);
 const chartWidgets = useExtensions(categoryFilter);
 ```
 
+### Detail Tab Visibility
+
+The `core.detail/tab` extension point supports an optional `shouldShow` predicate for tabs whose
+visibility depends on the current detail page. The predicate receives the same `componentProps`
+object passed to `ExtensibleDetailTabs` and may return either a boolean or a `Promise<boolean>`:
+
+```typescript
+const extension: DetailTabExtension = {
+  type: 'core.detail/tab',
+  properties: {
+    id: 'quality-insights',
+    title: 'Quality insights',
+    component: () => import('./QualityInsightsTab'),
+    group: 'model-catalog.details',
+    shouldShow: async ({ sourceId, modelName }) => {
+      if (typeof sourceId !== 'string' || typeof modelName !== 'string') {
+        return false;
+      }
+      const response = await fetch(
+        `/api/insights/${encodeURIComponent(sourceId)}/${encodeURIComponent(modelName)}`,
+      );
+      return response.ok;
+    },
+  },
+};
+```
+
+Visibility behavior is intentionally conservative while an asynchronous predicate is pending:
+
+- A non-active tab is hidden until its predicate resolves.
+- An active deep-linked tab remains visible while its predicate is pending, so the user is not
+  redirected before the check completes.
+- A resolved `false`, a rejected promise, or a thrown error hides the tab and redirects an active
+  tab to the first visible tab.
+- A tab without `shouldShow` is always visible.
+
+Predicate results are reused across renders while the component props are considered unchanged.
+Reuse is decided by a shallow comparison: the current and cached props must have the same key set,
+and each top-level value must be identical per `Object.is`. Memoizing `componentProps` (for example
+with `React.useMemo`) keeps the object identity — and therefore the comparison — stable, but it is
+not required for reuse. Because the comparison is shallow, mutating a nested value (for example
+`props.filters.name = 'x'` on an otherwise unchanged object) is **not** detected: predicates receive
+the props object as their input and should treat nested structures as immutable. Results from an
+earlier, non-equal props object are never applied to the current detail page.
+
 ## Best Practices
 
 ### Extension Point Design
+
 - **Static Properties First**: Design extension points with static information that can be displayed immediately to users
 - **Limited Code References**: Only use code references for functionality that requires execution, not for display data
 - **Descriptive Namespaces**: Use clear namespaces (`app.table/column` vs `table`)
@@ -356,6 +420,7 @@ const chartWidgets = useExtensions(categoryFilter);
 - **Stable IDs for overridable surfaces**: Give navigable extensions a stable `properties.id` so distributions can patch or suppress them — see [Extension Patch and Suppress Semantics](#extension-patch-and-suppress-semantics)
 
 **Example of Good Extension Design:**
+
 ```typescript
 // ✅ Good: Static properties for display, code refs for functionality
 export type ModelExtension = Extension<
@@ -367,7 +432,7 @@ export type ModelExtension = Extension<
     description: string;
     tags: string[];
     version: string;
-    
+
     // Dynamic - resolved when user interacts
     component: ComponentCodeRef<ModelProps>;
     deploymentHook?: CodeRef<() => DeploymentConfig>;
@@ -379,7 +444,7 @@ export type BadModelExtension = Extension<
   'app.model-catalog/model',
   {
     id: string;
-    nameLoader: CodeRef<() => string>;        // Should be static
+    nameLoader: CodeRef<() => string>; // Should be static
     descriptionLoader: CodeRef<() => string>; // Should be static
     component: ComponentCodeRef<ModelProps>;
   }
@@ -387,31 +452,30 @@ export type BadModelExtension = Extension<
 ```
 
 ### Code Reference Usage Patterns
+
 - **User-Triggered Resolution**: Resolve code references only when user interaction demands it
 - **Prefer Helper Components**: Use `LazyCodeRefComponent` and `HookNotify` over `useResolvedExtensions`
 - **Static Before Dynamic**: Present static information immediately, load dynamic content on demand
 - **Error Boundaries**: Always handle code reference resolution errors gracefully
 
 **Interaction-Driven Loading Pattern:**
+
 ```tsx
 const ModelCard: React.FC<{ extension: ModelExtension }> = ({ extension }) => {
   const [isDeploying, setIsDeploying] = React.useState(false);
-  
+
   return (
     <Card>
       {/* Static properties - shown immediately */}
       <CardTitle>{extension.properties.name}</CardTitle>
       <CardBody>{extension.properties.description}</CardBody>
       <Tags>{extension.properties.tags}</Tags>
-      
+
       {/* Code reference - resolved only when user clicks deploy */}
-      <Button 
-        onClick={() => setIsDeploying(true)}
-        disabled={isDeploying}
-      >
+      <Button onClick={() => setIsDeploying(true)} disabled={isDeploying}>
         Deploy Model
       </Button>
-      
+
       {isDeploying && (
         <LazyCodeRefComponent
           component={extension.properties.component}
@@ -425,6 +489,7 @@ const ModelCard: React.FC<{ extension: ModelExtension }> = ({ extension }) => {
 ```
 
 ### Performance Optimization
+
 - **Precise Type Guards**: Use specific type guards with `useResolvedExtensions` to avoid resolving unnecessary code references
 - **Use React.useCallback**: Always wrap parameterized type guards in `useCallback` to prevent unnecessary re-renders
 - **Lazy Resolution**: Never resolve code references upfront unless immediately needed
@@ -520,11 +585,11 @@ For example, if `./src/deploy` (in chunk `kserve-deploy`) and `./src/deployments
 
 ### When to Use Custom Chunk Names
 
-| Scenario | Recommendation |
-|----------|---------------|
-| Small plugin (< 50 KB) | Use default single-chunk grouping |
-| Large plugin with distinct features | Split into logical chunks (e.g., deploy vs. monitoring) |
-| Rarely used code paths | Separate into dedicated chunks to defer loading |
+| Scenario                            | Recommendation                                              |
+| ----------------------------------- | ----------------------------------------------------------- |
+| Small plugin (< 50 KB)              | Use default single-chunk grouping                           |
+| Large plugin with distinct features | Split into logical chunks (e.g., deploy vs. monitoring)     |
+| Rarely used code paths              | Separate into dedicated chunks to defer loading             |
 | Multiple imports from the same file | No need for `webpackChunkName` — they share the same module |
 
 ### Naming Convention
@@ -533,10 +598,10 @@ When using `webpackChunkName`, prefix the chunk name with the plugin name:
 
 ```typescript
 // Good: prefixed with plugin name
-import(/* webpackChunkName: "kserve-deploy" */ './src/deploy')
+import(/* webpackChunkName: "kserve-deploy" */ './src/deploy');
 
 // Avoid: generic name may collide with other plugins
-import(/* webpackChunkName: "deploy" */ './src/deploy')
+import(/* webpackChunkName: "deploy" */ './src/deploy');
 ```
 
 ## Extension Patch and Suppress Semantics
