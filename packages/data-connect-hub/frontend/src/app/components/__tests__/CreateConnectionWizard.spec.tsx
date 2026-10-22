@@ -477,7 +477,7 @@ describe('CreateConnectionWizard', () => {
     });
   });
 
-  it('masks password aliases and plural secret names on both wizard steps', async () => {
+  it('masks password aliases and additional secret indicators on both wizard steps', async () => {
     const user = userEvent.setup();
     const credentialValues = {
       PWD: 'password-alias-value',
@@ -486,6 +486,9 @@ describe('CreateConnectionWizard', () => {
       passwords: 'password-collection-value',
       secrets: 'secret-collection-value',
       tokens: 'token-collection-value',
+      SSH_KEY: 'ssh-key-value',
+      SAS: 'shared-access-signature-value',
+      PASSCODE: 'passcode-value',
     };
     mockUseConnectionTypes.mockReturnValue([
       [
@@ -542,6 +545,7 @@ describe('CreateConnectionWizard', () => {
     const credentialValues = {
       URI: 'postgresql://alice:example-password@db.example:5432/app',
       url: 'postgresql://bob:example-password@db.example:5432/app',
+      DATABASEURL: 'postgresql://erin:example-password@db.example:5432/app',
       CONNECTION_STRING: 'postgresql://db.example/app?user=carol&password=example-password',
       DSN: 'host=db.example user=dave password=example-password',
     };
@@ -554,6 +558,7 @@ describe('CreateConnectionWizard', () => {
             credentials_fields: [
               { name: 'URI', label: 'URI', required: true, type: 'string' },
               { name: 'url', label: 'Connection URL', required: true, type: 'string' },
+              { name: 'DATABASEURL', label: 'Endpoint', required: true, type: 'string' },
               {
                 name: 'CONNECTION_STRING',
                 label: 'Connection string',
@@ -589,12 +594,15 @@ describe('CreateConnectionWizard', () => {
     Object.values(credentialValues).forEach((value) => {
       expect(screen.queryByText(value)).toBeNull();
     });
-    ['URI', 'Connection URL', 'Connection string', 'Data source name'].forEach((label) => {
-      expect(screen.getByText(`${label} value hidden`)).toBeTruthy();
-    });
+    ['URI', 'Connection URL', 'Endpoint', 'Connection string', 'Data source name'].forEach(
+      (label) => {
+        expect(screen.getByText(`${label} value hidden`)).toBeTruthy();
+      },
+    );
 
     await user.click(screen.getByRole('button', { name: 'Show URI' }));
     await user.click(screen.getByRole('button', { name: 'Show Connection URL' }));
+    await user.click(screen.getByRole('button', { name: 'Show Endpoint' }));
     await user.click(screen.getByRole('button', { name: 'Show Connection string' }));
     await user.click(screen.getByRole('button', { name: 'Show Data source name' }));
     Object.values(credentialValues).forEach((value) => {

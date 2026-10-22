@@ -13,10 +13,14 @@ describe('isSensitiveCredentialField', () => {
     ['API_KEY', 'API key'],
     ['PROVIDER_APIKEY', 'Provider API key'],
     ['PRIVATE_KEY', 'Private key'],
+    ['SSH_KEY', 'SSH key'],
+    ['SAS', 'SAS'],
+    ['PASSCODE', 'Passcode'],
     ['URI', 'URI'],
     ['url', 'Connection URL'],
     ['CONNECTION_STRING', 'Connection string'],
     ['DSN', 'Data source name'],
+    ['DATABASEURL', 'Endpoint'],
     ['clientSecret', 'clientSecret'],
     ['accessToken', 'accessToken'],
     ['dbPassword', 'dbPassword'],
@@ -39,9 +43,12 @@ describe('isSensitiveCredentialField', () => {
     ['HOST', 'Host'],
     ['SSL_MODE', 'SSL mode'],
     ['AWS_ACCESS_KEY_ID', 'Access key ID'],
-    ['SECURITY_PROTOCOL', 'Security protocol'],
   ])('does not identify non-sensitive field %s', (name, label) => {
     expect(isSensitiveCredentialField(field(name, label))).toBe(false);
+  });
+
+  it('conservatively identifies security protocol as sensitive until backend metadata exists', () => {
+    expect(isSensitiveCredentialField(field('SECURITY_PROTOCOL', 'Security protocol'))).toBe(true);
   });
 
   it('uses the field label when the field name is generic', () => {
