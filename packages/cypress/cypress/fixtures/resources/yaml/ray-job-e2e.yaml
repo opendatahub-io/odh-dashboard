@@ -9,6 +9,20 @@ spec:
   shutdownAfterJobFinishes: true
   ttlSecondsAfterFinished: 86400
   submissionMode: K8sJobMode
+  submitterPodTemplate:
+    spec:
+      nodeSelector: ${nodeSelector}
+      restartPolicy: Never
+      containers:
+        - name: ray-job-submitter
+          image: ${rayImage}
+          resources:
+            limits:
+              cpu: '1'
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 200Mi
   entrypoint: python -c "import time; time.sleep(86400)"
   rayClusterSpec:
     rayVersion: '${rayVersion}'
