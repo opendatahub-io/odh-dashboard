@@ -112,8 +112,8 @@ describe('Workbenches - status tests', () => {
             // Click on the Events log and validate that successful list messages display.
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');
             workbenchStatusModal.findEventlogTab().click();
-            workbenchStatusModal.findLogEntry('Created container');
-            workbenchStatusModal.findLogEntry('Started container');
+            workbenchStatusModal.findLogEntry(/Created container|Container created/);
+            workbenchStatusModal.findLogEntry(/Started container|Container started/);
             workbenchStatusModal.findLogEntry('Successfully pulled image');
           });
         },
