@@ -55,6 +55,18 @@ const hasWellKnownPropertyLabel = (key: string): boolean =>
 const getPropertyLabel = (key: string): string =>
   hasWellKnownPropertyLabel(key) ? WELL_KNOWN_PROPERTY_LABELS[key] : key;
 
+const formatUtcTimestamp = (date: Date): string =>
+  new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  }).format(date);
+
 const getOrderedProperties = (properties: Record<string, string>) => {
   const entries = Object.entries(properties);
   const wellKnownProperties = Object.keys(WELL_KNOWN_PROPERTY_LABELS).flatMap((key) => {
@@ -106,7 +118,8 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({
       <Timestamp
         date={date}
         tooltip={{
-          variant: TimestampTooltipVariant.default,
+          variant: TimestampTooltipVariant.custom,
+          content: formatUtcTimestamp(date),
         }}
       >
         {relativeTime(Date.now(), date.getTime())}

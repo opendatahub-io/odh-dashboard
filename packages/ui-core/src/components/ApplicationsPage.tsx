@@ -13,6 +13,7 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
+import './ApplicationsPage.scss';
 
 export type ApplicationsPageProps = {
   title?: React.ReactNode;
@@ -69,11 +70,15 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
           >
             <FlexItem flex={{ default: 'flex_1' }}>
               {!noTitle && (
-                <Content component="h1" data-testid="app-page-title">
+                <Content
+                  component="h1"
+                  className="odh-dashboard-page-header__title"
+                  data-testid="app-page-title"
+                >
                   {title}
                 </Content>
               )}
-              <Stack hasGutter>
+              <Stack className="odh-dashboard-page-header__description">
                 {subtext && <StackItem>{subtext}</StackItem>}
                 {description && (
                   <StackItem data-testid="app-page-description">{description}</StackItem>

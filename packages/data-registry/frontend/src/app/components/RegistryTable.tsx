@@ -824,11 +824,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           ) : null}
         </Toolbar>
 
-        <Table
-          aria-label="Registry assets"
-          borders={assets.length > 0}
-          data-testid="registry-table"
-        >
+        <Table aria-label="Registry assets" borders={false} data-testid="registry-table">
           {assets.length > 0 ? (
             <Thead>
               <Tr>
@@ -939,17 +935,24 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                     <Td dataLabel="Format">
                       <Flex
                         direction={{ default: 'column' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
+                        alignItems={{ default: 'alignItemsFlexStart' }}
                       >
-                        <Label variant="outline" color={badge.color}>
-                          {FORMAT_OPTIONS.find(
-                            (option) =>
-                              option.value === asset.format && option.assetType === asset.assetType,
-                          )?.label || asset.format}
-                        </Label>
-                        <Content component="small" className="pf-v6-u-text-color-subtle">
-                          {assetTypeLabel}
-                        </Content>
+                        <Flex
+                          direction={{ default: 'column' }}
+                          alignItems={{ default: 'alignItemsFlexStart' }}
+                          className="pf-v6-u-display-inline-flex"
+                        >
+                          <Label variant="outline" color={badge.color}>
+                            {FORMAT_OPTIONS.find(
+                              (option) =>
+                                option.value === asset.format &&
+                                option.assetType === asset.assetType,
+                            )?.label || asset.format}
+                          </Label>
+                          <Content component="small" className="pf-v6-u-text-color-subtle">
+                            {assetTypeLabel}
+                          </Content>
+                        </Flex>
                       </Flex>
                     </Td>
                     <Td dataLabel="Asset location">

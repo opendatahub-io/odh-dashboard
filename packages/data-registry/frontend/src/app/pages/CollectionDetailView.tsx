@@ -168,7 +168,11 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
               ) : null}
             </EmptyState>
           ) : (
-            <Table aria-label="Collection assets" data-testid="collection-assets-table">
+            <Table
+              aria-label="Collection assets"
+              borders={false}
+              data-testid="collection-assets-table"
+            >
               <Thead>
                 <Tr>
                   <Th>Name</Th>

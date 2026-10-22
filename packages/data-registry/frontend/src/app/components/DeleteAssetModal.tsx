@@ -11,6 +11,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
+import './DeleteAssetModal.scss';
 
 type DeleteAssetModalProps = {
   assetName: string;
@@ -53,16 +54,18 @@ const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({ assetName, onDelete
             <FormGroup
               label={
                 <>
-                  Type <strong>{assetName}</strong> to confirm deletion:
+                  To confirm deletion, type <strong>{assetName}</strong>&#58;
                 </>
               }
               isRequired
+              className="odh-data-registry-delete-confirmation"
               fieldId="delete-asset-confirmation"
             >
               <TextInput
                 id="delete-asset-confirmation"
                 value={confirmation}
                 onChange={(_event, value) => setConfirmation(value)}
+                aria-label={`To confirm deletion, type ${assetName}:`}
                 isRequired
                 isDisabled={isDeleting}
                 data-testid="delete-asset-confirmation"

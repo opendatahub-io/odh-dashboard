@@ -10,20 +10,52 @@ const CustomPropertiesSection: React.FC = () => {
   const { fields, append, remove } = useFieldArray({ control, name: 'customProperties' });
 
   const content = (
-    <FormGroup label="Key-value pairs" fieldId="data-custom-properties" isStack>
+    <FormGroup
+      label="Key-value pairs"
+      fieldId="data-custom-properties"
+      isStack
+      className="odh-data-registry-registration-form__described-group"
+    >
       <Content component="p">Optionally define custom properties using key-value pairs.</Content>
+      {fields.length > 0 ? (
+        <Flex
+          gap={{ default: 'gapMd' }}
+          className="pf-v6-u-mb-0"
+          data-testid="data-custom-property-headers"
+        >
+          <FlexItem grow={{ default: 'grow' }}>
+            <Content component="small" className="pf-v6-u-font-weight-bold">
+              Key
+            </Content>
+          </FlexItem>
+          <FlexItem grow={{ default: 'grow' }}>
+            <Content component="small" className="pf-v6-u-font-weight-bold">
+              Value
+            </Content>
+          </FlexItem>
+          <FlexItem className="odh-data-registry-registration-form__custom-property-header-spacer">
+            <Button variant="plain" aria-hidden tabIndex={-1}>
+              <MinusCircleIcon />
+            </Button>
+          </FlexItem>
+        </Flex>
+      ) : null}
       {fields.map((field, index) => (
-        <Flex key={field.id} gap={{ default: 'gapMd' }} className="pf-v6-u-mb-xs">
+        <Flex key={field.id} gap={{ default: 'gapMd' }} className="pf-v6-u-mb-0">
           <FlexItem grow={{ default: 'grow' }}>
             <TextInput
+              id={`data-custom-property-key-${index}`}
               {...register(`customProperties.${index}.key`)}
+              aria-label={`Key ${index + 1}`}
               placeholder="Key"
               data-testid={`data-custom-property-key-${index}`}
             />
           </FlexItem>
           <FlexItem grow={{ default: 'grow' }}>
             <TextInput
+              id={`data-custom-property-value-${index}`}
               {...register(`customProperties.${index}.value`)}
+              aria-label={`Value ${index + 1}`}
               placeholder="Value"
               data-testid={`data-custom-property-value-${index}`}
             />

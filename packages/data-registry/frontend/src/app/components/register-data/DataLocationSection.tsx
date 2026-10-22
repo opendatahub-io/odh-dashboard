@@ -85,7 +85,11 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   };
 
   return (
-    <FormSection title="Asset location" titleElement="h2">
+    <FormSection
+      title="Asset location"
+      titleElement="h2"
+      className="odh-data-registry-registration-form__asset-location-section"
+    >
       <Content component="p">Specify where the data is stored within a connection.</Content>
 
       {connectionsError ? (
@@ -127,7 +131,12 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
         name="connection"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Connection" fieldId="data-connection" isStack>
+          <FormGroup
+            label="Connection"
+            fieldId="data-connection"
+            isStack
+            className="odh-data-registry-registration-form__described-group"
+          >
             <Content component="p">
               Select the connection in this project where the data is located.
             </Content>

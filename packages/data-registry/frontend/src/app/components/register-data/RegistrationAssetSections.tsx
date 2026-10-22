@@ -121,7 +121,11 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({
     assetType === 'structured' ? STRUCTURED_FORMAT_OPTIONS : UNSTRUCTURED_FORMAT_OPTIONS;
 
   return (
-    <FormSection title="Data asset format" titleElement="h2">
+    <FormSection
+      title="Data asset format"
+      titleElement="h2"
+      className="odh-data-registry-registration-form__asset-format-section"
+    >
       <Content component="p">
         Specify the data’s format and whether it is structured or unstructured.
       </Content>
@@ -185,18 +189,18 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({
               >
                 <SelectList>
                   <SelectOption
-                    value="unstructured"
-                    description="File-based volumes (documents, images, audio, video)"
-                    data-testid="asset-type-unstructured"
-                  >
-                    Unstructured
-                  </SelectOption>
-                  <SelectOption
                     value="structured"
                     description="Tabular data with defined columns and types"
                     data-testid="asset-type-structured"
                   >
                     Structured
+                  </SelectOption>
+                  <SelectOption
+                    value="unstructured"
+                    description="File-based volumes (documents, images, audio, video)"
+                    data-testid="asset-type-unstructured"
+                  >
+                    Unstructured
                   </SelectOption>
                 </SelectList>
               </Select>
@@ -209,7 +213,11 @@ export const RegistrationAssetFormatSection: React.FC<EditModeProps> = ({
         name="format"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Format" fieldId="data-format">
+          <FormGroup
+            label="Format"
+            fieldId="data-format"
+            className="odh-data-registry-registration-form__format-group"
+          >
             <Select
               isOpen={isFormatOpen}
               selected={field.value}
@@ -328,12 +336,22 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
   );
 
   return (
-    <FormSection title="Organization" titleElement="h2">
+    <FormSection
+      title="Organization"
+      titleElement="h2"
+      className="odh-data-registry-registration-form__organization-section"
+    >
       <Content component="p">
         Optionally organize and annotate this data asset so it is easier to find later.
       </Content>
 
-      <FormGroup label="Collection" fieldId="data-collection" isStack>
+      <FormGroup
+        label="Collection"
+        isRequired
+        fieldId="data-collection"
+        isStack
+        className="odh-data-registry-registration-form__described-group"
+      >
         <Content component="p">
           Organize this data into a collection.{' '}
           <Button
@@ -418,7 +436,12 @@ export const RegistrationOrganizationSection: React.FC<RegistrationOrganizationS
         ) : null}
       </FormGroup>
 
-      <FormGroup label="Labels" fieldId="data-labels" isStack>
+      <FormGroup
+        label="Labels"
+        fieldId="data-labels"
+        isStack
+        className="odh-data-registry-registration-form__described-group"
+      >
         <Content component="p">
           Optionally add labels to this data asset to make it easier to find later.{' '}
           <Button variant="link" isInline isDisabled={!onManageLabels} onClick={onManageLabels}>

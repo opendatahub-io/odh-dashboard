@@ -47,7 +47,7 @@ const SchemaSection: React.FC = () => {
 
   return (
     <FormSection title="Schema" titleElement="h2" className="odh-data-registry-schema-section">
-      <Content component="p" className="pf-v6-u-mb-xs">
+      <Content component="p">
         Optionally define columns and value types for the structured data.
       </Content>
 

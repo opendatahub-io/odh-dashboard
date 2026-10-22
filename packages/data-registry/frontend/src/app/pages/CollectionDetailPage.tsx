@@ -8,6 +8,7 @@ import {
   Dropdown,
   DropdownList,
   DropdownItem,
+  Divider,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
@@ -16,10 +17,6 @@ import {
   FlexItem,
   Label,
   MenuToggle,
-  Tab,
-  Tabs,
-  TabContent,
-  TabTitleText,
   Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
@@ -38,6 +35,11 @@ import type { CollectionInfo } from '~/app/hooks/useCollections';
 import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
 import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import CollectionDetailView from './CollectionDetailView';
+
+const DEFAULT_COLLECTION_NAME = 'default';
+const DEFAULT_COLLECTION_DELETE_MESSAGE = 'The default collection cannot be deleted.';
+const NON_EMPTY_COLLECTION_DELETE_MESSAGE =
+  'Remove all associated assets to delete this collection';
 
 const CollectionDetailPage: React.FC = () => {
   const { project, collection } = useParams<{
@@ -89,6 +91,8 @@ const CollectionDetailPage: React.FC = () => {
 
   const displayName = collection || 'Loading...';
   const hasAssets = (collectionDetail?.assets.length ?? 0) > 0;
+  const isDefaultCollection = collectionDetail?.name === DEFAULT_COLLECTION_NAME;
+  const isDeleteDisabled = hasAssets || isDefaultCollection;
 
   // Convert CollectionDetail to CollectionInfo for the DeleteCollectionModal
   const collectionInfo: CollectionInfo | null = collectionDetail
@@ -152,29 +156,6 @@ const CollectionDetailPage: React.FC = () => {
           >
             Register data
           </DropdownItem>
-          <Tooltip
-            content={
-              !hasWriteAccess
-                ? 'You do not have permission to modify data registry resources'
-                : hasAssets
-                  ? 'Cannot delete a collection that contains data assets'
-                  : 'Delete this collection'
-            }
-          >
-            <DropdownItem
-              key="delete"
-              onClick={() => {
-                if (!hasAssets && hasWriteAccess) {
-                  setIsDeleteModalOpen(true);
-                }
-              }}
-              isAriaDisabled={hasAssets}
-              isDisabled={!hasWriteAccess}
-              data-testid="collection-action-delete"
-            >
-              Delete collection
-            </DropdownItem>
-          </Tooltip>
           <DropdownItem
             key="manage-collections"
             onClick={() => {
@@ -186,6 +167,33 @@ const CollectionDetailPage: React.FC = () => {
           >
             Manage collections
           </DropdownItem>
+          <Divider component="li" />
+          <Tooltip
+            content={
+              !hasWriteAccess
+                ? 'You do not have permission to modify data registry resources'
+                : isDefaultCollection
+                  ? DEFAULT_COLLECTION_DELETE_MESSAGE
+                  : hasAssets
+                    ? NON_EMPTY_COLLECTION_DELETE_MESSAGE
+                    : 'Delete this collection'
+            }
+          >
+            <DropdownItem
+              key="delete"
+              onClick={() => {
+                if (!isDeleteDisabled && hasWriteAccess) {
+                  setIsDeleteModalOpen(true);
+                }
+              }}
+              isAriaDisabled={isDeleteDisabled}
+              isDisabled={!hasWriteAccess}
+              isDanger
+              data-testid="collection-action-delete"
+            >
+              Delete collection
+            </DropdownItem>
+          </Tooltip>
         </DropdownList>
       </Dropdown>
       {isDeleteModalOpen && project && collectionInfo ? (
@@ -299,29 +307,23 @@ const CollectionDetailPage: React.FC = () => {
       }
       provideChildrenPadding
     >
-      <Tabs defaultActiveKey={0} data-testid="detail-tabs">
-        <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>
-          <TabContent id="overview-tab">
-            {collectionDetail ? (
-              <CollectionDetailView
-                collection={collectionDetail}
-                project={project}
-                onRegisterData={() => {
-                  if (project) {
-                    trackEvent({
-                      eventName: DATA_REGISTRY_EVENT_NAMES.registrationStarted,
-                      properties: { project },
-                    });
-                  }
-                  setReturnToRegisterData(false);
-                  setIsRegisterDataOpen(true);
-                }}
-                isRegisterDataDisabled={!hasWriteAccess}
-              />
-            ) : null}
-          </TabContent>
-        </Tab>
-      </Tabs>
+      {collectionDetail ? (
+        <CollectionDetailView
+          collection={collectionDetail}
+          project={project}
+          onRegisterData={() => {
+            if (project) {
+              trackEvent({
+                eventName: DATA_REGISTRY_EVENT_NAMES.registrationStarted,
+                properties: { project },
+              });
+            }
+            setReturnToRegisterData(false);
+            setIsRegisterDataOpen(true);
+          }}
+          isRegisterDataDisabled={!hasWriteAccess}
+        />
+      ) : null}
     </ApplicationsPage>
   );
 };

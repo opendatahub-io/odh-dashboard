@@ -3,8 +3,11 @@
   // the grid gap. Form groups within a section use the section's gap below.
   --pf-v6-c-form--GridGap: 0;
   --pf-v6-c-form__group--Gap: var(--pf-t--global--spacer--sm);
-  --pf-v6-c-form__section--Gap: var(--pf-t--global--spacer--lg);
-  --pf-v6-c-form__section--MarginBlockStart: var(--pf-t--global--spacer--xl);
+  --pf-v6-c-form__section--Gap: var(--pf-t--global--spacer--md);
+  --pf-v6-c-form__section--MarginBlockStart: var(--pf-t--global--spacer--md);
+  --pf-v6-c-form__section-title--MarginBlockEnd: calc(
+    var(--pf-t--global--spacer--xs) - var(--pf-t--global--spacer--md)
+  );
 
   .odh-data-registry-registration-form__connection-toggle:is(:disabled, .pf-m-disabled) {
     --pf-v6-c-menu-toggle--disabled--Color: var(--pf-t--global--text--color--regular);
@@ -18,19 +21,71 @@
     justify-self: start;
   }
 
+  .odh-data-registry-registration-form__custom-property-header-spacer {
+    visibility: hidden;
+  }
+
   > .pf-v6-c-form__group + .pf-v6-c-form__group {
-    margin-block-start: var(--pf-t--global--spacer--lg);
+    margin-block-start: var(--pf-t--global--spacer--sm);
   }
 
   .pf-v6-c-form__section .pf-v6-c-content--p {
     margin-block-end: 0;
   }
 
-  // The section grid uses the form-group gap by default. Reduce only the gap
-  // after a section description so the visible spacing is the MD token (16px).
-  .pf-v6-c-form__section > .pf-v6-c-content--p + .pf-v6-c-form__group {
+  // Keep section descriptions close to their headings and first fields where
+  // the first field is a direct child of the section.
+  .odh-data-registry-registration-form__asset-format-section
+    > .pf-v6-c-content--p
+    + .pf-v6-c-form__group,
+  .odh-data-registry-schema-section > .pf-v6-c-content--p + .pf-v6-c-form__group {
     margin-block-start: calc(
-      var(--pf-t--global--spacer--md) - var(--pf-t--global--spacer--lg)
+      var(--pf-t--global--spacer--xs) - var(--pf-t--global--spacer--md)
     );
+  }
+
+  .odh-data-registry-registration-form__asset-location-section
+    > .pf-v6-c-content--p
+    + .pf-v6-c-form__group {
+    margin-block-start: calc(
+      var(--pf-t--global--spacer--sm) - var(--pf-t--global--spacer--md)
+    );
+  }
+
+  .odh-data-registry-registration-form__asset-location-section
+    > .pf-v6-c-form__group
+    + .pf-v6-c-form__group {
+    margin-block-start: calc(
+      var(--pf-t--global--spacer--sm) - var(--pf-t--global--spacer--md)
+    );
+  }
+
+  .pf-v6-c-form__section.odh-data-registry-registration-form__asset-location-section,
+  .pf-v6-c-form__section.odh-data-registry-registration-form__asset-format-section,
+  .pf-v6-c-form__section.odh-data-registry-registration-form__organization-section {
+    margin-block-start: var(--pf-t--global--spacer--lg);
+  }
+
+  .odh-data-registry-registration-form__organization-section
+    > .pf-v6-c-content--p
+    + .pf-v6-c-form__group {
+    margin-block-start: calc(
+      var(--pf-t--global--spacer--sm) - var(--pf-t--global--spacer--md)
+    );
+  }
+
+  .odh-data-registry-registration-form__format-group {
+    margin-block-start: calc(
+      var(--pf-t--global--spacer--xs) - var(--pf-t--global--spacer--md)
+    );
+  }
+
+  .odh-data-registry-schema-section {
+    margin-block-start: var(--pf-t--global--spacer--sm);
+  }
+
+  .odh-data-registry-registration-form__described-group {
+    --pf-v6-c-form__group--Gap: var(--pf-t--global--spacer--xs);
+    --pf-v6-c-form__group-control--m-stack--Gap: var(--pf-t--global--spacer--xs);
   }
 }
