@@ -874,13 +874,20 @@ describe('EvaluationStatusModal failure summary alert', () => {
       const alert = screen.getByTestId('failure-summary-alert');
       expect(alert).toHaveTextContent('bm-a: err-a');
 
+      // Collapsed text is clamped; expanded text is capped and scrollable so
+      // the modal height stays stable (RHAI-10244).
+      const summaryText = screen.getByTestId('failure-summary-text');
+      expect(summaryText).toHaveClass('evalhub-status-modal__failure-summary--clamped');
+
       fireEvent.click(toggle);
       expect(toggle).toHaveTextContent('Show less');
       expect(alert).toHaveTextContent('bm-a: err-a');
+      expect(summaryText).toHaveClass('evalhub-status-modal__failure-summary--expanded');
 
       fireEvent.click(toggle);
       expect(toggle).toHaveTextContent('Show more');
       expect(alert).toHaveTextContent('bm-a: err-a');
+      expect(summaryText).toHaveClass('evalhub-status-modal__failure-summary--clamped');
     } finally {
       if (origScrollHeight) {
         Object.defineProperty(Element.prototype, 'scrollHeight', origScrollHeight);

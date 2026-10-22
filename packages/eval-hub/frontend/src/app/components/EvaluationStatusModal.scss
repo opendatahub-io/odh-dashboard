@@ -89,6 +89,13 @@
   overflow: hidden;
 }
 
+// Expanded summary is capped and scrolls within itself so the modal keeps a
+// stable height instead of growing with the message (RHAI-10244).
+.evalhub-status-modal__failure-summary--expanded {
+  max-height: 10lh;
+  overflow-y: auto;
+}
+
 .evalhub-status-modal__empty-progress {
   display: flex;
   align-items: center;

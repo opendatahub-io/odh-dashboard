@@ -641,9 +641,10 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                         ref={failureSummaryRef}
                         className={
                           isFailureSummaryExpanded
-                            ? undefined
+                            ? 'evalhub-status-modal__failure-summary--expanded'
                             : 'evalhub-status-modal__failure-summary--clamped'
                         }
+                        data-testid="failure-summary-text"
                       >
                         {failureSummary}
                       </p>
