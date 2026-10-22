@@ -10,7 +10,7 @@ import { visitDeep } from '../core/internal/objects';
 const importPattern =
   /^\(\)\s*=>\s*(?:{\s*return)?\s*import\('[^']+'\)(?:\.then\(\([a-zA-Z_$][a-zA-Z0-9_$]*\)\s*=>\s*[a-zA-Z_$][a-zA-Z0-9_$]*\.[a-zA-Z_$][a-zA-Z0-9_$]*\))?/;
 
-const NON_CODE_REF_FUNCTION_KEYS = new Set(['customCondition']);
+const NON_CODE_REF_FUNCTION_KEYS = new Set(['customCondition', 'shouldShow']);
 
 export const expectExtensionsToBeValid = (extensions: Extension[]): void => {
   extensions.forEach((extension) => {
