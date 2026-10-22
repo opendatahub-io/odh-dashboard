@@ -144,7 +144,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       status={statusSettings.status}
       icon={statusSettings.icon}
       data-testid="model-status-text"
-      style={{ width: 'fit-content', cursor: 'pointer' }}
+      style={{ width: 'fit-content', cursor: onClick || bodyContent ? 'pointer' : undefined }}
       onClick={onClick}
     >
       {statusSettings.label}
