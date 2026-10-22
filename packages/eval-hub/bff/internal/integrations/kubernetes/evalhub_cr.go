@@ -9,8 +9,17 @@ const (
 	// EvalHubCRDGroup is the API group for EvalHub custom resources.
 	EvalHubCRDGroup = "trustyai.opendatahub.io"
 
-	// EvalHubCRDVersion is the API version for EvalHub custom resources.
-	EvalHubCRDVersion = "v1alpha1"
+	// EvalHubCRDVersion is the preferred API version for EvalHub custom resources.
+	// v1 is the CRD storage version (trustyai-service-operator#758) and is served
+	// directly by the API server, so CR reads never depend on the conversion webhook.
+	EvalHubCRDVersion = "v1"
+
+	// EvalHubCRDLegacyVersion is the fallback API version for clusters running older
+	// trustyai-service-operator releases where v1 is not served and v1alpha1 is the
+	// storage version. On current operators v1alpha1 is only served through the
+	// conversion webhook — if that webhook is unavailable, v1alpha1 reads hang until
+	// the caller's context deadline, which is why it must not be the primary version.
+	EvalHubCRDLegacyVersion = "v1alpha1"
 
 	// EvalHubCRDResource is the plural resource name for the EvalHub operator CRD.
 	// Used by the BFF's service account to discover the EvalHub service URL from CR status.
@@ -38,9 +47,21 @@ const (
 	EvalHubDiscoveryURLSuffix = ".url"
 )
 
-// EvalHubGVR is the GroupVersionResource for EvalHub custom resources, used with the dynamic client.
+// EvalHubGVR is the preferred GroupVersionResource for EvalHub custom resources,
+// used with the dynamic client.
 var EvalHubGVR = schema.GroupVersionResource{
 	Group:    EvalHubCRDGroup,
 	Version:  EvalHubCRDVersion,
 	Resource: EvalHubCRDResource,
 }
+
+// EvalHubLegacyGVR is the fallback GroupVersionResource for older operators that
+// only serve v1alpha1.
+var EvalHubLegacyGVR = schema.GroupVersionResource{
+	Group:    EvalHubCRDGroup,
+	Version:  EvalHubCRDLegacyVersion,
+	Resource: EvalHubCRDResource,
+}
+
+// EvalHubGVRs lists the EvalHub CRD versions in preference order for CR discovery.
+var EvalHubGVRs = []schema.GroupVersionResource{EvalHubGVR, EvalHubLegacyGVR}

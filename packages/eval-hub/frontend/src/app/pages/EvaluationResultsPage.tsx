@@ -17,7 +17,6 @@ import {
 } from '@patternfly/react-core';
 import { CalendarAltIcon, ListIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
-import { loadRemote } from '@module-federation/runtime';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import '~/app/components/EvaluationStatusModal.scss';
@@ -40,25 +39,12 @@ import {
 } from '~/app/utilities/evaluationUtils';
 import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
 import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
+import MlflowRunTabs from '~/app/components/MlflowRunTabs';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 
 const EvaluationEventLog = React.lazy(() => import('~/app/components/EvaluationEventLog'));
-
-interface MlflowRunTabsProps {
-  experimentId: string;
-  runUuid: string;
-  workspace?: string;
-}
-
-const MlflowRunTabs = React.lazy(() =>
-  loadRemote<{ default: React.ComponentType<MlflowRunTabsProps> }>(
-    'mlflowEmbedded/MlflowRunTabsWrapper',
-  )
-    .then((mod) => mod ?? { default: () => null })
-    .catch(() => ({ default: () => null })),
-);
 
 const DEFAULT_VISIBLE_BENCHMARKS = 4;
 
@@ -312,20 +298,12 @@ const EvaluationResultsPage: React.FC = () => {
             {/* MLflow run tabs for the selected benchmark */}
             {deploymentMode === DeploymentMode.Federated && mlflowExperimentId && mlflowRunId && (
               <div className="pf-v6-u-mt-lg" data-testid="mlflow-run-tabs-section">
-                <React.Suspense
-                  fallback={
-                    <Bullseye>
-                      <Spinner />
-                    </Bullseye>
-                  }
-                >
-                  <MlflowRunTabs
-                    key={mlflowRunTabsKey}
-                    experimentId={mlflowExperimentId}
-                    runUuid={mlflowRunId}
-                    workspace={namespace}
-                  />
-                </React.Suspense>
+                <MlflowRunTabs
+                  key={mlflowRunTabsKey}
+                  experimentId={mlflowExperimentId}
+                  runUuid={mlflowRunId}
+                  workspace={namespace}
+                />
               </div>
             )}
           </div>
