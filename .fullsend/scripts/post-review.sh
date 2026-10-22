@@ -669,12 +669,14 @@ def inline_text(text):
 def markdown_prose(text):
     """Agent/Jira-echoed prose that may keep newlines and Markdown styling.
 
-    Strips HTML comments (concealment), escapes raw `<` (no HTML expected),
-    and keeps newlines so multi-line Markdown remains readable. Unlike
-    inline_text(), does not flatten newlines.
+    Strips HTML comments (concealment) before clean()/mention suppression so
+    values like `@<!-- conceal -->org/team` cannot reassemble into a live
+    mention. Escapes raw `<` (no HTML expected) and keeps newlines so
+    multi-line Markdown remains readable. Unlike inline_text(), does not
+    flatten newlines.
     """
-    body = re.sub(r"<!--.*?-->", "", clean(text), flags=re.S)
-    return body.replace("<", "&lt;")
+    stripped = re.sub(r"<!--.*?-->", "", str(text or ""), flags=re.S)
+    return clean(stripped).replace("<", "&lt;")
 
 def prose_bullet_lines(items):
     """Render prose array items as Markdown bullets with indented continuations."""
@@ -1842,14 +1844,15 @@ JSON
     echo "PASS pa-hostile: issue links and labels escaped hostile metadata"
   fi
 
-  # Hostile aligned/mismatched prose: strip comments, escape HTML, keep newlines.
-  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Matches.\\n\\n<!-- hide -->\\n## Injected\\n<script>alert(1)</script>\"],\"mismatched\":[\"Drift.\\n<!-- x -->\\n<details>\"]}]}}" > "${tmp}/pa-prose.json"
+  # Hostile aligned/mismatched prose: strip comments before mention suppression,
+  # escape HTML, keep newlines. Comment-separated @mentions must not go live.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Matches.\\n\\n<!-- hide -->\\n## Injected\\n<script>alert(1)</script>\\n@<!-- conceal -->org/team\"],\"mismatched\":[\"Drift.\\n<!-- x -->\\n<details>\\n@<!-- hide -->alice\"]}]}}" > "${tmp}/pa-prose.json"
   render_jira_fixture pa-prose
   body=$(jq -r .body "${tmp}/pa-prose-out.json")
   if ! grep -qF 'Matches.' <<<"${body}"; then
     echo "FAIL pa-prose: aligned prose missing" >&2
     fail=1
-  elif grep -qF '<!-- hide -->' <<<"${body}" || grep -qF '<!-- x -->' <<<"${body}"; then
+  elif grep -qF -e '<!-- hide -->' -e '<!-- x -->' -e '<!-- conceal -->' <<<"${body}"; then
     echo "FAIL pa-prose: injected HTML comment leaked into body" >&2
     fail=1
   elif grep -qF '<script>' <<<"${body}"; then
@@ -1867,8 +1870,11 @@ JSON
   elif ! grep -qE '^  ## Injected$' <<<"${body}"; then
     echo "FAIL pa-prose: multi-line prose was not kept as list continuation" >&2
     fail=1
+  elif grep -qF -e '@org/team' -e '@alice' <<<"${body}"; then
+    echo "FAIL pa-prose: comment-separated mention became a live @mention" >&2
+    fail=1
   else
-    echo "PASS pa-prose: comments stripped, HTML escaped, newlines kept"
+    echo "PASS pa-prose: comments stripped, HTML escaped, newlines kept, mentions suppressed"
   fi
 
   # Legacy product-ask without issues: same block as before.

@@ -169,7 +169,7 @@ if base and user and token:
             issues.append(entry)
         except urllib.error.HTTPError as exc:
             issues.append({"key": k, "status": "error", "reason": f"http-{exc.code}"})
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        except Exception as exc:
             issues.append({"key": k, "status": "error", "reason": type(exc).__name__})
 
     ok_issues = [i for i in issues if i.get("status") != "error"]
@@ -431,6 +431,56 @@ data = json.load(open(sys.argv[1], encoding="utf-8"))
 assert data["status"] == "ok", data
 assert len(data["issues"]) == 2, data
 print("PASS jira-snapshot: precomputed context with issues preserved")
+PY
+
+  # Unexpected per-key failures (e.g. UnicodeDecodeError) must be recorded
+  # and must not abort processing of later keys. Mirrors the producer loop.
+  python3 - <<'PY'
+import json, urllib.error
+
+keys = ["RHOAIENG-1", "RHOAIENG-2"]
+issues = []
+
+
+class Boom:
+    def __enter__(self):
+        raise UnicodeDecodeError("utf-8", b"", 0, 1, "boom")
+
+    def __exit__(self, *a):
+        return False
+
+
+class OkResp:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return json.dumps({
+            "fields": {
+                "summary": "ok",
+                "description": "d",
+                "status": {"name": "Open"},
+            }
+        }).encode()
+
+
+responses = iter([Boom(), OkResp()])
+for k in keys:
+    try:
+        with next(responses) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        issues.append({"key": k, "status": "ok", "summary": data["fields"]["summary"]})
+    except urllib.error.HTTPError as exc:
+        issues.append({"key": k, "status": "error", "reason": f"http-{exc.code}"})
+    except Exception as exc:
+        issues.append({"key": k, "status": "error", "reason": type(exc).__name__})
+
+assert issues[0] == {"key": "RHOAIENG-1", "status": "error", "reason": "UnicodeDecodeError"}, issues
+assert issues[1] == {"key": "RHOAIENG-2", "status": "ok", "summary": "ok"}, issues
+print("PASS jira-snapshot: unexpected per-key failure recorded; loop continues")
 PY
 
   # The row that reads the snapshot names it by its sandbox path, which is the
