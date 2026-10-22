@@ -85,6 +85,15 @@ const extensions: Extension[] = [
     },
   } satisfies HrefNavItemExtension,
 
+  // Hide the Playground navigation item in the MaaS Portal.
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'app.navigation/href',
+      targetId: 'chat-playground',
+    },
+  } satisfies SuppressExtension,
+
   // Patch package-owned nav items: clear section (flatten) and set top-level group order
   {
     type: 'app.patch',
@@ -100,14 +109,6 @@ const extensions: Extension[] = [
       targetType: 'app.navigation/href',
       targetId: 'maas-tokens-subscriptions-view',
       patch: { section: null, group: '2_api_keys' },
-    },
-  } satisfies PatchExtension<NavPatch>,
-  {
-    type: 'app.patch',
-    properties: {
-      targetType: 'app.navigation/href',
-      targetId: 'chat-playground',
-      patch: { section: null, group: '3_playground', label: null },
     },
   } satisfies PatchExtension<NavPatch>,
   {
