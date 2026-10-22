@@ -246,6 +246,64 @@ func TestClient_UploadObject(t *testing.T) {
 	})
 }
 
+// NetApp ONTAP S3 rejects the streaming checksum trailer used by older AWS
+// transfer manager versions for small PutObject requests.
+func TestDefaultClient_UploadObjectWithoutChecksumTrailer(t *testing.T) {
+	const content = "small PDF payload"
+	var receivedBody string
+	var receivedSHA256 string
+
+	c := NewDefaultClient(ClientConfig{
+		WrapTransport: func(http.RoundTripper) http.RoundTripper {
+			return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				receivedSHA256 = req.Header.Get("X-Amz-Content-Sha256")
+				if got := req.Header.Get("If-None-Match"); got != "*" {
+					t.Errorf("If-None-Match = %q, want *", got)
+				}
+				if receivedSHA256 == "STREAMING-UNSIGNED-PAYLOAD-TRAILER" || req.Header.Get("X-Amz-Trailer") != "" {
+					return &http.Response{
+						StatusCode: http.StatusBadRequest,
+						Header:     http.Header{"Content-Type": []string{"application/xml"}},
+						Body:       io.NopCloser(strings.NewReader("<Error><Code>InvalidArgument</Code><Message>x-amz-content-sha256 must be UNSIGNED-PAYLOAD, STREAMING-AWS4-HMAC-SHA256-PAYLOAD or a valid sha256 value</Message></Error>")),
+						Request:    req,
+					}, nil
+				}
+
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				receivedBody = string(body)
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     http.Header{"Etag": []string{"\"test-etag\""}},
+					Body:       io.NopCloser(strings.NewReader("")),
+					Request:    req,
+				}, nil
+			})
+		},
+	})
+
+	err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{
+		Bucket: "bucket", Key: "file.pdf", Body: io.LimitReader(strings.NewReader(content), int64(len(content))), ContentType: "application/pdf",
+	})
+	if err != nil {
+		t.Fatalf("small upload rejected by strict S3 endpoint (x-amz-content-sha256=%q): %v", receivedSHA256, err)
+	}
+	if receivedSHA256 != "UNSIGNED-PAYLOAD" {
+		t.Errorf("x-amz-content-sha256 = %q, want UNSIGNED-PAYLOAD", receivedSHA256)
+	}
+	if receivedBody != content {
+		t.Errorf("uploaded body = %q, want %q", receivedBody, content)
+	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
 // --- ListObjects ---
 
 func TestClient_ListObjects(t *testing.T) {

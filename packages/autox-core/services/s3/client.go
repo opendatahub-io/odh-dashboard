@@ -300,6 +300,9 @@ func (p *awsClientProvider) CreateTransferClient(opts ConnectionOptions) (Transf
 		o.GetObjectBufferSize = cfg.GetObjectBufSize
 		o.PartBodyMaxRetries = cfg.PartBodyMaxRetries
 		o.DisableChecksumValidation = false
+		// Some S3-compatible stores reject the optional CRC32 streaming trailer.
+		// Required checksums are still calculated when the operation needs one.
+		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 	}), nil
 }
 
@@ -319,8 +322,9 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 			opts.SecretAccessKey,
 			"",
 		),
-		RetryMaxAttempts: 1,
-		HTTPClient:       p.buildHTTPClient(),
+		RetryMaxAttempts:           1,
+		HTTPClient:                 p.buildHTTPClient(),
+		RequestChecksumCalculation: aws.RequestChecksumCalculationWhenRequired,
 	}
 
 	return awss3.NewFromConfig(awsCfg, func(o *awss3.Options) {
