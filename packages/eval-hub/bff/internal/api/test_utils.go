@@ -203,8 +203,8 @@ type erroringEHClient struct{}
 func (e *erroringEHClient) HealthCheck(_ context.Context, _ string) (*evalhub.HealthResponse, error) {
 	return nil, fmt.Errorf("connection refused")
 }
-func (e *erroringEHClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {
-	return nil, nil
+func (e *erroringEHClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) (evalhub.EvaluationJobsResult, error) {
+	return evalhub.EvaluationJobsResult{}, nil
 }
 func (e *erroringEHClient) GetEvaluationJob(_ context.Context, _ string, _ string) (*evalhub.EvaluationJob, error) {
 	return nil, nil

@@ -1114,7 +1114,7 @@ describe('getEvaluationJobs', () => {
     mockIsModArchResponse.mockReturnValue(true);
     const opts = { headers: { 'X-Test': 'value' } };
 
-    await getEvaluationJobs('', { namespace: 'my-ns' })(opts);
+    const result = await getEvaluationJobs('', { namespace: 'my-ns' })(opts);
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
@@ -1127,6 +1127,20 @@ describe('getEvaluationJobs', () => {
         },
       },
     );
+    expect(result).toEqual({ jobs: [], totalCount: 0, truncated: false });
+  });
+
+  it('should parse list metadata from the BFF response envelope', async () => {
+    const job = { resource: { id: 'job-1' } } as EvaluationJob;
+    mockRestGET.mockResolvedValue({
+      data: [job],
+      metadata: { total_count: 2500, truncated: true },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getEvaluationJobs('', { namespace: 'my-ns' })({});
+
+    expect(result).toEqual({ jobs: [job], totalCount: 2500, truncated: true });
   });
 });
 

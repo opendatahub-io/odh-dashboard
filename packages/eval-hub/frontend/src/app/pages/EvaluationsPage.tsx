@@ -81,11 +81,12 @@ const EvaluationsPage: React.FC = () => {
 
   const { isHealthy, loaded: healthLoaded, error: healthError } = useEvalHubHealth(namespace);
 
-  const [evaluations, loaded, error, refreshEvaluations] = useEvaluationJobs(
+  const [evaluationsResult, loaded, error, refreshEvaluations] = useEvaluationJobs(
     { namespace },
     !isHealthy,
     isPollingEnabled,
   );
+  const evaluations = evaluationsResult.jobs;
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
   const [selectedJob, setSelectedJob] = React.useState<
     { job: EvaluationJob; namespace: string } | undefined
@@ -395,11 +396,29 @@ const EvaluationsPage: React.FC = () => {
                         <StackItem>
                           <Content
                             component="p"
-                            className="evalhub-runs-tab__description"
+                            className={`evalhub-runs-tab__description${
+                              evaluationsResult.truncated
+                                ? ' evalhub-runs-tab__description--with-alert'
+                                : ''
+                            }`}
                             data-testid="runs-tab-description"
                           >
                             {RUNS_DESCRIPTION}
                           </Content>
+                        </StackItem>
+                      )}
+                      {evaluationsResult.truncated && (
+                        <StackItem>
+                          <Alert
+                            variant="warning"
+                            isInline
+                            title="Evaluation runs list is incomplete"
+                            className="pf-v6-u-mb-md"
+                            data-testid="evaluations-truncated-alert"
+                          >
+                            Showing {evaluations.length} of {evaluationsResult.totalCount}{' '}
+                            evaluation runs.
+                          </Alert>
                         </StackItem>
                       )}
                       <StackItem>
