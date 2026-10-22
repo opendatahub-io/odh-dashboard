@@ -22,6 +22,8 @@ const benchmark: CopySuiteBenchmark = {
   availableMetrics: [],
 };
 
+const JUDGE_MODEL_KEY = 'judge_model';
+
 const renderSection = (
   overrides: Partial<React.ComponentProps<typeof CopySuiteBenchmarkSection>> = {},
 ) =>
@@ -87,6 +89,52 @@ describe('CopySuiteBenchmarkSection', () => {
       'parameters',
       expect.arrayContaining([{ key: 'enabled', type: 'boolean', value: false }]),
     );
+  });
+
+  it('should mark configured parameters as required and show their descriptions', () => {
+    renderSection({
+      benchmark: {
+        ...benchmark,
+        parameters: [
+          { key: JUDGE_MODEL_KEY, type: 'text', value: 'gpt-4o' },
+          { key: 'other', type: 'text', value: 'value' },
+        ],
+      },
+      parameterConfig: {
+        [JUDGE_MODEL_KEY]: {
+          required: true,
+          description: 'The language model used to score and evaluate the responses.',
+        },
+      },
+    });
+
+    expect(screen.getByText('Judge model')).toBeInTheDocument();
+    expect(screen.getByTestId(`benchmark-0-parameter-help-${JUDGE_MODEL_KEY}`)).toHaveTextContent(
+      'The language model used to score and evaluate the responses.',
+    );
+    expect(screen.queryByTestId('benchmark-0-parameter-help-other')).not.toBeInTheDocument();
+  });
+
+  it('should surface required parameter validation errors only after the field is edited', () => {
+    renderSection({
+      benchmark: {
+        ...benchmark,
+        parameters: [{ key: JUDGE_MODEL_KEY, type: 'text', value: 'gpt-4o' }],
+      },
+      parameterErrors: { [JUDGE_MODEL_KEY]: 'Judge model is required.' },
+    });
+
+    expect(
+      screen.queryByTestId(`benchmark-0-parameter-error-${JUDGE_MODEL_KEY}`),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Judge model')).not.toHaveAttribute('aria-invalid', 'true');
+
+    fireEvent.change(screen.getByLabelText('Judge model'), { target: { value: '' } });
+
+    expect(screen.getByTestId(`benchmark-0-parameter-error-${JUDGE_MODEL_KEY}`)).toHaveTextContent(
+      'Judge model is required.',
+    );
+    expect(screen.getByLabelText('Judge model')).toHaveAttribute('aria-invalid', 'true');
   });
 
   it('should close and disable a primary-metric menu when interaction is locked', async () => {

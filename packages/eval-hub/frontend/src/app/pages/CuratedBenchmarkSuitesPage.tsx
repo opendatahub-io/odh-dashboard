@@ -25,11 +25,7 @@ import {
 import type { Collection } from '~/app/types';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import {
-  CURATED_COLLECTION_PREREQUISITES,
-  CURATED_SUITE_PAGE_CONFIG,
-  isCuratedEvaluationTarget,
-} from '~/app/curatedSuiteConfig';
+import { CURATED_SUITE_PAGE_CONFIG, isCuratedEvaluationTarget } from '~/app/curatedSuiteConfig';
 import './BenchmarkSuitesPage.scss';
 
 const CuratedBenchmarkSuitesPage: React.FC = () => {
@@ -133,7 +129,6 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
               onCustomizeCollection={handleCustomizeCollection}
               isSystemCollection
               primaryActionLabel="Run"
-              prerequisites={CURATED_COLLECTION_PREREQUISITES}
             />
           }
         >
@@ -179,7 +174,6 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
                     showPagination
                     showContextualActions={false}
                     trackingSurface="collection_gallery"
-                    prerequisites={CURATED_COLLECTION_PREREQUISITES}
                     primaryActionLabel="Run"
                     primaryActionVariant="secondary"
                     dropdownActionLabel="Customize"

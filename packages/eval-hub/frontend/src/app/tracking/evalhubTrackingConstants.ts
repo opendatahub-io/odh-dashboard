@@ -201,7 +201,8 @@ export type BenchmarkCatalogOpenedProperties = {
   surface: EvalHubCollectionSurface;
 };
 
-export type BenchmarkCatalogFilterType = 'category' | 'framework' | 'metric' | 'search';
+export type BenchmarkCatalogFilterType =
+  'category' | 'evaluates' | 'framework' | 'metric' | 'search';
 
 export type BenchmarkCatalogFilterAppliedProperties = {
   filterType: BenchmarkCatalogFilterType;

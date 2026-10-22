@@ -162,9 +162,6 @@ describe('CollectionDrawerPanel', () => {
               onRunCollection={onRunCollection}
               onCustomizeCollection={onCustomizeCollection}
               isSystemCollection
-              prerequisites={{
-                'tool-use-v1': 'Requires a model that supports multiple tool/function calls.',
-              }}
             />
           }
         >
@@ -174,7 +171,7 @@ describe('CollectionDrawerPanel', () => {
     );
 
     expect(screen.getByTestId('collection-drawer-prerequisite')).toHaveTextContent(
-      'Requires a model that supports multiple tool/function calls.',
+      'The model you are evaluating must support multiple tool/function calls.',
     );
     expect(screen.getByTestId('collection-drawer-prerequisite')).toHaveClass('pf-m-info');
     expect(screen.getByTestId('collection-drawer-prerequisite')).not.toHaveClass('pf-m-warning');
@@ -242,9 +239,6 @@ describe('CollectionDrawerPanel', () => {
               onClose={jest.fn()}
               onRunCollection={onRunCollection}
               onCustomizeCollection={onCustomizeCollection}
-              prerequisites={{
-                'tool-use-v1': 'Requires a model that supports multiple tool/function calls.',
-              }}
             />
           }
         >

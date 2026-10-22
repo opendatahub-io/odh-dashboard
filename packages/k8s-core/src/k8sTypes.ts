@@ -314,6 +314,7 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  inferencePriorityField?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;

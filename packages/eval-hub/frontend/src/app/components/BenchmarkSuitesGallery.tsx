@@ -15,7 +15,6 @@ import {
   Pagination,
   SearchInput,
   Spinner,
-  StackItem,
   Title,
   Toolbar,
   ToolbarContent,
@@ -37,12 +36,11 @@ import {
   TagsIcon,
   TasksIcon,
 } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
 import useSearchInputTracking from '~/app/hooks/useSearchInputTracking';
-import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
+import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import BenchmarkSuiteCard, { isPopularCollection } from '~/app/components/BenchmarkSuiteCard';
 import BenchmarkSuiteCardSkeleton from '~/app/components/BenchmarkSuiteCardSkeleton';
 import type { BenchmarkSuiteCardAction } from '~/app/components/BenchmarkSuiteCard';
@@ -168,6 +166,36 @@ const sortCollectionsByName = (collections: Collection[]): Collection[] =>
     return nameComparison || first.resource.id.localeCompare(second.resource.id);
   });
 
+const getCollectionCreatedAt = (collection: Collection): number | undefined => {
+  if (!collection.resource.created_at) {
+    return undefined;
+  }
+
+  const timestamp = Date.parse(collection.resource.created_at);
+  return Number.isNaN(timestamp) ? undefined : timestamp;
+};
+
+const sortCollectionsByCreatedAt = (collections: Collection[]): Collection[] =>
+  [...collections].toSorted((first, second) => {
+    const firstCreatedAt = getCollectionCreatedAt(first);
+    const secondCreatedAt = getCollectionCreatedAt(second);
+
+    if (firstCreatedAt == null && secondCreatedAt != null) {
+      return 1;
+    }
+    if (firstCreatedAt != null && secondCreatedAt == null) {
+      return -1;
+    }
+    if (firstCreatedAt != null && secondCreatedAt != null && firstCreatedAt !== secondCreatedAt) {
+      return secondCreatedAt - firstCreatedAt;
+    }
+
+    const nameComparison = first.name.localeCompare(second.name, undefined, {
+      sensitivity: 'base',
+    });
+    return nameComparison || first.resource.id.localeCompare(second.resource.id);
+  });
+
 const areStringArraysEqual = (first: string[], second: string[]): boolean =>
   first.length === second.length && first.every((value, index) => value === second[index]);
 
@@ -219,7 +247,6 @@ type BenchmarkSuitesGalleryProps = {
   namespace: string;
   benchmarkNameMap?: BenchmarkNameMap;
   maxVisibleCollections?: number;
-  showSummary?: boolean;
   showCreateSuiteCard?: boolean;
   showFilters?: boolean;
   showEvaluatesFilter?: boolean;
@@ -231,7 +258,6 @@ type BenchmarkSuitesGalleryProps = {
   queryFilters?: CollectionFilterParams;
   // System collections without a curation order are not part of the curated gallery.
   requireCuratedIndex?: boolean;
-  prerequisites?: Record<string, string>;
   primaryActionLabel?: string;
   primaryActionRoute?: (collection: Collection) => string;
   primaryActionState?: unknown;
@@ -255,7 +281,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   namespace,
   benchmarkNameMap,
   maxVisibleCollections,
-  showSummary = false,
   showCreateSuiteCard = true,
   showFilters = false,
   showEvaluatesFilter = true,
@@ -266,7 +291,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   trackingSurface = 'collection_gallery',
   queryFilters,
   requireCuratedIndex = false,
-  prerequisites,
   primaryActionLabel = 'Run',
   primaryActionRoute,
   primaryActionState,
@@ -392,7 +416,9 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     ? requireCuratedIndex || isClientSideFiltering || !showPaginationControls
       ? COLLECTION_FETCH_LIMIT
       : pageSize
-    : maxVisibleCollections;
+    : maxVisibleCollections
+      ? COLLECTION_FETCH_LIMIT
+      : undefined;
   const queryOffset =
     showPaginationControls && showPagination && !isClientSideFiltering && !requireCuratedIndex
       ? (page - 1) * pageSize
@@ -401,6 +427,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   // User-selected gallery filters are applied locally against the fetched collection set. When a
   // filter is active, that set is intentionally capped at COLLECTION_FETCH_LIMIT until filtering
   // and filter-option discovery move fully to the API.
+  // TODO: Use API-side filtering and created_at ordering here; fetching 200 and sorting client-side
+  // is only a temporary approximation and may miss newer collections beyond this limit.
   const { data, isLoading, isFetching, error, refetch } = useCollectionsQuery(
     namespace,
     scope,
@@ -476,7 +504,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   ]);
   const sourceCollections = React.useMemo(() => {
     const orderedCollections =
-      scope === 'tenant' ? sortCollectionsByName(collections) : collections;
+      scope === 'tenant'
+        ? maxVisibleCollections
+          ? sortCollectionsByCreatedAt(collections)
+          : sortCollectionsByName(collections)
+        : collections;
     return maxVisibleCollections
       ? orderedCollections.slice(0, maxVisibleCollections)
       : orderedCollections;
@@ -746,7 +778,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     tagOptions.length > 0 ||
     taskOptions.length > 0,
   );
-
   React.useEffect(() => {
     if (page > maxPage) {
       setPage(maxPage);
@@ -761,7 +792,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     industryFilter,
     metricFilter,
     modalityFilter,
-    maxVisibleCollections,
     nameFilter,
     namespace,
     tagFilter,
@@ -1339,7 +1369,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             )}
             {visibleCollections.map((collection) => {
               const prerequisite = !collection.resource.tenant
-                ? prerequisites?.[collection.resource.id]
+                ? getCuratedCollectionConfig(collection)?.prerequisite.short
                 : undefined;
               const hasPrerequisite = Boolean(prerequisite);
 
@@ -1393,20 +1423,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             </Bullseye>
           )}
         </div>
-      )}
-      {showSummary && !isLoading && !shouldShowLoadError && totalCount > 0 && (
-        <StackItem className="evalhub-evaluate-tab__summary" data-testid="benchmark-suites-summary">
-          <Link
-            to={evaluationBenchmarkSuitesRoute(namespace)}
-            onClick={() =>
-              trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_ALL_SUITES_OPENED, {
-                surface: trackingSurface,
-              })
-            }
-          >
-            View all my benchmark collections
-          </Link>
-        </StackItem>
       )}
       {collectionToDelete && (
         <DeleteConfirmationModal

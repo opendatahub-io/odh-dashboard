@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -271,6 +272,11 @@ describe('EvaluationsPage', () => {
       .map((collection, index) => ({
         ...collection,
         resource: { ...collection.resource, id: ids[index] },
+        benchmarks: collection.benchmarks?.map((benchmark, benchmarkIndex) =>
+          index === 0 && benchmarkIndex === 0
+            ? { ...benchmark, parameters: { ...benchmark.parameters, judge_model: '' } }
+            : benchmark,
+        ),
       }));
     mockUseCollectionsQuery.mockImplementation((_namespace: string, scope?: string) => ({
       data: {
@@ -677,7 +683,7 @@ describe('EvaluationsPage', () => {
     );
   });
 
-  it('should render tenant benchmark suites in alphabetical order', () => {
+  it('should render the tenant benchmark suites in newest-first order on the preview', () => {
     const suiteIds = [
       'agent-safety-suite',
       'code-quality-suite',
@@ -685,9 +691,65 @@ describe('EvaluationsPage', () => {
       'model-suite-7',
       'trace-evaluation-suite',
     ];
+    const createdAtBySuiteId: Record<string, string> = {
+      'agent-safety-suite': '2026-10-01T12:00:00Z',
+      'code-quality-suite': '2026-10-04T12:00:00Z',
+      'model-suite-2': '2026-10-03T12:00:00Z',
+      'model-suite-7': '2026-10-05T12:00:00Z',
+      'trace-evaluation-suite': '2026-10-02T12:00:00Z',
+    };
     const collections = mockBenchmarkSuiteCollections()
       .filter(({ resource }) => suiteIds.includes(resource.id))
+      .map((collection) => ({
+        ...collection,
+        resource: {
+          ...collection.resource,
+          // eslint-disable-next-line camelcase
+          created_at: createdAtBySuiteId[collection.resource.id],
+        },
+      }))
       .toReversed();
+    mockUseCollectionsQuery.mockReturnValue({
+      // eslint-disable-next-line camelcase
+      data: { items: collections, total_count: 125 },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage('test-project', '?tab=evaluate');
+
+    expect(
+      screen.getByRole('heading', { name: 'Recent benchmark collections' }),
+    ).toBeInTheDocument();
+
+    const expectedOrder = [
+      'model-suite-7',
+      'code-quality-suite',
+      'model-suite-2',
+      'trace-evaluation-suite',
+      'agent-safety-suite',
+    ];
+    expectedOrder.slice(0, -1).forEach((suiteId, index) => {
+      expect(
+        screen
+          .getByTestId(`benchmark-suite-card-name-${suiteId}`)
+          .compareDocumentPosition(
+            screen.getByTestId(`benchmark-suite-card-name-${expectedOrder[index + 1]}`),
+          ),
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
+      'test-project',
+      'tenant',
+      200,
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('should always show the recent collections heading while keeping View all', () => {
+    const collections = mockBenchmarkSuiteCollections().slice(0, 5);
     mockUseCollectionsQuery.mockReturnValue({
       // eslint-disable-next-line camelcase
       data: { items: collections, total_count: collections.length },
@@ -697,30 +759,26 @@ describe('EvaluationsPage', () => {
 
     renderPage('test-project', '?tab=evaluate');
 
-    suiteIds.slice(0, -1).forEach((suiteId, index) => {
-      expect(
-        screen
-          .getByTestId(`benchmark-suite-card-name-${suiteId}`)
-          .compareDocumentPosition(
-            screen.getByTestId(`benchmark-suite-card-name-${suiteIds[index + 1]}`),
-          ),
-      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    });
+    expect(
+      screen.getByRole('heading', { name: 'Recent benchmark collections' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View all' })).toBeInTheDocument();
   });
 
-  it('should link to the tenant benchmark collections page', () => {
+  it('should link to the tenant benchmark collections page from the section header', () => {
     renderPage('test-project', '?tab=evaluate');
 
-    expect(screen.getByRole('link', { name: 'View all my benchmark collections' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute(
       'href',
       '/evaluation/test-project/collections',
     );
   });
 
-  it('should link to the single benchmark flow from the browse benchmarks section', () => {
+  it('should hide Red Hat validated collections until more evaluation targets are available', () => {
     renderPage('test-project', '?tab=evaluate');
 
     expect(screen.queryByTestId('start-single-benchmark-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('curated-suite-categories')).not.toBeInTheDocument();
     expect(screen.getByTestId('browse-all-benchmarks')).toBeInTheDocument();
     expect(screen.getByTestId('browse-all-benchmarks-explore')).toHaveAttribute(
       'href',

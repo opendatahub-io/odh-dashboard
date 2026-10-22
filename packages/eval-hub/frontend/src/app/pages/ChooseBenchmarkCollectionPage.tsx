@@ -54,7 +54,7 @@ import {
 } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
-import { CURATED_COLLECTION_PREREQUISITES } from '~/app/curatedSuiteConfig';
+import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import {
   formatCategory,
   getCategoryColor,
@@ -164,11 +164,6 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             onClose={() => setSelectedCollection(undefined)}
             onRunCollection={navigateToRun}
             onCustomizeCollection={handleCustomizeCollection}
-            prerequisites={
-              selectedCollection && !selectedCollection.resource.tenant
-                ? CURATED_COLLECTION_PREREQUISITES
-                : undefined
-            }
           />
         }
       >
@@ -350,7 +345,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                     const collectionCategory = getCollectionCategoryValues(collection)[0];
                     const prerequisite = collection.resource.tenant
                       ? undefined
-                      : CURATED_COLLECTION_PREREQUISITES[collection.resource.id];
+                      : getCuratedCollectionConfig(collection)?.prerequisite;
                     return (
                       <Card
                         key={collection.resource.id}

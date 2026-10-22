@@ -31,6 +31,7 @@ import { ChartLineIcon, SearchIcon } from '@patternfly/react-icons';
 import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import SearchableMultiSelectFilter from './SearchableMultiSelectFilter';
 import { formatCollectionMetadataValue, getMetricDisplayName } from './benchmarkUtils';
@@ -48,7 +49,6 @@ type CollectionDrawerPanelProps = {
   onCustomizeCollection?: (c: Collection) => void;
   isSystemCollection?: boolean;
   primaryActionLabel?: string;
-  prerequisites?: Record<string, string>;
 };
 
 type CollectionLabelSectionProps = {
@@ -256,7 +256,6 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   onCustomizeCollection,
   isSystemCollection = false,
   primaryActionLabel = 'Select collection',
-  prerequisites,
 }) => {
   const availableMetrics = React.useMemo(() => {
     const metricSet = new Set<string>();
@@ -324,7 +323,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
 
   const prerequisite = collection.resource.tenant
     ? undefined
-    : prerequisites?.[collection.resource.id];
+    : getCuratedCollectionConfig(collection)?.prerequisite.long;
   const showCustomize = Boolean(onCustomizeCollection && (isSystemCollection || prerequisite));
 
   return (

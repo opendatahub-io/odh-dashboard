@@ -47,7 +47,6 @@ import EvaluationsTable from '~/app/components/EvaluationsTable';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
-import { CURATED_COLLECTION_PREREQUISITES } from '~/app/curatedSuiteConfig';
 import type { Collection, EvaluationJob } from '~/app/types';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
@@ -260,9 +259,6 @@ const EvaluationsPage: React.FC = () => {
               onRunCollection={handleDrawerRunCollection}
               onCustomizeCollection={handleDuplicateCollection}
               isSystemCollection={selectedCollectionIsSystem}
-              prerequisites={
-                selectedCollectionIsSystem ? CURATED_COLLECTION_PREREQUISITES : undefined
-              }
               primaryActionLabel="Run"
             />
           }
