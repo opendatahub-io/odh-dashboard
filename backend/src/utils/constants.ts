@@ -118,6 +118,7 @@ export const blankDashboardCR: DashboardConfig = {
       llmGatewayField: false,
       promptManagement: true,
       globalProjectPrompts: false,
+      hardwareProfileDRA: false,
       gpuaas: true,
       modelCapabilities: false,
       grid: false,

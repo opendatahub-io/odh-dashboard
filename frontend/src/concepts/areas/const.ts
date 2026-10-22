@@ -41,6 +41,7 @@ export const techPreviewFlags = {
   agentOps: false,
   dataRegistry: false,
   dataConnectHub: false,
+  hardwareProfileDRA: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -327,6 +328,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
+  },
+  [SupportedArea.HARDWARE_PROFILE_DRA]: {
+    featureFlags: ['hardwareProfileDRA'],
   },
   [SupportedArea.MODEL_CAPABILITIES]: {
     featureFlags: ['modelCapabilities'],

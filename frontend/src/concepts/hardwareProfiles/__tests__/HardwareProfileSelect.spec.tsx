@@ -13,6 +13,11 @@ import {
   useKueueConfiguration,
   KueueFilteringState,
 } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
+import {
+  useResourceClaimTemplateNames,
+  type ResourceClaimTemplateNamesResult,
+} from '@odh-dashboard/hardware-profiles/shared/useResourceClaimTemplateNames';
+import { useIsDRAHardwareProfileEnabled } from '@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
@@ -30,8 +35,23 @@ jest.mock('@odh-dashboard/hardware-profiles/shared/kueueUtils', () => ({
   useKueueConfiguration: jest.fn(),
 }));
 
+jest.mock('@odh-dashboard/hardware-profiles/shared/useResourceClaimTemplateNames', () => ({
+  useResourceClaimTemplateNames: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled', () => ({
+  useIsDRAHardwareProfileEnabled: jest.fn(),
+}));
+
 const useHardwareProfileConfigMock = jest.mocked(useHardwareProfileConfig);
 const useKueueConfigurationMock = jest.mocked(useKueueConfiguration);
+const useResourceClaimTemplateNamesMock = jest.mocked(useResourceClaimTemplateNames);
+const useIsDRAHardwareProfileEnabledMock = jest.mocked(useIsDRAHardwareProfileEnabled);
+
+beforeEach(() => {
+  useResourceClaimTemplateNamesMock.mockReturnValue({ status: 'unavailable' });
+  useIsDRAHardwareProfileEnabledMock.mockReturnValue(true);
+});
 
 const kueueHardwareProfile = mockHardwareProfile({
   name: 'kueue-profile',
@@ -115,6 +135,8 @@ const renderComponent = (
     useExistingSettings: false,
     setFormData: () => null,
     resetFormData: () => null,
+    excludeDRAProfiles: false,
+    existingBinding: {},
     isFormDataValid: true,
     profilesLoaded: true,
     profilesLoadError: undefined,
@@ -342,7 +364,36 @@ describe('HardwareProfileSelect - Use existing settings', () => {
     expect(within(screen.getByRole('listbox')).getByText('DRA Profile')).toBeInTheDocument();
   });
 
-  it('should drop a DRA profile from the options once another profile is selected', async () => {
+  it('should use the profile name as the test id of each profile option', async () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      displayName: 'DRA Profile',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const otherProfile = mockHardwareProfile({
+      name: 'other-profile',
+      displayName: 'Other Profile',
+    });
+
+    renderComponent(
+      [otherProfile],
+      mockProjectK8sResource({}),
+      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      [],
+      undefined,
+      false,
+      undefined,
+      draProfile,
+      draProfile,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    expect(screen.getByTestId('other-profile')).toHaveTextContent('Other Profile');
+    expect(screen.getByTestId('dra-profile')).toHaveTextContent('DRA Profile');
+  });
+
+  it('should keep a DRA profile in the options once another profile is selected', async () => {
     const draProfile = mockHardwareProfile({
       name: 'dra-profile',
       displayName: 'DRA Profile',
@@ -368,8 +419,39 @@ describe('HardwareProfileSelect - Use existing settings', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
 
-    expect(within(screen.getByRole('listbox')).queryByText('DRA Profile')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('listbox')).getByText('DRA Profile')).toBeInTheDocument();
     expect(within(screen.getByRole('listbox')).getByText('Other Profile')).toBeInTheDocument();
+  });
+
+  it('should show the claim template only for DRA profiles in the options', async () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      displayName: 'DRA Profile',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const otherProfile = mockHardwareProfile({
+      name: 'other-profile',
+      displayName: 'Other Profile',
+    });
+    const project = mockProjectK8sResource({});
+
+    renderComponent(
+      [otherProfile, draProfile],
+      project,
+      KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+      [],
+      undefined,
+      false,
+      undefined,
+      undefined,
+      undefined,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    expect(
+      within(screen.getByRole('listbox')).getAllByText('Claim template: single-gpu'),
+    ).toHaveLength(1);
   });
 
   it('should not show "Use existing settings" as the first option when allowExistingSettings is false', async () => {
@@ -580,6 +662,8 @@ describe('HardwareProfileSelect - LocalQueue availability filtering', () => {
       useExistingSettings: false,
       setFormData: () => null,
       resetFormData: () => null,
+      excludeDRAProfiles: false,
+      existingBinding: {},
       isFormDataValid: true,
       profilesLoaded: true,
       profilesLoadError: undefined,
@@ -739,6 +823,8 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
       formData: hardwareProfileConfig,
       setFormData: () => null,
       resetFormData: () => null,
+      excludeDRAProfiles: false,
+      existingBinding: {},
       isFormDataValid: true,
       profilesLoaded: true,
       profilesLoadError: undefined,
@@ -811,6 +897,70 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
     expect(screen.queryByText(/CPU:/)).not.toBeInTheDocument();
   });
 
+  it('should show the claim template of a DRA profile in project-scoped preview', () => {
+    renderProjectScopedPreview({
+      selectedProfile: mockHardwareProfile({
+        name: 'dra-profile',
+        displayName: 'DRA Profile',
+        namespace: 'test-project',
+        dra: { resourceClaimTemplateName: 'single-gpu' },
+      }),
+    });
+
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText('Claim template: single-gpu')).toBeInTheDocument();
+  });
+
+  it('should not show the claim template of a DRA profile in project-scoped preview or options when DRA hardware profiles are disabled', async () => {
+    useIsDRAHardwareProfileEnabledMock.mockReturnValue(false);
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      displayName: 'DRA Profile',
+      namespace: 'test-project',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'my-queue',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    renderProjectScopedPreview({ selectedProfile: draProfile });
+
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.queryByText(/Claim template:/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('hardware-profile-selection-toggle'));
+
+    const projectGroup = within(screen.getByTestId('project-scoped-hardware-profiles'));
+    expect(projectGroup.getByText('DRA Profile')).toBeInTheDocument();
+    expect(projectGroup.queryByText(/Claim template:/)).not.toBeInTheDocument();
+  });
+
+  it('should not show a claim template in project-scoped preview for a profile without DRA', () => {
+    renderProjectScopedPreview({ selectedProfile: profileWithDescriptionAndKueue });
+
+    expect(screen.queryByText(/Claim template:/)).not.toBeInTheDocument();
+  });
+
+  it('should show the claim template of a DRA profile in the project-scoped options', async () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-kueue-profile',
+      displayName: 'DRA Kueue Profile',
+      namespace: 'test-project',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'my-queue',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    renderProjectScopedPreview({
+      projectProfiles: [profileWithDescriptionAndKueue, draProfile],
+    });
+
+    await userEvent.click(screen.getByTestId('hardware-profile-selection-toggle'));
+
+    expect(
+      within(screen.getByTestId('project-scoped-hardware-profiles')).getAllByText(
+        'Claim template: single-gpu',
+      ),
+    ).toHaveLength(1);
+  });
+
   it('should not show preview when previewDescription is false', () => {
     renderProjectScopedPreview({
       selectedProfile: profileWithDescriptionAndKueue,
@@ -842,5 +992,495 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
 
     expect(screen.getByTestId('hardware-profile-selection-toggle')).toBeInTheDocument();
     expect(screen.queryByTestId('hardware-profile-select')).not.toBeInTheDocument();
+  });
+});
+
+describe('HardwareProfileSelect - Original project-scoped profile', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const projectDRAOnlyProfile = mockHardwareProfile({
+    name: 'gpu',
+    namespace: 'test-project',
+    displayName: 'Project GPU',
+    identifiers: [],
+    dra: { resourceClaimTemplateName: 'single-gpu' },
+  });
+  const globalSameNameProfile = mockHardwareProfile({
+    name: 'gpu',
+    namespace: 'opendatahub',
+    displayName: 'Global GPU',
+  });
+  const otherGlobalProfile = mockHardwareProfile({
+    name: 'other',
+    namespace: 'opendatahub',
+    displayName: 'Other Global',
+  });
+
+  const renderWithOriginalProjectProfile = (isProjectScoped: boolean, onChange: jest.Mock) => {
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+    useKueueConfigurationMock.mockReturnValue({
+      isKueueDisabled: false,
+      isKueueFeatureEnabled: true,
+      isProjectKueueEnabled: false,
+      kueueFilteringState: KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+    });
+
+    return render(
+      <CurrentProjectContext.Provider value={{ currentProject: project }}>
+        <ProjectsContext.Provider
+          value={{
+            projects: [project],
+            modelServingProjects: [],
+            nonActiveProjects: [],
+            preferredProject: null,
+            updatePreferredProject: () => undefined,
+            loaded: true,
+            loadError: undefined,
+            waitForProject: () => Promise.resolve(),
+          }}
+        >
+          <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
+            <HardwareProfileSelect
+              isProjectScoped={isProjectScoped}
+              previewDescription={false}
+              hardwareProfiles={[globalSameNameProfile, otherGlobalProfile]}
+              hardwareProfilesLoaded
+              hardwareProfilesError={undefined}
+              projectScopedHardwareProfiles={[[], true, undefined]}
+              allowExistingSettings={false}
+              hardwareProfileConfig={{
+                selectedProfile: otherGlobalProfile,
+                useExistingSettings: false,
+              }}
+              initialHardwareProfile={projectDRAOnlyProfile}
+              isHardwareProfileSupported={() => true}
+              onChange={onChange}
+              project="test-project"
+            />
+          </LocalQueuesContext.Provider>
+        </ProjectsContext.Provider>
+      </CurrentProjectContext.Provider>,
+    );
+  };
+
+  it('should keep the project-scoped dropdown and select the original profile after switching away', async () => {
+    const onChange = jest.fn();
+    renderWithOriginalProjectProfile(true, onChange);
+
+    expect(screen.queryByTestId('hardware-profile-select')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('hardware-profile-selection-toggle'));
+    await userEvent.click(
+      within(screen.getByTestId('project-scoped-hardware-profiles')).getByRole('menuitem', {
+        name: /Project GPU/,
+      }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith(projectDRAOnlyProfile);
+  });
+
+  it('should select the profile from the matching namespace when two profiles share a name', async () => {
+    const onChange = jest.fn();
+    renderWithOriginalProjectProfile(false, onChange);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+    await userEvent.click(within(screen.getByRole('listbox')).getByText('Project GPU'));
+
+    expect(onChange).toHaveBeenCalledWith(projectDRAOnlyProfile);
+  });
+});
+
+describe('HardwareProfileSelect - Missing claim template', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const draMissingProfile = mockHardwareProfile({
+    name: 'dra-missing',
+    displayName: 'DRA Missing',
+    dra: { resourceClaimTemplateName: 'single-mig-partition' },
+  });
+  const draPresentProfile = mockHardwareProfile({
+    name: 'dra-present',
+    displayName: 'DRA Present',
+    dra: { resourceClaimTemplateName: 'single-gpu' },
+  });
+  const missingTemplateText =
+    'The claim template single-mig-partition does not exist in this project. Ask your administrator to create it, or select a different hardware profile.';
+
+  const renderWithClaimTemplates = ({
+    hardwareProfiles,
+    isProjectScoped = false,
+    projectScopedHardwareProfiles = [],
+    initialHardwareProfile,
+    selectedProfile,
+    onChange = jest.fn(),
+    claimTemplateNames,
+  }: {
+    hardwareProfiles: HardwareProfileKind[];
+    isProjectScoped?: boolean;
+    projectScopedHardwareProfiles?: HardwareProfileKind[];
+    initialHardwareProfile?: HardwareProfileKind;
+    selectedProfile?: HardwareProfileKind;
+    onChange?: jest.Mock;
+    claimTemplateNames?: ResourceClaimTemplateNamesResult;
+  }) => {
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+    useKueueConfigurationMock.mockReturnValue({
+      isKueueDisabled: false,
+      isKueueFeatureEnabled: true,
+      isProjectKueueEnabled: false,
+      kueueFilteringState: KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+    });
+
+    return render(
+      <CurrentProjectContext.Provider value={{ currentProject: project }}>
+        <ProjectsContext.Provider
+          value={{
+            projects: [project],
+            modelServingProjects: [],
+            nonActiveProjects: [],
+            preferredProject: null,
+            updatePreferredProject: () => undefined,
+            loaded: true,
+            loadError: undefined,
+            waitForProject: () => Promise.resolve(),
+          }}
+        >
+          <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
+            <HardwareProfileSelect
+              isProjectScoped={isProjectScoped}
+              previewDescription={false}
+              hardwareProfiles={hardwareProfiles}
+              hardwareProfilesLoaded
+              hardwareProfilesError={undefined}
+              projectScopedHardwareProfiles={[projectScopedHardwareProfiles, true, undefined]}
+              allowExistingSettings={false}
+              hardwareProfileConfig={{ selectedProfile, useExistingSettings: false }}
+              initialHardwareProfile={initialHardwareProfile}
+              isHardwareProfileSupported={() => false}
+              onChange={onChange}
+              project="test-project"
+              claimTemplateNames={claimTemplateNames}
+            />
+          </LocalQueuesContext.Provider>
+        </ProjectsContext.Provider>
+      </CurrentProjectContext.Provider>,
+    );
+  };
+
+  it('should disable a DRA profile whose claim template is missing from the project and explain why', async () => {
+    useResourceClaimTemplateNamesMock.mockReturnValue({
+      status: 'ready',
+      names: new Set(['single-gpu']),
+    });
+    const onChange = jest.fn();
+    renderWithClaimTemplates({
+      hardwareProfiles: [nodeHardwareProfile, draMissingProfile, draPresentProfile],
+      onChange,
+    });
+
+    expect(useResourceClaimTemplateNamesMock).toHaveBeenCalledWith('test-project');
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    const missingOption = screen.getByRole('option', { name: /DRA Missing/ });
+    expect(missingOption).toHaveAttribute('aria-disabled', 'true');
+    expect(missingOption).toHaveTextContent('Claim template: single-mig-partition');
+
+    expect(within(missingOption).getByTestId('claim-template-missing-icon')).toBeInTheDocument();
+    await userEvent.hover(missingOption);
+    expect(await screen.findByText(missingTemplateText)).toBeInTheDocument();
+
+    await userEvent.click(missingOption);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('should use the claim templates it is given instead of looking them up', async () => {
+    renderWithClaimTemplates({
+      hardwareProfiles: [nodeHardwareProfile, draMissingProfile, draPresentProfile],
+      claimTemplateNames: { status: 'ready', names: new Set(['single-gpu']) },
+    });
+
+    expect(useResourceClaimTemplateNamesMock).not.toHaveBeenCalledWith('test-project');
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    expect(screen.getByRole('option', { name: /DRA Missing/ })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(screen.getByRole('option', { name: /DRA Present/ })).not.toHaveAttribute(
+      'aria-disabled',
+    );
+  });
+
+  it('should keep a DRA profile selectable when its claim template exists in the project', async () => {
+    useResourceClaimTemplateNamesMock.mockReturnValue({
+      status: 'ready',
+      names: new Set(['single-gpu']),
+    });
+    const onChange = jest.fn();
+    renderWithClaimTemplates({
+      hardwareProfiles: [nodeHardwareProfile, draMissingProfile, draPresentProfile],
+      onChange,
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+    const presentOption = screen.getByRole('option', { name: /DRA Present/ });
+    expect(presentOption).not.toHaveAttribute('aria-disabled');
+    expect(
+      within(presentOption).queryByTestId('claim-template-missing-icon'),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(presentOption);
+    expect(onChange).toHaveBeenCalledWith(draPresentProfile);
+  });
+
+  it.each<ResourceClaimTemplateNamesResult>([{ status: 'loading' }, { status: 'unavailable' }])(
+    'should not disable DRA profiles when the claim templates are $status',
+    async (claimTemplateNames) => {
+      useResourceClaimTemplateNamesMock.mockReturnValue(claimTemplateNames);
+      renderWithClaimTemplates({ hardwareProfiles: [nodeHardwareProfile, draMissingProfile] });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      expect(screen.getByRole('option', { name: /DRA Missing/ })).not.toHaveAttribute(
+        'aria-disabled',
+      );
+      expect(screen.queryByText(missingTemplateText)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('claim-template-missing-icon')).not.toBeInTheDocument();
+    },
+  );
+
+  it('should keep the assigned DRA profile selected with a warning when its claim template is missing', async () => {
+    useResourceClaimTemplateNamesMock.mockReturnValue({
+      status: 'ready',
+      names: new Set(['single-gpu']),
+    });
+    renderWithClaimTemplates({
+      hardwareProfiles: [nodeHardwareProfile, draMissingProfile],
+      initialHardwareProfile: draMissingProfile,
+      selectedProfile: draMissingProfile,
+    });
+
+    expect(screen.getByRole('button', { name: 'Options menu' })).toHaveTextContent('DRA Missing');
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    const assignedOption = screen.getByRole('option', { name: /DRA Missing/ });
+    expect(assignedOption).not.toHaveAttribute('aria-disabled');
+    expect(within(assignedOption).getByTestId('claim-template-missing-icon')).toBeInTheDocument();
+    await userEvent.hover(assignedOption);
+    expect(await screen.findByText(missingTemplateText)).toBeInTheDocument();
+  });
+
+  it('should show the assigned DRA profile without its claim template or warning when DRA hardware profiles are disabled', async () => {
+    useIsDRAHardwareProfileEnabledMock.mockReturnValue(false);
+    useResourceClaimTemplateNamesMock.mockReturnValue({
+      status: 'ready',
+      names: new Set(['single-gpu']),
+    });
+    renderWithClaimTemplates({
+      hardwareProfiles: [nodeHardwareProfile],
+      initialHardwareProfile: draMissingProfile,
+      selectedProfile: draMissingProfile,
+    });
+
+    expect(useResourceClaimTemplateNamesMock).not.toHaveBeenCalledWith('test-project');
+    expect(screen.getByRole('button', { name: 'Options menu' })).toHaveTextContent('DRA Missing');
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    const assignedOption = screen.getByRole('option', { name: /DRA Missing/ });
+    expect(assignedOption).not.toHaveAttribute('aria-disabled');
+    expect(assignedOption).not.toHaveTextContent('Claim template');
+    expect(within(assignedOption).queryByTestId('claim-template-missing-icon')).toBeNull();
+  });
+
+  it('should only watch the claim templates when a DRA profile is offered', () => {
+    renderWithClaimTemplates({ hardwareProfiles: [nodeHardwareProfile, nodeHardwareProfile2] });
+
+    expect(useResourceClaimTemplateNamesMock).toHaveBeenCalledWith(undefined);
+    expect(useResourceClaimTemplateNamesMock).not.toHaveBeenCalledWith('test-project');
+  });
+
+  it.each<[string, ResourceClaimTemplateNamesResult]>([
+    ['loading', { status: 'loading' }],
+    ['missing', { status: 'ready', names: new Set() }],
+    ['found', { status: 'ready', names: new Set(['single-gpu']) }],
+    ['unavailable', { status: 'unavailable' }],
+  ])(
+    'should not auto-select the only DRA profile when its claim template is %s',
+    (_, claimTemplateNames) => {
+      useResourceClaimTemplateNamesMock.mockReturnValue(claimTemplateNames);
+      const onChange = jest.fn();
+      renderWithClaimTemplates({ hardwareProfiles: [draPresentProfile], onChange });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Options menu' })).toBeEnabled();
+    },
+  );
+
+  it('should disable a missing claim template profile and warn on the assigned one in the project-scoped dropdown', async () => {
+    useResourceClaimTemplateNamesMock.mockReturnValue({
+      status: 'ready',
+      names: new Set(['single-gpu']),
+    });
+    const projectDRAProfile = mockHardwareProfile({
+      name: 'project-dra',
+      namespace: 'test-project',
+      displayName: 'Project DRA',
+      dra: { resourceClaimTemplateName: 'single-mig-partition' },
+    });
+    const onChange = jest.fn();
+    renderWithClaimTemplates({
+      hardwareProfiles: [nodeHardwareProfile, draMissingProfile],
+      isProjectScoped: true,
+      projectScopedHardwareProfiles: [projectDRAProfile],
+      initialHardwareProfile: draMissingProfile,
+      selectedProfile: draMissingProfile,
+      onChange,
+    });
+
+    await userEvent.click(screen.getByTestId('hardware-profile-selection-toggle'));
+
+    const projectOption = within(screen.getByTestId('project-scoped-hardware-profiles')).getByRole(
+      'menuitem',
+      { name: /Project DRA/ },
+    );
+    expect(projectOption).toHaveAttribute('aria-disabled', 'true');
+    expect(projectOption).toHaveTextContent('Claim template: single-mig-partition');
+    expect(within(projectOption).getByTestId('claim-template-missing-icon')).toBeInTheDocument();
+    await userEvent.hover(projectOption);
+    expect(await screen.findByText(missingTemplateText)).toBeInTheDocument();
+    await userEvent.click(projectOption);
+    expect(onChange).not.toHaveBeenCalled();
+
+    const assignedOption = within(screen.getByTestId('global-scoped-hardware-profiles')).getByRole(
+      'menuitem',
+      { name: /DRA Missing/ },
+    );
+    expect(assignedOption).not.toHaveAttribute('aria-disabled');
+    expect(within(assignedOption).getByTestId('claim-template-missing-icon')).toBeInTheDocument();
+  });
+
+  describe('assigned profile updated after the form loaded', () => {
+    const staleAssignedProfile = (): HardwareProfileKind => ({
+      ...draMissingProfile,
+      metadata: { ...draMissingProfile.metadata, resourceVersion: '1' },
+    });
+    const updatedAssignedProfile = (): HardwareProfileKind => ({
+      ...draMissingProfile,
+      metadata: { ...draMissingProfile.metadata, resourceVersion: '2' },
+    });
+
+    beforeEach(() => {
+      useResourceClaimTemplateNamesMock.mockReturnValue({
+        status: 'ready',
+        names: new Set(['single-gpu']),
+      });
+    });
+
+    it('should list the assigned profile once and keep it enabled', async () => {
+      const updated = updatedAssignedProfile();
+      renderWithClaimTemplates({
+        hardwareProfiles: [nodeHardwareProfile, updated],
+        initialHardwareProfile: staleAssignedProfile(),
+        selectedProfile: updated,
+      });
+
+      expect(screen.getByRole('button', { name: 'Options menu' })).toHaveTextContent('DRA Missing');
+      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+      const assignedOptions = screen.getAllByRole('option', { name: /DRA Missing/ });
+      expect(assignedOptions).toHaveLength(1);
+      expect(assignedOptions[0]).not.toHaveAttribute('aria-disabled');
+      expect(
+        within(assignedOptions[0]).getByTestId('claim-template-missing-icon'),
+      ).toBeInTheDocument();
+    });
+
+    it('should list the assigned profile once and keep it enabled in the project-scoped dropdown', async () => {
+      const updated = updatedAssignedProfile();
+      renderWithClaimTemplates({
+        hardwareProfiles: [nodeHardwareProfile, updated],
+        isProjectScoped: true,
+        projectScopedHardwareProfiles: [
+          mockHardwareProfile({
+            name: 'project-profile',
+            namespace: 'test-project',
+            displayName: 'Project Profile',
+          }),
+        ],
+        initialHardwareProfile: staleAssignedProfile(),
+        selectedProfile: updated,
+      });
+
+      await userEvent.click(screen.getByTestId('hardware-profile-selection-toggle'));
+
+      const assignedOptions = within(
+        screen.getByTestId('global-scoped-hardware-profiles'),
+      ).getAllByRole('menuitem', { name: /DRA Missing/ });
+      expect(assignedOptions).toHaveLength(1);
+      expect(assignedOptions[0]).not.toHaveAttribute('aria-disabled');
+    });
+  });
+});
+
+describe('HardwareProfileSelect - excludeDRAProfiles', () => {
+  const assignedDRAProfile = mockHardwareProfile({
+    name: 'assigned-dra',
+    displayName: 'Assigned DRA',
+    dra: { resourceClaimTemplateName: 'single-gpu' },
+  });
+  const otherProfile = mockHardwareProfile({ name: 'other-profile', displayName: 'Other Profile' });
+  const secondProfile = mockHardwareProfile({
+    name: 'second-profile',
+    displayName: 'Second Profile',
+  });
+
+  const renderExcludingDRA = (selectedProfile: HardwareProfileKind) => {
+    useKueueConfigurationMock.mockReturnValue({
+      isKueueDisabled: false,
+      isKueueFeatureEnabled: true,
+      isProjectKueueEnabled: false,
+      kueueFilteringState: KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+    });
+    render(
+      <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
+        <HardwareProfileSelect
+          isProjectScoped={false}
+          previewDescription={false}
+          hardwareProfiles={[otherProfile, secondProfile]}
+          hardwareProfilesLoaded
+          hardwareProfilesError={undefined}
+          projectScopedHardwareProfiles={[[], true, undefined]}
+          allowExistingSettings={false}
+          hardwareProfileConfig={{ selectedProfile, useExistingSettings: true }}
+          initialHardwareProfile={assignedDRAProfile}
+          isHardwareProfileSupported={() => false}
+          onChange={jest.fn()}
+          excludeDRAProfiles
+        />
+      </LocalQueuesContext.Provider>,
+    );
+  };
+
+  it('should keep the assigned DRA profile in the options while it is selected', async () => {
+    renderExcludingDRA(assignedDRAProfile);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    const listbox = within(screen.getByRole('listbox'));
+    expect(listbox.getByRole('option', { name: /Assigned DRA/ })).toBeInTheDocument();
+    expect(listbox.getByRole('option', { name: /Other Profile/ })).toBeInTheDocument();
+  });
+
+  it('should drop the assigned DRA profile from the options once another profile is selected', async () => {
+    renderExcludingDRA(otherProfile);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    const listbox = within(screen.getByRole('listbox'));
+    expect(listbox.queryByRole('option', { name: /Assigned DRA/ })).not.toBeInTheDocument();
+    expect(listbox.getByRole('option', { name: /Other Profile/ })).toBeInTheDocument();
   });
 });

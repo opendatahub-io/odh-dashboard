@@ -82,6 +82,7 @@ export type DashboardConfig = K8sResourceCommon & {
       llmGatewayField: boolean;
       promptManagement: boolean;
       globalProjectPrompts: boolean;
+      hardwareProfileDRA: boolean;
       gpuaas: boolean;
       modelCapabilities: boolean;
       grid: boolean;

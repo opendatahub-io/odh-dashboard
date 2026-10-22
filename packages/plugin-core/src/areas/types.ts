@@ -127,6 +127,9 @@ export enum SupportedArea {
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
 
+  /* DRA hardware profiles */
+  HARDWARE_PROFILE_DRA = 'hardware-profile-dra',
+
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
 

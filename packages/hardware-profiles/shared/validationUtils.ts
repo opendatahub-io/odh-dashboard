@@ -113,7 +113,15 @@ export const hardwareProfileValidationSchema = z
     useExistingSettings: z.boolean(),
   })
   .superRefine((data, ctx) => {
-    if (!data.selectedProfile?.spec.identifiers || isDRAHardwareProfile(data.selectedProfile)) {
+    if (data.useExistingSettings || !data.selectedProfile?.spec.identifiers) {
+      return;
+    }
+
+    if (
+      isDRAHardwareProfile(data.selectedProfile) &&
+      Object.keys(data.resources.requests).length === 0 &&
+      Object.keys(data.resources.limits).length === 0
+    ) {
       return;
     }
 
