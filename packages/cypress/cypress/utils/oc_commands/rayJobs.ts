@@ -1,3 +1,4 @@
+import type { ClusterArchitecture } from './baseCommands';
 import { createTrainingKueueResources } from './trainingJobs';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -32,7 +33,7 @@ export type RayJobResourcesConfig = {
   workerGroupName: string;
   rayImage: string;
   rayVersion: string;
-  architecture?: string;
+  architecture?: ClusterArchitecture;
 };
 
 /**
@@ -45,7 +46,7 @@ export const createRayJob = (
   workerGroupName: string,
   rayImage: string,
   rayVersion: string,
-  architecture?: string,
+  architecture?: ClusterArchitecture,
 ): void => {
   const ns = assertK8sName(namespace, 'namespace');
   const rj = assertK8sName(rayJobName, 'rayJobName');
@@ -96,7 +97,7 @@ export const createBasicRayJob = (
   rayJobName: string,
   rayImage: string,
   localQueueName: string,
-  architecture?: string,
+  architecture?: ClusterArchitecture,
 ): void => {
   cy.fixture('resources/yaml/ray-job.yaml').then((yamlTemplate) => {
     const nodeSelector = architecture === 'arm64' ? '{kubernetes.io/arch: arm64}' : '{}';

@@ -22,7 +22,10 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import type { RayJobE2eTestData } from '../../../../types';
-import { getClusterArchitecture } from '../../../../utils/oc_commands/baseCommands';
+import {
+  getClusterArchitecture,
+  type ClusterArchitecture,
+} from '../../../../utils/oc_commands/baseCommands';
 
 const INITIAL_WORKER_REPLICAS = 1;
 const UPDATED_WORKER_REPLICAS = 2;
@@ -44,7 +47,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
   let gpuQuota: number;
   let rayImage: string;
   let rayVersion: string;
-  let architecture: string;
+  let architecture: ClusterArchitecture;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {

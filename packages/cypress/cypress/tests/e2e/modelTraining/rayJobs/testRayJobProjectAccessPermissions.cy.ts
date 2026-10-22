@@ -13,6 +13,7 @@ import { deleteKueueResources } from '../../../../utils/oc_commands/distributedW
 import {
   ensureAdminOcSession,
   getClusterArchitecture,
+  type ClusterArchitecture,
 } from '../../../../utils/oc_commands/baseCommands';
 import { modelTrainingGlobal, trainingJobTable } from '../../../../pages/modelTraining';
 import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableHooks';
@@ -26,7 +27,7 @@ describe('Verify project access for user types in Ray Jobs', () => {
   let projectName: string;
   let rayJobName: string;
   let rayImage: string;
-  let architecture: string;
+  let architecture: ClusterArchitecture;
   let flavorName: string;
   let clusterQueueName: string;
   let localQueueName: string;
