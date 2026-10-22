@@ -49,6 +49,36 @@ func TestEnableCORS_PreflightAllowsAuthorizationAndContentType(t *testing.T) {
 	assert.Contains(t, allowedHeaders, "content-type")
 }
 
+func TestEnableCORSWithoutAllowedOriginsDeniesPreflight(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	app := &App{
+		config:       config.EnvConfig{},
+		logger:       logger,
+		repositories: repositories.NewRepositories(),
+	}
+	called := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+	req := httptest.NewRequest(http.MethodOptions, "/api/v1/namespaces", nil)
+	req.Header.Set("Origin", "https://unconfigured.example")
+	req.Header.Set("Access-Control-Request-Method", http.MethodGet)
+
+	response := httptest.NewRecorder()
+	app.EnableCORS(next).ServeHTTP(response, req)
+
+	if called {
+		t.Fatal("denied CORS preflight should not reach the next handler")
+	}
+	if got := response.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("Access-Control-Allow-Origin = %q, want no grant", got)
+	}
+	if got := response.Header().Get("Access-Control-Allow-Credentials"); got != "" {
+		t.Fatalf("Access-Control-Allow-Credentials = %q, want no grant", got)
+	}
+}
+
 func TestInjectRequestIdentity_EmptyBearerTokenReturnsUnauthorized(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.EnvConfig{
