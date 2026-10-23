@@ -488,8 +488,7 @@ describe('Ray cluster column URL behavior', () => {
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
     rayRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'ray-data-processing-raycluster')
       .and('have.attr', 'href')
       .and('include', 'rh-ai.apps.example.com');
@@ -534,8 +533,7 @@ describe('Ray cluster column URL behavior', () => {
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
     rayRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'ray-data-processing-raycluster')
       .and('have.attr', 'href')
       .and(
@@ -544,7 +542,7 @@ describe('Ray cluster column URL behavior', () => {
       );
   });
 
-  it('should show Ray cluster name as plain text when Gateway is unavailable', () => {
+  it('should show a disabled Ray cluster link when Gateway is unavailable', () => {
     cy.interceptK8s(
       { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
       { statusCode: 404, body: mock404Error({}) },
@@ -554,8 +552,13 @@ describe('Ray cluster column URL behavior', () => {
     trainingJobTable.findTable().should('be.visible');
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
-    rayRow.findRayCluster().should('contain', 'ray-data-processing-raycluster');
-    rayRow.findRayCluster().find('a').should('not.exist');
+    rayRow
+      .findRayClusterLink()
+      .should('contain', 'ray-data-processing-raycluster')
+      .and('have.class', 'pf-m-disabled')
+      .and('have.attr', 'aria-disabled', 'true')
+      .and('not.have.attr', 'href');
+    rayRow.findRayClusterExternalLinkIcon().should('exist');
   });
 
   it('should show workspace cluster name from clusterSelector in the Ray cluster column', () => {
@@ -574,8 +577,7 @@ describe('Ray cluster column URL behavior', () => {
     trainingJobTable.filterByName('ray-workspace-job');
     const workspaceRow = trainingJobTable.getTableRow('ray-workspace-job');
     workspaceRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'shared-ray-cluster')
       .and('have.attr', 'target', '_blank');
   });
