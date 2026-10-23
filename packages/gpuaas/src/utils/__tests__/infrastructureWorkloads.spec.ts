@@ -12,7 +12,12 @@ import {
   SchedulingType,
   type HardwareProfileKind,
 } from '@odh-dashboard/k8s-core';
-import { listInfrastructureWorkloads } from '../infrastructureWorkloads';
+import type { TrainJobKind } from '@odh-dashboard/model-training/k8sTypes';
+import { TrainingJobState } from '@odh-dashboard/model-training/types';
+import {
+  getInfrastructureJobStatus,
+  listInfrastructureWorkloads,
+} from '../infrastructureWorkloads';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -86,6 +91,10 @@ const trainJob = {
   status: {},
 };
 
+const getTrainingJobStatusSyncMock = jest.mocked(
+  jest.requireMock('@odh-dashboard/model-training/status').getTrainingJobStatusSync,
+);
+
 describe('listInfrastructureWorkloads', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -123,5 +132,41 @@ describe('listInfrastructureWorkloads', () => {
       hardwareProfile.metadata.name,
       hardwareProfile.metadata.namespace,
     );
+  });
+});
+
+describe('getInfrastructureJobStatus', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it.each([
+    {
+      name: 'failed suspended TrainJob',
+      status: TrainingJobState.FAILED,
+      job: { spec: { suspend: true } },
+    },
+    {
+      name: 'failed TrainJob with active jobs',
+      status: TrainingJobState.FAILED,
+      job: { status: { jobsStatus: [{ active: 1 }] } },
+    },
+    {
+      name: 'succeeded suspended TrainJob',
+      status: TrainingJobState.SUCCEEDED,
+      job: { spec: { suspend: true } },
+    },
+    {
+      name: 'deleting TrainJob with active jobs',
+      status: TrainingJobState.DELETING,
+      job: {
+        metadata: { deletionTimestamp: new Date().toISOString() },
+        status: { jobsStatus: [{ active: 1 }] },
+      },
+    },
+  ])('should preserve the terminal status for a $name', ({ status, job }) => {
+    getTrainingJobStatusSyncMock.mockReturnValue(status);
+
+    expect(getInfrastructureJobStatus({ ...trainJob, ...job } as TrainJobKind, null)).toBe(status);
   });
 });

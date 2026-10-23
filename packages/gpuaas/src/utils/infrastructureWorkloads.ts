@@ -430,7 +430,7 @@ const getInfrastructureWorkloadFilterStatus = (
 };
 
 /** Resolves the model-training status once for the Infrastructure row and its modal. */
-const getInfrastructureJobStatus = (
+export const getInfrastructureJobStatus = (
   resource: SupportedResource,
   kueueStatus: KueueWorkloadStatusWithMessage | null,
 ): import('@odh-dashboard/model-training/types').JobDisplayState | undefined => {
@@ -442,6 +442,13 @@ const getInfrastructureJobStatus = (
       return TrainingJobState.INADMISSIBLE;
     }
     const status = getTrainingJobStatusSync(resource);
+    if (
+      status === TrainingJobState.DELETING ||
+      status === TrainingJobState.SUCCEEDED ||
+      status === TrainingJobState.FAILED
+    ) {
+      return status;
+    }
     if (resource.spec.suspend === true) {
       return TrainingJobState.PAUSED;
     }
