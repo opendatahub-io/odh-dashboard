@@ -87,6 +87,34 @@ describe('EvaluationFileCreator', () => {
     initIntercepts();
   });
 
+  it('should render the disabled model tooltip outside the table clipping region', () => {
+    navigateToConfigure();
+    advanceToStep2();
+
+    autoragConfigurePage.findSelectModelsButton().click();
+    autoragConfigurePage.findModelSelectionModal().should('be.visible');
+    autoragConfigurePage.findModelCheckbox('llm', 'granite-3-8b-instruct').check();
+    autoragConfigurePage.findModelTab('embedding').click();
+
+    autoragConfigurePage
+      .findDisabledModelTooltip('embedding', 'granite-3-8b-instruct')
+      .trigger('mouseenter');
+    autoragConfigurePage
+      .findDisabledModelTooltipContent('embedding', 'granite-3-8b-instruct')
+      .should('be.visible')
+      .and('contain.text', 'This model is already selected as a foundation model.');
+    autoragConfigurePage
+      .findTooltip()
+      .should('be.visible')
+      .then(($tooltip) => {
+        const bounds = $tooltip[0].getBoundingClientRect();
+        expect(bounds.width).to.be.greaterThan(150);
+        expect(bounds.height).to.be.lessThan(100);
+        expect($tooltip.closest('.autorag-model-selection__table-container')).to.have.length(0);
+        expect($tooltip.closest('[data-testid="embedding-models-table"]')).to.have.length(0);
+      });
+  });
+
   it('should open the modal, add a Q&A pair, and verify form state', () => {
     navigateToConfigure();
     advanceToStep2();

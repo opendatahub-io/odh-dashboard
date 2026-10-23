@@ -154,7 +154,7 @@ describe('AutoragExperimentSettings Escape handling', () => {
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toHaveTextContent('This model is already selected as a foundation model.');
     expect(tooltipTrigger).toHaveAttribute('aria-describedby');
-    await user.hover(tooltip);
+    await user.hover(screen.getByTestId('embedding-disabled-model-tooltip-model-a-content'));
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
     screen.getByTestId('models-to-test-help').focus();
 

@@ -69,10 +69,27 @@ const DisabledModelTooltip: React.FC<DisabledModelTooltipProps> = ({
   testId,
   children,
 }) => {
-  const [isHovered, setIsHovered] = React.useState(false);
+  const [isTriggerHovered, setIsTriggerHovered] = React.useState(false);
+  const [isTooltipHovered, setIsTooltipHovered] = React.useState(false);
   const [isFocused, setIsFocused] = React.useState(false);
-  const isVisible = isHovered || isFocused;
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const isVisible = isTriggerHovered || isTooltipHovered || isFocused;
+  const hideTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearHideTimer = () => {
+    if (hideTimerRef.current !== null) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  };
+
+  const scheduleHoverHide = () => {
+    clearHideTimer();
+    hideTimerRef.current = setTimeout(() => {
+      setIsTriggerHovered(false);
+      setIsTooltipHovered(false);
+      hideTimerRef.current = null;
+    }, 300);
+  };
 
   React.useEffect(() => {
     if (!isVisible) {
@@ -85,7 +102,9 @@ const DisabledModelTooltip: React.FC<DisabledModelTooltipProps> = ({
       }
       event.preventDefault();
       event.stopPropagation();
-      setIsHovered(false);
+      clearHideTimer();
+      setIsTriggerHovered(false);
+      setIsTooltipHovered(false);
       setIsFocused(false);
     };
 
@@ -93,33 +112,52 @@ const DisabledModelTooltip: React.FC<DisabledModelTooltipProps> = ({
     return () => document.removeEventListener('keydown', handleDocumentKeyDown, true);
   }, [isVisible]);
 
-  return (
+  React.useEffect(
+    () => () => {
+      clearHideTimer();
+    },
+    [],
+  );
+
+  const tooltipContent = (
     <div
-      ref={wrapperRef}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      data-testid={`${testId}-content`}
+      onMouseEnter={() => {
+        clearHideTimer();
+        setIsTooltipHovered(true);
+      }}
+      onMouseLeave={scheduleHoverHide}
     >
-      <Tooltip
-        content={content}
-        trigger="manual"
-        isVisible={isVisible}
-        appendTo={() => wrapperRef.current ?? document.body}
-        entryDelay={0}
-        exitDelay={0}
-        animationDuration={0}
-      >
-        <span
-          tabIndex={0}
-          role="group"
-          aria-label={label}
-          data-testid={testId}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-        >
-          {children}
-        </span>
-      </Tooltip>
+      {content}
     </div>
+  );
+
+  return (
+    <Tooltip content={tooltipContent} trigger="manual" isVisible={isVisible} entryDelay={0}>
+      <span
+        tabIndex={0}
+        role="group"
+        aria-label={label}
+        data-testid={testId}
+        onMouseEnter={() => {
+          clearHideTimer();
+          setIsTriggerHovered(true);
+        }}
+        onMouseLeave={scheduleHoverHide}
+        onFocus={() => {
+          clearHideTimer();
+          setIsFocused(true);
+        }}
+        onBlur={() => {
+          setIsFocused(false);
+          if (!isTriggerHovered && !isTooltipHovered) {
+            scheduleHoverHide();
+          }
+        }}
+      >
+        {children}
+      </span>
+    </Tooltip>
   );
 };
 /* eslint-enable jsx-a11y/no-noninteractive-tabindex */
