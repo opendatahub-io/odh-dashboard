@@ -122,25 +122,18 @@ describe('validateResults', () => {
     assert.equal(validateResults({ tests: 2, failures: 0, skipped: 1, executed: 1 }), null);
   });
 
-  it('accepts a partially skipped runtime-skippable job with an unknown plan', () => {
-    assert.equal(validateResults({ tests: 2, failures: 0, skipped: 1, executed: 1 }, null), null);
+  it('accepts legitimate runtime skips when the planned testcase total is complete', () => {
+    assert.equal(validateResults({ tests: 2, failures: 0, skipped: 1, executed: 1 }, 2), null);
     assert.match(
-      validateResults({ tests: 2, failures: 0, skipped: 2, executed: 0 }, null),
+      validateResults({ tests: 2, failures: 0, skipped: 2, executed: 0 }, 2),
       /Every selected Cypress test was skipped/,
     );
   });
 
-  it('fails when a job executes fewer tests than planned', () => {
+  it('fails when a job reports fewer testcases than planned', () => {
     assert.match(
       validateResults({ tests: 1, failures: 0, skipped: 0, executed: 1 }, 2),
-      /Expected 2 executed Cypress test\(s\), but found 1/,
-    );
-  });
-
-  it('fails when skipped testcases inflate planned executable coverage', () => {
-    assert.match(
-      validateResults({ tests: 2, failures: 0, skipped: 1, executed: 1 }, 2),
-      /Expected 2 executed Cypress test\(s\), but found 1/,
+      /Expected 2 planned Cypress test\(s\), but found 1 total/,
     );
   });
 
@@ -189,7 +182,7 @@ describe('summarize-e2e-results CLI', () => {
     );
 
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /job-two: Expected 2 executed Cypress test\(s\), but found 0/);
+    assert.match(result.stderr, /job-two: Expected 2 planned Cypress test\(s\), but found 0 total/);
   });
 
   it('reads reports from the artifact-relative results layout', async (test) => {
@@ -201,6 +194,40 @@ describe('summarize-e2e-results CLI', () => {
     test.after(() => fs.rmSync(directory, { recursive: true, force: true }));
 
     const reportDir = path.join(directory, 'results', 'changedspec-01');
+    fs.mkdirSync(reportDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(reportDir, 'junit-report.xml'),
+      junitXml('tests="1" failures="0" errors="0" skipped="0"', testcase()),
+    );
+    const tagDirKey = 'tag_dir';
+    const plannedTestCountKey = 'planned_test_count';
+    const matrix = JSON.stringify([{ [tagDirKey]: 'changedspec-01', [plannedTestCountKey]: 1 }]);
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        'scripts/cypress/summarize-e2e-results.js',
+        '--results-dir',
+        directory,
+        '--matrix-json',
+        matrix,
+      ],
+      { encoding: 'utf8', cwd: path.join(__dirname, '../../..') },
+    );
+
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /executed=1, failed=0, skipped=0, total=1/);
+  });
+
+  it('uses the results path segment closest to the JUnit reports', async (test) => {
+    const { spawnSync } = require('node:child_process');
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-results-nested-'));
+    test.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+    const reportDir = path.join(directory, 'results', 'results', 'changedspec-01');
     fs.mkdirSync(reportDir, { recursive: true });
     fs.writeFileSync(
       path.join(reportDir, 'junit-report.xml'),

@@ -11,12 +11,16 @@ const {
   buildSpecInventory,
   buildSelectionPlan,
   createSpecJobs,
+  discoverCiTags,
+  discoverE2eSpecs,
   groupTagsForJobs,
   isCypressSupportFile,
   isSafeSpecPath,
   matchesPathPattern,
+  normalizeTag,
   parseSpecSource,
   parseTagSelection,
+  readPathImpactMap,
   renderSelectionMarkdown,
   resolveSelectedTags,
   sanitizeTagDir,
@@ -25,6 +29,7 @@ const { buildSelectionSummaryPayload } = require('../plan-e2e-selection');
 
 const specPath = (name) => `packages/cypress/cypress/tests/e2e/${name}.cy.ts`;
 const supportPath = (name) => `packages/cypress/cypress/${name}.ts`;
+const repositoryRoot = path.join(__dirname, '../../..');
 
 const inventoryEntry = (name, tags, executableTags = tags) => ({
   path: specPath(name),
@@ -33,6 +38,7 @@ const inventoryEntry = (name, tags, executableTags = tags) => ({
   tags,
   executableTags,
   executableTestTags: executableTags.length > 0 ? [executableTags] : [],
+  intentionallyExcludedTestCount: executableTags.length === 0 && tags.length > 0 ? 1 : 0,
 });
 
 const inventory = {
@@ -742,6 +748,41 @@ describe('buildSelectionPlan', () => {
     );
   });
 
+  it('declares every executable path-impact tag in the environment capability matrix', () => {
+    const pathImpactMap = readPathImpactMap(repositoryRoot);
+    const environmentCapabilities = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, 'scripts/cypress/e2e-environment-capabilities.json'),
+        'utf8',
+      ),
+    );
+    const frontendAreaTags = JSON.parse(
+      fs.readFileSync(path.join(repositoryRoot, '.github/frontend-ci-tags.json'), 'utf8'),
+    );
+    const repositoryInventory = buildSpecInventory({
+      specs: discoverE2eSpecs(repositoryRoot),
+      root: repositoryRoot,
+    });
+    const executableInventoryTags = new Set(
+      Object.values(repositoryInventory).flatMap((entry) => entry.executableTags ?? []),
+    );
+    const expectedTags = [
+      ...new Set(
+        [
+          ...pathImpactMap.mappings.flatMap((mapping) => [
+            ...(mapping.cypressTags ?? []),
+            ...(mapping.fallbackCypressTags ?? []),
+          ]),
+          ...Object.values(frontendAreaTags),
+          ...discoverCiTags(repositoryRoot),
+        ].map(normalizeTag),
+      ),
+    ].filter((tag) => executableInventoryTags.has(tag));
+    const missingTags = expectedTags.filter((tag) => !environmentCapabilities.tags.includes(tag));
+
+    assert.deepEqual(missingTags, []);
+  });
+
   it('uses canonical full-coverage tag sets when support code is deleted', () => {
     const fullInventory = {
       [specPath('alpha')]: inventoryEntry('alpha', ['@Tag', '@SmokeSet1']),
@@ -884,6 +925,27 @@ describe('buildSelectionPlan', () => {
     );
   });
 
+  it('allows an owned changed spec whose tests are intentionally skip-tag excluded', () => {
+    const unowned = plan([{ status: 'M', path: specPath('skipped') }]);
+
+    assert.equal(unowned.valid, false);
+    assert.match(unowned.errors.join('\n'), /has no executable tests/);
+
+    const owned = plan([{ status: 'M', path: specPath('skipped') }], {
+      nonCiSpecs: {
+        [specPath('skipped')]: { owner: 'dashboard', reason: 'manual-only diagnostic' },
+      },
+    });
+
+    assert.equal(owned.valid, true);
+    assert.deepEqual(owned.summary.changedSpecs, [specPath('skipped')]);
+    assert.ok(
+      owned.matrix.every(
+        (job) => job.run_mode !== 'spec' || !job.specs.includes(specPath('skipped')),
+      ),
+    );
+  });
+
   it('rejects deleting the only coverage for a mapped CI behavior', () => {
     const deletedSpec = specPath('alpha');
     const result = plan([{ status: 'D', path: deletedSpec }], {
@@ -916,7 +978,7 @@ describe('buildSelectionPlan', () => {
 });
 
 describe('parseSpecSource', () => {
-  it('marks runtime-skippable specs as having an unknown planned count', () => {
+  it('keeps a static planned count for runtime-skippable specs', () => {
     const source = [
       'beforeEach(function () {',
       '  this.skip();',
@@ -935,8 +997,8 @@ describe('parseSpecSource', () => {
     });
 
     assert.equal(result.valid, true);
-    assert.equal(result.matrix[0].planned_test_count, null);
-    assert.equal(result.summary.plannedTestCount, null);
+    assert.equal(result.matrix[0].planned_test_count, 1);
+    assert.equal(result.summary.plannedTestCount, 1);
   });
 
   it('does not count statically skipped tests as executable', () => {

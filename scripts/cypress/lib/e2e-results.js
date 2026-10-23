@@ -55,12 +55,8 @@ const summarizeJunitFiles = (files) => {
 };
 
 const validateResults = (totals, plannedTestCount) => {
-  if (
-    plannedTestCount !== undefined &&
-    plannedTestCount !== null &&
-    totals.executed !== plannedTestCount
-  ) {
-    return `Expected ${plannedTestCount} executed Cypress test(s), but found ${totals.executed}`;
+  if (plannedTestCount !== undefined && totals.tests !== plannedTestCount) {
+    return `Expected ${plannedTestCount} planned Cypress test(s), but found ${totals.tests} total`;
   }
   if (totals.tests === 0) {
     return 'No Cypress tests executed';
@@ -88,9 +84,7 @@ const renderResultsMarkdown = (totals) =>
           '## Jobs',
           ...totals.jobs.map(
             (job) =>
-              `- ${job.tagDir}: executed=${job.executed}, failed=${job.failures}, skipped=${
-                job.skipped
-              }, total=${job.tests}, expected=${job.plannedTestCount ?? 'unknown'}`,
+              `- ${job.tagDir}: executed=${job.executed}, failed=${job.failures}, skipped=${job.skipped}, total=${job.tests}, expected=${job.plannedTestCount}`,
           ),
         ]
       : []),

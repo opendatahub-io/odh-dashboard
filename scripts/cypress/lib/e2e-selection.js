@@ -803,6 +803,9 @@ const buildSpecInventory = ({
     const executableTests = tests.filter(
       (test) => Array.isArray(test.tags) && !test.tags.some((tag) => skipTags.includes(tag)),
     );
+    const intentionallyExcludedTests = tests.filter(
+      (test) => Array.isArray(test.tags) && test.tags.some((tag) => skipTags.includes(tag)),
+    );
     inventory[spec] = {
       path: spec,
       testCount: tests.length,
@@ -810,7 +813,7 @@ const buildSpecInventory = ({
       tags: unique(tests.flatMap((test) => test.tags ?? [])),
       executableTags: unique(executableTests.flatMap((test) => test.tags)),
       executableTestTags: executableTests.map((test) => test.tags),
-      runtimeSkippable: /this\s*\.\s*skip\s*\(/.test(source),
+      intentionallyExcludedTestCount: intentionallyExcludedTests.length,
     };
   }
   return inventory;
@@ -1140,7 +1143,11 @@ const buildSelectionPlan = ({
       errors.push(`Changed Cypress spec was not discovered: ${spec}`);
       continue;
     }
-    if (entry.executableTestCount === 0) {
+    const intentionallyExcluded =
+      entry.executableTestCount === 0 &&
+      entry.testCount > 0 &&
+      (entry.intentionallyExcludedTestCount ?? 0) === entry.testCount;
+    if (entry.executableTestCount === 0 && !(intentionallyExcluded && nonCiSpecs[spec])) {
       errors.push(`Changed Cypress spec has no executable tests: ${spec}`);
     }
     const hasCiTag = entry.executableTags.some((tag) => ciTags.includes(tag));
@@ -1261,19 +1268,6 @@ const buildSelectionPlan = ({
   }
 
   const calculateJobTestCount = (job) => {
-    const includesRuntimeSkippableSpec =
-      job.run_mode === 'spec'
-        ? job.specs.some((spec) => inventory[spec]?.runtimeSkippable)
-        : Object.values(inventory).some(
-            (entry) =>
-              entry.runtimeSkippable &&
-              (entry.executableTestTags ?? []).some((testTags) =>
-                testTags.some((tag) => job.tag.split(' ').includes(tag)),
-              ),
-          );
-    if (includesRuntimeSkippableSpec) {
-      return null;
-    }
     if (job.run_mode === 'spec') {
       return job.specs.reduce(
         (jobTotal, spec) => jobTotal + (inventory[spec]?.executableTestCount ?? 0),
@@ -1304,9 +1298,7 @@ const buildSelectionPlan = ({
     errors.push('No Cypress E2E jobs were selected');
   }
 
-  const plannedTestCount = matrix.some((job) => job[plannedTestCountKey] === null)
-    ? null
-    : matrix.reduce((total, job) => total + job[plannedTestCountKey], 0);
+  const plannedTestCount = matrix.reduce((total, job) => total + job[plannedTestCountKey], 0);
 
   return {
     valid: errors.length === 0,
@@ -1392,7 +1384,7 @@ const renderSelectionMarkdown = (summary) =>
         )
       : ['- None']),
     '',
-    `Planned executable test count: ${summary.plannedTestCount ?? 'unknown'}`,
+    `Planned executable test count: ${summary.plannedTestCount}`,
     '',
     ...(summary.errors?.length > 0
       ? ['## Validation errors', ...summary.errors.map((error) => `- ${error}`), '']

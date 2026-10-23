@@ -88,12 +88,8 @@ describe('historical E2E impact simulations', () => {
     }
     assert.ok(result.matrix.length > 0);
     assert.ok(result.matrix.every((job) => job.run_mode === 'tag'));
-    assert.ok(
-      result.summary.plannedTestCount === null ||
-        (result.summary.plannedTestCount > 0 &&
-          result.summary.plannedTestCount < totalExecutableTests),
-    );
-    assert.ok(result.matrix.some((job) => job.planned_test_count === null));
+    assert.ok(result.summary.plannedTestCount > 0);
+    assert.ok(result.summary.plannedTestCount < totalExecutableTests);
   });
 
   it('maps the historical Model Catalog support change to its formerly missed CI specs', () => {

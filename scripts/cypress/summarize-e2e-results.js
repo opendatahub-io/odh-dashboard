@@ -47,11 +47,11 @@ const findJunitReports = (directory) => {
 const findJunitReportsByJob = (directory) => {
   const groupedFiles = new Map();
   for (const file of findXmlFiles(directory)) {
-    const match = file
-      .split(path.sep)
-      .join('/')
-      .match(/(?:^|\/)(?:packages\/cypress\/)?results\/([^/]+)\//);
-    const jobDir = match?.[1];
+    const segments = file.split(path.sep);
+    const resultsIndex = segments.findLastIndex(
+      (segment, index) => segment === 'results' && index < segments.length - 2,
+    );
+    const jobDir = resultsIndex === -1 ? undefined : segments[resultsIndex + 1];
     if (!jobDir) {
       continue;
     }

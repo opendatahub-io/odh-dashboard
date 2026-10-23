@@ -23,6 +23,7 @@ describe('Cypress E2E workflow', () => {
     );
 
     assert.ok(workflow.includes('--test-reporter=spec'));
+    assert.ok(workflow.includes('--test-reporter-destination=stdout'));
     assert.ok(workflow.includes('--test-reporter=tap'));
     assert.ok(workflow.includes('--test-reporter-destination="$tap_file"'));
     assert.ok(workflow.includes('summarize-node-test-results.js "$tap_file"'));
