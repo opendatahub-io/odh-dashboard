@@ -12,8 +12,21 @@ import {
 import type { ClusterMetrics } from '../../hooks/useInfrastructureMetrics';
 import InfrastructurePage from '../InfrastructurePage';
 
+type InfrastructureLocationState = {
+  tab?: string;
+};
+
+const mockUseLocation = jest.fn(() => ({
+  state: undefined as InfrastructureLocationState | undefined,
+}));
+
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
+}));
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useLocation: () => mockUseLocation(),
 }));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -120,6 +133,7 @@ describe('InfrastructurePage - Tracking Events', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentMetrics = { ...mockMetrics, refresh: mockRefresh };
+    mockUseLocation.mockReturnValue({ state: undefined });
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
       devFlags: null,
@@ -210,6 +224,19 @@ describe('InfrastructurePage - Tracking Events', () => {
       expect(screen.queryByTestId('infrastructure-tab-quota-usage')).not.toBeInTheDocument();
       expect(mockUseInfrastructureMetrics).toHaveBeenCalledWith(false);
       expect(mockUseQuotaHierarchy).toHaveBeenCalledWith(false, true);
+    });
+  });
+
+  it('selects the Workloads tab from location state after access loads', async () => {
+    mockUseLocation.mockReturnValue({ state: { tab: 'workloads' } });
+
+    render(<InfrastructurePage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('infrastructure-tab-workloads')).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
     });
   });
 

@@ -20,6 +20,8 @@ import {
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const MAX_VISIBLE_BENCHMARK_SUITES = 5;
 
@@ -63,6 +65,11 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
               component={(props) => (
                 <Link {...props} to={evaluationBenchmarkSuitesRoute(namespace)} />
               )}
+              onClick={() =>
+                trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_ALL_SUITES_OPENED, {
+                  surface: 'my_benchmark_suites',
+                })
+              }
               data-testid="benchmark-suites-view-all"
             >
               View all
@@ -75,6 +82,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
             namespace={namespace}
             benchmarkNameMap={benchmarkNameMap}
             maxVisibleCollections={MAX_VISIBLE_BENCHMARK_SUITES}
+            trackingSurface="my_benchmark_suites"
             useMockFallback={false}
             primaryActionLabel="Run"
             createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
@@ -86,11 +94,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
           />
         </StackItem>
         <StackItem>
-          <Card
-            className="evalhub-browse-benchmarks-card"
-            variant="secondary"
-            data-testid="browse-all-benchmarks"
-          >
+          <Card className="evalhub-browse-benchmarks-card" data-testid="browse-all-benchmarks">
             <CardBody>
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
@@ -116,6 +120,11 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
                     component={(props) => (
                       <Link {...props} to={evaluationBenchmarksRoute(namespace)} />
                     )}
+                    onClick={() =>
+                      trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED, {
+                        surface: 'my_benchmark_suites',
+                      })
+                    }
                     data-testid="browse-all-benchmarks-explore"
                   >
                     Explore

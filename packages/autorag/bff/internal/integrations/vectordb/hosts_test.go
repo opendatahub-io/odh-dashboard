@@ -131,6 +131,10 @@ func TestValidateForwardedMilvusEndpointDoesNotRelaxSecretValidation(t *testing.
 	assert.Error(t, err)
 	err = ValidateForwardedMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530", "https://localhost:4321")
 	assert.Error(t, err)
+	err = ValidateForwardedMilvusEndpoint("https://milvus.team-a.svc.cluster.local:19530", "https://localhost:4321")
+	assert.NoError(t, err)
+	err = ValidateForwardedMilvusEndpoint("https://milvus.team-a.svc.cluster.local:19530", "http://localhost:4321")
+	assert.Error(t, err)
 }
 
 func TestParseVectorEndpointsAllowsLocalhostInDevelopment(t *testing.T) {

@@ -15,7 +15,11 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  MetadataAnnotation,
+  translateDisplayNameForK8s,
+} from '@odh-dashboard/k8s-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from './paths';
@@ -172,6 +176,9 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
       displayName: nameDescData.name,
       version,
       labels: { [CONFIG_TYPE_LABEL]: ConfigType.ACCELERATOR },
+      ...(isInstall && {
+        annotations: { [MetadataAnnotation.InstalledFromCatalog]: 'true' },
+      }),
     });
     setLoading(true);
     const submitFn = isEdit

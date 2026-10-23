@@ -128,8 +128,9 @@
   color: var(--pf-t--global--text--color--regular);
   font-size: var(--pf-t--global--font--size--xs);
   font-weight: var(--pf-t--global--font--weight--body--bold);
-  max-width: 12rem;
+  max-width: 12.5rem;
   overflow: hidden;
+  text-overflow: ellipsis;
   transition: max-width 200ms ease-in-out, opacity 150ms ease-in-out, visibility 0s linear 200ms;
   visibility: visible;
   white-space: nowrap;

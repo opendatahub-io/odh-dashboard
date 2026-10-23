@@ -164,7 +164,9 @@ const useWorkloadAdmissionMetrics = (
     ...(queriesActive ? [waitingWorkloads, activeWorkloads] : []),
     ...(adminQueriesActive ? [admissionRate, admissionLeadTime] : []),
   ];
-  const activeQueriesSettled = activeQueryStates.every(([, loaded, error]) => loaded || error);
+  const activeQueriesSettled = activeQueryStates.every(
+    ([, loaded, error, , pending]) => !pending && (loaded || Boolean(error)),
+  );
 
   return {
     endInMs,

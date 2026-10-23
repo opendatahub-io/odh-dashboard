@@ -1,18 +1,18 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { useSettings } from 'mod-arch-core';
-import { getMaaSMe } from '@odh-dashboard/maas/api/me';
+import { getMaaSWhoAmI } from '@odh-dashboard/maas/api/whoami';
 import UserDropdown, { portalLogout } from '../UserDropdown';
 
 jest.mock('mod-arch-core', () => ({
   useSettings: jest.fn(),
 }));
-jest.mock('@odh-dashboard/maas/api/me', () => ({
-  getMaaSMe: jest.fn(),
+jest.mock('@odh-dashboard/maas/api/whoami', () => ({
+  getMaaSWhoAmI: jest.fn(),
 }));
 
 const mockUseSettings = jest.mocked(useSettings);
-const mockGetMaaSMe = jest.mocked(getMaaSMe);
+const mockGetMaaSWhoAmI = jest.mocked(getMaaSWhoAmI);
 
 describe('portalLogout', () => {
   beforeEach(() => {
@@ -46,17 +46,17 @@ describe('UserDropdown', () => {
 
     expect(screen.getByRole('button', { name: 'User menu' })).toHaveTextContent('legacy-user');
     expect(mockUseSettings).toHaveBeenCalled();
-    expect(mockGetMaaSMe).not.toHaveBeenCalled();
+    expect(mockGetMaaSWhoAmI).not.toHaveBeenCalled();
   });
 
   it.each([
     [{ sub: 'grid-id', name: 'Grid User', email: 'grid@example.com' }, 'Grid User'],
     [{ sub: 'grid-id', email: 'grid@example.com' }, 'grid@example.com'],
     [{ sub: 'grid-id' }, 'grid-id'],
-  ])('uses /me identity in grid mode', async (me, expectedName) => {
+  ])('uses WhoAmI identity in grid mode', async (whoAmI, expectedName) => {
     window.__MAAS_CONSUMER_PORTAL_GRID__ = true;
-    mockGetMaaSMe.mockReturnValue(
-      jest.fn().mockResolvedValue({ ...me, 'https://redhat.com/maas/orgs': [] }),
+    mockGetMaaSWhoAmI.mockReturnValue(
+      jest.fn().mockResolvedValue({ ...whoAmI, 'https://redhat.com/maas/orgs': [] }),
     );
 
     render(<UserDropdown />);
@@ -64,17 +64,17 @@ describe('UserDropdown', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'User menu' })).toHaveTextContent(expectedName),
     );
-    expect(mockGetMaaSMe).toHaveBeenCalledTimes(1);
+    expect(mockGetMaaSWhoAmI).toHaveBeenCalledTimes(1);
     expect(mockUseSettings).not.toHaveBeenCalled();
   });
 
-  it('keeps the grid menu available when /me fails', async () => {
+  it('keeps the grid menu available when WhoAmI fails', async () => {
     window.__MAAS_CONSUMER_PORTAL_GRID__ = true;
-    mockGetMaaSMe.mockReturnValue(jest.fn().mockRejectedValue(new Error('Network error')));
+    mockGetMaaSWhoAmI.mockReturnValue(jest.fn().mockRejectedValue(new Error('Network error')));
 
     render(<UserDropdown />);
 
-    await waitFor(() => expect(mockGetMaaSMe).toHaveBeenCalled());
+    await waitFor(() => expect(mockGetMaaSWhoAmI).toHaveBeenCalled());
     expect(screen.getByRole('button', { name: 'User menu' })).toHaveTextContent('User');
     expect(mockUseSettings).not.toHaveBeenCalled();
   });

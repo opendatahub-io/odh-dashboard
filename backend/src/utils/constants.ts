@@ -115,7 +115,7 @@ export const blankDashboardCR: DashboardConfig = {
       genAiImageUpload: false,
       genAiAudioUpload: false,
       vLLMDeploymentOnMaaS: false,
-      llmGatewayField: false,
+      llmGatewayField: true,
       promptManagement: true,
       globalProjectPrompts: false,
       hardwareProfileDRA: false,

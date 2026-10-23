@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -177,7 +178,7 @@ func (m *mockURLForwarder) ForwardURL(ctx context.Context, _ string, rawURL stri
 
 type mockVectorDB struct{}
 
-func (m *mockVectorDB) Search(context.Context, string, []float32, string, int, float32, bool) ([]vectordb.SearchResult, error) {
+func (m *mockVectorDB) Search(context.Context, string, []float32, string, vectordb.SearchOptions) ([]vectordb.SearchResult, error) {
 	return nil, nil
 }
 
@@ -219,6 +220,88 @@ func TestResponsesRepositoryResolveVectorDBForwardsMilvusURIWithoutMutatingSecre
 	require.NotNil(t, db)
 	assert.Equal(t, "http://localhost:4321", string(constructedData["MILVUS_URI"]))
 	assert.Equal(t, originalURI, string(secretData["MILVUS_URI"]))
+}
+
+func TestResponsesRepositoryResolveVectorDBNormalizesMilvusDefaultPortBeforeForwarding(t *testing.T) {
+	originalURI := "http://milvus.milvus.svc.cluster.local"
+	normalizedURI := "http://milvus.milvus.svc.cluster.local:19530"
+	secretData := map[string][]byte{"MILVUS_URI": []byte(originalURI)}
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: secretData}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(_ context.Context, rawURL string) (string, error) {
+			assert.Equal(t, normalizedURI, rawURL)
+			return "http://localhost:4321", nil
+		},
+	})
+	repo.newVectorDB = func(ctx context.Context, data map[string][]byte, forwardURL func(context.Context, string) (string, error)) (vectordb.VectorDB, error) {
+		forwarded, err := forwardURL(ctx, string(data["MILVUS_URI"]))
+		if err != nil {
+			return nil, err
+		}
+		assert.Equal(t, "http://localhost:4321", forwarded)
+		return &mockVectorDB{}, nil
+	}
+
+	db, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+	require.NoError(t, err)
+	require.NotNil(t, db)
+}
+
+func TestResponsesRepositoryResolveVectorDBPreservesPortlessExternalURIWhenForwarderNoOp(t *testing.T) {
+	rawURI := "  https://milvus.example.com  "
+	originalURI := "https://milvus.example.com"
+	normalizedURI := "https://milvus.example.com:19530"
+	var forwarderInput, constructedURI string
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{"MILVUS_URI": []byte(rawURI)}}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(_ context.Context, rawURL string) (string, error) {
+			forwarderInput = rawURL
+			return rawURL, nil
+		},
+	})
+	repo.newVectorDB = func(ctx context.Context, data map[string][]byte, forwardURL func(context.Context, string) (string, error)) (vectordb.VectorDB, error) {
+		forwarded, err := forwardURL(ctx, string(data["MILVUS_URI"]))
+		if err != nil {
+			return nil, err
+		}
+		constructedURI = forwarded
+		return &mockVectorDB{}, nil
+	}
+
+	db, err := repo.resolveVectorDB(context.Background(), "run-ns", "database")
+
+	require.NoError(t, err)
+	require.NotNil(t, db)
+	assert.Equal(t, normalizedURI, forwarderInput)
+	assert.Equal(t, originalURI, constructedURI)
+}
+
+func TestResponsesRepositoryResolveVectorDBUsesExternalFactoryPathForPortlessNoOp(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{
+				"MILVUS_URI": []byte("  https://milvus.example.com  "),
+			}}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(_ context.Context, rawURL string) (string, error) {
+			return normalizeMilvusForwardURI(rawURL)
+		},
+	})
+
+	_, err := repo.resolveVectorDB(ctx, "run-ns", "database")
+
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "original Milvus endpoint is not an in-cluster service")
 }
 
 func TestResponsesRepositoryResolveVectorDBWithoutForwarderPreservesURI(t *testing.T) {
@@ -527,6 +610,41 @@ func TestResponsesRepositoryValidateResponsesBoundsMilvusForwarding(t *testing.T
 		Namespace: "test-ns", DBSecretName: "database", MaasSecretName: "maas",
 	}, request))
 	assert.LessOrEqual(t, time.Until(observedDeadline), vectordb.MilvusOperationTimeout)
+}
+
+func TestResponsesRepositoryValidateResponsesNormalizesMilvusDefaultPortBeforeForwarding(t *testing.T) {
+	request := fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"collection"},
+	})
+	const normalizedURI = "http://milvus.milvus.svc.cluster.local:19530"
+	var observedURI string
+	repo := NewResponsesRepository(nil, &mockK8sService{
+		getSecretFn: func(_ context.Context, _, name string) (*v1.Secret, error) {
+			if name == "maas" {
+				return &v1.Secret{Data: map[string][]byte{
+					"MAAS_BASE_URL": []byte("https://maas.example"),
+					"MAAS_API_KEY":  []byte("test-key"),
+				}}, nil
+			}
+			return &v1.Secret{Data: map[string][]byte{
+				"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local"),
+			}}, nil
+		},
+	}, &mockURLForwarder{
+		forwardURL: func(_ context.Context, rawURL string) (string, error) {
+			observedURI = rawURL
+			return rawURL, nil
+		},
+	})
+	repo.newMaaSClient = func(string, string) (*maas.Client, error) { return &maas.Client{}, nil }
+
+	err := repo.ValidateResponses(context.Background(), ResponsesParams{
+		Namespace: "test-ns", DBSecretName: "database", MaasSecretName: "maas",
+	}, request)
+
+	require.NoError(t, err)
+	assert.Equal(t, normalizedURI, observedURI)
 }
 
 // msgRole returns the role of a chat message param union, or "" if unset.
@@ -1098,6 +1216,29 @@ func TestParseFileSearchTool_RejectsAlphaAboveOne(t *testing.T) {
 	assert.Contains(t, err.Error(), "must be between 0 and 1")
 }
 
+func TestParseFileSearchTool_RejectsRRFKOutsideMilvusRange(t *testing.T) {
+	for _, value := range []float64{-1, 0, vectordb.MaxMilvusRRFK, vectordb.MaxMilvusRRFK + 1, math.NaN(), math.Inf(1)} {
+		t.Run(fmt.Sprintf("%v", value), func(t *testing.T) {
+			_, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+				Type:           "file_search",
+				VectorStoreIDs: []string{"vs_abc_123"},
+				RankingOptions: models.RankingOptions{Ranker: "rrf", RankerK: floatPtr(value)},
+			}))
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "greater than 0 and less than")
+		})
+	}
+}
+
+func TestParseFileSearchTool_AllowsRRFKBelowMilvusMaximum(t *testing.T) {
+	_, _, _, _, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		RankingOptions: models.RankingOptions{Ranker: "rrf", RankerK: floatPtr(vectordb.MaxMilvusRRFK - 0.001)},
+	}))
+	require.NoError(t, err)
+}
+
 func TestParseFileSearchTool_HybridWithValidAlpha(t *testing.T) {
 	collection, _, alpha, hybrid, err := parseFileSearchTool(fileSearchRequest(models.FileSearchTool{
 		Type:           "file_search",
@@ -1119,6 +1260,27 @@ func TestParseFileSearchTool_PreservesZeroAlpha(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, hybrid)
 	assert.Zero(t, alpha)
+}
+
+func TestParseVectorSearchPreservesMilvusRanking(t *testing.T) {
+	collection, options, err := parseVectorSearch(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		RankingOptions: models.RankingOptions{Ranker: "rrf", RankerK: floatPtr(42)},
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "vs_abc_123", collection)
+	assert.Equal(t, vectordb.SearchOptions{TopK: 5, Alpha: 0.5, Ranker: "rrf", RankerK: 42}, options)
+
+	_, options, err = parseVectorSearch(fileSearchRequest(models.FileSearchTool{
+		Type:           "file_search",
+		VectorStoreIDs: []string{"vs_abc_123"},
+		RankingOptions: models.RankingOptions{Ranker: "weighted", Alpha: floatPtr(0)},
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "weighted", options.Ranker)
+	assert.True(t, options.AlphaSpecified)
+	assert.Zero(t, options.Alpha)
 }
 
 func TestParseFileSearchTool_RejectsUnsupportedRanker(t *testing.T) {

@@ -8,7 +8,7 @@ type MaaSOrg struct {
 	Roles            []string `json:"roles"`
 }
 
-type MaaSCallerIdentity struct {
+type MaaSWhoAmI struct {
 	Sub   string    `json:"sub"`
 	Email string    `json:"email,omitempty"`
 	Name  string    `json:"name,omitempty"`

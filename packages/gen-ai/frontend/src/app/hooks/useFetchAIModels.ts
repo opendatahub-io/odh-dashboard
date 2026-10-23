@@ -5,6 +5,7 @@ import {
   FetchStateCallbackPromise,
   APIOptions,
   NotReadyError,
+  useDeepCompareMemoize,
 } from 'mod-arch-core';
 import { AAModelResponse, AIModel } from '~/app/types';
 import {
@@ -55,9 +56,10 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const { namespace } = React.useContext(GenAiContext);
   const maaSEnabled = !!useAiAssetModelAsServiceEnabled();
   const genAiConfig = useGenAiDashboardConfig();
-  const clusterDomains = React.useMemo(
-    () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? EMPTY_CLUSTER_DOMAINS,
-    [genAiConfig],
+  // Config polling can replace an unchanged array. Keep the fetch callback stable
+  // so initialPromisePurity does not reset loading and unmount active playgrounds.
+  const clusterDomains = useDeepCompareMemoize(
+    genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? EMPTY_CLUSTER_DOMAINS,
   );
 
   const queryParams = maaSEnabled ? MAAS_QUERY_PARAMS : EMPTY_QUERY_PARAMS;

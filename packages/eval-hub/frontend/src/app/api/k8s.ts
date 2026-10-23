@@ -24,6 +24,7 @@ import {
   CreateCollectionRequest,
   EvaluationJob,
   EvaluationJobsResponse,
+  EvaluationJobsResult,
   InferenceServicesResponse,
   KueueAvailability,
   KueueWorkloadStatus,
@@ -281,7 +282,7 @@ export const validateHardwareProfiles =
 
 export const getEvaluationJobs =
   (hostPath: string, params?: ListEvaluationJobsParams) =>
-  (opts: APIOptions): Promise<EvaluationJob[]> => {
+  (opts: APIOptions): Promise<EvaluationJobsResult> => {
     const queryParams: Record<string, string> = {};
     if (params?.namespace) {
       queryParams.namespace = params.namespace;
@@ -314,8 +315,16 @@ export const getEvaluationJobs =
       }),
     ).then((response) => {
       if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
-        const { data } = response;
-        return Array.isArray(data) ? data : data.items;
+        const { data, metadata } = response;
+        const jobs = Array.isArray(data) ? data : data.items;
+        const metadataTotal = metadata?.total_count;
+        const totalCount =
+          typeof metadataTotal === 'number'
+            ? metadataTotal
+            : !Array.isArray(data) && typeof data.total_count === 'number'
+              ? data.total_count
+              : jobs.length;
+        return { jobs, totalCount, truncated: metadata?.truncated === true };
       }
       throw new Error('Invalid response format');
     });
