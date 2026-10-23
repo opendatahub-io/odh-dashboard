@@ -28,6 +28,7 @@ import {
   getDRAHardwareProfileDetails,
 } from './utils';
 import DRAHardwareProfileDetailsSection from './DRAHardwareProfileDetailsSection';
+import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
 
 type HardwareProfileDetailsPopoverProps = {
   localQueueName?: string;
@@ -49,6 +50,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   onExpandRow,
 }) => {
   const { localQueues } = React.useContext(LocalQueuesContext);
+  const isDRAEnabled = useIsDRAHardwareProfileEnabled();
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const [isPopoverVisible, setIsPopoverVisible] = React.useState(false);
   const clusterQueueName = React.useMemo(
@@ -79,7 +81,8 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   );
 
   const description = hardwareProfile && getHardwareProfileDescription(hardwareProfile);
-  const draDetails = hardwareProfile && getDRAHardwareProfileDetails(hardwareProfile);
+  const draDetails =
+    isDRAEnabled && hardwareProfile ? getDRAHardwareProfileDetails(hardwareProfile) : undefined;
 
   const closePopover = (event: MouseEvent | KeyboardEvent) => {
     // A click inside a nested popover (e.g. the claim template's resource name) is not an outside click.

@@ -129,3 +129,7 @@
 .evalhub-runs-tab__description {
   margin-block: 0 var(--pf-t--global--spacer--xl);
 }
+
+.evalhub-runs-tab__description--with-alert {
+  margin-block-end: var(--pf-t--global--spacer--md);
+}

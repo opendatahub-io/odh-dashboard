@@ -72,9 +72,9 @@ export const MaaSPublishedPostDeployAlert: React.FC<MaaSPublishedPostDeployAlert
       }
     >
       When you enable a model for subscribed users, its endpoints are not accessible until an admin
-      configures a subscription and authorization policy on the <strong>MaaS governance</strong>{' '}
-      page. Users can view their API keys, subscriptions, and accessible models on the{' '}
-      <strong>API keys</strong> page.
+      configures a subscription and authorization policy under{' '}
+      <strong> Settings &gt; MaaS governance</strong>. Users can view their API keys, subscriptions,
+      and accessible models under <strong>Gen AI studio &gt; API keys</strong>.
     </Alert>
   );
 };

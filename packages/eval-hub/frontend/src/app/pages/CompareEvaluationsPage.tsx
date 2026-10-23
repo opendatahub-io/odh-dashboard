@@ -6,10 +6,15 @@ import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { evaluationsBaseRoute } from '~/app/routes';
 import MlflowCompareRuns from '~/app/components/MlflowCompareRuns';
 import { parseMlflowArrayParam } from '~/app/utilities/compareEvaluationsUtils';
+import { createEvalHubTrackingScope } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const CompareEvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const [searchParams] = useSearchParams();
+  const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
+
+  React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
 
   const {
     config: { deploymentMode },
@@ -31,6 +36,21 @@ const CompareEvaluationsPage: React.FC = () => {
   const hasValidParams = experimentIds.length > 1 && experimentIds.length === runUuids.length;
 
   const showCompare = deploymentMode === DeploymentMode.Federated && hasValidParams;
+
+  // Emitted only from a confirmed remote render — a compare view that is still
+  // loading or fell back to the unavailable state is not a successful render.
+  const handleRemoteReady = React.useCallback(
+    (available: boolean) => {
+      if (available) {
+        trackingScope.trackEventOnce(
+          EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED,
+          `${namespace ?? ''}:${runUuids.join(',')}:${experimentIds.join(',')}`,
+          { surface: 'comparison_view', countOfRuns: runUuids.length },
+        );
+      }
+    },
+    [experimentIds, namespace, runUuids, trackingScope],
+  );
 
   const title = React.useMemo(() => {
     if (evaluationNames.length < 2) {
@@ -66,6 +86,7 @@ const CompareEvaluationsPage: React.FC = () => {
           experimentIds={experimentIds}
           runUuids={runUuids}
           workspace={namespace}
+          onRemoteReady={handleRemoteReady}
         />
       ) : null}
     </ApplicationsPage>

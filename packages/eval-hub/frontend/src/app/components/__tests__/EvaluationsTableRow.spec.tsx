@@ -2,10 +2,15 @@ import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import type { EvaluationJob } from '~/app/types';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -20,6 +25,7 @@ jest.mock('~/app/api/k8s', () => ({
 
 const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockOnActionComplete = jest.fn();
 const mockOnShowStatus = jest.fn();
@@ -424,6 +430,97 @@ describe('EvaluationsTableRow', () => {
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Reconfigure'));
       expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-ns/reconfigure/eval-job-retry');
+    });
+  });
+
+  describe('completion tracking', () => {
+    const renderTree = (job: EvaluationJob) => (
+      <MemoryRouter>
+        <Table aria-label="test">
+          <Tbody>
+            <EvaluationsTableRow
+              job={job}
+              rowIndex={0}
+              namespace="test-ns"
+              collectionNameMap={{}}
+              onActionComplete={mockOnActionComplete}
+              onShowStatus={mockOnShowStatus}
+              isSelected={false}
+              onSelectionChange={mockOnSelectionChange}
+              isKueueWorkloadStatusLoading={false}
+              isKueueEnabled={false}
+            />
+          </Tbody>
+        </Table>
+      </MemoryRouter>
+    );
+
+    it('should track the status message code instead of raw error text when an evaluation fails', () => {
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+
+      const failedJob = mockEvaluationJob({
+        state: 'failed',
+        statusMessage: 'Benchmark arc_easy failed: user-provided-name already exists',
+      });
+      rerender(renderTree(failedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'failed', error: 'evaluation_job_updated' }),
+      );
+      const trackedCall = mockFireMiscTrackingEvent.mock.calls.find(
+        ([eventName]) => eventName === 'Evaluations Evaluation Completed',
+      );
+      expect(JSON.stringify(trackedCall)).not.toContain('user-provided-name');
+    });
+
+    it('should track unknown_error when a failed evaluation has no message code', () => {
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+
+      const failedJob = mockEvaluationJob({ state: 'failed', statusMessage: 'Runtime crashed' });
+      // eslint-disable-next-line camelcase -- API field name.
+      delete failedJob.status.message?.message_code;
+      rerender(renderTree(failedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
+      );
+    });
+
+    it('should omit the error category when the status message is empty', () => {
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+      const completedJob = mockEvaluationJob({ state: 'completed' });
+      completedJob.status.message = {};
+
+      rerender(renderTree(completedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'completed', error: undefined }),
+      );
+    });
+
+    it('should replace an unrecognized message code with unknown_error', () => {
+      const marker = 'failed: private-resource-name';
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+      const failedJob = mockEvaluationJob({ state: 'failed', statusMessage: 'Runtime crashed' });
+      if (failedJob.status.message) {
+        // eslint-disable-next-line camelcase -- API field name.
+        failedJob.status.message.message_code = marker;
+      }
+
+      rerender(renderTree(failedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
+      );
+      expect(JSON.stringify(mockFireMiscTrackingEvent.mock.calls)).not.toContain(marker);
     });
   });
 });

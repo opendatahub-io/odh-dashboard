@@ -38,6 +38,7 @@ export type HandlersProps = {
   mockPodList?: PodKind[];
   envFrom?: MockNotebookConfig['envFrom'];
   disableProjectScoped?: boolean;
+  hardwareProfileDRA?: boolean;
   notebooks?: NotebookKind[];
   hardwareProfiles?: {
     global: HardwareProfileKind[];
@@ -51,6 +52,7 @@ export const initIntercepts = ({
   envFrom,
   mockPodList = [mockPodK8sResource({})],
   disableProjectScoped = true,
+  hardwareProfileDRA = false,
   notebooks = [
     mockNotebookK8sResource({
       lastImageSelection: 'test-imagestream:1.2',
@@ -157,6 +159,7 @@ export const initIntercepts = ({
     'GET /api/config',
     mockDashboardConfig({
       disableProjectScoped,
+      hardwareProfileDRA,
       pvcSize,
     }),
   );

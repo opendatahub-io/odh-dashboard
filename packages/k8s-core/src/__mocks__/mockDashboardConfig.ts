@@ -78,6 +78,7 @@ export type MockDashboardConfigType = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  hardwareProfileDRA?: boolean;
   modelCapabilities?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
@@ -148,7 +149,7 @@ export const mockDashboardConfig = ({
   agentConfigManagement = false,
   genAiAgentDeployment = false,
   vLLMDeploymentOnMaaS = false,
-  llmGatewayField = false,
+  llmGatewayField = true,
   promptManagement = true,
   globalProjectPrompts = false,
   nimWizard = true,
@@ -158,6 +159,7 @@ export const mockDashboardConfig = ({
   agentsCatalog = false,
   roleManagement = true,
   gpuaas = true,
+  hardwareProfileDRA = false,
   modelCapabilities = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
@@ -361,6 +363,7 @@ export const mockDashboardConfig = ({
       agentsCatalog,
       roleManagement,
       gpuaas,
+      hardwareProfileDRA,
       modelCapabilities,
     },
     notebookController: {

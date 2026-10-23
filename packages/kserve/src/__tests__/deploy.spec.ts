@@ -2,6 +2,7 @@ import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/f
 import { deploymentStrategyRecreate } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { deployKServeDeployment } from '../deploy';
 import { createServingRuntime, updateServingRuntime } from '../deployServer';
 import { deployInferenceService } from '../deployModel';
@@ -162,6 +163,40 @@ describe('deployKServeDeployment', () => {
 
     expect(mockCreateServingRuntime).toHaveBeenCalledTimes(1);
     expect(mockCreateServingRuntime.mock.calls[0][0].metadata.name).toBe('my-model');
+  });
+
+  it('should keep the resource version of a deployment bound to its DRA hardware profile by name only', async () => {
+    const existingDeployment: KServeDeployment = {
+      modelServingPlatformId: 'kserve',
+      model: mockInferenceServiceK8sResource({
+        hardwareProfileName: 'dra-profile',
+        hardwareProfileResourceVersion: '1000',
+      }),
+      server: mockServingRuntimeK8sResource({}),
+    };
+    const wizardData = {
+      ...WIZARD_DATA,
+      hardwareProfileConfig: {
+        formData: {
+          selectedProfile: mockHardwareProfile({
+            name: 'dra-profile',
+            namespace: 'test-project',
+            resourceVersion: '2000',
+            dra: { resourceClaimTemplateName: 'single-gpu' },
+          }),
+          useExistingSettings: false,
+        },
+        existingBinding: { name: 'dra-profile', namespace: 'test-project' },
+      },
+    } as unknown as WizardFormData['state'];
+
+    await deployKServeDeployment(wizardData, {}, 'test-project', existingDeployment);
+
+    expect(mockDeployInferenceService.mock.calls[0][0].metadata.annotations).toMatchObject({
+      'opendatahub.io/hardware-profile-name': 'dra-profile',
+      'opendatahub.io/hardware-profile-namespace': 'test-project',
+      'opendatahub.io/hardware-profile-resource-version': '1000',
+    });
   });
 
   it('should not apply a hidden deployment strategy to the inference service', async () => {

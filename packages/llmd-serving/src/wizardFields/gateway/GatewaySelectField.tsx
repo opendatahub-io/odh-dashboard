@@ -185,6 +185,11 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
     selectedGatewayKeys,
   ]);
 
+  // Match other wizard selects: disable when discovery returned nothing to choose.
+  // Keep enabled if missing selections are preserved as chips so the user can deselect them.
+  const hasNoOptions = Boolean(externalData?.loaded && options.length === 0);
+  const selectDisabled = Boolean(isDisabled || hasNoOptions);
+
   const selectEl = (
     <MultiSelection
       ariaLabel="Gateway"
@@ -202,7 +207,7 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
       // Hide placeholder once chips are present (UX: avoid "Select gateways" next to chips)
       placeholder={selections.length > 0 ? '' : 'Select gateways'}
       toggleTestId="gateway-select"
-      isDisabled={isDisabled}
+      isDisabled={selectDisabled}
       hasCheckbox
     />
   );
