@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "behaviors": [
+    {
+      "id": "changed-cypress-spec",
+      "mappingId": "cypress-e2e-spec",
+      "cypressTags": [],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "The changed spec completes every executable test and reaches its final expected application state."
+      }
+    },
+    {
+      "id": "cypress-support",
+      "mappingId": "cypress-support",
+      "cypressTags": [],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Every executable importing or fixture-consuming spec reaches its final expected application state."
+      }
+    },
+    {
+      "id": "dashboard-network-policy-pipelines",
+      "mappingId": "dashboard-network-policy",
+      "cypressTags": ["@Pipelines"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Pipeline list and import flows complete without a dashboard-to-DSPA gateway timeout."
+      }
+    },
+    {
+      "id": "dashboard-network-policy-workbenches",
+      "mappingId": "dashboard-network-policy",
+      "cypressTags": ["@Workbenches"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Workbench and storage flows load Thanos metrics and storage data successfully."
+      }
+    },
+    {
+      "id": "dashboard-network-policy-feature-store",
+      "mappingId": "dashboard-network-policy",
+      "cypressTags": ["@FeatureStoreCI"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Feature Store registry data loads and workbench connectivity completes without Feast egress failure."
+      }
+    },
+    {
+      "id": "module-network-policy",
+      "mappingId": "module-network-policy",
+      "cypressTags": [],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "The owning module's primary E2E workflow reaches its final expected state after its network policy changes."
+      }
+    },
+    {
+      "id": "package-without-executable-e2e-suite",
+      "mappingId": "package-without-executable-e2e-suite",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "The package builds and dashboard regression flows complete while its executable E2E coverage is absent."
+      }
+    },
+    {
+      "id": "frontend-area",
+      "mappingId": "frontend-area",
+      "cypressTags": [],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "The selected frontend area workflow reaches its final expected state, including role-conditioned outcomes where applicable."
+      }
+    },
+    {
+      "id": "workspace-package",
+      "mappingId": "workspace-package",
+      "cypressTags": [],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "The owning package's primary E2E workflow reaches its final expected state across the required operator, RBAC, and image contracts."
+      }
+    },
+    {
+      "id": "dashboard-operator",
+      "mappingId": "dashboard-operator",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "The operator reconciles the dashboard and its dependent resources, after which dashboard regression flows complete."
+      }
+    },
+    {
+      "id": "deployment-manifests",
+      "mappingId": "deployment-manifests",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "The deployed dashboard and module resources become ready and dashboard regression flows complete."
+      }
+    },
+    {
+      "id": "build-and-environment-config",
+      "mappingId": "build-and-environment-config",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Workspace and image contracts build successfully and dashboard regression flows complete."
+      }
+    },
+    {
+      "id": "ci-and-selection-config",
+      "mappingId": "ci-and-selection-config",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Selection contract tests pass and dashboard regression flows complete under the changed orchestration."
+      }
+    },
+    {
+      "id": "deployment-scripts-and-data",
+      "mappingId": "deployment-scripts-and-data",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Deployment validation passes and the affected dashboard features reach their final expected state."
+      }
+    },
+    {
+      "id": "repository-fallback",
+      "mappingId": "repository-fallback",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Dashboard regression flows complete, proving the explicitly mapped fallback remains executable."
+      }
+    },
+    {
+      "id": "operator-reconciliation",
+      "mappingId": "dashboard-operator",
+      "cypressTags": ["@ci-dashboard-regression-tags"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "The Dashboard custom resource reaches its reconciled terminal condition and dependent resources are owned as expected."
+      }
+    },
+    {
+      "id": "rbac-coverage",
+      "mappingId": "workspace-package",
+      "cypressTags": [],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Role-conditioned Cypress workflows finish at the expected authorized or unauthorized terminal state."
+      }
+    },
+    {
+      "id": "image-version-contract",
+      "mappingId": "workspace-package",
+      "cypressTags": [],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Image and version contract checks pass and the affected package workflow reaches its final expected state."
+      }
+    },
+    {
+      "id": "performance-where-applicable",
+      "mappingId": "frontend-area",
+      "cypressTags": ["@ModelCatalogCI"],
+      "terminalStateAssertion": {
+        "asserted": true,
+        "description": "Performance-sensitive filters and model catalog views reach their loaded, usable terminal state."
+      }
+    }
+  ]
+}

@@ -158,6 +158,43 @@ pnpm run cypress:open
 
 Use the custom command `cy.visitWithLogin` to visit a page and perform the login procedure steps if the user is not already logged in. The default user is not an ODH admin. `cy.visitWithLogin` can be used to login with different users by supplying the user auth configuration as a parameter.
 
+#### Selective E2E tests
+
+The E2E workflow uses the versioned path-impact map in
+`scripts/cypress/e2e-path-impact.json`, not a Turbo-only package query. The map is
+ordered, supports exact paths plus `**`, `*`, and `?` globs, and explicitly covers
+Cypress specs and support code, packages, frontend areas, manifests, the operator,
+CI configuration, build contracts, deployment scripts, documentation, and repository
+fallback. Package paths derive tags from `e2eCiTags`, module network policies derive
+tags from their owning module, and frontend areas derive tags from
+`.github/frontend-ci-tags.json`.
+
+The planner always runs changed Cypress specs, computes the executable reverse impact
+of changed Cypress support code, and validates selected tags before starting cluster
+jobs. Small impact sets run as explicit specs, broad sets use package CI tags, and
+only unmappable broad impact or support deletion falls back to the canonical Smoke
+and Sanity tag groups. If those canonical groups do not cover every required test,
+the planner schedules the residual specs explicitly rather than dropping them. It
+fails selection for empty tags, unmatched impactful paths, unschedulable specs, and
+all-skipped selections, and reports executed, failed, and skipped counts after the
+run. Dashboard base and RHOAI network-policy changes run
+the Pipelines, Workbenches, and Feature Store suites because those flows exercise
+dashboard egress to the pipeline server, Thanos, and Feast.
+
+Before cluster jobs start, the workflow runs the selection contracts in
+`scripts/cypress/__tests__`. The Node test step prints each named test with the spec
+reporter, records machine-readable TAP totals, and prints pass, failure, skipped,
+todo, total, and pass-rate counts. Historical impact simulations replay escaped
+network-policy, changed-spec, support-code, package-tag, and fallback scenarios.
+
+Referenced behaviors must exist in
+`scripts/cypress/e2e-coverage-inventory.json` and declare a terminal-state assertion.
+Selected tags must exist in `scripts/cypress/e2e-environment-capabilities.json`,
+which records ODH/RHOAI, FIPS, connected/disconnected, operator, RBAC, image-contract,
+and performance capabilities. Unsupported environments are reported as explicit
+coverage gaps rather than silently becoming a default-only run. See
+`packages/cypress/cypress/tests/e2e/README.md` for the full contract.
+
 ### Mocked Tests
 
 Cypress mocked tests run against a standalone frontend while mocking all network requests.

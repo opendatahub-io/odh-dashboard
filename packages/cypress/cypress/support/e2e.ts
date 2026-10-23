@@ -75,6 +75,8 @@ declare global {
     it: Mocha.TestFunction & {
       (name: string, options: TestOptions, fn?: Mocha.AsyncFunc | Mocha.Func): Mocha.Test;
     };
+    describe: Mocha.SuiteFunction;
+    context: Mocha.SuiteFunction;
   }
 }
 /* eslint-enable @typescript-eslint/no-namespace */
@@ -179,6 +181,10 @@ Cypress.on('uncaught:exception', (err) => {
 // Configure grep filtering
 const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
 const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
+const grepIncludedTags = grepTags.filter((tag: string) => !tag.startsWith('--'));
+const grepExcludedTags = grepTags
+  .filter((tag: string) => tag.startsWith('--'))
+  .map((tag: string) => tag.slice(2));
 
 // Helper function to map test tags
 const mapTestTags = (tags: string[]) =>
@@ -193,6 +199,32 @@ console.log(`Support file loaded. \nwatchForFileChanges: ${Cypress.config('watch
 
 function setupTestTags() {
   const originalIt = window.it;
+  const originalDescribe = window.describe;
+  const originalContext = window.context;
+  const suiteStack: { tags: string[] }[] = [];
+
+  const wrapSuite = (originalSuite: Mocha.SuiteFunction) =>
+    function wrappedSuite(
+      title: string,
+      optionsOrFn?: TestOptions | Mocha.Func | Mocha.AsyncFunc,
+      fn?: Mocha.Func | Mocha.AsyncFunc,
+    ): Mocha.Suite {
+      const callSuite = originalSuite as unknown as (
+        title: string,
+        options: TestOptions | Mocha.Func | Mocha.AsyncFunc,
+        fn?: Mocha.Func | Mocha.AsyncFunc,
+      ) => Mocha.Suite;
+      const suiteTags = typeof optionsOrFn === 'object' && optionsOrFn.tags ? optionsOrFn.tags : [];
+      suiteStack.push({ tags: suiteTags });
+      try {
+        if (typeof optionsOrFn === 'function') {
+          return callSuite(title, optionsOrFn);
+        }
+        return callSuite(title, optionsOrFn ?? {}, fn);
+      } finally {
+        suiteStack.pop();
+      }
+    } as Mocha.SuiteFunction;
 
   // Create a type-safe wrapper for the original it function.
   const wrappedIt = function it(
@@ -200,22 +232,33 @@ function setupTestTags() {
     options: TestOptions | Mocha.AsyncFunc | Mocha.Func,
     fn?: Mocha.AsyncFunc | Mocha.Func,
   ): Mocha.Test {
+    const ownTestTags = typeof options === 'object' && options.tags ? options.tags : [];
+    const testTags = [...suiteStack.flatMap((suite) => suite.tags), ...ownTestTags];
+    if (testTags.length > 0) {
+      Cypress.testTags[name] = testTags;
+    }
+    if (shouldSkipTest(testTags)) {
+      return undefined as unknown as Mocha.Test;
+    }
+
     // If called with two arguments and the second is a function, use it directly.
     if (arguments.length === 2 && typeof options === 'function') {
       return originalIt(name, options as Mocha.Func);
     }
 
-    // If options is an object with tags, store them on Cypress.testTags.
-    if (typeof options === 'object' && options.tags) {
-      Cypress.testTags[name] = options.tags;
-    }
-
     return originalIt(name, options as TestOptions, fn);
   };
 
+  const wrappedDescribe = wrapSuite(originalDescribe);
+  wrappedDescribe.only = originalDescribe.only;
+  wrappedDescribe.skip = originalDescribe.skip;
+  const wrappedContext = wrapSuite(originalContext);
+  wrappedContext.only = originalContext.only;
+  wrappedContext.skip = originalContext.skip;
+
   // Copy properties (like .only and .skip) from the original it.
   wrappedIt.only = originalIt.only;
-  wrappedIt.skip = originalIt.skip;
+  wrappedIt.skip = (() => undefined) as unknown as typeof originalIt.skip;
 
   // Handle retries if they exist.
   (wrappedIt as TestWithRetries).retries = (originalIt as TestWithRetries).retries;
@@ -224,6 +267,8 @@ function setupTestTags() {
   // casting it to the proper type to satisfy TypeScript.
   window.it = wrappedIt as Mocha.TestFunction &
     ((name: string, options: TestOptions, fn?: Mocha.AsyncFunc | Mocha.Func) => Mocha.Test);
+  window.describe = wrappedDescribe;
+  window.context = wrappedContext;
 }
 
 // Initialize test tags
@@ -248,18 +293,16 @@ function shouldSkipTest(testTags: string[]): boolean {
   // If grep tags are provided, the test must match at least one of them
   // If no grep tags are provided, run all tests
   const shouldRun =
-    grepTags.length === 0 ||
-    grepTags.some((tag: string) => {
-      const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
-      return mappedTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
-    });
+    grepIncludedTags.length === 0 ||
+    mappedTestTags.some((tag: string) => grepIncludedTags.includes(tag));
+  const isExcluded = grepExcludedTags.some((tag: string) => mappedTestTags.includes(tag));
 
   // If we have grep tags but no tests match them, we should skip all tests
-  if (grepTags.length > 0 && !shouldRun) {
+  if (grepIncludedTags.length > 0 && !shouldRun) {
     return true;
   }
 
-  return shouldSkip || !shouldRun;
+  return shouldSkip || isExcluded || !shouldRun;
 }
 
 // ============================
@@ -316,10 +359,10 @@ before(function setupGlobalIntercepts() {
 
 // Root-level before hook to skip suite if no tests match grep tags or if all tests should be skipped
 before(function checkGrepTags() {
-  if (grepTags.length > 0) {
+  if (grepIncludedTags.length > 0) {
     // Collect all test tags
     const allTestTags = Object.values(Cypress.testTags).flat();
-    const hasMatchingTest = grepTags.some((tag: string) => {
+    const hasMatchingTest = grepIncludedTags.some((tag: string) => {
       const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
       return allTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
     });
