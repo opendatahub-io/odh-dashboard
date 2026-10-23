@@ -188,6 +188,18 @@ Host blocking: severity `medium` and above, except categories excluded in
 | `fail` | `request-changes`; refuse approve |
 | `could-not-verify` | Refuse approve; `comment` → `requires-manual-review`; also caps high confidence via incompleteness |
 
+### Adapters
+
+| Adapter `status` | Host disposition |
+| --- | --- |
+| `ok`, `skipped`, `none` | No effect on `action` |
+| `error` | Refuse approve; `comment` → `requires-manual-review`; caps high confidence; Status headline names producer(s) + reason |
+
+An adapter with `status: ok` and empty `findings` is a successful empty
+review — it can ride with `approve`. An adapter with `status: error` means
+the pipeline did not complete (e.g. rate limit, CLI failure); the host
+refuses approve regardless of findings.
+
 #### Test impact vs PR description (Evidence)
 
 | Check | Role |

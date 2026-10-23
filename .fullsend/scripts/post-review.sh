@@ -257,6 +257,8 @@ def needs_human(result):
         return True
     if checks_with_status(result, "could-not-verify"):
         return True
+    if errored_adapters(result):
+        return True
     if "needs_human" in pa:
         if pa.get("needs_human"):
             return True
@@ -277,6 +279,16 @@ def producers_block(result):
     """Self-contained producers object on the review result (schema v3)."""
     raw = result.get("producers") if isinstance(result, dict) else None
     return raw if isinstance(raw, dict) else None
+
+def errored_adapters(result):
+    """Adapters that reported status=error, as "<Label> (<reason>)" notes."""
+    producers = producers_block(result)
+    notes = []
+    for item in (producers or {}).get("adapters") or []:
+        if isinstance(item, dict) and str(item.get("status") or "").strip().lower() == "error":
+            name = result_label(item.get("id") or "adapter")
+            notes.append(f"{name} ({adapter_reason(item) or 'adapter error'})")
+    return notes
 
 def add_limit(inspected, note):
     notes = list(inspected.get("could_not_verify") or [])
@@ -400,10 +412,11 @@ def unverified_producers(result):
     """Everything this run could not establish, by whatever shape reported it.
 
     A readiness check that could not be verified is a producer that did not
-    establish its result."""
+    establish its result. An errored adapter is also incomplete."""
     names = []
     for check in checks_with_status(result, "could-not-verify"):
-        names.append(dimension_label(check.get("id") or "readiness check"))
+        names.append(result_label(check.get("id") or "readiness check"))
+    names.extend(errored_adapters(result))
     producers = producers_block(result)
     if producers is not None and challenger_problem(challenger_record(producers), result.get("findings") or []):
         names.append("challenger (its skip state contradicts the reported findings)")
@@ -561,9 +574,12 @@ def augment_inspected(result):
     could_not_verify = list(inspected.get("could_not_verify") or [])
     for check in checks_with_status(result, "could-not-verify"):
         note = (
-            f"{dimension_label(check.get('id') or 'readiness check')}: "
+            f"{result_label(check.get('id') or 'readiness check')}: "
             f"{check.get('summary') or 'could not be verified'}"
         )
+        if note not in could_not_verify:
+            could_not_verify.append(note)
+    for note in errored_adapters(result):
         if note not in could_not_verify:
             could_not_verify.append(note)
     if could_not_verify:
@@ -583,6 +599,10 @@ def suppress_mentions(text):
     """Keep agent prose from turning @words into GitHub mentions/links."""
     return re.sub(r"@(?=[A-Za-z0-9-])", "@\u200b", text or "")
 
+def escape_link_syntax(text):
+    """Escape backslashes and brackets so Markdown renders them literally."""
+    return text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+
 def render_location(result, finding, server_url):
     path = (finding.get("file") or "").strip()
     line = finding.get("line")
@@ -597,11 +617,16 @@ def render_location(result, finding, server_url):
     target = f"{server_url.rstrip('/')}/{repo}/blob/{sha}/{quote(path.lstrip('/'), safe='/')}"
     if line:
         target += f"#L{line}"
-    link_label = safe_display.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+    link_label = escape_link_syntax(safe_display)
     return f"[{link_label}]({target})"
 
 def clean(text):
-    return suppress_mentions(str(text or "").strip())
+    # Normalize every line ending to LF first: GitHub treats a bare CR as a
+    # line ending, so a value that reaches a renderer before flattening could
+    # otherwise start a new Markdown block.
+    return suppress_mentions(
+        str(text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    )
 
 def render_remediation(text):
     """A one-line remediation stays inline; a patch snippet gets a fenced block.
@@ -610,7 +635,7 @@ def render_remediation(text):
     them unreadable. List continuation needs four-space indentation, and the
     fence is padded past any backticks inside the snippet.
     """
-    body = suppress_mentions(str(text or "").strip())
+    body = clean(text)
     if not body:
         return []
     if "\n" not in body:
@@ -630,11 +655,22 @@ def table_cell(text):
 def inline_text(text):
     """Untrusted finding/audit field for Markdown outside tables.
 
-    clean() only strips @mentions. Neutralize HTML so a field cannot close
-    the host <details> block; flatten newlines so a value cannot inject
-    headings or extra list items.
+    clean() normalizes line endings and strips @mentions. Neutralize HTML so
+    a field cannot close the host <details> block; flatten newlines so a
+    value cannot inject headings or extra list items.
     """
     return clean(text).replace("\n", " ").replace("<", "&lt;")
+
+def label_text(text):
+    """Registry label or id as literal Markdown.
+
+    Ids are result data; flattening and escaping link syntax keeps a forged
+    id from adding blocks or becoming a bot-authored link."""
+    return escape_link_syntax(inline_text(text))
+
+def result_label(dim_id):
+    """Display label for a result-authored registry id."""
+    return label_text(dimension_label(dim_id))
 
 def code_span_text(text):
     """Untrusted text for a single Markdown inline-code span (`...`).
@@ -1076,21 +1112,21 @@ def adapter_producer_row(entry, result, review_checks):
         return None
     if not isinstance(name, str) or not name:
         return None
-    shown = dimension_label(name)
+    shown = result_label(name)
     typ = dimension_type(name)
     if not isinstance(envelope, dict) or "status" not in envelope:
-        return (clean(shown), typ, "❔", "adapter status missing")
+        return (shown, typ, "❔", "adapter status missing")
     status = str(envelope.get("status") or "").strip().lower()
     reason = adapter_reason(envelope)
     if status == "ok":
         res = producer_result(name, result, review_checks, kind=typ)
-        return (clean(shown), typ, "✅", res)
+        return (shown, typ, "✅", res)
     if status in ("none", "skipped"):
         default = "No usable adapter context." if status == "none" else "Adapter skipped."
-        return (clean(shown), typ, "⚪", reason or default)
+        return (shown, typ, "⚪", reason or default)
     if status == "error":
-        return (clean(shown), typ, "❌", reason or "Adapter error.")
-    return (clean(shown), typ, "❔", reason or f"Unrecognized adapter status: {status or 'missing'}")
+        return (shown, typ, "❌", reason or "Adapter error.")
+    return (shown, typ, "❔", reason or f"Unrecognized adapter status: {status or 'missing'}")
 
 def producer_rows(result):
     """What ran, by kind, with a Result cell — from result.producers only.
@@ -1108,7 +1144,7 @@ def producer_rows(result):
         if isinstance(name, str):
             typ = dimension_type(name)
             rows.append((
-                clean(dimension_label(name)),
+                result_label(name),
                 typ,
                 "✅",
                 producer_result(name, result, review_checks, kind=typ),
@@ -1121,7 +1157,7 @@ def producer_rows(result):
         if isinstance(row, dict) and isinstance(row.get("id"), str):
             reason = clean(row.get("reason") or "not selected")
             rows.append((
-                clean(dimension_label(row["id"])),
+                result_label(row["id"]),
                 dimension_type(row["id"]),
                 "➖",
                 reason,
@@ -1131,8 +1167,16 @@ def producer_rows(result):
 
 def status_headline(result, action):
     """Visible status line: icon + bold label + remainder."""
+    errs = errored_adapters(result)
+    incomplete = inline_text(", ".join(errs)) if errs else ""
+    incomplete_note = (
+        f" Review incomplete — {incomplete}. Retry or escalate." if errs else ""
+    )
     if action == "request-changes":
-        return f"{mark(ACTION_MARK, action)} **Waiting on author** — {author_wait_detail(result)}"
+        return (f"{mark(ACTION_MARK, action)} **Waiting on author** — "
+                f"{author_wait_detail(result)}{incomplete_note}")
+    if action == "comment" and errs:
+        return f"{mark(ACTION_MARK, action)} **Review incomplete** — {incomplete}. Retry or escalate."
     if action == "comment" and needs_human(result):
         return f"{mark(ACTION_MARK, action)} **Needs human judgment.**"
     if action == "comment":
@@ -1147,7 +1191,7 @@ def status_headline(result, action):
     if action == "approve":
         return f"{mark(ACTION_MARK, action)} **Agent bar cleared for this head.** Human still finalizes."
     if action == "reject":
-        return f"{mark(ACTION_MARK, action)} **Approach rejected.**"
+        return f"{mark(ACTION_MARK, action)} **Approach rejected.**{incomplete_note}"
     return f"{mark(ACTION_MARK, action)} This review did not complete. Do not treat this head as reviewed."
 
 def render_signal_table(result):
@@ -1175,7 +1219,7 @@ def render_checks_table(result):
     for check in rows:
         status = check.get("status") or ""
         lines.append(
-            f"| {table_cell(dimension_label(check.get('id')))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
+            f"| {table_cell(result_label(check.get('id')))} | {mark(STATUS_MARK, status)} {table_cell(status)} "
             f"| {check_details_cell(check)} |")
     return lines
 
@@ -1191,7 +1235,7 @@ def render_todo_section(result):
         items = by_category[cid]
         if not items:
             continue
-        lines += ["", label] + [f"- {clean(text)}" for text in items]
+        lines += ["", label] + [f"- {inline_text(text)}" for text in items]
     return lines
 
 def render_product_ask_section(pa):
@@ -1203,9 +1247,9 @@ def render_product_ask_section(pa):
     lines.append(f"**Status:** `{clean(status)}`{human}")
     lines.append("")
     if pa.get("aligned"):
-        lines += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
+        lines += ["Aligned:"] + [f"- {inline_text(item)}" for item in pa["aligned"]] + [""]
     if pa.get("mismatched"):
-        lines += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
+        lines += ["Mismatched:"] + [f"- {inline_text(item)}" for item in pa["mismatched"]] + [""]
     return lines
 
 def render_body(result, previous_md, action):
@@ -1217,7 +1261,7 @@ def render_body(result, previous_md, action):
         lines += ["", f"This review did not complete (`{reason}`). Do not treat this head as reviewed."]
         return "\n".join(lines).rstrip() + "\n"
 
-    lines += ["", "## Change summary", "", clean(result.get("change_summary"))]
+    lines += ["", "## Change summary", "", inline_text(result.get("change_summary"))]
     lines += ["", "## Status", "", status_headline(result, action)]
     lines += render_signal_table(result)
     lines += render_checks_table(result)
@@ -1233,12 +1277,14 @@ def render_body(result, previous_md, action):
                 origin = ""
                 if finding.get("dimension"):
                     origin_ids = producer_ids(finding)
-                    origin_shown = ", ".join(dimension_label(i) for i in origin_ids) or clean(finding.get("dimension"))
+                    origin_shown = ", ".join(
+                        code_span_text(dimension_label(i)) for i in origin_ids
+                    ) or code_span_text(finding.get("dimension"))
                     origin = f"`{origin_shown}` · "
                 tail = " · actionable follow-up" if is_actionable_nit(finding) else ""
-                lines += ["", f"- {origin}**{clean(finding.get('category'))}** ({loc}){tail}: {clean(finding.get('description'))}"]
+                lines += ["", f"- {origin}**{inline_text(finding.get('category'))}** ({loc}){tail}: {inline_text(finding.get('description'))}"]
                 if finding.get("why"):
-                    lines.append(f"  - Why: {clean(finding.get('why'))}")
+                    lines.append(f"  - Why: {inline_text(finding.get('why'))}")
                 if finding.get("remediation"):
                     lines += render_remediation(finding.get("remediation"))
         lines += render_justified_section(result)
@@ -1276,10 +1322,10 @@ def render_body(result, previous_md, action):
     if inspected.get("summary") or inspected.get("could_not_verify"):
         details_body += ["### Evidence inspected", ""]
         if inspected.get("summary"):
-            details_body += [clean(inspected["summary"]), ""]
+            details_body += [inline_text(inspected["summary"]), ""]
         if inspected.get("could_not_verify"):
             details_body += ["**Could not verify:**", ""]
-            details_body += [f"- {clean(i)}" for i in inspected["could_not_verify"]] + [""]
+            details_body += [f"- {inline_text(i)}" for i in inspected["could_not_verify"]] + [""]
 
     sig = clean(os.environ.get("REVIEW_SIGNALS"))
     if sig:
@@ -1946,6 +1992,7 @@ run_self_test() {
   fi
 
   # Adapter status comes from result.producers.adapters, not collected.json.
+  # ok + empty findings must still approve.
   printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[{\"id\":\"jira-snapshot\",\"status\":\"none\",\"reason\":\"no-issue-key\"},{\"id\":\"coderabbit\",\"status\":\"ok\"}],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[],\"coderabbit\":[]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-status.json"
   transform_review_result "${tmp}/adapter-status.json" > "${tmp}/adapter-status-out.json"
   body=$(jq -r .body "${tmp}/adapter-status-out.json")
@@ -1958,18 +2005,123 @@ run_self_test() {
   elif ! grep -q '2 producer(s) ran, 1 unavailable' <<<"${body}"; then
     echo "FAIL adapter-status: review-details blurb should separate ran from unavailable" >&2
     fail=1
+  elif ! jq -e '.action == "approve"' "${tmp}/adapter-status-out.json" >/dev/null; then
+    echo "FAIL adapter-status: ok + empty findings must approve" >&2
+    fail=1
   else
-    echo "PASS adapter status on result.producers distinguishes unavailable from ran-clean"
+    echo "PASS adapter status on result.producers distinguishes unavailable from ran-clean and approves"
   fi
 
+  # Adapter error must refuse approve and surface error on Status.
   printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"error\",\"reason\":\"cli-unavailable\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-error.json"
   transform_review_result "${tmp}/adapter-error.json" > "${tmp}/adapter-error-out.json"
   body=$(jq -r .body "${tmp}/adapter-error-out.json")
   if ! grep -qE '^\| CodeRabbit \| findings \| ❌ \| cli unavailable' <<<"${body}"; then
     echo "FAIL adapter-error: status=error adapter was not marked errored" >&2
     fail=1
+  elif ! jq -e '.action == "comment"' "${tmp}/adapter-error-out.json" >/dev/null; then
+    echo "FAIL adapter-error: status=error must refuse approve (comment action)" >&2
+    fail=1
+  elif ! grep -q 'Review incomplete' <<<"${body}"; then
+    echo "FAIL adapter-error: status=error must show Review incomplete on Status" >&2
+    fail=1
+  elif ! grep -qi 'CodeRabbit' <<<"$(grep 'Review incomplete' <<<"${body}")"; then
+    echo "FAIL adapter-error: Status must name the failed producer" >&2
+    fail=1
+  elif jq -e '.confidence.level == "high"' "${tmp}/adapter-error-out.json" >/dev/null; then
+    echo "FAIL adapter-error: confidence must not be left high with an errored adapter" >&2
+    fail=1
+  elif ! jq -e '(.inspected.could_not_verify // []) | any(.[]; . == "CodeRabbit (cli unavailable)")' "${tmp}/adapter-error-out.json" >/dev/null; then
+    echo "FAIL adapter-error: inspected.could_not_verify must use label (reason) for errored adapter" >&2
+    fail=1
   else
-    echo "PASS adapter error status on result renders as errored, not ran-clean"
+    echo "PASS adapter error refuses approve, surfaces incomplete Status, caps confidence"
+  fi
+
+  # A blocking finding keeps the request-changes headline, but the Status must
+  # still report the incomplete review and name the failed producer.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"logic-error\",\"file\":\"a.ts\",\"description\":\"Off by one.\"}],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"error\",\"reason\":\"review-failed\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-error-blocking.json"
+  transform_review_result "${tmp}/adapter-error-blocking.json" > "${tmp}/adapter-error-blocking-out.json"
+  body=$(jq -r .body "${tmp}/adapter-error-blocking-out.json")
+  if ! jq -e '.action == "request-changes"' "${tmp}/adapter-error-blocking-out.json" >/dev/null; then
+    echo "FAIL adapter-error-blocking: expected request-changes" >&2
+    fail=1
+  elif ! grep -qE '\*\*Waiting on author\*\*.*Review incomplete — CodeRabbit \(review failed\)' <<<"${body}"; then
+    echo "FAIL adapter-error-blocking: Status must keep Waiting on author and report the incomplete review" >&2
+    fail=1
+  else
+    echo "PASS adapter error with blocking findings keeps Waiting on author and reports incompleteness"
+  fi
+
+  # An approach-rejected action keeps its headline, but must still report an
+  # incomplete review when an adapter errored.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"approach-rejected\",\"file\":\"a.ts\",\"description\":\"Approach rejected.\"}],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"error\",\"reason\":\"review-failed\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-error-reject.json"
+  transform_review_result "${tmp}/adapter-error-reject.json" > "${tmp}/adapter-error-reject-out.json"
+  body=$(jq -r .body "${tmp}/adapter-error-reject-out.json")
+  if ! jq -e '.action == "reject"' "${tmp}/adapter-error-reject-out.json" >/dev/null; then
+    echo "FAIL adapter-error-reject: expected reject" >&2
+    fail=1
+  elif ! grep -qE '\*\*Approach rejected\.\*\*.*Review incomplete — CodeRabbit \(review failed\)' <<<"${body}"; then
+    echo "FAIL adapter-error-reject: Status must keep Approach rejected and report the incomplete review" >&2
+    fail=1
+  else
+    echo "PASS adapter error with approach-rejected findings reports incompleteness"
+  fi
+
+  # Adapter ids come from the result, not the registry: a forged id must not
+  # inject headings, HTML, mentions, carriage-return blocks, or links into
+  # host-authored Status / Evidence.
+  printf '%s' "{${common},\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"evil\\n## FAKE <b>x</b> @octocat\",\"status\":\"error\",\"reason\":\"review-failed\"},{\"id\":\"evil\\r## CRFAKE [CodeRabbit](https://example.com/)\",\"status\":\"error\",\"reason\":\"review-failed\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-inject.json"
+  transform_review_result "${tmp}/adapter-inject.json" > "${tmp}/adapter-inject-out.json"
+  body=$(jq -r .body "${tmp}/adapter-inject-out.json")
+  if grep -qE '^## (FAKE|CRFAKE)' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id injected a heading" >&2
+    fail=1
+  elif grep -qF '<b>' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id injected raw HTML" >&2
+    fail=1
+  elif grep -qF '@octocat' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id injected a mention" >&2
+    fail=1
+  elif grep -qF $'\r' <<<"${body}"; then
+    echo "FAIL adapter-inject: standalone carriage return survived" >&2
+    fail=1
+  elif grep -qE '(^|[^\\])\]\(https://example\.com/' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id rendered as a Markdown link" >&2
+    fail=1
+  elif ! grep -qF '\[CodeRabbit\]' <<<"${body}"; then
+    echo "FAIL adapter-inject: link-shaped adapter id was not escaped" >&2
+    fail=1
+  else
+    echo "PASS adapter id cannot inject headings, HTML, mentions, carriage returns, or links"
+  fi
+
+  # Finding text is result data too: CR blocks and HTML must not escape the
+  # main Findings list.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"logic\",\"file\":\"a.ts\",\"description\":\"body\\r## FAKE2 <b>y</b>\"}]}" > "${tmp}/finding-inject.json"
+  transform_review_result "${tmp}/finding-inject.json" > "${tmp}/finding-inject-out.json"
+  body=$(jq -r .body "${tmp}/finding-inject-out.json")
+  if grep -qE '^## FAKE2' <<<"${body}"; then
+    echo "FAIL finding-inject: finding description injected a heading" >&2
+    fail=1
+  elif grep -qF '<b>' <<<"${body}"; then
+    echo "FAIL finding-inject: finding description injected raw HTML" >&2
+    fail=1
+  elif grep -qF $'\r' <<<"${body}"; then
+    echo "FAIL finding-inject: finding description kept a standalone carriage return" >&2
+    fail=1
+  else
+    echo "PASS finding text cannot inject headings, HTML, or carriage returns"
+  fi
+
+  # Adapter skipped must still allow approve when otherwise clean.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"skipped\",\"reason\":\"all-files-ignored\"}],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-skipped.json"
+  transform_review_result "${tmp}/adapter-skipped.json" > "${tmp}/adapter-skipped-out.json"
+  if ! jq -e '.action == "approve"' "${tmp}/adapter-skipped-out.json" >/dev/null; then
+    echo "FAIL adapter-skipped: skipped adapter must still allow approve" >&2
+    fail=1
+  else
+    echo "PASS adapter skipped still allows approve"
   fi
 
   # Free-form reasons fall back to the status default; Result cells must not
