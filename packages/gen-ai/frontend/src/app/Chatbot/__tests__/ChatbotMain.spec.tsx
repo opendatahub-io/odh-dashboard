@@ -564,6 +564,62 @@ describe('ChatbotMain - Empty State Logic', () => {
     act(() => actualStore.getState().resetConfiguration());
   });
 
+  it('should not treat a removed and re-added MCP server with unchanged tool selections as an unsaved change', () => {
+    const actualStore = renderWithActualStore([]);
+
+    // Selections restored from sessionStorage before initialization captures the baseline
+    act(() =>
+      actualStore
+        .getState()
+        .saveToolSelections('default', 'test-namespace', 'https://a.example.com/mcp', [
+          'tool-1',
+          'tool-2',
+        ]),
+    );
+    act(() =>
+      actualStore
+        .getState()
+        .saveToolSelections('default', 'test-namespace', 'https://b.example.com/mcp', ['tool-3']),
+    );
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+
+    // Removing a server drops its selections — a real change
+    act(() =>
+      actualStore
+        .getState()
+        .saveToolSelections('default', 'test-namespace', 'https://a.example.com/mcp', undefined),
+    );
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+
+    // Re-adding it with the same tools lands the server key at a different insertion
+    // position — the selections themselves are unchanged, so this is not dirty
+    act(() =>
+      actualStore
+        .getState()
+        .saveToolSelections('default', 'test-namespace', 'https://a.example.com/mcp', [
+          'tool-1',
+          'tool-2',
+        ]),
+    );
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+
+    // Tool order within a server carries semantics — reordering reads as dirty
+    act(() =>
+      actualStore
+        .getState()
+        .saveToolSelections('default', 'test-namespace', 'https://a.example.com/mcp', [
+          'tool-2',
+          'tool-1',
+        ]),
+    );
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+
+    window.sessionStorage.clear();
+    act(() => actualStore.getState().resetConfiguration());
+  });
+
   it('should adopt the retained configuration as the baseline when no baseline exists', () => {
     const actualStore = renderWithActualStore([]);
 

@@ -51,12 +51,29 @@ import {
   DEFAULT_CONFIG_ID,
   DEFAULT_CONFIGURATION,
   ChatbotConfiguration,
+  McpToolSelectionsMap,
 } from './store';
 import { usePlaygroundStore } from './store/usePlaygroundStore';
 import PromptManagementModal from './components/promptManagementModal';
 import useAgentDeploymentPolling from './hooks/useAgentDeploymentPolling';
 import useSaveAgentProfile from './hooks/useSaveAgentProfile';
 import AgentDeploymentsModal from './components/AgentDeploymentsModal';
+
+// Canonicalize the nested MCP selections map's keys (namespace, then server) before
+// comparison — JSON.stringify walks keys in insertion order, so a server removed and
+// re-added with unchanged selections would otherwise read as dirty. Tool arrays keep
+// their order: it carries selection semantics.
+const canonicalizeMcpToolSelections = (selections: McpToolSelectionsMap): McpToolSelectionsMap =>
+  Object.fromEntries(
+    Object.entries(selections)
+      .toSorted(([a], [b]) => a.localeCompare(b))
+      .map(([namespace, serverMap]) => [
+        namespace,
+        serverMap
+          ? Object.fromEntries(Object.entries(serverMap).toSorted(([a], [b]) => a.localeCompare(b)))
+          : undefined,
+      ]),
+  );
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
@@ -204,7 +221,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   ): string =>
     JSON.stringify({
       ...config,
-      mcpToolSelections: hasBaseline ? config.mcpToolSelections : {},
+      mcpToolSelections: hasBaseline ? canonicalizeMcpToolSelections(config.mcpToolSelections) : {},
       guardrail:
         config.guardrail ===
         models.find((model) =>
