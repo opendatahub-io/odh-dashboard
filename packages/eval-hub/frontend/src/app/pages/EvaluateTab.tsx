@@ -94,11 +94,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
           />
         </StackItem>
         <StackItem>
-          <Card
-            className="evalhub-browse-benchmarks-card"
-            variant="secondary"
-            data-testid="browse-all-benchmarks"
-          >
+          <Card className="evalhub-browse-benchmarks-card" data-testid="browse-all-benchmarks">
             <CardBody>
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}

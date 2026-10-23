@@ -125,13 +125,13 @@ func (c *MaasClient) GetAPIKeyConfig(ctx context.Context) (*models.APIKeyConfig,
 	return &apiResponse, nil
 }
 
-func (c *MaasClient) GetMe(ctx context.Context) (*models.MaaSCallerIdentity, error) {
+func (c *MaasClient) GetWhoAmI(ctx context.Context) (*models.MaaSWhoAmI, error) {
 	endpoint, err := c.endpoint("me")
 	if err != nil {
 		return nil, err
 	}
 
-	var apiResponse models.MaaSCallerIdentity
+	var apiResponse models.MaaSWhoAmI
 	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
 	if err != nil {
 		return nil, err

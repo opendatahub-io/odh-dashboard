@@ -15,7 +15,7 @@ const (
 
 	// Access review
 	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
-	MePath          = ApiPathPrefix + "/me"
+	WhoAmIPath      = ApiPathPrefix + "/whoami"
 
 	// Gateway discovery
 	MaaSGatewayURLPath = ApiPathPrefix + "/gateway-url"

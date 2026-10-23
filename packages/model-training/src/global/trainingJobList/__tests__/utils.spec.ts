@@ -6,6 +6,7 @@ import { TrainingJobState, JobType } from '../../../types';
 import {
   getStatusInfo,
   getTrainingJobStatus,
+  getTrainingJobStatusWithWorkload,
   getTrainingJobStatusSync,
   filterJob,
   getStatusFlags,
@@ -1091,6 +1092,79 @@ describe('getTrainingJobStatus', () => {
     const result = await getTrainingJobStatus(job);
     expect(result.status).toBe(TrainingJobState.FAILED);
     expect(result.isLoading).toBe(false);
+  });
+});
+
+describe('getTrainingJobStatusWithWorkload', () => {
+  it('should prioritize Inadmissible over a failed TrainJob and Workload failure', () => {
+    const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Inadmissible',
+        message: 'ClusterQueue is inactive',
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+      {
+        type: WorkloadConditionType.Finished,
+        status: ConditionStatus.True,
+        reason: 'JobFailed',
+        message: 'Job failed with error',
+        lastTransitionTime: TEST_TIMESTAMP_LATER,
+      },
+    ]);
+
+    expect(getTrainingJobStatusWithWorkload(job, workload, TrainingJobState.FAILED).status).toBe(
+      TrainingJobState.INADMISSIBLE,
+    );
+  });
+
+  it('should prioritize a paused Workload over preemption and running states', () => {
+    const job = mockTrainJobK8sResource({ name: TEST_JOB_NAME });
+    const workload = createMockWorkload(
+      [
+        {
+          type: WorkloadConditionType.Evicted,
+          status: ConditionStatus.True,
+          reason: 'Preempted',
+          message: 'Workload was preempted',
+          lastTransitionTime: TEST_TIMESTAMP,
+        },
+        {
+          type: WorkloadConditionType.PodsReady,
+          status: ConditionStatus.True,
+          reason: 'PodsReady',
+          message: 'All pods are ready',
+          lastTransitionTime: TEST_TIMESTAMP_LATER,
+        },
+      ],
+      false,
+    );
+
+    expect(getTrainingJobStatusWithWorkload(job, workload, TrainingJobState.CREATED).status).toBe(
+      TrainingJobState.PAUSED,
+    );
+  });
+
+  it('should prioritize running jobs over a pending QuotaReserved condition', () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+      jobsStatus: [{ name: 'trainer', active: 1 }],
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.True,
+        reason: 'QuotaReserved',
+        message: 'Quota reserved',
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+
+    expect(getTrainingJobStatusWithWorkload(job, workload, TrainingJobState.CREATED).status).toBe(
+      TrainingJobState.RUNNING,
+    );
   });
 });
 
