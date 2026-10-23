@@ -35,10 +35,10 @@ export const InfrastructureWorkloadsLink: React.FC<InfrastructureWorkloadsLinkPr
 }) =>
   infrastructureAvailable ? (
     <Link to="/observe-and-monitor/infrastructure" state={{ tab: 'workloads' }}>
-      Workloads
+      Workloads page
     </Link>
   ) : (
-    <>Workloads</>
+    <>Workloads page</>
   );
 
 const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
@@ -100,8 +100,8 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
         <PageSection className="pf-v6-u-py-0">
           <Alert isInline variant="warning" title="This page is being deprecated.">
             {deprecationMessage} To view all workloads in your project, go to the new{' '}
-            <InfrastructureWorkloadsLink infrastructureAvailable={infrastructureAvailable} /> page
-            in Observe &amp; monitor &gt; Infrastructure.
+            <InfrastructureWorkloadsLink infrastructureAvailable={infrastructureAvailable} /> in
+            Observe &amp; monitor &gt; Infrastructure.
           </Alert>
         </PageSection>
         <DistributedWorkloadsContextProvider namespace={namespace}>
