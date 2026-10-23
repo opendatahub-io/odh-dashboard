@@ -34,6 +34,13 @@ jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: () => ({ providers: [], loaded: true, loadError: undefined }),
 }));
 
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-project', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
+}));
+
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
