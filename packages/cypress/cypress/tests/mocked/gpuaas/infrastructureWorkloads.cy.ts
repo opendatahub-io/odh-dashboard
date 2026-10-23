@@ -4,6 +4,8 @@ import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8s
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
+import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
+import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { mockTrainJobK8sResource } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import { mockRayJobK8sResource } from '@odh-dashboard/model-training/__mocks__/mockRayJobK8sResource';
@@ -15,6 +17,7 @@ import type { WorkloadKind, WorkloadPodSet } from '@odh-dashboard/k8s-core';
 import {
   HardwareProfileModel,
   LocalQueueModel,
+  ClusterQueueModel,
   PodModel,
   WorkloadModel,
 } from '@odh-dashboard/k8s-core/api/models';
@@ -28,7 +31,7 @@ import { LLMInferenceServiceModel } from '@odh-dashboard/internal/api/models/kse
 import { initIntercepts } from './infrastructureMocks';
 import type { InitInterceptsOptions } from './infrastructureMocks';
 
-import { ProjectModel } from '../../../utils/models';
+import { ProjectModel, SelfSubjectAccessReviewModel } from '../../../utils/models';
 import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { infrastructurePage } from '../../../pages/infrastructure';
 
@@ -192,6 +195,22 @@ const initWorkloadsIntercepts = (
 const initHybridWorkloadsIntercepts = () => {
   initWorkloadsIntercepts(true, true, true);
 
+  cy.interceptK8s(
+    'POST',
+    SelfSubjectAccessReviewModel,
+    mockSelfSubjectAccessReview({
+      group: ClusterQueueModel.apiGroup,
+      resource: ClusterQueueModel.plural,
+      verb: 'get',
+      allowed: true,
+      namespace: PROJECT_A,
+    }),
+  );
+  cy.interceptK8s(
+    { model: ClusterQueueModel, name: 'test-cluster-queue' },
+    mockClusterQueueK8sResource({ name: 'test-cluster-queue' }),
+  );
+
   const gpuPodSet: WorkloadPodSet = {
     count: 1,
     name: 'main',
@@ -340,14 +359,16 @@ describe('GPUaaS Infrastructure Workloads', () => {
   });
 
   it('should open status modals for workbench, training, and inference workloads', () => {
-    initWorkloadsIntercepts(true, false, false, false, {}, true);
+    initHybridWorkloadsIntercepts();
     infrastructurePage.visit(false);
     infrastructurePage.findWorkloadsTab().click();
     infrastructurePage.selectProjectByName('Project-A');
 
     infrastructurePage.findWorkloadsSection().should('be.visible');
-    infrastructurePage.findWorkloadWorkbenchStatus('gpu-workbench').click();
+    infrastructurePage.findWorkloadWorkbenchStatus('gpu-queued-workbench').click();
     infrastructurePage.findWorkbenchStatusModal().should('be.visible');
+    infrastructurePage.findWorkbenchStatusResourcesTab().should('be.visible').click();
+    infrastructurePage.findWorkbenchStatusClusterQueueSection().should('be.visible');
     infrastructurePage.findWorkbenchStatusModal().find('[aria-label="Close"]').click();
 
     infrastructurePage.findWorkloadTrainingStatus('gpu-training-job').click();

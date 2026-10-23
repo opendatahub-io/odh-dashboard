@@ -10,6 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { DashboardEmptyTableView, Table, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import TrainingJobStatusModal from '@odh-dashboard/model-training/components/TrainingJobStatusModal';
 import RayJobStatusModal from '@odh-dashboard/model-training/components/RayJobStatusModal';
 import DeploymentStatusModal from '@odh-dashboard/model-serving/components/DeploymentStatusModal';
@@ -125,10 +126,17 @@ const InfrastructureWorkloadTableRow: React.FC<InfrastructureWorkloadTableRowPro
 
 const WorkbenchStatusModalAdapter: React.FC<{
   notebookState: NotebookState;
+  infrastructureWorkloadClusterQueueName?: InfrastructureWorkloadRow['clusterQueueName'];
   kueueStatus?: InfrastructureWorkloadRow['kueueStatus'];
   onClose: () => void;
-}> = ({ notebookState, kueueStatus: workloadKueueStatus, onClose }) => {
+}> = ({
+  notebookState,
+  infrastructureWorkloadClusterQueueName,
+  kueueStatus: workloadKueueStatus,
+  onClose,
+}) => {
   const { kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
+  const { preferredProject } = React.useContext(ProjectsContext);
   const { notebook, isStarting, isRunning, isStopping, runningPodUid, containerStatuses } =
     notebookState;
   const kueueStatus = workloadKueueStatus
@@ -146,6 +154,8 @@ const WorkbenchStatusModalAdapter: React.FC<{
   return (
     <StartNotebookModal
       notebook={notebook}
+      infrastructureWorkloadProject={preferredProject ?? undefined}
+      infrastructureWorkloadClusterQueueName={infrastructureWorkloadClusterQueueName}
       isStarting={isStarting}
       isRunning={isRunning}
       isStopping={isStopping}
@@ -235,6 +245,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
       return notebookState ? (
         <WorkbenchStatusModalAdapter
           notebookState={notebookState}
+          infrastructureWorkloadClusterQueueName={selectedWorkload.clusterQueueName}
           kueueStatus={selectedWorkload.kueueStatus}
           onClose={closeStatusModal}
         />
