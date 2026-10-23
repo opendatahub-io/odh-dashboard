@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import {
   fireMiscTrackingEvent,
   fireSimpleTrackingEvent,
@@ -34,6 +35,7 @@ import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam'
 import { deserializeAgentProfile } from '~/app/agentProfile/deserialize';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import { sortDeploymentsByMostRecent } from '~/app/agentProfile/deploymentUtils';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
@@ -157,6 +159,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
   const { enabled: agentDeploymentsEnabled } = useGenAiAgentDeploymentEnabled();
+  const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const { data: deployments = [], refresh: refreshDeployments } = useFetchAgentDeployments(
     agentDeploymentsEnabled ? (loadedProfileId ?? undefined) : undefined,
   );
@@ -271,7 +274,12 @@ const ChatbotMain: React.FunctionComponent = () => {
     !profileApplied && configIds.some((configId) => isConfigDirty(configId));
   // The settings panel edits one pane at a time — its Revert reflects the active pane only
   const isActivePaneDirty = !profileApplied && isConfigDirty(activePaneConfigId);
-  useSafeBrowserUnloadBlocker(isProfileDirty || isDefaultConfigDirty);
+  // Default-settings edits only read as unsaved while the actions that resolve them
+  // (Revert, saving an agent) exist — without agent config management they are
+  // session state. Profile dirtiness always blocks navigation.
+  const hasUnsavedChanges =
+    isProfileDirty || (agentConfigManagementEnabled && isDefaultConfigDirty);
+  useSafeBrowserUnloadBlocker(hasUnsavedChanges);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
   const allAIModels = React.useMemo(
@@ -871,9 +879,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           }}
         />
       )}
-      {(isProfileDirty || isDefaultConfigDirty) && (
-        <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty || isDefaultConfigDirty} />
-      )}
+      {hasUnsavedChanges && <SafeNavigationBlocker hasUnsavedChanges={hasUnsavedChanges} />}
     </>
   );
 };

@@ -30,6 +30,12 @@ const useServerSelection = ({
   const hasProcessedInitialSelection = React.useRef(false);
   const hasReceivedInitialSelection = React.useRef(false);
   const unavailableSelectedIds = React.useRef(new Set<string>());
+  // Last selection reported to the parent — distinguishes the parent's echo of our
+  // own emissions from external selection resets
+  const lastEmittedIdsRef = React.useRef<string[]>([]);
+  // Set when an external reset was just adopted so the pending notify pass skips
+  // pushing the pre-adoption local selection back over the adopted value
+  const skipNextNotifyRef = React.useRef(false);
 
   // Handle initial selection from route state
   React.useEffect(() => {
@@ -73,6 +79,31 @@ const useServerSelection = ({
     }
   }, [transformedServers, initialSelectedServerIds, selectedServers]);
 
+  // Adopt external selection resets. The parent store echoes this hook's emissions
+  // back through initialSelectedServerIds, so a value diverging from the last
+  // emission can only be an external change — e.g. reverting a pane restores the
+  // baseline MCP servers. Echoes are skipped so they never fight local edits.
+  React.useEffect(() => {
+    if (!initialSelectedServerIds) {
+      return;
+    }
+    const emittedIds = lastEmittedIdsRef.current;
+    const isEcho =
+      initialSelectedServerIds.length === emittedIds.length &&
+      initialSelectedServerIds.every((id) => emittedIds.includes(id));
+    if (isEcho) {
+      return;
+    }
+    const visibleIds = new Set(transformedServers.map((server) => server.id));
+    unavailableSelectedIds.current = new Set(
+      initialSelectedServerIds.filter((id) => !visibleIds.has(id)),
+    );
+    setSelectedServers(
+      transformedServers.filter((server) => initialSelectedServerIds.includes(server.id)),
+    );
+    skipNextNotifyRef.current = true;
+  }, [initialSelectedServerIds, transformedServers]);
+
   // A selected server can disappear from the usable list while it is unreachable.
   // Keep its ID until it returns, without displaying a stale row in the picker.
   React.useEffect(() => {
@@ -106,7 +137,11 @@ const useServerSelection = ({
         ...unavailableSelectedIds.current,
       ]),
     ];
-
+    lastEmittedIdsRef.current = selectedConnectionUrls;
+    if (skipNextNotifyRef.current) {
+      skipNextNotifyRef.current = false;
+      return;
+    }
     if (isInitialLoadComplete && transformedServers.length > 0) {
       onSelectionChange?.(selectedConnectionUrls);
     }

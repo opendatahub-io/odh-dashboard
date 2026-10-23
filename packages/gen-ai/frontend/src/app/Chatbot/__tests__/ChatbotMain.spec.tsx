@@ -29,6 +29,13 @@ jest.mock('react-router-dom', () => ({
   useSearchParams: () => [new URLSearchParams(), jest.fn()],
 }));
 
+let mockAgentConfigManagementEnabled = true;
+
+jest.mock('@openshift/dynamic-plugin-sdk', () => ({
+  ...jest.requireActual('@openshift/dynamic-plugin-sdk'),
+  useFeatureFlag: jest.fn(() => [mockAgentConfigManagementEnabled]),
+}));
+
 jest.mock('~/app/hooks/useFetchBFFConfig');
 jest.mock('~/app/hooks/useGenAiAgentDeploymentEnabled');
 jest.mock('~/app/hooks/useFetchMCPServers');
@@ -183,6 +190,7 @@ const unreachableMcpServer: MCPServerFromAPI = {
 describe('ChatbotMain - Empty State Logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAgentConfigManagementEnabled = true;
     mockUseFetchBFFConfig.mockReturnValue({
       data: { isCustomLSD: false, sandboxesAvailable: true },
       loaded: false,
@@ -527,6 +535,21 @@ describe('ChatbotMain - Empty State Logic', () => {
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
     expect(actualStore.getState().configurations.default?.selectedSubscription).toBe('');
     expect(jest.mocked(useSafeBrowserUnloadBlocker)).toHaveBeenLastCalledWith(false);
+    act(() => actualStore.getState().resetConfiguration());
+  });
+
+  it('should not block navigation for default-settings edits when agent config management is disabled', () => {
+    mockAgentConfigManagementEnabled = false;
+    const actualStore = renderWithActualStore([]);
+
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    act(() => actualStore.getState().updateTemperature('default', 0.5));
+    // The settings are dirty, but without the configuration-management actions that
+    // resolve them the edits are session state — no unsaved-changes warning
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    expect(jest.mocked(useSafeBrowserUnloadBlocker)).toHaveBeenLastCalledWith(false);
+    expect(jest.mocked(SafeNavigationBlocker)).not.toHaveBeenCalled();
     act(() => actualStore.getState().resetConfiguration());
   });
 
