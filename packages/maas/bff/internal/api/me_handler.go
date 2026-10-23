@@ -1,42 +1,38 @@
 package api
 
 import (
-	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
 type MeEnvelope Envelope[*models.MaaSCallerIdentity, None]
 
-// GetMeHandler handles GET /api/v1/me.
-func GetMeHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	me, err := app.repositories.APIKeys.GetMe(r.Context())
-	if err != nil {
-		var upstreamErr *maas.MaasUpstreamError
-		if errors.As(err, &upstreamErr) {
-			switch upstreamErr.StatusCode {
-			case http.StatusUnauthorized, http.StatusForbidden:
-				app.errorResponse(w, r, &HTTPError{
-					StatusCode: upstreamErr.StatusCode,
-					Error: ErrorPayload{
-						Code:    strconv.Itoa(upstreamErr.StatusCode),
-						Message: upstreamErr.Error(),
-					},
-				})
-			default:
-				app.serverErrorResponse(w, r, err)
-			}
-			return
-		}
-		app.serverErrorResponse(w, r, err)
-		return
+// localCallerIdentity mirrors the payload in
+// internal/integrations/maas/testdata/me-response.json.
+func localCallerIdentity() *models.MaaSCallerIdentity {
+	return &models.MaaSCallerIdentity{
+		Sub:   "00u7a1b2c3d4e5f6g7h8",
+		Email: "alice@grid-tenant-1.com",
+		Name:  "Alice Smith",
+		Orgs: []models.MaaSOrg{
+			{
+				OrganizationID:   "42c3e46f-2477-44d7-a85b-d3b43f6b31fa",
+				OrganizationName: "acme",
+				Roles:            []string{},
+			},
+		},
 	}
+}
 
-	response := MeEnvelope{Data: me}
+// GetMeHandler handles GET /api/v1/me.
+//
+// Local development override: it always returns the hard-coded caller identity above instead
+// of calling maas-api /v1/me, which answers 401 without a valid MaaS token. Restore the
+// upstream call (APIKeysRepository.GetMe) to revert this override.
+func GetMeHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	response := MeEnvelope{Data: localCallerIdentity()}
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
