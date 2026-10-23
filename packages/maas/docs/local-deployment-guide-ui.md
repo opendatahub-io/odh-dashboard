@@ -30,7 +30,7 @@ DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme pnpm run start:dev
 For federated/PatternFly mode (expects BFF on port 8081):
 
 ```shell
-AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 pnpm run start:dev
+AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme PORT=9104 PROXY_PORT=8081 pnpm run start:dev
 ```
 
 ## Federated Mock Mode (No Cluster Required)
@@ -74,18 +74,16 @@ make frontend-build-standalone   # standalone mode
 
 ## Testing
 
-Run unit tests:
+Run unit tests (from `packages/maas/frontend`):
 
 ```shell
-pnpm run test-unit
+pnpm run test:unit
 ```
 
-Run Cypress mock tests (component + integration):
+Run Cypress mock tests (component + integration) from `packages/maas/frontend`:
 
 ```shell
-# Build first, then run tests headlessly
-pnpm run cypress:server:build
-pnpm run cypress:mock:dev
+pnpm run test:cypress-ci
 ```
 
 For full testing guidance, see [`frontend/docs/testing.md`](../frontend/docs/testing.md).

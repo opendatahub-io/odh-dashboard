@@ -17,7 +17,7 @@ make build
 Run in mock mode (no cluster or MaaS API required — recommended for local UI development):
 
 ```shell
-make run MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true
+make run MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true AUTH_METHOD=internal
 ```
 
 Run on a custom port with debug logging:
@@ -41,37 +41,39 @@ make dev-bff-federated-mock
 
 ## Flags / Environment Variables
 
-| Flag                    | Env Var                | Description                                               | Default         |
-| ----------------------- | ---------------------- | --------------------------------------------------------- | --------------- |
-| `-port`                 | `PORT`                 | Listen port                                               | `4000`          |
-| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone`, `kubeflow`, or `federated`                  | `standalone`    |
-| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors (e.g. namespace listing)        | `false`         |
-| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in-memory stub for Kubernetes                         | `false`         |
-| `-mock-http-client`     | `MOCK_HTTP_CLIENT`     | Use in-memory stub for MaaS API                           | `false`         |
-| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve SPA frontend assets                    | _(none)_        |
-| `-log-level`            | `LOG_LEVEL`            | `ERROR`, `WARN`, `INFO`, `DEBUG`                          | `INFO`          |
-| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins                              | _(none)_        |
-| `-auth-method`          | `AUTH_METHOD`          | `internal`, `user_token`, or `disabled`                   | `internal`      |
-| `-auth-header`          | `AUTH_HEADER`          | Header to read the bearer token from                      | `Authorization` |
-| `-auth-prefix`          | `AUTH_PREFIX`          | Expected token prefix                                     | `Bearer`        |
-| `-cert-file`            | `CERT_FILE`            | TLS certificate path (enables HTTPS when paired with key) | _(none)_        |
-| `-key-file`             | `KEY_FILE`             | TLS key path                                              | _(none)_        |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verification (**dev only**)             | `false`         |
+Defaults below are what `make run` passes (see `bff/Makefile`). Direct `go run ./cmd` uses the binary flag defaults noted in parentheses when they differ.
+
+| Flag                    | Env Var                | Description                                               | Default (`make run`)           |
+| ----------------------- | ---------------------- | --------------------------------------------------------- | ------------------------------ |
+| `-port`                 | `PORT`                 | Listen port                                               | `4000`                         |
+| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone`, `kubeflow`, or `federated`                  | `kubeflow` (CLI: unset)        |
+| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors (e.g. namespace listing)        | `false`                        |
+| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in-memory stub for Kubernetes                         | `false`                        |
+| `-mock-http-client`     | `MOCK_HTTP_CLIENT`     | Use in-memory stub for MaaS API                           | `false`                        |
+| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve SPA frontend assets                    | `./static`                     |
+| `-log-level`            | `LOG_LEVEL`            | `ERROR`, `WARN`, `INFO`, `DEBUG`                          | `info`                         |
+| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins                              | _(none)_                       |
+| `-auth-method`          | `AUTH_METHOD`          | `internal`, `user_token`, or `disabled`                   | `user_token` (CLI: `internal`) |
+| `-auth-token-header`    | `AUTH_TOKEN_HEADER`    | Header to read the bearer token from                      | `x-forwarded-access-token`     |
+| `-auth-token-prefix`    | `AUTH_TOKEN_PREFIX`    | Expected token prefix                                     | _(empty)_                      |
+| `-cert-file`            | `CERT_FILE`            | TLS certificate path (enables HTTPS when paired with key) | _(none)_                       |
+| `-key-file`             | `KEY_FILE`             | TLS key path                                              | _(none)_                       |
+| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verification (**dev only**)             | `false`                        |
 
 ## Endpoints
 
-The BFF exposes the following API groups under `/api/v1/`:
+Most API groups live under `/api/v1/`. Health is unprefixed.
 
-| Group           | Sample paths                                                                                                                                                                              |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Health          | `GET /healthcheck`                                                                                                                                                                        |
-| User / identity | `GET /api/v1/user`, `GET /api/v1/me`                                                                                                                                                      |
-| Namespaces      | `GET /api/v1/namespaces` (dev / mock mode only)                                                                                                                                           |
-| Models          | `GET /api/v1/models`                                                                                                                                                                      |
-| Gateway         | `GET /api/v1/gateway-url`                                                                                                                                                                 |
-| API keys        | `POST /api/v1/api-keys`, `GET /api/v1/api-keys`, `DELETE /api/v1/api-keys/:id`                                                                                                            |
-| Subscriptions   | `GET /api/v1/all-subscriptions`, `GET /api/v1/subscription-info/:name`, `POST /api/v1/subscription-info`, `PUT /api/v1/subscription-info/:name`, `DELETE /api/v1/subscription-info/:name` |
-| Auth policies   | `GET /api/v1/auth-policies`, `GET /api/v1/auth-policies/:name`                                                                                                                            |
+| Group           | Sample paths                                                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health          | `GET /healthcheck`                                                                                                                                                                    |
+| User / identity | `GET /api/v1/user`, `GET /api/v1/me`                                                                                                                                                  |
+| Namespaces      | `GET /api/v1/namespaces` (dev / mock mode only)                                                                                                                                       |
+| Models          | `GET /api/v1/models`                                                                                                                                                                  |
+| Gateway         | `GET /api/v1/gateway-url`                                                                                                                                                             |
+| API keys        | `POST /api/v1/api-keys`, `GET /api/v1/api-keys`, `DELETE /api/v1/api-keys/:id`                                                                                                        |
+| Subscriptions   | `GET /api/v1/all-subscriptions`, `GET /api/v1/subscription-info/:name`, `POST /api/v1/new-subscription`, `PUT /api/v1/update-subscription/:name`, `DELETE /api/v1/subscription/:name` |
+| Auth policies   | `GET /api/v1/all-policies`, `GET /api/v1/view-policy/:name`                                                                                                                           |
 
 See [`openapi.yaml`](./openapi.yaml) for full request/response shapes and [`CONSUMERS.md`](./CONSUMERS.md) for the stable inter-BFF contract.
 
@@ -94,8 +96,8 @@ curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces
 
 Set via `--auth-method` / `AUTH_METHOD`:
 
-- **`internal`** (default): Impersonates the user identified in the `kubeflow-userid` (and optional `kubeflow-groups`) headers using cluster or local kubeconfig credentials. Used for standalone and kubeflow modes.
-- **`user_token`**: Extracts a bearer token from the configured header/prefix and performs a `SelfSubjectAccessReview`. Used for federated/RHOAI mode.
+- **`internal`** (CLI default): Impersonates the user identified in the `kubeflow-userid` (and optional `kubeflow-groups`) headers using cluster or local kubeconfig credentials. Used for standalone and kubeflow modes.
+- **`user_token`** (`make run` default): Extracts a bearer token from the configured header/prefix and performs a `SelfSubjectAccessReview`. Used for federated/RHOAI mode.
 - **`disabled`**: No authentication. For testing only.
 
 ### Overriding the token header / prefix

@@ -62,5 +62,5 @@ State is managed with React context and hooks — no external state library. The
 ## Testing
 
 - **Unit tests:** Jest, co-located in `__tests__/` directories alongside the code they test. Run with `pnpm run test:unit`.
-- **Cypress mock tests:** Component and integration tests that run against a built federated frontend with a mocked BFF. See [`docs/testing.md`](./testing.md).
+- **Cypress mock tests:** Component and integration tests that run against a built standalone frontend with a mocked BFF (`cypress:server:build` / `test:cypress-ci`). See [`docs/testing.md`](./testing.md).
 - **E2E tests:** Cypress tests in `packages/cypress/cypress/tests/e2e/maas/` that run against a real cluster.
