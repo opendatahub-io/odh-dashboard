@@ -69,7 +69,7 @@
     "pino-pretty": "^9.4.0",
     "rimraf": "^3.0.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.0"
   },
   "optionalDependencies": {
     "@types/jest": "^29.5.3",
