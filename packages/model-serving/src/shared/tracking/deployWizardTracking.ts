@@ -14,6 +14,8 @@ export type DeployWizardEntryPoint =
 export type DeployWizardNavSource = {
   fromCatalog?: boolean;
   catalogModelId?: string;
+  hfAccessType?: 'public' | 'private' | 'gated_auto' | 'gated_manual' | 'other';
+  isAccessGranted?: boolean;
   fromProject?: boolean;
   fromProjectNavigator?: boolean;
 };
@@ -52,6 +54,8 @@ export type ModelDeployedTrackingProperties = {
   validatedConfigurationNames: string[];
   hasValidatedArgumentsSection: boolean;
   catalogModelId?: string;
+  hfAccessType?: DeployWizardNavSource['hfAccessType'];
+  isAccessGranted?: boolean;
   entryPoint: DeployWizardEntryPoint;
   outcome: 'submit' | 'cancel';
   success?: boolean;
@@ -69,6 +73,18 @@ export const getDeployWizardNavState = (locationState: unknown): DeployWizardNav
     fromCatalog: locationState.fromCatalog === true,
     catalogModelId:
       typeof locationState.catalogModelId === 'string' ? locationState.catalogModelId : undefined,
+    hfAccessType:
+      locationState.hfAccessType === 'public' ||
+      locationState.hfAccessType === 'private' ||
+      locationState.hfAccessType === 'gated_auto' ||
+      locationState.hfAccessType === 'gated_manual' ||
+      locationState.hfAccessType === 'other'
+        ? locationState.hfAccessType
+        : undefined,
+    isAccessGranted:
+      typeof locationState.isAccessGranted === 'boolean'
+        ? locationState.isAccessGranted
+        : undefined,
     fromProject: locationState.fromProject === true,
     projectName:
       typeof locationState.projectName === 'string' ? locationState.projectName : undefined,
@@ -155,6 +171,8 @@ export const getModelDeployedTrackingProperties = ({
       validatedConfigurations,
     ),
     catalogModelId: navState.catalogModelId,
+    hfAccessType: navState.hfAccessType,
+    isAccessGranted: navState.isAccessGranted,
     entryPoint: getDeployWizardEntryPoint(navState),
     outcome,
     success,
