@@ -19,6 +19,10 @@ import {
   RecurringRunStatus,
   RuntimeStateKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
+import {
+  mockParallelForPipelineSpec,
+  mockParallelForWithArtifactsPipelineSpec,
+} from '@odh-dashboard/internal/concepts/pipelines/topology/__tests__/mockParallelForPipelineSpec';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { SecretModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
 import {
@@ -53,6 +57,28 @@ const mockVersion2 = buildMockPipelineVersion({
   pipeline_version_id: 'test-version-id-2',
   display_name: 'test-version-2',
 });
+const mockGroupedVersion = buildMockPipelineVersion({
+  pipeline_id: mockPipeline.pipeline_id,
+  display_name: 'grouped-pipeline-version',
+});
+mockGroupedVersion.pipeline_spec = mockParallelForPipelineSpec;
+const longGroupName = 'for-loop-with-many-iterations';
+const mockLongNamedGroupedVersion = buildMockPipelineVersion({
+  pipeline_id: mockPipeline.pipeline_id,
+  display_name: 'long-named-grouped-pipeline-version',
+});
+mockLongNamedGroupedVersion.pipeline_spec = structuredClone(
+  mockParallelForWithArtifactsPipelineSpec,
+);
+const longNamedGroupTasks = mockLongNamedGroupedVersion.pipeline_spec.root?.dag.tasks;
+if (!longNamedGroupTasks) {
+  throw new Error('Expected grouped pipeline tasks');
+}
+longNamedGroupTasks[longGroupName] = {
+  ...longNamedGroupTasks['for-loop-2'],
+  taskInfo: { name: longGroupName },
+};
+delete longNamedGroupTasks['for-loop-2'];
 const mockRun = buildMockRunKF({
   display_name: 'test-pipeline-run',
   run_id: 'test-pipeline-run-id',
@@ -78,7 +104,7 @@ const mockRecurringRun = buildMockRecurringRunKF({
   experiment_id: 'test-experiment',
 });
 
-const initIntercepts = () => {
+const initIntercepts = (pipelineVersion = mockVersion) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -133,7 +159,9 @@ const initIntercepts = () => {
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
     { path: { namespace: projectId, serviceName: 'dspa', pipelineId: mockPipeline.pipeline_id } },
-    buildMockPipelineVersions([mockVersion, mockVersion2]),
+    buildMockPipelineVersions(
+      pipelineVersion === mockVersion ? [mockVersion, mockVersion2] : [pipelineVersion],
+    ),
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/recurringruns/:recurringRunId',
@@ -160,10 +188,10 @@ const initIntercepts = () => {
         namespace: projectId,
         serviceName: 'dspa',
         pipelineId: mockPipeline.pipeline_id,
-        pipelineVersionId: mockVersion.pipeline_version_id,
+        pipelineVersionId: pipelineVersion.pipeline_version_id,
       },
     },
-    mockVersion,
+    pipelineVersion,
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments/:experimentId',
@@ -263,6 +291,14 @@ describe('Pipeline topology', () => {
       taskDrawer.find().should('not.exist');
     });
 
+    it('moves focus to task details and back when opened from the keyboard', () => {
+      pipelineDetails.findTaskButton('create-dataset').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+      pipelineDetails.findDrawerCloseButton().click();
+      pipelineDetails.findTaskButton('create-dataset').should('be.focused');
+    });
+
     it('delete pipeline version from action dropdown', () => {
       pipelineDetails.selectActionDropdownItem('Delete pipeline version');
       deleteModal.shouldBeOpen();
@@ -350,7 +386,311 @@ describe('Pipeline topology', () => {
     });
   });
 
+  describe('Pipeline group keyboard interaction', () => {
+    it('opens the collapsed group task popover from the keyboard', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupButton('for-loop-2').should('have.attr', 'aria-expanded', 'true');
+      cy.press(Cypress.Keyboard.Keys.ESC);
+      pipelineDetails.findGroupButton('for-loop-2').should('have.attr', 'aria-expanded', 'false');
+    });
+
+    it('focuses the drawer for a task selected from a collapsed group', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').should('not.exist');
+      // PatternFly may return focus to the group's trigger as the popover closes.
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+      pipelineDetails.findDrawerCloseButton().click();
+      pipelineDetails.findGroupButton('for-loop-2').should('be.focused');
+    });
+
+    it('focuses the open drawer when the same collapsed-group task is selected again', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+    });
+
+    it('keeps focus on the group toggle after leaving a selected task', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupTask('simple-task').should('not.exist');
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      // The drawer focus effect waits 550 ms. Fake timers break Monaco in pipeline details.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(600);
+      pipelineDetails.findGroupToggle('for-loop-2').should('be.focused');
+    });
+
+    it('opens group details from the collapsed-group popover', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupButton('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupDetails('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+      pipelineDetails.findDrawerCloseButton().click();
+      pipelineDetails.findGroupButton('for-loop-2').should('be.focused');
+    });
+
+    it('opens expanded group details directly from the keyboard', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findExpandedGroupDetails('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+      pipelineDetails.findDrawerCloseButton().click();
+      pipelineDetails.findExpandedGroupDetails('for-loop-2').should('be.focused');
+      pipelineDetails.findTaskButton('simple-task').should('exist');
+    });
+
+    it('uses PatternFly collapse behavior from the keyboard accessible control', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails
+        .findGroupToggle('for-loop-2')
+        .should('have.attr', 'aria-expanded', 'true')
+        .and('be.focused');
+      pipelineDetails.findTaskButton('simple-task').should('exist');
+
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails
+        .findGroupToggle('for-loop-2')
+        .should('have.attr', 'aria-expanded', 'false')
+        .and('be.focused');
+      pipelineDetails.findTaskButton('simple-task').should('not.exist');
+    });
+
+    it('keeps focus on the group toggle when hiding a selected child', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findTaskButton('simple-task').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findDrawerTaskTitle().should('be.focused');
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.clock();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findTaskButton('simple-task').should('not.exist');
+      pipelineDetails.findGroupToggle('for-loop-2').should('be.focused');
+      cy.tick(600);
+      pipelineDetails.findGroupToggle('for-loop-2').should('be.focused');
+    });
+
+    it('keeps the expanded group toggle aligned with its SVG action for a long label', () => {
+      initIntercepts(mockLongNamedGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockLongNamedGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle(longGroupName).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findTaskButton('create-features').should('exist');
+      const assertToggleAlignment = () => {
+        pipelineDetails.findGroupActionIcon(longGroupName).should('have.length', 1);
+        pipelineDetails.findGroupToggle(longGroupName).then(($toggle) => {
+          pipelineDetails.findGroupActionIcon(longGroupName).then(($action) => {
+            const toggle = $toggle[0].getBoundingClientRect();
+            const action = $action[0].getBoundingClientRect();
+            expect(
+              Math.min(toggle.right, action.right) - Math.max(toggle.left, action.left),
+            ).to.be.greaterThan(0);
+            expect(
+              Math.min(toggle.bottom, action.bottom) - Math.max(toggle.top, action.top),
+            ).to.be.greaterThan(0);
+          });
+        });
+      };
+      assertToggleAlignment();
+      for (let i = 0; i < 5; i++) {
+        pipelineDetails.findZoomOutButton().click();
+      }
+      pipelineDetails.findGroupToggle(longGroupName).focus();
+      assertToggleAlignment();
+    });
+
+    it('keeps the expanded group label out of keyboard navigation', () => {
+      initIntercepts(mockGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails
+        .findGroupLabelText('for-loop-2')
+        .should('have.attr', 'tabindex', '-1')
+        .and('have.attr', 'aria-hidden', 'true');
+    });
+  });
+
   describe('Pipeline run details', () => {
+    it('tabs directly between accessible task buttons without stopping on SVG labels', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findGraphButtons().then(($buttons) => {
+        cy.wrap($buttons[0]).focus();
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.wrap($buttons[1]).should('be.focused');
+      });
+    });
+
+    it('does not move focus to the drawer after a pointer selection', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findTaskNode('create-dataset').click();
+      pipelineRunDetails.findDrawerTaskTitle().should('exist');
+      // The drawer focus effect runs 550 ms after selection. A fake clock breaks
+      // Monaco's background tokenizer, so let the browser timer finish.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(600);
+      pipelineRunDetails.findDrawerTaskTitle().should('not.be.focused');
+    });
+
+    it('does not reclaim focus after the user tabs away from a selected task', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findGraphButtons().then(($buttons) => {
+        cy.wrap($buttons[0]).focus();
+        cy.press(Cypress.Keyboard.Keys.ENTER);
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        cy.wrap($buttons[1]).should('be.focused');
+        // The drawer focus effect waits 550 ms. Fake timers break Monaco in run details.
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(600);
+        cy.wrap($buttons[1]).should('be.focused');
+      });
+    });
+
+    it('returns focus to the graph step after closing its details', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findTaskButton('create-dataset').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineRunDetails.findDrawerTaskTitle().should('be.focused');
+      pipelineRunDetails.findDrawerCloseButton().click();
+      pipelineRunDetails.findTaskButton('create-dataset').should('be.focused');
+    });
+
+    it('opens artifact details from the keyboard and returns focus', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').focus();
+      cy.press(Cypress.Keyboard.Keys.SPACE);
+      pipelineRunDetails.findDrawerTaskTitle().should('be.focused');
+      pipelineRunDetails.findDrawerCloseButton().click();
+      pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').should('be.focused');
+    });
+
+    it('shows an artifact label on focus and keeps focus through hover', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      for (let i = 0; i < 8; i++) {
+        pipelineRunDetails.findZoomInButton().click();
+      }
+
+      pipelineRunDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('exist');
+      pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').focus();
+      pipelineRunDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('not.exist');
+      pipelineRunDetails.findArtifactVisual('iris_dataset (Type: Dataset)').trigger('mouseenter');
+      pipelineRunDetails.findArtifactIcon('iris_dataset (Type: Dataset)').should('not.exist');
+      pipelineRunDetails.findTaskButton('iris_dataset (Type: Dataset)').should('be.focused');
+    });
+
+    it('preserves graph keyboard order after selecting a step', () => {
+      initIntercepts();
+      pipelineRunDetails.visit(projectId, mockRun.run_id);
+
+      pipelineRunDetails.findGraphButtons().then(($buttons) => {
+        const initialOrder = [...$buttons].map((button) => button.dataset.pipelineNodeId);
+        pipelineRunDetails.findTaskNode('create-dataset').click();
+        pipelineRunDetails.findDrawerCloseButton().click();
+        pipelineRunDetails.findGraphButtons().should(($currentButtons) => {
+          expect([...$currentButtons].map((button) => button.dataset.pipelineNodeId)).to.deep.equal(
+            initialOrder,
+          );
+        });
+      });
+    });
+
     describe('Navigation', () => {
       beforeEach(() => {
         initIntercepts();
@@ -538,6 +878,17 @@ describe('Pipeline topology', () => {
       taskDrawer.findTaskImage().should('have.text', 'Imagequay.io/hukhan/iris-base:1');
       taskDrawer.findCloseDrawerButton().click();
       taskDrawer.find().should('not.exist');
+    });
+
+    it('moves focus to task details and back when opened from the keyboard', () => {
+      initIntercepts();
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
+
+      pipelineRecurringRunDetails.findTaskButton('create-dataset').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineRecurringRunDetails.findDrawerTaskTitle().should('be.focused');
+      pipelineRecurringRunDetails.findDrawerCloseButton().click();
+      pipelineRecurringRunDetails.findTaskButton('create-dataset').should('be.focused');
     });
 
     it('Test pipeline triggered run tab details', () => {

@@ -8,6 +8,7 @@ import {
   WithSelectionProps,
   observer,
   useAnchor,
+  useCombineRefs,
   AnchorEnd,
   getRunStatusModifier,
   ScaleDetailsLevel,
@@ -22,6 +23,9 @@ import { TaskNodeProps } from '@patternfly/react-topology/dist/esm/pipelines/com
 import { css } from '@patternfly/react-styles';
 import { StandardTaskNodeData } from '#~/concepts/topology/types';
 import { isMetricsArtifactType } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import { getRunStatusLabel } from '#~/concepts/topology/utils';
+import PipelineNodeButton from '#~/concepts/topology/PipelineNodeButton';
+import { hideSvgTaskLabelsFromKeyboard } from '#~/concepts/topology/a11yUtils';
 
 const ICON_PADDING = 8;
 
@@ -53,6 +57,7 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
 
   return (
     <g
+      data-testid={`pipeline-artifact-icon-${element.getLabel()}`}
       className={css(
         'pf-topology-pipelines__pill',
         runStatusModifier,
@@ -81,7 +86,6 @@ const IconTaskNode: React.FC<IconTaskNodeProps> = observer(({ element, selected,
         }
         transform={`translate(${(bounds.width - iconSize) / 2}, ${ICON_PADDING})`}
         color={
-          // Need insight from product dev as to how to view this component to test the colors
           selected
             ? 'var(--pf-t--global--icon--color--inverse)'
             : 'var(--pf-t--global--icon--color--subtle)'
@@ -105,6 +109,10 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
   ({ element, selected, onSelect, ...rest }) => {
     const bounds = element.getBounds();
     const [isHover, hoverRef] = useHover<SVGGElement>();
+    const [isFocused, setIsFocused] = React.useState(false);
+    const nodeRef = React.useRef<SVGGElement>(null);
+    const combinedRef = useCombineRefs(hoverRef, nodeRef);
+    React.useLayoutEffect(() => hideSvgTaskLabelsFromKeyboard(nodeRef.current));
     const detailsLevel = element.getGraph().getDetailsLevel();
     const data = element.getData();
     const scale = element.getGraph().getScale();
@@ -122,9 +130,18 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
 
     const translateX = bounds.width / 2 - (iconSize / 2) * upScale;
     const translateY = iconPadding * upScale;
+
+    const statusLabel = getRunStatusLabel(data?.runStatus);
+    const taskName = element.getLabel();
+    const ariaLabel = statusLabel ? `${taskName}, ${statusLabel}` : taskName;
+
     return (
-      <g className={css('pf-topology__pipelines__task-node')} ref={hoverRef}>
-        {isHover || detailsLevel !== ScaleDetailsLevel.high ? (
+      <g
+        className={css('pf-topology__pipelines__task-node')}
+        data-testid={`pipeline-artifact-visual-${element.getLabel()}`}
+        ref={combinedRef}
+      >
+        {isHover || isFocused || detailsLevel !== ScaleDetailsLevel.high ? (
           <g>
             <TaskNode
               nameLabelClass="artifact-node-label"
@@ -139,16 +156,15 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
               onSelect={onSelect}
               hiddenDetailsShownStatuses={[]}
               status={data?.runStatus}
-              scaleNode={isHover}
+              scaleNode={isHover || isFocused}
               {...rest}
             >
               {whenDecorator}
             </TaskNode>
-            {!isHover ? (
+            {!isHover && !isFocused ? (
               <g transform={`translate(${translateX}, ${translateY}) scale(${upScale})`}>
                 <g
                   color={
-                    // Need insight from product dev as to how to view this component to test the colors
                     selected
                       ? 'var(--pf-t--global--icon--color--inverse)'
                       : 'var(--pf-t--global--icon--color--subtle)'
@@ -162,6 +178,12 @@ const ArtifactTaskNodeInner: React.FC<ArtifactTaskNodeInnerProps> = observer(
         ) : (
           <IconTaskNode selected={selected} onSelect={onSelect} element={element} />
         )}
+        <PipelineNodeButton
+          element={element}
+          ariaLabel={ariaLabel}
+          onSelect={onSelect}
+          onFocusChange={setIsFocused}
+        />
       </g>
     );
   },

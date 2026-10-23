@@ -48,7 +48,12 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
       ) : (
         <>
           <DrawerHead>
-            <Title headingLevel="h2" size="xl">
+            <Title
+              headingLevel="h2"
+              size="xl"
+              tabIndex={-1}
+              data-testid="pipeline-drawer-task-title"
+            >
               {task.name}
             </Title>
             {task.status?.podName && (
