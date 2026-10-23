@@ -1714,6 +1714,14 @@ run_self_test() {
   else
     echo "PASS failure variant"
   fi
+  # fullsend post-review adds the review-agent marker and escapes any copy in
+  # the body, so the rendered header must not carry one.
+  if grep -q '<!-- fullsend:review-agent' <<<"${body}"; then
+    echo "FAIL header: rendered body carries its own review-agent marker" >&2
+    fail=1
+  else
+    echo "PASS header leaves the review-agent marker to fullsend post-review"
+  fi
 
   local pp_finding
   pp_finding='{"severity":"medium","category":"protected-path","file":".fullsend/.run/.gitignore","description":"Modifies a governance file.","why":"Governance files need human oversight."}'
