@@ -809,6 +809,13 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should render the browse-all-benchmarks card as a default white card', () => {
+    renderPage('test-project', '?tab=evaluate');
+
+    // RHAI-15138: keep the box on the plain white card (no grey secondary variant).
+    expect(screen.getByTestId('browse-all-benchmarks')).not.toHaveClass('pf-m-secondary');
+  });
+
   it('should track opening the benchmark catalog from the browse benchmarks section', () => {
     renderPage('test-project', '?tab=evaluate');
 

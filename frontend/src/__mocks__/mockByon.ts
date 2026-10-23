@@ -33,6 +33,7 @@ export const mockByon = (opts?: RecursivePartial<BYONImage[]>): BYONImage[] =>
         provider: 'admin',
         error: '',
         isOOTB: false,
+        deprecated: false,
       },
     ],
     opts,
