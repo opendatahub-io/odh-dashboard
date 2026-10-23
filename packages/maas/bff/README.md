@@ -12,7 +12,7 @@ This trimmed service exposes ONLY:
 
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
-- GET `/api/v1/me` – returns MaaS `/v1/me` identity metadata
+- GET `/api/v1/whoami` – returns MaaS `/v1/me` identity metadata
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
 
 All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
@@ -98,7 +98,7 @@ Only three JSON endpoints are available plus static asset serving (index.html fa
 ```text
 GET /healthcheck
 GET /api/v1/user
-GET /api/v1/me
+GET /api/v1/whoami
 GET /api/v1/namespaces   (dev / mock mode only)
 ```
 

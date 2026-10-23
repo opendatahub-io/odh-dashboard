@@ -10,11 +10,11 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
-type MeEnvelope Envelope[*models.MaaSCallerIdentity, None]
+type WhoAmIEnvelope Envelope[*models.MaaSWhoAmI, None]
 
-// GetMeHandler handles GET /api/v1/me.
-func GetMeHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	me, err := app.repositories.APIKeys.GetMe(r.Context())
+// GetWhoAmIHandler handles GET /api/v1/whoami.
+func GetWhoAmIHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	whoAmI, err := app.repositories.APIKeys.GetWhoAmI(r.Context())
 	if err != nil {
 		var upstreamErr *maas.MaasUpstreamError
 		if errors.As(err, &upstreamErr) {
@@ -36,7 +36,7 @@ func GetMeHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter
 		return
 	}
 
-	response := MeEnvelope{Data: me}
+	response := WhoAmIEnvelope{Data: whoAmI}
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
