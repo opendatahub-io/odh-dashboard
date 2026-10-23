@@ -24,6 +24,8 @@ import {
   evaluationsBaseRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './BenchmarkSuitesPage.scss';
 
 const BenchmarkSuitesPage: React.FC = () => {
@@ -39,6 +41,9 @@ const BenchmarkSuitesPage: React.FC = () => {
   } = useCollectionDrawer(namespace ?? '');
 
   const handleCreateSuite = React.useCallback(() => {
+    trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
+      surface: 'my_benchmark_suites',
+    });
     navigate(evaluationCreateSuiteRoute(namespace), {
       state: evaluationBenchmarkSuitesNavigationState,
     });
@@ -50,6 +55,17 @@ const BenchmarkSuitesPage: React.FC = () => {
 
   const handleDuplicateCollection = React.useCallback(
     (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+        {
+          collectionName: collection.name,
+          surface: 'my_benchmark_suites',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
       navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
         state: evaluationBenchmarkSuitesNavigationState,
       });
@@ -59,6 +75,17 @@ const BenchmarkSuitesPage: React.FC = () => {
 
   const handleEditCollection = React.useCallback(
     (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+        {
+          collectionName: collection.name,
+          surface: 'my_benchmark_suites',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
       navigate(evaluationEditSuiteRoute(namespace, collection.resource.id), {
         state: evaluationBenchmarkSuitesNavigationState,
       });

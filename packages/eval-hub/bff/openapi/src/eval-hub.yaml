@@ -2448,7 +2448,21 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/EvaluationJob'
+              metadata:
+                type: object
+                description: >-
+                  List metadata. total_count is the upstream total number of
+                  matching jobs. truncated is true when the BFF capped the
+                  aggregated result at its maximum item count.
+                properties:
+                  total_count:
+                    type: integer
+                  truncated:
+                    type: boolean
           example:
+            metadata:
+              total_count: 2
+              truncated: false
             data:
                 - resource:
                     id: 'eval-job-001'
@@ -2691,18 +2705,23 @@ components:
         type: integer
         minimum: 1
         maximum: 100
-        default: 50
       required: false
-      description: Maximum number of evaluations to return
+      description: >-
+        Maximum number of evaluation jobs to return in single-page mode. When
+        both limit and offset are omitted, the BFF aggregates upstream pages
+        and returns up to 1,000 jobs. Supplying either limit or offset selects
+        single-page mode.
     offset:
       in: query
       name: offset
       schema:
         type: integer
         minimum: 0
-        default: 0
       required: false
-      description: Offset for pagination
+      description: >-
+        Pagination start index for single-page mode. Omitting offset (and
+        limit) selects aggregated mode; explicitly supplying offset — even
+        offset=0 — selects single-page mode, so no default is declared.
     statusFilter:
       in: query
       name: status

@@ -15,7 +15,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     },
     properties: {
       id: 'observability-dashboard',
-      title: 'Dashboard',
+      title: 'Metrics',
       href: '/observe-and-monitor/dashboard',
       path: '/observe-and-monitor/dashboard/*',
       group: '1_top',

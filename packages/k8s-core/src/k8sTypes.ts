@@ -72,6 +72,7 @@ export enum MetadataAnnotation {
   OdhStorageClassConfig = 'opendatahub.io/sc-config',
   Description = 'description',
   ConnectionName = 'opendatahub.io/connections',
+  InstalledFromCatalog = 'opendatahub.io/installed-from-catalog',
 }
 
 export type DisplayNameAnnotations = Partial<{

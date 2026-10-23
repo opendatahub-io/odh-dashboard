@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -1250,23 +1251,39 @@ func TestReconcile_Removed_WithoutHTTPRouteRESTMapping(t *testing.T) {
 	}}
 
 	httpRouteListAttempts := 0
-	cli := fake.NewClientBuilder().
+	consoleLinkListAttempts := 0
+	direct := fake.NewClientBuilder().
 		WithScheme(s).
 		WithObjects(dashboard, managedConfigMap).
 		WithStatusSubresource(dashboard).
 		WithInterceptorFuncs(interceptor.Funcs{
 			List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
-				if list.GetObjectKind().GroupVersionKind() == gatewayv1.SchemeGroupVersion.WithKind("HTTPRouteList") {
+				gvk := list.GetObjectKind().GroupVersionKind()
+				switch gvk {
+				case gatewayv1.SchemeGroupVersion.WithKind("HTTPRouteList"):
 					httpRouteListAttempts++
 					return &meta.NoKindMatchError{GroupKind: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute").GroupKind()}
+				case ctrlpkg.ConsoleLinkListGVK:
+					consoleLinkListAttempts++
+					return &meta.NoKindMatchError{GroupKind: ctrlpkg.ConsoleLinkGVK.GroupKind()}
 				}
 				return delegate.List(ctx, list, opts...)
 			},
 		}).
 		Build()
+	cached := interceptor.NewClient(direct, interceptor.Funcs{
+		List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			gvk := list.GetObjectKind().GroupVersionKind()
+			if gvk == gatewayv1.SchemeGroupVersion.WithKind("HTTPRouteList") || gvk == ctrlpkg.ConsoleLinkListGVK {
+				return &ctrlcache.ErrResourceNotCached{GVK: gvk}
+			}
+			return delegate.List(ctx, list, opts...)
+		},
+	})
 
 	r := &ctrlpkg.DashboardReconciler{
-		Client:                cli,
+		Client:                cached,
+		APIReader:             direct,
 		Scheme:                s,
 		ManifestsBasePath:     t.TempDir(),
 		Platform:              cluster.OpenDataHub,
@@ -1280,8 +1297,9 @@ func TestReconcile_Removed_WithoutHTTPRouteRESTMapping(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, ctrl.Result{}, result)
-	assert.Positive(t, httpRouteListAttempts)
-	assert.True(t, k8serrors.IsNotFound(cli.Get(
+	assert.GreaterOrEqual(t, httpRouteListAttempts, 2, "core and MaaS Portal HTTPRoute cleanup must use APIReader")
+	assert.Positive(t, consoleLinkListAttempts, "ConsoleLink cleanup must use APIReader")
+	assert.True(t, k8serrors.IsNotFound(direct.Get(
 		context.Background(),
 		client.ObjectKeyFromObject(managedConfigMap),
 		&corev1.ConfigMap{},

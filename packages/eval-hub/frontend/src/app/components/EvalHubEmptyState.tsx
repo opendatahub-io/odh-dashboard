@@ -9,8 +9,6 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const EvalHubEmptyState: React.FC = () => {
   const navigate = useNavigate();
@@ -33,7 +31,6 @@ const EvalHubEmptyState: React.FC = () => {
             variant="primary"
             data-testid="create-evaluation-button"
             onClick={() => {
-              fireSimpleTrackingEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED);
               navigate({ search: '?tab=evaluate' });
             }}
           >
