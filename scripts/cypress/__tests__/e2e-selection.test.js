@@ -816,6 +816,43 @@ describe('buildSelectionPlan', () => {
     );
   });
 
+  it('retains package-tag coverage when broad impact falls back to canonical tags', () => {
+    const packageSpecs = ['alpha', 'bravo'];
+    const canonicalSpecs = ['charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel'];
+    const impactedSpecs = [...packageSpecs, ...canonicalSpecs];
+    const fullInventory = Object.fromEntries(
+      impactedSpecs.map((name) => {
+        const tags = packageSpecs.includes(name) ? ['@Tag', '@PackageCI'] : ['@Tag', '@SmokeSet1'];
+        return [specPath(name), inventoryEntry(name, tags)];
+      }),
+    );
+    const localDependencyIndex = {
+      consumers: {
+        [supportPath('pages/shared')]: impactedSpecs.map((name) => specPath(name)),
+      },
+    };
+
+    const result = plan([{ status: 'M', path: supportPath('pages/shared') }], {
+      inventory: fullInventory,
+      dependencyIndex: localDependencyIndex,
+      selectedTags: [],
+      ciTags: ['@Tag', '@PackageCI'],
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.impactMode, 'full-coverage-tags');
+    assert.deepEqual(
+      result.summary.impactedSpecs,
+      impactedSpecs.map((name) => specPath(name)),
+    );
+    const residualJob = result.matrix.find((job) => job.run_mode === 'spec');
+    assert.deepEqual(
+      residualJob.specs,
+      packageSpecs.map((name) => specPath(name)),
+    );
+    assert.equal(result.matrix.find((job) => job.tag_dir === 'full-coverage-01').tag, '@SmokeSet1');
+  });
+
   it('fails selection when a selected tag resolves to zero tests', () => {
     const result = plan([], { selectedTags: ['@Missing'] });
 

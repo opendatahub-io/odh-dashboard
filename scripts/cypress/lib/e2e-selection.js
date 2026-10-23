@@ -1226,7 +1226,7 @@ const buildSelectionPlan = ({
         errors.push('No canonical full-coverage tag sets contain executable tests');
       } else {
         const fullCoverageTagSet = new Set([...fullCoverageTags, ...effectiveSelectedTags]);
-        explicitImpactSpecs = impactTags.uncoveredSpecs
+        explicitImpactSpecs = uncoveredImpactedSpecs
           .filter((spec) => !hasCompleteTagCoverage(spec, inventory, fullCoverageTagSet))
           .toSorted();
         impactedTagJobs = buildNamedTagJobs(
