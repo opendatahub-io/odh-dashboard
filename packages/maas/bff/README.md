@@ -53,7 +53,7 @@ Defaults below are what `make run` passes (see `bff/Makefile`). Direct `go run .
 | `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve SPA frontend assets                    | `./static`                     |
 | `-log-level`            | `LOG_LEVEL`            | `ERROR`, `WARN`, `INFO`, `DEBUG`                          | `info`                         |
 | `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins                              | _(none)_                       |
-| `-auth-method`          | `AUTH_METHOD`          | `internal`, `user_token`, or `disabled`                   | `user_token` (CLI: `internal`) |
+| `-auth-method`          | `AUTH_METHOD`          | `internal` or `user_token`                                | `user_token` (CLI: `internal`) |
 | `-auth-token-header`    | `AUTH_TOKEN_HEADER`    | Header to read the bearer token from                      | `x-forwarded-access-token`     |
 | `-auth-token-prefix`    | `AUTH_TOKEN_PREFIX`    | Expected token prefix                                     | _(empty)_                      |
 | `-cert-file`            | `CERT_FILE`            | TLS certificate path (enables HTTPS when paired with key) | _(none)_                       |
@@ -98,7 +98,6 @@ Set via `--auth-method` / `AUTH_METHOD`:
 
 - **`internal`** (CLI default): Impersonates the user identified in the `kubeflow-userid` (and optional `kubeflow-groups`) headers using cluster or local kubeconfig credentials. Used for standalone and kubeflow modes.
 - **`user_token`** (`make run` default): Extracts a bearer token from the configured header/prefix and performs a `SelfSubjectAccessReview`. Used for federated/RHOAI mode.
-- **`disabled`**: No authentication. For testing only.
 
 ### Overriding the token header / prefix
 

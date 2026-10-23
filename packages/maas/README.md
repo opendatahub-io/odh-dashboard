@@ -42,7 +42,12 @@ The BFF contract is defined in [`bff/openapi.yaml`](./bff/openapi.yaml).
 
 Define these in a `.env.local` file in the `packages/maas/` directory.
 
-**Build / image variables** (`CONTAINER_TOOL`, `IMG_*`, `PLATFORM`, `DEPLOYMENT_MODE`, `STYLE_THEME`) affect `make docker-build*` and `make docker-push*` commands.
+**Image variables by target:**
+
+- `IMG_*` — used by `docker-build*`, `docker-buildx*`, and `docker-push*`
+- `CONTAINER_TOOL` — used by `docker-build*` and `docker-push*` (`docker-buildx*` always invokes `docker`)
+- `PLATFORM` — used only by `docker-buildx*`
+- `DEPLOYMENT_MODE` / `STYLE_THEME` — hardcoded per build target (not read from `.env.local`)
 
 **Runtime variables** (`MAAS_API_URL`, `MAAS_API_INTERNAL_URL`, `MAAS_API_NAMESPACE`) configure BFF behavior when running against a cluster; they do not affect image build or push.
 
