@@ -562,7 +562,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
           />
         </div>
       </ModalHeader>
-      <ModalBody>
+      <ModalBody data-testid="status-modal-body">
         <div className="evalhub-status-modal__header" data-testid="status-detail-header">
           <Stack className="evalhub-status-modal__header-stack">
             <StackItem>
@@ -701,6 +701,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
 
         {/* Tab content */}
         <div
+          data-testid="status-modal-tab-content"
           className={`evalhub-status-modal__tab-content ${
             activeTab === 'events-log'
               ? 'evalhub-status-modal__tab-content--events-log'

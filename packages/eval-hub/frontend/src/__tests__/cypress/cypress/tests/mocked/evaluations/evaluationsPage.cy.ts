@@ -662,5 +662,39 @@ describe('Evaluations Page - Failure summary scroll', () => {
     });
     evaluationsPage.findFailureSummaryToggle().should('have.text', 'Show less');
   });
+
+  it('should scroll the modal body when the viewport is too short to fit the modal', () => {
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.clickStatusBadge(0);
+    evaluationsPage.findStatusModal().should('exist');
+    evaluationsPage.findFailureSummaryToggle().click();
+    evaluationsPage.findFailureSummaryText().should('have.class', 'm-expanded');
+
+    // Shrink the viewport after the modal is open so the a11y check in visit()
+    // still runs at the default size.
+    cy.viewport(1000, 480);
+
+    // The header stack (flex-shrink: 0) plus the floored tab content now exceed
+    // the modal body, so the body must overflow and scroll — the content below
+    // the header stack stays reachable instead of being clipped (RHAI-10244).
+    evaluationsPage.findStatusModalBody().then(($el) => {
+      const el = $el[0];
+      expect(el.scrollHeight, 'modal body overflows on a short viewport').to.be.greaterThan(
+        el.clientHeight,
+      );
+      el.scrollTop = 40;
+      expect(el.scrollTop, 'modal body scrolls').to.be.greaterThan(0);
+    });
+
+    // The tab content holds its min-height floor rather than collapsing to zero.
+    // Assert geometry — Cypress's covered-by visibility heuristic is unreliable
+    // inside the nested scrolled modal.
+    evaluationsPage.findStatusModalTabContent().then(($el) => {
+      expect(
+        $el[0].getBoundingClientRect().height,
+        'tab content is not collapsed',
+      ).to.be.greaterThan(0);
+    });
+  });
 });
 /* eslint-enable camelcase */
