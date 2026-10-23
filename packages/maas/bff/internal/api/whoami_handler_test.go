@@ -15,7 +15,7 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
-func TestGetMeHandler(t *testing.T) {
+func TestGetWhoAmIHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		upstreamStatus int
@@ -89,14 +89,14 @@ func TestGetMeHandler(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodGet, constants.MePath, nil)
-			handlerWithMaasApi(app, GetMeHandler)(rr, req, nil)
+			req := httptest.NewRequest(http.MethodGet, constants.WhoAmIPath, nil)
+			handlerWithMaasApi(app, GetWhoAmIHandler)(rr, req, nil)
 
 			if rr.Code != tt.wantStatus {
 				t.Fatalf("status = %d, want %d; body = %s", rr.Code, tt.wantStatus, rr.Body.String())
 			}
 			if tt.wantStatus == http.StatusOK {
-				var body Envelope[models.MaaSCallerIdentity, None]
+				var body Envelope[models.MaaSWhoAmI, None]
 				if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
 					t.Fatalf("decode success response: %v", err)
 				}

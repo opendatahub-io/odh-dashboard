@@ -25,6 +25,15 @@ describe('CreateBenchmarkSuiteCard', () => {
     expect(screen.queryByRole('button', { name: 'Import from git' })).not.toBeInTheDocument();
   });
 
+  it('should render as a default white card with the collection-card title size', () => {
+    render(<CreateBenchmarkSuiteCard />);
+
+    // RHAI-15138: keep the tile on the plain white card (no grey secondary
+    // variant) and its title at the xl size the collection cards use.
+    expect(screen.getByTestId('create-suite-card')).not.toHaveClass('pf-m-secondary');
+    expect(screen.getByText('Create your own collection')).toHaveClass('pf-m-xl');
+  });
+
   it('should invoke the supplied CTA callback', () => {
     const onCreateSuite = jest.fn();
     render(<CreateBenchmarkSuiteCard onCreateSuite={onCreateSuite} />);
