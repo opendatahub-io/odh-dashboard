@@ -346,7 +346,7 @@ describe('ConnectionsTab', () => {
     }
   });
 
-  it('tracks a type filter when a type is deselected', async () => {
+  it('tracks a type filter when a type is deselected and reselected', async () => {
     const user = userEvent.setup();
     renderConnectionsTab({ namespace: 'test-project' });
 
@@ -360,6 +360,10 @@ describe('ConnectionsTab', () => {
       eventName: 'Connections List Filter Applied',
       properties: { filterType: 'type', project: 'test-project' },
     });
+
+    fireEvent.click(within(postgresqlFilter).getByRole('checkbox'));
+
+    expect(screen.getByText('warehouse')).toBeTruthy();
   });
 
   it('refreshes the list when verification fails', async () => {
