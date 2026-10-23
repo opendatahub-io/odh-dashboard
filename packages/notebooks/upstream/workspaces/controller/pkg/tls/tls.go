@@ -39,6 +39,7 @@ const (
 
 	fieldSpec               = "spec"
 	fieldTLSSecurityProfile = "tlsSecurityProfile"
+	fieldTLSAdherence       = "tlsAdherence"
 	fieldType               = "type"
 	fieldCustom             = "custom"
 	fieldMinTLSVersion      = "minTLSVersion"
@@ -56,6 +57,14 @@ const (
 	tlsVersionName13 = "VersionTLS13"
 
 	openSSLCipherECDHEECDSAAES128GCMSHA256 = "ECDHE-ECDSA-AES128-GCM-SHA256"
+)
+
+// TLS adherence policy values from apiservers.config.openshift.io spec.tlsAdherence.
+// An empty/unset value means NoOpinion, which defaults to Legacy behavior. Any
+// unknown value is treated as Strict for forward compatibility.
+const (
+	AdherenceLegacy = "LegacyAdheringComponentsOnly"
+	AdherenceStrict = "StrictAllComponents"
 )
 
 var apiServerGVK = schema.GroupVersionKind{
@@ -144,16 +153,27 @@ type Result struct {
 	// degraded result as an error. The controller intentionally ignores it and
 	// serves fail-open defaults, self-healing via the watcher.
 	Degraded bool
+	// Adherence is the cluster TLS adherence policy (spec.tlsAdherence): "" (unset,
+	// behaves as Legacy), AdherenceLegacy, AdherenceStrict, or an unknown value.
+	// It governs whether a component must adopt the cluster profile or may keep its
+	// own (stronger) configuration under Legacy/unset adherence.
+	Adherence string
 }
 
 // tlsGroupMap maps OpenShift TLS group (key-exchange curve) names to Go
 // tls.CurveID constants. OpenShift exposes these on Custom profiles via the
 // `groups` field; the well-known profiles do not restrict groups.
 var tlsGroupMap = map[string]tls.CurveID{
+	// Canonical OpenShift TLSSecurityProfile group names (config/v1).
+	"secp256r1":      tls.CurveP256,
+	"secp384r1":      tls.CurveP384,
+	"secp521r1":      tls.CurveP521,
 	"X25519":         tls.X25519,
-	"P-256":          tls.CurveP256,
-	"P-384":          tls.CurveP384,
 	"X25519MLKEM768": tls.X25519MLKEM768,
+	// NIST aliases also accepted for robustness.
+	"P-256": tls.CurveP256,
+	"P-384": tls.CurveP384,
+	"P-521": tls.CurveP521,
 }
 
 // goNegotiableCiphers is the set of TLS ≤1.2 cipher suite IDs the running Go
@@ -223,6 +243,7 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 	result.APIAvailable = true
 	profile, _, _ := unstructured.NestedMap(apiServer.Object, fieldSpec, fieldTLSSecurityProfile)
 	result.Profile = normalizeProfileMap(profile)
+	result.Adherence, _, _ = unstructured.NestedString(apiServer.Object, fieldSpec, fieldTLSAdherence)
 
 	minVersion, ciphers, curves, degraded := parseProfile(apiServer)
 	result.Degraded = degraded

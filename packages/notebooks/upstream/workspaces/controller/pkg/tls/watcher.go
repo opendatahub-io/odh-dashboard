@@ -36,11 +36,16 @@ import (
 type ProfileWatcher struct {
 	client.Client
 	InitialProfile map[string]any
-	// OnProfileChange is invoked when the profile changes. Returning an error
-	// leaves lastProfile unchanged and requeues the request so the change is
-	// retried (e.g. when an in-process re-resolution failed transiently).
+	// InitialAdherence seeds the last-seen spec.tlsAdherence so the first reconcile
+	// does not fire a spurious change when the value already matches.
+	InitialAdherence string
+	// OnProfileChange is invoked when the profile OR the adherence policy changes.
+	// Returning an error leaves the last-seen values unchanged and requeues the
+	// request so the change is retried (e.g. when an in-process re-resolution
+	// failed transiently).
 	OnProfileChange func(ctx context.Context) error
 	lastProfile     map[string]any
+	lastAdherence   string
 }
 
 func (w *ProfileWatcher) Reconcile(
@@ -60,13 +65,17 @@ func (w *ProfileWatcher) Reconcile(
 		apiServer.Object, fieldSpec, fieldTLSSecurityProfile,
 	)
 	current = normalizeProfileMap(current)
+	currentAdherence, _, _ := unstructured.NestedString(
+		apiServer.Object, fieldSpec, fieldTLSAdherence,
+	)
 	if w.OnProfileChange != nil &&
-		!reflect.DeepEqual(w.lastProfile, current) {
+		(!reflect.DeepEqual(w.lastProfile, current) || w.lastAdherence != currentAdherence) {
 		if err := w.OnProfileChange(ctx); err != nil {
-			// Leave lastProfile unchanged so the change is retried on requeue.
+			// Leave the last-seen values unchanged so the change is retried on requeue.
 			return reconcile.Result{}, err
 		}
 		w.lastProfile = current
+		w.lastAdherence = currentAdherence
 	}
 
 	return reconcile.Result{}, nil
@@ -74,6 +83,7 @@ func (w *ProfileWatcher) Reconcile(
 
 func (w *ProfileWatcher) SetupWithManager(mgr ctrl.Manager) error {
 	w.lastProfile = w.InitialProfile
+	w.lastAdherence = w.InitialAdherence
 
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(apiServerGVK)

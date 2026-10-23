@@ -465,6 +465,36 @@ func TestResolve_CustomGroupsAppliedToCurvePreferences(t *testing.T) {
 	}
 }
 
+func TestResolve_CustomCanonicalGroupNames(t *testing.T) {
+	// OpenShift uses secp256r1/secp384r1/secp521r1; these valid names must resolve
+	// (regression: previously only P-256/P-384 were recognized).
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName13,
+			fieldGroups:        []any{"secp384r1", "secp256r1", "secp521r1"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (canonical group names must resolve)", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	want := []tls.CurveID{tls.CurveP384, tls.CurveP256, tls.CurveP521}
+	if len(cfg.CurvePreferences) != len(want) {
+		t.Fatalf("expected %d curves, got %d", len(want), len(cfg.CurvePreferences))
+	}
+	for i, c := range want {
+		if cfg.CurvePreferences[i] != c {
+			t.Errorf("curve[%d] = %d, want %d", i, cfg.CurvePreferences[i], c)
+		}
+	}
+}
+
 func TestResolve_CustomAllUnsupportedGroupsFailsClosed(t *testing.T) {
 	apiServer := newAPIServer(map[string]any{
 		fieldType: profileTypeCustom,
@@ -531,6 +561,54 @@ func TestResolve_CustomTLS13CiphersResolve(t *testing.T) {
 	}
 	if cfg.MinVersion != tls.VersionTLS13 {
 		t.Errorf("expected TLS 1.3, got %d", cfg.MinVersion)
+	}
+}
+
+func newAPIServerWithAdherence(profile map[string]any, adherence string) *unstructured.Unstructured {
+	obj := newAPIServer(profile)
+	spec, _, _ := unstructured.NestedMap(obj.Object, fieldSpec)
+	if spec == nil {
+		spec = map[string]any{}
+	}
+	spec[fieldTLSAdherence] = adherence
+	obj.Object[fieldSpec] = spec
+	return obj
+}
+
+func TestResolve_PopulatesAdherence(t *testing.T) {
+	apiServer := newAPIServerWithAdherence(map[string]any{fieldType: profileTypeIntermediate}, AdherenceStrict)
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	if result.Adherence != AdherenceStrict {
+		t.Errorf("expected Adherence = %q, got %q", AdherenceStrict, result.Adherence)
+	}
+}
+
+func TestProfileWatcher_DetectsAdherenceChange(t *testing.T) {
+	// Same profile, but adherence changes Legacy -> Strict: must fire the callback.
+	apiServer := newAPIServerWithAdherence(map[string]any{fieldType: profileTypeIntermediate}, AdherenceStrict)
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+
+	fired := false
+	w := &ProfileWatcher{
+		Client:           fc,
+		InitialProfile:   map[string]any{fieldType: profileTypeIntermediate},
+		InitialAdherence: AdherenceLegacy,
+		OnProfileChange:  func(_ context.Context) error { fired = true; return nil },
+	}
+	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
+	w.lastAdherence = AdherenceLegacy
+
+	if _, err := w.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: client.ObjectKey{Name: apiServerName},
+	}); err != nil {
+		t.Fatalf("Reconcile() error = %v", err)
+	}
+	if !fired {
+		t.Error("expected OnProfileChange to fire on adherence change")
 	}
 }
 
