@@ -104,7 +104,7 @@ func (app *App) AttachModelCatalogRESTClient(next func(http.ResponseWriter, *htt
 			return
 		}
 
-		modelCatalog, err := app.repositories.ModelCatalog.GetModelCatalogWithMode(r.Context(), client, namespace, app.config.DeploymentMode.IsFederatedMode())
+		modelCatalog, err := app.repositories.ModelCatalog.GetModelCatalog(r.Context(), client, namespace)
 		if err != nil {
 			app.notFoundResponse(w, r)
 			return
@@ -123,9 +123,9 @@ func (app *App) AttachModelCatalogRESTClient(next func(http.ResponseWriter, *htt
 
 		// If we are in dev mode, we need to resolve the server address to the local host
 		// to allow the client to connect to the model registry via port forwarded from the cluster to the local machine.
-		// If you are in federated mode, we do not want to override the server address.
+		// Federated mode keeps the in-cluster service address.
 		if app.config.DevMode && !app.config.DeploymentMode.IsFederatedMode() {
-			modelCatalogBaseURL = app.repositories.ModelCatalog.ResolveServerAddress("localhost", int32(app.config.DevModeCatalogPort), modelCatalog.IsHTTPS, "", app.config.DeploymentMode.IsFederatedMode(), apiPath)
+			modelCatalogBaseURL = app.repositories.ModelCatalog.ResolveServerAddress("localhost", int32(app.config.DevModeCatalogPort), modelCatalog.IsHTTPS, apiPath)
 		}
 
 		// Set up a child logger for the rest client that automatically adds the request id to all statements for

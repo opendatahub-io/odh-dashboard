@@ -49,6 +49,14 @@ spec:
         - port: 6443
           protocol: TCP
     - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              component: model-catalog
+      ports:
+        - port: 8443
+          protocol: TCP
+    - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
