@@ -47,6 +47,9 @@ func revertServicePortDrift(
 		if err != nil {
 			return fmt.Errorf("building Service port drift patch for %s: %w", key, err)
 		}
+		if _, desiredFound, err := unstructured.NestedSlice(desired.Object, "spec", "ports"); err == nil && !desiredFound {
+			logger.Info("Skipping Service port drift check because the desired Service has no spec.ports", "service", key)
+		}
 		if patch == nil {
 			continue
 		}
@@ -55,7 +58,8 @@ func revertServicePortDrift(
 		if err != nil {
 			return fmt.Errorf("marshalling Service port drift patch for %s: %w", key, err)
 		}
-		logger.Info("Restoring Service ports before SSA", "service", key)
+		// A JSON merge patch intentionally replaces the complete list. A strategic
+		// merge would retain the externally owned associative-list entry.
 		if err := writer.Patch(
 			ctx,
 			live,
@@ -64,6 +68,7 @@ func revertServicePortDrift(
 		); err != nil {
 			return fmt.Errorf("patching Service port drift for %s: %w", key, err)
 		}
+		logger.Info("Restored Service ports before SSA", "service", key)
 	}
 
 	return nil
@@ -82,7 +87,11 @@ func buildServicePortDriftPatch(live, desired *unstructured.Unstructured) (map[s
 		return nil, nil
 	}
 
-	replacement := runtime.DeepCopyJSONValue(desiredPorts).([]any)
+	rawReplacement := runtime.DeepCopyJSONValue(desiredPorts)
+	replacement, ok := rawReplacement.([]any)
+	if !ok {
+		return nil, fmt.Errorf("copying desired ports returned unexpected type %T", rawReplacement)
+	}
 	preserveAllocatedNodePorts(livePorts, replacement)
 
 	return map[string]any{"spec": map[string]any{"ports": replacement}}, nil
@@ -93,6 +102,8 @@ func servicePortsMatch(livePorts, desiredPorts []any) bool {
 		return false
 	}
 
+	// Services conventionally expose only a handful of ports, so the quadratic
+	// matching keeps the comparison simple while remaining negligible in cost.
 	used := make([]bool, len(livePorts))
 	for _, desiredPort := range desiredPorts {
 		desired, ok := desiredPort.(map[string]any)
@@ -124,7 +135,7 @@ func sameServicePortIdentity(live, desired map[string]any) bool {
 		liveName, _ := live["name"].(string)
 		return liveName == desiredName
 	}
-	return reflect.DeepEqual(live["port"], desired["port"]) &&
+	return servicePortNumberEqual(live["port"], desired["port"]) &&
 		normalizedProtocol(live) == normalizedProtocol(desired)
 }
 
@@ -140,7 +151,7 @@ func desiredServicePortFieldsMatch(live, desired map[string]any) bool {
 	if desiredTargetPort == nil {
 		desiredTargetPort = desired["port"]
 	}
-	if !reflect.DeepEqual(liveTargetPort, desiredTargetPort) {
+	if !servicePortValueEqual(liveTargetPort, desiredTargetPort) {
 		return false
 	}
 
@@ -149,6 +160,12 @@ func desiredServicePortFieldsMatch(live, desired map[string]any) bool {
 			continue
 		}
 		liveValue := live[key]
+		if key == "port" {
+			if !servicePortNumberEqual(liveValue, desiredValue) {
+				return false
+			}
+			continue
+		}
 		if !reflect.DeepEqual(liveValue, desiredValue) {
 			return false
 		}
@@ -164,10 +181,43 @@ func normalizedProtocol(port map[string]any) string {
 	return protocol
 }
 
+func servicePortValueEqual(live, desired any) bool {
+	if liveNumber, liveOK := servicePortNumber(live); liveOK {
+		desiredNumber, desiredOK := servicePortNumber(desired)
+		return desiredOK && liveNumber == desiredNumber
+	}
+	if _, desiredOK := servicePortNumber(desired); desiredOK {
+		return false
+	}
+	return reflect.DeepEqual(live, desired)
+}
+
+func servicePortNumberEqual(live, desired any) bool {
+	liveNumber, liveOK := servicePortNumber(live)
+	desiredNumber, desiredOK := servicePortNumber(desired)
+	return liveOK && desiredOK && liveNumber == desiredNumber
+}
+
+func servicePortNumber(value any) (int64, bool) {
+	switch number := value.(type) {
+	case int:
+		return int64(number), true
+	case int32:
+		return int64(number), true
+	case int64:
+		return number, true
+	case float64:
+		converted := int64(number)
+		return converted, float64(converted) == number
+	default:
+		return 0, false
+	}
+}
+
 func preserveAllocatedNodePorts(livePorts, desiredPorts []any) {
 	for _, desiredPort := range desiredPorts {
 		desired, ok := desiredPort.(map[string]any)
-		if !ok || desired["nodePort"] != nil {
+		if !ok || hasExplicitNodePort(desired) {
 			continue
 		}
 		for _, livePort := range livePorts {
@@ -181,4 +231,13 @@ func preserveAllocatedNodePorts(livePorts, desiredPorts []any) {
 			break
 		}
 	}
+}
+
+func hasExplicitNodePort(port map[string]any) bool {
+	nodePort, exists := port["nodePort"]
+	if !exists || nodePort == nil {
+		return false
+	}
+	number, numeric := servicePortNumber(nodePort)
+	return !numeric || number != 0
 }

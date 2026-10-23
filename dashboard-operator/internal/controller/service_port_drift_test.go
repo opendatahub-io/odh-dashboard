@@ -49,6 +49,19 @@ func TestBuildServicePortDriftPatch_IgnoresAPIDefaults(t *testing.T) {
 	assert.Nil(t, patch)
 }
 
+func TestBuildServicePortDriftPatch_IgnoresEquivalentNumericTypes(t *testing.T) {
+	live := serviceWithPorts("maas-ui", map[string]any{
+		"name": "maas-ui", "port": float64(8543), "protocol": "TCP", "targetPort": float64(8543),
+	})
+	desired := serviceWithPorts("maas-ui", map[string]any{
+		"name": "maas-ui", "port": int64(8543), "targetPort": int64(8543),
+	})
+
+	patch, err := buildServicePortDriftPatch(live, desired)
+	require.NoError(t, err)
+	assert.Nil(t, patch)
+}
+
 func TestBuildServicePortDriftPatch_RemovesExternallyAddedPort(t *testing.T) {
 	live := serviceWithPorts("dashboard", map[string]any{
 		"name": "https", "port": int64(8443), "targetPort": int64(8443),
@@ -81,10 +94,37 @@ func TestBuildServicePortDriftPatch_PreservesAllocatedNodePort(t *testing.T) {
 	assert.Equal(t, int64(30443), ports[0].(map[string]any)["nodePort"])
 }
 
+func TestBuildServicePortDriftPatch_PreservesAllocatedNodePortWhenDesiredIsZero(t *testing.T) {
+	live := serviceWithPorts("dashboard", map[string]any{
+		"name": "https", "port": int64(9999), "targetPort": int64(8443), "nodePort": int64(30443),
+	})
+	desired := serviceWithPorts("dashboard", map[string]any{
+		"name": "https", "port": int64(8443), "targetPort": int64(8443), "nodePort": int64(0),
+	})
+
+	patch, err := buildServicePortDriftPatch(live, desired)
+	require.NoError(t, err)
+	ports := patch["spec"].(map[string]any)["ports"].([]any)
+	require.Len(t, ports, 1)
+	assert.Equal(t, int64(30443), ports[0].(map[string]any)["nodePort"])
+}
+
 func TestBuildServicePortDriftPatch_SkipsMissingPortLists(t *testing.T) {
 	live := serviceWithPorts("dashboard")
 	desired := serviceWithPorts("dashboard")
 	delete(live.Object["spec"].(map[string]any), "ports")
+
+	patch, err := buildServicePortDriftPatch(live, desired)
+	require.NoError(t, err)
+	assert.Nil(t, patch)
+}
+
+func TestBuildServicePortDriftPatch_SkipsMissingDesiredPortList(t *testing.T) {
+	live := serviceWithPorts("dashboard", map[string]any{
+		"name": "https", "port": int64(8443), "targetPort": int64(8443),
+	})
+	desired := serviceWithPorts("dashboard")
+	delete(desired.Object["spec"].(map[string]any), "ports")
 
 	patch, err := buildServicePortDriftPatch(live, desired)
 	require.NoError(t, err)
