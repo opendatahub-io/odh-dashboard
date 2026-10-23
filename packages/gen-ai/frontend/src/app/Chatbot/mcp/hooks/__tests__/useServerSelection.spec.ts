@@ -152,6 +152,38 @@ describe('useServerSelection', () => {
     expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server2']);
   });
 
+  it('should preserve an external empty reset when the server list changes in the same render', () => {
+    const { result, rerender } = renderHook(
+      ({ servers, initialIds }) =>
+        useServerSelection({
+          transformedServers: servers,
+          initialSelectedServerIds: initialIds,
+          onSelectionChange: mockOnSelectionChange,
+        }),
+      {
+        initialProps: {
+          servers: mockServers,
+          initialIds: ['server1'],
+        },
+      },
+    );
+
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server1']);
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server1']);
+
+    // A revert clears the store selection while the reverted server simultaneously
+    // drops out of the usable list — both arrive in the same render
+    rerender({
+      servers: [mockServers[1]],
+      initialIds: [] as string[],
+    });
+
+    expect(result.current.selectedServers).toHaveLength(0);
+    // The reverted server's ID must not be reconciled back into the store — the
+    // notification preserves the empty selection the revert requested
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith([]);
+  });
+
   it('should handle selection of multiple servers from route state', () => {
     const { result } = renderHook(() =>
       useServerSelection({

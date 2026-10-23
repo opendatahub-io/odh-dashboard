@@ -33,9 +33,14 @@ const useServerSelection = ({
   // Last selection reported to the parent — distinguishes the parent's echo of our
   // own emissions from external selection resets
   const lastEmittedIdsRef = React.useRef<string[]>([]);
-  // Set when an external reset was just adopted so the pending notify pass skips
-  // pushing the pre-adoption local selection back over the adopted value
-  const skipNextNotifyRef = React.useRef(false);
+  // Set when an external reset was just adopted but the adopted selection has not
+  // rendered yet. The notify pass consumes it to skip pushing the pre-adoption
+  // local selection back over the adopted value, and reconciliation defers until
+  // the adopted selection settles — reconciling the stale pre-adoption selection
+  // would restore its unavailable IDs and the next notify pass would write them
+  // back over the adopted value (e.g. undoing the empty selection a Revert
+  // requested)
+  const pendingAdoptionRef = React.useRef(false);
 
   // Handle initial selection from route state
   React.useEffect(() => {
@@ -101,13 +106,16 @@ const useServerSelection = ({
     setSelectedServers(
       transformedServers.filter((server) => initialSelectedServerIds.includes(server.id)),
     );
-    skipNextNotifyRef.current = true;
+    pendingAdoptionRef.current = true;
   }, [initialSelectedServerIds, transformedServers]);
 
   // A selected server can disappear from the usable list while it is unreachable.
   // Keep its ID until it returns, without displaying a stale row in the picker.
   React.useEffect(() => {
     if (!isInitialLoadComplete) {
+      return;
+    }
+    if (pendingAdoptionRef.current) {
       return;
     }
 
@@ -138,8 +146,8 @@ const useServerSelection = ({
       ]),
     ];
     lastEmittedIdsRef.current = selectedConnectionUrls;
-    if (skipNextNotifyRef.current) {
-      skipNextNotifyRef.current = false;
+    if (pendingAdoptionRef.current) {
+      pendingAdoptionRef.current = false;
       return;
     }
     if (isInitialLoadComplete && transformedServers.length > 0) {

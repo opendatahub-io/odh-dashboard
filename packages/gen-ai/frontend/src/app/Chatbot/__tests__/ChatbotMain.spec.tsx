@@ -707,28 +707,47 @@ describe('ChatbotMain - Empty State Logic', () => {
     act(() => actualStore.getState().updateSelectedAsrSubscription('default', 'asr-sub'));
     act(() => actualStore.getState().updateAsrModelEnabled('default', true));
 
-    // Enter compare mode — the secondary pane's baseline has transcription on,
-    // while the primary pane's baseline (captured before enabling) has it off
+    // Enter compare mode — transcription is shared across panes, so both pane
+    // baselines treat the duplication-time values as the starting point; keeping
+    // the primary pane's pre-compare baseline (transcription off) would flag it
+    // dirty whenever the sibling pane is reverted
     act(() => jest.mocked(ChatModal).mock.calls.at(-1)?.[0].onConfirm());
     const [, secondConfigId] = actualStore.getState().configIds;
 
+    const expectPaneDirty = (configId: string, dirty: boolean) => {
+      act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].setActivePaneConfigId?.(configId));
+      expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(dirty);
+    };
+
     act(() => actualStore.getState().updateAsrModelEnabled('default', false));
+    expectPaneDirty('default', true);
+    expectPaneDirty(secondConfigId, true);
 
     // Reverting the secondary pane restores its baseline transcription config on
-    // every pane — audio uploads read the primary pane, so it must match too
+    // every pane — audio uploads read the primary pane, so it must match too —
+    // and leaves both panes clean
     act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.(secondConfigId));
     expect(actualStore.getState().configurations[secondConfigId]?.isAsrModelEnabled).toBe(true);
     expect(actualStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
     expect(actualStore.getState().configurations.default?.selectedAsrModel).toBe('asr-model');
     expect(actualStore.getState().configurations.default?.selectedAsrSubscription).toBe('asr-sub');
+    expectPaneDirty('default', false);
+    expectPaneDirty(secondConfigId, false);
 
-    // Reverting the primary pane restores its baseline (transcription off) the same way
+    // Reverting the primary pane restores the same shared starting values the
+    // same way — both panes stay clean
+    act(() => actualStore.getState().updateAsrModelEnabled('default', false));
     act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
-    expect(actualStore.getState().configurations.default?.isAsrModelEnabled).toBe(false);
-    expect(actualStore.getState().configurations.default?.selectedAsrModel).toBe('');
-    expect(actualStore.getState().configurations[secondConfigId]?.isAsrModelEnabled).toBe(false);
-    expect(actualStore.getState().configurations[secondConfigId]?.selectedAsrModel).toBe('');
-    expect(actualStore.getState().configurations[secondConfigId]?.selectedAsrSubscription).toBe('');
+    expect(actualStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
+    expect(actualStore.getState().configurations[secondConfigId]?.isAsrModelEnabled).toBe(true);
+    expect(actualStore.getState().configurations[secondConfigId]?.selectedAsrModel).toBe(
+      'asr-model',
+    );
+    expect(actualStore.getState().configurations[secondConfigId]?.selectedAsrSubscription).toBe(
+      'asr-sub',
+    );
+    expectPaneDirty('default', false);
+    expectPaneDirty(secondConfigId, false);
 
     act(() => actualStore.getState().resetConfiguration());
   });
