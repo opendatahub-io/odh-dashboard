@@ -762,6 +762,14 @@ class KServeRow extends ModelServingRow {
     return this.find().next('tr').find(`dt:contains("${itemName}")`);
   }
 
+  findHardwareProfileDRADetails() {
+    return this.findExpansion().findByTestId('hardware-profile-dra-details');
+  }
+
+  findHardwareProfileDRATemplate() {
+    return this.findHardwareProfileDRADetails().findByTestId('hardware-profile-dra-template');
+  }
+
   findProjectScopedLabel() {
     return this.find().findByTestId('project-scoped-label');
   }

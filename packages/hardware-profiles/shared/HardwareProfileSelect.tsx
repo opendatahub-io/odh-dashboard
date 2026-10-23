@@ -16,7 +16,7 @@ import {
   FormHelperText,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import { InfoCircleIcon } from '@patternfly/react-icons';
+import { ExclamationTriangleIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { t_global_icon_color_disabled as disabledIconColor } from '@patternfly/react-tokens';
 import { type HardwareProfileKind, byName } from '@odh-dashboard/k8s-core';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
@@ -45,8 +45,19 @@ import {
   KueueFilteringState,
   useKueueConfiguration,
 } from './kueueUtils';
-import { formatResource, formatResourceValue, isDRAHardwareProfile } from './utils';
+import {
+  formatResource,
+  formatResourceValue,
+  getClaimTemplateMissingText as getProfileClaimTemplateMissingText,
+  isDRAHardwareProfile,
+  isSameHardwareProfileBinding,
+} from './utils';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
+import {
+  type ResourceClaimTemplateNamesResult,
+  useResourceClaimTemplateNames,
+} from './useResourceClaimTemplateNames';
+import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 
 const getIdentifiersText = (
@@ -79,6 +90,29 @@ const getKueueText = (profile: HardwareProfileKind): string | undefined => {
   return `Local queue: ${localQueueName}${priorityClass ? `; Priority: ${priorityClass}` : ''}`;
 };
 
+const getClaimTemplateText = (
+  profile: HardwareProfileKind,
+  isDRAEnabled: boolean,
+): string | undefined => {
+  const resourceClaimTemplateName = profile.spec.dra?.resourceClaimTemplateName;
+  return isDRAEnabled && resourceClaimTemplateName
+    ? `Claim template: ${resourceClaimTemplateName}`
+    : undefined;
+};
+
+const hiddenTruncateTooltipProps = { trigger: 'manual', isVisible: false } as const;
+
+const claimTemplateMissingIcon = (
+  <Icon
+    status="warning"
+    isInline
+    className="pf-v6-u-ml-sm"
+    data-testid="claim-template-missing-icon"
+  >
+    <ExclamationTriangleIcon />
+  </Icon>
+);
+
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
   previewDescription?: boolean;
@@ -98,10 +132,15 @@ type HardwareProfileSelectProps = {
   onChange: (profile: HardwareProfileKind | undefined) => void;
   project?: string;
   selectionIndicator?: React.ReactNode;
+  excludeDRAProfiles?: boolean;
+  claimTemplateNames?: ResourceClaimTemplateNamesResult;
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
 const TOOLTIP_MAX_LINES = 30;
+
+const getProfileOptionKey = (profile: HardwareProfileKind): string =>
+  `${profile.metadata.namespace}/${profile.metadata.name}`;
 
 const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   initialHardwareProfile,
@@ -118,6 +157,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   isHardwareProfilePreferred,
   onChange,
   project,
+  excludeDRAProfiles = false,
+  claimTemplateNames: sharedClaimTemplateNames,
 }) => {
   const [searchHardwareProfile, setSearchHardwareProfile] = React.useState('');
   const [
@@ -130,6 +171,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const { localQueues } = React.useContext(LocalQueuesContext);
   const { projects } = React.useContext(ProjectsContext);
   const { dashboardConfig } = useApplicationSettings();
+  const isDRAEnabled = useIsDRAHardwareProfileEnabled();
   const hardwareProfileOrder = React.useMemo(
     () => dashboardConfig?.spec.hardwareProfileOrder || [],
     [dashboardConfig?.spec.hardwareProfileOrder],
@@ -177,13 +219,35 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     [availableLocalQueueNames],
   );
 
+  const isInitialProfile = React.useCallback(
+    (profile: HardwareProfileKind): boolean =>
+      !!initialHardwareProfile &&
+      isSameHardwareProfileBinding(profile.metadata, initialHardwareProfile.metadata),
+    [initialHardwareProfile],
+  );
+
   const keepInitialProfileInOptions =
     !!initialHardwareProfile &&
-    (!isDRAHardwareProfile(initialHardwareProfile) ||
-      (hardwareProfileConfig.selectedProfile?.metadata.name ===
-        initialHardwareProfile.metadata.name &&
-        hardwareProfileConfig.selectedProfile.metadata.namespace ===
-          initialHardwareProfile.metadata.namespace));
+    (!excludeDRAProfiles ||
+      !isDRAHardwareProfile(initialHardwareProfile) ||
+      (!!hardwareProfileConfig.selectedProfile &&
+        isInitialProfile(hardwareProfileConfig.selectedProfile)));
+
+  const hasDRAProfile =
+    isDRAEnabled &&
+    (hardwareProfiles.some(isDRAHardwareProfile) ||
+      currentProjectHardwareProfiles.some(isDRAHardwareProfile) ||
+      (!!initialHardwareProfile && isDRAHardwareProfile(initialHardwareProfile)));
+  const ownClaimTemplateNames = useResourceClaimTemplateNames(
+    hasDRAProfile && !sharedClaimTemplateNames ? project : undefined,
+  );
+  const claimTemplateNames = sharedClaimTemplateNames ?? ownClaimTemplateNames;
+
+  const getClaimTemplateMissingText = React.useCallback(
+    (profile: HardwareProfileKind): string | undefined =>
+      isDRAEnabled ? getProfileClaimTemplateMissingText(profile, claimTemplateNames) : undefined,
+    [claimTemplateNames, isDRAEnabled],
+  );
 
   const options = React.useMemo(() => {
     const enabledProfiles = orderProfiles(
@@ -197,7 +261,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     if (
       initialHardwareProfile &&
       keepInitialProfileInOptions &&
-      !enabledProfiles.includes(initialHardwareProfile)
+      !enabledProfiles.some(isInitialProfile)
     ) {
       enabledProfiles.push(initialHardwareProfile);
     }
@@ -209,37 +273,60 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       const description = getHardwareProfileDescription(profile);
       const identifiersText = getIdentifiersText(profile.spec.identifiers);
       const kueueText = getKueueText(profile);
-      const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
+      const claimTemplateText = getClaimTemplateText(profile, isDRAEnabled);
+      const queueMissing = isInitialProfile(profile) && isQueueMissing(profile);
+      const claimTemplateMissingText = getClaimTemplateMissingText(profile);
+      const isClaimTemplateUnavailable = !!claimTemplateMissingText && !isInitialProfile(profile);
+      const truncateTooltipProps = claimTemplateMissingText
+        ? hiddenTruncateTooltipProps
+        : undefined;
 
       return {
-        key: profile.metadata.name,
+        key: getProfileOptionKey(profile),
+        dataTestId: profile.metadata.name,
         label: displayName,
+        ...(claimTemplateMissingText && {
+          isAriaDisabled: isClaimTemplateUnavailable,
+          tooltipProps: { content: claimTemplateMissingText },
+        }),
         description: (
           <Stack>
             {description && (
               <StackItem>
-                <TruncatedText
-                  maxLines={1}
-                  tooltipMaxLines={TOOLTIP_MAX_LINES}
-                  content={description}
-                />
+                {claimTemplateMissingText ? (
+                  <Truncate content={description} tooltipProps={truncateTooltipProps} />
+                ) : (
+                  <TruncatedText
+                    maxLines={1}
+                    tooltipMaxLines={TOOLTIP_MAX_LINES}
+                    content={description}
+                  />
+                )}
               </StackItem>
             )}
             {identifiersText && (
               <StackItem>
-                <Truncate content={identifiersText} />
+                <Truncate content={identifiersText} tooltipProps={truncateTooltipProps} />
               </StackItem>
             )}
             {kueueText && (
               <StackItem>
-                <Truncate content={kueueText} />
+                <Truncate content={kueueText} tooltipProps={truncateTooltipProps} />
+              </StackItem>
+            )}
+            {claimTemplateText && (
+              <StackItem>
+                <Truncate content={claimTemplateText} tooltipProps={truncateTooltipProps} />
               </StackItem>
             )}
           </Stack>
         ),
         dropdownLabel: (
           <Split>
-            <SplitItem>{displayName}</SplitItem>
+            <SplitItem>
+              {displayName}
+              {claimTemplateMissingText && claimTemplateMissingIcon}
+            </SplitItem>
             <SplitItem isFilled />
             <SplitItem>
               {isHardwareProfileSupported(profile) && <Label color="blue">Compatible</Label>}
@@ -273,12 +360,15 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     hardwareProfiles,
     initialHardwareProfile,
     keepInitialProfileInOptions,
+    isInitialProfile,
     allowExistingSettings,
     isHardwareProfileSupported,
     isQueueMissing,
+    getClaimTemplateMissingText,
     availableLocalQueueNames,
     kueueFilteringState,
     orderProfiles,
+    isDRAEnabled,
   ]);
 
   const renderMenuItem = (
@@ -289,38 +379,55 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     const description = getHardwareProfileDescription(profile);
     const identifiersText = getIdentifiersText(profile.spec.identifiers);
     const kueueText = getKueueText(profile);
-    const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
+    const claimTemplateText = getClaimTemplateText(profile, isDRAEnabled);
+    const queueMissing = isInitialProfile(profile) && isQueueMissing(profile);
+    const claimTemplateMissingText = getClaimTemplateMissingText(profile);
+    const isClaimTemplateUnavailable = !!claimTemplateMissingText && !isInitialProfile(profile);
+    const truncateTooltipProps = claimTemplateMissingText ? hiddenTruncateTooltipProps : undefined;
     return (
       <MenuItem
         key={`${index}-${scope}-hardware-profile-${profile.metadata.name}`}
         isSelected={
-          profile.metadata.name === hardwareProfileConfig.selectedProfile?.metadata.name &&
-          profile.metadata.namespace === hardwareProfileConfig.selectedProfile.metadata.namespace
+          !!hardwareProfileConfig.selectedProfile &&
+          isSameHardwareProfileBinding(
+            profile.metadata,
+            hardwareProfileConfig.selectedProfile.metadata,
+          )
         }
+        isAriaDisabled={isClaimTemplateUnavailable}
+        tooltipProps={claimTemplateMissingText ? { content: claimTemplateMissingText } : undefined}
         onClick={() => onChange(profile)}
         icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
         description={
           <Stack style={{ marginLeft: '19px' }}>
             {description && (
               <StackItem>
-                <Truncate content={description} />
+                <Truncate content={description} tooltipProps={truncateTooltipProps} />
               </StackItem>
             )}
             {identifiersText && (
               <StackItem>
-                <Truncate content={identifiersText} />
+                <Truncate content={identifiersText} tooltipProps={truncateTooltipProps} />
               </StackItem>
             )}
             {kueueText && (
               <StackItem>
-                <Truncate content={kueueText} />
+                <Truncate content={kueueText} tooltipProps={truncateTooltipProps} />
+              </StackItem>
+            )}
+            {claimTemplateText && (
+              <StackItem>
+                <Truncate content={claimTemplateText} tooltipProps={truncateTooltipProps} />
               </StackItem>
             )}
           </Stack>
         }
       >
         <Split>
-          <SplitItem>{getHardwareProfileDisplayName(profile)}</SplitItem>
+          <SplitItem>
+            {getHardwareProfileDisplayName(profile)}
+            {claimTemplateMissingText && claimTemplateMissingIcon}
+          </SplitItem>
           <SplitItem isFilled />
           <SplitItem>
             {isHardwareProfileSupported(profile) && <Label color="blue">Compatible</Label>}
@@ -359,7 +466,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       initialHardwareProfile &&
       initialBelongsToGroup &&
       keepInitialProfileInOptions &&
-      !filteredProfiles.includes(initialHardwareProfile)
+      !filteredProfiles.some(isInitialProfile)
     ) {
       filteredProfiles.push(initialHardwareProfile);
     }
@@ -376,6 +483,24 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   );
 
   const globalHardwareProfiles = processHardwareProfilesForSelection(hardwareProfiles, false);
+
+  const profilesByOptionKey = React.useMemo(() => {
+    const profilesByKey = new Map<string, HardwareProfileKind>();
+    [...hardwareProfiles, ...(initialHardwareProfile ? [initialHardwareProfile] : [])].forEach(
+      (profile) => {
+        const key = getProfileOptionKey(profile);
+        if (!profilesByKey.has(key)) {
+          profilesByKey.set(key, profile);
+        }
+      },
+    );
+    return profilesByKey;
+  }, [hardwareProfiles, initialHardwareProfile]);
+  const findProfileByOptionKey = (key: string) => profilesByOptionKey.get(key);
+
+  const onlyOptionProfile =
+    options.length === 1 ? findProfileByOptionKey(options[0].key) : undefined;
+  const autoSelectOnlyOption = !onlyOptionProfile || !isDRAHardwareProfile(onlyOptionProfile);
 
   if (isProjectScoped && !currentProjectHardwareProfilesLoaded && !hardwareProfilesLoaded) {
     return <Skeleton />;
@@ -407,7 +532,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           {isProjectScoped &&
           (currentProjectHardwareProfiles.length > 0 ||
             (!!project &&
-              hardwareProfileConfig.selectedProfile?.metadata.namespace === project)) ? (
+              (hardwareProfileConfig.selectedProfile?.metadata.namespace === project ||
+                initialHardwareProfile?.metadata.namespace === project))) ? (
             <>
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
@@ -479,9 +605,13 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                   hardwareProfileConfig.selectedProfile.spec.identifiers,
                 );
                 const kueueText = getKueueText(hardwareProfileConfig.selectedProfile);
+                const claimTemplateText = getClaimTemplateText(
+                  hardwareProfileConfig.selectedProfile,
+                  isDRAEnabled,
+                );
 
                 // No preview content.
-                if (!description && !identifiersText && !kueueText) {
+                if (!description && !identifiersText && !kueueText && !claimTemplateText) {
                   return null;
                 }
 
@@ -499,6 +629,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                         {identifiersText && <Truncate content={identifiersText} />}
                         {identifiersText && kueueText && <br />}
                         {kueueText && <Truncate content={kueueText} />}
+                        {(identifiersText || kueueText) && claimTemplateText && <br />}
+                        {claimTemplateText && <Truncate content={claimTemplateText} />}
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
@@ -524,25 +656,23 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                     previewDescription={previewDescription}
                     options={options}
                     value={
-                      hardwareProfileConfig.selectedProfile?.metadata.name ??
-                      (hardwareProfileConfig.useExistingSettings
+                      hardwareProfileConfig.selectedProfile
+                        ? getProfileOptionKey(hardwareProfileConfig.selectedProfile)
+                        : hardwareProfileConfig.useExistingSettings
                         ? EXISTING_SETTINGS_KEY
-                        : undefined)
+                        : undefined
                     }
                     onChange={(key) => {
                       if (key === EXISTING_SETTINGS_KEY) {
                         onChange(undefined);
                       } else {
-                        const profile =
-                          hardwareProfiles.find((hp) => hp.metadata.name === key) ??
-                          (initialHardwareProfile?.metadata.name === key
-                            ? initialHardwareProfile
-                            : undefined);
+                        const profile = findProfileByOptionKey(key);
                         if (profile) {
                           onChange(profile);
                         }
                       }
                     }}
+                    autoSelectOnlyOption={autoSelectOnlyOption}
                     placeholder={
                       options.length > 0
                         ? 'Select hardware profile...'

@@ -63,6 +63,7 @@ import {
   Skeleton,
   Tooltip,
   Truncate,
+  Icon,
 } from '@patternfly/react-core';
 import {
   OuterScrollContainer,
@@ -77,8 +78,19 @@ import {
   ActionsColumn,
   type IAction,
 } from '@patternfly/react-table';
+import { t_global_text_color_disabled as DisabledColor } from '@patternfly/react-tokens';
 import {
   EllipsisVIcon,
+  FileAudioIcon,
+  FileAltIcon,
+  FileCodeIcon,
+  FileCsvIcon,
+  FileIcon,
+  FileImageIcon,
+  FilePdfIcon,
+  FilePowerpointIcon,
+  FileWordIcon,
+  FolderIcon,
   InfoCircleIcon,
   OutlinedEyeIcon,
   TimesIcon,
@@ -133,6 +145,65 @@ const isRenderableDetailValue = (value: unknown): value is RenderableDetailValue
   typeof value === 'number' ||
   typeof value === 'boolean' ||
   React.isValidElement(value);
+
+type FileExplorerIconProps = {
+  file: ExplorerFile | Folder;
+};
+
+const FileExplorerIcon: React.FC<FileExplorerIconProps> = ({ file }) => {
+  const isExplicitlyDisabled = file.disabled === true || typeof file.disabled === 'string';
+  const isDisabled = isExplicitlyDisabled || (file.selectable === false && !isFolder(file));
+  const props = {
+    'aria-hidden': true,
+    color: isDisabled ? DisabledColor.var : undefined,
+  };
+
+  if (isFolder(file)) {
+    return <FolderIcon {...props} data-testid="file-explorer-folder-icon" />;
+  }
+
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  const fileProps = { ...props, 'data-testid': 'file-explorer-file-icon' };
+
+  switch (extension) {
+    case 'json':
+    case 'html':
+    case 'htm':
+    case 'xhtml':
+      return <FileCodeIcon {...fileProps} data-testid="file-explorer-code-icon" />;
+    case 'md':
+    case 'markdown':
+    case 'txt':
+    case 'adoc':
+    case 'tex':
+    case 'qmd':
+    case 'rmd':
+    case 'eml':
+      return <FileAltIcon {...fileProps} data-testid="file-explorer-file-alt-icon" />;
+    case 'csv':
+      return <FileCsvIcon {...fileProps} data-testid="file-explorer-csv-icon" />;
+    case 'pdf':
+      return <FilePdfIcon {...fileProps} data-testid="file-explorer-pdf-icon" />;
+    case 'docx':
+      return <FileWordIcon {...fileProps} data-testid="file-explorer-word-icon" />;
+    case 'pptx':
+      return <FilePowerpointIcon {...fileProps} data-testid="file-explorer-powerpoint-icon" />;
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'tif':
+    case 'tiff':
+      return <FileImageIcon {...fileProps} data-testid="file-explorer-image-icon" />;
+    case 'm4a':
+    case 'mp3':
+    case 'flac':
+    case 'ogg':
+    case 'wav':
+      return <FileAudioIcon {...fileProps} data-testid="file-explorer-audio-icon" />;
+    default:
+      return <FileIcon {...fileProps} />;
+  }
+};
 
 // Globals -------------------------------------------------------------------->
 
@@ -411,7 +482,11 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   Array.isArray(selectedFiles) && selectedFiles.some((f) => f.path === file.path);
                 const isFileBeingViewed =
                   Array.isArray(filesToView) && filesToView.some((f) => f.path === file.path);
-                const isUnselectable = file.selectable === false;
+                const isExplicitlyDisabled =
+                  file.disabled === true || typeof file.disabled === 'string';
+                const isUnselectable = file.selectable === false || isExplicitlyDisabled;
+                const isSelectionDisabled =
+                  isUnselectable && (!isFolder(file) || isExplicitlyDisabled);
 
                 const onSelect = (_event: unknown, isSelecting: boolean) => {
                   if (selection === 'radio') {
@@ -486,7 +561,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     data-testid={`file-explorer-row-${sanitizeId(file.path)}`}
                     isSelectable={!isUnselectable}
                     isRowSelected={isSelected}
-                    isClickable={!isUnselectable}
+                    isClickable={!isExplicitlyDisabled && (!isUnselectable || isFolder(file))}
                     onRowClick={(event) => {
                       // we want to ignore clicks that propagate up from the
                       // folder link button, actions menu toggle, etc.
@@ -502,11 +577,14 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         event.nativeEvent instanceof KeyboardEvent &&
                         event.nativeEvent.code === 'Space';
 
-                      if (
-                        !isUnselectable &&
-                        (!clickedInteractiveDescendant || clickedRadioOrCheckboxWithKeyboard)
-                      ) {
-                        onSelect(event, selection === 'checkbox' ? !isSelected : true);
+                      if (!clickedInteractiveDescendant || clickedRadioOrCheckboxWithKeyboard) {
+                        if (isFolder(file) && isUnselectable) {
+                          if (!isExplicitlyDisabled) {
+                            onFolderClick?.(file);
+                          }
+                        } else if (!isUnselectable) {
+                          onSelect(event, selection === 'checkbox' ? !isSelected : true);
+                        }
                       }
                     }}
                   >
@@ -528,11 +606,38 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         flexWrap={{ default: 'nowrap' }}
                       >
                         <FlexItem>
-                          {isFolder(file) && !file.disabled ? (
+                          <Icon
+                            size="lg"
+                            className={
+                              isSelectionDisabled ? 'pf-v6-u-text-color-disabled' : undefined
+                            }
+                            data-testid="file-explorer-icon"
+                          >
+                            <FileExplorerIcon file={file} />
+                          </Icon>
+                        </FlexItem>
+                        <FlexItem
+                          className={
+                            isSelectionDisabled ? 'pf-v6-u-text-color-disabled' : undefined
+                          }
+                          data-testid="file-explorer-name"
+                        >
+                          {isFolder(file) && !isExplicitlyDisabled ? (
                             <Tooltip content={file.name}>
-                              <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
+                              <Button
+                                className={
+                                  isSelectionDisabled ? 'pf-v6-u-text-color-disabled' : undefined
+                                }
+                                variant="link"
+                                isInline
+                                onClick={() => onFolderClick?.(file)}
+                              >
                                 {fileName}
                               </Button>
+                            </Tooltip>
+                          ) : isSelectionDisabled ? (
+                            <Tooltip content={file.name}>
+                              <Content className="pf-v6-u-text-color-disabled">{fileName}</Content>
                             </Tooltip>
                           ) : (
                             <Tooltip content={file.name}>{fileName}</Tooltip>
@@ -1010,6 +1115,9 @@ interface FileExplorerProps {
   /** Callback fired when the user changes the number of items per page. */
   onPerPageSelect?: (perPage: number) => void;
 
+  /** Optional custom description shown below the modal title. */
+  modalDescription?: ReactNode;
+
   /** Callback fired when the primary action button is clicked, passing the selected files. */
   onPrimary: (files: ExplorerFiles) => void;
 
@@ -1049,12 +1157,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onSetPage,
   onPerPageSelect,
   onPrimary,
+  modalDescription,
   searchPlaceholder: searchPlaceholderProp,
   allowedSearchCharacters,
   allowedSearchCharactersLabel,
 }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
+  const modalDescriptionId = `${rootId}-FileExplorer-modal-description`;
   const [selectedFiles, setSelectedFiles] = useState<ExplorerFiles>([]);
   const [filesToView, setFilesToView] = useState<ExplorerFiles>([]);
 
@@ -1066,11 +1176,21 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const charWarningTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(charWarningTimerRef.current), []);
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setSelectedFiles([]);
     setFilesToView([]);
     setSearchQuery('');
-  };
+  }, []);
+
+  // Reset only on an open-to-closed transition so a closed initial mount does not
+  // schedule a pointless render with fresh (but already empty) state arrays.
+  const wasOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (wasOpenRef.current && !isOpen) {
+      resetState();
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen, resetState]);
 
   const isIndeterminate = itemCount === undefined;
   const fileCount = Array.isArray(files) ? files.filter((f) => !f.hidden).length : 0;
@@ -1208,11 +1328,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       }}
       variant="large"
       aria-labelledby={`${rootId}-FileExplorer-modal-title`}
-      aria-describedby={`${rootId}-FileExplorer-modal-body`}
+      aria-describedby={modalDescription ? modalDescriptionId : `${rootId}-FileExplorer-modal-body`}
     >
       <ModalHeader
         title={defaults.labels.modalTitle}
-        description={defaults.labels.modalDescription(selection)}
+        description={modalDescription ?? defaults.labels.modalDescription(selection)}
+        descriptorId={modalDescriptionId}
         labelId={`${rootId}-FileExplorer-modal-title`}
       />
       <ModalBody id={`${rootId}-FileExplorer-modal-body`}>

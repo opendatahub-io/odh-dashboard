@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Button, Popover } from '@patternfly/react-core';
 import * as React from 'react';
 import type { ExplorerFile, ExplorerFiles } from '#~/concepts/fileExplorer/types';
 import FileExplorer, {
@@ -61,8 +62,129 @@ describe('FileExplorer', () => {
 
       expect(screen.getByText('Select which files or folders to use')).toBeInTheDocument();
     });
+    it('should render a custom modal description when provided', () => {
+      render(<FileExplorer {...defaultProps} modalDescription="Custom explorer description" />);
+
+      expect(screen.getByText('Custom explorer description')).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Select 1 file or folder from this bucket to use for your data collection and evaluation sources',
+        ),
+      ).not.toBeInTheDocument();
+    });
+    it('should render modal-description popover content inside the modal focus-trap subtree', async () => {
+      const user = userEvent.setup();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          modalDescription={
+            <Popover
+              aria-label="Test description popover"
+              headerContent="Test popover header"
+              bodyContent="Test description popover body"
+              appendTo="inline"
+            >
+              <Button variant="link" isInline>
+                Open description popover
+              </Button>
+            </Popover>
+          }
+        />,
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Open description popover' }));
+
+      const popoverBody = screen.getByText('Test description popover body');
+      const modal = screen.getByRole('dialog', { name: 'Select file or folder' });
+      expect(modal).toContainElement(popoverBody);
+    });
   });
   describe('file table', () => {
+    it('should render format-specific icons for supported file extensions', () => {
+      const files = [
+        mockFile({ name: 'recording.MP3', path: '/recording.MP3' }),
+        mockFile({ name: 'interview.m4a', path: '/interview.m4a' }),
+        mockFile({ name: 'meeting.flac', path: '/meeting.flac' }),
+        mockFile({ name: 'podcast.ogg', path: '/podcast.ogg' }),
+        mockFile({ name: 'voice.wav', path: '/voice.wav' }),
+        mockFile({ name: 'paper.pdf', path: '/paper.pdf' }),
+        mockFile({ name: 'report.docx', path: '/report.docx' }),
+        mockFile({ name: 'slides.pptx', path: '/slides.pptx' }),
+        mockFile({ name: 'evaluation.json', path: '/evaluation.json' }),
+        mockFile({ name: 'training.csv', path: '/training.csv' }),
+        mockFile({ name: 'page.html', path: '/page.html' }),
+        mockFile({ name: 'legacy.htm', path: '/legacy.htm' }),
+        mockFile({ name: 'document.xhtml', path: '/document.xhtml' }),
+        mockFile({ name: 'photo.jpg', path: '/photo.jpg' }),
+        mockFile({ name: 'photo.jpeg', path: '/photo.jpeg' }),
+        mockFile({ name: 'photo.png', path: '/photo.png' }),
+        mockFile({ name: 'photo.tif', path: '/photo.tif' }),
+        mockFile({ name: 'photo.tiff', path: '/photo.tiff' }),
+        mockFile({ name: 'notes.txt', path: '/notes.txt' }),
+        mockFile({ name: 'archive.bin', path: '/archive.bin' }),
+      ];
+
+      render(<FileExplorer {...defaultProps} files={files} />);
+
+      expect(screen.getAllByTestId('file-explorer-audio-icon')).toHaveLength(5);
+      expect(screen.getAllByTestId('file-explorer-image-icon')).toHaveLength(5);
+      expect(
+        within(screen.getByTestId('file-explorer-row--paper-pdf')).getByTestId(
+          'file-explorer-pdf-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--report-docx')).getByTestId(
+          'file-explorer-word-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--slides-pptx')).getByTestId(
+          'file-explorer-powerpoint-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--evaluation-json')).getByTestId(
+          'file-explorer-code-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--training-csv')).getByTestId(
+          'file-explorer-csv-icon',
+        ),
+      ).toBeInTheDocument();
+      for (const codeFileName of ['page-html', 'legacy-htm', 'document-xhtml']) {
+        expect(
+          within(screen.getByTestId(`file-explorer-row--${codeFileName}`)).getByTestId(
+            'file-explorer-code-icon',
+          ),
+        ).toBeInTheDocument();
+      }
+      for (const imageName of ['photo-jpg', 'photo-jpeg', 'photo-png', 'photo-tif', 'photo-tiff']) {
+        expect(
+          within(screen.getByTestId(`file-explorer-row--${imageName}`)).getByTestId(
+            'file-explorer-image-icon',
+          ),
+        ).toBeInTheDocument();
+      }
+      expect(screen.getAllByTestId('file-explorer-file-alt-icon')).toHaveLength(1);
+      expect(screen.getAllByTestId('file-explorer-file-icon')).toHaveLength(1);
+      expect(
+        within(screen.getByTestId('file-explorer-row--notes-txt')).queryByTestId(
+          'file-explorer-audio-icon',
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--archive-bin')).getByTestId(
+          'file-explorer-file-icon',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('file-explorer-row--recording-MP3')).queryByTestId(
+          'file-explorer-file-icon',
+        ),
+      ).not.toBeInTheDocument();
+    });
     it.each([
       {
         description: 'file names that fit',
@@ -154,16 +276,57 @@ describe('FileExplorer', () => {
       expect(screen.getByText('file-3.json')).toBeInTheDocument();
     });
     it('should render folder rows with clickable links', () => {
-      const folder = mockFolder({ name: 'my-folder' });
+      const folder = mockFolder({ name: 'recordings.mp3' });
       const onFolderClick = jest.fn();
       render(<FileExplorer {...defaultProps} files={[folder]} onFolderClick={onFolderClick} />);
 
-      const folderLink = screen.getByText('my-folder');
+      const folderLink = screen.getByText('recordings.mp3');
       expect(folderLink).toBeInTheDocument();
       expect(screen.getByText('Folder')).toBeInTheDocument();
+      const folderRow = screen.getByTestId('file-explorer-row--test-folder');
+      expect(within(folderRow).getByTestId('file-explorer-folder-icon')).toBeInTheDocument();
+      expect(within(folderRow).queryByTestId('file-explorer-file-icon')).not.toBeInTheDocument();
+      expect(within(folderRow).queryByTestId('file-explorer-audio-icon')).not.toBeInTheDocument();
 
       fireEvent.click(folderLink);
       expect(onFolderClick).toHaveBeenCalledWith(folder);
+    });
+    it('should keep unselectable folders navigable', async () => {
+      const user = userEvent.setup();
+      const folder = mockFolder({ name: 'browse-only', selectable: false });
+      const onFolderClick = jest.fn();
+      render(<FileExplorer {...defaultProps} files={[folder]} onFolderClick={onFolderClick} />);
+
+      const row = screen.getByTestId('file-explorer-row--test-folder');
+      await user.click(within(row).getByRole('button', { name: 'browse-only' }));
+
+      expect(onFolderClick).toHaveBeenCalledWith(folder);
+      expect(within(row).getByTestId('file-explorer-icon')).not.toHaveClass(
+        'pf-v6-u-text-color-disabled',
+      );
+      expect(within(row).getByTestId('file-explorer-name')).not.toHaveClass(
+        'pf-v6-u-text-color-disabled',
+      );
+    });
+    it('should navigate without selecting when clicking an unselectable folder row outside its name', async () => {
+      const user = userEvent.setup();
+      const folder = mockFolder({ name: 'row-browse-only', selectable: false });
+      const onFolderClick = jest.fn();
+      const onSelectFile = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={[folder]}
+          onFolderClick={onFolderClick}
+          onSelectFile={onSelectFile}
+        />,
+      );
+
+      await user.click(screen.getByText('Folder'));
+
+      expect(onFolderClick).toHaveBeenCalledWith(folder);
+      expect(onSelectFile).not.toHaveBeenCalled();
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
     });
     it('should not render hidden files', () => {
       const files: ExplorerFiles = [
@@ -529,6 +692,13 @@ describe('FileExplorer', () => {
       expect(checkbox).toBeChecked();
       expect(onSelectFile).toHaveBeenCalledWith(files[0], true);
     });
+    it('should disable selection when an item is explicitly disabled', () => {
+      const files = [mockFile({ name: 'disabled.json', path: '/d.json', disabled: true })];
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row = screen.getByTestId('file-explorer-row--d-json');
+      expect(within(row).getByRole('checkbox')).toBeDisabled();
+    });
     it('should call onSelectFile when selecting radio via Space key on input', () => {
       const files = mockFiles(3);
       const onSelectFile = jest.fn();
@@ -557,12 +727,36 @@ describe('FileExplorer', () => {
       const checkbox = within(row).getByRole('checkbox');
 
       expect(checkbox).toBeDisabled();
+      expect(within(row).getByTestId('file-explorer-code-icon')).toHaveAttribute(
+        'color',
+        'var(--pf-t--global--text--color--disabled)',
+      );
+      expect(within(row).getByTestId('file-explorer-name')).toHaveClass(
+        'pf-v6-u-text-color-disabled',
+      );
 
       // Attempt to toggle with Space
       fireEvent.keyDown(checkbox, { key: ' ', code: 'Space' });
 
       // Should remain unchecked
       expect(checkbox).not.toBeChecked();
+    });
+    it('should reset selection state when the explorer closes via the isOpen prop', () => {
+      const files = mockFiles(3);
+      const { rerender } = render(<FileExplorer {...defaultProps} files={files} />);
+
+      fireEvent.click(
+        within(screen.getByTestId('file-explorer-row--file-1-json')).getByRole('radio'),
+      );
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeEnabled();
+
+      rerender(<FileExplorer {...defaultProps} files={files} isOpen={false} />);
+      rerender(<FileExplorer {...defaultProps} files={files} />);
+
+      expect(
+        within(screen.getByTestId('file-explorer-row--file-1-json')).getByRole('radio'),
+      ).not.toBeChecked();
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
     });
   });
   describe('keyboard row interactions', () => {

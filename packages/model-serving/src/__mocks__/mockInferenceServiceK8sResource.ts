@@ -1,5 +1,11 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { ContainerResources, KnownLabels, NodeSelector, Toleration } from '@odh-dashboard/k8s-core';
+import {
+  ContainerResources,
+  KnownLabels,
+  NodeSelector,
+  PodSpec,
+  Toleration,
+} from '@odh-dashboard/k8s-core';
 import { genUID } from '@odh-dashboard/foundation';
 import { DeploymentMode, InferenceServiceKind, ServingRuntimeModelType } from '../shared';
 
@@ -36,6 +42,7 @@ type MockResourceConfigType = {
   }>;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
+  resourceClaims?: PodSpec['resourceClaims'];
   isNonDashboardItem?: boolean;
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
@@ -115,6 +122,7 @@ export const mockInferenceServiceK8sResource = ({
   env = [],
   tolerations,
   nodeSelector,
+  resourceClaims,
   isNonDashboardItem = false,
   hardwareProfileName = '',
   hardwareProfileNamespace = undefined,
@@ -171,6 +179,7 @@ export const mockInferenceServiceK8sResource = ({
       imagePullSecrets,
       ...(tolerations && { tolerations }),
       ...(nodeSelector && { nodeSelector }),
+      ...(resourceClaims && { resourceClaims }),
       model: {
         modelFormat: {
           name: 'onnx',

@@ -299,6 +299,7 @@ export const DeploymentRow: React.FC<{
           deployment={deployment}
           isVisible={isExpanded}
           hardwareProfilePaths={hardwareProfilePaths}
+          hardwareProfile={hardwareProfile}
         />
       )}
       {isOpenConfirm && startStopActionExtension && (

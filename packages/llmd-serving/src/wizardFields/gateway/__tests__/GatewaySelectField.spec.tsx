@@ -271,6 +271,36 @@ describe('GatewaySelectFieldComponent', () => {
       ).toBeInTheDocument();
     });
 
+    it('should disable the select when there are 0 gateways', () => {
+      renderComponent({
+        externalData: { data: [], loaded: true },
+      });
+
+      // PatternFly MenuToggle is a div; disabled state is via attribute + pf-m-disabled
+      expect(screen.getByTestId('gateway-select')).toHaveAttribute('disabled');
+      expect(getCombobox()).toHaveAttribute('placeholder', 'Select gateways');
+    });
+
+    it('should stay enabled when missing selections exist as chips', () => {
+      const missingGateway = makeGateway('gw-removed', 'ns-old');
+
+      renderComponent({
+        value: { selections: [missingGateway] },
+        initialValue: { selections: [missingGateway] },
+        externalData: { data: [], loaded: true },
+      });
+
+      // Discovery empty, but preserved missing chips must remain deselectable
+      expect(screen.getByTestId('gateway-select')).not.toHaveAttribute('disabled');
+      expect(screen.getByText('gw-removed | ns-old')).toBeInTheDocument();
+      expect(screen.getByText(GATEWAY_MISSING_SELECTION_MESSAGE)).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'No Gateways found. Make sure Gateway resources are created and configured',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
     it('should not show the empty warning when gateways exist', () => {
       renderComponent({
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
@@ -281,6 +311,7 @@ describe('GatewaySelectFieldComponent', () => {
           'No Gateways found. Make sure Gateway resources are created and configured',
         ),
       ).not.toBeInTheDocument();
+      expect(screen.getByTestId('gateway-select')).not.toHaveAttribute('disabled');
     });
 
     it('should not show the empty warning when there is a loadError', () => {

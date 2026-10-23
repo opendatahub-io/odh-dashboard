@@ -518,6 +518,7 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       priority: 100,
       supportsOverwrite: true,
+      supportsDRAHardwareProfiles: true,
       isActive: () => import('../src/formUtils').then((m) => m.isLLMInferenceServiceActive),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
     },

@@ -72,6 +72,7 @@ export enum MetadataAnnotation {
   OdhStorageClassConfig = 'opendatahub.io/sc-config',
   Description = 'description',
   ConnectionName = 'opendatahub.io/connections',
+  InstalledFromCatalog = 'opendatahub.io/installed-from-catalog',
 }
 
 export type DisplayNameAnnotations = Partial<{
@@ -247,6 +248,26 @@ export type HardwareProfileKind = K8sResourceCommon & {
   };
 };
 
+export type ResourceClaimTemplateKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    spec: {
+      devices?: {
+        requests?: {
+          name: string;
+          exactly?: {
+            deviceClassName: string;
+            count?: number;
+          };
+        }[];
+      };
+    };
+  };
+};
+
 /**
  * @deprecated accelerator profiles are being removed; only in deprecation paths
  * modelmesh: RHOAIENG-34917, RHOAIENG-19185
@@ -341,6 +362,7 @@ export type DashboardCommonConfig = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  hardwareProfileDRA?: boolean;
   modelCapabilities?: boolean;
   grid?: boolean;
   workbenchesV2?: boolean;

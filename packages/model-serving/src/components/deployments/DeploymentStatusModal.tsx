@@ -333,7 +333,8 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
                 state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
                 stoppedStates={deployment.status?.stoppedStates}
                 kueueStatus={deployment.status?.kueueStatus}
-                variant="filled"
+                isCompact
+                variant="outline"
               />
             </FlexItem>
           </Flex>

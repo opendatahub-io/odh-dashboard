@@ -300,7 +300,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithMaasApi(app, ListModelsHandler))
 	apiRouter.GET(constants.MaaSGatewayURLPath, handlerWithApp(app, GetMaaSGatewayURLHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
-	apiRouter.GET(constants.MePath, handlerWithMaasApi(app, GetMeHandler))
+	apiRouter.GET(constants.WhoAmIPath, handlerWithMaasApi(app, GetWhoAmIHandler))
 
 	// Minimal Kubernetes-backed starter endpoints TODO: Remove?
 	apiRouter.GET(UserPath, app.UserHandler)

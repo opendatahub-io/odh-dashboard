@@ -154,10 +154,11 @@ export const NotebookImageDisplayName = ({
     }
     if (isDeprecatedImageStream) {
       return {
-        title: 'Notebook image deprecated',
+        title: 'Workbench image deprecated',
         body: (
           <p>
-            This image is deprecated. Select a different workbench image to keep receiving updates.
+            This workbench can continue using the deprecated image, but it will not receive any new
+            updates.
           </p>
         ),
         variant: 'warning',

@@ -1,4 +1,7 @@
-import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import type {
+  HardwareProfileBinding,
+  HardwareProfileConfig,
+} from '@odh-dashboard/hardware-profiles/shared';
 import type { K8sAPIOptions, SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
@@ -51,6 +54,7 @@ export type CreatingInferenceServiceObject = {
   modelType?: string;
   modelLocationData?: ModelLocationData;
   hardwareProfile: HardwareProfileConfig;
+  hardwareProfileBinding?: HardwareProfileBinding;
   modelFormat?: SupportedModelFormats;
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
@@ -80,6 +84,7 @@ export const assembleInferenceService = (
     createConnectionData,
     modelFormat,
     hardwareProfile,
+    hardwareProfileBinding,
     numReplicas,
     modelAvailability,
     externalRoute,
@@ -131,6 +136,7 @@ export const assembleInferenceService = (
     inferenceService,
     hardwareProfile,
     INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+    hardwareProfileBinding,
   );
 
   inferenceService = applyAuth(

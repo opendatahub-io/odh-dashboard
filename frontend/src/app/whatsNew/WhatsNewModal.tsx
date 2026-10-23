@@ -241,7 +241,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         sectionAvailable: true,
         newFeatures: [
           {
-            title: 'Dashboard',
+            title: 'Metrics',
             description: 'View model serving metrics, costs, and workload status.',
             flagName: 'observabilityDashboard',
             available: observabilityAvailable,

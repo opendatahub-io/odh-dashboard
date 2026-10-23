@@ -24,6 +24,7 @@ import {
   CreateCollectionRequest,
   EvaluationJob,
   EvaluationJobsResponse,
+  EvaluationJobsResult,
   InferenceServicesResponse,
   KueueAvailability,
   KueueWorkloadStatus,
@@ -39,7 +40,6 @@ import {
   VerifyConnectionRequest,
   VerifyConnectionResponse,
 } from '~/app/types';
-import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
 
 const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
   b != null &&
@@ -282,7 +282,7 @@ export const validateHardwareProfiles =
 
 export const getEvaluationJobs =
   (hostPath: string, params?: ListEvaluationJobsParams) =>
-  (opts: APIOptions): Promise<EvaluationJob[]> => {
+  (opts: APIOptions): Promise<EvaluationJobsResult> => {
     const queryParams: Record<string, string> = {};
     if (params?.namespace) {
       queryParams.namespace = params.namespace;
@@ -315,8 +315,16 @@ export const getEvaluationJobs =
       }),
     ).then((response) => {
       if (isModArchResponse<EvaluationJobsResponse | EvaluationJob[]>(response)) {
-        const { data } = response;
-        return Array.isArray(data) ? data : data.items;
+        const { data, metadata } = response;
+        const jobs = Array.isArray(data) ? data : data.items;
+        const metadataTotal = metadata?.total_count;
+        const totalCount =
+          typeof metadataTotal === 'number'
+            ? metadataTotal
+            : !Array.isArray(data) && typeof data.total_count === 'number'
+              ? data.total_count
+              : jobs.length;
+        return { jobs, totalCount, truncated: metadata?.truncated === true };
       }
       throw new Error('Invalid response format');
     });
@@ -377,7 +385,9 @@ export const getCollection =
     return handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
+          collectionId,
+        )}`,
         { namespace },
         opts,
       ),
@@ -399,7 +409,9 @@ export const deleteCollection =
     return handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
+          collectionId,
+        )}`,
         {},
         { namespace },
         { ...opts, parseJSON: false },
@@ -531,7 +543,9 @@ export const cloneCollection =
     return handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}/clones`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
+          collectionId,
+        )}/clones`,
         request,
         { namespace },
         opts,
@@ -617,32 +631,6 @@ export const getInferenceServices =
       throw new Error('Invalid response format');
     });
 
-export const getCatalogSecurityArtifacts =
-  (hostPath: string, sourceId: string, modelName: string, namespace?: string, pageSize?: number) =>
-  (opts: APIOptions): Promise<CatalogSecurityArtifactList> => {
-    const queryParams: Record<string, string> = {};
-    if (namespace) {
-      queryParams.namespace = namespace;
-    }
-    if (pageSize != null) {
-      queryParams.pageSize = String(pageSize);
-    }
-
-    return handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(sourceId)}/security_artifacts/${encodeURIComponent(modelName)}`,
-        queryParams,
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<CatalogSecurityArtifactList>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-  };
-
 export class LogFetchError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -685,7 +673,9 @@ export const getEvaluationJobLogs =
     if (params?.since_seconds != null) {
       queryParams.set('since_seconds', String(params.since_seconds));
     }
-    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/logs?${queryParams.toString()}`;
+    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(
+      jobId,
+    )}/logs?${queryParams.toString()}`;
     const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new LogFetchError(
@@ -725,7 +715,9 @@ export const getEvaluationJobBenchmarkLogs =
     if (params?.since_seconds != null) {
       queryParams.set('since_seconds', String(params.since_seconds));
     }
-    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
+    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(
+      jobId,
+    )}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
     const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new LogFetchError(

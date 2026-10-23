@@ -559,10 +559,10 @@ func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ stri
 }
 
 func (m *MockEvalHubClient) GetEvaluationJob(_ context.Context, id string, _ string) (*evalhub.EvaluationJob, error) {
-	jobs, _ := m.ListEvaluationJobs(context.Background(), evalhub.ListEvaluationJobsParams{})
-	for i := range jobs {
-		if jobs[i].Resource.ID == id {
-			return &jobs[i], nil
+	result, _ := m.ListEvaluationJobs(context.Background(), evalhub.ListEvaluationJobsParams{})
+	for i := range result.Items {
+		if result.Items[i].Resource.ID == id {
+			return &result.Items[i], nil
 		}
 	}
 	return nil, nil
@@ -614,11 +614,11 @@ func (m *MockEvalHubClient) GetEvaluationJobBenchmarkLogs(_ context.Context, id 
 	}, nil
 }
 
-func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {
+func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) (evalhub.EvaluationJobsResult, error) {
 	pass := true
 	fail := false
 
-	return []evalhub.EvaluationJob{
+	items := []evalhub.EvaluationJob{
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-001",
@@ -753,7 +753,8 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			},
 			Collection: &evalhub.JobCollectionID{ID: "collection-002"},
 		},
-	}, nil
+	}
+	return evalhub.EvaluationJobsResult{Items: items, TotalCount: len(items)}, nil
 }
 
 // mockCollections returns the full catalogue used by all mock responses.

@@ -16,7 +16,8 @@
 - **Module Federation:** metadata in this package’s `package.json` (`module-federation`); remote name **`mlflowEmbedded`**.
   - At runtime `MlflowExperimentsPage` calls `loadRemote('mlflowEmbedded/MlflowExperimentWrapper')` via `@module-federation/runtime`.
   - Dashboard proxy routes **`/mlflow`** to the cluster MLflow service (or local tracking port during dev) with auth forwarding (`authorize: true`).
-- **Visibility:** the pages appear when the MLflow component is `Managed` in the DataScienceCluster. Some also need an **`OdhDashboardConfig`** flag: **Skills** needs `skillRegistry`, **Prompts** needs `genAiStudio`, and the **MCP registry** tab needs `mcpCatalog` and `mcpRegistry`. Nothing is controlled by env vars in this package.
+- **Visibility:** Experiments and Agent traces remain in navigation when the MLflow Operator is disabled, so users can reach setup guidance. The Experiments Home task requires the MLflow component. Prompts navigation and its task shortcut require both the Gen AI Studio plugin and the MLflow component; its route remains available for direct links from Experiments and Agent traces even when those flags are disabled. Skills requires the MLflow component and `skillRegistry` flag; the MCP registry tab requires the MLflow component, `mcpCatalog`, and `mcpRegistry`.
+- **Availability:** The host checks whether the MLflow Operator component is enabled before querying the MLflow BFF. A disabled operator or missing MLflow custom resource shows administrator guidance only to dashboard administrators with cluster-scoped `create` and either `update` or `patch` permission on MLflow CRs; other users see user guidance. A status request that fails before any successful response shows the service-unavailable state; later transient failures retain the last known availability state. When no project exists, the workspace loader shows this MLflow state before the create-project state. The Launch MLflow action is hidden until MLflow is available.
 - **Troubleshooting:** confirm the remote URL resolves from the browser (CORS, TLS, cluster route) before assuming a bug in host extension code.
 - **`LazyCodeRefComponent`** uses **`key={workspace}`** so the remote remounts when the project changes (embedded app uses React Router v6 `BrowserRouter`, which does not follow the host’s React Router v7 history).
 - If `loadRemote` fails, the page shows `MLflowUnavailable` instead of crashing.
@@ -79,7 +80,7 @@ This package does not call the main dashboard’s `/api/k8s/` proxy for MLflow d
 
 - **Router mismatch**: Remote v6 `BrowserRouter` vs host v7—deep links inside MLflow may not sync to the host URL; workspace switching relies on the remount workaround.
 - **No retry**: Unavailable remote → `MLflowUnavailable`; user must reload.
-- **Feature flags**: every nav item needs the MLflow DSC component. Skills, Prompts and the MCP registry tab also need the `OdhDashboardConfig` flags listed under Visibility.
+- **Feature flags**: Skills and the MCP registry tab still need the MLflow DSC component and the `OdhDashboardConfig` flags listed under Visibility.
 - **Do not confuse** with `packages/mlflow` (custom ODH MLflow UI vs embedded upstream UI).
 - **Older MLflow images**: without mlflow#395 the remote ignores `workflowType` and `onUnsupportedTab`, so Agent traces shows the unlocked Experiments view and Experiments never redirects.
 - **Skills without the remote component**: until the MLflow image exposes `MlflowSkillRegistryWrapper`, the Skills page shows `MLflowUnavailable` even when MLflow is running.

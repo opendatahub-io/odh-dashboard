@@ -135,29 +135,19 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
               <GridItem span={1}>
                 <FileIcon />
               </GridItem>
-              <GridItem span={7}>
-                <div className="pf-u-min-width-0">
-                  <div
-                    className="pf-u-font-weight-bold pf-u-word-break-word pf-u-font-size-md"
-                    data-testid={`uploaded-file-name-${file.filename}`}
-                    title={file.filename}
-                  >
-                    {file.filename}
-                  </div>
-                  <div
-                    className="pf-u-font-size-sm"
-                    style={{ color: 'var(--pf-t--global--border--color--on-secondary)' }}
-                  >
-                    {formatDate(file.created_at)}
-                  </div>
-                </div>
-              </GridItem>
-              <GridItem span={3} style={{ textAlign: 'right' }}>
+              <GridItem span={10}>
                 <div
-                  className="pf-u-font-size-sm"
+                  className="pf-v6-u-font-weight-bold pf-v6-u-text-break-word pf-v6-u-font-size-md"
+                  data-testid={`uploaded-file-name-${file.filename}`}
+                  title={file.filename}
+                >
+                  {file.filename}
+                </div>
+                <div
+                  className="pf-v6-u-font-size-sm"
                   style={{ color: 'var(--pf-t--global--border--color--on-secondary)' }}
                 >
-                  {formatFileSize(file.bytes)}
+                  {formatFileSize(file.bytes)} - {formatDate(file.created_at)}
                 </div>
               </GridItem>
               <GridItem span={1}>

@@ -146,23 +146,22 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
     if (!urlLoaded) {
       return <Skeleton width="100px" />;
     }
-    if (dashboardURL) {
-      return (
-        <Button
-          variant="link"
-          isInline
-          component="a"
-          href={dashboardURL}
-          target="_blank"
-          rel="noopener noreferrer"
-          icon={<ExternalLinkAltIcon />}
-          iconPosition="end"
-        >
-          {rayClusterName}
-        </Button>
-      );
-    }
-    return rayClusterName;
+    return (
+      <Button
+        variant="link"
+        isInline
+        component="a"
+        data-testid="ray-cluster-link"
+        isDisabled={!dashboardURL}
+        href={dashboardURL || undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        icon={<ExternalLinkAltIcon data-testid="ray-cluster-external-link-icon" />}
+        iconPosition="end"
+      >
+        {rayClusterName}
+      </Button>
+    );
   };
 
   return (

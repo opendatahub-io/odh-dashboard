@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
@@ -53,6 +54,15 @@ import './InfrastructurePage.scss';
 
 type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
 type InfrastructureSection = (typeof INFRASTRUCTURE_SECTIONS)[number];
+
+type InfrastructureLocationState = {
+  tab?: string;
+};
+
+const isInfrastructureLocationState = (state: unknown): state is InfrastructureLocationState =>
+  typeof state === 'object' &&
+  state !== null &&
+  ('tab' in state ? typeof state.tab === 'string' : true);
 
 type QuotaUsageTreeCounts = Pick<
   QuotaUsageTabViewedProperties,
@@ -148,6 +158,10 @@ const InfrastructurePage: React.FC = () => {
   const detailRefreshRef = React.useRef<() => Promise<unknown[]>>(() => Promise.resolve([]));
   const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
   const visibleTabs = getVisibleInfrastructureTabs(adminTabsEnabled);
+  const location = useLocation();
+  const requestedTab = isInfrastructureLocationState(location.state)
+    ? location.state.tab
+    : undefined;
   const hasTrackedPageView = React.useRef(false);
   const hasTrackedQuotaUsageView = React.useRef(false);
   const quotaUsageTabLoadedAt = React.useRef(Date.now());
@@ -165,9 +179,12 @@ const InfrastructurePage: React.FC = () => {
 
   React.useEffect(() => {
     if (adminAccessLoaded && !visibleTabs.some((tab) => tab.id === activeTabKey)) {
-      setActiveTabKey(getDefaultInfrastructureTab(visibleTabs));
+      setActiveTabKey(
+        visibleTabs.find((tab) => tab.id === requestedTab)?.id ??
+          getDefaultInfrastructureTab(visibleTabs),
+      );
     }
-  }, [activeTabKey, adminAccessLoaded, visibleTabs]);
+  }, [activeTabKey, adminAccessLoaded, requestedTab, visibleTabs]);
 
   React.useEffect(() => {
     const interval = window.setInterval(() => setCurrentTime(Date.now()), 20_000);

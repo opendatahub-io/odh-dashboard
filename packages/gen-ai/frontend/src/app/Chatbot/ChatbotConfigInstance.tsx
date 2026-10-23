@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { MessageBox, ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/chatbot';
+import { ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { DocumentAttachment, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
@@ -54,6 +54,7 @@ interface ChatbotConfigInstanceProps {
   documentAttachments?: DocumentAttachment[];
 }
 
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- The scrollable message log needs keyboard focus. */
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   configId,
   username,
@@ -221,7 +222,13 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   );
 
   return (
-    <MessageBox position="top">
+    // MessageBox always renders jump buttons, which duplicate the visible scrollbar.
+    <div
+      className="pf-chatbot__messagebox"
+      role="region"
+      tabIndex={0}
+      aria-label="Scrollable message log"
+    >
       {showWelcomePrompt &&
         messagesHook.messages.length === 0 &&
         (welcomeContent ?? (
@@ -244,6 +251,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         compareMode={isCompareMode}
         configID={configIndex === 0 ? 'default' : String(configIndex)}
       />
-    </MessageBox>
+    </div>
   );
 };
+/* eslint-enable jsx-a11y/no-noninteractive-tabindex */

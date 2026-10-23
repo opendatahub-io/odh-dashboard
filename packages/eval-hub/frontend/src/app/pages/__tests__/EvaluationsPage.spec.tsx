@@ -3,22 +3,25 @@ import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { EvaluationJob } from '~/app/types';
+import { EvaluationJobsResult } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import {
   mockBenchmarkSuiteCollections,
   mockCuratedBenchmarkSuiteCollections,
 } from '~/app/mockBenchmarkSuiteCollections';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockRefresh = jest.fn();
+const mockTrackEventOnce = jest.fn();
 const mockUseCollectionsQuery = jest.fn();
 const mockUseDeleteCollectionMutation = jest.fn();
 const mockDeleteCollection = jest.fn();
 const mockNotificationSuccess = jest.fn();
 const mockNotificationError = jest.fn();
 const mockUseEvaluationJobs = jest.fn<
-  [EvaluationJob[], boolean, Error | undefined, jest.Mock],
+  [EvaluationJobsResult, boolean, Error | undefined, jest.Mock],
   []
 >();
 
@@ -26,6 +29,13 @@ const mockUseEvalHubHealth = jest.fn<
   { isHealthy: boolean; loaded: boolean; error: Error | undefined },
   []
 >();
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  createEvalHubTrackingScope: () => ({ trackEventOnce: mockTrackEventOnce, clear: jest.fn() }),
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 jest.mock('~/app/hooks/useEvaluationJobs', () => ({
   useEvaluationJobs: () => mockUseEvaluationJobs(),
@@ -189,7 +199,12 @@ describe('EvaluationsPage', () => {
     jest.clearAllMocks();
     queryClient.clear();
     mockUseEvalHubHealth.mockReturnValue({ isHealthy: true, loaded: true, error: undefined });
-    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [], totalCount: 0, truncated: false },
+      true,
+      undefined,
+      mockRefresh,
+    ]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
     mockDeleteCollection.mockResolvedValue(undefined);
     mockUseDeleteCollectionMutation.mockReturnValue({
@@ -208,6 +223,19 @@ describe('EvaluationsPage', () => {
       isLoading: false,
       error: null,
     }));
+  });
+
+  it('should show the Technology Preview inline notification above the tabs', () => {
+    renderPage('test-project');
+    const alert = screen.getByTestId('evalhub-tech-preview-alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent(
+      'The AI Evaluations UI is in Technology Preview; the AI Evaluations back end is generally available.',
+    );
+    // The notification sits above the page tabs.
+    expect(alert.compareDocumentPosition(screen.getByTestId('evaluations-page-tabs'))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 
   it('should default to the Gallery tab with curated suite filters', () => {
@@ -308,6 +336,20 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('location-pathname')).toHaveTextContent(
       '/evaluation/test-project/create/collections/trustworthiness-v1/copy',
     );
+  });
+
+  it('should rely on the Benchmark suites view event after navigating from the Runs empty state', () => {
+    renderPage('test-project', '?tab=runs');
+
+    fireEvent.click(screen.getByTestId('create-evaluation-button'));
+
+    expect(mockTrackEventOnce).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED,
+      'test-project:tenant:all',
+      { surface: 'my_benchmark_suites' },
+      { collectionType: 'custom' },
+    );
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
   });
 
   it('should open the suite details drawer when selecting a Gallery suite name', () => {
@@ -467,8 +509,66 @@ describe('EvaluationsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('should track collection filter values and ignore empty values', () => {
+    renderPage('test-project');
+
+    const searchInput = screen.getByPlaceholderText('Search collections');
+    fireEvent.change(searchInput, { target: { value: '  suite  ' } });
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+      {
+        filterType: 'search',
+        value: '5',
+        surface: 'collection_gallery',
+      },
+      expect.objectContaining({ collectionType: 'system' }),
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    fireEvent.change(searchInput, { target: { value: '' } });
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    expect(mockTrackEvalHubEvent).toHaveBeenLastCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+      {
+        filterType: 'category',
+        value: 'code, trustworthiness',
+        surface: 'collection_gallery',
+      },
+      expect.objectContaining({ collectionType: 'system' }),
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+      {
+        filterType: 'category',
+        value: 'trustworthiness',
+        surface: 'collection_gallery',
+      },
+      expect.objectContaining({ collectionType: 'system' }),
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+  });
+
   it('should not gate the Evaluate tab on the Runs request', () => {
-    mockUseEvaluationJobs.mockReturnValue([[], false, new Error('Runs unavailable'), mockRefresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [], totalCount: 0, truncated: false },
+      false,
+      new Error('Runs unavailable'),
+      mockRefresh,
+    ]);
 
     renderPage('test-project', '?tab=evaluate');
 
@@ -479,6 +579,16 @@ describe('EvaluationsPage', () => {
     );
     expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
     expect(screen.queryByTestId('evalhub-load-error-admin-empty-state')).not.toBeInTheDocument();
+  });
+
+  it('should track create-suite opens from the tenant gallery surface', () => {
+    renderPage('test-project', '?tab=evaluate');
+
+    fireEvent.click(screen.getByTestId('create-suite-button'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
+      surface: 'my_benchmark_suites',
+    });
   });
 
   it('should keep the create-suite card visible while tenant suites are loading', () => {
@@ -517,6 +627,11 @@ describe('EvaluationsPage', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-delete-cancel'));
 
     expect(screen.queryByTestId('benchmark-suite-delete-modal')).not.toBeInTheDocument();
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_DELETED,
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('should navigate to the copy suite page from Duplicate', () => {
@@ -529,6 +644,17 @@ describe('EvaluationsPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/copy',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
   });
 
   it('should navigate to the edit suite page with the Evaluate tab as its source', () => {
@@ -541,6 +667,18 @@ describe('EvaluationsPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/edit',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should show a success notification after deleting a benchmark suite', async () => {
@@ -554,6 +692,17 @@ describe('EvaluationsPage', () => {
     expect(mockNotificationSuccess).toHaveBeenCalledWith(
       'Collection deleted',
       '"Model suite 2" has been deleted.',
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_DELETED,
+      {
+        collectionName: 'Model suite 2',
+        outcome: 'success',
+      },
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
     );
   });
 
@@ -660,6 +809,23 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should render the browse-all-benchmarks card as a default white card', () => {
+    renderPage('test-project', '?tab=evaluate');
+
+    // RHAI-15138: keep the box on the plain white card (no grey secondary variant).
+    expect(screen.getByTestId('browse-all-benchmarks')).not.toHaveClass('pf-m-secondary');
+  });
+
+  it('should track opening the benchmark catalog from the browse benchmarks section', () => {
+    renderPage('test-project', '?tab=evaluate');
+
+    fireEvent.click(screen.getByTestId('browse-all-benchmarks-explore'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED, {
+      surface: 'my_benchmark_suites',
+    });
+  });
+
   it('should open the start evaluation run modal for a suite', () => {
     renderPage('test-project', '?tab=evaluate');
 
@@ -682,7 +848,12 @@ describe('EvaluationsPage', () => {
           resolveRefresh = resolve;
         }),
     );
-    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, refresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [], totalCount: 0, truncated: false },
+      true,
+      undefined,
+      refresh,
+    ]);
     renderPage('test-project', '?tab=evaluate');
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Run' })[0]);
@@ -706,7 +877,12 @@ describe('EvaluationsPage', () => {
           resolveRefresh = resolve;
         }),
     );
-    mockUseEvaluationJobs.mockReturnValue([[], true, undefined, refresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [], totalCount: 0, truncated: false },
+      true,
+      undefined,
+      refresh,
+    ]);
     renderPage('test-project');
 
     fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-clawbench'));
@@ -724,7 +900,12 @@ describe('EvaluationsPage', () => {
 
   it('should use the Runs tab from the URL and render its content description', () => {
     const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
-    mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs, totalCount: jobs.length, truncated: false },
+      true,
+      undefined,
+      mockRefresh,
+    ]);
     renderPage('test-project', '?tab=runs');
 
     expect(screen.getByTestId('runs-tab')).toHaveAttribute('aria-selected', 'true');
@@ -735,6 +916,34 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('runs-tab-description')).toHaveTextContent(
       'Start and manage evaluation runs for models, agents, and datasets.',
     );
+  });
+
+  it('should show a truncation alert when the evaluation jobs list is truncated', () => {
+    const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs, totalCount: 2500, truncated: true },
+      true,
+      undefined,
+      mockRefresh,
+    ]);
+    renderPage('test-project', '?tab=runs');
+
+    const alert = screen.getByTestId('evaluations-truncated-alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent('Showing 1 of 2500 evaluation runs.');
+  });
+
+  it('should not show a truncation alert when the list is complete', () => {
+    const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs, totalCount: jobs.length, truncated: false },
+      true,
+      undefined,
+      mockRefresh,
+    ]);
+    renderPage('test-project', '?tab=runs');
+
+    expect(screen.queryByTestId('evaluations-truncated-alert')).not.toBeInTheDocument();
   });
 
   it('should persist tab selection in the URL when switching tabs', () => {
@@ -822,7 +1031,12 @@ describe('EvaluationsPage', () => {
 
     it('should render the evaluations table when evaluations exist', () => {
       const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
-      mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs, totalCount: jobs.length, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
       renderPage('test-project');
       selectRunsTab();
 
@@ -832,7 +1046,12 @@ describe('EvaluationsPage', () => {
 
     it('should clear the selected job when navigating to a different namespace', async () => {
       const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'failed' })];
-      mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
+      mockUseEvaluationJobs.mockReturnValue([
+        { jobs, totalCount: jobs.length, truncated: false },
+        true,
+        undefined,
+        mockRefresh,
+      ]);
 
       const NavigateHelper: React.FC = () => {
         const navigate = useNavigate();

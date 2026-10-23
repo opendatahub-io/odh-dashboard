@@ -91,10 +91,6 @@
   margin-block-start: var(--pf-t--global--spacer--md);
 }
 
-.evalhub-create-suite-card {
-  --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--default);
-}
-
 .evalhub-create-suite-card__body {
   align-items: flex-start;
   display: flex;
@@ -128,4 +124,8 @@
 
 .evalhub-runs-tab__description {
   margin-block: 0 var(--pf-t--global--spacer--xl);
+}
+
+.evalhub-runs-tab__description--with-alert {
+  margin-block-end: var(--pf-t--global--spacer--md);
 }

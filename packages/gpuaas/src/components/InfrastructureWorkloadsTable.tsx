@@ -325,7 +325,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
           isExpanded={isExpanded}
           onToggle={(_event, nextExpanded) => setIsExpanded(nextExpanded)}
           toggleContent={
-            <Title headingLevel="h4" size="md">
+            <Title headingLevel="h4" size="md" className="gpuaas-workloads-table__toggle-content">
               Workloads
             </Title>
           }

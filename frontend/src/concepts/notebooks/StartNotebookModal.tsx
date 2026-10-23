@@ -673,6 +673,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
             </FlexItem>
             <FlexItem>
               <NotebookStatusLabel
+                isCompact
                 isStarting={isStarting && !isRunning}
                 isStopping={isStopping}
                 isRunning={isRunning}

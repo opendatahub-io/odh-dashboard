@@ -1,0 +1,43 @@
+package api
+
+import (
+	"errors"
+	"net/http"
+	"strconv"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
+	"github.com/opendatahub-io/maas-library/bff/internal/models"
+)
+
+type WhoAmIEnvelope Envelope[*models.MaaSWhoAmI, None]
+
+// GetWhoAmIHandler handles GET /api/v1/whoami.
+func GetWhoAmIHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	whoAmI, err := app.repositories.APIKeys.GetWhoAmI(r.Context())
+	if err != nil {
+		var upstreamErr *maas.MaasUpstreamError
+		if errors.As(err, &upstreamErr) {
+			switch upstreamErr.StatusCode {
+			case http.StatusUnauthorized, http.StatusForbidden:
+				app.errorResponse(w, r, &HTTPError{
+					StatusCode: upstreamErr.StatusCode,
+					Error: ErrorPayload{
+						Code:    strconv.Itoa(upstreamErr.StatusCode),
+						Message: upstreamErr.Error(),
+					},
+				})
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	response := WhoAmIEnvelope{Data: whoAmI}
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}

@@ -50,9 +50,6 @@ const extensions: (
   },
   {
     type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       id: EXPERIMENTS_NAV_ID,
       title: 'Experiments',
@@ -67,9 +64,6 @@ const extensions: (
   },
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       path: '/develop-train/mlflow/*',
       component: () => import('./experiments/GlobalMLflowExperimentsRoutes'),
@@ -89,11 +83,10 @@ const extensions: (
       group: '6_prompt_management',
     },
   },
+  // Keep prompt links from Experiments and Agent traces reachable even when
+  // Gen AI Studio or MLflow is disabled; navigation remains gated separately.
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       path: globPromptManagementAll,
       component: () => import('./prompts/GlobalMLflowPromptManagementRoutes'),
@@ -101,9 +94,6 @@ const extensions: (
   },
   {
     type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       id: 'agent-observability',
       title: AGENT_OBSERVABILITY_PAGE_TITLE,
@@ -119,9 +109,6 @@ const extensions: (
   },
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       path: globAgentObservabilityAll,
       component: () => import('./agent-observability/GlobalMLflowAgentObservabilityRoutes'),
