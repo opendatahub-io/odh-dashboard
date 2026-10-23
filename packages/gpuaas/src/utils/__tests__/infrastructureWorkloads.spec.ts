@@ -10,8 +10,11 @@ import { TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import {
   IdentifierResourceType,
   SchedulingType,
+  type WorkloadCondition,
   type HardwareProfileKind,
+  type WorkloadKind,
 } from '@odh-dashboard/k8s-core';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import type { TrainJobKind } from '@odh-dashboard/model-training/k8sTypes';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import {
@@ -91,6 +94,14 @@ const trainJob = {
   status: {},
 };
 
+const workload = (conditions: WorkloadCondition[]): WorkloadKind => ({
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
+  kind: 'Workload',
+  metadata: { name: 'train-job-workload', namespace: 'project-a' },
+  spec: { active: true, podSets: [], queueName: 'default-queue' },
+  status: { conditions },
+});
+
 const getTrainingJobStatusSyncMock = jest.mocked(
   jest.requireMock('@odh-dashboard/model-training/status').getTrainingJobStatusSync,
 );
@@ -168,5 +179,73 @@ describe('getInfrastructureJobStatus', () => {
     getTrainingJobStatusSyncMock.mockReturnValue(status);
 
     expect(getInfrastructureJobStatus({ ...trainJob, ...job } as TrainJobKind, null)).toBe(status);
+  });
+
+  it.each([
+    {
+      name: 'failed TrainJob with queued Kueue status',
+      status: TrainingJobState.FAILED,
+      kueueStatus: KueueWorkloadStatus.Queued,
+    },
+    {
+      name: 'succeeded TrainJob with queued Kueue status',
+      status: TrainingJobState.SUCCEEDED,
+      kueueStatus: KueueWorkloadStatus.Queued,
+    },
+    {
+      name: 'deleting TrainJob with queued Kueue status',
+      status: TrainingJobState.DELETING,
+      kueueStatus: KueueWorkloadStatus.Queued,
+    },
+  ])('should preserve the terminal TrainJob status for a $name', ({ status, kueueStatus }) => {
+    getTrainingJobStatusSyncMock.mockReturnValue(status);
+
+    expect(
+      getInfrastructureJobStatus(trainJob as unknown as TrainJobKind, { status: kueueStatus }),
+    ).toBe(status);
+  });
+
+  it('should preserve Kueue Inadmissible precedence over a failed TrainJob', () => {
+    getTrainingJobStatusSyncMock.mockReturnValue(TrainingJobState.FAILED);
+
+    expect(
+      getInfrastructureJobStatus(trainJob as unknown as TrainJobKind, {
+        status: KueueWorkloadStatus.Inadmissible,
+      }),
+    ).toBe(TrainingJobState.INADMISSIBLE);
+  });
+
+  it('should use the full Workload status resolver for a matched TrainJob', () => {
+    const job = {
+      ...trainJob,
+      status: { conditions: [], jobsStatus: [] },
+    } as unknown as TrainJobKind;
+    getTrainingJobStatusSyncMock.mockReturnValue(TrainingJobState.CREATED);
+
+    expect(
+      getInfrastructureJobStatus(
+        job,
+        { status: KueueWorkloadStatus.Queued },
+        workload([
+          {
+            type: 'QuotaReserved',
+            status: 'False',
+            reason: 'Inadmissible',
+            message: 'ClusterQueue is inactive',
+            lastTransitionTime: '2024-01-15T10:30:00Z',
+          },
+        ]),
+      ),
+    ).toBe(TrainingJobState.INADMISSIBLE);
+  });
+
+  it('should retain the summarized Kueue fallback when no Workload matches', () => {
+    getTrainingJobStatusSyncMock.mockReturnValue(TrainingJobState.CREATED);
+
+    expect(
+      getInfrastructureJobStatus(trainJob as unknown as TrainJobKind, {
+        status: KueueWorkloadStatus.Queued,
+      }),
+    ).toBe(TrainingJobState.QUEUED);
   });
 });

@@ -26,6 +26,7 @@ import {
   getRayJobStatusSync,
   getStatusInfo,
   getTrainingJobStatusSync,
+  getTrainingJobStatusWithWorkload,
 } from '@odh-dashboard/model-training/status';
 import type { RayJobKind, TrainJobKind } from '@odh-dashboard/model-training/k8sTypes';
 import { RayJobState, TrainingJobState } from '@odh-dashboard/model-training/types';
@@ -433,21 +434,24 @@ const getInfrastructureWorkloadFilterStatus = (
 export const getInfrastructureJobStatus = (
   resource: SupportedResource,
   kueueStatus: KueueWorkloadStatusWithMessage | null,
+  workload?: WorkloadKind,
 ): import('@odh-dashboard/model-training/types').JobDisplayState | undefined => {
   if (isTrainJob(resource)) {
-    if (kueueStatus?.status === KueueWorkloadStatus.Queued) {
-      return TrainingJobState.QUEUED;
+    const status = getTrainingJobStatusSync(resource);
+    if (status === TrainingJobState.DELETING || status === TrainingJobState.SUCCEEDED) {
+      return status;
+    }
+    if (workload) {
+      return getTrainingJobStatusWithWorkload(resource, workload, status).status;
     }
     if (kueueStatus?.status === KueueWorkloadStatus.Inadmissible) {
       return TrainingJobState.INADMISSIBLE;
     }
-    const status = getTrainingJobStatusSync(resource);
-    if (
-      status === TrainingJobState.DELETING ||
-      status === TrainingJobState.SUCCEEDED ||
-      status === TrainingJobState.FAILED
-    ) {
+    if (status === TrainingJobState.FAILED) {
       return status;
+    }
+    if (kueueStatus?.status === KueueWorkloadStatus.Queued) {
+      return TrainingJobState.QUEUED;
     }
     if (resource.spec.suspend === true) {
       return TrainingJobState.PAUSED;
@@ -619,7 +623,11 @@ const toTopLevelRow = (
   const kueueStatus = aggregatedKueueStatus ?? getKueueStatusFromRow(kueueRow);
   const resolvedKueueState = getInfrastructureKueueState(kueueAvailabilityState, kueueRow);
   const deploymentStatus = getInfrastructureModelDeploymentStatus(resource, kueueStatus);
-  const jobStatus = getInfrastructureJobStatus(resource, kueueStatus);
+  const jobStatus = getInfrastructureJobStatus(
+    resource,
+    kueueStatus,
+    isTrainJob(resource) ? matchedWorkloadsForResource[0] : undefined,
+  );
   return {
     name,
     namespace: resource.metadata.namespace,
