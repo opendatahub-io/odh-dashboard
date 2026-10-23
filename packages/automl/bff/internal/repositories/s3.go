@@ -83,13 +83,21 @@ func NewS3Repository(
 // It handles both the explicit-secret path and the DSPA auto-discovery path,
 // including bucket resolution and the DSPA bucket security model.
 func (r *S3Repository) resolveCredsAndBucket(ctx context.Context, req S3RequestContext) (s3.ConnectionOptions, string, error) {
-	if req.SecretName != "" {
-		return r.resolveFromSecret(ctx, req)
-	}
-	return r.resolveFromDSPA(ctx, req.Namespace)
+	return r.resolveConnection(ctx, req, false)
 }
 
-func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestContext) (s3.ConnectionOptions, string, error) {
+func (r *S3Repository) resolveUploadCredsAndBucket(ctx context.Context, req S3RequestContext) (s3.ConnectionOptions, string, error) {
+	return r.resolveConnection(ctx, req, true)
+}
+
+func (r *S3Repository) resolveConnection(ctx context.Context, req S3RequestContext, forUpload bool) (s3.ConnectionOptions, string, error) {
+	if req.SecretName != "" {
+		return r.resolveFromSecret(ctx, req, forUpload)
+	}
+	return r.resolveFromDSPA(ctx, req.Namespace, forUpload)
+}
+
+func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestContext, forUpload bool) (s3.ConnectionOptions, string, error) {
 	secret, err := r.k8sService.GetSecret(ctx, req.Namespace, req.SecretName)
 	if err != nil {
 		return s3.ConnectionOptions{}, "", fmt.Errorf("error fetching secret %q from namespace %s: %w", req.SecretName, req.Namespace, err)
@@ -98,6 +106,12 @@ func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestConte
 	opts, defaultBucket, err := extractAWSS3ConnectionOptions(secret.Data)
 	if err != nil {
 		return s3.ConnectionOptions{}, "", fmt.Errorf("secret %q: %w", req.SecretName, err)
+	}
+	if forUpload {
+		opts.ChecksumAlgorithm, err = parseS3ChecksumAlgorithm(secret.Data)
+		if err != nil {
+			return s3.ConnectionOptions{}, "", fmt.Errorf("secret %q: %w: %v", req.SecretName, ErrS3Configuration, err)
+		}
 	}
 
 	bucket := strings.TrimSpace(req.Bucket)
@@ -111,7 +125,7 @@ func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestConte
 	return opts, bucket, nil
 }
 
-func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s3.ConnectionOptions, string, error) {
+func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string, forUpload bool) (s3.ConnectionOptions, string, error) {
 	dspa, err := r.pipelinesService.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
 		return s3.ConnectionOptions{}, "", fmt.Errorf("failed to discover DSPA in namespace %s: %w", namespace, err)
@@ -175,12 +189,20 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 	} else if secretBucket != "" {
 		bucket = secretBucket
 	}
+	var checksumAlgorithm s3.ChecksumAlgorithm
+	if forUpload {
+		checksumAlgorithm, err = parseS3ChecksumAlgorithm(secret.Data)
+		if err != nil {
+			return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q: %v", ErrDSPAConfiguration, spec.SecretName, err)
+		}
+	}
 
 	return s3.ConnectionOptions{
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-		Region:          region,
-		BaseEndpoint:    endpointURL,
+		AccessKeyID:       accessKeyID,
+		SecretAccessKey:   secretAccessKey,
+		Region:            region,
+		BaseEndpoint:      endpointURL,
+		ChecksumAlgorithm: checksumAlgorithm,
 	}, bucket, nil
 }
 
@@ -207,11 +229,17 @@ func (r *S3Repository) GetObject(ctx context.Context, req S3RequestContext, key 
 // UploadObject resolves credentials from req and uploads body at key.
 // Returns ErrObjectAlreadyExists if the key already exists.
 func (r *S3Repository) UploadObject(ctx context.Context, req S3RequestContext, key string, body io.Reader, contentType string) error {
-	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
+	opts, bucket, err := r.resolveUploadCredsAndBucket(ctx, req)
 	if err != nil {
 		return err
 	}
-	return r.s3Service.UploadObject(ctx, opts, s3.UploadObjectInput{Bucket: bucket, Key: key, Body: body, ContentType: contentType})
+	return r.s3Service.UploadObject(ctx, opts, s3.UploadObjectInput{
+		Bucket:            bucket,
+		Key:               key,
+		Body:              body,
+		ContentType:       contentType,
+		ChecksumAlgorithm: opts.ChecksumAlgorithm,
+	})
 }
 
 // ListObjects resolves credentials from req and lists objects using options.
@@ -297,7 +325,6 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions
 	if err != nil {
 		return s3.ConnectionOptions{}, "", err
 	}
-
 	if accessKeyID == "" {
 		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_ACCESS_KEY_ID", ErrS3Configuration)
 	}
@@ -319,6 +346,19 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions
 	}, bucket, nil
 }
 
+func parseS3ChecksumAlgorithm(data map[string][]byte) (s3.ChecksumAlgorithm, error) {
+	value, err := kubernetes.LookupSecretValue(data, s3.ChecksumAlgorithmSecretKey)
+	if err != nil {
+		return "", fmt.Errorf("field %s: %w", s3.ChecksumAlgorithmSecretKey, err)
+	}
+
+	algorithm, err := s3.ParseChecksumAlgorithm(value)
+	if err != nil {
+		return "", fmt.Errorf("field %s: %w", s3.ChecksumAlgorithmSecretKey, err)
+	}
+	return algorithm, nil
+}
+
 // UploadCSVFile validates the upload is a CSV, resolves a non-colliding key, and uploads
 // body to S3. It is the single repo call for the upload handler.
 // maxAttempts of 0 uses the default (10).
@@ -328,7 +368,7 @@ func (r *S3Repository) UploadCSVFile(ctx context.Context, req S3RequestContext, 
 		return "", err
 	}
 
-	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
+	opts, bucket, err := r.resolveUploadCredsAndBucket(ctx, req)
 	if err != nil {
 		return "", err
 	}
@@ -350,10 +390,11 @@ func (r *S3Repository) UploadCSVFile(ctx context.Context, req S3RequestContext, 
 	}
 
 	return resolvedKey, r.s3Service.UploadObject(ctx, opts, s3.UploadObjectInput{
-		Bucket:      bucket,
-		Key:         resolvedKey,
-		Body:        body,
-		ContentType: contentType,
+		Bucket:            bucket,
+		Key:               resolvedKey,
+		Body:              body,
+		ContentType:       contentType,
+		ChecksumAlgorithm: opts.ChecksumAlgorithm,
 	})
 }
 

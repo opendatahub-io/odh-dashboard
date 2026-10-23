@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
+	transfertypes "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
@@ -62,6 +63,36 @@ func (m *mockProvider) CreateTransferClient(opts ConnectionOptions) (TransferCli
 
 func testOpts() ConnectionOptions {
 	return ConnectionOptions{AccessKeyID: "AK", SecretAccessKey: "SK", Region: "us-east-1", BaseEndpoint: "https://s3.example.com"}
+}
+
+func TestParseChecksumAlgorithm(t *testing.T) {
+	tests := []struct {
+		value string
+		want  string
+	}{
+		{value: "", want: ""},
+		{value: " crc32 ", want: "CRC32"},
+		{value: "CRC32C", want: "CRC32C"},
+		{value: "sha1", want: "SHA1"},
+		{value: "sha256", want: "SHA256"},
+		{value: "sha512", want: "SHA512"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			got, err := ParseChecksumAlgorithm(tt.value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != tt.want {
+				t.Errorf("ParseChecksumAlgorithm(%q) = %q, want %q", tt.value, got, tt.want)
+			}
+		})
+	}
+
+	if _, err := ParseChecksumAlgorithm("not-a-checksum"); err == nil {
+		t.Fatal("expected unsupported checksum algorithm to fail")
+	}
 }
 
 // --- GetObject ---
@@ -204,6 +235,9 @@ func TestClient_UploadObject(t *testing.T) {
 				if aws.ToString(params.IfNoneMatch) != "*" {
 					t.Error("expected If-None-Match: * for conditional create")
 				}
+				if params.ChecksumAlgorithm != transfertypes.ChecksumAlgorithmCrc32 {
+					t.Errorf("ChecksumAlgorithm = %q, want %q", params.ChecksumAlgorithm, transfertypes.ChecksumAlgorithmCrc32)
+				}
 				return &transfermanager.UploadObjectOutput{}, nil
 			},
 		}
@@ -211,6 +245,7 @@ func TestClient_UploadObject(t *testing.T) {
 
 		err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{
 			Bucket: "b", Key: "k", Body: bytes.NewReader([]byte("data")), ContentType: "text/plain",
+			ChecksumAlgorithm: transfertypes.ChecksumAlgorithmCrc32,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -244,6 +279,199 @@ func TestClient_UploadObject(t *testing.T) {
 			t.Errorf("expected ErrObjectAlreadyExists, got %v", err)
 		}
 	})
+}
+
+// NetApp ONTAP S3 rejects the streaming checksum trailer used by older AWS
+// transfer manager versions for small PutObject requests.
+func TestDefaultClient_UploadObjectWithoutChecksumTrailer(t *testing.T) {
+	const content = "small PDF payload"
+	var receivedBody string
+	var receivedSHA256 string
+	var receivedChecksumAlgorithm string
+
+	c := NewDefaultClient(ClientConfig{
+		WrapTransport: func(http.RoundTripper) http.RoundTripper {
+			return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				receivedSHA256 = req.Header.Get("X-Amz-Content-Sha256")
+				receivedChecksumAlgorithm = req.Header.Get("X-Amz-Sdk-Checksum-Algorithm")
+				if got := req.Header.Get("If-None-Match"); got != "*" {
+					t.Errorf("If-None-Match = %q, want *", got)
+				}
+				if receivedSHA256 == "STREAMING-UNSIGNED-PAYLOAD-TRAILER" || req.Header.Get("X-Amz-Trailer") != "" {
+					return &http.Response{
+						StatusCode: http.StatusBadRequest,
+						Header:     http.Header{"Content-Type": []string{"application/xml"}},
+						Body:       io.NopCloser(strings.NewReader("<Error><Code>InvalidArgument</Code><Message>x-amz-content-sha256 must be UNSIGNED-PAYLOAD, STREAMING-AWS4-HMAC-SHA256-PAYLOAD or a valid sha256 value</Message></Error>")),
+						Request:    req,
+					}, nil
+				}
+
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				receivedBody = string(body)
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     http.Header{"Etag": []string{"\"test-etag\""}},
+					Body:       io.NopCloser(strings.NewReader("")),
+					Request:    req,
+				}, nil
+			})
+		},
+	})
+
+	err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{
+		Bucket: "bucket", Key: "file.pdf", Body: io.LimitReader(strings.NewReader(content), int64(len(content))), ContentType: "application/pdf",
+	})
+	if err != nil {
+		t.Fatalf("small upload rejected by strict S3 endpoint (x-amz-content-sha256=%q): %v", receivedSHA256, err)
+	}
+	if receivedSHA256 != "UNSIGNED-PAYLOAD" {
+		t.Errorf("x-amz-content-sha256 = %q, want UNSIGNED-PAYLOAD", receivedSHA256)
+	}
+	if receivedChecksumAlgorithm != "" {
+		t.Errorf("x-amz-sdk-checksum-algorithm = %q, want no optional checksum", receivedChecksumAlgorithm)
+	}
+	if receivedBody != content {
+		t.Errorf("uploaded body = %q, want %q", receivedBody, content)
+	}
+}
+
+func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
+	const content = "retention-protected object"
+	var receivedChecksumAlgorithm string
+	var receivedChecksumTrailer string
+	var receivedWireBody []byte
+
+	c := NewDefaultClient(ClientConfig{
+		WrapTransport: func(http.RoundTripper) http.RoundTripper {
+			return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				receivedChecksumAlgorithm = req.Header.Get("X-Amz-Sdk-Checksum-Algorithm")
+				receivedChecksumTrailer = req.Header.Get("X-Amz-Trailer")
+				var err error
+				receivedWireBody, err = io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     http.Header{"Etag": []string{`"test-etag"`}},
+					Body:       io.NopCloser(strings.NewReader("")),
+					Request:    req,
+				}, nil
+			})
+		},
+	})
+
+	err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{
+		Bucket: "bucket", Key: "locked-file.pdf", Body: strings.NewReader(content), ContentType: "application/pdf",
+		ChecksumAlgorithm: transfertypes.ChecksumAlgorithmCrc32,
+	})
+	if err != nil {
+		t.Fatalf("upload with an explicit checksum failed: %v", err)
+	}
+	if receivedChecksumAlgorithm != string(transfertypes.ChecksumAlgorithmCrc32) {
+		t.Errorf("x-amz-sdk-checksum-algorithm = %q, want %q", receivedChecksumAlgorithm, transfertypes.ChecksumAlgorithmCrc32)
+	}
+	if receivedChecksumTrailer != "x-amz-checksum-crc32" {
+		t.Errorf("x-amz-trailer = %q, want x-amz-checksum-crc32", receivedChecksumTrailer)
+	}
+	if !strings.Contains(string(receivedWireBody), "x-amz-checksum-crc32:") {
+		t.Errorf("checksum trailer missing from wire body %q", receivedWireBody)
+	}
+}
+
+func TestDefaultClient_UploadObjectToAmazonS3WithObjectLock(t *testing.T) {
+	const content = "retention-protected object"
+	var receivedChecksumAlgorithm, receivedChecksumTrailer, receivedSHA256, receivedIfNoneMatch string
+	var receivedWireBody []byte
+
+	c := NewDefaultClient(ClientConfig{
+		WrapTransport: func(http.RoundTripper) http.RoundTripper {
+			return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				receivedChecksumAlgorithm = req.Header.Get("X-Amz-Sdk-Checksum-Algorithm")
+				receivedChecksumTrailer = req.Header.Get("X-Amz-Trailer")
+				receivedSHA256 = req.Header.Get("X-Amz-Content-Sha256")
+				receivedIfNoneMatch = req.Header.Get("If-None-Match")
+				var err error
+				receivedWireBody, err = io.ReadAll(req.Body)
+				if err != nil {
+					return nil, err
+				}
+				status := http.StatusOK
+				body := ""
+				if receivedChecksumAlgorithm == "" || receivedChecksumTrailer == "" {
+					status = http.StatusBadRequest
+					body = "<Error><Code>InvalidRequest</Code><Message>Object Lock requires a checksum</Message></Error>"
+				}
+				return &http.Response{
+					StatusCode: status,
+					Header:     http.Header{"Etag": []string{`"test-etag"`}},
+					Body:       io.NopCloser(strings.NewReader(body)),
+					Request:    req,
+				}, nil
+			})
+		},
+	})
+	opts := testOpts()
+	opts.BaseEndpoint = "https://s3.us-east-1.amazonaws.com"
+	err := c.UploadObject(context.Background(), opts, UploadObjectInput{
+		Bucket: "bucket", Key: "locked-file.pdf", Body: io.LimitReader(strings.NewReader(content), int64(len(content))), ContentType: "application/pdf",
+	})
+	if err != nil {
+		t.Fatalf("upload to checksum-required Amazon S3 endpoint failed: %v", err)
+	}
+	if receivedChecksumAlgorithm != string(transfertypes.ChecksumAlgorithmCrc32) {
+		t.Errorf("x-amz-sdk-checksum-algorithm = %q, want CRC32", receivedChecksumAlgorithm)
+	}
+	if receivedChecksumTrailer != "x-amz-checksum-crc32" {
+		t.Errorf("x-amz-trailer = %q, want x-amz-checksum-crc32", receivedChecksumTrailer)
+	}
+	if receivedSHA256 != "STREAMING-UNSIGNED-PAYLOAD-TRAILER" {
+		t.Errorf("x-amz-content-sha256 = %q, want STREAMING-UNSIGNED-PAYLOAD-TRAILER", receivedSHA256)
+	}
+	if receivedIfNoneMatch != "*" {
+		t.Errorf("If-None-Match = %q, want *", receivedIfNoneMatch)
+	}
+	if !strings.Contains(string(receivedWireBody), content) || !strings.Contains(string(receivedWireBody), "x-amz-checksum-crc32:") {
+		t.Errorf("wire body missing payload or checksum trailer: %q", receivedWireBody)
+	}
+}
+
+func TestIsAmazonS3Endpoint(t *testing.T) {
+	for _, tc := range []struct {
+		endpoint string
+		want     bool
+	}{
+		{"https://s3.amazonaws.com", true},
+		{"https://s3.us-east-1.amazonaws.com", true},
+		{"https://s3.dualstack.us-east-1.amazonaws.com", true},
+		{"https://s3-fips.us-gov-west-1.amazonaws.com", true},
+		{"https://s3.cn-north-1.amazonaws.com.cn", true},
+		{"https://vpce-1a2b3c4d-5e6f.s3.us-east-1.vpce.amazonaws.com", true},
+		{"https://vpce-1a2b3c4d-5e6f-us-east-1a.s3.us-east-1.vpce.amazonaws.com", true},
+		{"https://bucket.vpce-1a2b3c4d-5e6f.s3.us-east-1.vpce.amazonaws.com", true},
+		{"https://vpce-1a2b3c4d-5e6f.ec2.us-east-1.vpce.amazonaws.com", false},
+		{"https://vpce-1a2b3c4d-5e6f.s3tables.us-east-1.vpce.amazonaws.com", false},
+		{"https://vpce-1a2b3c4d-5e6f.s3.ec2.us-east-1.vpce.amazonaws.com", false},
+		{"https://vpce-1a2b3c4d-5e6f.s3.us-east-1.vpce.amazonaws.com.evil.example", false},
+		{"https://s3.us-east-1.amazonaws.com.evil.example", false},
+		{"https://not-s3.amazonaws.com", false},
+		{"https://s3.example.com", false},
+	} {
+		t.Run(tc.endpoint, func(t *testing.T) {
+			if got := isAmazonS3Endpoint(tc.endpoint); got != tc.want {
+				t.Errorf("isAmazonS3Endpoint(%q) = %t, want %t", tc.endpoint, got, tc.want)
+			}
+		})
+	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
 
 // --- ListObjects ---

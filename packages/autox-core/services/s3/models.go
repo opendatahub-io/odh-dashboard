@@ -1,6 +1,41 @@
 package s3
 
-import "io"
+import (
+	"errors"
+	"io"
+	"strings"
+
+	transfertypes "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
+)
+
+// ChecksumAlgorithmSecretKey optionally selects the checksum used for S3 uploads.
+// It can be set on an S3 connection secret for buckets that require upload checksums.
+const ChecksumAlgorithmSecretKey = "AWS_S3_UPLOAD_CHECKSUM_ALGORITHM"
+
+// ChecksumAlgorithm is the checksum algorithm accepted by the AWS S3 transfer manager.
+type ChecksumAlgorithm = transfertypes.ChecksumAlgorithm
+
+// ParseChecksumAlgorithm validates and normalizes a transfer manager checksum algorithm.
+// An empty value keeps optional checksums disabled for non-Amazon endpoints unless
+// the S3 operation requires one. Amazon S3 endpoints retain the SDK default.
+func ParseChecksumAlgorithm(value string) (ChecksumAlgorithm, error) {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "":
+		return "", nil
+	case string(transfertypes.ChecksumAlgorithmCrc32):
+		return transfertypes.ChecksumAlgorithmCrc32, nil
+	case string(transfertypes.ChecksumAlgorithmCrc32c):
+		return transfertypes.ChecksumAlgorithmCrc32c, nil
+	case string(transfertypes.ChecksumAlgorithmSha1):
+		return transfertypes.ChecksumAlgorithmSha1, nil
+	case string(transfertypes.ChecksumAlgorithmSha256):
+		return transfertypes.ChecksumAlgorithmSha256, nil
+	case string(transfertypes.ChecksumAlgorithmSha512):
+		return transfertypes.ChecksumAlgorithmSha512, nil
+	default:
+		return "", errors.New("unsupported S3 upload checksum algorithm (supported: CRC32, CRC32C, SHA1, SHA256, SHA512)")
+	}
+}
 
 // ObjectInfo represents a single S3 object in the listing response.
 type ObjectInfo struct {
@@ -65,6 +100,11 @@ type UploadObjectInput struct {
 	Key         string
 	Body        io.Reader
 	ContentType string
+	// ChecksumAlgorithm opts this upload into checksum calculation. Leave it empty
+	// for endpoints that reject optional streaming checksum trailers. Amazon S3
+	// endpoints retain the SDK default; set an algorithm for other buckets that
+	// require a checksum, such as with Object Lock.
+	ChecksumAlgorithm transfertypes.ChecksumAlgorithm
 }
 
 // ObjectExistsInput holds the parameters for an ObjectExists operation.
