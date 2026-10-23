@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -53,9 +54,18 @@ func TestDefaultClient_UploadObjectToStrictTLSS3(t *testing.T) {
 						http.Error(w, fmt.Sprintf("x-amz-content-sha256 = %q", got), http.StatusBadRequest)
 						return
 					}
-					if got := r.Header.Get("X-Amz-Sdk-Checksum-Algorithm"); got != "" {
-						http.Error(w, fmt.Sprintf("unexpected checksum algorithm %q", got), http.StatusBadRequest)
-						return
+					part := r.URL.Query().Get("partNumber")
+					if part == "" {
+						if got := r.Header.Get("X-Amz-Sdk-Checksum-Algorithm"); got != "" {
+							http.Error(w, fmt.Sprintf("unexpected checksum algorithm %q", got), http.StatusBadRequest)
+							return
+						}
+						for name := range r.Header {
+							if strings.HasPrefix(strings.ToLower(name), "x-amz-checksum-") {
+								http.Error(w, fmt.Sprintf("unexpected checksum header %q", name), http.StatusBadRequest)
+								return
+							}
+						}
 					}
 					body, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -63,7 +73,7 @@ func TestDefaultClient_UploadObjectToStrictTLSS3(t *testing.T) {
 						return
 					}
 					mu.Lock()
-					if part := r.URL.Query().Get("partNumber"); part != "" {
+					if part != "" {
 						partNumber, err := strconv.Atoi(part)
 						if err != nil {
 							mu.Unlock()
