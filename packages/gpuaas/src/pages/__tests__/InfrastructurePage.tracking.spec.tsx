@@ -12,8 +12,15 @@ import {
 import type { ClusterMetrics } from '../../hooks/useInfrastructureMetrics';
 import InfrastructurePage from '../InfrastructurePage';
 
+const mockUseLocation = jest.fn(() => ({ state: undefined }));
+
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
+}));
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useLocation: () => mockUseLocation(),
 }));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({

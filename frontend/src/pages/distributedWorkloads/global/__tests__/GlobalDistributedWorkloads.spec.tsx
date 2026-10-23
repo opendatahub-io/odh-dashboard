@@ -1,7 +1,12 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { InfrastructureWorkloadsLink } from '#~/pages/distributedWorkloads/global/GlobalDistributedWorkloads';
+
+const NavigationState = () => {
+  const location = useLocation();
+  return <output>{JSON.stringify(location.state)}</output>;
+};
 
 describe('InfrastructureWorkloadsLink', () => {
   it.each([
@@ -13,6 +18,7 @@ describe('InfrastructureWorkloadsLink', () => {
       render(
         <MemoryRouter>
           <InfrastructureWorkloadsLink infrastructureAvailable={infrastructureAvailable} />
+          <NavigationState />
         </MemoryRouter>,
       );
 
@@ -20,6 +26,8 @@ describe('InfrastructureWorkloadsLink', () => {
 
       if (shouldLink) {
         expect(link).toHaveAttribute('href', '/observe-and-monitor/infrastructure');
+        fireEvent.click(screen.getByRole('link', { name: 'Workloads' }));
+        expect(screen.getByRole('status')).toHaveTextContent('{"tab":"workloads"}');
       } else {
         expect(link).not.toBeInTheDocument();
         expect(screen.getByText('Workloads')).toBeInTheDocument();
