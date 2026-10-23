@@ -593,6 +593,67 @@ export const waitForModelCatalogCards = (
 };
 
 /**
+ * Poll until a specific model card appears in the catalog, reloading between attempts.
+ * Unlike waitForModelCatalogCards (which returns as soon as ANY card exists), this waits
+ * for a named model — necessary when newly-added HF sources need time to sync.
+ * @param modelName The model name to search for in card text content
+ * @param categoryBlockTestId Optional data-testid of a category tab to click before checking
+ * @param maxAttempts Maximum number of attempts (default: 12)
+ * @param pollIntervalMs Interval between attempts in milliseconds (default: 10000)
+ */
+export const waitForModelCatalogCard = (
+  modelName: string,
+  categoryBlockTestId?: string,
+  maxAttempts = 12,
+  pollIntervalMs = 10000,
+): Cypress.Chainable<undefined> => {
+  const startTime = Date.now();
+
+  const check = (attempt: number): void => {
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    // Wait for any cards to load first — clicking a category tab before
+    // the initial load completes leaves the catalog in a permanent "Loading" state.
+    cy.findAllByTestId('model-catalog-card', { timeout: 30000 }).should('have.length.gte', 1);
+
+    if (categoryBlockTestId) {
+      cy.findByTestId(categoryBlockTestId).click();
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(2000);
+    }
+
+    cy.get('body').then(($body) => {
+      const found = $body
+        .find('[data-testid="model-catalog-card"]')
+        .filter((_, el) => el.textContent.includes(modelName)).length;
+
+      cy.log(
+        `waitForModelCatalogCard: attempt ${attempt}/${maxAttempts}, model="${modelName}", found=${found}, elapsed=${elapsed}s`,
+      );
+
+      if (found > 0) {
+        cy.log(`✅ Model card "${modelName}" is now visible`);
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Model card "${modelName}" did not appear after ${maxAttempts} attempts (${elapsed}s)`,
+        );
+      }
+
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs);
+      cy.reload();
+      check(attempt + 1);
+    });
+  };
+
+  cy.step(`Polling for model card "${modelName}" (max ${maxAttempts} attempts)`);
+  return cy.then(() => check(1));
+};
+
+/**
  * Check whether any catalog sources other than the specified ones are enabled.
  * Reads the model-catalog-sources (user overrides) ConfigMap, falling back to
  * model-catalog-default-sources. Parses YAML in TypeScript via js-yaml so there
