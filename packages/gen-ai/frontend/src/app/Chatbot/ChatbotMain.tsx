@@ -595,22 +595,20 @@ const ChatbotMain: React.FunctionComponent = () => {
       ? useChatbotConfigStore.getState().configurations[newConfigId]
       : undefined;
     if (newConfigId && duplicatedConfig) {
-      configBaselinesRef.current[newConfigId] = duplicatedConfig;
       // Audio transcription is shared across panes — the ASR update actions sync
-      // every pane — so both baselines must agree on the ASR fields. The primary
-      // pane's baseline still holds the pre-compare values; reverting either pane
-      // would restore them in both panes and flag the sibling dirty against its
-      // own baseline. The duplication-time values are the effective starting
-      // point for the shared setting, so align the primary baseline to them.
-      const primaryBaseline = configBaselinesRef.current[firstConfigId];
-      if (primaryBaseline) {
-        configBaselinesRef.current[firstConfigId] = {
-          ...primaryBaseline,
-          selectedAsrModel: duplicatedConfig.selectedAsrModel,
-          selectedAsrSubscription: duplicatedConfig.selectedAsrSubscription,
-          isAsrModelEnabled: duplicatedConfig.isAsrModelEnabled,
-        };
-      }
+      // every pane — so both baselines must agree on the ASR fields. Seed the
+      // secondary pane's baseline with the primary pane's ASR baseline (the
+      // pre-compare starting values) rather than the duplication-time values:
+      // ASR edits made before compare mode stay dirty and revertible, and reverting
+      // either pane restores the same shared values without flagging the sibling
+      // dirty against its own baseline.
+      const primaryBaseline = configBaselinesRef.current[firstConfigId] ?? duplicatedConfig;
+      configBaselinesRef.current[newConfigId] = {
+        ...duplicatedConfig,
+        selectedAsrModel: primaryBaseline.selectedAsrModel,
+        selectedAsrSubscription: primaryBaseline.selectedAsrSubscription,
+        isAsrModelEnabled: primaryBaseline.isAsrModelEnabled,
+      };
     }
     fireMiscTrackingEvent('Playground Compare Mode Entered', { success: true });
   }, []);
