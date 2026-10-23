@@ -466,6 +466,13 @@ const ChatbotMain: React.FunctionComponent = () => {
         ? (currentConfig.selectedVectorStoreId ?? baseline.selectedVectorStoreId)
         : baseline.selectedVectorStoreId,
     });
+    // Audio transcription is shared across panes — the ASR update actions sync every
+    // pane and audio uploads read the primary pane's values — so restore the ASR
+    // fields through those actions instead of leaving the per-pane reset above to
+    // diverge the panes. The model update resets the subscription, so it goes first.
+    state.updateSelectedAsrModel(configId, baseline.selectedAsrModel);
+    state.updateSelectedAsrSubscription(configId, baseline.selectedAsrSubscription);
+    state.updateAsrModelEnabled(configId, baseline.isAsrModelEnabled);
   }, []);
 
   const handleProfileSelected = React.useCallback(

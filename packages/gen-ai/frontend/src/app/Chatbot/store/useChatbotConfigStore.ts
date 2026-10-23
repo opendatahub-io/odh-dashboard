@@ -688,8 +688,13 @@ const createStoreActions = (
     if (!state.configurations[id]) {
       return;
     }
-    if (!skipSessionStorage && initialValues?.mcpToolSelections) {
-      saveMcpToolSelectionsForConfig(id, initialValues.mcpToolSelections);
+    // Persist the effective selections — the default empty map when initialValues
+    // omits them — so a later reset doesn't restore stale stored selections
+    if (!skipSessionStorage) {
+      saveMcpToolSelectionsForConfig(
+        id,
+        initialValues?.mcpToolSelections ?? DEFAULT_CONFIGURATION.mcpToolSelections,
+      );
     }
     set(
       (currentState) => ({

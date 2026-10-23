@@ -345,6 +345,37 @@ describe('useChatbotConfigStore', () => {
 
       expect(useChatbotConfigStore.getState().configIds).toEqual([DEFAULT_CONFIG_ID]);
     });
+
+    it('should clear persisted MCP tool selections when resetting with partial values', () => {
+      sessionStorage.clear();
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .saveToolSelections(DEFAULT_CONFIG_ID, 'test-namespace', 'https://example.com/mcp', [
+            'test-tool',
+          ]);
+      });
+
+      // Partial initial values omit mcpToolSelections — the reset still clears the
+      // persisted selections so a later full reset cannot restore them
+      act(() => {
+        useChatbotConfigStore.getState().resetConfigurationValues(DEFAULT_CONFIG_ID, {
+          temperature: 0.5,
+        });
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.temperature).toBe(0.5);
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.mcpToolSelections).toEqual({});
+      expect(JSON.parse(sessionStorage.getItem('mcp-tool-selections') ?? '{}')).toEqual({});
+
+      act(() => {
+        useChatbotConfigStore.getState().resetConfiguration();
+      });
+      expect(
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.mcpToolSelections,
+      ).toEqual({});
+    });
   });
 
   describe('MCP tool selections', () => {

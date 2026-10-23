@@ -673,6 +673,42 @@ describe('ChatbotMain - Empty State Logic', () => {
 
     act(() => actualStore.getState().resetConfiguration());
   });
+
+  it('should restore the shared transcription configuration across panes when reverting', () => {
+    const actualStore = renderWithActualStore([]);
+
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    // Enable transcription — a shared setting, synced across panes by the store
+    act(() => actualStore.getState().updateSelectedAsrModel('default', 'asr-model'));
+    act(() => actualStore.getState().updateSelectedAsrSubscription('default', 'asr-sub'));
+    act(() => actualStore.getState().updateAsrModelEnabled('default', true));
+
+    // Enter compare mode — the secondary pane's baseline has transcription on,
+    // while the primary pane's baseline (captured before enabling) has it off
+    act(() => jest.mocked(ChatModal).mock.calls.at(-1)?.[0].onConfirm());
+    const [, secondConfigId] = actualStore.getState().configIds;
+
+    act(() => actualStore.getState().updateAsrModelEnabled('default', false));
+
+    // Reverting the secondary pane restores its baseline transcription config on
+    // every pane — audio uploads read the primary pane, so it must match too
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.(secondConfigId));
+    expect(actualStore.getState().configurations[secondConfigId]?.isAsrModelEnabled).toBe(true);
+    expect(actualStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
+    expect(actualStore.getState().configurations.default?.selectedAsrModel).toBe('asr-model');
+    expect(actualStore.getState().configurations.default?.selectedAsrSubscription).toBe('asr-sub');
+
+    // Reverting the primary pane restores its baseline (transcription off) the same way
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onRevertToDefaults?.('default'));
+    expect(actualStore.getState().configurations.default?.isAsrModelEnabled).toBe(false);
+    expect(actualStore.getState().configurations.default?.selectedAsrModel).toBe('');
+    expect(actualStore.getState().configurations[secondConfigId]?.isAsrModelEnabled).toBe(false);
+    expect(actualStore.getState().configurations[secondConfigId]?.selectedAsrModel).toBe('');
+    expect(actualStore.getState().configurations[secondConfigId]?.selectedAsrSubscription).toBe('');
+
+    act(() => actualStore.getState().resetConfiguration());
+  });
 });
 
 describe('ChatbotMain - Playground update state', () => {
