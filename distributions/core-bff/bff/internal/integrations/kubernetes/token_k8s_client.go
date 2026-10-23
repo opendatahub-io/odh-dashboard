@@ -191,6 +191,33 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	return nsList.Items, nil
 }
 
+// CanGetNamespace asks the API server about the caller's cluster-scoped, named get permission.
+func (kc *TokenKubernetesClient) CanGetNamespace(ctx context.Context, _ *RequestIdentity, name string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	ssar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:     "get",
+				Resource: "namespaces",
+				Name:     name,
+			},
+		},
+	}
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, ssar, metav1.CreateOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to check namespace get access: %w", err)
+	}
+	return resp.Status.Allowed, nil
+}
+
+func (kc *TokenKubernetesClient) GetNamespace(ctx context.Context, _ *RequestIdentity, name string) (*corev1.Namespace, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+}
+
 func (kc *TokenKubernetesClient) GetUser(ctx context.Context, _ *RequestIdentity) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()

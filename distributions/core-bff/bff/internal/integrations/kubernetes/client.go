@@ -17,6 +17,8 @@ const ComponentLabelValue = "core"
 // (listing notebooks, merging configs, CRUD on connection types) belongs in repositories.
 type KubernetesClientInterface interface {
 	GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]corev1.Namespace, error)
+	CanGetNamespace(ctx context.Context, identity *RequestIdentity, name string) (bool, error)
+	GetNamespace(ctx context.Context, identity *RequestIdentity, name string) (*corev1.Namespace, error)
 	IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error)
 	GetUser(ctx context.Context, identity *RequestIdentity) (string, error)
 
