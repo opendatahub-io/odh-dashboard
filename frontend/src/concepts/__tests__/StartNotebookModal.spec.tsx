@@ -1,8 +1,23 @@
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import useClusterQueue from '@odh-dashboard/ui-core/hooks/useClusterQueue';
+import useAssignedFlavor from '@odh-dashboard/ui-core/hooks/useAssignedFlavor';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
+import {
+  ProjectDetailsContext,
+  type ProjectDetailsContextType,
+} from '#~/pages/projects/ProjectDetailsContext';
+import {
+  KueueFilteringState,
+  useKueueConfiguration,
+} from '#~/concepts/hardwareProfiles/kueueUtils';
+import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import {
   mockCompletedStates,
   mockFailedStates,
@@ -10,6 +25,86 @@ import {
   mockInProgressStates,
 } from '#~/concepts/__tests__/mockNotebookStates';
 import { EventStatus } from '#~/types';
+
+jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
+  ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),
+  useKueueConfiguration: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/ui-core/hooks/useClusterQueue', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/ui-core/hooks/useAssignedFlavor', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
+  useAccessReview: jest.fn(),
+}));
+
+const mockUseKueueConfiguration = jest.mocked(useKueueConfiguration);
+const mockUseClusterQueue = jest.mocked(useClusterQueue);
+const mockUseAssignedFlavor = jest.mocked(useAssignedFlavor);
+const mockUseAccessReview = jest.mocked(useAccessReview);
+
+const kueueEnabledConfig = {
+  isKueueDisabled: false,
+  isKueueFeatureEnabled: true,
+  isProjectKueueEnabled: true,
+  kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
+};
+
+const kueueDisabledConfig = {
+  isKueueDisabled: false,
+  isKueueFeatureEnabled: false,
+  isProjectKueueEnabled: false,
+  kueueFilteringState: KueueFilteringState.ONLY_NON_KUEUE_PROFILES,
+};
+
+const project = mockProjectK8sResource({ k8sName: 'test-project', enableKueue: true });
+
+const renderResourcesModal = ({
+  clusterQueueName,
+  currentProject = project,
+  localQueues = [],
+}: {
+  clusterQueueName?: string;
+  currentProject?: typeof project;
+  localQueues?: ReturnType<typeof mockLocalQueueK8sResource>[];
+}) => {
+  const notebook = structuredClone(mockInitialStates.notebookState.notebook);
+  notebook.metadata.labels = {
+    ...notebook.metadata.labels,
+    [KUEUE_QUEUE_LABEL]: 'user-queue',
+  };
+
+  return render(
+    <ProjectDetailsContext.Provider
+      value={
+        {
+          currentProject,
+          localQueues: { data: localQueues, loaded: true, error: undefined, refresh: jest.fn() },
+        } as unknown as ProjectDetailsContextType
+      }
+    >
+      <StartNotebookModal
+        notebook={notebook}
+        notebookStatus={mockInitialStates.notebookStatus}
+        isStarting={false}
+        isStopping={false}
+        isRunning={false}
+        events={[]}
+        buttons={null}
+        infrastructureWorkloadProject={currentProject}
+        infrastructureWorkloadClusterQueueName={clusterQueueName}
+      />
+    </ProjectDetailsContext.Provider>,
+  );
+};
 
 const getNotebookWithDescription = (description: string) => {
   const notebook = structuredClone(mockInitialStates.notebookState.notebook);
@@ -19,6 +114,14 @@ const getNotebookWithDescription = (description: string) => {
 };
 
 describe('Start Notebook modal', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseKueueConfiguration.mockReturnValue(kueueDisabledConfig);
+    mockUseClusterQueue.mockReturnValue({ clusterQueue: null, loaded: true, error: undefined });
+    mockUseAssignedFlavor.mockReturnValue(undefined);
+    mockUseAccessReview.mockReturnValue([false, false]);
+  });
+
   it('should show initial notebook startup status', async () => {
     const mockData = mockInitialStates;
     const workbenchDescription = 'Workbench for testing model development';
@@ -280,4 +383,52 @@ describe('Start Notebook modal', () => {
     expect(steps).toHaveLength(5);
     expect(screen.getAllByTestId('step-status-Pending')).toHaveLength(5);
   });
+
+  it.each([
+    {
+      name: 'explicit infrastructure ClusterQueue name',
+      renderCase: () => renderResourcesModal({ clusterQueueName: 'explicit-cluster-queue' }),
+      expectedClusterQueue: 'explicit-cluster-queue',
+      expectedQueueValue: 'explicit-cluster-queue',
+    },
+    {
+      name: 'project LocalQueues fallback',
+      renderCase: () =>
+        renderResourcesModal({
+          localQueues: [
+            {
+              ...mockLocalQueueK8sResource({ name: 'user-queue' }),
+              spec: { clusterQueue: 'fallback-cluster-queue' },
+            },
+          ],
+        }),
+      expectedClusterQueue: 'fallback-cluster-queue',
+      expectedQueueValue: 'fallback-cluster-queue',
+    },
+    {
+      name: 'missing project queue data',
+      renderCase: () => renderResourcesModal({ currentProject: undefined }),
+      expectedClusterQueue: undefined,
+    },
+  ])(
+    'should handle $name for Resources',
+    async ({ renderCase, expectedClusterQueue, expectedQueueValue }) => {
+      mockUseKueueConfiguration.mockReturnValue(kueueEnabledConfig);
+      mockUseAccessReview.mockReturnValue([true, false]);
+
+      const user = userEvent.setup();
+      renderCase();
+
+      await user.click(screen.getByTestId('expand-resources'));
+
+      expect(mockUseClusterQueue).toHaveBeenCalledWith(expectedClusterQueue);
+      if (expectedQueueValue) {
+        expect(screen.getByTestId('queue-value')).toHaveTextContent(expectedQueueValue);
+      } else {
+        expect(screen.getByTestId('resources-no-queue')).toHaveTextContent(
+          'No cluster queue information for this workbench.',
+        );
+      }
+    },
+  );
 });
