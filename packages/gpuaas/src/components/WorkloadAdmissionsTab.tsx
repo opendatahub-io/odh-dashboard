@@ -52,14 +52,16 @@ type WorkloadAdmissionsTabProps = {
   metrics: ReturnType<typeof useWorkloadAdmissionMetrics>;
   timeWindow: string;
   canAccessAdminMetrics: boolean;
+  isActive: boolean;
 };
 
 const AdmissionMetricChartComponent: React.FC<{
   metric: AdmissionMetric;
+  gridLeft: number;
   xDomain: [number, number];
   animateOnMount: boolean;
   timeWindow: string;
-}> = ({ metric, xDomain, animateOnMount, timeWindow }) => {
+}> = ({ metric, gridLeft, xDomain, animateOnMount, timeWindow }) => {
   if (!echartsRegistered) {
     echarts.use([LineChart, GridComponent, TooltipComponent, SVGRenderer]);
     echartsRegistered = true;
@@ -74,10 +76,6 @@ const AdmissionMetricChartComponent: React.FC<{
     () => [Math.max(0, yMin - yPadding), yMax + yPadding],
     [yMax, yMin, yPadding],
   );
-  const yAxisLabelWidth = Math.max(
-    ...yDomain.map((value) => formatAdmissionMetricValue(metric.id, value).length),
-  );
-  const gridLeft = getAdmissionChartGridLeft(metric.id, yAxisLabelWidth);
   const option = React.useMemo(() => {
     return {
       animation: animateOnMount,
@@ -227,6 +225,7 @@ const AdmissionMetricChart = React.memo(
   AdmissionMetricChartComponent,
   (previous, next) =>
     previous.metric.id === next.metric.id &&
+    previous.gridLeft === next.gridLeft &&
     previous.metric.color === next.metric.color &&
     previous.metric.data === next.metric.data &&
     previous.xDomain[0] === next.xDomain[0] &&
@@ -261,6 +260,14 @@ const AdmissionMetricCard: React.FC<{
     metric,
     getAdmissionMetricHeadlineValue(metric),
   );
+  const validPoints = getValidAdmissionMetricPoints(metric.data);
+  const { yMin, yMax, yPadding } = getAdmissionMetricYBounds(validPoints);
+  const yAxisLabelWidth = Math.max(
+    ...[Math.max(0, yMin - yPadding), yMax + yPadding].map(
+      (value) => formatAdmissionMetricValue(metric.id, value).length,
+    ),
+  );
+  const gridLeft = getAdmissionChartGridLeft(metric.id, yAxisLabelWidth);
 
   return (
     <div
@@ -286,8 +293,8 @@ const AdmissionMetricCard: React.FC<{
       )}
       {!isLoading && (
         <AdmissionMetricChart
-          key={`${metric.id}-${timeWindow}`}
           metric={metric}
+          gridLeft={gridLeft}
           xDomain={xDomain}
           animateOnMount={animateOnMount}
           timeWindow={timeWindow}
@@ -301,17 +308,17 @@ const WorkloadAdmissionsTab: React.FC<WorkloadAdmissionsTabProps> = ({
   metrics,
   timeWindow,
   canAccessAdminMetrics,
+  isActive,
 }) => {
   const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
-  const isInitialLoading = !hasLoadedOnce;
-  const isSelectedWindowLoading = isInitialLoading || metrics.loading;
+  const isLoading = isActive && metrics.loading;
   const animateOnMount = !hasLoadedOnce;
 
   React.useEffect(() => {
-    if (!metrics.loading && (metrics.loaded || metrics.error)) {
+    if (isActive && !metrics.loading && (metrics.loaded || metrics.error)) {
       setHasLoadedOnce(true);
     }
-  }, [metrics.error, metrics.loaded, metrics.loading]);
+  }, [isActive, metrics.error, metrics.loaded, metrics.loading]);
 
   const metricSeries = buildAdmissionMetrics(
     metrics,
@@ -347,7 +354,7 @@ const WorkloadAdmissionsTab: React.FC<WorkloadAdmissionsTabProps> = ({
             key={metric.id}
             metric={metric}
             xDomain={xDomain}
-            isLoading={isSelectedWindowLoading}
+            isLoading={isLoading}
             animateOnMount={animateOnMount}
             timeWindow={timeWindow}
           />

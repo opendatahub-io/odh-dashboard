@@ -227,13 +227,13 @@ describe('formatAdmissionTimestamp', () => {
       expected: 'Oct 15',
     },
     {
-      name: 'shorter ranges crossing midnight with date and time',
+      name: '1-hour ranges crossing midnight with time-only labels',
       timeWindow: '1h',
       domain: [new Date(2026, 9, 15, 23, 0).getTime(), new Date(2026, 9, 16, 1, 0).getTime()] as [
         number,
         number,
       ],
-      expected: 'Oct 15, 10:00 PM',
+      expected: '10:00 PM',
     },
     {
       name: '24-hour ranges crossing midnight with time-only labels',

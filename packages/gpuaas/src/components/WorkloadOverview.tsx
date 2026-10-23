@@ -494,6 +494,7 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                         metrics={admissionMetrics}
                         timeWindow={timeWindow}
                         canAccessAdminMetrics={canAccessAdminMetrics}
+                        isActive={activeTab === WorkloadOverviewTab.Admissions}
                       />
                     </React.Suspense>
                   </TabContent>
