@@ -1,3 +1,11 @@
+# Dependabot handles SECURITY updates only. Version updates moved to Renovate
+# (.github/renovate.json5): `open-pull-requests-limit: 0` disables version
+# updates for an ecosystem while keeping security updates (GitHub docs:
+# "Configuring Dependabot security updates").
+# The `groups`/`ignore` blocks below still shape SECURITY PRs; version-update
+# groups and cooldowns are inert. Keep the `directories` lists accurate:
+# scripts/security-audit/discover-dependabot-dirs.sh reads them for the
+# weekly audit.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -5,7 +13,7 @@ updates:
     schedule:
       interval: monthly
       day: monday
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 0
     target-branch: "main"
     labels:
       - "build"
@@ -16,7 +24,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 0
     target-branch: "main"
     labels:
       - "dependencies"
@@ -108,7 +116,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 0
     target-branch: "main"
     labels:
       - "dependencies"

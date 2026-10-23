@@ -1,27 +1,31 @@
 ---
-# Self-hosted Renovate runner (trial alongside Dependabot).
-#
-# Neither the Mend Renovate GitHub App nor MintMaker (downstream-only) run
-# against this repository. If the Mend app is enabled here later, delete
-# this workflow to avoid two Renovate instances.
+# Pinned action SHAs and the image digest cannot be wrapped.
+# yamllint disable rule:line-length
+# Self-hosted Renovate runner. Renovate owns version updates for npm, gomod,
+# github-actions and Dockerfiles; Dependabot keeps security updates only.
+# Config: .github/renovate.json5. Runbook: .github/security-audit-triage.md
 #
 # Authentication uses the odh-dashboard-agent GitHub App:
-#   - CLAUDE_APP_ID / CLAUDE_APP_PRIVATE_KEY are existing repo secrets,
-#     shared with claude-preflight.yml — rotate or move them only with both
-#     workflows in mind.
+#   - CLAUDE_APP_ID / CLAUDE_APP_PRIVATE_KEY are repo secrets shared with
+#     claude-preflight.yml — rotate or move them only with both workflows in
+#     mind.
 #   - GITHUB_TOKEN cannot replace them: PRs created with it do not trigger
 #     CI workflows.
-#   - Each run mints a short-lived installation token via
-#     actions/create-github-app-token; PRs are opened as
-#     odh-dashboard-agent[bot] and the token is revoked at job end.
-#   - Forks skip the token step; set a fork-level RENOVATE_TOKEN secret to
-#     dry-run there.
+#   - PRs are opened as odh-dashboard-agent[bot], which openshift-ci trusts
+#     (trusted_apps in openshift/release), and renovate-auto-merge.yml only
+#     acts on PRs from that author.
+#   - Renovate force-pushes renovate/* branches when rebasing, so those
+#     branches must be excluded from any force-push protection.
+#   - Forks skip the token step; set a fork-level RENOVATE_TOKEN secret (and
+#     the RENOVATE_REPOSITORY variable) to rehearse there.
 #
-# New PRs are created only in the Monday window (passed as RENOVATE_SCHEDULE
-# below and documented in .github/renovate.json5); all other daily runs rebase
-# existing PRs, close superseded ones, and refresh the Dependency Dashboard.
-# "Run workflow" accepts dry-run, log level, and force_updates (create PRs
-# outside the Monday window) options.
+# Schedule: daily 02:00 UTC. The creation window lives in renovate.json5
+# ("before 4am on Monday"), so only the Monday run opens NEW PRs; every other
+# run rebases and refreshes existing ones. "Run workflow" options:
+#   dry_run        — compute everything, write nothing
+#   force_updates  — override the Monday window for this run (--schedule)
+#   log_level      — console log level; a full debug log is always uploaded
+#                    as the renovate-log artifact.
 name: Renovate
 
 on:  # yamllint disable-line rule:truthy
@@ -36,12 +40,11 @@ on:  # yamllint disable-line rule:truthy
         type: boolean
         default: false
       log_level:
-        description: Renovate log level
+        description: Renovate console log level (debug log is always uploaded)
         type: choice
         options: [debug, info, warn, error, fatal]
         default: info
   schedule:
-    # Daily 02:00 UTC — within the config's Monday PR-creation window.
     - cron: '0 2 * * *'
 
 concurrency:
@@ -52,22 +55,24 @@ permissions: {}  # authenticated by the GitHub App token, not GITHUB_TOKEN
 
 jobs:
   renovate:
-    # Scheduled runs only on upstream; manual runs allowed on forks for
-    # dry-run testing.
+    # Scheduled runs only on upstream; manual runs allowed on forks.
     if: >-
       github.event_name != 'schedule'
       || github.repository == 'opendatahub-io/odh-dashboard'
-    # The `renovate` environment holds no secrets — the app credentials are
-    # repo-level and remain visible. Its deployment branch policy (restrict
-    # to `main`) is enforced server-side, so a dispatch from a modified
-    # branch cannot bypass it by editing this file. Do not add required
-    # reviewers to it: the daily schedule would stall.
+    # The `renovate` environment holds no secrets; its deployment branch
+    # policy (main only) stops a dispatch from a modified branch. Do not add
+    # required reviewers to it: the daily schedule would stall.
     environment: renovate
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # Short-lived, least-privilege installation token. Upstream only;
-      # forks fall back to their own RENOVATE_TOKEN below.
+      - name: Checkout (config validation only)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/renovate.json5
+          sparse-checkout-cone-mode: false
+
       - name: Generate GitHub App token
         if: github.repository == 'opendatahub-io/odh-dashboard'
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349  # v2
@@ -75,8 +80,6 @@ jobs:
         with:
           app-id: ${{ secrets.CLAUDE_APP_ID }}
           private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
-          # Renovate writes commit statuses but only reads check runs (CI
-          # status detection).
           permission-contents: write
           permission-pull-requests: write
           permission-issues: write
@@ -92,9 +95,8 @@ jobs:
           LOG_LEVEL: ${{ inputs.log_level || 'info' }}
           # Pinned image — bump version and digest together.
           RENOVATE_IMAGE: ghcr.io/renovatebot/renovate:44.148.4@sha256:2c7b118cb2d1b7137e63322efc0e1d3d96d5f6937ec1c35c3cd9b7de73a8ed29
-          # Used via env in the script below instead of ${{ }} in the run
-          # block (template-injection hygiene).
-          REPO: ${{ github.repository }}
+          # Upstream always targets itself; forks may point at their own copy.
+          REPO: ${{ github.repository == 'opendatahub-io/odh-dashboard' && github.repository || vars.RENOVATE_REPOSITORY || github.repository }}
         run: |
           set -euo pipefail
 
@@ -104,27 +106,51 @@ jobs:
             exit 0
           fi
 
+          mkdir -p "$RUNNER_TEMP/renovate"
+          chmod 777 "$RUNNER_TEMP/renovate"  # container runs as uid 12021
+
+          # Fail fast on an invalid config instead of silently running with
+          # defaults (e.g. an unknown key would otherwise be ignored).
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/.github/renovate.json5:/tmp/renovate.json5:ro" \
+            --entrypoint renovate-config-validator \
+            "$RENOVATE_IMAGE" --strict /tmp/renovate.json5
+
           EXTRA_ENV=()
+          ARGS=()
           if [ "$DRY_RUN" = "true" ]; then
             EXTRA_ENV+=(-e RENOVATE_DRY_RUN=full)
             echo "Dry-run mode: no branches or PRs will be created"
           fi
 
-          # PR-creation window: the Monday gate by default (scheduled runs and
-          # normal dispatches, matching the documented weekly cadence);
-          # force_updates lets a manual run create PRs immediately.
+          # The Monday window is "schedule" in renovate.json5. Repo config
+          # beats env, and schedule has no env support at all, so the override
+          # must be a CLI argument (CLI values are forced over repo config).
+          # Proof in the log: "Checking schedule(schedule=at any time, ...".
           if [ "$FORCE_UPDATES" = "true" ]; then
-            EXTRA_ENV+=(-e 'RENOVATE_SCHEDULE=["at any time"]')
+            ARGS+=("--schedule=at any time")
             echo "Force mode: PRs may be created outside the Monday window"
-          else
-            EXTRA_ENV+=(-e 'RENOVATE_SCHEDULE=["before 4am on Monday"]')
           fi
 
-          # Renovate clones the repository itself; no checkout is needed.
+          # Renovate clones the repository itself; the checkout above is only
+          # for validation. A debug-level JSON log is always written for the
+          # renovate-log artifact, so failures are diagnosable after the fact.
           docker run --rm \
             -e RENOVATE_TOKEN \
             -e RENOVATE_PLATFORM=github \
             -e RENOVATE_REPOSITORIES="[\"${REPO}\"]" \
             -e LOG_LEVEL \
+            -e LOG_FILE=/tmp/renovate-log/renovate.ndjson \
+            -e LOG_FILE_LEVEL=debug \
+            -v "$RUNNER_TEMP/renovate:/tmp/renovate-log" \
             "${EXTRA_ENV[@]}" \
-            "$RENOVATE_IMAGE"
+            "$RENOVATE_IMAGE" "${ARGS[@]}"
+
+      - name: Upload debug log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: renovate-log
+          path: ${{ runner.temp }}/renovate/renovate.ndjson
+          retention-days: 14
+          if-no-files-found: ignore

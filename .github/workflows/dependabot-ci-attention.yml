@@ -1,9 +1,10 @@
 name: Dependabot CI Attention
 
-# For Dependabot PRs that already have auto-merge labels (lgtm + approved) but
+# For Dependabot and Renovate PRs that already have auto-merge labels (lgtm + approved) but
 # are still open with failed CI (and are not waiting on a rebase), add
-# dependabot-needs-human and a comment listing failing checks. Dependabot cannot
-# fix source breakages from a bump — humans must.
+# dependabot-needs-human and a comment listing failing checks. Neither bot can
+# fix source breakages from a bump — humans must. (The label name predates
+# Renovate; it is kept so existing filters and stale.yml keep working.)
 #
 # Also clears dependabot-needs-human when CI is green again.
 
@@ -43,7 +44,7 @@ jobs:
             echo "Label dependabot-needs-human already exists"
           fi
 
-      - name: Scan open Dependabot PRs
+      - name: Scan open Dependabot and Renovate PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -143,12 +144,13 @@ jobs:
             '
           }
 
-          prs_json=$(gh pr list --repo "$REPO" --state open --search 'author:app/dependabot' \
-            --limit 50 \
-            --json number,title,url,labels,mergeable,mergeStateStatus,isDraft,createdAt,statusCheckRollup)
+          fields=number,title,url,labels,mergeable,mergeStateStatus,isDraft,createdAt,statusCheckRollup
+          prs_json=$(jq -s 'add' \
+            <(gh pr list --repo "$REPO" --state open --author 'app/dependabot' --limit 50 --json "$fields") \
+            <(gh pr list --repo "$REPO" --state open --author 'app/odh-dashboard-agent' --limit 50 --json "$fields"))
 
           pr_count=$(echo "$prs_json" | jq 'length')
-          echo "Scanning $pr_count open Dependabot PR(s)"
+          echo "Scanning $pr_count open Dependabot/Renovate PR(s)"
 
           if [ "$pr_count" -eq 0 ]; then
             exit 0
@@ -228,14 +230,14 @@ jobs:
 
             # Keep every line indented so the YAML `|` block does not end early.
             body=$(cat <<EOF
-            ### Dependabot needs human intervention
+            ### Dependency update needs human intervention
 
             This PR already has \`lgtm\` + \`approved\` (auto-merge eligibility), but CI is still red, so Tide will not merge it.
 
             **Failing checks (latest result per name):**
             ${fail_list}
 
-            Dependabot cannot fix source/test breakages introduced by a dependency bump. Please either:
+            The bot cannot fix source/test breakages introduced by a dependency bump. Please either:
 
             1. Fix the failures on this branch, or
             2. Close the PR if the upgrade is not wanted right now.
