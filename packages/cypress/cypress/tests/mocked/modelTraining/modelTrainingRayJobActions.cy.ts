@@ -544,7 +544,7 @@ describe('Ray cluster column URL behavior', () => {
       );
   });
 
-  it('should show Ray cluster name as plain text when Gateway is unavailable', () => {
+  it('should show a disabled Ray cluster link when Gateway is unavailable', () => {
     cy.interceptK8s(
       { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
       { statusCode: 404, body: mock404Error({}) },
@@ -554,8 +554,15 @@ describe('Ray cluster column URL behavior', () => {
     trainingJobTable.findTable().should('be.visible');
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
-    rayRow.findRayCluster().should('contain', 'ray-data-processing-raycluster');
-    rayRow.findRayCluster().find('a').should('not.exist');
+    rayRow
+      .findRayCluster()
+      .find('a')
+      .should('contain', 'ray-data-processing-raycluster')
+      .and('have.class', 'pf-m-disabled')
+      .and('have.attr', 'aria-disabled', 'true')
+      .and('not.have.attr', 'href')
+      .find('svg')
+      .should('exist');
   });
 
   it('should show workspace cluster name from clusterSelector in the Ray cluster column', () => {
