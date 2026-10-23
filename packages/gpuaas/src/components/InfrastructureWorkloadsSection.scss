@@ -42,17 +42,20 @@
     padding-block-start: var(--pf-t--global--spacer--lg);
   }
 
+  &__tabs-row {
+    border-block-end: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
+
+    .pf-v6-c-tabs {
+      --pf-v6-c-tabs--before--BorderBlockEndWidth: 0;
+    }
+  }
+
   &__admissions {
     padding-block-start: var(--pf-t--global--spacer--lg);
   }
 
   &__admissions-error {
-    margin-block-end: var(--pf-t--global--spacer--md);
-  }
-
-  &__admissions-window {
-    display: flex;
-    justify-content: flex-end;
     margin-block-end: var(--pf-t--global--spacer--md);
   }
 
@@ -63,8 +66,6 @@
   &__admission-metrics {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    border-block-start: var(--pf-t--global--border--width--regular) solid
-      var(--pf-t--global--border--color--default);
 
     &--two {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -73,7 +74,7 @@
 
   &__admission-metric {
     min-width: 0;
-    padding: var(--pf-t--global--spacer--sm);
+    padding: var(--pf-t--global--spacer--md);
     border-inline-end: var(--pf-t--global--border--width--regular) solid
       var(--pf-t--global--border--color--default);
 
@@ -124,6 +125,10 @@
   &__count {
     flex: 1;
     text-align: center;
+  }
+
+  &__total-label {
+    color: var(--pf-t--global--text--color--subtle);
   }
 
   &__total {
@@ -177,13 +182,8 @@
 .gpuaas-workloads-table {
   width: 100%;
   color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-link--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-link--hover--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-link--m-clicked--Color: var(--pf-t--global--text--color--regular);
 
-  .pf-v6-c-button,
-  .pf-v6-c-button__text,
-  .pf-v6-c-button__icon {
+  &__toggle-content {
     color: var(--pf-t--global--text--color--regular);
   }
 }
