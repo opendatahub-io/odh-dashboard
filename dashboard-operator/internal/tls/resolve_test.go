@@ -88,36 +88,73 @@ func TestResolve_TransientError(t *testing.T) {
 	}
 }
 
-func TestResolve_Forbidden(t *testing.T) {
+func TestResolve_ForbiddenFailsClosed(t *testing.T) {
 	gr := schema.GroupResource{Group: "config.openshift.io", Resource: "apiservers"}
 	fc := &errorClient{err: apierrors.NewForbidden(gr, "cluster", nil)}
-	result, err := resolve(context.Background(), fc)
-	if err != nil {
-		t.Fatalf("resolve() error = %v, expected fallback on Forbidden", err)
-	}
-	if !result.APIAvailable {
-		t.Error("expected APIAvailable = true on Forbidden (watcher should register)")
-	}
-	cfg := &tls.Config{}
-	result.TLSOpts[0](cfg)
-	if cfg.MinVersion != tls.VersionTLS12 {
-		t.Errorf("expected TLS 1.2 fallback, got %d", cfg.MinVersion)
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error on Forbidden (fail-closed), got nil")
 	}
 }
 
-func TestResolve_Unauthorized(t *testing.T) {
+func TestResolve_UnauthorizedFailsClosed(t *testing.T) {
 	fc := &errorClient{err: apierrors.NewUnauthorized("not authorized")}
-	result, err := resolve(context.Background(), fc)
-	if err != nil {
-		t.Fatalf("resolve() error = %v, expected fallback on Unauthorized", err)
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error on Unauthorized (fail-closed), got nil")
 	}
-	if !result.APIAvailable {
-		t.Error("expected APIAvailable = true on Unauthorized (watcher should register)")
+}
+
+func TestResolve_UnknownTypeFailsClosed(t *testing.T) {
+	apiServer := newAPIServer(map[string]interface{}{"type": "FutureType"})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for unknown TLS profile type, got nil")
 	}
-	cfg := &tls.Config{}
-	result.TLSOpts[0](cfg)
-	if cfg.MinVersion != tls.VersionTLS12 {
-		t.Errorf("expected TLS 1.2 fallback, got %d", cfg.MinVersion)
+}
+
+func TestResolve_CustomBlockMissingFailsClosed(t *testing.T) {
+	apiServer := newAPIServer(map[string]interface{}{"type": "Custom"})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for Custom profile with missing custom block, got nil")
+	}
+}
+
+func TestResolve_NonStringTypeFailsClosed(t *testing.T) {
+	// A non-string profile discriminator is malformed and must fail closed
+	// rather than coerce to "" and select Intermediate.
+	apiServer := newAPIServer(map[string]interface{}{"type": int64(123)})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for non-string profile type, got nil")
+	}
+}
+
+func TestResolve_CustomEmptyCiphersTLS12FailsClosed(t *testing.T) {
+	// A sub-TLS-1.3 Custom profile with no ciphers must fail closed rather than
+	// leave CipherSuites unset (Go defaults).
+	apiServer := newAPIServer(map[string]interface{}{
+		"type": "Custom",
+		"custom": map[string]interface{}{
+			"minTLSVersion": "VersionTLS12",
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for TLS 1.2 Custom profile with no ciphers, got nil")
+	}
+}
+
+func TestResolve_CustomBadMinVersionFailsClosed(t *testing.T) {
+	apiServer := newAPIServer(map[string]interface{}{
+		"type": "Custom",
+		"custom": map[string]interface{}{
+			"minTLSVersion": "VersionTLS99",
+			"ciphers":       []interface{}{"ECDHE-RSA-AES128-GCM-SHA256"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	if _, err := resolve(context.Background(), fc); err == nil {
+		t.Fatal("expected error for unknown minTLSVersion, got nil")
 	}
 }
 
@@ -166,6 +203,35 @@ func TestResolve_CustomGroups(t *testing.T) {
 	}
 	if cfg.CurvePreferences[0] != tls.CurveP384 || cfg.CurvePreferences[1] != tls.CurveP256 {
 		t.Errorf("curve preferences not honored in order: %v", cfg.CurvePreferences)
+	}
+}
+
+func TestResolve_CustomCanonicalGroupNames(t *testing.T) {
+	// OpenShift uses secp256r1/secp384r1/secp521r1; these valid names must resolve.
+	apiServer := newAPIServer(map[string]interface{}{
+		"type": "Custom",
+		"custom": map[string]interface{}{
+			"minTLSVersion": "VersionTLS13",
+			"groups":        []interface{}{"secp384r1", "secp256r1", "secp521r1"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (canonical group names must resolve)", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	want := []tls.CurveID{tls.CurveP384, tls.CurveP256, tls.CurveP521}
+	if len(cfg.CurvePreferences) != len(want) {
+		t.Fatalf("expected %d curves, got %d", len(want), len(cfg.CurvePreferences))
+	}
+	for i, c := range want {
+		if cfg.CurvePreferences[i] != c {
+			t.Errorf("curve[%d] = %d, want %d", i, cfg.CurvePreferences[i], c)
+		}
 	}
 }
 

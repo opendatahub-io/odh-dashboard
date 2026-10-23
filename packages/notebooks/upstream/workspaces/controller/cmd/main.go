@@ -316,11 +316,13 @@ func main() {
 
 	if tlsResult.APIAvailable {
 		watcher := &pkgtls.ProfileWatcher{
-			Client:         mgr.GetClient(),
-			InitialProfile: tlsResult.Profile,
-			OnProfileChange: func(_ context.Context) {
+			Client:           mgr.GetClient(),
+			InitialProfile:   tlsResult.Profile,
+			InitialAdherence: tlsResult.Adherence,
+			OnProfileChange: func(_ context.Context) error {
 				setupLog.Info("TLS profile changed, initiating shutdown to reload")
 				cancel()
+				return nil
 			},
 		}
 		if err := watcher.SetupWithManager(mgr); err != nil {

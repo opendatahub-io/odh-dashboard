@@ -17,6 +17,8 @@ limitations under the License.
 package server
 
 import (
+	"crypto/tls"
+	"log/slog"
 	"strings"
 	"testing"
 )
@@ -33,7 +35,7 @@ func TestNewServerRejectsPartialTLSConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewServer(nil, nil, tt.certFile, tt.keyFile)
+			_, err := NewServer(nil, nil, tt.certFile, tt.keyFile, nil)
 			if err == nil {
 				t.Fatal("expected error for partial TLS config, got nil")
 			}
@@ -42,4 +44,36 @@ func TestNewServerRejectsPartialTLSConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestReloadTLSConfigSwapsConfigAndSignals verifies the resolved TLS config is
+// stored (no longer hardcoded) and that ReloadTLSConfig swaps it and signals a
+// restart without blocking when a reload is already pending.
+func TestReloadTLSConfigSwapsConfigAndSignals(t *testing.T) {
+	initial := &tls.Config{MinVersion: tls.VersionTLS12}
+	s := &Server{
+		logger:   slog.Default(),
+		reloadCh: make(chan struct{}, 1),
+	}
+	s.tlsConfig.Store(initial)
+
+	if got := s.tlsConfig.Load(); got.MinVersion != tls.VersionTLS12 {
+		t.Fatalf("expected stored TLS 1.2 config, got MinVersion %d", got.MinVersion)
+	}
+
+	updated := &tls.Config{MinVersion: tls.VersionTLS13}
+	s.ReloadTLSConfig(updated)
+
+	if got := s.tlsConfig.Load(); got.MinVersion != tls.VersionTLS13 {
+		t.Errorf("expected swapped TLS 1.3 config, got MinVersion %d", got.MinVersion)
+	}
+	select {
+	case <-s.reloadCh:
+	default:
+		t.Error("expected reload to be signalled")
+	}
+
+	// A second reload with no drain must not block (coalesces into one pending).
+	s.ReloadTLSConfig(updated)
+	s.ReloadTLSConfig(updated)
 }

@@ -63,7 +63,11 @@ make run LOG_LEVEL=DEBUG
 | `-prometheus-instance` | `PROMETHEUS_INSTANCE` | Prometheus/Thanos instance name (default `thanos-querier`) |
 | `-prometheus-port` | `PROMETHEUS_PORT` | Prometheus/Thanos RBAC port (default `9092`) |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+### TLS
+
+If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2).
 
 ## Platform Detection
 
