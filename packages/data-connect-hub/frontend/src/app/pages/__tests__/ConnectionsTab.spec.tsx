@@ -330,6 +330,22 @@ describe('ConnectionsTab', () => {
     }
   });
 
+  it('cancels name-filter tracking when clearing all filters before the debounce fires', async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderConnectionsTab({ namespace: 'test-project' });
+
+      await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'no-match');
+      await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+      jest.advanceTimersByTime(750);
+
+      expect(mockTrackEvent).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('tracks a type filter when a type is deselected', async () => {
     const user = userEvent.setup();
     renderConnectionsTab({ namespace: 'test-project' });

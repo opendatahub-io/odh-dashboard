@@ -321,13 +321,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                     <Dropdown
                       isOpen={typeOpen}
                       onOpenChange={setTypeOpen}
-                      onSelect={(event, value) => {
-                        event?.stopPropagation();
-                        if (typeof value === 'string') {
-                          toggleType(value);
-                        }
-                        setTypeOpen(true);
-                      }}
+                      onSelect={() => setTypeOpen(true)}
                       toggle={(ref) => (
                         <MenuToggle
                           ref={ref}
@@ -348,6 +342,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                             value={id}
                             hasCheckbox
                             isSelected={activeTypes.includes(id)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleType(id);
+                            }}
                           >
                             {getTypeName(id)}
                           </DropdownItem>
@@ -437,6 +435,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                         <Button
                           variant="link"
                           onClick={() => {
+                            if (nameFilterTrackingTimerRef.current !== undefined) {
+                              clearTimeout(nameFilterTrackingTimerRef.current);
+                              nameFilterTrackingTimerRef.current = undefined;
+                            }
                             setNameFilter('');
                             setSelectedTypes(typeIds);
                           }}
