@@ -13,7 +13,12 @@ import { transformPipelineData } from '~/app/topology/tree-view/transformPipelin
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import { downloadBlob, normalizePipelineRunState, sanitizeFilename } from '~/app/utilities/utils';
+import {
+  downloadBlob,
+  formatPatternName,
+  normalizePipelineRunState,
+  sanitizeFilename,
+} from '~/app/utilities/utils';
 import { computePatternRankMap } from '~/app/utilities/metricUtils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
 import { resolveDatabaseSecretName, resolveMaaSSecretName } from '~/app/utilities/responses';
@@ -390,7 +395,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
               title="Notebook download failed"
               actionClose={<AlertActionCloseButton onClose={() => setDownloadError(null)} />}
             >
-              <strong>Pattern: {downloadError.patternName}</strong>
+              <strong>Pattern: {formatPatternName(downloadError.patternName)}</strong>
               <br />
               {downloadError.message}
             </Alert>

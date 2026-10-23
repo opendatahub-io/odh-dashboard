@@ -77,7 +77,7 @@ describe('getPipelineSummaryDetails', () => {
       },
       {
         label: 'Winning pattern',
-        value: 'Pattern1',
+        value: 'Pattern\u00a0A',
         help: {
           header: 'Winning pattern',
           body: 'The configuration that achieved the highest evaluation score during optimization.',
@@ -239,7 +239,9 @@ describe('getPipelineSummaryDetails', () => {
   it('resolves the winning pattern display name from bestPatternKey', () => {
     const details = getPipelineSummaryDetails(mockPipelineRun, mockStageMap, patterns, 'Pattern2');
 
-    expect(details.find((detail) => detail.label === 'Winning pattern')?.value).toBe('Pattern2');
+    expect(details.find((detail) => detail.label === 'Winning pattern')?.value).toBe(
+      'Pattern\u00a0B',
+    );
   });
 
   it('shows em dash when bestPatternKey is missing from patterns', () => {

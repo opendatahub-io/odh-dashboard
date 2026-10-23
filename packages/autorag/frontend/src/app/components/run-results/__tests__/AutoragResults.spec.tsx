@@ -373,7 +373,7 @@ describe('AutoragResults', () => {
         expect(screen.getByText('Notebook download failed')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('Pattern: Pattern1')).toBeInTheDocument();
+      expect(screen.getByText('Pattern: Pattern A')).toBeInTheDocument();
       expect(screen.getByText('S3 connection failed', { exact: false })).toBeInTheDocument();
     });
 
@@ -1071,6 +1071,7 @@ describe('AutoragResults', () => {
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
 
       const row = screen.getByTestId('leaderboard-row-1');
+      expect(within(row).getByText('Pattern A')).toBeInTheDocument();
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
 
       fireEvent.click(screen.getByText('Try this pattern'));
