@@ -606,4 +606,61 @@ describe('Evaluations Page - Status modal', () => {
     evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Failed');
   });
 });
+
+describe('Evaluations Page - Failure summary scroll', () => {
+  // Long enough to overflow both the 3-line clamp and the 10lh expanded cap.
+  const LONG_FAILURE_MESSAGE = Array.from(
+    { length: 40 },
+    (_, i) =>
+      `${i + 1}. Benchmark execution failed because the eval harness timed out waiting for the model server to accept connections.`,
+  ).join(' ');
+
+  const longFailedJob = mockEvaluationJob({
+    id: 'eval-long-failure',
+    name: 'Long_Failure_Eval',
+    state: 'failed',
+    modelName: 'test-model',
+    createdAt: '2026-03-14T08:00:00Z',
+    benchmarkIds: ['mmlu'],
+    providerId: 'lm_evaluation_harness',
+    benchmarkStatuses: [{ id: 'mmlu', benchmark_index: 0, status: 'failed' }],
+    statusMessage: LONG_FAILURE_MESSAGE,
+  });
+
+  beforeEach(() => {
+    initIntercepts({ jobs: [longFailedJob] });
+  });
+
+  it('should clamp the collapsed failure summary and scroll the expanded summary inside the modal', () => {
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.clickStatusBadge(0);
+    evaluationsPage.findStatusModal().should('exist');
+
+    // Collapsed: clamped, and the toggle only renders when the component's
+    // real-browser truncation check (scrollHeight > clientHeight) fires.
+    evaluationsPage.findFailureSummaryText().should('have.class', 'm-clamped');
+    evaluationsPage.findFailureSummaryToggle().should('have.text', 'Show more');
+
+    evaluationsPage.findFailureSummaryToggle().click();
+
+    // Expanded: capped at 10lh, content overflows the cap, and the region
+    // actually scrolls (RHAI-10244). Re-query after the click — saved chains
+    // do not re-run their queries once other commands have been enqueued.
+    evaluationsPage.findFailureSummaryText().should('have.class', 'm-expanded');
+    evaluationsPage.findFailureSummaryText().should('have.attr', 'role', 'region');
+    evaluationsPage.findFailureSummaryText().should('have.attr', 'tabindex', '0');
+    evaluationsPage.findFailureSummaryText().then(($el) => {
+      const el = $el[0];
+      expect(getComputedStyle(el).maxHeight, 'expanded summary is height-capped').to.not.equal(
+        'none',
+      );
+      expect(el.scrollHeight, 'content overflows the expanded cap').to.be.greaterThan(
+        el.clientHeight,
+      );
+      el.scrollTop = 50;
+      expect(el.scrollTop, 'expanded summary scrolls').to.be.greaterThan(0);
+    });
+    evaluationsPage.findFailureSummaryToggle().should('have.text', 'Show less');
+  });
+});
 /* eslint-enable camelcase */

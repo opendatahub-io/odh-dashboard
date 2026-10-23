@@ -360,6 +360,14 @@ class EvaluationsPage {
     return this.findStatusModal().findByTestId(`status-label-${state}`);
   }
 
+  findFailureSummaryText() {
+    return this.findStatusModal().findByTestId('failure-summary-text');
+  }
+
+  findFailureSummaryToggle() {
+    return this.findStatusModal().findByTestId('failure-summary-toggle');
+  }
+
   findStatusDetailHeader() {
     return cy.findByTestId('status-detail-header');
   }
