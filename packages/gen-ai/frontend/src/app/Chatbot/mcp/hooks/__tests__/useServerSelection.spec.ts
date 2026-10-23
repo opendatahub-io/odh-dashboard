@@ -152,6 +152,46 @@ describe('useServerSelection', () => {
     expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server2']);
   });
 
+  it('should adopt a different nonempty external selection after an echo', () => {
+    const { result, rerender } = renderHook(
+      ({ servers, initialIds }) =>
+        useServerSelection({
+          transformedServers: servers,
+          initialSelectedServerIds: initialIds,
+          onSelectionChange: mockOnSelectionChange,
+        }),
+      {
+        initialProps: {
+          servers: mockServers,
+          initialIds: ['server1'],
+        },
+      },
+    );
+
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server1']);
+
+    // The user edits the picker — the store will echo this emission back
+    act(() => result.current.setSelectedServers([mockServers[1]]));
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server2']);
+
+    // The echoed selection must not reprocess the local edit
+    rerender({
+      servers: mockServers,
+      initialIds: ['server2'],
+    });
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server2']);
+
+    // A nonempty selection that differs from the last emission can only be an
+    // external change — e.g. reverting a pane restored a different baseline —
+    // and must be adopted even though an echo was just skipped
+    rerender({
+      servers: mockServers,
+      initialIds: ['server1'],
+    });
+
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server1']);
+  });
+
   it('should preserve an external empty reset when the server list changes in the same render', () => {
     const { result, rerender } = renderHook(
       ({ servers, initialIds }) =>
