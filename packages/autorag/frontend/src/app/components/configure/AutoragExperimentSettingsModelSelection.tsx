@@ -15,6 +15,7 @@ import {
   TabContentBody,
   Tabs,
   TabTitleText,
+  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, ThProps, Thead, Tr } from '@patternfly/react-table';
@@ -47,6 +48,34 @@ const MODEL_TABS: ModelTab[] = [
     testId: 'embedding-models-tab',
   },
 ];
+
+const MODEL_ALREADY_SELECTED_TOOLTIPS: Record<ModelTab['modelType'], string> = {
+  llm: 'This model is already selected as an embedding model.',
+  embedding: 'This model is already selected as a foundation model.',
+};
+
+type DisabledModelTooltipProps = {
+  content: string;
+  label: string;
+  testId: string;
+  children: React.ReactNode;
+};
+
+/* Disabled checkboxes need a focusable wrapper to expose their tooltips. */
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex */
+const DisabledModelTooltip: React.FC<DisabledModelTooltipProps> = ({
+  content,
+  label,
+  testId,
+  children,
+}) => (
+  <Tooltip content={content}>
+    <span tabIndex={0} role="group" aria-label={label} data-testid={testId}>
+      {children}
+    </span>
+  </Tooltip>
+);
+/* eslint-enable jsx-a11y/no-noninteractive-tabindex */
 
 const MODEL_CATALOG_HELP_INTRO =
   'To verify model details, including language support, view the models in the Model catalog.';
@@ -337,13 +366,14 @@ const AutoragExperimentSettingsModelSelection: React.FC<
                                               : 'Foundation models'
                                           }`;
 
-                                      return (
+                                      const checkbox = (
                                         <Checkbox
                                           id={`select-${modelType}-${model.id}`}
                                           isChecked={selectedModels.some(
                                             (selectedModel) => selectedModel === model.id,
                                           )}
                                           isDisabled={checkboxDisabled}
+                                          data-testid={`${modelType}-model-checkbox-${model.id}`}
                                           aria-label={
                                             checkboxDisabled
                                               ? `${modelName} ${disabledReason}`
@@ -353,6 +383,18 @@ const AutoragExperimentSettingsModelSelection: React.FC<
                                             handleToggleModel(model, isSelecting)
                                           }
                                         />
+                                      );
+
+                                      return selectedInOtherCategory ? (
+                                        <DisabledModelTooltip
+                                          content={MODEL_ALREADY_SELECTED_TOOLTIPS[modelType]}
+                                          label={`${modelName} ${disabledReason}`}
+                                          testId={`${modelType}-disabled-model-tooltip-${model.id}`}
+                                        >
+                                          {checkbox}
+                                        </DisabledModelTooltip>
+                                      ) : (
+                                        checkbox
                                       );
                                     })()}
                                   </Td>
