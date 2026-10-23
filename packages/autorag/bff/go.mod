@@ -8,7 +8,7 @@ replace github.com/opendatahub-io/odh-dashboard/pkg/tls => ../../../pkg/tls
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.10.0
+	github.com/jackc/pgx/v5 v5.11.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/milvus-io/milvus-proto/go-api/v2 v2.5.16
 	github.com/milvus-io/milvus/client/v2 v2.5.6
