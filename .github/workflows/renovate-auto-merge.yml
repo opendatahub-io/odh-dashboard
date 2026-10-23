@@ -1,0 +1,167 @@
+---
+# yamllint disable rule:line-length
+name: Renovate Auto-merge
+
+# Applies Tide's merge labels (lgtm + approved) to Renovate PRs whose update
+# is provably low-risk. Tide then merges after required CI passes.
+#
+# Trust chain, all of which must hold:
+#   1. PR author is odh-dashboard-agent[bot] (the app that runs renovate.yml).
+#   2. Exactly one renovate/<tier> label, added by that same app — a label
+#      added by anyone else grants nothing.
+#   3. The tier is eligible (npm-patch, npm-minor, go-patch, go-minor).
+#   4. .github/scripts/renovate-automerge-check.js, run from the BASE branch
+#      (never from the PR), re-derives the update class from the diff and
+#      agrees with the tier.
+# Re-runs on every push, and again when Prow strips lgtm after a push (Prow
+# can do that after this workflow already re-labeled, which is how Dependabot
+# PRs got stuck, e.g. #10320). A manual `/lgtm cancel` with no push since our
+# labeling is respected. To stop an eligible PR, use `/hold`.
+# If a push makes the PR ineligible, labels THIS workflow added are removed;
+# labels a human added are never touched.
+#
+# pull_request_target is safe here: PR content is only read as git objects,
+# never checked out into the workspace or executed.
+
+on:
+  # Needed for a write token on bot PRs. Safe: PR content is never checked
+  # out or executed (see header), same as dependabot-auto-merge.yml.
+  pull_request_target:  # zizmor: ignore[dangerous-triggers]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  # Upstream is pinned to the app; a fork rehearsing with a personal token
+  # sets the RENOVATE_APP_LOGIN repo variable to that token's login.
+  RENOVATE_APP_LOGIN: ${{ github.repository == 'opendatahub-io/odh-dashboard' && 'odh-dashboard-agent[bot]' || vars.RENOVATE_APP_LOGIN || 'odh-dashboard-agent[bot]' }}
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Job-level, without cancel-in-progress: Renovate fires opened + several
+    # labeled events at once. Workflow-level cancellation let an irrelevant
+    # event (e.g. labeled:dependencies, skipped by `if`) cancel the run for
+    # the renovate/<tier> label, so nothing was evaluated (fork rehearsal).
+    # Skipped jobs never join this group, and runs are idempotent.
+    concurrency:
+      group: renovate-auto-merge-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    if: >-
+      github.event.pull_request.user.login == (github.repository == 'opendatahub-io/odh-dashboard' && 'odh-dashboard-agent[bot]' || vars.RENOVATE_APP_LOGIN || 'odh-dashboard-agent[bot]') &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'renovate/') &&
+      (github.event.action != 'labeled' || startsWith(github.event.label.name, 'renovate/')) &&
+      (github.event.action != 'unlabeled' || github.event.label.name == 'lgtm')
+    steps:
+      - name: Decide whether an lgtm removal needs action
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ACTION: ${{ github.event.action }}
+        run: |
+          set -euo pipefail
+          if [ "$ACTION" != "unlabeled" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Re-label only if the head moved after we last applied lgtm, i.e.
+          # this removal is Prow invalidating a stale review, not a person.
+          events=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate --jq '.[]' | jq -s '.')
+          last_label=$(jq -r '[.[] | select(.event == "labeled" and .label.name == "lgtm" and .actor.login == "github-actions[bot]") | .created_at] | max // ""' <<<"$events")
+          last_push=$(jq -r '[.[] | select(.event == "head_ref_force_pushed" or .event == "committed") | (.created_at // .committer.date)] | max // ""' <<<"$events")
+          if [ -n "$last_label" ] && [[ "$last_push" > "$last_label" ]]; then
+            echo "lgtm removed after a push ($last_push > $last_label) — re-validating"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "lgtm removed without a newer push — respecting it"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find tier label and who added it
+        id: tier
+        if: steps.gate.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # Current renovate/* labels with the actor that most recently added each.
+          labels=$(gh api "repos/$REPO/issues/$PR_NUMBER/labels" --jq '[.[].name | select(startswith("renovate/"))]')
+          count=$(jq 'length' <<<"$labels")
+          if [ "$count" -ne 1 ]; then
+            echo "Not eligible: expected exactly one renovate/<tier> label, found $count: $labels"
+            echo "tier=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          label=$(jq -r '.[0]' <<<"$labels")
+          actor=$(gh api "repos/$REPO/issues/$PR_NUMBER/events" --paginate \
+            --jq ".[] | select(.event == \"labeled\" and .label.name == \"$label\") | .actor.login" \
+            | tail -n 1)
+          if [ "$actor" != "$RENOVATE_APP_LOGIN" ]; then
+            echo "Not eligible: $label was added by '$actor', not $RENOVATE_APP_LOGIN"
+            echo "tier=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Tier label $label added by $actor"
+          echo "tier=${label#renovate/}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout base branch (trusted script only)
+        if: steps.tier.outputs.tier != ''
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate diff against tier
+        id: check
+        if: steps.tier.outputs.tier != ''
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TIER: ${{ steps.tier.outputs.tier }}
+        run: |
+          set -euo pipefail
+          # node and yq are preinstalled on GitHub-hosted Ubuntu runners; fail
+          # loudly rather than silently refusing every PR if that changes.
+          node --version && yq --version
+          # Fetch the PR head as objects only; the workspace stays on base.
+          git fetch --no-tags origin "+refs/pull/$PR_NUMBER/head:refs/remotes/pr/head"
+          test "$(git rev-parse refs/remotes/pr/head)" = "$HEAD_SHA"
+          result=$(node .github/scripts/renovate-automerge-check.js "$BASE_SHA" "$HEAD_SHA" "$TIER")
+          echo "$result"
+          echo "$result" | tail -n 1 >> "$GITHUB_OUTPUT"
+
+      - name: Apply or remove merge labels
+        if: steps.gate.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          ELIGIBLE: ${{ steps.check.outputs.eligible }}
+          TIER: ${{ steps.tier.outputs.tier }}
+        run: |
+          set -euo pipefail
+          if [ "$ELIGIBLE" = "true" ]; then
+            gh pr edit "$PR_URL" --add-label "lgtm,approved"
+            echo "### ✅ Auto-merge labels applied (tier: $TIER)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            # Remove merge labels only where this workflow was the last to
+            # add them; a human's /lgtm or /approve stays.
+            for l in lgtm approved; do
+              by=$(gh api "repos/$REPO/issues/$PR_NUMBER/events" --paginate \
+                --jq ".[] | select(.event == \"labeled\" and .label.name == \"$l\") | .actor.login" | tail -n 1)
+              if [ "$by" = "github-actions[bot]" ]; then
+                gh pr edit "$PR_URL" --remove-label "$l" 2>/dev/null || true
+              fi
+            done
+            echo "### ⏭️ Not auto-merged (tier: ${TIER:-none}) — needs human /lgtm + /approve" >> "$GITHUB_STEP_SUMMARY"
+          fi
