@@ -9,6 +9,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -53,7 +55,8 @@ type ConnectionOptions struct {
 	Region          string
 	BaseEndpoint    string
 	// ChecksumAlgorithm is an optional upload checksum setting from the S3 connection.
-	// Leave empty for S3-compatible endpoints that reject streaming checksum trailers.
+	// Leave empty for S3-compatible endpoints that reject streaming checksum trailers;
+	// Amazon S3 endpoints retain the SDK's default checksum when this is empty.
 	ChecksumAlgorithm ChecksumAlgorithm
 }
 
@@ -304,11 +307,38 @@ func (p *awsClientProvider) CreateTransferClient(opts ConnectionOptions) (Transf
 		o.GetObjectBufferSize = cfg.GetObjectBufSize
 		o.PartBodyMaxRetries = cfg.PartBodyMaxRetries
 		o.DisableChecksumValidation = false
-		// Keep checksums opt-in per upload: some S3-compatible stores reject the
-		// optional CRC32 streaming trailer. Callers can set UploadObjectInput's
-		// ChecksumAlgorithm when the bucket requires a checksum, such as with Object Lock.
-		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
+		// Amazon S3 keeps the SDK's default checksum for Object Lock buckets.
+		// Other stores avoid optional CRC32 trailers unless the upload explicitly
+		// sets a ChecksumAlgorithm.
+		o.RequestChecksumCalculation = requestChecksumCalculation(opts.BaseEndpoint)
 	}), nil
+}
+
+func requestChecksumCalculation(endpoint string) aws.RequestChecksumCalculation {
+	if isAmazonS3Endpoint(endpoint) {
+		return aws.RequestChecksumCalculationWhenSupported
+	}
+	return aws.RequestChecksumCalculationWhenRequired
+}
+
+func isAmazonS3Endpoint(endpoint string) bool {
+	parsed, err := url.Parse(endpoint)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(strings.TrimSuffix(parsed.Hostname(), "."))
+	for _, domain := range []string{"amazonaws.com", "amazonaws.com.cn"} {
+		if host == "s3."+domain {
+			return true
+		}
+		if suffix := "." + domain; strings.HasSuffix(host, suffix) {
+			service := strings.TrimSuffix(host, suffix)
+			if strings.HasPrefix(service, "s3.") || strings.HasPrefix(service, "s3-") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // buildAWSClient creates a real *awss3.Client with validated endpoint, credentials, and TLS.
@@ -329,7 +359,7 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 		),
 		RetryMaxAttempts:           1,
 		HTTPClient:                 p.buildHTTPClient(),
-		RequestChecksumCalculation: aws.RequestChecksumCalculationWhenRequired,
+		RequestChecksumCalculation: requestChecksumCalculation(validatedEndpoint),
 	}
 
 	return awss3.NewFromConfig(awsCfg, func(o *awss3.Options) {

@@ -16,7 +16,8 @@ const ChecksumAlgorithmSecretKey = "AWS_S3_UPLOAD_CHECKSUM_ALGORITHM"
 type ChecksumAlgorithm = transfertypes.ChecksumAlgorithm
 
 // ParseChecksumAlgorithm validates and normalizes a transfer manager checksum algorithm.
-// An empty value keeps checksum calculation disabled unless the S3 operation requires it.
+// An empty value keeps optional checksums disabled for non-Amazon endpoints unless
+// the S3 operation requires one. Amazon S3 endpoints retain the SDK default.
 func ParseChecksumAlgorithm(value string) (ChecksumAlgorithm, error) {
 	switch strings.ToUpper(strings.TrimSpace(value)) {
 	case "":
@@ -100,8 +101,9 @@ type UploadObjectInput struct {
 	Body        io.Reader
 	ContentType string
 	// ChecksumAlgorithm opts this upload into checksum calculation. Leave it empty
-	// for endpoints that reject optional streaming checksum trailers; set a
-	// supported algorithm when the bucket requires a checksum, such as with Object Lock.
+	// for endpoints that reject optional streaming checksum trailers. Amazon S3
+	// endpoints retain the SDK default; set an algorithm for other buckets that
+	// require a checksum, such as with Object Lock.
 	ChecksumAlgorithm transfertypes.ChecksumAlgorithm
 }
 
