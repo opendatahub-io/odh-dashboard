@@ -25,7 +25,9 @@ describe('getAdmissionChartGridLeft', () => {
     { metricId: ADMISSION_METRIC_IDS.rate, labelWidth: 5, expected: 35 },
     { metricId: ADMISSION_METRIC_IDS.leadTime, labelWidth: 5, expected: 50 },
     { metricId: ADMISSION_METRIC_IDS.leadTime, labelWidth: 4, expected: 30 },
-    { metricId: ADMISSION_METRIC_IDS.waiting, labelWidth: 10, expected: 20 },
+    { metricId: ADMISSION_METRIC_IDS.waiting, labelWidth: 10, expected: 78 },
+    { metricId: ADMISSION_METRIC_IDS.waiting, labelWidth: 3, expected: 29 },
+    { metricId: ADMISSION_METRIC_IDS.active, labelWidth: 4, expected: 36 },
   ])('returns expected grid-left for %#', ({ metricId, labelWidth, expected }) => {
     expect(getAdmissionChartGridLeft(metricId, labelWidth)).toBe(expected);
   });

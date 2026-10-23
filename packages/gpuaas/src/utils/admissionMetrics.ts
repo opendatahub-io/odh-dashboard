@@ -15,6 +15,8 @@ export const ADMISSION_METRIC_IDS = {
 
 const RATE_LABEL_WIDTH_FOR_EXTRA_GRID = 6;
 const LEAD_TIME_LABEL_WIDTH_FOR_EXTRA_GRID = 5;
+const WORKLOAD_LABEL_CHARACTER_WIDTH = 7;
+const WORKLOAD_LABEL_MARGIN = 8;
 
 export const getAdmissionChartGridLeft = (metricId: string, labelWidth: number): number => {
   if (metricId === ADMISSION_METRIC_IDS.rate) {
@@ -22,6 +24,9 @@ export const getAdmissionChartGridLeft = (metricId: string, labelWidth: number):
   }
   if (metricId === ADMISSION_METRIC_IDS.leadTime) {
     return labelWidth >= LEAD_TIME_LABEL_WIDTH_FOR_EXTRA_GRID ? 50 : 30;
+  }
+  if (metricId === ADMISSION_METRIC_IDS.waiting || metricId === ADMISSION_METRIC_IDS.active) {
+    return Math.max(20, labelWidth * WORKLOAD_LABEL_CHARACTER_WIDTH + WORKLOAD_LABEL_MARGIN);
   }
   return 20;
 };

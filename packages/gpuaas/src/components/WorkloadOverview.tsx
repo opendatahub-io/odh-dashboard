@@ -239,7 +239,7 @@ const WorkloadStatusCounts: React.FC<WorkloadStatusCountsProps> = ({
           {counts[bucket] > 0 ? (
             <Button variant="plain" isInline data-testid={`workload-count-${bucket}`}>
               <Flex
-                className="gpuaas-workload-overview__count-content"
+                className="pf-v6-u-w-100"
                 direction={{ default: 'column' }}
                 alignItems={{ default: 'alignItemsCenter' }}
               >
@@ -252,7 +252,7 @@ const WorkloadStatusCounts: React.FC<WorkloadStatusCountsProps> = ({
           ) : (
             <div data-testid={`workload-count-${bucket}`}>
               <Flex
-                className="gpuaas-workload-overview__count-content"
+                className="pf-v6-u-w-100"
                 direction={{ default: 'column' }}
                 alignItems={{ default: 'alignItemsCenter' }}
               >
