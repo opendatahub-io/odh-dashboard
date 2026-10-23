@@ -40,6 +40,7 @@ import {
   evaluationsBaseRoute,
   evaluationBenchmarksRoute,
   evaluationCollectionsRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
@@ -229,7 +230,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
           pageName="Evaluations"
           projectDisplayName={projectDisplayName}
           homePath={evaluationsBaseRoute(namespace)}
-          projectHomePath={`/projects/${namespace}`}
+          projectHomePath={projectHomeRoute(namespace)}
         >
           {getBreadcrumbItems()}
         </ContextBreadcrumb>

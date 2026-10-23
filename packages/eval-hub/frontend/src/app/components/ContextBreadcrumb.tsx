@@ -22,6 +22,8 @@ type ContextBreadcrumbProps = {
   children?: React.ReactNode;
   /** Renders the home crumb as an aria-disabled span instead of a link (e.g. while an operation is pending). */
   isHomeDisabled?: boolean;
+  /** Renders the "go to project" link as an aria-disabled span instead of a link (e.g. while an operation is pending). */
+  isProjectLinkDisabled?: boolean;
   /** Overrides the `data-testid` of the home crumb link. Defaults to `context-breadcrumb-home`. */
   homeTestId?: string;
   /** Overrides the `data-testid` of the "go to project" link. Defaults to `context-breadcrumb-project-link`. */
@@ -43,6 +45,7 @@ const ContextBreadcrumb: React.FC<ContextBreadcrumbProps> = ({
   onHomeNavigate,
   children,
   isHomeDisabled = false,
+  isProjectLinkDisabled = false,
   homeTestId = 'context-breadcrumb-home',
   projectLinkTestId = 'context-breadcrumb-project-link',
 }) => {
@@ -54,13 +57,25 @@ const ContextBreadcrumb: React.FC<ContextBreadcrumbProps> = ({
     </Flex>
   );
 
+  const projectLinkContent = (
+    <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsXs' }}>
+      <FlexItem>Go to</FlexItem>
+      <ProjectIconWithSize size={IconSize.MD} />
+      <FlexItem>
+        <strong>{projectDisplayName}</strong>
+      </FlexItem>
+    </Flex>
+  );
+
   return (
     <Flex alignItems={{ default: 'alignItemsCenter' }}>
       <Breadcrumb>
         <BreadcrumbItem>
           {isHomeDisabled ? (
             <span
+              role="link"
               aria-disabled="true"
+              tabIndex={-1}
               className="evalhub-breadcrumb-link-disabled"
               data-testid={homeTestId}
             >
@@ -83,18 +98,20 @@ const ContextBreadcrumb: React.FC<ContextBreadcrumbProps> = ({
         <Divider orientation={{ default: 'vertical' }} />
         <FlexItem data-testid={projectLinkTestId}>
           <Content component={ContentVariants.small}>
-            <Link to={projectHomePath} className="evalhub-breadcrumb-link-with-icon">
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                spaceItems={{ default: 'spaceItemsXs' }}
+            {isProjectLinkDisabled ? (
+              <span
+                role="link"
+                aria-disabled="true"
+                tabIndex={-1}
+                className="evalhub-breadcrumb-link-disabled"
               >
-                <FlexItem>Go to</FlexItem>
-                <ProjectIconWithSize size={IconSize.MD} />
-                <FlexItem>
-                  <strong>{projectDisplayName}</strong>
-                </FlexItem>
-              </Flex>
-            </Link>
+                {projectLinkContent}
+              </span>
+            ) : (
+              <Link to={projectHomePath} className="evalhub-breadcrumb-link-with-icon">
+                {projectLinkContent}
+              </Link>
+            )}
           </Content>
         </FlexItem>
       </Flex>

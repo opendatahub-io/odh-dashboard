@@ -3,7 +3,7 @@ import { BreadcrumbItem } from '@patternfly/react-core';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
-import { evaluationsBaseRoute } from '~/app/routes';
+import { evaluationsBaseRoute, projectHomeRoute } from '~/app/routes';
 import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import MlflowCompareRuns from '~/app/components/MlflowCompareRuns';
@@ -75,7 +75,7 @@ const CompareEvaluationsPage: React.FC = () => {
           pageName="Evaluations"
           projectDisplayName={projectDisplayName}
           homePath={evaluationsBaseRoute(namespace)}
-          projectHomePath={`/projects/${namespace}`}
+          projectHomePath={projectHomeRoute(namespace)}
         >
           <BreadcrumbItem isActive>Compare evaluations</BreadcrumbItem>
         </ContextBreadcrumb>

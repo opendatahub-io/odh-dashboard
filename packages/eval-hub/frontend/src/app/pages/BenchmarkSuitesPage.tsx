@@ -31,6 +31,7 @@ import {
   evaluationEditSuiteRoute,
   evaluationEvaluateRoute,
   evaluationsBaseRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
@@ -158,7 +159,7 @@ const BenchmarkSuitesPage: React.FC = () => {
                   pageName="Evaluations"
                   projectDisplayName={projectDisplayName}
                   homePath={evaluationsBaseRoute(namespace)}
-                  projectHomePath={`/projects/${namespace}`}
+                  projectHomePath={projectHomeRoute(namespace)}
                 >
                   <BreadcrumbItem
                     render={() => (

@@ -75,3 +75,7 @@ export const evaluationCompareBenchmarksRoute = (namespace?: string): string =>
 
 export const evaluationReconfigureRoute = (namespace?: string, jobId?: string): string =>
   `${evaluationsBaseRoute(namespace)}/reconfigure/${jobId ?? ':jobId'}`;
+
+// Link to the host app's project details page; falls back to the projects list when no namespace
+export const projectHomeRoute = (namespace?: string): string =>
+  namespace ? `/projects/${namespace}` : '/projects';

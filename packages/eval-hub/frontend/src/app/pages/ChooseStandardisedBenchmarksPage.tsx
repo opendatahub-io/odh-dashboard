@@ -36,7 +36,7 @@ import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { useProviders } from '~/app/hooks/useProviders';
 import useSearchInputTracking from '~/app/hooks/useSearchInputTracking';
 import { FlatBenchmark } from '~/app/types';
-import { evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import { evaluationStartRoute, evaluationsBaseRoute, projectHomeRoute } from '~/app/routes';
 import {
   EVAL_HUB_EVENTS,
   type BenchmarkCatalogFilterType,
@@ -224,7 +224,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                 pageName="Evaluations"
                 projectDisplayName={projectDisplayName}
                 homePath={evaluationsBaseRoute(namespace)}
-                projectHomePath={`/projects/${namespace}`}
+                projectHomePath={projectHomeRoute(namespace)}
               >
                 <BreadcrumbItem isActive>Select benchmark</BreadcrumbItem>
               </ContextBreadcrumb>

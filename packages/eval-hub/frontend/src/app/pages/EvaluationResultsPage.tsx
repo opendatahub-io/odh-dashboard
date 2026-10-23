@@ -22,7 +22,7 @@ import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import '~/app/components/EvaluationStatusModal.scss';
 import './EvaluationResultsPage.scss';
-import { evaluationRunsRoute, evaluationsBaseRoute } from '~/app/routes';
+import { evaluationRunsRoute, evaluationsBaseRoute, projectHomeRoute } from '~/app/routes';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import useDarkMode from '~/app/hooks/useDarkMode';
@@ -212,9 +212,15 @@ const EvaluationResultsPage: React.FC = () => {
             pageName="Evaluations"
             projectDisplayName={projectDisplayName}
             homePath={evaluationsBaseRoute(namespace)}
-            projectHomePath={`/projects/${namespace}`}
+            projectHomePath={projectHomeRoute(namespace)}
           >
-            <BreadcrumbItem render={() => <Link to={evaluationRunsRoute(namespace)}>Runs</Link>} />
+            <BreadcrumbItem
+              render={() => (
+                <Link to={evaluationRunsRoute(namespace)} data-testid="runs-breadcrumb-link">
+                  Runs
+                </Link>
+              )}
+            />
             <BreadcrumbItem isActive>{evaluationName}</BreadcrumbItem>
           </ContextBreadcrumb>
         }

@@ -38,7 +38,7 @@ import {
   DEFAULT_TABLE_PER_PAGE,
   TABLE_PER_PAGE_OPTIONS,
 } from '~/app/utilities/tablePaginationConstants';
-import { evaluationCompareRoute, evaluationsBaseRoute } from '~/app/routes';
+import { evaluationCompareRoute, evaluationsBaseRoute, projectHomeRoute } from '~/app/routes';
 
 const ChooseCompareBenchmarksPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -165,7 +165,7 @@ const ChooseCompareBenchmarksPage: React.FC = () => {
           pageName="Evaluations"
           projectDisplayName={projectDisplayName}
           homePath={evaluationsBaseRoute(namespace)}
-          projectHomePath={`/projects/${namespace}`}
+          projectHomePath={projectHomeRoute(namespace)}
         >
           <BreadcrumbItem isActive>Compare evaluation runs</BreadcrumbItem>
         </ContextBreadcrumb>

@@ -17,6 +17,7 @@ import {
   evaluationBenchmarksRoute,
   evaluationCollectionsRoute,
   evaluationsBaseRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import paperLinedIcon from '~/app/bgimages/paper-lined.svg';
 import paperStackIcon from '~/app/bgimages/paper-stack-ined.svg';
@@ -36,7 +37,7 @@ const NewEvaluationRunPage: React.FC = () => {
           pageName="Evaluations"
           projectDisplayName={projectDisplayName}
           homePath={evaluationsBaseRoute(namespace)}
-          projectHomePath={`/projects/${namespace}`}
+          projectHomePath={projectHomeRoute(namespace)}
         >
           <BreadcrumbItem isActive>Select evaluation type</BreadcrumbItem>
         </ContextBreadcrumb>

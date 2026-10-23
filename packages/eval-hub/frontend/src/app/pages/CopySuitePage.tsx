@@ -28,6 +28,7 @@ import {
   evaluationEvaluateRoute,
   evaluationGalleryRoute,
   evaluationsBaseRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
@@ -399,8 +400,9 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
           pageName="Evaluations"
           projectDisplayName={projectDisplayName}
           homePath={evaluationsBaseRoute(namespace)}
-          projectHomePath={`/projects/${namespace}`}
+          projectHomePath={projectHomeRoute(namespace)}
           isHomeDisabled={isPageInteractionDisabled}
+          isProjectLinkDisabled={isPageInteractionDisabled}
           homeTestId="copy-suite-breadcrumb-evaluations"
         >
           {breadcrumbItems}

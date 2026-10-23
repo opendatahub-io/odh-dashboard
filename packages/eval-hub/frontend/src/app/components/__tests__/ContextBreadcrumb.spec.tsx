@@ -79,8 +79,30 @@ describe('ContextBreadcrumb', () => {
     const homeCrumb = screen.getByTestId('custom-home');
     expect(homeCrumb).toHaveTextContent('Evaluations in');
     expect(homeCrumb.tagName).toBe('SPAN');
+    expect(homeCrumb).toHaveAttribute('role', 'link');
     expect(homeCrumb).toHaveAttribute('aria-disabled', 'true');
     expect(homeCrumb.querySelector('a')).not.toBeInTheDocument();
+  });
+
+  it('should render a disabled project link when isProjectLinkDisabled is true', () => {
+    render(
+      <MemoryRouter>
+        <ContextBreadcrumb
+          pageName="Evaluations"
+          projectDisplayName="My Project"
+          homePath="/evaluation/my-namespace"
+          projectHomePath="/projects/my-namespace"
+          isProjectLinkDisabled
+        />
+      </MemoryRouter>,
+    );
+
+    const projectLink = screen.getByTestId('context-breadcrumb-project-link');
+    expect(projectLink).toHaveTextContent('Go to');
+    const disabledProjectLink = projectLink.querySelector('span[aria-disabled="true"]');
+    expect(disabledProjectLink).toBeInTheDocument();
+    expect(disabledProjectLink).toHaveAttribute('role', 'link');
+    expect(projectLink.querySelector('a')).not.toBeInTheDocument();
   });
 
   it('should use custom test ids when provided', () => {

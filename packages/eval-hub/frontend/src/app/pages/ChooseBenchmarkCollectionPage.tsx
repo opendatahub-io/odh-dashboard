@@ -52,6 +52,7 @@ import {
   evaluationCreateRoute,
   evaluationStartRoute,
   evaluationsBaseRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
@@ -178,7 +179,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 pageName="Evaluations"
                 projectDisplayName={projectDisplayName}
                 homePath={evaluationsBaseRoute(namespace)}
-                projectHomePath={`/projects/${namespace}`}
+                projectHomePath={projectHomeRoute(namespace)}
               >
                 <BreadcrumbItem
                   render={() => (

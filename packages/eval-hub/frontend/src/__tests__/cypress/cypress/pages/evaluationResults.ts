@@ -17,7 +17,7 @@ class EvaluationResultsPage {
   }
 
   findRunsBreadcrumb() {
-    return cy.findByRole('link', { name: 'Runs' });
+    return cy.findByTestId('runs-breadcrumb-link');
   }
 
   findScoreValue() {
