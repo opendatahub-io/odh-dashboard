@@ -360,30 +360,8 @@ func TestEvalHubClient_ListEvaluationJobs_ServerError(t *testing.T) {
 }
 
 func TestEvalHubClient_ListCollections(t *testing.T) {
-	resp := CollectionsResponse{
-		Items: []Collection{
-			{
-				Resource: CollectionResource{
-					ID:             "col-1",
-					VersionCounter: 3,
-				},
-				Name:              "Safety Suite",
-				Description:       "Safety benchmarks",
-				Domains:           []string{"trustworthiness"},
-				Tasks:             []string{"classification"},
-				Modalities:        []string{"text"},
-				Industries:        []string{"healthcare"},
-				EvaluationTargets: []string{"model"},
-				CurationOrder:     1,
-				State: &CollectionState{
-					DerivedFrom: "curated-suite",
-					RunCount:    2,
-					PinnedOrder: 1,
-				},
-			},
-		},
-	}
-
+	// Mirrors the real EvalHub API shape: run count under a top-level `status`
+	// object and clone lineage at the top level — not under `state`.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/evaluations/collections", r.URL.Path)
 		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
@@ -393,9 +371,22 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 		assert.Equal(t, "healthcare", r.URL.Query().Get("industries"))
 		assert.Equal(t, "agent", r.URL.Query().Get("evaluation_targets"))
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(resp); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		_, _ = w.Write([]byte(`{
+			"items": [{
+				"resource": {"id": "col-1", "version_counter": 3},
+				"name": "Safety Suite",
+				"description": "Safety benchmarks",
+				"domains": ["trustworthiness"],
+				"tasks": ["classification"],
+				"modalities": ["text"],
+				"industries": ["healthcare"],
+				"evaluation_targets": ["model"],
+				"curation_order": 1,
+				"derived_from": "curated-suite",
+				"pinned_order": 1,
+				"status": {"run_count": 2}
+			}]
+		}`))
 	}))
 	defer server.Close()
 
@@ -420,10 +411,10 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	assert.Equal(t, []string{"healthcare"}, result.Items[0].Industries)
 	assert.Equal(t, []string{"model"}, result.Items[0].EvaluationTargets)
 	assert.Equal(t, 1, result.Items[0].CurationOrder)
-	require.NotNil(t, result.Items[0].State)
-	assert.Equal(t, "curated-suite", result.Items[0].State.DerivedFrom)
-	assert.Equal(t, 2, result.Items[0].State.RunCount)
-	assert.Equal(t, 1, result.Items[0].State.PinnedOrder)
+	assert.Equal(t, "curated-suite", result.Items[0].DerivedFrom)
+	require.NotNil(t, result.Items[0].Status)
+	assert.Equal(t, 2, result.Items[0].Status.RunCount)
+	assert.Equal(t, 1, result.Items[0].PinnedOrder)
 }
 
 func TestEvalHubClient_ListCollections_ParsesTopLevelDerivedFrom(t *testing.T) {
@@ -1231,4 +1222,31 @@ func TestEvalHubClient_CancelEvaluationJob_RejectsOversizedResponse(t *testing.T
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "exceeds maximum allowed size")
+}
+
+func TestEvalHubClient_GetCollection_ParsesStatus(t *testing.T) {
+	// Exact shape returned by a live EvalHub instance: run count under a
+	// top-level `status` object, `derived_from` top-level, no `state` key.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/collections/332c3b1c", r.URL.Path)
+		assert.Equal(t, "tenant", r.Header.Get("X-Tenant"))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"resource": {"id": "332c3b1c", "tenant": "tenant", "owner": "cluster-admin"},
+			"name": "Tool Use v1 - Oct 22, 2026, 2:42 PM",
+			"derived_from": "tool-use-v1",
+			"status": {"run_count": 1},
+			"benchmarks": [{"id": "inspect/bfcl", "provider_id": "inspect"}]
+		}`))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.GetCollection(context.Background(), "332c3b1c", "tenant")
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "tool-use-v1", result.DerivedFrom)
+	require.NotNil(t, result.Status)
+	assert.Equal(t, 1, result.Status.RunCount)
 }

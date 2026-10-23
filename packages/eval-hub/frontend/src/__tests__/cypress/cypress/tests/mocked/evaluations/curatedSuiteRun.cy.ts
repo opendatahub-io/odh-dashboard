@@ -65,10 +65,8 @@ const reusableCollection: Collection = {
   ...sourceCollection,
   resource: { ...sourceCollection.resource, id: 'curated-suite-existing-copy' },
   curation_order: undefined,
-  state: {
-    derived_from: sourceCollection.resource.id,
-    run_count: 2,
-  },
+  derived_from: sourceCollection.resource.id,
+  status: { run_count: 2 },
 };
 
 const interceptTenantCollections = (collections: Collection[]) => {

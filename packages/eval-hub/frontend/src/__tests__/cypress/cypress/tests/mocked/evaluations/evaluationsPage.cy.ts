@@ -331,7 +331,7 @@ describe('Evaluations Page - Tabs', () => {
   it('should disable editing a benchmark suite after it has been run', () => {
     const collections = mockBenchmarkSuiteCollections().map((collection) =>
       collection.resource.id === 'model-suite-2'
-        ? { ...collection, state: { run_count: 1 } }
+        ? { ...collection, status: { run_count: 1 } }
         : collection,
     );
     initIntercepts({ collections });
