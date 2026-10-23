@@ -5,11 +5,13 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { mockProvider } from '~/__mocks__/mockProvider';
 import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
+import EvalHubCoreLoader from '~/app/components/EvalHubCoreLoader';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockUseCollectionsQuery = jest.fn();
 const mockUseProviders = jest.fn();
+const mockUseNamespaceSelectorWithPersistence = jest.fn();
 
 jest.mock('~/app/tracking/evalhubTracking', () => ({
   createEvalHubTrackingScope: () => ({ trackEventOnce: jest.fn(), clear: jest.fn() }),
@@ -35,6 +37,37 @@ jest.mock('~/app/hooks/collections', () => ({
 jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: (...args: unknown[]) => mockUseProviders(...args),
 }));
+
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: (...args: unknown[]) =>
+    mockUseNamespaceSelectorWithPersistence(...args),
+}));
+
+jest.mock('~/app/components/EvalHubProjectSelector', () => {
+  const { useNavigate } = require('react-router-dom');
+  const MockProjectSelector = ({
+    namespace,
+    getRedirectPath,
+  }: {
+    namespace?: string;
+    getRedirectPath: (namespace: string) => string;
+  }) => {
+    const navigate = useNavigate();
+    return (
+      <div data-testid="benchmark-suites-project-selector">
+        {namespace}
+        <button
+          type="button"
+          data-testid="benchmark-suites-project-selector-switch"
+          onClick={() => navigate(getRedirectPath('other-project'))}
+        >
+          Switch project
+        </button>
+      </div>
+    );
+  };
+  return { __esModule: true, default: MockProjectSelector };
+});
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
@@ -77,6 +110,14 @@ describe('BenchmarkSuitesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseProviders.mockReturnValue({ providers: [], loaded: true, loadError: undefined });
+    mockUseNamespaceSelectorWithPersistence.mockReturnValue({
+      namespaces: [
+        { name: 'test-project', displayName: 'Test Project' },
+        { name: 'other-project', displayName: 'Other Project' },
+      ],
+      namespacesLoaded: true,
+      preferredNamespace: undefined,
+    });
     mockUseCollectionsQuery.mockReturnValue({
       data: {
         items: mockBenchmarkSuiteCollections(),
@@ -92,7 +133,11 @@ describe('BenchmarkSuitesPage', () => {
   it('should render all tenant benchmark suites', () => {
     renderPage();
 
-    expect(screen.getByTestId('page-title')).toHaveTextContent('My benchmark collections');
+    const pageTitle = screen.getByTestId('page-title');
+    expect(pageTitle).toHaveTextContent('My benchmark collections');
+    expect(within(pageTitle).getByTestId('benchmark-suites-project-selector')).toHaveTextContent(
+      'test-project',
+    );
     expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-project?tab=evaluate',
@@ -550,6 +595,47 @@ describe('BenchmarkSuitesPage', () => {
       undefined,
       undefined,
       undefined,
+    );
+  });
+
+  it('should clear the drawer and run selection when switching projects', async () => {
+    // Render through EvalHubCoreLoader to exercise the real route wiring, where only
+    // the :namespace param changes on project switch and the page must not retain
+    // project A's namespace-scoped state under project B.
+    render(
+      <MemoryRouter initialEntries={['/evaluation/test-project/collections']}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <EvalHubCoreLoader getInvalidRedirectPath={(ns) => `/evaluation/${ns}/collections`} />
+            }
+          >
+            <Route path="evaluation/:namespace/collections" element={<BenchmarkSuitesPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+
+    // Open the collection drawer and start a run from it in project A.
+    await user.click(screen.getByTestId('benchmark-suite-card-name-model-suite-2'));
+    expect(screen.getByTestId('collection-drawer-panel')).toBeInTheDocument();
+    await user.click(screen.getByTestId('use-benchmark-suite-button'));
+    expect(
+      screen.getByTestId('benchmark-suites-page-start-evaluation-run-modal'),
+    ).toBeInTheDocument();
+
+    // Switch to project B via the project selector.
+    await user.click(screen.getByTestId('benchmark-suites-project-selector-switch'));
+
+    // The drawer and the pending run selection are cleared — no cross-project run flow.
+    expect(screen.queryByTestId('collection-drawer-panel')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-suites-page-start-evaluation-run-modal'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-project-selector')).toHaveTextContent(
+      'other-project',
     );
   });
 });

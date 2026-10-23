@@ -1,9 +1,11 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { BreadcrumbItem } from '@patternfly/react-core';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
-import { evaluationsBaseRoute } from '~/app/routes';
+import { evaluationsBaseRoute, projectHomeRoute } from '~/app/routes';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import MlflowCompareRuns from '~/app/components/MlflowCompareRuns';
 import { parseMlflowArrayParam } from '~/app/utilities/compareEvaluationsUtils';
 import { createEvalHubTrackingScope } from '~/app/tracking/evalhubTracking';
@@ -12,6 +14,7 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 const CompareEvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const [searchParams] = useSearchParams();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
 
   React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
@@ -68,12 +71,14 @@ const CompareEvaluationsPage: React.FC = () => {
     <ApplicationsPage
       title={title}
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-          />
+        <ContextBreadcrumb
+          pageName="Evaluations"
+          projectDisplayName={projectDisplayName}
+          homePath={evaluationsBaseRoute(namespace)}
+          projectHomePath={projectHomeRoute(namespace)}
+        >
           <BreadcrumbItem isActive>Compare evaluations</BreadcrumbItem>
-        </Breadcrumb>
+        </ContextBreadcrumb>
       }
       loaded
       empty={!hasValidParams}
