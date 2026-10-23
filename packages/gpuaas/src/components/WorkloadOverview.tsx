@@ -31,6 +31,7 @@ import {
 import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
 import { ADMISSION_TIME_WINDOW_OPTIONS } from '../utils/workloadAdmissions';
 import {
+  calculateWorkloadOverviewPercentages,
   overviewBuckets,
   summarizeOverview,
   type OverviewBucket,
@@ -283,80 +284,84 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
   onPopoverOpen,
   onPopoverClose,
   onViewInTable,
-}) => (
-  <Stack className="gpuaas-workload-overview__status" data-testid="workload-overview-status">
-    <Flex className="gpuaas-workload-overview__counts">
-      <FlexItem className="gpuaas-workload-overview__total">
-        <Flex
-          className="gpuaas-workload-overview__count-content"
-          direction={{ default: 'column' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-        >
-          <Title headingLevel="h3" size="2xl">
-            {total}
-          </Title>
-          <Content component="p" className="gpuaas-workload-overview__total-label">
-            <strong>Total workloads</strong>
-          </Content>
-        </Flex>
-      </FlexItem>
-      <WorkloadStatusCounts
-        counts={counts}
-        details={details}
-        visiblePopover={visiblePopover}
-        onPopoverOpen={onPopoverOpen}
-        onPopoverClose={onPopoverClose}
-        onViewInTable={onViewInTable}
-      />
-    </Flex>
-    <div className="gpuaas-workload-overview__bar" role="group" aria-label="Workloads by status">
-      {overviewBuckets
-        .filter((bucket) => counts[bucket] > 0)
-        .map((bucket) => {
-          const percentage = Math.round((counts[bucket] / total) * 100);
-          return (
-            <div
-              key={bucket}
-              className="gpuaas-workload-overview__bar-item"
-              style={{ flexGrow: counts[bucket] }}
-            >
-              <WorkloadStatusControl
-                bucket={bucket}
-                details={details[bucket]}
-                source="chart"
-                visiblePopover={visiblePopover}
-                onPopoverOpen={onPopoverOpen}
-                onPopoverClose={onPopoverClose}
-                onViewInTable={onViewInTable}
-              >
-                <button
-                  type="button"
-                  data-testid={`workload-segment-${bucket}`}
-                  className="gpuaas-workload-overview__segment"
-                  style={{ backgroundColor: colors[bucket] }}
-                  data-status={bucket}
-                  aria-label={`${labels[bucket]}: ${counts[bucket]} of ${total} workloads (${percentage}%)`}
-                >
-                  {percentage >= 6 ? `${percentage}%` : null}
-                </button>
-              </WorkloadStatusControl>
-            </div>
-          );
-        })}
-    </div>
-    <Flex className="gpuaas-workload-overview__legend" spaceItems={{ default: 'spaceItemsLg' }}>
-      {overviewBuckets.map((bucket) => (
-        <FlexItem key={bucket}>
-          <span
-            className="gpuaas-workload-overview__swatch"
-            style={{ backgroundColor: colors[bucket] }}
-          />
-          {labels[bucket]}
+}) => {
+  const workloadOverviewPercentages = calculateWorkloadOverviewPercentages(counts, total);
+
+  return (
+    <Stack className="gpuaas-workload-overview__status" data-testid="workload-overview-status">
+      <Flex className="gpuaas-workload-overview__counts">
+        <FlexItem className="gpuaas-workload-overview__total">
+          <Flex
+            className="gpuaas-workload-overview__count-content"
+            direction={{ default: 'column' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <Title headingLevel="h3" size="2xl">
+              {total}
+            </Title>
+            <Content component="p" className="gpuaas-workload-overview__total-label">
+              <strong>Total workloads</strong>
+            </Content>
+          </Flex>
         </FlexItem>
-      ))}
-    </Flex>
-  </Stack>
-);
+        <WorkloadStatusCounts
+          counts={counts}
+          details={details}
+          visiblePopover={visiblePopover}
+          onPopoverOpen={onPopoverOpen}
+          onPopoverClose={onPopoverClose}
+          onViewInTable={onViewInTable}
+        />
+      </Flex>
+      <div className="gpuaas-workload-overview__bar" role="group" aria-label="Workloads by status">
+        {overviewBuckets
+          .filter((bucket) => counts[bucket] > 0)
+          .map((bucket) => {
+            const bucketPercentage = workloadOverviewPercentages[bucket];
+            return (
+              <div
+                key={bucket}
+                className="gpuaas-workload-overview__bar-item"
+                style={{ flexGrow: counts[bucket] }}
+              >
+                <WorkloadStatusControl
+                  bucket={bucket}
+                  details={details[bucket]}
+                  source="chart"
+                  visiblePopover={visiblePopover}
+                  onPopoverOpen={onPopoverOpen}
+                  onPopoverClose={onPopoverClose}
+                  onViewInTable={onViewInTable}
+                >
+                  <button
+                    type="button"
+                    data-testid={`workload-segment-${bucket}`}
+                    className="gpuaas-workload-overview__segment"
+                    style={{ backgroundColor: colors[bucket] }}
+                    data-status={bucket}
+                    aria-label={`${labels[bucket]}: ${counts[bucket]} of ${total} workloads (${bucketPercentage}%)`}
+                  >
+                    {bucketPercentage >= 6 ? `${bucketPercentage}%` : null}
+                  </button>
+                </WorkloadStatusControl>
+              </div>
+            );
+          })}
+      </div>
+      <Flex className="gpuaas-workload-overview__legend" spaceItems={{ default: 'spaceItemsLg' }}>
+        {overviewBuckets.map((bucket) => (
+          <FlexItem key={bucket}>
+            <span
+              className="gpuaas-workload-overview__swatch"
+              style={{ backgroundColor: colors[bucket] }}
+            />
+            {labels[bucket]}
+          </FlexItem>
+        ))}
+      </Flex>
+    </Stack>
+  );
+};
 
 const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   workloads,

@@ -128,3 +128,45 @@ export const summarizeOverview = (rows: WorkloadOverviewRow[]): OverviewSummary 
 
   return { counts, details, total: rows.length };
 };
+
+/** Calculates whole-number percentages that sum to 100 for non-empty overview data. */
+export const calculateWorkloadOverviewPercentages = (
+  counts: Record<OverviewBucket, number>,
+  total: number,
+): Record<OverviewBucket, number> => {
+  const workloadOverviewPercentages: Record<OverviewBucket, number> = {
+    completed: 0,
+    active: 0,
+    waiting: 0,
+    blockers: 0,
+    failed: 0,
+  };
+
+  if (total <= 0) {
+    return workloadOverviewPercentages;
+  }
+
+  const bucketPercentageCalculations = overviewBuckets.map((bucket, index) => {
+    const exactPercentage = (counts[bucket] / total) * 100;
+    const wholePercentage = Math.floor(exactPercentage);
+
+    return {
+      bucket,
+      index,
+      wholePercentage,
+      remainder: exactPercentage - wholePercentage,
+    };
+  });
+  const remainingPercentagePoints =
+    100 -
+    bucketPercentageCalculations.reduce((sum, calculation) => sum + calculation.wholePercentage, 0);
+
+  bucketPercentageCalculations
+    .toSorted((a, b) => b.remainder - a.remainder || a.index - b.index)
+    .forEach(({ bucket, wholePercentage }, index) => {
+      workloadOverviewPercentages[bucket] =
+        wholePercentage + (index < remainingPercentagePoints ? 1 : 0);
+    });
+
+  return workloadOverviewPercentages;
+};
