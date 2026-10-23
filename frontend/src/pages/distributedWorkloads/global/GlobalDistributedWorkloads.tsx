@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
+import { Alert, PageSection } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { RefreshIntervalTitle } from '@odh-dashboard/ui-core/types/metrics';
@@ -16,11 +18,28 @@ import { ProjectObjectType } from '#~/concepts/design/utils';
 
 const title = 'Workload metrics';
 const description = 'Monitor the metrics of your active resources.';
+const deprecationMessage =
+  "We've updated Distributed workloads to enable a more comprehensive view of running workloads.";
 
 type GlobalDistributedWorkloadsProps = {
   activeTab: DistributedWorkloadsTabConfig;
   getInvalidRedirectPath: (namespace: string) => string;
 };
+
+type InfrastructureWorkloadsLinkProps = {
+  infrastructureAvailable: boolean;
+};
+
+export const InfrastructureWorkloadsLink: React.FC<InfrastructureWorkloadsLinkProps> = ({
+  infrastructureAvailable,
+}) =>
+  infrastructureAvailable ? (
+    <Link to="/observe-and-monitor/infrastructure" state={{ tab: 'workloads' }}>
+      Workloads
+    </Link>
+  ) : (
+    <>Workloads</>
+  );
 
 const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
   activeTab,
@@ -28,6 +47,7 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const infrastructureAvailable = useIsAreaAvailable(SupportedArea.GPUAAS_INFRASTRUCTURE).status;
   const storedProject = getStoredPreferredProject(projects);
 
   if (projects.length === 0) {
@@ -77,6 +97,13 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
       }
     >
       <MetricsCommonContextProvider initialRefreshInterval={RefreshIntervalTitle.THIRTY_MINUTES}>
+        <PageSection className="pf-v6-u-py-0">
+          <Alert isInline variant="warning" title="This page is being deprecated.">
+            {deprecationMessage} To view all workloads in your project, go to the new{' '}
+            <InfrastructureWorkloadsLink infrastructureAvailable={infrastructureAvailable} /> page
+            in Observe &amp; monitor &gt; Infrastructure.
+          </Alert>
+        </PageSection>
         <DistributedWorkloadsContextProvider namespace={namespace}>
           <GlobalDistributedWorkloadsTabs activeTabId={activeTab.id} />
         </DistributedWorkloadsContextProvider>
