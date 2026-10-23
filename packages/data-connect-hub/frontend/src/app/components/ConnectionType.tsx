@@ -298,6 +298,7 @@ const ConnectionTypeCard: React.FC<ConnectionTypeCardProps> = ({
           name: 'connection-type',
           variant: 'single',
           isHidden: isSelectable,
+          selectableActionProps: { 'data-testid': `${rootId}-select` },
         }}
       >
         <Level>

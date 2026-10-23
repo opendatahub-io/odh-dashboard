@@ -46,6 +46,11 @@ import { useConnection } from '~/app/hooks/useConnection';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+  getConnectionTypeProvider,
+} from '~/app/utilities/tracking';
+import {
   hasVerificationOutcome,
   isValidTimestamp,
   statusVariant,
@@ -180,6 +185,14 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
               <DropdownItem
                 onClick={() => {
                   setActionsOpen(false);
+                  fireDataConnectHubTrackEvent({
+                    eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
+                    properties: {
+                      project: namespace,
+                      connectionTypeProvider:
+                        getConnectionTypeProvider(connectionType) ?? 'unknown',
+                    },
+                  });
                   setDeleteOpen(true);
                 }}
               >
