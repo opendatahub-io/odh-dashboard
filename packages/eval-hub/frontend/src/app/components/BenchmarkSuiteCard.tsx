@@ -403,7 +403,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       </List>
     </div>
   );
-  const runCount = collection.state?.run_count ?? 0;
+  const runCount = collection.status?.run_count ?? 0;
   const runCountTooltip = 'Run Count: Number of successful executions of this collection';
   const trackRunSelected = React.useCallback(() => {
     trackEvalHubEvent(
