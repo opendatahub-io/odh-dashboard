@@ -1,9 +1,6 @@
 import type { CommandLineResult, UserAuthConfig } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
-/** Shell-escape a value by wrapping it in single quotes. */
-export const shellQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
-
 /**
  * Ensures the oc CLI session is logged in as the cluster admin user.
  * Required before setup/cleanup steps that run oc commands after a test

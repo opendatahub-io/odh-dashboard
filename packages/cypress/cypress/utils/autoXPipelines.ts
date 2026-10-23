@@ -1,6 +1,7 @@
-import { assertDataConnectionEndpoint, createDataConnection } from './oc_commands/dataConnection';
+import { assertAutoXDataConnectionEndpoint, resolveAutoXS3Endpoint } from './autoXS3';
+import { createDataConnection } from './oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from './oc_commands/dspa';
-import { AWS_BUCKETS, parseS3Endpoint, resolveAutoXS3Endpoint } from './s3Buckets';
+import { AWS_BUCKETS, parseS3Endpoint } from './s3Buckets';
 import { createCleanProject } from './projectChecker';
 import type {
   DataConnectionReplacements,
@@ -47,7 +48,7 @@ export const provisionProjectForAutoX = (
     AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
   };
   createDataConnection(dataConnectionReplacements).then(() =>
-    assertDataConnectionEndpoint(projectName, s3Endpoint),
+    assertAutoXDataConnectionEndpoint(projectName, s3Endpoint),
   );
 
   const dspaSecretReplacements: DspaSecretReplacements = {

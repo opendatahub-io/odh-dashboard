@@ -1,8 +1,11 @@
-import { applyOpenShiftYaml, shellQuote } from './baseCommands';
+import { applyOpenShiftYaml } from './baseCommands';
 import { getFeastS3Config, getS3CaBundle } from './feastS3';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import type { AWSS3Buckets } from '../../types';
-import { AWS_BUCKETS, resolveAutoXS3Endpoint } from '../s3Buckets';
+import { AWS_BUCKETS } from '../s3Buckets';
+
+/** Shell-escape a value by wrapping in single quotes (handles embedded quotes). */
+const shQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
 
 const S3_CA_MOUNT_DIR = '/tmp/s3-ca';
 const S3_CA_FILE = 'ca.pem';
@@ -82,13 +85,10 @@ export const runAwsCliInCluster = ({
   });
 
   const deleteCredentials = () =>
-    cy.exec(
-      `oc delete secret ${shellQuote(secretName)} -n ${shellQuote(namespace)} --ignore-not-found`,
-      {
-        failOnNonZeroExit: false,
-        log: false,
-      },
-    );
+    cy.exec(`oc delete secret ${shQuote(secretName)} -n ${shQuote(namespace)} --ignore-not-found`, {
+      failOnNonZeroExit: false,
+      log: false,
+    });
 
   const container: Record<string, unknown> = {
     name: podName,
@@ -134,10 +134,10 @@ export const runAwsCliInCluster = ({
     // non-zero oc run. Re-throw after deletion when the caller asked to fail.
     return cy
       .exec(
-        `oc run ${shellQuote(podName)} -n ${shellQuote(namespace)} ` +
-          `--image=${shellQuote(awsCliImage)} ` +
+        `oc run ${shQuote(podName)} -n ${shQuote(namespace)} ` +
+          `--image=${shQuote(awsCliImage)} ` +
           `--restart=Never --rm --attach --tty=false ` +
-          `--overrides=${shellQuote(podOverrides)}`,
+          `--overrides=${shQuote(podOverrides)}`,
         { failOnNonZeroExit: false, log: false, timeout },
       )
       .then((result) =>
@@ -190,7 +190,6 @@ export const deleteS3TestFiles = (
 
   const bucketConfig = getAwsPipelines()[bucketKey];
   const podName = `s3-cleanup-${Date.now()}`;
-  const s3Endpoint = resolveAutoXS3Endpoint(bucketConfig.ENDPOINT);
 
   runAwsCliInCluster({
     namespace,
@@ -202,7 +201,7 @@ export const deleteS3TestFiles = (
       `s3://${bucketConfig.NAME}/`,
       '--recursive',
       '--endpoint-url',
-      s3Endpoint,
+      bucketConfig.ENDPOINT,
       '--exclude',
       '*',
       '--include',
@@ -226,9 +225,9 @@ const endpointArgs = (endpoint: string): string[] => (endpoint ? ['--endpoint-ur
  *
  * Path: `s3://<bucket>/feast-test/<namespace>/credit_scoring_local/`
  *
- * Uses `S3.BUCKET_1` from the test config. Feature Store provisioning handles
- * disconnected clusters through `featureStoreResources` (including the endpoint
- * and CA-bundle configuration); this cleanup pod uses the same Feast S3 config.
+ * Uses `S3.BUCKET_1` from the test config. On disconnected clusters the pipeline
+ * rewrites that endpoint (and `S3.AWS_CA_BUNDLE`) to the injected MinIO, so the
+ * same AWS CLI pod targets MinIO without any test-side branching.
  *
  * Does not seed registry.pb — the FeatureStore CR (`feast.yaml`) creates the
  * registry object, and later test steps (e.g. saved dataset) write into it.

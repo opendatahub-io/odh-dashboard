@@ -1,4 +1,4 @@
-import { applyOpenShiftYaml, shellQuote } from './baseCommands';
+import { applyOpenShiftYaml } from './baseCommands';
 import type {
   DataConnectionReplacements,
   CommandLineResult,
@@ -28,27 +28,6 @@ export const createDataConnection = (
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
     return applyOpenShiftYaml(modifiedYamlContent);
   });
-
-/**
- * Verify the S3 endpoint persisted in the default AutoX data connection Secret.
- *
- * @param namespace Namespace containing the data connection Secret
- * @param expectedEndpoint Endpoint expected in AWS_S3_ENDPOINT
- */
-export const assertDataConnectionEndpoint = (
-  namespace: string,
-  expectedEndpoint: string,
-): Cypress.Chainable<Cypress.Exec> =>
-  cy
-    .exec(
-      `oc get secret ${shellQuote('aws-connection-ods-ci-ds-pipelines')} ` +
-        `-n ${shellQuote(namespace)} -o jsonpath='{.data.AWS_S3_ENDPOINT}'`,
-      { failOnNonZeroExit: true, log: false },
-    )
-    .then((result: Cypress.Exec) => {
-      const actualEndpoint = Buffer.from(result.stdout.trim(), 'base64').toString('utf8');
-      expect(actualEndpoint, 'AutoX data connection S3 endpoint').to.equal(expectedEndpoint);
-    });
 
 export const createDataConnectionUri = (
   dataConnectionUriReplacements: DataConnectionUriReplacements,
