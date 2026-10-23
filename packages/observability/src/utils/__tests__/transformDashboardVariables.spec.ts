@@ -19,6 +19,8 @@ const createMockDashboardWithNamespaceVariable = (
             defaultValue,
             allowMultiple: true,
             allowAllValue: true,
+            // Simulate OOTB wildcard All — transform must strip this for scoped queryParams
+            customAllValue: '.*',
             plugin: {
               kind: 'PrometheusLabelValuesVariable',
               spec: {
@@ -168,7 +170,7 @@ describe('transformNamespaceVariable', () => {
       }
     });
 
-    it('should set customAllValue with pipe-separated project names regex', () => {
+    it('should omit customAllValue so All expands to the concrete project list', () => {
       const dashboard = createMockDashboardWithNamespaceVariable();
       const projectNames = ['project-alpha', 'project-beta', 'project-gamma'];
 
@@ -180,8 +182,64 @@ describe('transformNamespaceVariable', () => {
 
       expect(namespaceVar).toBeDefined();
       if (namespaceVar) {
-        expect(namespaceVar.spec.customAllValue).toBe('(project-alpha|project-beta|project-gamma)');
+        // Wildcard/regex All breaks scoped ${namespace:queryparam} (namespace=.*)
+        expect(namespaceVar.spec.customAllValue).toBeUndefined();
+        // Preserve dashboard allowAllValue; do not force it on.
+        expect(namespaceVar.spec.allowAllValue).toBe(true);
+        expect(namespaceVar.spec.plugin.spec).toEqual({
+          values: [
+            { label: 'project-alpha', value: 'project-alpha' },
+            { label: 'project-beta', value: 'project-beta' },
+            { label: 'project-gamma', value: 'project-gamma' },
+          ],
+        });
       }
+    });
+
+    it('should preserve allowAllValue false from the dashboard', () => {
+      const dashboard = createMockDashboardWithNamespaceVariable();
+      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
+      nsVar.spec.allowAllValue = false;
+
+      const result = transformNamespaceVariable(dashboard, ['project-1']);
+      const namespaceVar = result.spec.variables.find(
+        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
+      ) as ListVariableDefinition | undefined;
+
+      expect(namespaceVar?.spec.allowAllValue).toBe(false);
+      expect(namespaceVar?.spec.customAllValue).toBeUndefined();
+    });
+
+    it('should leave customAllValue undefined when the dashboard already omits it', () => {
+      const dashboard = createMockDashboardWithNamespaceVariable();
+      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
+      delete nsVar.spec.customAllValue;
+
+      const result = transformNamespaceVariable(dashboard, ['project-1', 'project-2']);
+      const namespaceVar = result.spec.variables.find(
+        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
+      ) as ListVariableDefinition | undefined;
+
+      expect(namespaceVar?.spec.customAllValue).toBeUndefined();
+      expect(Object.prototype.hasOwnProperty.call(namespaceVar?.spec ?? {}, 'customAllValue')).toBe(
+        false,
+      );
+    });
+
+    it('must not reintroduce pipe-regex customAllValue for Project=All', () => {
+      // Regression: old transform set customAllValue to "(a|b)" which breaks
+      // scoped queryParams (proxy gets namespace=(a|b) / Bad Request).
+      const dashboard = createMockDashboardWithNamespaceVariable();
+      const projectNames = ['project-alpha', 'project-beta'];
+
+      const result = transformNamespaceVariable(dashboard, projectNames);
+      const namespaceVar = result.spec.variables.find(
+        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
+      ) as ListVariableDefinition | undefined;
+
+      expect(namespaceVar?.spec.customAllValue).toBeUndefined();
+      expect(namespaceVar?.spec.customAllValue).not.toBe('(project-alpha|project-beta)');
+      expect(JSON.stringify(namespaceVar?.spec)).not.toMatch(/customAllValue/);
     });
 
     it('should preserve other variable properties when transforming', () => {
