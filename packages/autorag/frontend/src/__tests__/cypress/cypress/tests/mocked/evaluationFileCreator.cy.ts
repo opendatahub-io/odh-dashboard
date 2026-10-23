@@ -101,7 +101,7 @@ describe('EvaluationFileCreator', () => {
 
     autoragConfigurePage
       .findDisabledModelTooltip('embedding', FOUNDATION_MODEL_ID)
-      .trigger('mouseenter');
+      .trigger('mouseover');
     autoragConfigurePage
       .findDisabledModelTooltipContent('embedding', FOUNDATION_MODEL_ID)
       .should('be.visible')
