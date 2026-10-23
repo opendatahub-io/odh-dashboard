@@ -757,8 +757,8 @@ importers:
         specifier: ^2.9.0
         version: 2.9.1
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
@@ -884,8 +884,8 @@ importers:
         specifier: ^2.9.0
         version: 2.9.1
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -1116,8 +1116,8 @@ importers:
         specifier: ^2.9.0
         version: 2.9.1
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@babel/core':
         specifier: ^7.29.7
@@ -1821,7 +1821,7 @@ importers:
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@hookform/resolvers':
         specifier: ^5.2.2
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.6)
       '@odh-dashboard/autox-core':
         specifier: workspace:*
         version: link:../../autox-core
@@ -1905,7 +1905,7 @@ importers:
         version: 2.1.0
       zod:
         specifier: ^4.3.6
-        version: 4.4.3
+        version: 4.6.6
       zustand:
         specifier: ^5.0.10
         version: 5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
@@ -2202,7 +2202,7 @@ importers:
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@hookform/resolvers':
         specifier: ^5.2.2
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.6)
       '@odh-dashboard/autox-core':
         specifier: workspace:*
         version: link:../../autox-core
@@ -2286,7 +2286,7 @@ importers:
         version: 2.1.0
       zod:
         specifier: ^4.3.6
-        version: 4.4.3
+        version: 4.6.6
       zustand:
         specifier: ^5.0.10
         version: 5.0.15(@types/react@18.3.31)(immer@11.1.18)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
@@ -3183,7 +3183,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: ^5.9.1
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.6)
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
@@ -3225,7 +3225,7 @@ importers:
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       zod:
         specifier: ^4.4.3
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -3569,7 +3569,7 @@ importers:
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@hookform/resolvers':
         specifier: ^5.9.1
-        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.5)
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.6)
       '@module-federation/runtime':
         specifier: ^0.21.4
         version: 0.21.6
@@ -3626,7 +3626,7 @@ importers:
         version: 2.1.0
       zod:
         specifier: ^4.5.4
-        version: 4.6.5
+        version: 4.6.6
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -4352,8 +4352,8 @@ importers:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
@@ -4484,8 +4484,8 @@ importers:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
@@ -4563,8 +4563,8 @@ importers:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
@@ -4697,8 +4697,8 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -5424,8 +5424,8 @@ importers:
         specifier: ^2.9.0
         version: 2.9.1
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@odh-dashboard/app-config':
         specifier: workspace:*
@@ -5825,8 +5825,8 @@ importers:
         specifier: ^7.18.3
         version: 7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.6
+        version: 4.6.6
     devDependencies:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
@@ -17668,8 +17668,8 @@ packages:
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
-  zod@4.6.5:
-    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+  zod@4.6.6:
+    resolution: {integrity: sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==}
 
   zrender@5.5.0:
     resolution: {integrity: sha512-O3MilSi/9mwoovx77m6ROZM7sXShR/O/JIanvzTwjN3FORfLSr81PsUGd7jlaYOeds9d8tw82oP44+3YucVo+w==}
@@ -19283,7 +19283,7 @@ snapshots:
     dependencies:
       react-hook-form: 7.88.0(react@18.3.1)
 
-  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)':
+  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.6)':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.88.0(react@18.3.1)
@@ -19292,18 +19292,7 @@ snapshots:
       ajv: 8.20.0
       ajv-formats: 2.1.1(ajv@8.20.0)
       joi: 17.13.8
-      zod: 4.4.3
-
-  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.6.5)':
-    dependencies:
-      '@standard-schema/utils': 0.3.0
-      react-hook-form: 7.88.0(react@18.3.1)
-    optionalDependencies:
-      '@sinclair/typebox': 0.34.52
-      ajv: 8.20.0
-      ajv-formats: 2.1.1(ajv@8.20.0)
-      joi: 17.13.8
-      zod: 4.6.5
+      zod: 4.6.6
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -29567,7 +29556,7 @@ snapshots:
 
   monaco-editor@0.54.0:
     dependencies:
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       marked: 14.0.0
 
   mrmime@2.0.1: {}
@@ -33364,7 +33353,7 @@ snapshots:
 
   zod@4.4.3: {}
 
-  zod@4.6.5: {}
+  zod@4.6.6: {}
 
   zrender@5.5.0:
     dependencies:
