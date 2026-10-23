@@ -11,6 +11,9 @@ const NAMESPACE = 'my-project';
 // Real fake secrets: a "maas" secret and a "data-connection" storage secret with a bucket set
 const MAAS_SECRET = 'maas';
 const STORAGE_SECRET = 'data-connection';
+// Matches the ready foundation model in packages/autorag/bff/internal/fake/maas.go.
+const FOUNDATION_MODEL_ID = 'granite-3-8b-instruct';
+const FOUNDATION_TOOLTIP = 'This model is already selected as a foundation model.';
 
 // Real seed data under the fake S3 bucket (packages/autorag/bff/internal/fake/s3-bucket/):
 // autorag input data/pdf/bank_policies_pdf/documents/ contains two PDFs.
@@ -93,16 +96,16 @@ describe('EvaluationFileCreator', () => {
 
     autoragConfigurePage.findSelectModelsButton().click();
     autoragConfigurePage.findModelSelectionModal().should('be.visible');
-    autoragConfigurePage.findModelCheckbox('llm', 'granite-3-8b-instruct').check();
+    autoragConfigurePage.findModelCheckbox('llm', FOUNDATION_MODEL_ID).check();
     autoragConfigurePage.findModelTab('embedding').click();
 
     autoragConfigurePage
-      .findDisabledModelTooltip('embedding', 'granite-3-8b-instruct')
+      .findDisabledModelTooltip('embedding', FOUNDATION_MODEL_ID)
       .trigger('mouseenter');
     autoragConfigurePage
-      .findDisabledModelTooltipContent('embedding', 'granite-3-8b-instruct')
+      .findDisabledModelTooltipContent('embedding', FOUNDATION_MODEL_ID)
       .should('be.visible')
-      .and('contain.text', 'This model is already selected as a foundation model.');
+      .and('contain.text', FOUNDATION_TOOLTIP);
     autoragConfigurePage
       .findTooltip()
       .should('be.visible')
