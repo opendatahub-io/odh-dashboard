@@ -11,7 +11,9 @@ Shared procedures for the `prototype-*` skill family. Referenced by `/prototype-
 ## Jira key extraction
 
 `--ticket` and `--epic` accept both bare keys and full URLs:
-- `RHOAIENG-12345` → use as-is
+- `RHAI-12345` → use as-is (current project)
+- `RHOAIENG-12345` → use as-is (legacy project — still valid for existing tickets)
+- `https://redhat.atlassian.net/browse/RHAI-12345` → extract `RHAI-12345`
 - `https://redhat.atlassian.net/browse/RHOAIENG-12345` → extract `RHOAIENG-12345`
 
 Extract with: match `[A-Z]+-\d+` from the end of the URL path.
