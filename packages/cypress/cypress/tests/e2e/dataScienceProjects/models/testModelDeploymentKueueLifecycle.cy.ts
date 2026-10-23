@@ -129,13 +129,15 @@ const deployModelViaWizard = (ctx: TestContext, modelName: string) => {
   modelServingGlobal.findDeployModelButton().should('be.visible').click();
 
   modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+  modelServingWizard.selectUriConnectionTypeIfExists();
   modelServingWizard.findUrilocationInput().clear().type(FIXTURE.modelLocationURI);
   modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
   modelServingWizard
     .findSaveConnectionInput()
     .clear()
     .type(`${modelName}${FIXTURE.connectionNameSuffix}`);
-  modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+  // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+  modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click({ force: true });
   modelServingWizard.findNextButton().should('be.enabled').click();
 
   modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);

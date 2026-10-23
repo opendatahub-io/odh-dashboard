@@ -86,9 +86,13 @@ describe('LLMD Topology Configurations - Admin Settings', () => {
 
       cy.step('Fill model details and advance to deployment step');
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectUriConnectionTypeIfExists();
       modelServingWizard.findUrilocationInput().clear().type('hf://facebook/opt-125m');
       modelServingWizard.findSaveConnectionCheckbox().uncheck();
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .click({ force: true });
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select llm-d deployment method and verify topology fields');

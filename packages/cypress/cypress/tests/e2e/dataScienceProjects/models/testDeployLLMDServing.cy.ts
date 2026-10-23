@@ -116,6 +116,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Select Model details');
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectUriConnectionTypeIfExists();
       modelServingWizard.findUrilocationInput().clear().type(modelURI);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard
@@ -125,7 +126,10 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLEditorEmptyState().should('be.visible');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .click({ force: true });
 
       modelServingWizard.findNextButton().should('be.enabled').click();
 

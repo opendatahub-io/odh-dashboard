@@ -82,9 +82,11 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
     modelServingGlobal.findDeployModelButton().click();
 
     modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+    modelServingWizard.selectUriConnectionTypeIfExists();
     modelServingWizard.findUrilocationInput().clear().type(modelURI);
     modelServingWizard.findSaveConnectionCheckbox().uncheck();
-    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+    // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click({ force: true });
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
