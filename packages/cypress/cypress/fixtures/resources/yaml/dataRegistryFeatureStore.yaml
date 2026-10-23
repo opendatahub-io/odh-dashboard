@@ -5,3 +5,5 @@ metadata:
   namespace: ${namespace}
   annotations:
     dataregistry.opendatahub.io/enabled: "true"
+spec:
+  feastProject: data_registry
