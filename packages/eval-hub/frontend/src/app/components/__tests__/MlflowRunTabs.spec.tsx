@@ -1,20 +1,20 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { loadRemote } from '@module-federation/runtime';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import MlflowRunTabs from '~/app/components/MlflowRunTabs';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 
 jest.mock('@module-federation/runtime', () => ({
   loadRemote: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
 }));
 
 const mockLoadRemote = jest.mocked(loadRemote);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const RemoteComponent = jest.fn(() => <div data-testid="remote-run-tabs" />);
 
@@ -102,7 +102,7 @@ describe('MlflowRunTabs', () => {
     expect(mockLoadRemote).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId('remote-run-tabs')).toBeInTheDocument();
     expect(screen.queryByTestId('mlflow-run-tabs-error')).not.toBeInTheDocument();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
   });
 
   it('should show a retryable error and track the event after exhausting automatic retries', async () => {
@@ -115,8 +115,8 @@ describe('MlflowRunTabs', () => {
 
     expect(mockLoadRemote).toHaveBeenCalledTimes(3);
     expect(screen.getByTestId('mlflow-run-tabs-error')).toBeInTheDocument();
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.MLFLOW_RUN_TABS_LOAD_FAILED,
       {},
     );

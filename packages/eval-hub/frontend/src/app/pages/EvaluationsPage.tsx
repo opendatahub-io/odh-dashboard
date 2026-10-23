@@ -51,6 +51,8 @@ import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
 import type { Collection, EvaluationJob } from '~/app/types';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import EvaluateTab from './EvaluateTab';
 import GalleryTab from './GalleryTab';
 
@@ -105,7 +107,6 @@ const EvaluationsPage: React.FC = () => {
     Collection | undefined
   >();
   const [selectedCollectionIsSystem, setSelectedCollectionIsSystem] = React.useState(false);
-
   const handleCloseDrawer = React.useCallback(() => {
     setSelectedCollectionIsSystem(false);
     closeDrawer();
@@ -114,7 +115,7 @@ const EvaluationsPage: React.FC = () => {
   const handleSelectCollection = React.useCallback(
     (collection: Collection, isSystemCollection = false) => {
       setSelectedCollectionIsSystem(isSystemCollection);
-      selectCollection(collection);
+      return selectCollection(collection);
     },
     [selectCollection],
   );
@@ -144,6 +145,17 @@ const EvaluationsPage: React.FC = () => {
 
   const handleDuplicateCollection = React.useCallback(
     (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+        {
+          collectionName: collection.name,
+          surface: selectedCollectionIsSystem ? 'curated_gallery' : 'my_benchmark_suites',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
       const route = evaluationCopySuiteRoute(namespace, collection.resource.id);
       if (selectedCollectionIsSystem) {
         navigate(route, { state: evaluationGalleryNavigationState });
@@ -156,6 +168,17 @@ const EvaluationsPage: React.FC = () => {
 
   const handleEvaluateDuplicateCollection = React.useCallback(
     (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+        {
+          collectionName: collection.name,
+          surface: 'my_benchmark_suites',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
       navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
         state: evaluationEvaluateNavigationState,
       });
@@ -165,6 +188,17 @@ const EvaluationsPage: React.FC = () => {
 
   const handleEditCollection = React.useCallback(
     (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+        {
+          collectionName: collection.name,
+          surface: 'my_benchmark_suites',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
       navigate(evaluationEditSuiteRoute(namespace, collection.resource.id), {
         state: evaluationEvaluateNavigationState,
       });

@@ -1,7 +1,10 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
@@ -16,6 +19,7 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, Provider } from '~/app/types';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
   fireMiscTrackingEvent: jest.fn(),
 }));
 
@@ -52,6 +56,7 @@ const mockPatchCollection = jest.mocked(patchCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseCollectionsContext = jest.mocked(useCollectionsContext);
+const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 const mockRefreshCollections = jest.fn();
 const defaultSuiteNamePattern =
@@ -62,6 +67,7 @@ const sourceCollection: Collection = {
   name: 'Curated suite',
   description: 'A curated description',
   category: 'language',
+  curation_order: 1,
   domains: ['reasoning', 'trustworthiness'],
   tasks: ['text-generation'],
   modalities: ['text'],
@@ -553,18 +559,32 @@ describe('useCopySuiteForm', () => {
       result.result.current.form.setValue('suiteDomains', ['trustworthiness', 'reasoning'], {
         shouldValidate: true,
       });
+      result.result.current.form.setValue('suiteTasks', ['classification'], {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('suiteModalities', ['text'], {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('suiteIndustries', ['technology'], {
+        shouldValidate: true,
+      });
       result.result.current.form.setValue('suiteEvaluates', ['model'], {
         shouldValidate: true,
       });
+      result.result.current.form.setValue('suiteThreshold', 85, { shouldValidate: true });
       result.result.current.form.setValue('benchmarks', [
         {
           id: 'benchmark-one',
           providerId: 'provider-one',
           name: 'Benchmark One',
           weight: 1,
-          parameters: [],
+          primaryMetric: 'accuracy',
+          lowerIsBetter: false,
+          metricDirections: { accuracy: false },
+          parameters: [{ key: 'num_examples', type: 'number', value: 250 }],
+          additionalParameters: '{"seed":42,"labels":["nightly"]}',
           threshold: 70,
-          availableMetrics: [],
+          availableMetrics: ['accuracy'],
         },
       ]);
     });
@@ -601,6 +621,33 @@ describe('useCopySuiteForm', () => {
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
     expect(mockCloneCollection).not.toHaveBeenCalled();
+
+    const savedCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(savedCall?.[1]).toEqual(
+      expect.objectContaining({
+        outcome: 'submit',
+        success: true,
+        saveMode: 'create',
+        action: 'save',
+        fromCurated: false,
+        countOfEvaluatesAssetTypes: 1,
+        suiteDomains: JSON.stringify(['trustworthiness', 'reasoning']),
+        suiteTasks: JSON.stringify(['classification']),
+        suiteModalities: JSON.stringify(['text']),
+        suiteIndustries: JSON.stringify(['technology']),
+        suiteEvaluates: JSON.stringify(['model']),
+        suiteThreshold: 85,
+        benchmarkCount: 1,
+        benchmarks: 'Benchmark One',
+        benchmarkParameterKeys: JSON.stringify(['num_examples']),
+        hasAdditionalParameters: true,
+      }),
+    );
+    expect(savedCall?.[1]).not.toHaveProperty('sourceCollectionId');
+    expect(savedCall?.[1]).not.toHaveProperty('suiteName');
+    expect(savedCall?.[1]).not.toHaveProperty('suiteDescription');
   });
 
   // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
@@ -688,15 +735,30 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({ name: 'New suite' }),
     );
     expect(createFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+    const runSelectedCall = mockFireMiscTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+    );
+    expect(runSelectedCall?.[1]).toEqual(
       expect.objectContaining({
         runType: 'collection',
-        collectionName: 'New suite',
         benchmarkTypes: JSON.stringify(['benchmark-one']),
         countOfBenchmarks: 1,
+        collection_type: 'custom',
       }),
     );
+    expect(runSelectedCall?.[1]).not.toHaveProperty('collectionName');
+    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(saveAndRunCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'create',
+        action: 'save_and_run',
+        fromCurated: false,
+      }),
+    );
+    expect(saveAndRunCall?.[1]).not.toHaveProperty('sourceCollectionId');
     expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
   });
 
@@ -1550,6 +1612,18 @@ describe('useCopySuiteForm', () => {
     expect(cloneFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(cloned).toEqual(clonedCollection);
     expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
+    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(saveAndRunCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'copy',
+        action: 'save_and_run',
+        sourceCollectionId: 'source-collection',
+        fromCurated: true,
+      }),
+    );
     expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
   });
 
@@ -1787,6 +1861,52 @@ describe('useCopySuiteForm', () => {
       '"Saved suite" has been added to your collections.',
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
+    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(copiedCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'copy',
+        action: 'save',
+        sourceCollectionId: 'source-collection',
+        fromCurated: true,
+      }),
+    );
+  });
+
+  it('should report fromCurated false when copying a non-curated collection', async () => {
+    const clonedCollection: Collection = {
+      resource: { id: 'saved-collection' },
+      name: 'Saved suite',
+    };
+    const cloneFetcher = jest.fn().mockResolvedValue(clonedCollection);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        resource: { ...sourceCollection.resource, tenant: 'test-tenant' },
+        curation_order: undefined,
+      },
+    });
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(copiedCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'copy',
+        action: 'save',
+        sourceCollectionId: 'source-collection',
+        fromCurated: false,
+      }),
+    );
   });
 
   it('should remain submitting while a save-only clone is pending', async () => {

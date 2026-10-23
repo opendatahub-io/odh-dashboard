@@ -39,7 +39,6 @@ import {
 import { ExclamationCircleIcon, FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useProviders } from '~/app/hooks/useProviders';
 import { Collection } from '~/app/types';
@@ -54,6 +53,7 @@ import {
   evaluationsBaseRoute,
 } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import {
   formatCategory,
@@ -111,14 +111,9 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     return map;
   }, [providers]);
 
-  const handleRunCollection = React.useCallback(
+  // The drawer tracks BENCHMARK_RUN_SELECTED itself before invoking this callback
+  const navigateToRun = React.useCallback(
     (c: Collection) => {
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-        runType: 'collection',
-        collectionName: c.name,
-        benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
-        countOfBenchmarks: c.benchmarks?.length ?? 0,
-      });
       const params = new URLSearchParams({
         type: 'collection',
         collectionId: c.resource.id,
@@ -128,6 +123,26 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
       });
     },
     [navigate, namespace],
+  );
+
+  const handleRunCollection = React.useCallback(
+    (c: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+        {
+          runType: 'collection',
+          collectionName: c.name,
+          benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
+          countOfBenchmarks: c.benchmarks?.length ?? 0,
+        },
+        {
+          collectionType: c.resource.read_only ? 'system' : 'custom',
+          providerType: c.benchmarks?.[0]?.provider_id,
+        },
+      );
+      navigateToRun(c);
+    },
+    [navigateToRun],
   );
 
   const handleCustomizeCollection = React.useCallback(
@@ -147,7 +162,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             collection={selectedCollection}
             benchmarkDetailsMap={benchmarkDetailsMap}
             onClose={() => setSelectedCollection(undefined)}
-            onRunCollection={handleRunCollection}
+            onRunCollection={navigateToRun}
             onCustomizeCollection={handleCustomizeCollection}
           />
         }

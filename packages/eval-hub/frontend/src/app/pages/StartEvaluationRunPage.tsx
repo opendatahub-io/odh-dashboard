@@ -53,6 +53,8 @@ import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import HardwareProfileField from '~/app/components/HardwareProfileField';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   useStartEvaluationRunForm,
   DEFAULT_EXPERIMENT_NAME,
@@ -110,6 +112,29 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     initialValues,
     onCancel: isReconfigure ? undefined : handleCancel,
   });
+
+  // The modal flow tracks this on open; the full-page create flow has no modal, so
+  // track once per page opening once the selection has loaded. Reconfigure is a
+  // separate flow with its own event.
+  const hasTrackedOpenRef = React.useRef(false);
+  React.useEffect(() => {
+    if (isReconfigure || !dataLoaded || loadError || hasTrackedOpenRef.current) {
+      return;
+    }
+    hasTrackedOpenRef.current = true;
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
+      { surface: 'create_run_page' },
+      {
+        collectionType: collection
+          ? collection.resource.read_only
+            ? 'system'
+            : 'custom'
+          : 'unknown',
+        providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+      },
+    );
+  }, [benchmark, collection, dataLoaded, isReconfigure, loadError]);
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select collection' : 'Select benchmark';
 

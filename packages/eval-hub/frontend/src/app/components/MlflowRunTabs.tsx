@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Alert, AlertActionLink, Bullseye, Spinner } from '@patternfly/react-core';
 import { loadRemote } from '@module-federation/runtime';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 
 export interface MlflowRunTabsProps {
   experimentId: string;
@@ -66,7 +66,7 @@ const MlflowRunTabs: React.FC<MlflowRunTabsProps> = (props) => {
             return;
           }
           setLoadState('error');
-          fireMiscTrackingEvent(EVAL_HUB_EVENTS.MLFLOW_RUN_TABS_LOAD_FAILED, {});
+          trackEvalHubEvent(EVAL_HUB_EVENTS.MLFLOW_RUN_TABS_LOAD_FAILED, {});
         });
     };
 

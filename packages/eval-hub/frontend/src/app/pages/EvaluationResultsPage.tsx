@@ -17,7 +17,6 @@ import {
 } from '@patternfly/react-core';
 import { CalendarAltIcon, ListIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import '~/app/components/EvaluationStatusModal.scss';
@@ -43,6 +42,7 @@ import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
 import MlflowRunTabs from '~/app/components/MlflowRunTabs';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 
 const EvaluationEventLog = React.lazy(() => import('~/app/components/EvaluationEventLog'));
 
@@ -263,7 +263,7 @@ const EvaluationResultsPage: React.FC = () => {
                         isSelected={selectedBenchmarkKey === cardKey}
                         onClick={() => {
                           setSelectedBenchmarkKey(cardKey);
-                          fireMiscTrackingEvent(EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED, {
+                          trackEvalHubEvent(EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED, {
                             benchmarkId: benchmark.id,
                             evaluationName,
                             collectionName: job.collection?.id,

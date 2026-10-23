@@ -10,8 +10,11 @@ import {
   mockCuratedBenchmarkSuiteCollections,
 } from '~/app/mockBenchmarkSuiteCollections';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockRefresh = jest.fn();
+const mockTrackEventOnce = jest.fn();
 const mockUseCollectionsQuery = jest.fn();
 const mockUseDeleteCollectionMutation = jest.fn();
 const mockDeleteCollection = jest.fn();
@@ -26,6 +29,13 @@ const mockUseEvalHubHealth = jest.fn<
   { isHealthy: boolean; loaded: boolean; error: Error | undefined },
   []
 >();
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  createEvalHubTrackingScope: () => ({ trackEventOnce: mockTrackEventOnce, clear: jest.fn() }),
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 jest.mock('~/app/hooks/useEvaluationJobs', () => ({
   useEvaluationJobs: () => mockUseEvaluationJobs(),
@@ -328,6 +338,20 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should rely on the Benchmark suites view event after navigating from the Runs empty state', () => {
+    renderPage('test-project', '?tab=runs');
+
+    fireEvent.click(screen.getByTestId('create-evaluation-button'));
+
+    expect(mockTrackEventOnce).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED,
+      'test-project:tenant:all',
+      { surface: 'my_benchmark_suites' },
+      { collectionType: 'custom' },
+    );
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+  });
+
   it('should open the suite details drawer when selecting a Gallery suite name', () => {
     renderPage('test-project');
 
@@ -485,6 +509,59 @@ describe('EvaluationsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('should track collection filter values and ignore empty values', () => {
+    renderPage('test-project');
+
+    const searchInput = screen.getByPlaceholderText('Search collections');
+    fireEvent.change(searchInput, { target: { value: '  suite  ' } });
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+      {
+        filterType: 'search',
+        value: '5',
+        surface: 'collection_gallery',
+      },
+      expect.objectContaining({ collectionType: 'system' }),
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    fireEvent.change(searchInput, { target: { value: '' } });
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    expect(mockTrackEvalHubEvent).toHaveBeenLastCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+      {
+        filterType: 'category',
+        value: 'code, trustworthiness',
+        surface: 'collection_gallery',
+      },
+      expect.objectContaining({ collectionType: 'system' }),
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+      {
+        filterType: 'category',
+        value: 'trustworthiness',
+        surface: 'collection_gallery',
+      },
+      expect.objectContaining({ collectionType: 'system' }),
+    );
+
+    mockTrackEvalHubEvent.mockClear();
+    clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+  });
+
   it('should not gate the Evaluate tab on the Runs request', () => {
     mockUseEvaluationJobs.mockReturnValue([
       { jobs: [], totalCount: 0, truncated: false },
@@ -502,6 +579,16 @@ describe('EvaluationsPage', () => {
     );
     expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
     expect(screen.queryByTestId('evalhub-load-error-admin-empty-state')).not.toBeInTheDocument();
+  });
+
+  it('should track create-suite opens from the tenant gallery surface', () => {
+    renderPage('test-project', '?tab=evaluate');
+
+    fireEvent.click(screen.getByTestId('create-suite-button'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
+      surface: 'my_benchmark_suites',
+    });
   });
 
   it('should keep the create-suite card visible while tenant suites are loading', () => {
@@ -540,6 +627,11 @@ describe('EvaluationsPage', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-delete-cancel'));
 
     expect(screen.queryByTestId('benchmark-suite-delete-modal')).not.toBeInTheDocument();
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_DELETED,
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('should navigate to the copy suite page from Duplicate', () => {
@@ -552,6 +644,17 @@ describe('EvaluationsPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/copy',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
   });
 
   it('should navigate to the edit suite page with the Evaluate tab as its source', () => {
@@ -564,6 +667,18 @@ describe('EvaluationsPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/edit',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should show a success notification after deleting a benchmark suite', async () => {
@@ -577,6 +692,17 @@ describe('EvaluationsPage', () => {
     expect(mockNotificationSuccess).toHaveBeenCalledWith(
       'Collection deleted',
       '"Model suite 2" has been deleted.',
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_DELETED,
+      {
+        collectionName: 'Model suite 2',
+        outcome: 'success',
+      },
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
     );
   });
 
@@ -681,6 +807,16 @@ describe('EvaluationsPage', () => {
       'href',
       '/evaluation/test-project/create/benchmarks',
     );
+  });
+
+  it('should track opening the benchmark catalog from the browse benchmarks section', () => {
+    renderPage('test-project', '?tab=evaluate');
+
+    fireEvent.click(screen.getByTestId('browse-all-benchmarks-explore'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED, {
+      surface: 'my_benchmark_suites',
+    });
   });
 
   it('should open the start evaluation run modal for a suite', () => {
