@@ -243,7 +243,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             evaluationName
           )}
         </Td>
-        <Td dataLabel="Status" data-testid="evaluation-status">
+        <Td dataLabel="Job status" data-testid="evaluation-status">
           <EvaluationStatusLabel
             state={displayState}
             isQueued={isQueued}

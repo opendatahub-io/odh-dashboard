@@ -16,6 +16,10 @@ class EvaluationResultsPage {
     return cy.findByTestId('evaluation-results-title');
   }
 
+  findRunsBreadcrumb() {
+    return cy.findByTestId('runs-breadcrumb-link');
+  }
+
   findScoreValue() {
     return cy.findByTestId('evaluation-score-value');
   }
