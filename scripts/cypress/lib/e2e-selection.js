@@ -798,7 +798,8 @@ const buildSpecInventory = ({
 }) => {
   const inventory = {};
   for (const spec of specs) {
-    const tests = parseSpecSource(readFile(path.join(root, spec)));
+    const source = readFile(path.join(root, spec));
+    const tests = parseSpecSource(source);
     const executableTests = tests.filter(
       (test) => Array.isArray(test.tags) && !test.tags.some((tag) => skipTags.includes(tag)),
     );
@@ -809,6 +810,7 @@ const buildSpecInventory = ({
       tags: unique(tests.flatMap((test) => test.tags ?? [])),
       executableTags: unique(executableTests.flatMap((test) => test.tags)),
       executableTestTags: executableTests.map((test) => test.tags),
+      runtimeSkippable: /this\s*\.\s*skip\s*\(/.test(source),
     };
   }
   return inventory;
@@ -1259,6 +1261,19 @@ const buildSelectionPlan = ({
   }
 
   const calculateJobTestCount = (job) => {
+    const includesRuntimeSkippableSpec =
+      job.run_mode === 'spec'
+        ? job.specs.some((spec) => inventory[spec]?.runtimeSkippable)
+        : Object.values(inventory).some(
+            (entry) =>
+              entry.runtimeSkippable &&
+              (entry.executableTestTags ?? []).some((testTags) =>
+                testTags.some((tag) => job.tag.split(' ').includes(tag)),
+              ),
+          );
+    if (includesRuntimeSkippableSpec) {
+      return null;
+    }
     if (job.run_mode === 'spec') {
       return job.specs.reduce(
         (jobTotal, spec) => jobTotal + (inventory[spec]?.executableTestCount ?? 0),
@@ -1289,7 +1304,9 @@ const buildSelectionPlan = ({
     errors.push('No Cypress E2E jobs were selected');
   }
 
-  const plannedTestCount = matrix.reduce((total, job) => total + job[plannedTestCountKey], 0);
+  const plannedTestCount = matrix.some((job) => job[plannedTestCountKey] === null)
+    ? null
+    : matrix.reduce((total, job) => total + job[plannedTestCountKey], 0);
 
   return {
     valid: errors.length === 0,
@@ -1375,7 +1392,7 @@ const renderSelectionMarkdown = (summary) =>
         )
       : ['- None']),
     '',
-    `Planned executable test count: ${summary.plannedTestCount}`,
+    `Planned executable test count: ${summary.plannedTestCount ?? 'unknown'}`,
     '',
     ...(summary.errors?.length > 0
       ? ['## Validation errors', ...summary.errors.map((error) => `- ${error}`), '']

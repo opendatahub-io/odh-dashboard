@@ -8,6 +8,7 @@ const path = require('node:path');
 
 const {
   buildFixtureConsumers,
+  buildSpecInventory,
   buildSelectionPlan,
   createSpecJobs,
   groupTagsForJobs,
@@ -915,6 +916,29 @@ describe('buildSelectionPlan', () => {
 });
 
 describe('parseSpecSource', () => {
+  it('marks runtime-skippable specs as having an unknown planned count', () => {
+    const source = [
+      'beforeEach(function () {',
+      '  this.skip();',
+      '});',
+      "it('runs', { tags: ['@Tag'] }, () => {});",
+    ].join('\n');
+    const runtimeInventory = buildSpecInventory({
+      specs: [specPath('runtime')],
+      readFile: () => source,
+      root: '.',
+    });
+
+    const result = plan([], {
+      inventory: runtimeInventory,
+      selectedTags: ['@Tag'],
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(result.matrix[0].planned_test_count, null);
+    assert.equal(result.summary.plannedTestCount, null);
+  });
+
   it('does not count statically skipped tests as executable', () => {
     const tests = parseSpecSource(
       [

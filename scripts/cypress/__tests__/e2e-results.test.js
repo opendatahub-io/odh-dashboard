@@ -122,6 +122,14 @@ describe('validateResults', () => {
     assert.equal(validateResults({ tests: 2, failures: 0, skipped: 1, executed: 1 }), null);
   });
 
+  it('accepts a partially skipped runtime-skippable job with an unknown plan', () => {
+    assert.equal(validateResults({ tests: 2, failures: 0, skipped: 1, executed: 1 }, null), null);
+    assert.match(
+      validateResults({ tests: 2, failures: 0, skipped: 2, executed: 0 }, null),
+      /Every selected Cypress test was skipped/,
+    );
+  });
+
   it('fails when a job executes fewer tests than planned', () => {
     assert.match(
       validateResults({ tests: 1, failures: 0, skipped: 0, executed: 1 }, 2),
