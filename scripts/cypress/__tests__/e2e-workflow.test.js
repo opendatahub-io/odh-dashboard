@@ -29,6 +29,25 @@ describe('Cypress E2E workflow', () => {
     assert.ok(!workflow.includes('--test-reporter=dot'));
   });
 
+  it('validates selection and results from the tested workflow head', () => {
+    const workflow = fs.readFileSync(
+      path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
+      'utf8',
+    );
+    const validateStart = workflow.indexOf('  validate-selection:');
+    const validateEnd = workflow.indexOf('  select-cluster:', validateStart);
+    const summarizeStart = workflow.indexOf('  summarize-e2e-results:');
+    const summarizeEnd = workflow.indexOf('  set-final-status:', summarizeStart);
+    const validateJob = workflow.slice(validateStart, validateEnd);
+    const summarizeJob = workflow.slice(summarizeStart, summarizeEnd);
+    const testedRef = 'ref: ${{ github.event.workflow_run.head_sha || github.sha }}';
+
+    assert.ok(validateStart !== -1 && validateEnd !== -1);
+    assert.ok(summarizeStart !== -1 && summarizeEnd !== -1);
+    assert.ok(validateJob.includes(testedRef));
+    assert.ok(summarizeJob.includes(testedRef));
+  });
+
   it('keeps backend logs hidden', () => {
     const workflow = fs.readFileSync(
       path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),

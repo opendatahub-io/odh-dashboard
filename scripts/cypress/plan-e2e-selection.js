@@ -89,6 +89,12 @@ const writeFile = (file, contents) => {
   fs.writeFileSync(file, contents);
 };
 
+const buildSelectionSummaryPayload = (plan) => ({
+  ...plan.summary,
+  valid: plan.valid,
+  errors: plan.errors,
+});
+
 const main = () => {
   const options = parseArgs(process.argv.slice(2));
   const root = path.resolve(options.root || path.join(__dirname, '../..'));
@@ -125,6 +131,10 @@ const main = () => {
     root,
   });
 
+  const summaryPayload = buildSelectionSummaryPayload(plan);
+  writeFile(options['summary-json'], `${JSON.stringify(summaryPayload, null, 2)}\n`);
+  writeFile(options['summary-md'], `${renderSelectionMarkdown(summaryPayload)}\n`);
+
   if (!plan.valid) {
     console.error('Cypress E2E selection failed:');
     for (const error of plan.errors) {
@@ -136,8 +146,6 @@ const main = () => {
 
   writeFile(options['matrix-output'], `${JSON.stringify(plan.matrix)}\n`);
   writeFile(options['source-output'], `${tagSelection.source}\n`);
-  writeFile(options['summary-json'], `${JSON.stringify(plan.summary, null, 2)}\n`);
-  writeFile(options['summary-md'], `${renderSelectionMarkdown(plan.summary)}\n`);
   console.log(
     `Cypress E2E selection: ${plan.matrix.length} job(s), ${
       plan.summary.plannedTestCount
@@ -149,4 +157,10 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { parseArgs, readBaseSpecInventory, readChanges, writeFile };
+module.exports = {
+  buildSelectionSummaryPayload,
+  parseArgs,
+  readBaseSpecInventory,
+  readChanges,
+  writeFile,
+};

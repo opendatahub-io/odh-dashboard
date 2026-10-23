@@ -31,7 +31,12 @@ const MAX_SPEC_JOBS = 12;
 const MAX_SPECS_PER_JOB = 10;
 const MAX_EXPLICIT_IMPACTED_SPECS = 5;
 const MAX_TAG_DIR_LENGTH = 80;
-const WORKSPACE_DEPENDENCY_FIELDS = ['dependencies', 'peerDependencies'];
+const WORKSPACE_DEPENDENCY_FIELDS = [
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies',
+];
 const FULL_COVERAGE_TAGS = [
   '@SmokeSet1',
   '@SmokeSet2',
@@ -1172,7 +1177,10 @@ const buildSelectionPlan = ({
   const tagResolution = resolveSelectedTags(effectiveSelectedTags, inventory);
   errors.push(...tagResolution.errors);
 
-  const explicitChangedSpecs = [...changedSpecs].toSorted();
+  const changedSpecList = [...changedSpecs].toSorted();
+  const explicitChangedSpecs = changedSpecList.filter((spec) =>
+    isCiRunnableSpec(spec, inventory, ciTags),
+  );
   const explicitImpactedSpecs = [...impactedSpecs]
     .filter((spec) => !changedSpecs.has(spec))
     .toSorted();
@@ -1190,10 +1198,24 @@ const buildSelectionPlan = ({
     if (fullCoverageTags.length === 0) {
       errors.push('No canonical full-coverage tag sets contain executable tests');
     } else {
+      const fullCoverageTagSet = new Set([...fullCoverageTags, ...effectiveSelectedTags]);
+      explicitImpactSpecs = Object.keys(inventory)
+        .filter(
+          (spec) =>
+            isCiRunnableSpec(spec, inventory, ciTags) &&
+            !changedSpecs.has(spec) &&
+            !hasCompleteTagCoverage(spec, inventory, fullCoverageTagSet),
+        )
+        .toSorted();
       impactedTagJobs = buildNamedTagJobs(
         groupTagsForJobs(fullCoverageTags, fullCoverageTags),
         'full-coverage',
       );
+      if (explicitImpactSpecs.length > 0) {
+        details.push(
+          `Canonical full-coverage tags do not cover ${explicitImpactSpecs.length} CI-runnable spec(s); scheduled them explicitly`,
+        );
+      }
     }
   } else if (uncoveredImpactedSpecs.length > MAX_EXPLICIT_IMPACTED_SPECS) {
     const impactTags = selectImpactTags(uncoveredImpactedSpecs, inventory, ciTags);
@@ -1203,10 +1225,19 @@ const buildSelectionPlan = ({
       if (fullCoverageTags.length === 0) {
         errors.push('No canonical full-coverage tag sets contain executable tests');
       } else {
+        const fullCoverageTagSet = new Set([...fullCoverageTags, ...effectiveSelectedTags]);
+        explicitImpactSpecs = impactTags.uncoveredSpecs
+          .filter((spec) => !hasCompleteTagCoverage(spec, inventory, fullCoverageTagSet))
+          .toSorted();
         impactedTagJobs = buildNamedTagJobs(
           groupTagsForJobs(fullCoverageTags, fullCoverageTags),
           'full-coverage',
         );
+        if (explicitImpactSpecs.length > 0) {
+          details.push(
+            `Canonical full-coverage tags do not cover ${explicitImpactSpecs.length} impacted spec(s); scheduled them explicitly`,
+          );
+        }
       }
     } else {
       impactMode = 'ci-tags';
@@ -1270,9 +1301,9 @@ const buildSelectionPlan = ({
         path: normalizePath(change.path),
         previousPath: change.previousPath ? normalizePath(change.previousPath) : undefined,
       })),
-      changedSpecs: explicitChangedSpecs,
+      changedSpecs: changedSpecList,
       deletedSpecs: [...deletedSpecs].toSorted(),
-      impactedSpecs: explicitImpactedSpecs,
+      impactedSpecs: unique([...explicitImpactedSpecs, ...explicitImpactSpecs]).toSorted(),
       impactMode,
       selectedTags: effectiveSelectedTags,
       pathImpactTags: pathImpact.tags,
@@ -1346,6 +1377,9 @@ const renderSelectionMarkdown = (summary) =>
     '',
     `Planned executable test count: ${summary.plannedTestCount}`,
     '',
+    ...(summary.errors?.length > 0
+      ? ['## Validation errors', ...summary.errors.map((error) => `- ${error}`), '']
+      : []),
     '## Coverage gaps',
     ...(summary.coverageGaps.length > 0
       ? summary.coverageGaps.map((gap) => `- ${gap}`)

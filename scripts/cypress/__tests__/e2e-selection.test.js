@@ -16,9 +16,11 @@ const {
   matchesPathPattern,
   parseSpecSource,
   parseTagSelection,
+  renderSelectionMarkdown,
   resolveSelectedTags,
   sanitizeTagDir,
 } = require('../lib/e2e-selection');
+const { buildSelectionSummaryPayload } = require('../plan-e2e-selection');
 
 const specPath = (name) => `packages/cypress/cypress/tests/e2e/${name}.cy.ts`;
 const supportPath = (name) => `packages/cypress/cypress/${name}.ts`;
@@ -580,6 +582,42 @@ describe('buildSelectionPlan', () => {
     assert.equal(result.summary.matchedMappings[0].fallbackUsed, false);
   });
 
+  it('derives workspace tags through reverse dev and optional dependencies', () => {
+    const localInventory = {
+      [specPath('automl')]: inventoryEntry('automl', ['@AutoMLCI']),
+      [specPath('autorag')]: inventoryEntry('autorag', ['@AutoRAGCI']),
+    };
+    const workspacePackages = [
+      {
+        name: '@odh-dashboard/app-config',
+        path: 'packages/app-config',
+      },
+      {
+        name: '@odh-dashboard/automl',
+        path: 'packages/automl',
+        e2eCiTags: ['@AutoMLCI'],
+        devDependencies: { '@odh-dashboard/app-config': 'workspace:*' },
+      },
+      {
+        name: '@odh-dashboard/autorag',
+        path: 'packages/autorag',
+        e2eCiTags: ['@AutoRAGCI'],
+        optionalDependencies: { '@odh-dashboard/app-config': 'workspace:*' },
+      },
+    ];
+
+    const result = plan([{ status: 'M', path: 'packages/app-config/src/config.ts' }], {
+      inventory: localInventory,
+      selectedTags: [],
+      ciTags: ['@AutoMLCI', '@AutoRAGCI'],
+      workspacePackages,
+    });
+
+    assert.equal(result.valid, true);
+    assert.ok(result.summary.pathImpactTags.includes('@AutoMLCI'));
+    assert.ok(result.summary.pathImpactTags.includes('@AutoRAGCI'));
+  });
+
   it('maps packages without executable suite tags to dashboard regression', () => {
     const localInventory = {
       [specPath('default')]: inventoryEntry('default', ['@ci-dashboard-regression-tags']),
@@ -720,6 +758,64 @@ describe('buildSelectionPlan', () => {
     assert.equal(fullCoverageJob.tag, '@SmokeSet1 @SmokeSet2');
   });
 
+  it('schedules residual specs when canonical full-coverage tags omit CI tests', () => {
+    const fullInventory = {
+      [specPath('alpha')]: inventoryEntry('alpha', ['@Tag', '@SmokeSet1']),
+      [specPath('bravo')]: inventoryEntry('bravo', ['@Tag', '@SmokeSet2']),
+      [specPath('residual')]: inventoryEntry('residual', ['@Tag']),
+    };
+
+    const result = plan([{ status: 'D', path: supportPath('pages/shared') }], {
+      inventory: fullInventory,
+      selectedTags: [],
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.impactMode, 'full-coverage-tags');
+    assert.deepEqual(result.summary.impactedSpecs, [specPath('residual')]);
+    const residualJob = result.matrix.find((job) => job.run_mode === 'spec');
+    assert.deepEqual(residualJob.specs, [specPath('residual')]);
+    assert.equal(
+      result.matrix.find((job) => job.tag_dir === 'full-coverage-01').tag,
+      '@SmokeSet1 @SmokeSet2',
+    );
+  });
+
+  it('schedules residual impacted specs when broad impact uses full coverage', () => {
+    const impactedSpecs = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot'];
+    const fullInventory = Object.fromEntries(
+      impactedSpecs.map((name) => {
+        const canonicalTag = name === 'alpha' || name === 'delta' ? '@SmokeSet1' : '@SmokeSet2';
+        const tags = ['charlie', 'foxtrot'].includes(name) ? ['@Tag'] : ['@Tag', canonicalTag];
+        return [specPath(name), inventoryEntry(name, tags)];
+      }),
+    );
+    const localDependencyIndex = {
+      consumers: {
+        [supportPath('pages/shared')]: impactedSpecs.map((name) => specPath(name)),
+      },
+    };
+
+    const result = plan([{ status: 'M', path: supportPath('pages/shared') }], {
+      inventory: fullInventory,
+      dependencyIndex: localDependencyIndex,
+      selectedTags: [],
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.impactMode, 'full-coverage-tags');
+    assert.deepEqual(
+      result.summary.impactedSpecs,
+      impactedSpecs.map((name) => specPath(name)),
+    );
+    const residualJob = result.matrix.find((job) => job.run_mode === 'spec');
+    assert.deepEqual(residualJob.specs, [specPath('charlie'), specPath('foxtrot')]);
+    assert.equal(
+      result.matrix.find((job) => job.tag_dir === 'full-coverage-01').tag,
+      '@SmokeSet1 @SmokeSet2',
+    );
+  });
+
   it('fails selection when a selected tag resolves to zero tests', () => {
     const result = plan([], { selectedTags: ['@Missing'] });
 
@@ -742,6 +838,12 @@ describe('buildSelectionPlan', () => {
       },
     });
     assert.equal(allowed.valid, true);
+    assert.deepEqual(allowed.summary.changedSpecs, [specPath('other')]);
+    assert.ok(
+      allowed.matrix.every(
+        (job) => job.run_mode !== 'spec' || !job.specs.includes(specPath('other')),
+      ),
+    );
   });
 
   it('rejects deleting the only coverage for a mapped CI behavior', () => {
@@ -889,5 +991,20 @@ describe('buildFixtureConsumers', () => {
     });
 
     assert.deepEqual(consumers, [specPath('alpha'), specPath('bravo')]);
+  });
+});
+
+describe('selection summaries', () => {
+  it('includes validation errors in diagnostic JSON and Markdown output', () => {
+    const invalidPlan = plan([{ status: 'A', path: specPath('other') }], {
+      selectedTags: [],
+      ciTags: ['@Tag'],
+    });
+    const summaryPayload = buildSelectionSummaryPayload(invalidPlan);
+
+    assert.equal(summaryPayload.valid, false);
+    assert.ok(summaryPayload.errors.length > 0);
+    assert.match(renderSelectionMarkdown(summaryPayload), /## Validation errors/);
+    assert.match(renderSelectionMarkdown(summaryPayload), /no CI-selectable tag/);
   });
 });

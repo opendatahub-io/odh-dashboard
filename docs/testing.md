@@ -173,14 +173,16 @@ The planner always runs changed Cypress specs, computes the executable reverse i
 of changed Cypress support code, and validates selected tags before starting cluster
 jobs. Small impact sets run as explicit specs, broad sets use package CI tags, and
 only unmappable broad impact or support deletion falls back to the canonical Smoke
-and Sanity tag groups. It fails selection for empty tags, unmatched impactful paths,
-unschedulable specs, and all-skipped selections, and reports executed, failed, and
-skipped counts after the run. Dashboard base and RHOAI network-policy changes run
+and Sanity tag groups. If those canonical groups do not cover every required test,
+the planner schedules the residual specs explicitly rather than dropping them. It
+fails selection for empty tags, unmatched impactful paths, unschedulable specs, and
+all-skipped selections, and reports executed, failed, and skipped counts after the
+run. Dashboard base and RHOAI network-policy changes run
 the Pipelines, Workbenches, and Feature Store suites because those flows exercise
 dashboard egress to the pipeline server, Thanos, and Feast.
 
 Before cluster jobs start, the workflow runs the selection contracts in
-`scripts/cypress/__tests__`. The Node test step keeps progress compact with the dot
+`scripts/cypress/__tests__`. The Node test step prints each named test with the spec
 reporter, records machine-readable TAP totals, and prints pass, failure, skipped,
 todo, total, and pass-rate counts. Historical impact simulations replay escaped
 network-policy, changed-spec, support-code, package-tag, and fallback scenarios.

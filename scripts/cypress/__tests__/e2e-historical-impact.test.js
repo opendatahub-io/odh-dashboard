@@ -198,7 +198,13 @@ describe('historical E2E impact simulations', () => {
     assert.ok(result.summary.pathImpactTags.includes('@AutoRAGCI'));
     const specJob = result.matrix.find((job) => job.run_mode === 'spec');
     assert.ok(specJob);
-    assert.deepEqual(specJob.specs, [...changedSpecs].toSorted());
+    assert.deepEqual(
+      specJob.specs,
+      [
+        'packages/cypress/cypress/tests/e2e/autorag/testAutoragExperimentsAndRunManagement.cy.ts',
+        'packages/cypress/cypress/tests/e2e/autorag/testAutoragOptimization.cy.ts',
+      ].toSorted(),
+    );
   });
 
   it('makes a package without an executable suite use an explicit regression fallback', () => {
@@ -235,7 +241,11 @@ describe('historical E2E impact simulations', () => {
     assert.equal(result.valid, true);
     assert.equal(result.summary.impactMode, 'full-coverage-tags');
     assert.ok(result.matrix.length > 0);
-    assert.ok(result.matrix.every((job) => job.run_mode === 'tag'));
-    assert.ok(result.matrix.every((job) => job.tag_dir.startsWith('full-coverage-')));
+    const tagJobs = result.matrix.filter((job) => job.run_mode === 'tag');
+    const residualSpecJobs = result.matrix.filter((job) => job.run_mode === 'spec');
+    assert.ok(tagJobs.length > 0);
+    assert.ok(tagJobs.every((job) => job.tag_dir.startsWith('full-coverage-')));
+    assert.ok(residualSpecJobs.length > 0);
+    assert.ok(residualSpecJobs.every((job) => job.tag_dir.startsWith('impactedspec-')));
   });
 });
