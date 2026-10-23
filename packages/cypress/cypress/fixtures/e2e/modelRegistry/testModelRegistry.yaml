@@ -21,6 +21,8 @@ modelFormat: 'openvino_ir - opset13'
 servingRuntime: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
 servingRuntimeS390x: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
 servingRuntimeX86: 'vLLM CPU (x86) ServingRuntime for KServe'
+servingRuntimeArm64: 'vLLM CPU (arm64 - EXPERIMENTAL) ServingRuntime for KServe'
+servingRuntimeArm64YamlPath: 'resources/modelServing/singleModel/vllm_cpu_arm64_runtime.yaml'
 deploymentType: 'Inference service'
 rawDeploymentType: 'Raw deployment'
 

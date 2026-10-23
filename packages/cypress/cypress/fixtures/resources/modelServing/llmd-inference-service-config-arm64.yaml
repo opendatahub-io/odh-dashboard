@@ -1,0 +1,29 @@
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceServiceConfig
+metadata:
+  annotations:
+    description: Test vLLM CPU LLMInferenceServiceConfig for LLMInferenceService.
+    opendatahub.io/runtime-version: v0.1
+    openshift.io/display-name: Test vLLM CPU LLMInferenceServiceConfig
+  name: test-llm-template-cpu
+  labels:
+    opendatahub.io/config-type: accelerator
+spec:
+  template:
+    containers:
+      - image: docker.io/vllm/vllm-openai-cpu:v0.31.0
+        name: main
+        args:
+          - --model
+          - facebook/opt-125m
+          - --dtype
+          - float32
+          - --max-model-len
+          - '1024'
+        env:
+          - name: HF_HOME
+            value: /tmp/hf_home
+          - name: VLLM_CPU_KVCACHE_SPACE
+            value: '1'
+          - name: VLLM_ENABLE_V1_MULTIPROCESSING
+            value: '0'
