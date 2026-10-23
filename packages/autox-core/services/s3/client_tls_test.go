@@ -21,11 +21,13 @@ import (
 // the streaming checksum trailer that NetApp ONTAP rejects.
 func TestDefaultClient_UploadObjectToStrictTLSS3(t *testing.T) {
 	for _, tc := range []struct {
-		name string
-		size int
+		name          string
+		size          int
+		wantMultipart bool
 	}{
 		{name: "small object", size: 1 << 20},
-		{name: "object larger than part size", size: 9 << 20},
+		{name: "object below multipart threshold", size: 9 << 20},
+		{name: "multipart object", size: 17 << 20, wantMultipart: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			payload := bytes.Repeat([]byte("0123456789abcdef"), tc.size/16)
@@ -33,6 +35,7 @@ func TestDefaultClient_UploadObjectToStrictTLSS3(t *testing.T) {
 			var object []byte
 			parts := make(map[int][]byte)
 			var rejected int
+			var initiations, completions, singlePuts int
 
 			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Header.Get("X-Amz-Content-Sha256") == "STREAMING-UNSIGNED-PAYLOAD-TRAILER" || r.Header.Get("X-Amz-Trailer") != "" {
@@ -47,6 +50,9 @@ func TestDefaultClient_UploadObjectToStrictTLSS3(t *testing.T) {
 
 				switch {
 				case r.Method == http.MethodPost && r.URL.Query().Has("uploads"):
+					mu.Lock()
+					initiations++
+					mu.Unlock()
 					w.Header().Set("Content-Type", "application/xml")
 					_, _ = io.WriteString(w, "<InitiateMultipartUploadResult><UploadId>test-upload</UploadId></InitiateMultipartUploadResult>")
 				case r.Method == http.MethodPut:
@@ -56,6 +62,10 @@ func TestDefaultClient_UploadObjectToStrictTLSS3(t *testing.T) {
 					}
 					part := r.URL.Query().Get("partNumber")
 					if part == "" {
+						if got := r.Header.Get("If-None-Match"); got != "*" {
+							http.Error(w, fmt.Sprintf("If-None-Match = %q", got), http.StatusBadRequest)
+							return
+						}
 						if got := r.Header.Get("X-Amz-Sdk-Checksum-Algorithm"); got != "" {
 							http.Error(w, fmt.Sprintf("unexpected checksum algorithm %q", got), http.StatusBadRequest)
 							return
@@ -82,11 +92,19 @@ func TestDefaultClient_UploadObjectToStrictTLSS3(t *testing.T) {
 						}
 						parts[partNumber] = body
 					} else {
+						singlePuts++
 						object = body
 					}
 					mu.Unlock()
 					w.Header().Set("ETag", `"test-etag"`)
 				case r.Method == http.MethodPost && r.URL.Query().Has("uploadId"):
+					if got := r.Header.Get("If-None-Match"); got != "*" {
+						http.Error(w, fmt.Sprintf("If-None-Match = %q", got), http.StatusBadRequest)
+						return
+					}
+					mu.Lock()
+					completions++
+					mu.Unlock()
 					w.Header().Set("Content-Type", "application/xml")
 					_, _ = io.WriteString(w, `<CompleteMultipartUploadResult><ETag>"test-etag"</ETag></CompleteMultipartUploadResult>`)
 				case r.Method == http.MethodDelete && r.URL.Query().Has("uploadId"):
@@ -129,6 +147,13 @@ func TestDefaultClient_UploadObjectToStrictTLSS3(t *testing.T) {
 			defer mu.Unlock()
 			if rejected != 0 {
 				t.Errorf("strict S3 endpoint rejected %d checksum trailer request(s)", rejected)
+			}
+			if tc.wantMultipart {
+				if initiations != 1 || len(parts) < 2 || completions != 1 || singlePuts != 0 {
+					t.Errorf("multipart requests: initiations=%d parts=%d completions=%d single PUTs=%d", initiations, len(parts), completions, singlePuts)
+				}
+			} else if initiations != 0 || len(parts) != 0 || completions != 0 || singlePuts != 1 {
+				t.Errorf("single PUT requests: initiations=%d parts=%d completions=%d single PUTs=%d", initiations, len(parts), completions, singlePuts)
 			}
 			if len(parts) > 0 {
 				partNumbers := make([]int, 0, len(parts))

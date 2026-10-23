@@ -203,22 +203,22 @@ func TestExtractAWSS3ConnectionOptions(t *testing.T) {
 		}
 	})
 
-	t.Run("reads optional checksum algorithm", func(t *testing.T) {
+	t.Run("parses optional checksum algorithm", func(t *testing.T) {
 		data := standardSecretData()
 		data[s3.ChecksumAlgorithmSecretKey] = []byte("crc32c")
-		opts, _, err := extractAWSS3ConnectionOptions(data)
+		algorithm, err := parseS3ChecksumAlgorithm(data)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if opts.ChecksumAlgorithm != "CRC32C" {
-			t.Errorf("ChecksumAlgorithm = %q, want CRC32C", opts.ChecksumAlgorithm)
+		if algorithm != "CRC32C" {
+			t.Errorf("ChecksumAlgorithm = %q, want CRC32C", algorithm)
 		}
 	})
 
 	t.Run("rejects unsupported checksum algorithm", func(t *testing.T) {
 		data := standardSecretData()
 		data[s3.ChecksumAlgorithmSecretKey] = []byte("invalid")
-		_, _, err := extractAWSS3ConnectionOptions(data)
+		_, err := parseS3ChecksumAlgorithm(data)
 		if err == nil || !strings.Contains(err.Error(), s3.ChecksumAlgorithmSecretKey) {
 			t.Errorf("expected checksum configuration error, got %v", err)
 		}
@@ -388,7 +388,7 @@ func TestResolveFromDSPA(t *testing.T) {
 		}
 		repo := NewS3Repository(slog.Default(), nil, k8s, pip)
 
-		opts, bucket, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{Namespace: "ns"})
+		opts, bucket, err := repo.resolveUploadCredsAndBucket(context.Background(), S3RequestContext{Namespace: "ns"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -562,6 +562,82 @@ func TestResolveFromDSPA(t *testing.T) {
 			t.Errorf("Region = %q, want default", opts.Region)
 		}
 	})
+}
+
+func TestS3Repository_InvalidUploadChecksumDoesNotBlockReads(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		req        S3RequestContext
+		wantBucket string
+		wantError  error
+	}{
+		{
+			name:       "explicit secret",
+			req:        S3RequestContext{Namespace: "ns", SecretName: "connection"},
+			wantBucket: "my-bucket",
+			wantError:  ErrS3Configuration,
+		},
+		{
+			name:       "DSPA secret",
+			req:        S3RequestContext{Namespace: "ns"},
+			wantBucket: "pipeline-bucket",
+			wantError:  ErrDSPAConfiguration,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			secretData := standardSecretData()
+			if tc.req.SecretName == "" {
+				secretData = map[string][]byte{"access_key": []byte("ak"), "secret_key": []byte("sk")}
+			}
+			secretData[s3.ChecksumAlgorithmSecretKey] = []byte("CRC64NVME")
+			k8s := &mockK8sServiceForS3{
+				getSecretFn: func(_ context.Context, namespace, secretName string) (*v1.Secret, error) {
+					return makeK8sSecret(secretName, namespace, secretData), nil
+				},
+			}
+			pip := &mockPipelinesServiceForS3{
+				discoverReadyDSPAFn: func(_ context.Context, namespace string) (*pipelines.DiscoveredDSPA, error) {
+					return &pipelines.DiscoveredDSPA{
+						Name: "dspa", Namespace: namespace,
+						ObjectStorage: &pipelines.DSPAObjectStorageSpec{
+							SecretName: "dspa-secret", AccessKeyField: "access_key", SecretKeyField: "secret_key",
+							EndpointURL: "https://s3.example.com", Bucket: "pipeline-bucket",
+						},
+					}, nil
+				},
+			}
+			readCalled := false
+			collisionCalled := false
+			s3svc := &mockS3ServiceForRepo{
+				listObjectsFn: func(_ context.Context, opts s3.ConnectionOptions, query s3.ListObjectsQuery) (*s3.ListObjectsResponse, error) {
+					readCalled = true
+					if opts.ChecksumAlgorithm != "" || query.Bucket != tc.wantBucket {
+						t.Errorf("read options = %+v, query = %+v", opts, query)
+					}
+					return &s3.ListObjectsResponse{}, nil
+				},
+				resolveNonCollidingKeyFn: func(_ context.Context, _ s3.ConnectionOptions, _ s3.ResolveNonCollidingKeyInput) (string, error) {
+					collisionCalled = true
+					return "file.jsonl", nil
+				},
+			}
+			repo := NewS3Repository(slog.Default(), s3svc, k8s, pip)
+
+			if _, err := repo.ListObjects(context.Background(), tc.req, s3.ListObjectsOptions{}); err != nil {
+				t.Fatalf("read failed because of upload-only setting: %v", err)
+			}
+			if !readCalled {
+				t.Error("expected list request to reach S3")
+			}
+			_, err := repo.UploadFile(context.Background(), tc.req, "file.jsonl", strings.NewReader("data"), "application/json", 1)
+			if err == nil || !errors.Is(err, tc.wantError) || !strings.Contains(err.Error(), s3.ChecksumAlgorithmSecretKey) {
+				t.Errorf("upload error = %v, want %v mentioning %s", err, tc.wantError, s3.ChecksumAlgorithmSecretKey)
+			}
+			if collisionCalled {
+				t.Error("upload reached S3 with an invalid checksum setting")
+			}
+		})
+	}
 }
 
 // === S3Repository operations ===
