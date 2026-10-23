@@ -23,7 +23,7 @@ make run MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true AUTH_METHOD=in
 Run on a custom port with debug logging:
 
 ```shell
-make run PORT=8000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true LOG_LEVEL=DEBUG
+make run PORT=8000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=internal LOG_LEVEL=DEBUG
 ```
 
 From the package root, the Makefile targets wrap common configurations:
@@ -67,7 +67,7 @@ Most API groups live under `/api/v1/`. Health is unprefixed.
 | Group           | Sample paths                                                                                                                                                                          |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Health          | `GET /healthcheck`                                                                                                                                                                    |
-| User / identity | `GET /api/v1/user`, `GET /api/v1/me`                                                                                                                                                  |
+| User / identity | `GET /api/v1/user`, `GET /api/v1/whoami`                                                                                                                                              |
 | Namespaces      | `GET /api/v1/namespaces` (dev / mock mode only)                                                                                                                                       |
 | Models          | `GET /api/v1/models`                                                                                                                                                                  |
 | Gateway         | `GET /api/v1/gateway-url`                                                                                                                                                             |
@@ -166,119 +166,3 @@ make docker-build-federated
 # Standalone (MUI) image
 make docker-build-standalone
 ```
-
-<<<<<<< HEAD
-
-## Endpoints
-
-Only three JSON endpoints are available plus static asset serving (index.html fallback):
-
-```text
-GET /healthcheck
-GET /api/v1/user
-GET /api/v1/whoami
-GET /api/v1/namespaces   (dev / mock mode only)
-```
-
-### Sample local calls
-
-When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.
-
-```shell
-curl -i localhost:4000/healthcheck
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
-```
-
-<!-- Minimal scope: all former Mod Arch examples removed -->
-
-### Authentication modes
-
-Two modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
-
-- internal (default): impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential.
-- user_token: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview.
-
-### Overriding token header / prefix
-
-By default, the BFF expects the token to be passed in the standard Authorization header with a Bearer prefix:
-
-```shell
-Authorization: Bearer <your-token>
-```
-
-If you're integrating with a proxy or tool that uses a custom header (e.g., X-Forwarded-Access-Token without a prefix), you can override this behavior using environment variables or Makefile arguments.
-
-```shell
-make run AUTH_METHOD=user_token AUTH_TOKEN_HEADER=X-Forwarded-Access-Token AUTH_TOKEN_PREFIX=""
-```
-
-This will configure the BFF to extract the raw token from the following header:
-
-```shell
-X-Forwarded-Access-Token: <your-token>
-```
-
-### Enabling CORS
-
-When serving the UI directly from the BFF there is no need for any CORS headers to be served, by default they are turned off for security reasons.
-
-If you need to enable CORS for any reasons you can add origins to the allow-list in several ways:
-
-##### Via the make command
-
-Add the following parameter to your command: `ALLOWED_ORIGINS` this takes a comma separated list of origins to permit serving to, alterantively you can specify the value `*` to allow all origins, **Note this is not recommended in production deployments as it poses a security risk**
-
-Examples:
-
-```shell
-# Allow only the origin http://example.com:8081
-make run ALLOWED_ORIGINS="http://example.com:8081"
-
-# Allow the origins http://example.com and http://very-nice.com
-make run ALLOWED_ORIGINS="http://example.com,http://very-nice.com"
-
-# Allow all origins
-make run ALLOWED_ORIGINS="*"
-
-# Explicitly disable CORS (default behaviour)
-make run ALLOWED_ORIGINS=""
-```
-
-#### Via environment variable
-
-Setting CORS via environment variable follows the same rules as using the Makefile, simply set the environment variable `ALLOWED_ORIGINS` with the same value as above.
-
-#### Via command line argument
-
-Setting CORS via command line arguments follows the same rules as using the Makefile. Simply add the `--allowed-origins=` flag to your command.
-
-Examples:
-
-```shell
-./bff --allowed-origins="http://my-domain.com,http://my-other-domain.com"
-```
-
-### Disabling TLS verification (development only)
-
-For local Kubeflow installations with self-signed certificates, you may need to disable TLS certificate verification.
-
-**Kubernetes deployment:**
-
-```yaml
-env:
-  - name: INSECURE_SKIP_VERIFY
-    value: 'true'
-```
-
-**Local development:**
-
-```shell
-./bin/bff --insecure-skip-verify
-# or
-export INSECURE_SKIP_VERIFY=true
-```
-
-> # **Warning:** Only use in development. Keep TLS verification enabled in production.
->
-> > > > > > > 0f6cba65a (Refresh maas docs)
