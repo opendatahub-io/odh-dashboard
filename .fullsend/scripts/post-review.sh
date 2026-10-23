@@ -684,8 +684,10 @@ def render_header(result, action):
     run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
     repo = os.environ.get("GITHUB_REPOSITORY") or result.get("repo") or ""
     run_id = os.environ.get("GITHUB_RUN_ID", "")
+    # No `<!-- fullsend:review-agent -->` line here: `fullsend post-review`
+    # adds that marker itself and, from v0.48, HTML-escapes any other
+    # `<!-- fullsend:` comment in the body, so a copy here shows as text.
     lines = [
-        "<!-- fullsend:review-agent -->",
         f"<!-- **Head SHA:** {sha} -->",
         "",
         f"Finished Review · `{action}` · Commit: `{short}`",
