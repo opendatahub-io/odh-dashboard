@@ -68,13 +68,60 @@ const DisabledModelTooltip: React.FC<DisabledModelTooltipProps> = ({
   label,
   testId,
   children,
-}) => (
-  <Tooltip content={content}>
-    <span tabIndex={0} role="group" aria-label={label} data-testid={testId}>
-      {children}
-    </span>
-  </Tooltip>
-);
+}) => {
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [isFocused, setIsFocused] = React.useState(false);
+  const isVisible = isHovered || isFocused;
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isVisible) {
+      return undefined;
+    }
+
+    const handleDocumentKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setIsHovered(false);
+      setIsFocused(false);
+    };
+
+    document.addEventListener('keydown', handleDocumentKeyDown, true);
+    return () => document.removeEventListener('keydown', handleDocumentKeyDown, true);
+  }, [isVisible]);
+
+  return (
+    <div
+      ref={wrapperRef}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <Tooltip
+        content={content}
+        trigger="manual"
+        isVisible={isVisible}
+        appendTo={() => wrapperRef.current ?? document.body}
+        entryDelay={0}
+        exitDelay={0}
+        animationDuration={0}
+      >
+        <span
+          tabIndex={0}
+          role="group"
+          aria-label={label}
+          data-testid={testId}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+        >
+          {children}
+        </span>
+      </Tooltip>
+    </div>
+  );
+};
 /* eslint-enable jsx-a11y/no-noninteractive-tabindex */
 
 const MODEL_CATALOG_HELP_INTRO =
