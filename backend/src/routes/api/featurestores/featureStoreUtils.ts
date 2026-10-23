@@ -5,6 +5,7 @@ import { KubeFastifyInstance } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
 import { isImpersonating, getImpersonateAccessToken } from '../../../devFlags';
 import { getAccessToken } from '../../../utils/directCallUtils';
+import { bracketHostIfIPv6, ipv6AwareCheckServerIdentity } from '../../../utils/networkUtils';
 
 const REGISTRY_CONDITION_TYPE = 'Registry';
 
@@ -498,7 +499,9 @@ export function constructRegistryProxyUrl(
       process.env.FEAST_REGISTRY_SERVICE_HOST ||
       `${serviceName}.${serviceNamespace}.svc.cluster.local`;
     const envPort = process.env.FEAST_REGISTRY_SERVICE_PORT || port;
-    return `${protocol}://${host}:${envPort}/${path}`;
+    // FEAST_REGISTRY_SERVICE_HOST is the service ClusterIP, which is a raw IPv6 literal on IPv6
+    // single-stack clusters and must be bracketed before concatenating `:port`.
+    return `${protocol}://${bracketHostIfIPv6(host)}:${envPort}/${path}`;
   }
 
   return `${protocol}://${serviceName}.${serviceNamespace}.svc.cluster.local:${port}/${path}`;
@@ -574,6 +577,7 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
     method: 'GET',
     headers,
     rejectUnauthorized,
+    ...(isHttps && { checkServerIdentity: ipv6AwareCheckServerIdentity }),
     ...(agent && { agent }),
   };
 
