@@ -89,16 +89,6 @@ After the installer completes, verify the following files exist and are correct.
   grep 'Port:' dashboard-operator/internal/controller/modules.go | grep -oP '\d{4}' | sort -n
   ```
 - Note: The `service` config is used by the operator when generating the federation-config ConfigMap
-- If BFF included, add `bffConfig` section:
-
-  ```json
-  "bffConfig": {
-    "enabled": true,
-    "port": 8080,
-    "healthEndpoint": "/healthcheck",
-    "startCommand": "make dev-bff-e2e-mock"
-  }
-  ```
 
 - Dependencies include `@odh-dashboard/plugin-core` and `@odh-dashboard/internal`
 - `exports` includes `"./extensions": "./frontend/src/odh/extensions.ts"`
