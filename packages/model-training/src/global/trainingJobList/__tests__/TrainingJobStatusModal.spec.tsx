@@ -44,23 +44,21 @@ describe('TrainingJobStatusModal', () => {
     expect(screen.getByText('Friendly training job status')).toBeInTheDocument();
   });
 
-  it('should display the training job description in the modal header', () => {
-    renderModal('Train an image classification model.');
+  it.each([
+    {
+      descriptionCase: 'a populated description',
+      description: 'Train an image classification model.',
+    },
+    { descriptionCase: 'a whitespace description', description: '   ' },
+    { descriptionCase: 'no description', description: undefined },
+  ])(
+    'should display the resource type when the training job has $descriptionCase',
+    ({ description }) => {
+      renderModal(description);
 
-    expect(screen.getByTestId('training-job-status-modal-description')).toHaveTextContent(
-      'Train an image classification model.',
-    );
-  });
-
-  it('should not display a description when the training job description is blank', () => {
-    renderModal('   ');
-
-    expect(screen.queryByTestId('training-job-status-modal-description')).not.toBeInTheDocument();
-  });
-
-  it('should not display a description when the training job has no description annotation', () => {
-    renderModal();
-
-    expect(screen.queryByTestId('training-job-status-modal-description')).not.toBeInTheDocument();
-  });
+      expect(screen.getByTestId('training-job-status-modal-description')).toHaveTextContent(
+        /^Job status$/,
+      );
+    },
+  );
 });

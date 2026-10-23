@@ -28,10 +28,7 @@ import {
   t_color_gray_60 as Gray60,
   t_global_text_color_disabled as DisabledColor,
 } from '@patternfly/react-tokens';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-} from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import EventLog from '@odh-dashboard/internal/concepts/k8s/EventLog/EventLog';
 import TrainingJobStatus from './components/TrainingJobStatus';
 import {
@@ -88,7 +85,6 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
 }) => {
   const status = jobStatus || getTrainingJobStatusSync(job);
   const displayName = getDisplayNameFromK8sResource(job);
-  const description = getDescriptionFromK8sResource(job).trim();
   const [workloads, workloadLoaded] = useWorkloadForTrainJob(job);
   const workload = React.useMemo(() => {
     if (!workloadLoaded || workloads.length === 0) return null;
@@ -269,15 +265,13 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
       <ModalHeader
         data-testid="training-job-status-modal-header"
         description={
-          description ? (
-            <Content
-              component="p"
-              data-testid="training-job-status-modal-description"
-              style={{ color: Gray60.value }}
-            >
-              {description}
-            </Content>
-          ) : undefined
+          <Content
+            component="p"
+            data-testid="training-job-status-modal-description"
+            style={{ color: Gray60.value }}
+          >
+            Job status
+          </Content>
         }
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
