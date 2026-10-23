@@ -6,7 +6,7 @@ export type MaaSOrg = {
   roles: string[];
 };
 
-export type MaaSMe = {
+export type MaaSWhoAmI = {
   sub: string;
   email?: string;
   name?: string;
