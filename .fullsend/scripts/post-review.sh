@@ -103,7 +103,9 @@ transform_review_result() {
   python3 - "$1" <<'PY'
 import json, os, re, sys
 from datetime import datetime, timezone
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
+
+JIRA_KEY_RE = re.compile(r"[A-Z][A-Z0-9]+-\d+")
 
 # Host policy: .fullsend/rating-policy.json (floors/caps/refuse lists only).
 # Judgment criteria live in the rating skill — not here.
@@ -534,6 +536,34 @@ def compute_action(result):
         return "comment", "needs-human"
     return "approve", "no-blocking-findings"
 
+def compute_product_ask_overall(result):
+    """Overwrite top-level product_ask.status from per-issue statuses when issues[] is present."""
+    pa = result.get("product_ask")
+    if not isinstance(pa, dict):
+        return result
+    issues = pa.get("issues")
+    if not isinstance(issues, list) or not issues:
+        return result
+    rank = {"mismatch-unjustified": 3, "mismatch-justified": 2, "aligned": 1, "none": 0}
+    best = 0
+    any_human = False
+    any_justified = False
+    for issue in issues:
+        s = issue.get("status") or "none"
+        best = max(best, rank.get(s, 0))
+        if issue.get("needs_human"):
+            any_human = True
+        if issue.get("justified_in_description"):
+            any_justified = True
+    reverse = {v: k for k, v in rank.items()}
+    pa["status"] = reverse.get(best, "none")
+    if any_human:
+        pa["needs_human"] = True
+    if any_justified:
+        pa["justified_in_description"] = True
+    return result
+
+
 def apply_product_ask(result):
     """Floor confidence for unjustified Jira-vs-description mismatch. Never bump risk."""
     pa = result.get("product_ask")
@@ -635,6 +665,30 @@ def inline_text(text):
     headings or extra list items.
     """
     return clean(text).replace("\n", " ").replace("<", "&lt;")
+
+def markdown_prose(text):
+    """Agent/Jira-echoed prose that may keep newlines and Markdown styling.
+
+    Strips HTML comments (concealment) before clean()/mention suppression so
+    values like `@<!-- conceal -->org/team` cannot reassemble into a live
+    mention. Escapes raw `<` (no HTML expected) and keeps newlines so
+    multi-line Markdown remains readable. Unlike inline_text(), does not
+    flatten newlines.
+    """
+    stripped = re.sub(r"<!--.*?-->", "", str(text or ""), flags=re.S)
+    return clean(stripped).replace("<", "&lt;")
+
+def prose_bullet_lines(items):
+    """Render prose array items as Markdown bullets with indented continuations."""
+    lines = []
+    for item in items:
+        body = markdown_prose(item)
+        if not body:
+            continue
+        first, *rest = body.split("\n")
+        lines.append(f"- {first}")
+        lines.extend(f"  {cont}" if cont.strip() else "" for cont in rest)
+    return lines
 
 def code_span_text(text):
     """Untrusted text for a single Markdown inline-code span (`...`).
@@ -1194,18 +1248,158 @@ def render_todo_section(result):
         lines += ["", label] + [f"- {clean(text)}" for text in items]
     return lines
 
+def _pa_status_line(label, record, suffix=""):
+    status = record.get("status") or "none"
+    human = " · needs human review" if record.get("needs_human") else ""
+    return f"**{label}:** `{clean(status)}`{human}{suffix}"
+
+
+def load_trusted_jira_context():
+    """URLs, failed fetches, and omitted keys from the host Jira snapshot."""
+    empty = {"urls": {}, "failed": [], "omitted": []}
+    config_dir = os.environ.get("FULLSEND_CONFIG_DIR") or ""
+    if not config_dir:
+        return empty
+    path = os.path.join(config_dir, ".run", "jira.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError, TypeError):
+        return empty
+    if not isinstance(data, dict):
+        return empty
+
+    issues = data.get("issues")
+    if not isinstance(issues, list):
+        issues = []
+
+    entries = []
+    if data.get("key"):
+        entries.append(data)
+    entries.extend(issue for issue in issues if isinstance(issue, dict))
+    urls = {
+        str(issue.get("key")): str(issue.get("url") or "")
+        for issue in entries
+        if issue.get("key")
+    }
+
+    failed = []
+    seen_failed = set()
+    for issue in issues:
+        if not isinstance(issue, dict) or issue.get("status") != "error":
+            continue
+        key = str(issue.get("key") or "").strip()
+        if not key or key in seen_failed:
+            continue
+        seen_failed.add(key)
+        failed.append({
+            "key": key,
+            "reason": str(issue.get("reason") or "error"),
+        })
+
+    omitted = []
+    seen_omitted = set()
+    raw_omitted = data.get("omitted_keys")
+    if isinstance(raw_omitted, list):
+        for item in raw_omitted:
+            key = str(item or "").strip()
+            if not key or key in seen_omitted:
+                continue
+            seen_omitted.add(key)
+            omitted.append(key)
+
+    return {"urls": urls, "failed": failed, "omitted": omitted}
+
+
+TRUSTED_JIRA = load_trusted_jira_context()
+TRUSTED_JIRA_ISSUES = TRUSTED_JIRA["urls"]
+
+
+def trusted_jira_issue_url(key):
+    url = TRUSTED_JIRA_ISSUES.get(key, "")
+    if not url:
+        return ""
+    parsed = urlsplit(url)
+    expected_path = f"/browse/{quote(key, safe='')}"
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path != expected_path
+        or parsed.query
+        or parsed.fragment
+    ):
+        return ""
+    return url
+
+
+def _pa_key_label(key):
+    """Safe label for a Jira key (trusted URL when shape matches)."""
+    key = str(key or "").strip()
+    if not key:
+        return ""
+    if not JIRA_KEY_RE.fullmatch(key):
+        return f"`{code_span_text(key)}`"
+    url = trusted_jira_issue_url(key)
+    return f"[{key}]({url})" if url else f"`{code_span_text(key)}`"
+
+
+def _pa_issue_link(issue):
+    return _pa_key_label(issue.get("key"))
+
+
+def render_product_ask_evaluation_limits():
+    """Surface snapshot fetch failures and omitted keys in the published review."""
+    failed = TRUSTED_JIRA["failed"]
+    omitted = TRUSTED_JIRA["omitted"]
+    if not failed and not omitted:
+        return []
+    lines = [
+        "",
+        "**Evaluation limits:** Product-ask covered only the issues that could be fetched. The following linked issues were not evaluated:",
+        "",
+    ]
+    for item in failed:
+        label = _pa_key_label(item["key"])
+        if label:
+            lines.append(
+                f"- {label} — could not fetch (`{code_span_text(item['reason'])}`)"
+            )
+    for key in omitted:
+        label = _pa_key_label(key)
+        if label:
+            lines.append(f"- {label} — omitted (10-key cap)")
+    lines.append("")
+    return lines
+
+
+def _render_pa_block(issue, suffix=""):
+    lines = [_pa_status_line("Status", issue, suffix), ""]
+    if issue.get("aligned"):
+        lines += ["Aligned:"] + prose_bullet_lines(issue["aligned"]) + [""]
+    if issue.get("mismatched"):
+        lines += ["Mismatched:"] + prose_bullet_lines(issue["mismatched"]) + [""]
+    return lines
+
+
 def render_product_ask_section(pa):
     if not pa or (pa.get("status") or "none") == "none":
         return []
-    status = pa.get("status") or "none"
+    issues = pa.get("issues") if isinstance(pa.get("issues"), list) else []
+    ok_issues = [i for i in issues if (i.get("status") or "none") != "none"]
     lines = ["", "## Product ask", ""]
-    human = " · needs human review" if pa.get("needs_human") else ""
-    lines.append(f"**Status:** `{clean(status)}`{human}")
-    lines.append("")
-    if pa.get("aligned"):
-        lines += ["Aligned:"] + [f"- {clean(item)}" for item in pa["aligned"]] + [""]
-    if pa.get("mismatched"):
-        lines += ["Mismatched:"] + [f"- {clean(item)}" for item in pa["mismatched"]] + [""]
+    if len(ok_issues) > 1:
+        lines += [_pa_status_line("Overall", pa), ""]
+        for issue in ok_issues:
+            lines += [f"### {_pa_issue_link(issue)}", ""]
+            lines += _render_pa_block(issue)
+    elif len(ok_issues) == 1:
+        link = _pa_issue_link(ok_issues[0])
+        lines += _render_pa_block(ok_issues[0], suffix=f" · {link}" if link else "")
+    else:
+        lines += _render_pa_block(pa)
+    lines += render_product_ask_evaluation_limits()
     return lines
 
 def render_body(result, previous_md, action):
@@ -1320,6 +1514,7 @@ result = normalize_protected_findings(result)
 result = reconcile_producers(result)
 result = apply_host_todos(result)
 result = augment_inspected(result)
+result = compute_product_ask_overall(result)
 result = apply_product_ask(result)
 result = cap_confidence(result)
 action, _reason = compute_action(result)
@@ -1555,9 +1750,33 @@ run_self_test() {
 
   render_fixture needs-human comment "{${common},\"findings\":[],\"todo\":[{\"category\":\"judgement\",\"text\":\"Decide which product scope this PR implements.\"}],\"product_ask\":{\"status\":\"mismatch-justified\",\"needs_human\":true}}"
 
-  local pa body
+  local jira_config body
+  jira_config="${tmp}/jira-config"
+  mkdir -p "${jira_config}/.run"
+  write_default_jira_snapshot() {
+    cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "key": "RHOAIENG-100655",
+  "url": "https://issues.redhat.com/browse/RHOAIENG-100655",
+  "issues": [
+    {"key": "RHOAIENG-100580", "url": "https://issues.redhat.com/browse/RHOAIENG-100580"},
+    {"key": "RHOAIENG-100583", "url": "https://issues.redhat.com/browse/RHOAIENG-100583"},
+    {"key": "RHOAIENG-100655", "url": "https://issues.redhat.com/browse/RHOAIENG-100655"},
+    {"key": "bad]\n[more]\n@org/team\n<script>alert(1)</script>", "url": "https://issues.redhat.com/browse/RHOAIENG-100655"}
+  ]
+}
+JSON
+  }
+  write_default_jira_snapshot
+  render_jira_fixture() {
+    local name="$1"
+    (
+      export FULLSEND_CONFIG_DIR="${jira_config}"
+      transform_review_result "${tmp}/${name}.json" > "${tmp}/${name}-out.json"
+    )
+  }
   printf '%s' "{${common},\"product_ask\":{\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for export\"]}}" > "${tmp}/product-ask.json"
-  transform_review_result "${tmp}/product-ask.json" > "${tmp}/product-ask-out.json"
+  render_jira_fixture product-ask
   if ! jq -e '.action == "comment" and .risk.level == "low" and .confidence.level == "low" and (.confidence.why | contains("Jira"))' "${tmp}/product-ask-out.json" >/dev/null; then
     echo "FAIL product-ask: want confidence floor only (risk unchanged) + comment" >&2
     fail=1
@@ -1567,6 +1786,181 @@ run_self_test() {
   else
     echo "PASS product-ask floors confidence only; risk unchanged"
   fi
+
+  # Multi-issue product-ask: overall computed from per-issue statuses.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]},{\"key\":\"RHOAIENG-100583\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100583\",\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for import.\"],\"needs_human\":true}]}}" > "${tmp}/pa-multi.json"
+  render_jira_fixture pa-multi
+  body=$(jq -r .body "${tmp}/pa-multi-out.json")
+  if ! grep -qF '**Overall:** `mismatch-unjustified` · needs human review' <<<"${body}"; then
+    echo "FAIL pa-multi: Overall line missing or wrong" >&2
+    fail=1
+  elif ! grep -qF '### [RHOAIENG-100580](https://issues.redhat.com/browse/RHOAIENG-100580)' <<<"${body}"; then
+    echo "FAIL pa-multi: first issue heading missing" >&2
+    fail=1
+  elif ! grep -qF '### [RHOAIENG-100583](https://issues.redhat.com/browse/RHOAIENG-100583)' <<<"${body}"; then
+    echo "FAIL pa-multi: second issue heading missing" >&2
+    fail=1
+  elif ! jq -e '.confidence.level == "low"' "${tmp}/pa-multi-out.json" >/dev/null; then
+    echo "FAIL pa-multi: confidence floor not applied from computed overall" >&2
+    fail=1
+  else
+    echo "PASS pa-multi: overall computed, per-issue headings, confidence floored"
+  fi
+
+  # Single-issue product-ask: key linked on status line, no Overall.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-single.json"
+  render_jira_fixture pa-single
+  body=$(jq -r .body "${tmp}/pa-single-out.json")
+  if grep -qF '**Overall:**' <<<"${body}"; then
+    echo "FAIL pa-single: Overall line should not appear for one issue" >&2
+    fail=1
+  elif ! grep -qF '[RHOAIENG-100655](https://issues.redhat.com/browse/RHOAIENG-100655)' <<<"${body}"; then
+    echo "FAIL pa-single: key link missing on status line" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-single: Status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-single: single issue renders linked status, no Overall"
+  fi
+
+  # Hostile issue metadata cannot escape the link or inject Markdown/HTML.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://example.com)\\n\\n@org/team\\n\\n[more](https://example.com\",\"status\":\"aligned\",\"aligned\":[\"Safe link only.\"]},{\"key\":\"bad]\\n[more]\\n@org/team\\n<script>alert(1)</script>\",\"url\":\"https://example.com\",\"status\":\"aligned\",\"aligned\":[\"Hostile key only.\"]}]}}" > "${tmp}/pa-hostile.json"
+  render_jira_fixture pa-hostile
+  body=$(jq -r .body "${tmp}/pa-hostile-out.json")
+  if ! grep -qF '[RHOAIENG-100655](https://issues.redhat.com/browse/RHOAIENG-100655)' <<<"${body}"; then
+    echo "FAIL pa-hostile: trusted issue link missing" >&2
+    fail=1
+  elif grep -qF -e 'https://example.com)' \
+                -e '[more](https://example.com' \
+                -e '<script>' \
+                -e '@org/team' <<<"${body}"; then
+    echo "FAIL pa-hostile: hostile URL, Markdown, HTML, or mention reached the body" >&2
+    fail=1
+  elif ! grep -qF 'bad] [more] @' <<<"${body}"; then
+    echo "FAIL pa-hostile: hostile key was not flattened into a safe code span" >&2
+    fail=1
+  else
+    echo "PASS pa-hostile: issue links and labels escaped hostile metadata"
+  fi
+
+  # Hostile aligned/mismatched prose: strip comments before mention suppression,
+  # escape HTML, keep newlines. Comment-separated @mentions must not go live.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Matches.\\n\\n<!-- hide -->\\n## Injected\\n<script>alert(1)</script>\\n@<!-- conceal -->org/team\"],\"mismatched\":[\"Drift.\\n<!-- x -->\\n<details>\\n@<!-- hide -->alice\"]}]}}" > "${tmp}/pa-prose.json"
+  render_jira_fixture pa-prose
+  body=$(jq -r .body "${tmp}/pa-prose-out.json")
+  if ! grep -qF 'Matches.' <<<"${body}"; then
+    echo "FAIL pa-prose: aligned prose missing" >&2
+    fail=1
+  elif grep -qF -e '<!-- hide -->' -e '<!-- x -->' -e '<!-- conceal -->' <<<"${body}"; then
+    echo "FAIL pa-prose: injected HTML comment leaked into body" >&2
+    fail=1
+  elif grep -qF '<script>' <<<"${body}"; then
+    echo "FAIL pa-prose: raw script tag leaked into body" >&2
+    fail=1
+  elif ! grep -qF '&lt;script>alert(1)&lt;/script>' <<<"${body}"; then
+    echo "FAIL pa-prose: HTML was not escaped" >&2
+    fail=1
+  elif ! grep -qF '&lt;details>' <<<"${body}"; then
+    echo "FAIL pa-prose: mismatched HTML was not escaped" >&2
+    fail=1
+  elif grep -qF 'Matches. ## Injected' <<<"${body}"; then
+    echo "FAIL pa-prose: newlines were flattened into a single line" >&2
+    fail=1
+  elif ! grep -qE '^  ## Injected$' <<<"${body}"; then
+    echo "FAIL pa-prose: multi-line prose was not kept as list continuation" >&2
+    fail=1
+  elif grep -qF -e '@org/team' -e '@alice' <<<"${body}"; then
+    echo "FAIL pa-prose: comment-separated mention became a live @mention" >&2
+    fail=1
+  else
+    echo "PASS pa-prose: comments stripped, HTML escaped, newlines kept, mentions suppressed"
+  fi
+
+  # Legacy product-ask without issues: same block as before.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"aligned\":[\"Matches.\"]}}" > "${tmp}/pa-legacy.json"
+  transform_review_result "${tmp}/pa-legacy.json" > "${tmp}/pa-legacy-out.json"
+  body=$(jq -r .body "${tmp}/pa-legacy-out.json")
+  if grep -qF '**Overall:**' <<<"${body}"; then
+    echo "FAIL pa-legacy: Overall line should not appear without issues" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-legacy: Status line missing" >&2
+    fail=1
+  elif ! grep -qF 'Matches.' <<<"${body}"; then
+    echo "FAIL pa-legacy: aligned items missing" >&2
+    fail=1
+  else
+    echo "PASS pa-legacy: legacy single-key renders unchanged"
+  fi
+
+  # Mixed fetch success/failure: aligned evaluation must still show fetch limits.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "id": "jira-snapshot",
+  "status": "ok",
+  "key": "RHOAIENG-100580",
+  "url": "https://issues.redhat.com/browse/RHOAIENG-100580",
+  "issues": [
+    {"key": "RHOAIENG-100580", "url": "https://issues.redhat.com/browse/RHOAIENG-100580", "summary": "Export"},
+    {"key": "RHOAIENG-100583", "status": "error", "reason": "http-404"},
+    {"key": "RHOAIENG-100655", "status": "error", "reason": "URLError"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]}]}}" > "${tmp}/pa-partial.json"
+  render_jira_fixture pa-partial
+  body=$(jq -r .body "${tmp}/pa-partial-out.json")
+  if ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-partial: aligned status missing" >&2
+    fail=1
+  elif ! grep -qF '**Evaluation limits:**' <<<"${body}"; then
+    echo "FAIL pa-partial: evaluation-limit notice missing" >&2
+    fail=1
+  elif ! grep -qF '`RHOAIENG-100583` — could not fetch (`http-404`)' <<<"${body}"; then
+    echo "FAIL pa-partial: failed key/reason not rendered" >&2
+    fail=1
+  elif ! grep -qF '`RHOAIENG-100655` — could not fetch (`URLError`)' <<<"${body}"; then
+    echo "FAIL pa-partial: second failed key not rendered" >&2
+    fail=1
+  else
+    echo "PASS pa-partial: mixed fetch failure surfaces evaluation limits"
+  fi
+
+  # Over-cap omitted keys: notice even when every fetched issue aligned.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "id": "jira-snapshot",
+  "status": "ok",
+  "key": "RHOAIENG-100580",
+  "url": "https://issues.redhat.com/browse/RHOAIENG-100580",
+  "issues": [
+    {"key": "RHOAIENG-100580", "url": "https://issues.redhat.com/browse/RHOAIENG-100580", "summary": "Export"}
+  ],
+  "omitted_keys": ["RHOAIENG-100511", "RHOAIENG-100512"]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]}]}}" > "${tmp}/pa-omitted.json"
+  render_jira_fixture pa-omitted
+  body=$(jq -r .body "${tmp}/pa-omitted-out.json")
+  if ! grep -qF '**Evaluation limits:**' <<<"${body}"; then
+    echo "FAIL pa-omitted: evaluation-limit notice missing" >&2
+    fail=1
+  elif ! grep -qF '`RHOAIENG-100511` — omitted (10-key cap)' <<<"${body}"; then
+    echo "FAIL pa-omitted: first omitted key missing" >&2
+    fail=1
+  elif ! grep -qF '`RHOAIENG-100512` — omitted (10-key cap)' <<<"${body}"; then
+    echo "FAIL pa-omitted: second omitted key missing" >&2
+    fail=1
+  elif grep -qF 'could not fetch' <<<"${body}"; then
+    echo "FAIL pa-omitted: fetch-failure wording should not appear" >&2
+    fail=1
+  else
+    echo "PASS pa-omitted: over-cap keys surface evaluation limits"
+  fi
+
+  # Restore the shared jira fixture for later tests that reuse render_jira_fixture.
+  write_default_jira_snapshot
 
   # Gate matrix: any medium finding → request-changes (no advisory carve-out).
   render_fixture medium-blocks request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Naming drift.\",\"why\":\"Public export renamed without alias.\"}],\"product_ask\":{\"status\":\"none\"}}"
