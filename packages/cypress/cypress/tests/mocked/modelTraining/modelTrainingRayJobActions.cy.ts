@@ -488,8 +488,7 @@ describe('Ray cluster column URL behavior', () => {
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
     rayRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'ray-data-processing-raycluster')
       .and('have.attr', 'href')
       .and('include', 'rh-ai.apps.example.com');
@@ -534,8 +533,7 @@ describe('Ray cluster column URL behavior', () => {
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
     rayRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'ray-data-processing-raycluster')
       .and('have.attr', 'href')
       .and(
@@ -555,14 +553,12 @@ describe('Ray cluster column URL behavior', () => {
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
     rayRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'ray-data-processing-raycluster')
       .and('have.class', 'pf-m-disabled')
       .and('have.attr', 'aria-disabled', 'true')
-      .and('not.have.attr', 'href')
-      .find('svg')
-      .should('exist');
+      .and('not.have.attr', 'href');
+    rayRow.findRayClusterExternalLinkIcon().should('exist');
   });
 
   it('should show workspace cluster name from clusterSelector in the Ray cluster column', () => {
@@ -581,8 +577,7 @@ describe('Ray cluster column URL behavior', () => {
     trainingJobTable.filterByName('ray-workspace-job');
     const workspaceRow = trainingJobTable.getTableRow('ray-workspace-job');
     workspaceRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'shared-ray-cluster')
       .and('have.attr', 'target', '_blank');
   });

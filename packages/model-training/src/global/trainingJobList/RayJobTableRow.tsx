@@ -151,11 +151,12 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
         variant="link"
         isInline
         component="a"
+        data-testid="ray-cluster-link"
         isDisabled={!dashboardURL}
         href={dashboardURL || undefined}
         target="_blank"
         rel="noopener noreferrer"
-        icon={<ExternalLinkAltIcon />}
+        icon={<ExternalLinkAltIcon data-testid="ray-cluster-external-link-icon" />}
         iconPosition="end"
       >
         {rayClusterName}
