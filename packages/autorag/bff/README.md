@@ -158,7 +158,7 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 | `dbSecretName` | Name of the K8s secret with database credentials (auto-detected: Milvus or pgvector) |
 | `maasSecretName` | Name of the K8s secret with MaaS credentials (`MAAS_BASE_URL`, `MAAS_API_KEY`) |
 
-**Request body** — OpenAI Responses API format. The `ranking_options` shown below requests hybrid RRF, which is supported by the pgvector adapter only:
+**Request body** — OpenAI Responses API format. The `ranking_options` shown below requests hybrid RRF against pgvector:
 
 ```json
 {
@@ -190,7 +190,9 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 
 - `input` — conversation history; the last `user` message is the question; an optional `system` message is injected into the chat prompt
 - `tools[].vector_store_ids[0]` — logical vector DB collection name. IDs may contain only letters, numbers, `_`, `-`, and `.`; `-` and `.` are canonicalized to `_` before adapter lookup. Logical names that canonicalize to the same ID cannot coexist (for example, `my-store` and `my.store`).
-- `tools[].ranking_options` — optional supported fields are `ranker: "rrf"` and `alpha` from 0 through 1. Omit the object for dense search; include it for pgvector hybrid RRF search. Milvus rejects hybrid requests because sparse hybrid retrieval is not implemented. `search_mode`, `ranker_strategy`, `ranker_k`, and other ranking fields are rejected rather than ignored.
+- `tools[].ranking_options` — omit for dense search. `ranker: "rrf"` selects hybrid RRF on Milvus or pgvector. Milvus hybrid retrieval requires Milvus 2.5 or newer and a collection with `content` text, `vector` dense, and `sparse` BM25 fields, a BM25 function, indexes on both vector fields, and a loaded collection. It accepts optional `ranker_k` (default 60, strictly between 0 and 16384), but not `alpha` with RRF. Pgvector accepts optional `alpha` (default 0.5) to weight the dense and full-text RRF ranks; its RRF constant is fixed at 60. Milvus also supports `ranker: "weighted"` with `alpha` (default 0.5) as the dense weight. Weighted ranking is unsupported by pgvector. `search_mode`, `ranker_strategy`, and other ranking fields are rejected rather than ignored.
+
+> Automated tests validate hybrid request construction and parameter validation, but they do not replace a live smoke test against a pipeline-created Milvus hybrid collection. Before release, verify the collection schema, BM25 function, indexes, load state, and both RRF and weighted retrieval against the deployed Milvus version.
 - `metadata.embedding_model` — required; model used for query embedding
 - `metadata.context_template_text` — optional; template for each retrieved chunk (`{document}`, `{doc_number}` placeholders)
 - `metadata.user_message_text` — optional; wraps context + question (`{reference_documents}`, `{question}` placeholders)

@@ -37,7 +37,8 @@ type EmbeddableChatbotPlaygroundProps = {
   bffBasePath: string;
   /**
    * Same-origin path (with its own query string) of the responses endpoint to use
-   * instead of the OGX connection-secret flow, e.g. '/autorag/api/v1/responses?namespace=my-project'.
+   * instead of the OGX connection-secret flow, e.g.
+   * '/autorag/api/v1/responses?namespace=my-project&dbSecretName=my-db&maasSecretName=my-maas'.
    * Must start with a single '/' (absolute and protocol-relative URLs are rejected)
    * and be under a module prefix the relay allows (currently '/autorag/'); the
    * BFF rejects other destinations.
