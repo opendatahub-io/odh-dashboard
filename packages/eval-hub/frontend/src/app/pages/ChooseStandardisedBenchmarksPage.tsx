@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
@@ -30,8 +29,10 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { useProviders } from '~/app/hooks/useProviders';
 import useSearchInputTracking from '~/app/hooks/useSearchInputTracking';
 import { FlatBenchmark } from '~/app/types';
@@ -67,6 +68,7 @@ const PAGE_SIZES = [12, 24, 36];
 const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const { providers, loaded, loadError } = useProviders(namespace ?? '');
 
   const handleRunBenchmark = React.useCallback(
@@ -218,12 +220,14 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
             title="Select benchmark"
             description="Select a benchmark to run on your model, agent, or dataset."
             breadcrumb={
-              <Breadcrumb>
-                <BreadcrumbItem
-                  render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-                />
+              <ContextBreadcrumb
+                pageName="Evaluations"
+                projectDisplayName={projectDisplayName}
+                homePath={evaluationsBaseRoute(namespace)}
+                projectHomePath={`/projects/${namespace}`}
+              >
                 <BreadcrumbItem isActive>Select benchmark</BreadcrumbItem>
-              </Breadcrumb>
+              </ContextBreadcrumb>
             }
             loaded={loaded}
             loadError={loadError}

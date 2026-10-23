@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
@@ -41,7 +40,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useProviders } from '~/app/hooks/useProviders';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { Collection } from '~/app/types';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
@@ -70,6 +71,7 @@ const isCollectionSortOption = (value: unknown): value is BenchmarkSortOption =>
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const [selectedCollection, setSelectedCollection] = React.useState<Collection | undefined>(
     undefined,
   );
@@ -172,17 +174,19 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             title="Select collection"
             description="Select a collection to evaluate your model, agent, or dataset."
             breadcrumb={
-              <Breadcrumb>
-                <BreadcrumbItem
-                  render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-                />
+              <ContextBreadcrumb
+                pageName="Evaluations"
+                projectDisplayName={projectDisplayName}
+                homePath={evaluationsBaseRoute(namespace)}
+                projectHomePath={`/projects/${namespace}`}
+              >
                 <BreadcrumbItem
                   render={() => (
                     <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
                 <BreadcrumbItem isActive>Select collection</BreadcrumbItem>
-              </Breadcrumb>
+              </ContextBreadcrumb>
             }
             loaded={loaded}
             loadError={loadError}

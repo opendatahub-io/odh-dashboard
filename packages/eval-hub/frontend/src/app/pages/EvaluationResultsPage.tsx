@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
@@ -19,9 +18,11 @@ import { CalendarAltIcon, ListIcon, OutlinedClockIcon } from '@patternfly/react-
 import { Link, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import '~/app/components/EvaluationStatusModal.scss';
 import './EvaluationResultsPage.scss';
-import { evaluationsBaseRoute } from '~/app/routes';
+import { evaluationRunsRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import useDarkMode from '~/app/hooks/useDarkMode';
@@ -50,6 +51,7 @@ const DEFAULT_VISIBLE_BENCHMARKS = 4;
 
 const EvaluationResultsPage: React.FC = () => {
   const { namespace, jobId } = useParams<{ namespace: string; jobId: string }>();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const [job, loaded, error] = useEvaluationJob(namespace, jobId);
 
   const {
@@ -206,12 +208,15 @@ const EvaluationResultsPage: React.FC = () => {
         }
         subtext={metadataRow}
         breadcrumb={
-          <Breadcrumb>
-            <BreadcrumbItem
-              render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-            />
+          <ContextBreadcrumb
+            pageName="Evaluations"
+            projectDisplayName={projectDisplayName}
+            homePath={evaluationsBaseRoute(namespace)}
+            projectHomePath={`/projects/${namespace}`}
+          >
+            <BreadcrumbItem render={() => <Link to={evaluationRunsRoute(namespace)}>Runs</Link>} />
             <BreadcrumbItem isActive>{evaluationName}</BreadcrumbItem>
-          </Breadcrumb>
+          </ContextBreadcrumb>
         }
         loaded={loaded}
         loadError={error}

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   EmptyStateVariant,
@@ -15,11 +14,13 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { ApplicationsPage, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import CompareBenchmarksTable from '~/app/components/compare/CompareBenchmarksTable';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { EvaluationJob } from '~/app/types';
 import { getBenchmarkDisplayName, getEvaluationName } from '~/app/utilities/evaluationUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
@@ -43,6 +44,7 @@ const ChooseCompareBenchmarksPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
 
   const selectedJobIds = React.useMemo(
@@ -159,12 +161,14 @@ const ChooseCompareBenchmarksPage: React.FC = () => {
     <ApplicationsPage
       title={COMPARE_RUNS_PAGE_TITLE}
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-          />
+        <ContextBreadcrumb
+          pageName="Evaluations"
+          projectDisplayName={projectDisplayName}
+          homePath={evaluationsBaseRoute(namespace)}
+          projectHomePath={`/projects/${namespace}`}
+        >
           <BreadcrumbItem isActive>Compare evaluation runs</BreadcrumbItem>
-        </Breadcrumb>
+        </ContextBreadcrumb>
       }
       loaded={loaded}
       loadError={loadError}

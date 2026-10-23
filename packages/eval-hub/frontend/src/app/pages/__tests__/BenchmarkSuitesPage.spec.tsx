@@ -36,6 +36,20 @@ jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: (...args: unknown[]) => mockUseProviders(...args),
 }));
 
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-project', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
+}));
+
+jest.mock('~/app/components/EvalHubProjectSelector', () => ({
+  __esModule: true,
+  default: ({ namespace }: { namespace?: string }) => (
+    <div data-testid="benchmark-suites-project-selector">{namespace}</div>
+  ),
+}));
+
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule({
@@ -92,7 +106,11 @@ describe('BenchmarkSuitesPage', () => {
   it('should render all tenant benchmark suites', () => {
     renderPage();
 
-    expect(screen.getByTestId('page-title')).toHaveTextContent('My benchmark collections');
+    const pageTitle = screen.getByTestId('page-title');
+    expect(pageTitle).toHaveTextContent('My benchmark collections');
+    expect(within(pageTitle).getByTestId('benchmark-suites-project-selector')).toHaveTextContent(
+      'test-project',
+    );
     expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-project?tab=evaluate',

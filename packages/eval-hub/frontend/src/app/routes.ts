@@ -11,6 +11,9 @@ export const evaluationsBaseRoute = (namespace?: string): string =>
 export const evaluationEvaluateRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}?tab=evaluate`;
 
+export const evaluationRunsRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}?tab=runs`;
+
 export const evaluationGalleryRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}?tab=gallery`;
 

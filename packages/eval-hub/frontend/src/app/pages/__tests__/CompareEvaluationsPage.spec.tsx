@@ -10,6 +10,13 @@ jest.mock('mod-arch-core', () => ({
   useModularArchContext: () => ({ config: { deploymentMode: 'federated' } }),
 }));
 
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-project', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
+}));
+
 let mockRemoteAvailable = true;
 
 jest.mock('~/app/components/MlflowCompareRuns', () => {

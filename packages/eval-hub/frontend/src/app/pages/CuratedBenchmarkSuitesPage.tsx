@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   Drawer,
@@ -9,13 +8,15 @@ import {
   PageSection,
   Stack,
 } from '@patternfly/react-core';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
@@ -34,6 +35,7 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
     evaluationTarget: string;
   }>();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
   const {
     selectedCollection,
@@ -146,12 +148,14 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
                 </Button>
               }
               breadcrumb={
-                <Breadcrumb>
-                  <BreadcrumbItem
-                    render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-                  />
+                <ContextBreadcrumb
+                  pageName="Evaluations"
+                  projectDisplayName={projectDisplayName}
+                  homePath={evaluationsBaseRoute(namespace)}
+                  projectHomePath={`/projects/${namespace}`}
+                >
                   <BreadcrumbItem isActive>{pageConfig.title}</BreadcrumbItem>
-                </Breadcrumb>
+                </ContextBreadcrumb>
               }
               loaded
               empty={false}

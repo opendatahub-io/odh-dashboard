@@ -1,24 +1,33 @@
 import * as React from 'react';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Button,
+  Content,
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Flex,
+  FlexItem,
   PageSection,
   Stack,
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
+import { IconSize } from '@odh-dashboard/internal/types';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
+import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
+import EvalHubHeader from '~/app/components/EvalHubHeader';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
   evaluationBenchmarkSuitesNavigationState,
+  evaluationBenchmarkSuitesRoute,
   evaluationEditSuiteRoute,
   evaluationEvaluateRoute,
   evaluationsBaseRoute,
@@ -31,6 +40,7 @@ import './BenchmarkSuitesPage.scss';
 const BenchmarkSuitesPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
   const {
     selectedCollection,
@@ -114,7 +124,25 @@ const BenchmarkSuitesPage: React.FC = () => {
         >
           <DrawerContentBody>
             <ApplicationsPage
-              title="My benchmark collections"
+              title={
+                <EvalHubHeader
+                  title="My benchmark collections"
+                  projectContent={
+                    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                      <ProjectIconWithSize size={IconSize.LG} />
+                      <FlexItem>
+                        <Content component="p">Project</Content>
+                      </FlexItem>
+                      <FlexItem>
+                        <EvalHubProjectSelector
+                          namespace={namespace}
+                          getRedirectPath={evaluationBenchmarkSuitesRoute}
+                        />
+                      </FlexItem>
+                    </Flex>
+                  }
+                />
+              }
               description="View, run, and manage all benchmark collections you have created or saved."
               headerAction={
                 <Button
@@ -126,17 +154,19 @@ const BenchmarkSuitesPage: React.FC = () => {
                 </Button>
               }
               breadcrumb={
-                <Breadcrumb>
-                  <BreadcrumbItem
-                    render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-                  />
+                <ContextBreadcrumb
+                  pageName="Evaluations"
+                  projectDisplayName={projectDisplayName}
+                  homePath={evaluationsBaseRoute(namespace)}
+                  projectHomePath={`/projects/${namespace}`}
+                >
                   <BreadcrumbItem
                     render={() => (
                       <Link to={evaluationEvaluateRoute(namespace)}>Benchmark collections</Link>
                     )}
                   />
                   <BreadcrumbItem isActive>My benchmark collections</BreadcrumbItem>
-                </Breadcrumb>
+                </ContextBreadcrumb>
               }
               loaded
               empty={false}
