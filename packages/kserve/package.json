@@ -33,7 +33,7 @@
     "@odh-dashboard/model-serving": "workspace:*",
     "@odh-dashboard/plugin-core": "workspace:*",
     "@odh-dashboard/ui-core": "workspace:*",
-    "zod": "^3.25.76"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "workspace:*",
