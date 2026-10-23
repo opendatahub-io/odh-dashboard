@@ -5,6 +5,7 @@ import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSel
 
 type EvalHubProjectSelectorProps = {
   namespace?: string;
+  /** Must return a bare pathname with no query string — the current search params are preserved and appended separately. */
   getRedirectPath: (namespace: string) => string;
 } & Omit<React.ComponentProps<typeof ProjectSelector>, 'onSelection' | 'namespace'>;
 
