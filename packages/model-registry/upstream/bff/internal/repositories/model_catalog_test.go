@@ -34,4 +34,15 @@ var _ = Describe("ModelCatalogRepository", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(modelCatalog.ServerAddress).To(Equal("https://model-catalog.rhoai-model-registries.svc.cluster.local:8443/api/model_catalog/v1alpha1"))
 	})
+
+	It("resolves all catalog API paths", func() {
+		repository := NewCatalogRepository()
+
+		Expect(repository.ResolveServerAddress("model-catalog.test.svc.cluster.local", 8443, true, ModelCatalogAPIPath)).
+			To(Equal("https://model-catalog.test.svc.cluster.local:8443/api/model_catalog/v1alpha1"))
+		Expect(repository.ResolveServerAddress("model-catalog.test.svc.cluster.local", 8443, true, McpCatalogAPIPath)).
+			To(Equal("https://model-catalog.test.svc.cluster.local:8443/api/mcp_catalog/v1alpha1"))
+		Expect(repository.ResolveServerAddress("model-catalog.test.svc.cluster.local", 8443, true, AgentCatalogAPIPath)).
+			To(Equal("https://model-catalog.test.svc.cluster.local:8443/api/agent_catalog/v1alpha1"))
+	})
 })

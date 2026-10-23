@@ -49,10 +49,13 @@ spec:
         - port: 6443
           protocol: TCP
     - to:
+        # The catalog namespace is request-specific; namespaceSelector and
+        # podSelector are ANDed to restrict egress to catalog pods.
         - namespaceSelector: {}
           podSelector:
             matchLabels:
               component: model-catalog
+              app.kubernetes.io/name: model-catalog
       ports:
         - port: 8443
           protocol: TCP
