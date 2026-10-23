@@ -1247,6 +1247,8 @@ jobs:
           # Cypress reads CYPRESS_* env vars natively — avoids arg escaping through concurrently
           export CYPRESS_OC_SERVER="$OC_SERVER"
           export CYPRESS_skipTags="@Bug @Maintain @NonConcurrent"
+          export CYPRESS_grepOmitFiltered=true
+          SKIP_TAGS_GREP="--@Bug --@Maintain --@NonConcurrent"
           CYPRESS_COMMAND="pnpm --filter odh-dashboard-frontend cypress:run:chrome"
           if [[ "$MATRIX_RUN_MODE" == "spec" ]]; then
             mapfile -t SPEC_PATHS < <(jq -r '.[]' <<< "$MATRIX_SPECS")
@@ -1260,11 +1262,11 @@ jobs:
             done
             printf -v ESCAPED_SPEC_LIST '%q' "${SPEC_LIST%,}"
             CYPRESS_COMMAND+=" --spec $ESCAPED_SPEC_LIST"
-            export CYPRESS_grepTags=""
+            export CYPRESS_grepTags="$SKIP_TAGS_GREP"
             export CYPRESS_grepFilterSpecs=false
             echo "Running explicit Cypress specs: ${SPEC_LIST%,}"
           else
-            export CYPRESS_grepTags="$MATRIX_TAG"
+            export CYPRESS_grepTags="$MATRIX_TAG $SKIP_TAGS_GREP"
             export CYPRESS_grepFilterSpecs=true
           fi
           export CYPRESS_video=true

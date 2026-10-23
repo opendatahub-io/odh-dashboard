@@ -68,4 +68,21 @@ describe('Cypress E2E workflow', () => {
     assert.ok(!workflow.includes('turbo run lint --dry=json'));
     assert.ok(!workflow.includes('name: Detect changed areas'));
   });
+
+  it('aligns pending JUnit testcases with the planned test count', () => {
+    const workflow = fs.readFileSync(
+      path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
+      'utf8',
+    );
+    const cypressConfig = fs.readFileSync(
+      path.join(__dirname, '../../../packages/cypress/cypress.config.ts'),
+      'utf8',
+    );
+
+    assert.ok(cypressConfig.includes('includePending: true'));
+    assert.ok(workflow.includes('export CYPRESS_grepOmitFiltered=true'));
+    assert.ok(workflow.includes('SKIP_TAGS_GREP="--@Bug --@Maintain --@NonConcurrent"'));
+    assert.ok(workflow.includes('export CYPRESS_grepTags="$SKIP_TAGS_GREP"'));
+    assert.ok(workflow.includes('export CYPRESS_grepTags="$MATRIX_TAG $SKIP_TAGS_GREP"'));
+  });
 });

@@ -85,6 +85,43 @@ describe('summarizeJunitFiles', () => {
 
     assert.deepEqual(totals, { tests: 4, failures: 1, skipped: 1, executed: 3 });
   });
+
+  it('represents runtime-skipped tests in JUnit reporter output', async (test) => {
+    const { spawnSync } = require('node:child_process');
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-runtime-skip-'));
+    test.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+    const fixture = path.join(directory, 'runtime-skip.spec.js');
+    const report = path.join(directory, 'junit-report.xml');
+    fs.writeFileSync(
+      fixture,
+      [
+        "'use strict';",
+        "it('passes', () => {});",
+        "it('runtime skips', function runtimeSkips() { this.skip(); });",
+      ].join('\n'),
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        path.join(__dirname, '../../../node_modules/mocha/bin/mocha.js'),
+        fixture,
+        '--reporter',
+        'mocha-junit-reporter',
+        '--reporter-options',
+        `mochaFile=${report},includePending=true`,
+      ],
+      { encoding: 'utf8', cwd: path.join(__dirname, '../../..') },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const totals = summarizeJunitFiles([report]);
+    assert.deepEqual(totals, { tests: 2, failures: 0, skipped: 1, executed: 1 });
+    assert.equal(validateResults(totals, 2), null);
+  });
 });
 
 describe('findJunitReports', () => {

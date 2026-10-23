@@ -43,6 +43,7 @@ export default defineConfig({
     reporterEnabled: 'cypress-mochawesome-reporter, mocha-junit-reporter',
     mochaJunitReporterReporterOptions: {
       mochaFile: `${resultsDir}/junit/junit-[hash].xml`,
+      includePending: true,
     },
     cypressMochawesomeReporterReporterOptions: {
       charts: true,
