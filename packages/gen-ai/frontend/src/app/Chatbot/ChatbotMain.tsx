@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import {
   fireMiscTrackingEvent,
   fireSimpleTrackingEvent,
@@ -27,12 +28,14 @@ import { getMCPServerAuth } from '~/app/agentProfile/mcpServerAuth';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
+import { getModelSubscriptions } from '~/app/Chatbot/components/SubscriptionDropdown';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
 import { deserializeAgentProfile } from '~/app/agentProfile/deserialize';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import { sortDeploymentsByMostRecent } from '~/app/agentProfile/deploymentUtils';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import useFetchAgentDeployments from '~/app/AIAssets/hooks/useFetchAgentDeployments';
@@ -48,12 +51,31 @@ import {
   selectConfigIds,
   selectSelectedModel,
   DEFAULT_CONFIG_ID,
+  DEFAULT_CONFIGURATION,
+  ChatbotConfiguration,
+  McpToolSelectionsMap,
 } from './store';
 import { usePlaygroundStore } from './store/usePlaygroundStore';
 import PromptManagementModal from './components/promptManagementModal';
 import useAgentDeploymentPolling from './hooks/useAgentDeploymentPolling';
 import useSaveAgentProfile from './hooks/useSaveAgentProfile';
 import AgentDeploymentsModal from './components/AgentDeploymentsModal';
+
+// Canonicalize the nested MCP selections map's keys (namespace, then server) before
+// comparison — JSON.stringify walks keys in insertion order, so a server removed and
+// re-added with unchanged selections would otherwise read as dirty. Tool arrays keep
+// their order: it carries selection semantics.
+const canonicalizeMcpToolSelections = (selections: McpToolSelectionsMap): McpToolSelectionsMap =>
+  Object.fromEntries(
+    Object.entries(selections)
+      .toSorted(([a], [b]) => a.localeCompare(b))
+      .map(([namespace, serverMap]) => [
+        namespace,
+        serverMap
+          ? Object.fromEntries(Object.entries(serverMap).toSorted(([a], [b]) => a.localeCompare(b)))
+          : undefined,
+      ]),
+  );
 
 const ChatbotMain: React.FunctionComponent = () => {
   const {
@@ -137,6 +159,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileSpec = useChatbotConfigStore((s) => s.loadedProfileSpec);
   const { enabled: agentDeploymentsEnabled } = useGenAiAgentDeploymentEnabled();
+  const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const { data: deployments = [], refresh: refreshDeployments } = useFetchAgentDeployments(
     agentDeploymentsEnabled ? (loadedProfileId ?? undefined) : undefined,
   );
@@ -175,7 +198,88 @@ const ChatbotMain: React.FunctionComponent = () => {
   );
 
   const isProfileDirty = useIsProfileDirty(primaryConfigId, availableMcpServers, mcpConfigMapName);
-  useSafeBrowserUnloadBlocker(isProfileDirty);
+  // Effective starting configuration per pane, captured once ChatbotPlayground finishes
+  // initializing (route-provided values, stored MCP selections, initial model) and when a
+  // compare pane is duplicated. Dirty checks and Revert compare each pane against its own
+  // baseline instead of raw defaults so initialized settings are neither flagged as dirty
+  // nor discarded by Revert.
+  const configBaselinesRef = React.useRef<{ [configId: string]: ChatbotConfiguration | undefined }>(
+    {},
+  );
+  const configurations = useChatbotConfigStore((s) => s.configurations);
+  // The helpers below are recreated every render so the dirty check always sees the
+  // latest models and store state — they are not stable references and must never
+  // go into a useCallback/useEffect dependency array.
+  // The subscription SubscriptionDropdown auto-picks (highest priority) for a model
+  const getAutoSubscription = (model: string, isMaaSModel = false): string =>
+    getModelSubscriptions(model, maasModels, isMaaSModel)[0]?.name ?? '';
+  // Mask values the app manages automatically (default guardrail, auto-picked MaaS
+  // subscriptions, inline-mode vector store, conversation images) so they don't read
+  // as user edits. MCP tool selections are also masked until the pane's baseline exists —
+  // the store pre-loads them from sessionStorage before initialization captures
+  // the baseline.
+  const serializeConfigForDirtyCheck = (
+    config: ChatbotConfiguration,
+    hasBaseline: boolean,
+  ): string =>
+    JSON.stringify({
+      ...config,
+      mcpToolSelections: hasBaseline ? canonicalizeMcpToolSelections(config.mcpToolSelections) : {},
+      guardrail:
+        config.guardrail ===
+        models.find((model) =>
+          isLlamaModelEnabled(model.id, aiModels, maasModels, bffConfig?.isCustomLSD ?? false),
+        )?.id
+          ? ''
+          : config.guardrail,
+      selectedSubscription:
+        config.selectedSubscription === getAutoSubscription(config.selectedModel)
+          ? ''
+          : config.selectedSubscription,
+      guardrailSubscription:
+        config.guardrailSubscription === getAutoSubscription(config.guardrail)
+          ? ''
+          : config.guardrailSubscription,
+      selectedAsrSubscription:
+        config.selectedAsrSubscription === getAutoSubscription(config.selectedAsrModel, true)
+          ? ''
+          : config.selectedAsrSubscription,
+      selectedVectorStoreId:
+        config.knowledgeMode === 'inline' ? null : config.selectedVectorStoreId,
+      hasVisionImage: false,
+    });
+  const isConfigDirty = (configId: string): boolean => {
+    const config = configurations[configId];
+    if (!config) {
+      return false;
+    }
+    // The store is a singleton but the baselines are component-local — after a remount
+    // an already-initialized configuration can outlive its baseline. Adopt it instead
+    // of comparing against raw defaults, which would flag retained settings as dirty.
+    // Only capture once a model is selected so a pre-initialization state is never
+    // frozen as the baseline. Capturing before the comparison keeps the dirty check
+    // correct on this very render.
+    if (configBaselinesRef.current[configId] === undefined && config.selectedModel) {
+      configBaselinesRef.current[configId] = config;
+    }
+    const baseline = configBaselinesRef.current[configId];
+    const hasBaseline = baseline !== undefined;
+    return (
+      serializeConfigForDirtyCheck(config, hasBaseline) !==
+      serializeConfigForDirtyCheck(baseline ?? DEFAULT_CONFIGURATION, hasBaseline)
+    );
+  };
+  // Compare every pane so edits to either side of compare mode count
+  const isDefaultConfigDirty =
+    !profileApplied && configIds.some((configId) => isConfigDirty(configId));
+  // The settings panel edits one pane at a time — its Revert reflects the active pane only
+  const isActivePaneDirty = !profileApplied && isConfigDirty(activePaneConfigId);
+  // Default-settings edits only read as unsaved while the actions that resolve them
+  // (Revert, saving an agent) exist — without agent config management they are
+  // session state. Profile dirtiness always blocks navigation.
+  const hasUnsavedChanges =
+    isProfileDirty || (agentConfigManagementEnabled && isDefaultConfigDirty);
+  useSafeBrowserUnloadBlocker(hasUnsavedChanges);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
   const allAIModels = React.useMemo(
@@ -236,6 +340,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     const currentConfigIds = useChatbotConfigStore.getState().configIds;
     const remainingConfigId = currentConfigIds.find((id) => id !== configIdToClose);
     useChatbotConfigStore.getState().removeConfiguration(configIdToClose);
+    delete configBaselinesRef.current[configIdToClose];
     // Set active pane to the remaining config (or default if somehow none remain)
     setActivePaneConfigId(remainingConfigId || DEFAULT_CONFIG_ID);
     fireMiscTrackingEvent('Playground Compare Mode Exited', { success: true });
@@ -319,6 +424,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, [models, mcpServers, namespace?.name]);
 
   const handleNewAgentConfiguration = React.useCallback(() => {
+    // Drop the baselines until the playground re-initializes and captures new ones
+    configBaselinesRef.current = {};
     useChatbotConfigStore.getState().resetConfiguration();
     setSearchParams(
       (prev) => {
@@ -329,6 +436,52 @@ const ChatbotMain: React.FunctionComponent = () => {
       { replace: true },
     );
   }, [setSearchParams]);
+
+  // Reported by ChatbotPlayground once initialization finishes — capture the effective
+  // starting configuration as the dirty-check baseline. The model is written to the
+  // store right after this callback, so patch it in.
+  const handleInitialModelSelected = React.useCallback((model: string) => {
+    const config = useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID];
+    if (config) {
+      configBaselinesRef.current[DEFAULT_CONFIG_ID] = { ...config, selectedModel: model };
+    }
+  }, []);
+
+  // Revert restores the pane's starting values in place — compare mode, sibling panes,
+  // and the active pane all stay intact. Empty deps are intentional: this only closes
+  // over configBaselinesRef (a ref) and the module-level DEFAULT_CONFIGURATION, and
+  // reads the store via getState() at call time.
+  const handleRevertToDefaults = React.useCallback((configId: string) => {
+    const state = useChatbotConfigStore.getState();
+    const currentConfig = state.configurations[configId];
+    if (!currentConfig) {
+      return;
+    }
+    const baseline = configBaselinesRef.current[configId] ?? DEFAULT_CONFIGURATION;
+    // The inline-mode vector store is auto-provisioned from uploaded
+    // documents, not a user setting — keep it so RAG requests stay
+    // connected to them after reverting
+    const preserveInlineVectorStore =
+      baseline.knowledgeMode === 'inline' && currentConfig.knowledgeMode === 'inline';
+    // resetConfigurationValues also persists mcpToolSelections to sessionStorage,
+    // so the starting MCP tool selections are restored in storage too
+    state.resetConfigurationValues(configId, {
+      ...baseline,
+      // The vision image flag is set by conversation image uploads, not a setting —
+      // keep it so view code stays consistent with the still-attached image
+      hasVisionImage: currentConfig.hasVisionImage,
+      selectedVectorStoreId: preserveInlineVectorStore
+        ? (currentConfig.selectedVectorStoreId ?? baseline.selectedVectorStoreId)
+        : baseline.selectedVectorStoreId,
+    });
+    // Audio transcription is shared across panes — the ASR update actions sync every
+    // pane and audio uploads read the primary pane's values — so restore the ASR
+    // fields through those actions instead of leaving the per-pane reset above to
+    // diverge the panes. The model update resets the subscription, so it goes first.
+    state.updateSelectedAsrModel(configId, baseline.selectedAsrModel);
+    state.updateSelectedAsrSubscription(configId, baseline.selectedAsrSubscription);
+    state.updateAsrModelEnabled(configId, baseline.isAsrModelEnabled);
+  }, []);
 
   const handleProfileSelected = React.useCallback(
     (profileId: string) => {
@@ -434,9 +587,29 @@ const ChatbotMain: React.FunctionComponent = () => {
     if (clearAllMessagesRef.current) {
       clearAllMessagesRef.current();
     }
-    // Enter compare mode by duplicating the first config
+    // Enter compare mode by duplicating the first config; the duplicate's starting state
+    // is the source config as it is right now — capture it as that pane's baseline
     const firstConfigId = useChatbotConfigStore.getState().configIds[0] || DEFAULT_CONFIG_ID;
-    useChatbotConfigStore.getState().duplicateConfiguration(firstConfigId);
+    const newConfigId = useChatbotConfigStore.getState().duplicateConfiguration(firstConfigId);
+    const duplicatedConfig = newConfigId
+      ? useChatbotConfigStore.getState().configurations[newConfigId]
+      : undefined;
+    if (newConfigId && duplicatedConfig) {
+      // Audio transcription is shared across panes — the ASR update actions sync
+      // every pane — so both baselines must agree on the ASR fields. Seed the
+      // secondary pane's baseline with the primary pane's ASR baseline (the
+      // pre-compare starting values) rather than the duplication-time values:
+      // ASR edits made before compare mode stay dirty and revertible, and reverting
+      // either pane restores the same shared values without flagging the sibling
+      // dirty against its own baseline.
+      const primaryBaseline = configBaselinesRef.current[firstConfigId] ?? duplicatedConfig;
+      configBaselinesRef.current[newConfigId] = {
+        ...duplicatedConfig,
+        selectedAsrModel: primaryBaseline.selectedAsrModel,
+        selectedAsrSubscription: primaryBaseline.selectedAsrSubscription,
+        isAsrModelEnabled: primaryBaseline.isAsrModelEnabled,
+      };
+    }
     fireMiscTrackingEvent('Playground Compare Mode Entered', { success: true });
   }, []);
 
@@ -605,6 +778,9 @@ const ChatbotMain: React.FunctionComponent = () => {
               onClearAgent={handleNewAgentConfiguration}
               isProfileDirty={isProfileDirty}
               onResetToLastSaved={handleResetToLastSaved}
+              isDefaultConfigDirty={isActivePaneDirty}
+              onInitialModelSelected={handleInitialModelSelected}
+              onRevertToDefaults={handleRevertToDefaults}
               mcpServers={availableMcpServers}
               mcpRegistryAvailable={mcpRegistryAvailable}
               mcpServersLoaded={mcpServersLoaded}
@@ -716,7 +892,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           }}
         />
       )}
-      {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}
+      {hasUnsavedChanges && <SafeNavigationBlocker hasUnsavedChanges={hasUnsavedChanges} />}
     </>
   );
 };

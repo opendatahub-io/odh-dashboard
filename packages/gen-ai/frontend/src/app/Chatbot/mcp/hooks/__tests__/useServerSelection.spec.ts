@@ -88,7 +88,7 @@ describe('useServerSelection', () => {
     expect(mockOnSelectionChange).toHaveBeenCalledWith(['server1']);
   });
 
-  it('should not process initial selection twice', () => {
+  it('should not reprocess the echoed selection after initial selection', () => {
     const { result, rerender } = renderHook(
       ({ servers, initialIds }) =>
         useServerSelection({
@@ -106,14 +106,122 @@ describe('useServerSelection', () => {
 
     expect(result.current.selectedServers).toHaveLength(1);
 
-    // Rerender with different initial IDs - should not change selection
+    // The store echoes the hook's own emissions back through initialIds — the
+    // echo must not clobber the local selection
+    act(() => result.current.setSelectedServers([mockServers[0], mockServers[1]]));
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server1', 'server2']);
+
+    rerender({
+      servers: mockServers,
+      initialIds: ['server1', 'server2'],
+    });
+
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server1', 'server2']);
+  });
+
+  it('should adopt an external selection reset after initial selection', () => {
+    const { result, rerender } = renderHook(
+      ({ servers, initialIds }) =>
+        useServerSelection({
+          transformedServers: servers,
+          initialSelectedServerIds: initialIds,
+          onSelectionChange: mockOnSelectionChange,
+        }),
+      {
+        initialProps: {
+          servers: mockServers,
+          initialIds: ['server1'],
+        },
+      },
+    );
+
+    expect(result.current.selectedServers).toHaveLength(1);
+
+    // Reverting a pane restores the baseline MCP servers in the store — the
+    // selection follows even though the initial selection was already processed
+    rerender({
+      servers: mockServers,
+      initialIds: [] as string[],
+    });
+
+    expect(result.current.selectedServers).toHaveLength(0);
+
+    // A selection made after the reset emits only itself — the reverted server
+    // is not written back into the store
+    act(() => result.current.setSelectedServers([mockServers[1]]));
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server2']);
+  });
+
+  it('should adopt a different nonempty external selection after an echo', () => {
+    const { result, rerender } = renderHook(
+      ({ servers, initialIds }) =>
+        useServerSelection({
+          transformedServers: servers,
+          initialSelectedServerIds: initialIds,
+          onSelectionChange: mockOnSelectionChange,
+        }),
+      {
+        initialProps: {
+          servers: mockServers,
+          initialIds: ['server1'],
+        },
+      },
+    );
+
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server1']);
+
+    // The user edits the picker — the store will echo this emission back
+    act(() => result.current.setSelectedServers([mockServers[1]]));
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server2']);
+
+    // The echoed selection must not reprocess the local edit
     rerender({
       servers: mockServers,
       initialIds: ['server2'],
     });
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server2']);
 
-    expect(result.current.selectedServers).toHaveLength(1);
-    expect(result.current.selectedServers[0].id).toBe('server1');
+    // A nonempty selection that differs from the last emission can only be an
+    // external change — e.g. reverting a pane restored a different baseline —
+    // and must be adopted even though an echo was just skipped
+    rerender({
+      servers: mockServers,
+      initialIds: ['server1'],
+    });
+
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server1']);
+  });
+
+  it('should preserve an external empty reset when the server list changes in the same render', () => {
+    const { result, rerender } = renderHook(
+      ({ servers, initialIds }) =>
+        useServerSelection({
+          transformedServers: servers,
+          initialSelectedServerIds: initialIds,
+          onSelectionChange: mockOnSelectionChange,
+        }),
+      {
+        initialProps: {
+          servers: mockServers,
+          initialIds: ['server1'],
+        },
+      },
+    );
+
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server1']);
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server1']);
+
+    // A revert clears the store selection while the reverted server simultaneously
+    // drops out of the usable list — both arrive in the same render
+    rerender({
+      servers: [mockServers[1]],
+      initialIds: [] as string[],
+    });
+
+    expect(result.current.selectedServers).toHaveLength(0);
+    // The reverted server's ID must not be reconciled back into the store — the
+    // notification preserves the empty selection the revert requested
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith([]);
   });
 
   it('should handle selection of multiple servers from route state', () => {
