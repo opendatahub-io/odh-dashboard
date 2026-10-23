@@ -92,10 +92,16 @@ var tlsVersionMap = map[string]uint16{
 // tls.CurveID constants. OpenShift exposes these on Custom profiles via the
 // `groups` field; the well-known profiles do not restrict groups.
 var tlsGroupMap = map[string]tls.CurveID{
+	// Canonical OpenShift TLSSecurityProfile group names (config/v1).
+	"secp256r1":      tls.CurveP256,
+	"secp384r1":      tls.CurveP384,
+	"secp521r1":      tls.CurveP521,
 	"X25519":         tls.X25519,
-	"P-256":          tls.CurveP256,
-	"P-384":          tls.CurveP384,
 	"X25519MLKEM768": tls.X25519MLKEM768,
+	// NIST aliases also accepted for robustness.
+	"P-256": tls.CurveP256,
+	"P-384": tls.CurveP384,
+	"P-521": tls.CurveP521,
 }
 
 // tlsProfileSpec mirrors the relevant fields from configv1.TLSProfileSpec

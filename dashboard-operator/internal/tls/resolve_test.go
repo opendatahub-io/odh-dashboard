@@ -206,6 +206,35 @@ func TestResolve_CustomGroups(t *testing.T) {
 	}
 }
 
+func TestResolve_CustomCanonicalGroupNames(t *testing.T) {
+	// OpenShift uses secp256r1/secp384r1/secp521r1; these valid names must resolve.
+	apiServer := newAPIServer(map[string]interface{}{
+		"type": "Custom",
+		"custom": map[string]interface{}{
+			"minTLSVersion": "VersionTLS13",
+			"groups":        []interface{}{"secp384r1", "secp256r1", "secp521r1"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (canonical group names must resolve)", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	want := []tls.CurveID{tls.CurveP384, tls.CurveP256, tls.CurveP521}
+	if len(cfg.CurvePreferences) != len(want) {
+		t.Fatalf("expected %d curves, got %d", len(want), len(cfg.CurvePreferences))
+	}
+	for i, c := range want {
+		if cfg.CurvePreferences[i] != c {
+			t.Errorf("curve[%d] = %d, want %d", i, cfg.CurvePreferences[i], c)
+		}
+	}
+}
+
 func TestResolve_CustomAllUnsupportedGroups(t *testing.T) {
 	// A Custom profile where every group is unmapped must fail closed.
 	apiServer := newAPIServer(map[string]interface{}{

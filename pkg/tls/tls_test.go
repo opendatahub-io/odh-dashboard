@@ -455,6 +455,23 @@ func TestResolveGroups(t *testing.T) {
 	}
 }
 
+func TestResolveGroupsCanonicalOpenShiftNames(t *testing.T) {
+	// OpenShift TLSSecurityProfile uses secp256r1/secp384r1/secp521r1 (not P-256 etc.).
+	curves, dropped := resolveGroups([]string{"secp256r1", "secp384r1", "secp521r1"})
+	if len(dropped) != 0 {
+		t.Fatalf("expected no dropped groups, got %v", dropped)
+	}
+	want := []tls.CurveID{tls.CurveP256, tls.CurveP384, tls.CurveP521}
+	if len(curves) != len(want) {
+		t.Fatalf("expected %d curves, got %d", len(want), len(curves))
+	}
+	for i, c := range want {
+		if curves[i] != c {
+			t.Errorf("curve[%d] = %d, want %d", i, curves[i], c)
+		}
+	}
+}
+
 func TestResolveGroupsDeduplicate(t *testing.T) {
 	curves, dropped := resolveGroups([]string{"P-256", "P-256"})
 	if len(curves) != 1 {
