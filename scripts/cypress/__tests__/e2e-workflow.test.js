@@ -16,17 +16,17 @@ describe('Cypress E2E workflow', () => {
     assert.ok(!workflow.includes('export CYPRESS_spec='));
   });
 
-  it('uses compact progress and prints a human-readable Node test summary', () => {
+  it('prints named test results and a human-readable Node test summary', () => {
     const workflow = fs.readFileSync(
       path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
       'utf8',
     );
 
-    assert.ok(workflow.includes('--test-reporter=dot'));
+    assert.ok(workflow.includes('--test-reporter=spec'));
     assert.ok(workflow.includes('--test-reporter=tap'));
     assert.ok(workflow.includes('--test-reporter-destination="$tap_file"'));
     assert.ok(workflow.includes('summarize-node-test-results.js "$tap_file"'));
-    assert.ok(!workflow.includes('--test-reporter=spec'));
+    assert.ok(!workflow.includes('--test-reporter=dot'));
   });
 
   it('keeps backend logs hidden', () => {

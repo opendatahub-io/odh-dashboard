@@ -41,6 +41,13 @@ describe('Node test result summaries', () => {
     );
   });
 
+  it('rejects complete totals for an empty test run', () => {
+    assert.match(
+      validateNodeTestTapTotals({ tests: 0, pass: 0, fail: 0, skipped: 0 }),
+      /contains no tests/,
+    );
+  });
+
   it('prints a one-line summary from the CLI', async (test) => {
     const { spawnSync } = require('node:child_process');
     const fs = require('node:fs');

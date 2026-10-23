@@ -39,6 +39,21 @@ describe('parseJunitXml', () => {
 
     assert.deepEqual(totals, { tests: 1, failures: 0, skipped: 0 });
   });
+
+  it('counts adjacent self-closing and paired testcases in either order', () => {
+    const selfClosing = '<testcase name="self-closing"/>';
+
+    assert.deepEqual(parseJunitXml(junitXml('tests="2"', `${selfClosing}${testcase()}`)), {
+      tests: 2,
+      failures: 0,
+      skipped: 0,
+    });
+    assert.deepEqual(parseJunitXml(junitXml('tests="2"', `${testcase()}${selfClosing}`)), {
+      tests: 2,
+      failures: 0,
+      skipped: 0,
+    });
+  });
 });
 
 describe('summarizeJunitFiles', () => {
@@ -110,7 +125,14 @@ describe('validateResults', () => {
   it('fails when a job executes fewer tests than planned', () => {
     assert.match(
       validateResults({ tests: 1, failures: 0, skipped: 0, executed: 1 }, 2),
-      /Expected 2 Cypress test\(s\), but found 1/,
+      /Expected 2 executed Cypress test\(s\), but found 1/,
+    );
+  });
+
+  it('fails when skipped testcases inflate planned executable coverage', () => {
+    assert.match(
+      validateResults({ tests: 2, failures: 0, skipped: 1, executed: 1 }, 2),
+      /Expected 2 executed Cypress test\(s\), but found 1/,
     );
   });
 
@@ -159,7 +181,7 @@ describe('summarize-e2e-results CLI', () => {
     );
 
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /job-two: Expected 2 Cypress test\(s\), but found 0/);
+    assert.match(result.stderr, /job-two: Expected 2 executed Cypress test\(s\), but found 0/);
   });
 
   it('reads reports from the artifact-relative results layout', async (test) => {

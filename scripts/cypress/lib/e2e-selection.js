@@ -1,5 +1,6 @@
 'use strict';
 
+const { createHash } = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
@@ -29,6 +30,8 @@ const MAX_AUTO_TAGS_PER_JOB = 8;
 const MAX_SPEC_JOBS = 12;
 const MAX_SPECS_PER_JOB = 10;
 const MAX_EXPLICIT_IMPACTED_SPECS = 5;
+const MAX_TAG_DIR_LENGTH = 80;
+const WORKSPACE_DEPENDENCY_FIELDS = ['dependencies', 'peerDependencies'];
 const FULL_COVERAGE_TAGS = [
   '@SmokeSet1',
   '@SmokeSet2',
@@ -158,26 +161,49 @@ const readCoverageInventory = (root = DEFAULT_ROOT, pathImpactMap = readPathImpa
   validateCoverageInventory(readJsonFile(root, COVERAGE_INVENTORY_FILE), pathImpactMap);
 
 const validateEnvironmentCapabilities = (environmentCapabilities) => {
-  if (environmentCapabilities.schemaVersion !== PATH_IMPACT_SCHEMA_VERSION) {
+  const { schemaVersion, defaultCapabilities, tags, tagOverrides } = environmentCapabilities;
+  if (schemaVersion !== PATH_IMPACT_SCHEMA_VERSION) {
     throw new Error('e2e-environment-capabilities.json must use schemaVersion 1');
   }
   if (
-    !environmentCapabilities.defaultCapabilities ||
-    typeof environmentCapabilities.defaultCapabilities !== 'object'
+    !defaultCapabilities ||
+    Array.isArray(defaultCapabilities) ||
+    typeof defaultCapabilities !== 'object' ||
+    Object.keys(defaultCapabilities).length === 0
   ) {
     throw new Error('E2E environment capabilities require defaultCapabilities');
   }
-  assertStringArray(environmentCapabilities.tags, 'E2E environment capability tags');
-  if (new Set(environmentCapabilities.tags).size !== environmentCapabilities.tags.length) {
+  for (const [capability, value] of Object.entries(defaultCapabilities)) {
+    if (typeof value !== 'boolean') {
+      throw new Error(`E2E environment capability ${capability} must be boolean`);
+    }
+  }
+  assertStringArray(tags, 'E2E environment capability tags');
+  if (new Set(tags).size !== tags.length) {
     throw new Error('E2E environment capability tags must be unique');
   }
-  if (
-    environmentCapabilities.tagOverrides &&
-    typeof environmentCapabilities.tagOverrides !== 'object'
-  ) {
-    for (const [tag, capabilities] of Object.entries(environmentCapabilities.tagOverrides)) {
-      if (!environmentCapabilities.tags.includes(tag) || typeof capabilities !== 'object') {
-        throw new Error(`E2E environment override for ${tag} is invalid`);
+  if (tagOverrides !== undefined) {
+    if (!tagOverrides || Array.isArray(tagOverrides) || typeof tagOverrides !== 'object') {
+      throw new Error('E2E environment tagOverrides must be an object');
+    }
+    for (const [tag, capabilities] of Object.entries(tagOverrides)) {
+      if (!tags.includes(tag)) {
+        throw new Error(`E2E environment override for ${tag} references an unknown tag`);
+      }
+      if (!capabilities || Array.isArray(capabilities) || typeof capabilities !== 'object') {
+        throw new Error(`E2E environment override for ${tag} must be a capability object`);
+      }
+      for (const [capability, value] of Object.entries(capabilities)) {
+        if (!(capability in defaultCapabilities)) {
+          throw new Error(
+            `E2E environment override for ${tag} has unknown capability ${capability}`,
+          );
+        }
+        if (typeof value !== 'boolean') {
+          throw new Error(
+            `E2E environment override for ${tag} capability ${capability} must be boolean`,
+          );
+        }
       }
     }
   }
@@ -237,24 +263,69 @@ const findWorkspacePackagesForPath = (changedPath, workspacePackages) => {
     });
 };
 
-const deriveWorkspacePackageTags = (changedPath, workspacePackages) => {
+const deriveWorkspacePackageTags = (changedPath, workspacePackages, availableTags = []) => {
   const candidates = findWorkspacePackagesForPath(changedPath, workspacePackages);
-  const taggedCandidates = candidates.filter((workspacePackage) =>
-    Boolean(workspacePackage.e2eCiTags?.length),
+  const expandedPackages = new Set(candidates);
+  const packagesByName = new Map(
+    workspacePackages
+      .filter((workspacePackage) => workspacePackage.name)
+      .map((workspacePackage) => [workspacePackage.name, workspacePackage]),
   );
+  const reverseDependencies = new Map();
+  for (const workspacePackage of workspacePackages) {
+    for (const field of WORKSPACE_DEPENDENCY_FIELDS) {
+      for (const dependencyName of Object.keys(workspacePackage[field] ?? {})) {
+        if (!packagesByName.has(dependencyName) || dependencyName === workspacePackage.name) {
+          continue;
+        }
+        const dependents = reverseDependencies.get(dependencyName) ?? new Set();
+        dependents.add(workspacePackage.name);
+        reverseDependencies.set(dependencyName, dependents);
+      }
+    }
+  }
+
+  const expandedPackageNames = new Set(
+    candidates
+      .filter((workspacePackage) => workspacePackage.name)
+      .map((workspacePackage) => workspacePackage.name),
+  );
+  const pendingPackageNames = [...expandedPackageNames];
+  while (pendingPackageNames.length > 0) {
+    const packageName = pendingPackageNames.pop();
+    for (const dependentName of reverseDependencies.get(packageName) ?? []) {
+      if (expandedPackageNames.has(dependentName)) {
+        continue;
+      }
+      expandedPackageNames.add(dependentName);
+      pendingPackageNames.push(dependentName);
+      const dependentPackage = packagesByName.get(dependentName);
+      if (dependentPackage) {
+        expandedPackages.add(dependentPackage);
+      }
+    }
+  }
+
   return unique(
-    (taggedCandidates.length > 0 ? taggedCandidates : candidates).flatMap(
-      (workspacePackage) => workspacePackage.e2eCiTags ?? [],
-    ),
+    [...expandedPackages].flatMap((workspacePackage) => {
+      const isDirectCandidate = candidates.includes(workspacePackage);
+      return (workspacePackage.e2eCiTags ?? []).filter(
+        (tag) => isDirectCandidate || availableTags.includes(normalizeTag(tag)),
+      );
+    }),
   ).map(normalizeTag);
 };
 
-const deriveModuleManifestTags = (changedPath, workspacePackages) => {
+const deriveModuleManifestTags = (changedPath, workspacePackages, availableTags = []) => {
   const parts = normalizePath(changedPath).split('/');
   if (parts[0] !== 'manifests' || parts[1] !== 'modules' || !parts[2]) {
     return [];
   }
-  return deriveWorkspacePackageTags(`packages/${parts[2]}/package.json`, workspacePackages);
+  return deriveWorkspacePackageTags(
+    `packages/${parts[2]}/package.json`,
+    workspacePackages,
+    availableTags,
+  );
 };
 
 const deriveFrontendAreaTags = (changedPath, frontendAreaTags) => {
@@ -307,6 +378,7 @@ const resolvePathImpact = ({
   root = DEFAULT_ROOT,
   pathImpactMap,
   workspacePackages,
+  availableTags = [],
   frontendAreaTags,
   coverageInventory,
   environmentCapabilities,
@@ -377,9 +449,9 @@ const resolvePathImpact = ({
       if (mapping.deriveCypressTags) {
         const derived =
           mapping.deriveCypressTags === 'workspace-package'
-            ? deriveWorkspacePackageTags(normalizedPath, getWorkspacePackages())
+            ? deriveWorkspacePackageTags(normalizedPath, getWorkspacePackages(), availableTags)
             : mapping.deriveCypressTags === 'workspace-package-from-manifest-path'
-            ? deriveModuleManifestTags(normalizedPath, getWorkspacePackages())
+            ? deriveModuleManifestTags(normalizedPath, getWorkspacePackages(), availableTags)
             : deriveFrontendAreaTags(normalizedPath, getFrontendAreaTags());
         for (const tag of derived) {
           derivedTags.add(tag);
@@ -775,11 +847,18 @@ const groupTagsForJobs = (selectedTags, autoTags = []) => {
   return groups;
 };
 
-const sanitizeTagDir = (value) =>
-  String(value)
-    .replace(/^@/, '')
-    .replace(/[^a-zA-Z0-9_.:-]/g, '-')
-    .replace(/^-+|-+$/g, '') || 'tag';
+const sanitizeTagDir = (value) => {
+  const sanitized =
+    String(value)
+      .replace(/^@/, '')
+      .replace(/[^a-zA-Z0-9_.-]/g, '-')
+      .replace(/^-+|-+$/g, '') || 'tag';
+  if (sanitized.length <= MAX_TAG_DIR_LENGTH) {
+    return sanitized;
+  }
+  const hash = createHash('sha256').update(sanitized).digest('hex').slice(0, 8);
+  return `${sanitized.slice(0, MAX_TAG_DIR_LENGTH - 9)}-${hash}`;
+};
 
 const tagDirKey = 'tag_dir';
 const runModeKey = 'run_mode';
@@ -873,6 +952,11 @@ const isCiRunnableSpec = (spec, inventory, ciTags) => {
   );
 };
 
+const hasCompleteTagCoverage = (spec, inventory, selectedTags) => {
+  const testTags = inventory[spec]?.executableTestTags ?? [];
+  return testTags.length > 0 && testTags.every((tags) => tags.some((tag) => selectedTags.has(tag)));
+};
+
 const resolveAvailableFullCoverageTags = (inventory) =>
   FULL_COVERAGE_TAGS.filter((tag) =>
     Object.values(inventory).some((entry) => entry.executableTags.includes(tag)),
@@ -884,22 +968,34 @@ const selectImpactTags = (specs, inventory, ciTags) => {
   const uncoveredSpecs = [];
 
   for (const spec of specs) {
-    const candidates = candidateTags.filter((tag) => inventory[spec]?.executableTags.includes(tag));
-    if (candidates.length === 0) {
-      uncoveredSpecs.push(spec);
-      continue;
-    }
+    let remainingTests = inventory[spec]?.executableTestTags ?? [];
 
-    const tagCoverage = candidates.map((tag) => ({
-      tag,
-      testCount: Object.values(inventory)
-        .filter((entry) => entry.executableTags.includes(tag))
-        .reduce((total, entry) => total + entry.executableTestCount, 0),
-    }));
-    const sortedTagCoverage = tagCoverage.toSorted(
-      (first, second) => first.testCount - second.testCount || first.tag.localeCompare(second.tag),
-    );
-    selectedTags.add(sortedTagCoverage[0].tag);
+    while (remainingTests.length > 0) {
+      const candidates = candidateTags.filter((tag) =>
+        remainingTests.some((testTags) => testTags.includes(tag)),
+      );
+      if (candidates.length === 0) {
+        uncoveredSpecs.push(spec);
+        break;
+      }
+
+      const tagCoverage = candidates.map((tag) => ({
+        tag,
+        testCount: Object.values(inventory).reduce(
+          (total, entry) =>
+            total +
+            (entry.executableTestTags ?? []).filter((testTags) => testTags.includes(tag)).length,
+          0,
+        ),
+      }));
+      const sortedTagCoverage = tagCoverage.toSorted(
+        (first, second) =>
+          first.testCount - second.testCount || first.tag.localeCompare(second.tag),
+      );
+      const selectedTag = sortedTagCoverage[0].tag;
+      selectedTags.add(selectedTag);
+      remainingTests = remainingTests.filter((testTags) => !testTags.includes(selectedTag));
+    }
   }
 
   return {
@@ -930,11 +1026,16 @@ const buildSelectionPlan = ({
   const impactedSpecs = new Set();
   let fullCoverageRequired = false;
   const details = [];
+  const ciTagSet = new Set(ciTags);
+  const executableInventoryTags = unique(
+    Object.values(inventory).flatMap((entry) => entry.executableTags ?? []),
+  ).filter((tag) => ciTagSet.has(tag));
   const pathImpact = resolvePathImpact({
     changes,
     root,
     pathImpactMap,
     workspacePackages,
+    availableTags: executableInventoryTags,
     frontendAreaTags,
     coverageInventory,
     environmentCapabilities,
@@ -1077,7 +1178,7 @@ const buildSelectionPlan = ({
     .toSorted();
   const selectedTagSet = new Set(effectiveSelectedTags);
   const uncoveredImpactedSpecs = explicitImpactedSpecs.filter(
-    (spec) => !inventory[spec]?.executableTags.some((tag) => selectedTagSet.has(tag)),
+    (spec) => !hasCompleteTagCoverage(spec, inventory, selectedTagSet),
   );
   let impactMode = 'none';
   let impactedTagJobs = [];

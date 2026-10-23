@@ -18,7 +18,7 @@ const parseJunitXml = (xml) => {
     failures: 0,
     skipped: 0,
   };
-  const testcasePattern = /<testcase\b[^>]*>[\s\S]*?<\/testcase>|<testcase\b[^>]*\/>/g;
+  const testcasePattern = /<testcase\b[^>]*\/>|<testcase\b[^>]*>[\s\S]*?<\/testcase>/g;
   const testcases = xml.match(testcasePattern) ?? [];
   totals.tests = testcases.length;
   for (const testcase of testcases) {
@@ -55,8 +55,8 @@ const summarizeJunitFiles = (files) => {
 };
 
 const validateResults = (totals, plannedTestCount) => {
-  if (plannedTestCount !== undefined && totals.tests !== plannedTestCount) {
-    return `Expected ${plannedTestCount} Cypress test(s), but found ${totals.tests}`;
+  if (plannedTestCount !== undefined && totals.executed !== plannedTestCount) {
+    return `Expected ${plannedTestCount} executed Cypress test(s), but found ${totals.executed}`;
   }
   if (totals.tests === 0) {
     return 'No Cypress tests executed';

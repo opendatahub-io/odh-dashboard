@@ -21,6 +21,10 @@ const validateNodeTestTapTotals = (totals) => {
     }
   }
 
+  if (totals.tests <= 0) {
+    return 'Node test summary contains no tests';
+  }
+
   const failures = (totals.fail ?? 0) + (totals.cancelled ?? 0);
   const accounted = (totals.pass ?? 0) + failures + (totals.skipped ?? 0) + (totals.todo ?? 0);
   if (accounted !== totals.tests) {

@@ -17,6 +17,7 @@ const {
   parseSpecSource,
   parseTagSelection,
   resolveSelectedTags,
+  sanitizeTagDir,
 } = require('../lib/e2e-selection');
 
 const specPath = (name) => `packages/cypress/cypress/tests/e2e/${name}.cy.ts`;
@@ -170,6 +171,20 @@ describe('matchesPathPattern', () => {
   });
 });
 
+describe('sanitizeTagDir', () => {
+  it('excludes characters that are unsafe in artifact paths', () => {
+    assert.equal(sanitizeTagDir('@Tag:Name'), 'Tag-Name');
+  });
+
+  it('bounds long tag directories with a stable hash suffix', () => {
+    const sanitized = sanitizeTagDir(`@${'A'.repeat(120)}`);
+
+    assert.equal(sanitized.length, 80);
+    assert.match(sanitized, /^[A-Za-z0-9_.-]+$/);
+    assert.match(sanitized, /-[0-9a-f]{8}$/);
+  });
+});
+
 describe('buildSelectionPlan', () => {
   it('always schedules changed specs in addition to selected tag jobs', () => {
     const result = plan([{ status: 'M', path: specPath('alpha') }]);
@@ -281,6 +296,33 @@ describe('buildSelectionPlan', () => {
     assert.deepEqual(impactedJob.specs, [specPath('alpha'), specPath('bravo')]);
   });
 
+  it('schedules an impacted spec when selected tags cover only some of its tests', () => {
+    const mixedInventory = {
+      [specPath('mixed')]: {
+        ...inventoryEntry('mixed', ['@Tag', '@CI']),
+        testCount: 2,
+        executableTestCount: 2,
+        executableTestTags: [['@Tag'], ['@CI']],
+      },
+    };
+
+    const result = plan([{ status: 'M', path: supportPath('pages/shared') }], {
+      inventory: mixedInventory,
+      dependencyIndex: {
+        consumers: {
+          [supportPath('pages/shared')]: [specPath('mixed')],
+        },
+      },
+      selectedTags: ['@Tag'],
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.impactMode, 'explicit-specs');
+    const impactedJob = result.matrix.find((job) => job.tag.startsWith('@ImpactedSpec'));
+    assert.deepEqual(impactedJob.specs, [specPath('mixed')]);
+    assert.equal(impactedJob.planned_test_count, 2);
+  });
+
   it('does not schedule impacted specs with no executable tests', () => {
     const result = plan([{ status: 'M', path: supportPath('pages/shared') }]);
 
@@ -340,6 +382,37 @@ describe('buildSelectionPlan', () => {
     assert.equal(result.matrix.filter((job) => job.run_mode === 'spec').length, 0);
     const impactedTagJob = result.matrix.find((job) => job.tag_dir === 'impacted-tag-01');
     assert.equal(impactedTagJob.tag, '@BroadCI');
+  });
+
+  it('selects enough impact tags to cover every executable test in broad reverse impact', () => {
+    const broadInventory = {};
+    const broadSpecs = Array.from({ length: 6 }, (_, index) => `mixed-broad-${index}`);
+    for (const name of broadSpecs) {
+      broadInventory[specPath(name)] = {
+        ...inventoryEntry(name, ['@BroadCI', '@NarrowCI']),
+        testCount: 2,
+        executableTestCount: 2,
+        executableTestTags: [['@BroadCI'], ['@NarrowCI']],
+      };
+    }
+
+    const result = plan([{ status: 'M', path: supportPath('pages/shared') }], {
+      inventory: broadInventory,
+      dependencyIndex: {
+        consumers: {
+          [supportPath('pages/shared')]: broadSpecs.map((name) => specPath(name)),
+        },
+      },
+      selectedTags: [],
+      ciTags: ['@BroadCI', '@NarrowCI'],
+    });
+
+    assert.equal(result.valid, true);
+    assert.equal(result.summary.impactMode, 'ci-tags');
+    assert.equal(result.matrix.filter((job) => job.run_mode === 'spec').length, 0);
+    const impactedTagJob = result.matrix.find((job) => job.tag_dir === 'impacted-tag-01');
+    assert.equal(impactedTagJob.tag, '@BroadCI @NarrowCI');
+    assert.equal(impactedTagJob.planned_test_count, 12);
   });
 
   it('maps dashboard network policy changes to their proven impact areas', () => {
@@ -462,6 +535,51 @@ describe('buildSelectionPlan', () => {
     assert.deepEqual(result.summary.pathImpactTags, ['@FeatureStoreCI']);
   });
 
+  it('derives workspace tags through transitive reverse dependencies', () => {
+    const localInventory = {
+      [specPath('automl')]: inventoryEntry('automl', ['@AutoMLCI']),
+      [specPath('autorag')]: inventoryEntry('autorag', ['@AutoRAGCI']),
+    };
+    const workspacePackages = [
+      {
+        name: '@odh-dashboard/autox-core',
+        path: 'packages/autox-core',
+      },
+      {
+        name: '@odh-dashboard/shared-feature',
+        path: 'packages/shared-feature',
+        dependencies: { '@odh-dashboard/autox-core': 'workspace:*' },
+      },
+      {
+        name: '@odh-dashboard/automl',
+        path: 'packages/automl',
+        e2eCiTags: ['@AutoMLCI'],
+        dependencies: { '@odh-dashboard/autox-core': 'workspace:*' },
+      },
+      {
+        name: '@odh-dashboard/autorag',
+        path: 'packages/autorag',
+        e2eCiTags: ['@AutoRAGCI'],
+        dependencies: { '@odh-dashboard/shared-feature': 'workspace:*' },
+      },
+    ];
+
+    const result = plan(
+      [{ status: 'M', path: 'packages/autox-core/services/pipelines/client.go' }],
+      {
+        inventory: localInventory,
+        selectedTags: [],
+        ciTags: ['@AutoMLCI', '@AutoRAGCI'],
+        workspacePackages,
+      },
+    );
+
+    assert.equal(result.valid, true);
+    assert.ok(result.summary.pathImpactTags.includes('@AutoMLCI'));
+    assert.ok(result.summary.pathImpactTags.includes('@AutoRAGCI'));
+    assert.equal(result.summary.matchedMappings[0].fallbackUsed, false);
+  });
+
   it('maps packages without executable suite tags to dashboard regression', () => {
     const localInventory = {
       [specPath('default')]: inventoryEntry('default', ['@ci-dashboard-regression-tags']),
@@ -553,6 +671,36 @@ describe('buildSelectionPlan', () => {
 
     assert.equal(result.valid, false);
     assert.match(result.errors.join('\n'), /@NonConcurrent resolves to zero executable tests/);
+  });
+
+  it('rejects invalid environment tag overrides', () => {
+    const environmentCapabilities = {
+      schemaVersion: 1,
+      defaultCapabilities: { odh: true },
+      tags: ['@Tag'],
+      notSupportedReasons: {},
+    };
+
+    assert.throws(
+      () =>
+        plan([{ status: 'M', path: 'package.json' }], {
+          environmentCapabilities: {
+            ...environmentCapabilities,
+            tagOverrides: { '@Unknown': { odh: true } },
+          },
+        }),
+      /references an unknown tag/,
+    );
+    assert.throws(
+      () =>
+        plan([{ status: 'M', path: 'package.json' }], {
+          environmentCapabilities: {
+            ...environmentCapabilities,
+            tagOverrides: { '@Tag': { odh: 'yes' } },
+          },
+        }),
+      /capability odh must be boolean/,
+    );
   });
 
   it('uses canonical full-coverage tag sets when support code is deleted', () => {

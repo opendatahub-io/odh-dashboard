@@ -119,7 +119,7 @@ jobs:
           tap_file="${RUNNER_TEMP}/e2e-selection-contracts.tap"
           exit_code=0
           node --test \
-            --test-reporter=dot \
+            --test-reporter=spec \
             --test-reporter-destination=stdout \
             --test-reporter=tap \
             --test-reporter-destination="$tap_file" \
