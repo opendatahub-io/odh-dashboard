@@ -360,10 +360,8 @@ export type CollectionResource = {
   version_counter?: number;
 };
 
-export type CollectionState = {
-  derived_from?: string;
+export type CollectionStatus = {
   run_count?: number;
-  pinned_order?: number;
 };
 
 export type CollectionPrimaryScore = {
@@ -399,7 +397,8 @@ export type Collection = {
   industries?: string[];
   evaluation_targets?: string[];
   curation_order?: number;
-  state?: CollectionState;
+  pinned_order?: number;
+  status?: CollectionStatus;
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];

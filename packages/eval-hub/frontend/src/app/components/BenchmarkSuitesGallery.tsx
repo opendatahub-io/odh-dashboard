@@ -872,7 +872,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             {
               id: 'edit',
               label: 'Edit',
-              isDisabled: (collection.state?.run_count ?? 0) > 0,
+              isDisabled: (collection.status?.run_count ?? 0) > 0,
               onSelect: onEditCollection,
             },
           ]

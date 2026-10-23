@@ -1029,7 +1029,7 @@ export function useCopySuiteForm({
         return undefined;
       }
 
-      if (isEditMode && (sourceCollection.state?.run_count ?? 0) > 0) {
+      if (isEditMode && (sourceCollection.status?.run_count ?? 0) > 0) {
         notification.error('Failed to update collection', EDIT_AFTER_RUN_ERROR);
         return undefined;
       }
@@ -1214,7 +1214,7 @@ export function useCopySuiteForm({
     let controller: AbortController | undefined;
 
     try {
-      if (isEditMode && (sourceCollection?.state?.run_count ?? 0) > 0) {
+      if (isEditMode && (sourceCollection?.status?.run_count ?? 0) > 0) {
         notification.error('Failed to update collection', EDIT_AFTER_RUN_ERROR);
         return;
       }
