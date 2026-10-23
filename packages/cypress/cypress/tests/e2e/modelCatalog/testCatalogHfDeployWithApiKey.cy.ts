@@ -66,8 +66,7 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
       cleanupLLMInferenceService(deploymentResourceName, projectName);
     }
     if (projectName) {
-      // Wait for namespace deletion so the HF_TOKEN Secret cannot linger for other users.
-      deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
 

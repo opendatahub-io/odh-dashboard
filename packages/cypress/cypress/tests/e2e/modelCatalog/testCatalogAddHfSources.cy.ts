@@ -9,6 +9,7 @@ import {
 } from '../../../utils/catalogHuggingFace';
 import {
   verifyModelCatalogBackend,
+  waitForModelCatalogDeployment,
   deleteHuggingFaceCatalogSource,
   waitForModelCatalogCards,
 } from '../../../utils/oc_commands/modelCatalog';
@@ -38,6 +39,7 @@ describe('Verify Hugging Face catalog source add, validate, and preview', () => 
       .then(() => {
         hfApiKey = requireHuggingFaceApiKey();
         verifyModelCatalogBackend();
+        waitForModelCatalogDeployment();
         ensureAdminOcSession();
         deleteHuggingFaceCatalogSource(sourceId);
         deleteHuggingFaceCatalogSource(privateSourceId);
@@ -125,10 +127,9 @@ describe('Verify Hugging Face catalog source add, validate, and preview', () => 
       modelCatalogSettings.findSourceName(sourceId).should('contain', sourceName);
       modelCatalogSettings.findSourceStatusConnected(sourceId, 180000).should('exist');
 
-      cy.step('Navigate to model catalog, select Other models, and verify public model');
+      cy.step('Navigate to model catalog and verify public model');
       modelCatalog.visit();
       waitForModelCatalogCards();
-      modelCatalog.findSourceCategoryBlock(testData.catalogCategoryBlockId).click();
       modelCatalog.searchByName(testData.publicModel);
       modelCatalog.findModelCatalogCard(testData.publicModel).should('exist');
 
@@ -159,7 +160,6 @@ describe('Verify Hugging Face catalog source add, validate, and preview', () => 
       cy.step('Navigate to model catalog and verify private model appears');
       modelCatalog.visit();
       waitForModelCatalogCards();
-      modelCatalog.findSourceCategoryBlock(testData.catalogCategoryBlockId).click();
       modelCatalog.searchByName(testData.privateModel);
       modelCatalog.findModelCatalogCard(testData.privateModel).should('exist');
     },
