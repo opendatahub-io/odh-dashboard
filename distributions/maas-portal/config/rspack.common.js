@@ -112,6 +112,22 @@ module.exports = (overrides = {}) =>
     {
       module: {
         rules: [
+          ...(process.env.COVERAGE === 'true'
+            ? [
+                {
+                  test: /\.[jt]sx?$/,
+                  enforce: 'post',
+                  include: [
+                    SRC_DIR,
+                    path.resolve(REPO_ROOT, 'distributions/base/src'),
+                    path.resolve(REPO_ROOT, 'frontend/src'),
+                    path.resolve(REPO_ROOT, 'packages'),
+                  ],
+                  exclude: [/node_modules/, /__tests__/, /__mocks__/, /\.d\.ts$/],
+                  use: ['@jsdevtools/coverage-istanbul-loader'],
+                },
+              ]
+            : []),
           // gen-ai playground → @patternfly/chatbot → monaco-editor (codicon.ttf, etc.)
           {
             test: /\.(svg|ttf|eot|woff|woff2)$/,

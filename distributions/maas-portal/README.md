@@ -6,6 +6,35 @@ For production lifecycle, routing, federation, RBAC, migration, and rollout, see
 [MaaS Portal](../../docs/maas-portal.md). Custom Perses services must meet the
 operator's [Perses service requirements](../../docs/dashboard-operator.md#perses-service-requirements).
 
+## Cypress Mock Tests
+
+See the [Cypress guide](src/__tests__/cypress/README.md) for suite design,
+diagnostics, and instructions for extending the mock tests.
+
+From the repository root, run the production frontend with intercepted APIs; no
+cluster or BFF processes are required:
+
+```bash
+pnpm --filter @odh-dashboard/maas-portal-distribution test:cypress-ci
+```
+
+For interactive debugging, run these from the distribution directory:
+
+```bash
+pnpm run cypress:server:build
+pnpm run cypress:server
+# In another terminal:
+pnpm run cypress:open:mock
+```
+
+`test:cypress-ci` stops its server after testing. Set `COVERAGE=true` to collect code coverage
+(the shared CI job enables this automatically). Reports, screenshots, and videos are
+under `src/__tests__/cypress/results/`.
+
+The **Test** workflow runs the mock suite when the portal, its dependencies, or relevant
+build/test infrastructure changes. The [impact selector](../../scripts/cypress/plan-mock-test-applications.js)
+runs tests conservatively when it cannot determine impact.
+
 ## Browser Path Rollout
 
 Deploy the `/maas-portal` HTTPRoute together with a Core-BFF image containing a portal frontend built for `/maas-portal/`. Build the image from this revision using `distributions/core-bff/Dockerfile.workspace`; the bundle is served from `/static/maas-portal` through the `maas-portal` Service. See the [production rollout requirements](../../docs/maas-portal.md#upgrade-migration-and-rollout).
@@ -176,7 +205,7 @@ The local Rspack dev proxy sends portal Perses API requests directly to `PERSES_
 
 ## Grid migration flag
 
-The temporary `grid` feature flag controls all Grid-aware MaaS Consumer Portal behavior in the
+The temporary `grid` feature flag controls all Grid-aware MaaS Portal behavior in the
 `@odh-dashboard/maas` and `@odh-dashboard/gen-ai` packages. It defaults to `false`, preserving the
 existing Kubernetes-backed behavior while the MaaS Gateway API integration is developed.
 

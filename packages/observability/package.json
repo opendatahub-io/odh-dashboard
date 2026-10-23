@@ -13,8 +13,10 @@
   "exports": {
     "./extensions": "./extensions.ts",
     "./extensions/static": "./extensions/static.ts",
+    "./__mocks__/observabilityFixtures": "./src/__mocks__/observabilityFixtures.ts",
     "./dashboard": "./src/dashboard.ts",
-    "./embeddable": "./src/perses/embeddable/api.ts"
+    "./embeddable": "./src/perses/embeddable/api.ts",
+    "./testing/pages": "./cypress/pages/observabilityDashboard.ts"
   },
   "module-federation": {
     "name": "observability",

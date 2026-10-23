@@ -67,9 +67,15 @@ const sanitizeLogText = (value) =>
     .join('')
     .replace(/::/g, ': :');
 
-const main = () => {
-  const root = path.resolve(__dirname, '../..');
-  const options = parseArgs(process.argv.slice(2));
+// Workspace runners own their application's files. Shared dependencies outside those
+// roots still pass through the dashboard's existing conservative selector.
+const dashboardChanges = (changes, workspaces) =>
+  changes.filter(
+    ({ path: file }) =>
+      !workspaces.some((workspace) => file === workspace || file.startsWith(`${workspace}/`)),
+  );
+
+const selectMockTests = (root, options = {}) => {
   const head = options.head || 'HEAD';
   const base = options.base || `${head}^`;
   const groups = generateTestGroups(root);
@@ -77,7 +83,11 @@ const main = () => {
 
   let plan;
   try {
-    const changes = readChanges(root, base, head);
+    const allChanges = readChanges(root, base, head);
+    const changes = dashboardChanges(allChanges, options.workspaceApplications || []);
+    if (allChanges.length > 0 && changes.length === 0) {
+      return { matrix: [], scope: 'none', reason: 'Only standalone application files changed.' };
+    }
     const dependencyIndex = buildDependencyIndex({ root, specs });
     plan = planMockTestImpact({ groups, changes, dependencyIndex });
   } catch (error) {
@@ -96,12 +106,26 @@ const main = () => {
   }
 
   const matrix = createTestMatrix(groups, plan.selectedGroups);
+  return {
+    matrix,
+    scope: plan.scope,
+    reason: plan.reason,
+    groupCount: groups.length,
+    selectedCount: plan.selectedGroups.length,
+  };
+};
+
+const main = () => {
+  const root = path.resolve(__dirname, '../..');
+  const options = parseArgs(process.argv.slice(2));
+  const selection = selectMockTests(root, options);
+  const { matrix, scope, reason, groupCount, selectedCount } = selection;
   writeFile(options.matrix, `${JSON.stringify(matrix, null, 2)}\n`);
-  writeFile(options.scope, `${plan.scope}\n`);
+  writeFile(options.scope, `${scope}\n`);
   process.stdout.write(
-    `Cypress mock selection: ${plan.selectedGroups.length}/${groups.length} groups in ${
+    `Cypress mock selection: ${selectedCount}/${groupCount} groups in ${
       matrix.length
-    } shards (${plan.scope}). ${sanitizeLogText(plan.reason)}\n`,
+    } shards (${scope}). ${sanitizeLogText(reason)}\n`,
   );
 };
 
@@ -109,4 +133,11 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { createTestMatrix, parseArgs, readChanges, sanitizeLogText };
+module.exports = {
+  createTestMatrix,
+  parseArgs,
+  readChanges,
+  sanitizeLogText,
+  selectMockTests,
+  dashboardChanges,
+};

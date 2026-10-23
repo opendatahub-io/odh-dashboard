@@ -164,27 +164,61 @@ Cypress mocked tests run against a standalone frontend while mocking all network
 
 #### Selective mock tests
 
-The main test workflow compares the Git change with the generated Cypress matrix.
+The main test workflow compares the Git change with an application-aware Cypress matrix.
 Documentation-only changes skip the Cypress mock matrix. Changes to individual specs and
 transitively imported Cypress helpers run only their affected groups.
 
-Application and build inputs remain on the complete matrix because every mock suite executes
-against the complete dashboard host. Non-code fixtures, unresolved imports, missing consumers,
-and deleted or renamed files also fall back to the complete matrix.
+Within the dashboard application, application and build inputs remain on the complete dashboard
+matrix because its mock suites execute against the complete dashboard host. Non-code fixtures,
+unresolved imports, missing consumers, and deleted or renamed files also fall back to the complete
+dashboard matrix.
 
-The `cypress-mock` Codecov flag is updated only when the complete matrix runs; selective runs use
-the configured carryforward coverage.
+The `cypress-mock` Codecov flag is updated whenever the complete dashboard matrix runs,
+independently of standalone application selection. Each standalone suite updates its own
+`cypress-mock-<application>` flag when it runs. Skipped suites and partial dashboard runs use
+their configured carryforward coverage.
 
 To inspect a selection locally, compare any two Git revisions:
 
 ```bash
-pnpm run plan:cypress-mock-impact -- \
+pnpm run plan:cypress-mock-impact \
   --base <base-revision> \
   --head <head-revision> \
   --matrix /tmp/cypress-mock-matrix.json
 ```
 
-Single command to run all Cypress mock tests or a specific test (build frontend, start HTTP server, run Cypress):
+#### Application runners
+
+[The application registry](../scripts/cypress/mock-test-applications.json) configures which
+applications join the shared `Cypress-Mock-Tests` job. Each entry provides an application name,
+workspace, target package, runner, and results path.
+
+- `dashboard-shards` uses the existing shard selector, shared federation build artifacts, and coverage
+  aggregation. Dashboard builds run only when dashboard shards are selected.
+- `standalone-app` uses transitive workspace dependency selection and runs the workspace
+  `test:cypress-ci` script with `pnpm --dir <workspace>`. The application owns its build, server,
+  Cypress project, and cleanup. Its results are uploaded separately. CI enables `COVERAGE=true`;
+  each workspace writes its coverage report to `<results>/coverage/coverage-final.json`.
+  Coverage artifacts from all runners feed the combined report. Standalone suites upload
+  directly to their own Codecov flags.
+
+To add a standalone application, add a `standalone-app` entry and implement
+`test:cypress-ci` in that workspace, including coverage collection when `COVERAGE=true`. Keep
+its results path inside the workspace and configure its `cypress-mock-<application>` flag
+with `carryforward: true` in `.codecov.yml`. Include shared source paths covered by the suite
+as well as the application itself. Files inside
+registered standalone workspaces belong to those applications; shared dependencies outside
+those roots still pass through the dashboard selector. No application-specific workflow job
+or final status condition is needed.
+
+The shared planner combines selected dashboard shards and workspace applications into one
+matrix. If none are selected, a no-op entry succeeds. Selection failures run the affected
+application conservatively. Coverage is merged whenever any application runs, including
+portal-only selections, and is included in the combined coverage artifact. Codecov uploads
+remain separate by suite: the dashboard flag contains only dashboard shard coverage, while
+`cypress-mock-maas-portal` contains portal coverage, including exercised shared sources.
+
+Run the dashboard mock tests, or a specific dashboard spec (build frontend, start HTTP server, run Cypress):
 
 ```bash
 pnpm run test:cypress-ci

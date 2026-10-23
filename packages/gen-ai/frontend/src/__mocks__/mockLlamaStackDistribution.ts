@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
-import { LlamaStackDistributionModel } from '~/app/types';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths -- Exported fixtures cannot rely on GenAI's ~ alias.
+import type { LlamaStackDistributionModel } from '../app/types';
 
 export const createMockLlamaStackDistribution = (
   phase: 'Ready' | 'Failed' | 'Pending' = 'Ready',

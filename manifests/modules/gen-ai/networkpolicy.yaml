@@ -12,7 +12,7 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Gateway / router and the MaaS consumer portal -> Gen AI UI.
+    # Gateway / router and the MaaS portal -> Gen AI UI.
     - ports:
         - port: 8143
           protocol: TCP
