@@ -7,6 +7,7 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 jest.mock('mod-arch-core', () => ({
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone' },
+  asEnumMember: (value: unknown) => value,
   useModularArchContext: () => ({ config: { deploymentMode: 'federated' } }),
 }));
 

@@ -17,7 +17,8 @@ type ContextBreadcrumbProps = {
   pageName: string;
   projectDisplayName: string;
   homePath: string;
-  projectHomePath: string;
+  /** When omitted, the "go to project" link is not rendered (e.g. deployments without a host projects page). */
+  projectHomePath?: string;
   onHomeNavigate?: () => void;
   children?: React.ReactNode;
   /** Renders the home crumb as an aria-disabled span instead of a link (e.g. while an operation is pending). */
@@ -94,27 +95,29 @@ const ContextBreadcrumb: React.FC<ContextBreadcrumbProps> = ({
         </BreadcrumbItem>
         {children}
       </Breadcrumb>
-      <Flex>
-        <Divider orientation={{ default: 'vertical' }} />
-        <FlexItem data-testid={projectLinkTestId}>
-          <Content component={ContentVariants.small}>
-            {isProjectLinkDisabled ? (
-              <span
-                role="link"
-                aria-disabled="true"
-                tabIndex={-1}
-                className="evalhub-breadcrumb-link-disabled"
-              >
-                {projectLinkContent}
-              </span>
-            ) : (
-              <Link to={projectHomePath} className="evalhub-breadcrumb-link-with-icon">
-                {projectLinkContent}
-              </Link>
-            )}
-          </Content>
-        </FlexItem>
-      </Flex>
+      {projectHomePath ? (
+        <Flex>
+          <Divider orientation={{ default: 'vertical' }} />
+          <FlexItem data-testid={projectLinkTestId}>
+            <Content component={ContentVariants.small}>
+              {isProjectLinkDisabled ? (
+                <span
+                  role="link"
+                  aria-disabled="true"
+                  tabIndex={-1}
+                  className="evalhub-breadcrumb-link-disabled"
+                >
+                  {projectLinkContent}
+                </span>
+              ) : (
+                <Link to={projectHomePath} className="evalhub-breadcrumb-link-with-icon">
+                  {projectLinkContent}
+                </Link>
+              )}
+            </Content>
+          </FlexItem>
+        </Flex>
+      ) : null}
     </Flex>
   );
 };

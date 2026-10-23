@@ -43,6 +43,21 @@ describe('ContextBreadcrumb', () => {
     expect(projectLink.querySelector('a')).toHaveAttribute('href', '/projects/my-namespace');
   });
 
+  it('should not render the project link when projectHomePath is not provided', () => {
+    render(
+      <MemoryRouter>
+        <ContextBreadcrumb
+          pageName="Evaluations"
+          projectDisplayName="My Project"
+          homePath="/evaluation/my-namespace"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('context-breadcrumb-home')).toBeInTheDocument();
+    expect(screen.queryByTestId('context-breadcrumb-project-link')).not.toBeInTheDocument();
+  });
+
   it('should call onHomeNavigate when the home link is clicked', async () => {
     const user = userEvent.setup();
     const onHomeNavigate = jest.fn();
