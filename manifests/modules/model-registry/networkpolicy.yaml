@@ -66,6 +66,17 @@ spec:
     # External / off-cluster HTTP(S) to user-configurable, hostname-based endpoints
     # that cannot be expressed as NetworkPolicy peers; documented R5 limitation.
     - to:
+        # The catalog namespace is request-specific; namespaceSelector and
+        # podSelector are ANDed to restrict egress to catalog pods.
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              component: model-catalog
+              app.kubernetes.io/name: model-catalog
+      ports:
+        - port: 8443
+          protocol: TCP
+    - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
