@@ -61,7 +61,20 @@ describe('imageStreamUtils', () => {
         recommendedAcceleratorIdentifiers: [],
         tier: 'custom',
         isOOTB: true,
+        deprecated: false,
       });
+    });
+
+    it('should map the deprecated annotation', () => {
+      const image = mockImageStreamK8sResource({
+        opts: {
+          metadata: {
+            annotations: { [ImageStreamAnnotation.DEPRECATED]: 'true' },
+          },
+        },
+      });
+
+      expect(mapImageStreamToBYONImage(image).deprecated).toBe(true);
     });
 
     it.each([
