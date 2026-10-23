@@ -259,6 +259,8 @@ def needs_human(result):
         return True
     if checks_with_status(result, "could-not-verify"):
         return True
+    if errored_adapters(result):
+        return True
     if "needs_human" in pa:
         if pa.get("needs_human"):
             return True
@@ -279,6 +281,16 @@ def producers_block(result):
     """Self-contained producers object on the review result (schema v3)."""
     raw = result.get("producers") if isinstance(result, dict) else None
     return raw if isinstance(raw, dict) else None
+
+def errored_adapters(result):
+    """Adapters that reported status=error, as "<Label> (<reason>)" notes."""
+    producers = producers_block(result)
+    notes = []
+    for item in (producers or {}).get("adapters") or []:
+        if isinstance(item, dict) and str(item.get("status") or "").strip().lower() == "error":
+            name = dimension_label(item.get("id") or "adapter")
+            notes.append(f"{name} ({adapter_reason(item) or 'adapter error'})")
+    return notes
 
 def add_limit(inspected, note):
     notes = list(inspected.get("could_not_verify") or [])
@@ -402,10 +414,11 @@ def unverified_producers(result):
     """Everything this run could not establish, by whatever shape reported it.
 
     A readiness check that could not be verified is a producer that did not
-    establish its result."""
+    establish its result. An errored adapter is also incomplete."""
     names = []
     for check in checks_with_status(result, "could-not-verify"):
         names.append(dimension_label(check.get("id") or "readiness check"))
+    names.extend(errored_adapters(result))
     producers = producers_block(result)
     if producers is not None and challenger_problem(challenger_record(producers), result.get("findings") or []):
         names.append("challenger (its skip state contradicts the reported findings)")
@@ -594,6 +607,9 @@ def augment_inspected(result):
             f"{dimension_label(check.get('id') or 'readiness check')}: "
             f"{check.get('summary') or 'could not be verified'}"
         )
+        if note not in could_not_verify:
+            could_not_verify.append(note)
+    for note in errored_adapters(result):
         if note not in could_not_verify:
             could_not_verify.append(note)
     if could_not_verify:
@@ -1187,8 +1203,15 @@ def producer_rows(result):
 
 def status_headline(result, action):
     """Visible status line: icon + bold label + remainder."""
+    errs = errored_adapters(result)
+    incomplete = inline_text(", ".join(errs)) if errs else ""
     if action == "request-changes":
-        return f"{mark(ACTION_MARK, action)} **Waiting on author** — {author_wait_detail(result)}"
+        line = f"{mark(ACTION_MARK, action)} **Waiting on author** — {author_wait_detail(result)}"
+        if not errs:
+            return line
+        return f"{line} Review incomplete — {incomplete}. Retry or escalate."
+    if action == "comment" and errs:
+        return f"{mark(ACTION_MARK, action)} **Review incomplete** — {incomplete}. Retry or escalate."
     if action == "comment" and needs_human(result):
         return f"{mark(ACTION_MARK, action)} **Needs human judgment.**"
     if action == "comment":
@@ -1472,10 +1495,10 @@ def render_body(result, previous_md, action):
     if inspected.get("summary") or inspected.get("could_not_verify"):
         details_body += ["### Evidence inspected", ""]
         if inspected.get("summary"):
-            details_body += [clean(inspected["summary"]), ""]
+            details_body += [inline_text(inspected["summary"]), ""]
         if inspected.get("could_not_verify"):
             details_body += ["**Could not verify:**", ""]
-            details_body += [f"- {clean(i)}" for i in inspected["could_not_verify"]] + [""]
+            details_body += [f"- {inline_text(i)}" for i in inspected["could_not_verify"]] + [""]
 
     sig = clean(os.environ.get("REVIEW_SIGNALS"))
     if sig:
@@ -2350,6 +2373,7 @@ JSON
   fi
 
   # Adapter status comes from result.producers.adapters, not collected.json.
+  # ok + empty findings must still approve.
   printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[{\"id\":\"jira-snapshot\",\"status\":\"none\",\"reason\":\"no-issue-key\"},{\"id\":\"coderabbit\",\"status\":\"ok\"}],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[],\"coderabbit\":[]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-status.json"
   transform_review_result "${tmp}/adapter-status.json" > "${tmp}/adapter-status-out.json"
   body=$(jq -r .body "${tmp}/adapter-status-out.json")
@@ -2362,18 +2386,80 @@ JSON
   elif ! grep -q '2 producer(s) ran, 1 unavailable' <<<"${body}"; then
     echo "FAIL adapter-status: review-details blurb should separate ran from unavailable" >&2
     fail=1
+  elif ! jq -e '.action == "approve"' "${tmp}/adapter-status-out.json" >/dev/null; then
+    echo "FAIL adapter-status: ok + empty findings must approve" >&2
+    fail=1
   else
-    echo "PASS adapter status on result.producers distinguishes unavailable from ran-clean"
+    echo "PASS adapter status on result.producers distinguishes unavailable from ran-clean and approves"
   fi
 
+  # Adapter error must refuse approve and surface error on Status.
   printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"error\",\"reason\":\"cli-unavailable\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-error.json"
   transform_review_result "${tmp}/adapter-error.json" > "${tmp}/adapter-error-out.json"
   body=$(jq -r .body "${tmp}/adapter-error-out.json")
   if ! grep -qE '^\| CodeRabbit \| findings \| ❌ \| cli unavailable' <<<"${body}"; then
     echo "FAIL adapter-error: status=error adapter was not marked errored" >&2
     fail=1
+  elif ! jq -e '.action == "comment"' "${tmp}/adapter-error-out.json" >/dev/null; then
+    echo "FAIL adapter-error: status=error must refuse approve (comment action)" >&2
+    fail=1
+  elif ! grep -q 'Review incomplete' <<<"${body}"; then
+    echo "FAIL adapter-error: status=error must show Review incomplete on Status" >&2
+    fail=1
+  elif ! grep -qi 'CodeRabbit' <<<"$(grep 'Review incomplete' <<<"${body}")"; then
+    echo "FAIL adapter-error: Status must name the failed producer" >&2
+    fail=1
+  elif jq -e '.confidence.level == "high"' "${tmp}/adapter-error-out.json" >/dev/null; then
+    echo "FAIL adapter-error: confidence must not be left high with an errored adapter" >&2
+    fail=1
+  elif ! jq -e '(.inspected.could_not_verify // []) | any(.[]; . == "CodeRabbit (cli unavailable)")' "${tmp}/adapter-error-out.json" >/dev/null; then
+    echo "FAIL adapter-error: inspected.could_not_verify must use label (reason) for errored adapter" >&2
+    fail=1
   else
-    echo "PASS adapter error status on result renders as errored, not ran-clean"
+    echo "PASS adapter error refuses approve, surfaces incomplete Status, caps confidence"
+  fi
+
+  # A blocking finding keeps the request-changes headline, but the Status must
+  # still report the incomplete review and name the failed producer.
+  printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"logic-error\",\"file\":\"a.ts\",\"description\":\"Off by one.\"}],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"error\",\"reason\":\"review-failed\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-error-blocking.json"
+  transform_review_result "${tmp}/adapter-error-blocking.json" > "${tmp}/adapter-error-blocking-out.json"
+  body=$(jq -r .body "${tmp}/adapter-error-blocking-out.json")
+  if ! jq -e '.action == "request-changes"' "${tmp}/adapter-error-blocking-out.json" >/dev/null; then
+    echo "FAIL adapter-error-blocking: expected request-changes" >&2
+    fail=1
+  elif ! grep -qE '\*\*Waiting on author\*\*.*Review incomplete — CodeRabbit \(review failed\)' <<<"${body}"; then
+    echo "FAIL adapter-error-blocking: Status must keep Waiting on author and report the incomplete review" >&2
+    fail=1
+  else
+    echo "PASS adapter error with blocking findings keeps Waiting on author and reports incompleteness"
+  fi
+
+  # Adapter ids come from the result, not the registry: a forged id must not
+  # inject headings, HTML, or mentions into host-authored Status / Evidence.
+  printf '%s' "{${common},\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"evil\\n## FAKE <b>x</b> @octocat\",\"status\":\"error\",\"reason\":\"review-failed\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-inject.json"
+  transform_review_result "${tmp}/adapter-inject.json" > "${tmp}/adapter-inject-out.json"
+  body=$(jq -r .body "${tmp}/adapter-inject-out.json")
+  if grep -qE '^## FAKE' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id injected a heading" >&2
+    fail=1
+  elif grep -qF '<b>' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id injected raw HTML" >&2
+    fail=1
+  elif grep -qF '@octocat' <<<"${body}"; then
+    echo "FAIL adapter-inject: adapter id injected a mention" >&2
+    fail=1
+  else
+    echo "PASS adapter id cannot inject headings, HTML, or mentions"
+  fi
+
+  # Adapter skipped must still allow approve when otherwise clean.
+  printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"skipped\",\"reason\":\"all-files-ignored\"}],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[]},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-skipped.json"
+  transform_review_result "${tmp}/adapter-skipped.json" > "${tmp}/adapter-skipped-out.json"
+  if ! jq -e '.action == "approve"' "${tmp}/adapter-skipped-out.json" >/dev/null; then
+    echo "FAIL adapter-skipped: skipped adapter must still allow approve" >&2
+    fail=1
+  else
+    echo "PASS adapter skipped still allows approve"
   fi
 
   # Free-form reasons fall back to the status default; Result cells must not
