@@ -46,6 +46,32 @@ const pr9766Files = [
   'manifests/rhoai/networkpolicy.yaml',
 ].map((filePath) => ({ status: 'M', path: filePath }));
 
+const pr9783Files = [
+  '.github/scripts/mask-cypress-test-secrets.sh',
+  'manifests/modules/autorag/networkpolicy.yaml',
+  'packages/autox-core/services/pipelines/cache.go',
+  'packages/autox-core/services/pipelines/client.go',
+  'packages/autox-core/services/pipelines/client_test.go',
+  'packages/autox-core/services/pipelines/errors.go',
+  'packages/autox-core/services/pipelines/models.go',
+  'packages/autox-core/services/pipelines/service.go',
+  'packages/autox-core/services/pipelines/service_test.go',
+  'packages/cypress/cypress/fixtures/resources/autorag/pgvector-standalone.yaml',
+  'packages/cypress/cypress/pages/autorag/configurePage.ts',
+  'packages/cypress/cypress/pages/autorag/resultsPage.ts',
+  'packages/cypress/cypress/tests/e2e/autorag/testAutoragExperimentsAndRunManagement.cy.ts',
+  'packages/cypress/cypress/tests/e2e/autorag/testAutoragMetricVariations.cy.ts',
+  'packages/cypress/cypress/tests/e2e/autorag/testAutoragOptimization.cy.ts',
+  'packages/cypress/cypress/types.ts',
+  'packages/cypress/cypress/utils/autoragTestFlows.ts',
+  'packages/cypress/cypress/utils/maskSensitiveInfo.ts',
+  'packages/cypress/cypress/utils/oc_commands/autoragInfra.ts',
+  'packages/cypress/cypress/utils/oc_commands/maasSecret.ts',
+  'packages/cypress/cypress/utils/oc_commands/ogxNetworkPolicy.ts',
+  'packages/cypress/cypress/utils/testConfig.ts',
+  'packages/cypress/test-variables.yml.example',
+].map((filePath) => ({ status: 'M', path: filePath }));
+
 describe('historical E2E impact simulations', () => {
   it('maps the escaped PR #9766 network-policy change without scheduling every spec', () => {
     const result = planForHistory(pr9766Files);
@@ -153,6 +179,26 @@ describe('historical E2E impact simulations', () => {
         'packages/cypress/cypress/tests/e2e/autorag/testAutoragExperimentsAndRunManagement.cy.ts',
       ),
     );
+  });
+
+  it('replays the historical AutoRAG PR and rejects its untagged changed spec', () => {
+    const result = planForHistory(pr9783Files);
+    const changedSpecs = [
+      'packages/cypress/cypress/tests/e2e/autorag/testAutoragExperimentsAndRunManagement.cy.ts',
+      'packages/cypress/cypress/tests/e2e/autorag/testAutoragMetricVariations.cy.ts',
+      'packages/cypress/cypress/tests/e2e/autorag/testAutoragOptimization.cy.ts',
+    ];
+
+    assert.equal(result.valid, false);
+    assert.match(
+      result.errors.join('\n'),
+      /New or modified Cypress spec has no CI-selectable tag or non-CI owner: .*testAutoragMetricVariations\.cy\.ts/,
+    );
+    assert.deepEqual(result.summary.changedSpecs, [...changedSpecs].toSorted());
+    assert.ok(result.summary.pathImpactTags.includes('@AutoRAGCI'));
+    const specJob = result.matrix.find((job) => job.run_mode === 'spec');
+    assert.ok(specJob);
+    assert.deepEqual(specJob.specs, [...changedSpecs].toSorted());
   });
 
   it('makes a package without an executable suite use an explicit regression fallback', () => {
