@@ -54,7 +54,7 @@ name: Cypress e2e Test
 
 on:
   workflow_run:
-    workflows: ["Test"]
+    workflows: ['Test']
     types: [completed]
 
   workflow_dispatch:
@@ -93,7 +93,6 @@ env:
 # JOBS
 # =============================================================================
 jobs:
-
   # ---------------------------------------------------------------------------
   # Selection Validation - Fail before cluster work if planner contracts break
   # ---------------------------------------------------------------------------
@@ -107,7 +106,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.ref }}
 
       - name: Setup pnpm and Node.js
         uses: ./.github/actions/pnpm-setup
@@ -120,8 +119,6 @@ jobs:
           tap_file="${RUNNER_TEMP}/e2e-selection-contracts.tap"
           exit_code=0
           node --test \
-            --test-reporter=spec \
-            --test-reporter-destination=stdout \
             --test-reporter=tap \
             --test-reporter-destination="$tap_file" \
             scripts/cypress/__tests__/e2e-selection.test.js \
@@ -258,7 +255,7 @@ jobs:
               exit 1
             fi
           fi
-          
+
           # Clean up credentials file
           rm -f /tmp/test-variables.yml
 
@@ -268,7 +265,7 @@ jobs:
   cleanup-old-resources:
     needs: [select-cluster]
     runs-on: [self-hosted, itup]
-    continue-on-error: true  # Don't fail the entire workflow if cleanup fails
+    continue-on-error: true # Don't fail the entire workflow if cleanup fails
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
     steps:
@@ -521,13 +518,13 @@ jobs:
         run: |
           # Get PR number - try multiple methods for fork PR compatibility
           PR_NUM="${{ github.event.workflow_run.pull_requests[0].number }}"
-          
+
           # Method 2: commits API (works for same-repo PRs)
           if [[ -z "$PR_NUM" || "$PR_NUM" == "null" ]]; then
             PR_NUM=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" \
               --jq '.[0].number' 2>/dev/null || echo "")
           fi
-          
+
           # Method 3: search API (works for fork PRs)
           if [[ -z "$PR_NUM" || "$PR_NUM" == "null" ]]; then
             PR_NUM=$(gh api "search/issues?q=repo:${{ github.repository }}+is:pr+is:open+sha:${{ github.event.workflow_run.head_sha }}" \
@@ -641,7 +638,14 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-tests:
     name: e2e-tests (${{ matrix.tag_dir }})
-    needs: [select-cluster, set-pending-status, get-test-tags, ensure-cypress-builds, build-missing-cypress]
+    needs:
+      [
+        select-cluster,
+        set-pending-status,
+        get-test-tags,
+        ensure-cypress-builds,
+        build-missing-cypress,
+      ]
     if: >-
       !cancelled() && !failure() &&
       needs.select-cluster.result == 'success'
@@ -683,10 +687,10 @@ jobs:
           echo "📊 Checking available disk space..."
           DISK_USAGE=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
           DISK_AVAIL=$(df -h / | tail -1 | awk '{print $4}')
-          
+
           echo "💾 Disk usage: ${DISK_USAGE}% (${DISK_AVAIL} available)"
           echo "DISK_USAGE=$DISK_USAGE" >> $GITHUB_ENV
-          
+
           if [ "$DISK_USAGE" -ge 95 ]; then
             echo "❌ CRITICAL: Disk usage is ${DISK_USAGE}% - will attempt emergency cleanup"
             echo "EMERGENCY_CLEANUP=true" >> $GITHUB_ENV
@@ -706,11 +710,11 @@ jobs:
         if: env.EMERGENCY_CLEANUP == 'true'
         run: |
           echo "🚨 EMERGENCY CLEANUP - Disk usage: ${DISK_USAGE}%"
-          
+
           RUNNER_USER=$(whoami)
           HOME_DIR=$(eval echo "~$RUNNER_USER")
           CURRENT_WORK_DIR="${{ github.workspace }}"
-          
+
           # Determine how aggressive to be based on disk usage
           if [ "$DISK_USAGE" -ge 95 ]; then
             AGE_THRESHOLD=1  # CRITICAL: Clean anything >1 day old
@@ -719,7 +723,7 @@ jobs:
             AGE_THRESHOLD=7  # Normal: Clean anything >7 days old
             echo "⚠️  AGGRESSIVE MODE: Cleaning files >7 days old"
           fi
-          
+
           echo ""
           if [ "$DISK_USAGE" -ge 95 ]; then
             echo "🛡️  PARALLEL-SAFE PROTECTIONS (FAST MODE - disk critically full):"
@@ -734,13 +738,13 @@ jobs:
             echo "   ✓ Directories accessed in last 10 minutes"
           fi
           echo ""
-          
+
           # Get list of ALL active work directories from currently running GitHub Actions jobs
           # This is the safest way to avoid deleting directories from parallel PRs
           echo "🔍 Detecting active work directories from parallel jobs (with timeout)..."
           ACTIVE_WORK_DIRS=()
           ACTIVE_JOBS=0
-          
+
           # Use faster method: check for active processes, then only protect their workspace
           ACTIVE_PIDS=$(pgrep -f "Runner.Worker" -u "$RUNNER_USER" 2>/dev/null || true)
           if [ -n "$ACTIVE_PIDS" ]; then
@@ -761,7 +765,7 @@ jobs:
             done
           fi
           echo "   Found $ACTIVE_JOBS active runner(s) with ${#ACTIVE_WORK_DIRS[@]} protected work directory(ies)"
-          
+
           # Helper function to check if directory is in use by active runner
           is_directory_in_use() {
             local dir="$1"
@@ -796,7 +800,7 @@ jobs:
             
             return 1  # Not in use (safe to delete)
           }
-          
+
           echo ""
           echo "🗑️  Step 1: Cleaning Go upstream builds (age: >$AGE_THRESHOLD days)..."
           UPSTREAM_CLEANED=0
@@ -807,7 +811,7 @@ jobs:
               rm -rf "$upstream_dir" 2>/dev/null && echo "   ✅ Cleaned: $upstream_dir" && UPSTREAM_CLEANED=$((UPSTREAM_CLEANED + 1)) || true
             fi
           done
-          
+
           echo ""
           echo "🗑️  Step 2: Cleaning old work directories (age: >$AGE_THRESHOLD days, with multi-layer safety)..."
           CLEANED_COUNT=0
@@ -827,18 +831,18 @@ jobs:
             fi
           done
           echo "   📊 Cleaned: $CLEANED_COUNT, Protected: $SKIPPED_COUNT"
-          
+
           echo ""
           echo "🗑️  Step 3: Cleaning Cypress artifacts (age: >$AGE_THRESHOLD days)..."
           SCREENSHOTS_CLEANED=$(find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/screenshots/*" -mtime +$AGE_THRESHOLD -delete -print 2>/dev/null | wc -l)
           VIDEOS_CLEANED=$(find "$HOME_DIR"/actions-runner*/_work -path "*/cypress/results/videos/*" -mtime +$AGE_THRESHOLD -delete -print 2>/dev/null | wc -l)
           echo "   ✅ Cleaned $SCREENSHOTS_CLEANED screenshots, $VIDEOS_CLEANED videos"
-          
+
           echo ""
           echo "🗑️  Step 4: Cleaning runner logs (age: >$AGE_THRESHOLD days)..."
           LOGS_CLEANED=$(find "$HOME_DIR"/actions-runner*/_diag -name "*.log" -mtime +$AGE_THRESHOLD -delete -print 2>/dev/null | wc -l)
           echo "   ✅ Cleaned $LOGS_CLEANED log files"
-          
+
           echo ""
           echo "🗑️  Step 5: Cleaning node_modules in old work dirs (age: >$AGE_THRESHOLD days)..."
           find "$HOME_DIR"/actions-runner*/_work -type d -name "node_modules" -mtime +$AGE_THRESHOLD 2>/dev/null | while read nm_dir; do
@@ -849,7 +853,7 @@ jobs:
               rm -rf "$nm_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE node_modules: $nm_dir" || true
             fi
           done
-          
+
           echo ""
           echo "🗑️  Step 6: Cleaning .turbo cache in old work dirs (age: >$AGE_THRESHOLD days)..."
           find "$HOME_DIR"/actions-runner*/_work -type d -name ".turbo" -mtime +$AGE_THRESHOLD 2>/dev/null | while read turbo_dir; do
@@ -860,25 +864,25 @@ jobs:
               rm -rf "$turbo_dir" 2>/dev/null && echo "   ✅ Cleaned $SIZE_BEFORE .turbo: $turbo_dir" || true
             fi
           done
-          
+
           echo ""
           echo "📊 Disk usage after emergency cleanup:"
           DISK_USAGE_AFTER=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
           DISK_AVAIL_AFTER=$(df -h / | tail -1 | awk '{print $4}')
           echo "💾 Disk usage: ${DISK_USAGE_AFTER}% (${DISK_AVAIL_AFTER} available)"
-          
+
           FREED=$((DISK_USAGE - DISK_USAGE_AFTER))
           if [ "$FREED" -gt 0 ]; then
             echo "✅ Freed: ${FREED}% disk space"
           else
             echo "⚠️  Freed: 0% disk space (no files met age threshold)"
           fi
-          
+
           # Show what's taking up space
           echo ""
           echo "📊 Top disk usage on runner:"
           du -sh "$HOME_DIR"/actions-runner*/_work/* 2>/dev/null | sort -rh | head -5 || true
-          
+
           # Decide whether to fail or continue
           if [ "$DISK_USAGE_AFTER" -ge 95 ]; then
             if [ "$FREED" -gt 0 ]; then
@@ -912,18 +916,18 @@ jobs:
         continue-on-error: true
         run: |
           echo "🧹 Cleaning up old test artifacts (>2 days)..."
-          
+
           # Clean old Cypress results/screenshots/videos from workspace (>2 days old)
           find ${{ github.workspace }}/packages/cypress/results -type f -mtime +2 -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/screenshots -type f -mtime +2 -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/videos -type f -mtime +2 -delete 2>/dev/null || true
-          
+
           # Note: .cache/Cypress is managed by actions/cache (workspace-local via CYPRESS_CACHE_FOLDER)
           # and should not be cleaned here to avoid removing the Cypress binary mid-run
-          
+
           # Clean old temporary yaml files (>2 days old)
           find /tmp -name "cypress-yaml-*.yaml" -type f -mtime +2 -delete 2>/dev/null || true
-          
+
           # Clean empty directories
           find ${{ github.workspace }}/packages/cypress/results -type d -empty -delete 2>/dev/null || true
           find ${{ github.workspace }}/packages/cypress/screenshots -type d -empty -delete 2>/dev/null || true
@@ -1247,6 +1251,7 @@ jobs:
           # Cypress reads CYPRESS_* env vars natively — avoids arg escaping through concurrently
           export CYPRESS_OC_SERVER="$OC_SERVER"
           export CYPRESS_skipTags="@Bug @Maintain @NonConcurrent"
+          export CYPRESS_CI=true
           export CYPRESS_grepOmitFiltered=true
           SKIP_TAGS_GREP="--@Bug --@Maintain --@NonConcurrent"
           CYPRESS_COMMAND="pnpm --filter odh-dashboard-frontend cypress:run:chrome"
@@ -1328,7 +1333,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.ref }}
 
       - name: Download E2E results
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -1377,9 +1382,9 @@ jobs:
           SUMMARY_RESULT="${{ needs.summarize-e2e-results.result }}"
           CLUSTER_RESULT="${{ needs.select-cluster.result }}"
           CLUSTER="${{ needs.select-cluster.outputs.cluster_name }}"
-          
+
           echo "📊 Job results: select-cluster=$CLUSTER_RESULT, e2e-tests=$E2E_RESULT, summary=$SUMMARY_RESULT"
-          
+
           # Handle cluster selection failure first
           if [[ "$CLUSTER_RESULT" == "failure" ]]; then
             STATE="failure"
@@ -1404,9 +1409,9 @@ jobs:
             STATE="failure"
             DESC="Tests failed on ${CLUSTER:-unknown cluster}"
           fi
-          
+
           echo "📝 Posting status: state=$STATE, description=$DESC"
-          
+
           gh api repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha || github.sha }} \
             -f state="$STATE" \
             -f context="Cypress E2E Tests" \

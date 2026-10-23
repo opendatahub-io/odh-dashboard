@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 
 const {
+  parseNodeTestTapDetails,
   parseNodeTestTapTotals,
   renderNodeTestSummary,
   validateNodeTestTapTotals,
@@ -17,14 +18,16 @@ const main = () => {
   }
 
   try {
-    const totals = parseNodeTestTapTotals(fs.readFileSync(tapFile, 'utf8'));
+    const tap = fs.readFileSync(tapFile, 'utf8');
+    const totals = parseNodeTestTapTotals(tap);
+    const details = parseNodeTestTapDetails(tap);
     const validationError = validateNodeTestTapTotals(totals);
     if (validationError) {
       console.error(validationError);
       process.exitCode = 1;
       return;
     }
-    console.log(renderNodeTestSummary(totals));
+    console.log(renderNodeTestSummary(totals, details));
   } catch (error) {
     console.error(`Unable to read Node test results: ${error.message}`);
     process.exitCode = 1;

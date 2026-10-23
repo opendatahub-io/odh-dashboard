@@ -747,9 +747,39 @@ const parseSpecSource = (source) => {
   const initializers = collectVariableInitializers(sourceFile);
   const tests = [];
 
-  const visit = (node, enclosingSkipped = false) => {
+  const visit = (
+    node,
+    inheritedTags = [],
+    inheritedTagsResolved = true,
+    enclosingSkipped = false,
+  ) => {
+    let childTags = inheritedTags;
+    let childTagsResolved = inheritedTagsResolved;
+    let childSkipped = enclosingSkipped;
+
     if (ts.isCallExpression(node)) {
       const expressionText = resolveCallName(node.expression, initializers);
+      if (expressionText && /^(?:describe|context)(?:\.(?:only|skip))?$/.test(expressionText)) {
+        if (expressionText.endsWith('.skip')) {
+          childSkipped = true;
+        }
+        const suiteOptions = node.arguments[1];
+        if (suiteOptions && ts.isObjectLiteralExpression(suiteOptions)) {
+          for (const property of suiteOptions.properties) {
+            if (
+              (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+              property.name.getText(sourceFile) === 'tags'
+            ) {
+              const initializer = ts.isPropertyAssignment(property)
+                ? property.initializer
+                : property.name;
+              const resolvedTags = resolveTagsExpression(initializer, initializers);
+              childTagsResolved = childTagsResolved && resolvedTags !== null;
+              childTags = unique([...childTags, ...(resolvedTags ?? [])]);
+            }
+          }
+        }
+      }
       if (
         expressionText &&
         /^(?:it|test)(?:\.(?:only|skip))?$/.test(expressionText) &&
@@ -774,17 +804,12 @@ const parseSpecSource = (source) => {
             }
           }
         }
-        tests.push({ tags: tagsResolved ? unique(tags) : null });
+        tests.push({
+          tags: tagsResolved && inheritedTagsResolved ? unique([...inheritedTags, ...tags]) : null,
+        });
       }
     }
-    let childSkipped = enclosingSkipped;
-    if (ts.isCallExpression(node)) {
-      const expressionText = resolveCallName(node.expression, initializers);
-      childSkipped ||= Boolean(
-        expressionText && /^(?:describe|context)\.skip$/.test(expressionText),
-      );
-    }
-    ts.forEachChild(node, (child) => visit(child, childSkipped));
+    ts.forEachChild(node, (child) => visit(child, childTags, childTagsResolved, childSkipped));
   };
   visit(sourceFile);
   return tests;

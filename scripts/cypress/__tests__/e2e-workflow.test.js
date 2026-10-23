@@ -22,15 +22,13 @@ describe('Cypress E2E workflow', () => {
       'utf8',
     );
 
-    assert.ok(workflow.includes('--test-reporter=spec'));
-    assert.ok(workflow.includes('--test-reporter-destination=stdout'));
     assert.ok(workflow.includes('--test-reporter=tap'));
     assert.ok(workflow.includes('--test-reporter-destination="$tap_file"'));
     assert.ok(workflow.includes('summarize-node-test-results.js "$tap_file"'));
-    assert.ok(!workflow.includes('--test-reporter=dot'));
+    assert.ok(!workflow.includes('--test-reporter=spec'));
   });
 
-  it('validates selection and results from the tested workflow head', () => {
+  it('uses protected revisions for automatic validator jobs', () => {
     const workflow = fs.readFileSync(
       path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
       'utf8',
@@ -41,12 +39,15 @@ describe('Cypress E2E workflow', () => {
     const summarizeEnd = workflow.indexOf('  set-final-status:', summarizeStart);
     const validateJob = workflow.slice(validateStart, validateEnd);
     const summarizeJob = workflow.slice(summarizeStart, summarizeEnd);
-    const testedRef = 'ref: ${{ github.event.workflow_run.head_sha || github.sha }}';
+    const protectedRevision =
+      "ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.ref }}";
 
     assert.ok(validateStart !== -1 && validateEnd !== -1);
     assert.ok(summarizeStart !== -1 && summarizeEnd !== -1);
-    assert.ok(validateJob.includes(testedRef));
-    assert.ok(summarizeJob.includes(testedRef));
+    assert.ok(validateJob.includes(protectedRevision));
+    assert.ok(summarizeJob.includes(protectedRevision));
+    assert.ok(!validateJob.includes('workflow_run.head_sha || github.sha'));
+    assert.ok(!summarizeJob.includes('workflow_run.head_sha || github.sha'));
   });
 
   it('keeps backend logs hidden', () => {
@@ -84,5 +85,19 @@ describe('Cypress E2E workflow', () => {
     assert.ok(workflow.includes('SKIP_TAGS_GREP="--@Bug --@Maintain --@NonConcurrent"'));
     assert.ok(workflow.includes('export CYPRESS_grepTags="$SKIP_TAGS_GREP"'));
     assert.ok(workflow.includes('export CYPRESS_grepTags="$MATRIX_TAG $SKIP_TAGS_GREP"'));
+  });
+
+  it('filters excluded tags before Cypress creates testcases', () => {
+    const support = fs.readFileSync(
+      path.join(__dirname, '../../../packages/cypress/cypress/support/e2e.ts'),
+      'utf8',
+    );
+
+    assert.ok(support.includes('const grepIncludedTags ='));
+    assert.ok(support.includes('const grepExcludedTags ='));
+    assert.ok(support.includes('return undefined as unknown as Mocha.Test;'));
+    assert.ok(support.includes('return shouldSkip || isExcluded || !shouldRun;'));
+    assert.ok(support.includes('if (grepIncludedTags.length > 0)'));
+    assert.ok(support.includes('grepIncludedTags.some((tag: string)'));
   });
 });

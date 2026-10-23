@@ -69,6 +69,9 @@ describe('Verify Performance Filters are available', () => {
     () => {
       if (skipTest) {
         cy.log('Skipping test - model-catalog deployment not found.');
+        if (Cypress.env('CI')) {
+          throw new Error('Model Catalog deployment is required for @ModelCatalogCI');
+        }
         return;
       }
 

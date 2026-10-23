@@ -14,6 +14,21 @@ const parseNodeTestTapTotals = (tap) => {
   return totals;
 };
 
+const parseNodeTestTapDetails = (tap) => {
+  const lines = String(tap)
+    .split('\n')
+    .map((line) => line.trim());
+  const duration = lines.find((line) => /^# duration_ms /.test(line));
+  const failedTests = lines
+    .filter((line) => /^not ok \d+ - /.test(line))
+    .map((line) => line.replace(/^not ok \d+ - /, ''));
+
+  return {
+    durationMs: duration ? Number(duration.replace(/^# duration_ms /, '')) : undefined,
+    failedTests,
+  };
+};
+
 const validateNodeTestTapTotals = (totals) => {
   for (const field of ['tests', 'pass', 'fail', 'skipped']) {
     if (!Number.isInteger(totals[field])) {
@@ -34,20 +49,33 @@ const validateNodeTestTapTotals = (totals) => {
   return null;
 };
 
-const renderNodeTestSummary = (totals) => {
+const renderNodeTestSummary = (totals, details = {}) => {
   const failures = (totals.fail ?? 0) + (totals.cancelled ?? 0);
   const todo = totals.todo ?? 0;
   const executed = totals.tests - totals.skipped - todo;
   const passRate = executed > 0 ? ((totals.pass / executed) * 100).toFixed(1) : '0.0';
+  const duration =
+    details.durationMs === undefined
+      ? undefined
+      : `${(details.durationMs / 1000).toFixed(2)} seconds`;
+  const failedTests = details.failedTests ?? [];
 
-  return (
-    `E2E selection contracts: pass=${totals.pass}, fail=${failures}, ` +
-    `skipped=${totals.skipped}, todo=${todo}, total=${totals.tests}, ` +
-    `pass_rate=${passRate}%`
-  );
+  return [
+    'E2E selection contract summary',
+    `Result: ${failures === 0 ? 'PASS' : 'FAIL'}`,
+    `Tests: ${totals.tests} total, ${totals.pass} passed, ${failures} failed, ` +
+      `${totals.skipped} skipped, ${todo} todo`,
+    `Executed: ${executed}`,
+    `Pass rate: ${passRate}%`,
+    ...(duration ? [`Duration: ${duration}`] : []),
+    ...(failedTests.length > 0
+      ? ['', 'Failed tests:', ...failedTests.map((name) => `- ${name}`)]
+      : []),
+  ].join('\n');
 };
 
 module.exports = {
+  parseNodeTestTapDetails,
   parseNodeTestTapTotals,
   renderNodeTestSummary,
   validateNodeTestTapTotals,

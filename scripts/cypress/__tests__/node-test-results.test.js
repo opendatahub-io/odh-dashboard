@@ -4,6 +4,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  parseNodeTestTapDetails,
   parseNodeTestTapTotals,
   renderNodeTestSummary,
   validateNodeTestTapTotals,
@@ -28,9 +29,28 @@ describe('Node test result summaries', () => {
 
     assert.equal(validateNodeTestTapTotals(totals), null);
     assert.equal(
-      renderNodeTestSummary(totals),
-      'E2E selection contracts: pass=2, fail=2, skipped=0, todo=0, total=4, pass_rate=50.0%',
+      renderNodeTestSummary(totals, { durationMs: 1250, failedTests: ['one', 'two'] }),
+      [
+        'E2E selection contract summary',
+        'Result: FAIL',
+        'Tests: 4 total, 2 passed, 2 failed, 0 skipped, 0 todo',
+        'Executed: 4',
+        'Pass rate: 50.0%',
+        'Duration: 1.25 seconds',
+        '',
+        'Failed tests:',
+        '- one',
+        '- two',
+      ].join('\n'),
     );
+  });
+
+  it('parses duration and failed test names from TAP output', () => {
+    const details = parseNodeTestTapDetails(
+      ['ok 1 - passes', 'not ok 2 - fails', '# duration_ms 250'].join('\n'),
+    );
+
+    assert.deepEqual(details, { durationMs: 250, failedTests: ['fails'] });
   });
 
   it('rejects incomplete or inconsistent totals', () => {
@@ -48,7 +68,7 @@ describe('Node test result summaries', () => {
     );
   });
 
-  it('prints a one-line summary from the CLI', async (test) => {
+  it('prints a concise human-readable summary from the CLI', async (test) => {
     const { spawnSync } = require('node:child_process');
     const fs = require('node:fs');
     const os = require('node:os');
@@ -65,6 +85,7 @@ describe('Node test result summaries', () => {
     );
 
     assert.equal(result.status, 0);
-    assert.match(result.stdout, /pass=2, fail=0, skipped=0, todo=0, total=2/);
+    assert.match(result.stdout, /Result: PASS/);
+    assert.match(result.stdout, /Tests: 2 total, 2 passed, 0 failed, 0 skipped, 0 todo/);
   });
 });

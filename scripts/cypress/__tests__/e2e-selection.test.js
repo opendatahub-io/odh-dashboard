@@ -1047,6 +1047,21 @@ describe('parseSpecSource', () => {
 
     assert.deepEqual(tests, [{ tags: ['@CI'] }]);
   });
+
+  it('inherits tags from describe and context options', () => {
+    const tests = parseSpecSource(
+      [
+        "describe('suite', { tags: ['@Suite'] }, () => {",
+        "  it('runs', { tags: ['@CI'] }, () => {});",
+        "  context('nested', { tags: ['@Nested'] }, () => {",
+        "    it('inherits suite tags', () => {});",
+        '  });',
+        '});',
+      ].join('\n'),
+    );
+
+    assert.deepEqual(tests, [{ tags: ['@Suite', '@CI'] }, { tags: ['@Suite', '@Nested'] }]);
+  });
 });
 
 describe('spec path safety', () => {
