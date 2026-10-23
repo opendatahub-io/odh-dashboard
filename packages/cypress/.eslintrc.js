@@ -32,7 +32,7 @@ module.exports = require('@odh-dashboard/eslint-config')
                 "Must use 'import type' when importing from @odh-dashboard packages. If you are importing enums that are flagged, please go to the .eslintrc file and add it to the regular expression.",
             },
 
-            // TODO tured off due to errors which needs to be addressed in the future
+            // TODO: Re-enable these rules after addressing the errors they currently produce.
             // {
             //   selector:
             //     'Literal[value=/\\bRed Hat OpenShift AI\\b/i],JSXText[value=/\\bRed Hat OpenShift AI\\b/i]',
