@@ -41,9 +41,9 @@ Hygiene
 - Note security/RBAC, API/contract, migrations, breaking changes when relevant.
 
 ## Evidence (required)
-- How you validated: commands, tests, CI links, cluster checks; steps, not only outcome.
+- What CI cannot show: commands, cluster or manual checks, suites outside required CI; steps, not only outcome.
 - What automation covers this (new or existing), or why new tests aren't appropriate.
-- Screenshots, GIFs, and/or video for UI or flow changes; logs when useful. Fullsend does not read CI for you.
+- Screenshots, GIFs, and/or video for UI or flow changes; logs when useful.
 - Redact tokens, passwords, and cluster credentials.
 - Cluster check with the PR image when permission/backend/hard-to-mock matters.
 - Long output: short summary up top; fold details:
