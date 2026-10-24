@@ -8,6 +8,3 @@ export const PORTAL_BASE_PATH = '/maas-portal';
 export const PORTAL_ROOT_REDIRECT_PATH = '/gen-ai-studio/assets';
 
 export const PORTAL_MODELS_PATH = '/maas/models';
-
-/** Read-only model access page (the MaaS governance subscriptions table). */
-export const PORTAL_MODEL_ACCESS_PATH = '/maas/model-access';

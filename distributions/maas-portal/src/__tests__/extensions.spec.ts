@@ -314,22 +314,15 @@ describe('MaaS Portal extensions', () => {
     expect(governanceRoute).toBeDefined();
   });
 
-  it('should expose the read-only Model Access page to every user', () => {
+  it('should expose the read-only Model Access page route to every user', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
     store.setFeatureFlags({ ADMIN_USER: false });
 
-    const modelAccessNavigation = store
-      .getExtensions()
-      .find((e) => e.type === 'app.navigation/href' && e.properties.id === 'portal-model-access');
     const modelAccessRoute = store
       .getExtensions()
       .find((e) => e.type === 'app.route' && e.properties.path === '/maas/model-access/*');
 
-    expect(modelAccessNavigation?.properties.title).toBe('Model Access');
-    expect(modelAccessNavigation?.properties.href).toBe('/maas/model-access');
-    expect(modelAccessNavigation?.properties.section).toBeUndefined();
-    expect(modelAccessNavigation?.properties.group).toBe('5_maas_access');
     expect(modelAccessRoute).toBeDefined();
   });
 

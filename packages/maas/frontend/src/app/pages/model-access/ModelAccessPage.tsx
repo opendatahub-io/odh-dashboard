@@ -8,7 +8,8 @@ import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
  *
  * Reuses the MaaS governance subscriptions tab (and therefore its table with the
  * Groups and Models expandable sub-tables) with `readOnly` set, which drops the
- * Status column, the row kebab, the create button, and the delete modal.
+ * Status column, the row kebab, the create button, and the delete modal. Its data
+ * comes from the dedicated `admin-subscriptions` endpoint.
  *
  * The tab owns its own loading, error, and empty states.
  */
@@ -24,7 +25,7 @@ const ModelAccessPageContent: React.FC = () => (
 );
 
 const ModelAccessPage: React.FC = () => (
-  <MaaSGovernanceProvider>
+  <MaaSGovernanceProvider subscriptionsEndpoint="admin-subscriptions">
     <ModelAccessPageContent />
   </MaaSGovernanceProvider>
 );

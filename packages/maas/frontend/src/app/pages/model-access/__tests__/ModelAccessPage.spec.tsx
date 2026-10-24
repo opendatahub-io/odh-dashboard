@@ -4,8 +4,16 @@ import '@testing-library/jest-dom';
 import ModelAccessPage from '~/app/pages/model-access/ModelAccessPage';
 
 jest.mock('~/app/context/MaaSGovernanceContext', () => ({
-  MaaSGovernanceProvider: ({ children }: React.PropsWithChildren) => (
-    <div data-testid="mock-maas-governance-provider">{children}</div>
+  MaaSGovernanceProvider: ({
+    children,
+    subscriptionsEndpoint,
+  }: React.PropsWithChildren<{ subscriptionsEndpoint?: string }>) => (
+    <div
+      data-testid="mock-maas-governance-provider"
+      data-subscriptions-endpoint={subscriptionsEndpoint}
+    >
+      {children}
+    </div>
   ),
 }));
 
@@ -65,6 +73,15 @@ describe('ModelAccessPage', () => {
 
     expect(screen.getByTestId('mock-maas-governance-provider')).toContainElement(
       screen.getByTestId('mock-subscriptions-tab'),
+    );
+  });
+
+  it('should fetch subscriptions from the admin-subscriptions endpoint', () => {
+    render(<ModelAccessPage />);
+
+    expect(screen.getByTestId('mock-maas-governance-provider')).toHaveAttribute(
+      'data-subscriptions-endpoint',
+      'admin-subscriptions',
     );
   });
 });

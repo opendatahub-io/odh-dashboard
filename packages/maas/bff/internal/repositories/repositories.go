@@ -12,6 +12,10 @@ import (
 // SubscriptionsRepositoryInterface defines the contract for subscription operations.
 type SubscriptionsRepositoryInterface interface {
 	ListSubscriptions(ctx context.Context) ([]models.MaaSSubscription, error)
+	// ListAdminSubscriptions returns the admin-facing subscriptions listing. It has
+	// the same response shape as ListSubscriptions but is a separate seam so it can
+	// diverge (scoping, RBAC) without changing the all-subscriptions contract.
+	ListAdminSubscriptions(ctx context.Context) ([]models.MaaSSubscription, error)
 	GetSubscription(ctx context.Context, name string) (*models.MaaSSubscription, error)
 	CreateSubscription(ctx context.Context, request models.CreateSubscriptionRequest) (*models.CreateSubscriptionResponse, error)
 	UpdateSubscription(ctx context.Context, name string, request models.UpdateSubscriptionRequest) (*models.CreateSubscriptionResponse, error)

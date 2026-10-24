@@ -36,6 +36,7 @@ func handlerWithMaasApi(app *App, handle AppHandler) httprouter.Handle {
 // attachSubscriptionHandlers registers the subscription routes.
 func attachSubscriptionHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.SubscriptionListPath, handlerWithApp(app, ListSubscriptionsHandler))
+	apiRouter.GET(constants.AdminSubscriptionListPath, handlerWithApp(app, ListAdminSubscriptionsHandler))
 	apiRouter.GET(constants.SubscriptionInfoPath, handlerWithApp(app, GetSubscriptionInfoHandler))
 	apiRouter.GET(constants.GroupsListPath, handlerWithApp(app, ListGroupsHandler))
 	apiRouter.POST(constants.SubscriptionCreatePath, handlerWithApp(app, CreateSubscriptionHandler))
@@ -54,6 +55,26 @@ func ListSubscriptionsHandler(app *App, w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
+	app.writeSubscriptionsResponse(w, r, subscriptions)
+}
+
+// ListAdminSubscriptionsHandler handles GET /api/v1/admin-subscriptions
+// K8s calls: GET /k8s/v1/maassubscription
+func ListAdminSubscriptionsHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	subscriptions, err := app.repositories.Subscriptions.ListAdminSubscriptions(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	app.writeSubscriptionsResponse(w, r, subscriptions)
+}
+
+// writeSubscriptionsResponse writes the shared subscriptions list envelope
+// used by both /all-subscriptions and /admin-subscriptions.
+func (app *App) writeSubscriptionsResponse(w http.ResponseWriter, r *http.Request, subscriptions []models.MaaSSubscription) {
 	response := Envelope[[]models.MaaSSubscription, None]{
 		Data: subscriptions,
 	}
