@@ -3,6 +3,7 @@ import http from 'http';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { getProxyForUrl } from 'proxy-from-env';
 import { getDirectCallOptions } from './directCallUtils';
+import { ipv6AwareCheckServerIdentity } from './networkUtils';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import { DEV_MODE } from './constants';
 
@@ -104,6 +105,12 @@ export const proxyCall = (
         const reqOpts: https.RequestOptions = { method, ...requestOptions };
         if (agent) {
           reqOpts.agent = agent;
+        }
+        if (url.startsWith('https:')) {
+          // Tolerate IPv6 canonicalization differences when validating the server cert against its
+          // SANs (e.g. compressed `fc00:30::1` vs. expanded `FC00:30:0:0:0:0:0:1`). This is what
+          // breaks every backend -> API-server call on IPv6 single-stack clusters.
+          reqOpts.checkServerIdentity = ipv6AwareCheckServerIdentity;
         }
 
         const httpsRequest = web(url)
