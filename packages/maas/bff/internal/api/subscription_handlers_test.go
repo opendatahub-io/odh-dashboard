@@ -244,6 +244,68 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 		})
 	})
 
+	var _ = Describe("ListAdminSubscriptionsHandler", Ordered, func() {
+		BeforeAll(func() {
+			// Seed a subscription for the admin listing
+			_, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](
+				http.MethodPost,
+				"/api/v1/new-subscription",
+				Envelope[models.CreateSubscriptionRequest, None]{
+					Data: models.CreateSubscriptionRequest{
+						Name: "admin-list-test-sub",
+						Owner: models.OwnerSpec{
+							Groups: []models.GroupReference{{Name: "users"}},
+						},
+						ModelRefs: []models.ModelSubscriptionRef{
+							{Name: "granite-3-8b-instruct", Namespace: "maas-models", TokenRateLimits: []models.TokenRateLimit{{Limit: 1000, Window: "1h"}}},
+						},
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
+		})
+
+		It("returns 200 and the same payload shape as all-subscriptions", func() {
+			allSubscriptions, rs, err := setupApiTest[Envelope[[]models.MaaSSubscription, None]](
+				http.MethodGet,
+				"/api/v1/all-subscriptions",
+				nil,
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+
+			adminSubscriptions, rs, err := setupApiTest[Envelope[[]models.MaaSSubscription, None]](
+				http.MethodGet,
+				"/api/v1/admin-subscriptions",
+				nil,
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(adminSubscriptions.Data).NotTo(BeNil())
+			Expect(len(adminSubscriptions.Data)).Should(BeNumerically(">", 0))
+			Expect(adminSubscriptions.Data).To(Equal(allSubscriptions.Data))
+
+			found := false
+			for _, sub := range adminSubscriptions.Data {
+				if sub.Name == "admin-list-test-sub" {
+					found = true
+					Expect(sub.Namespace).To(Equal("maas-system"))
+					Expect(sub.Owner.Groups).NotTo(BeEmpty())
+					Expect(sub.ModelRefs).NotTo(BeEmpty())
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "admin-list-test-sub should be in the admin list")
+		})
+	})
+
 	var _ = Describe("GetSubscriptionInfoHandler", Ordered, func() {
 		BeforeAll(func() {
 			_, rs, err := setupApiTest[Envelope[*models.CreateSubscriptionResponse, None]](

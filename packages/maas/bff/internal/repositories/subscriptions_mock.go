@@ -27,6 +27,11 @@ func (r *MockSubscriptionsRepository) ListSubscriptions(_ context.Context) ([]mo
 	return mocks.GetMockMaaSSubscriptions(), nil
 }
 
+func (r *MockSubscriptionsRepository) ListAdminSubscriptions(ctx context.Context) ([]models.MaaSSubscription, error) {
+	r.logger.Debug("Listing subscriptions for the admin view (mock)")
+	return r.ListSubscriptions(ctx)
+}
+
 func (r *MockSubscriptionsRepository) GetSubscription(_ context.Context, name string) (*models.MaaSSubscription, error) {
 	r.logger.Debug("Getting subscription (mock)", slog.String("name", name))
 	for _, sub := range mocks.GetMockMaaSSubscriptions() {

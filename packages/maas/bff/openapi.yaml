@@ -942,6 +942,59 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/admin-subscriptions:
+    get:
+      tags:
+        - subscriptions
+      summary: List subscriptions (admin view)
+      operationId: listAdminSubscriptions
+      description: >
+        Admin-facing listing of MaaSSubscription resources. The response format is
+        identical to `/api/v1/all-subscriptions`, and it is exposed as a separate
+        endpoint so admin-facing consumers (for example the MaaS Portal model access
+        page) can be scoped, RBAC-gated, or migrated independently of the
+        all-subscriptions contract.
+
+        K8s calls: GET /k8s/v1/maassubscription
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MaaSSubscription'
+              example:
+                data:
+                  - name: premium-team-sub
+                    namespace: maas-system
+                    phase: Active
+                    inferencePriority: 10
+                    owner:
+                      groups:
+                        - name: premium-users
+                    modelRefs:
+                      - name: llama-2-7b-chat
+                        namespace: maas-models
+                        tokenRateLimits:
+                          - limit: 100000
+                            window: 24h
+                    creationTimestamp: '2025-03-01T10:00:00Z'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden. Insufficient permissions to list subscriptions.
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/subscription-info/{name}:
     get:
       tags:

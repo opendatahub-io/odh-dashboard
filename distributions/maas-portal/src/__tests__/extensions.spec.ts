@@ -314,6 +314,18 @@ describe('MaaS Portal extensions', () => {
     expect(governanceRoute).toBeDefined();
   });
 
+  it('should expose the read-only Model Access page route to every user', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ ADMIN_USER: false });
+
+    const modelAccessRoute = store
+      .getExtensions()
+      .find((e) => e.type === 'app.route' && e.properties.path === '/maas/model-access/*');
+
+    expect(modelAccessRoute).toBeDefined();
+  });
+
   it('should place MaaS governance last at the top level', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);

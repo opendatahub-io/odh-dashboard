@@ -5,7 +5,8 @@ import {
   type APIOptions,
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
-import { listAllGroups, listAllMaasModels, listSubscriptions } from '~/app/api/subscriptions';
+import { listAllGroups, listAllMaasModels, listSubscriptionsFrom } from '~/app/api/subscriptions';
+import type { SubscriptionsEndpoint } from '~/app/api/subscriptions';
 import { listAuthPolicies } from '~/app/api/auth-policies';
 import type {
   MaaSAuthPolicy,
@@ -47,12 +48,21 @@ export const MaaSGovernanceContext = React.createContext({} as MaaSGovernanceCon
 
 type MaaSGovernanceProviderProps = {
   children: React.ReactNode;
+  /**
+   * Which subscriptions endpoint backs the context. Defaults to `all-subscriptions`
+   * (the MaaS governance page). Read-only consumers such as the Model Access page
+   * pass `admin-subscriptions`.
+   */
+  subscriptionsEndpoint?: SubscriptionsEndpoint;
 };
 
-export const MaaSGovernanceProvider: React.FC<MaaSGovernanceProviderProps> = ({ children }) => {
+export const MaaSGovernanceProvider: React.FC<MaaSGovernanceProviderProps> = ({
+  children,
+  subscriptionsEndpoint = 'all-subscriptions',
+}) => {
   const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<MaaSSubscription[]>>(
-    (opts: APIOptions) => listSubscriptions()(opts),
-    [],
+    (opts: APIOptions) => listSubscriptionsFrom(subscriptionsEndpoint)(opts),
+    [subscriptionsEndpoint],
   );
   const policiesCallback = React.useCallback<FetchStateCallbackPromise<MaaSAuthPolicy[]>>(
     (opts: APIOptions) => listAuthPolicies()(opts),

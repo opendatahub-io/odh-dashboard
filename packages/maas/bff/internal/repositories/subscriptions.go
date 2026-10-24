@@ -83,6 +83,15 @@ func (r *SubscriptionsRepository) ListSubscriptions(ctx context.Context) ([]mode
 	return subscriptions, nil
 }
 
+// ListAdminSubscriptions returns the admin-facing view of MaaSSubscription resources.
+// The payload matches ListSubscriptions; keeping a distinct method (and route) lets the
+// admin view diverge later — for example tenant scoping or different RBAC — without
+// changing the all-subscriptions contract.
+func (r *SubscriptionsRepository) ListAdminSubscriptions(ctx context.Context) ([]models.MaaSSubscription, error) {
+	r.logger.Debug("Listing subscriptions for the admin view", slog.String("namespace", r.namespace))
+	return r.ListSubscriptions(ctx)
+}
+
 // GetSubscription returns a specific MaaSSubscription by name in the configured namespace.
 func (r *SubscriptionsRepository) GetSubscription(ctx context.Context, name string) (*models.MaaSSubscription, error) {
 	r.logger.Debug("Getting subscription", slog.String("name", name), slog.String("namespace", r.namespace))
