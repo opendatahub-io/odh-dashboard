@@ -24,6 +24,7 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
 | `maasPortal` | `MaaSPortalSpec` | [MaaS Portal](maas-portal.md) (`managementState: Managed`/`Removed`; served below the gateway path) |
+| `modelRegistryOCIBaseImage` | `string` | Optional [OCI upload base image](model-registry-oci-base-image.md) for Model Registry Jobs |
 
 ### Status Fields
 
@@ -107,7 +108,7 @@ The overlay extends `manifests/base/` and produces a core pod with 3 containers 
 
 ### Rendering Pipeline
 
-1. **Kustomize params** computed from Dashboard spec (gateway domain, section title) and `RELATED_IMAGE_*` env vars
+1. **Kustomize params** computed from Dashboard spec (gateway domain, section title, Model Registry OCI base image) and container-image `RELATED_IMAGE_*` env vars
 2. **Kustomize engine** renders manifests with namespace injection
 3. **SSA deployer** applies all resources with `dashboard-operator` as field owner
 

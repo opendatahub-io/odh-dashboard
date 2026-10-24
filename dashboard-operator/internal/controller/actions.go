@@ -228,7 +228,10 @@ func manifestSets(basePath string, platform cluster.Platform) []render.ManifestI
 }
 
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
-	computed := computeKustomizeVariables(dashboard, platform)
+	computed, err := computeKustomizeVariables(dashboard, platform)
+	if err != nil {
+		return err
+	}
 	maps.Copy(computed, resolveImageParams())
 
 	for _, m := range manifests {

@@ -161,6 +161,16 @@ replacements:
   - source:
       kind: ConfigMap
       name: rhoai-dashboard-params
+      fieldPath: data.images-oci-base-image
+    targets:
+      - select:
+          kind: ConfigMap
+          name: model-registry-ui-config
+        fieldPaths:
+          - data.images-oci-base-image
+  - source:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
       fieldPath: data.gateway-domain
     targets:
       - select:

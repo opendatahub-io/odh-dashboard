@@ -210,6 +210,15 @@ type DashboardSpec struct {
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$`
 	ModelRegistryNamespace string `json:"modelRegistryNamespace,omitempty"`
+
+	// ModelRegistryOCIBaseImage is the base image pulled by the Model Registry
+	// async-upload Job while uploading to an OCI destination. It is separate
+	// from the Job container image and the destination registry. When unset,
+	// the BFF selects its own default. The value must include a registry host.
+	// +optional
+	// +kubebuilder:validation:MaxLength=2048
+	// +kubebuilder:validation:Pattern=`^[^\r\n]*$`
+	ModelRegistryOCIBaseImage string `json:"modelRegistryOCIBaseImage,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

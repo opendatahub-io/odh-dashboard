@@ -125,7 +125,10 @@ func (r *DashboardReconciler) deployModuleManifests(
 ) error {
 	logger := log.FromContext(ctx)
 
-	computed := computeKustomizeVariables(dashboard, r.Platform)
+	computed, err := computeKustomizeVariables(dashboard, r.Platform)
+	if err != nil {
+		return err
+	}
 	maps.Copy(computed, resolveImageParams())
 
 	for name, mod := range moduleRegistry {
