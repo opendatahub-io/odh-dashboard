@@ -126,7 +126,7 @@ They are **not** interchangeable:
 | Channel | Where authors write | How it is used |
 | --- | --- | --- |
 | **Challenger** (findings) | `## Justifications` | If a justification adequately rebuts a finding against the diff, the challenger marks it `challenger_action: justified` and it follows the removed path — visible under `### Justified` with the challenger's reason, but not disposition-blocking. Insufficient justifications leave the finding at its original severity. Host policy categories (`protected-path`, `approach-rejected`) cannot be justified; the host restores them into `findings[]` if mistagged. |
-| **test-impact** (check) | Typically `## Evidence` | A sufficient **constraint justification** (why automation could not or should not be added, and what alternative verification exists) adjusts Automation/Efficiency scoring to ⚠️ instead of ❌. When Automation is ⚠️ solely because there are no tests, Efficiency stays ➖. Evidence depth still requires verification proof in the description — a waiver does not satisfy it. |
+| **test-impact** (check) | Typically `## Evidence` | A sufficient **constraint justification** (why automation could not or should not be added, and what alternative verification exists) adjusts Automation/Efficiency scoring to ⚠️ instead of ❌. When Automation is ⚠️ solely because there are no tests, Efficiency stays ➖. The waiver does not satisfy Evidence depth: proof is still required, either from required-CI suites covering the changed packages or, for what CI cannot show, from the description. |
 
 These rebuttals are **not** a shared ruleset applied to every producer.
 Rating, pr-description-review, and other producers are not affected.
@@ -205,9 +205,9 @@ refuses approve regardless of findings.
 | Check | Role |
 | --- | --- |
 | `pr-description-review` | Surface: Problem / Solution / Evidence — is meaningful test evidence present on the face of the PR body? |
-| `test-impact-review` | Depth: **Automation**, **Efficiency**, **Evidence depth** — durable automation (incl. edge cases); efficient tier (unit over Cypress mock; heavy Cypress / unit-light fails unless the description justifies); dig into proof so it covers the change and protects integrity while tests stay green. Missing description call-out → Evidence depth `fail` even if tests exist in the tree. |
+| `test-impact-review` | Depth: **Automation**, **Efficiency**, **Evidence depth** — durable automation (incl. edge cases); efficient tier (unit over Cypress mock; heavy Cypress / unit-light fails unless the description justifies); dig into proof so it covers the change and protects integrity while tests stay green. Suites exercised by required PR status checks need no description call-out; missing author-supplied proof for what required CI cannot show → Evidence depth `fail` even if tests exist in the tree. |
 
-`test-impact-review` may return **`fail`**, which maps to `request-changes`. Per-aspect N/A: Automation/Efficiency may be N/A for non-product-code heads (lockfile/manifest/docs with nothing to unit-test), or when there are no tests to evaluate for Efficiency; **Evidence depth remains required** for those heads. Do not N/A the whole check solely because the change is non-code.
+`test-impact-review` may return **`fail`**, which maps to `request-changes`. Per-aspect N/A: Automation/Efficiency may be N/A for non-product-code heads (lockfile/manifest/docs with nothing to unit-test), or when there are no tests to evaluate for Efficiency; **Evidence depth remains required** for those heads, satisfied by required-CI coverage or — for non-behavioral edits such as localization strings, docs, or formatting — an explicit scope statement (e.g. “localization only; no behavior change”). The check does not inspect current CI status; the merge gate enforces it. Do not N/A the whole check solely because the change is non-code.
 
 ### Signals (`risk` / `confidence`)
 
