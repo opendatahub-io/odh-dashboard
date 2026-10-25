@@ -55,12 +55,12 @@ func ensureMcpPrerequisites(
 
 		switch prerequisite.Type {
 		case "ServiceAccount":
-			item, err := dyn.Resource(serviceAccountGVR).Namespace(namespace).Get(ctx, prerequisite.Name, metav1.GetOptions{})
+			_, err := dyn.Resource(serviceAccountGVR).Namespace(namespace).Get(ctx, prerequisite.Name, metav1.GetOptions{})
 			if err != nil && !apierrors.IsNotFound(err) {
 				return created, fmt.Errorf("failed to inspect ServiceAccount %q: %w", prerequisite.Name, err)
 			}
 			if apierrors.IsNotFound(err) {
-				item = &unstructured.Unstructured{Object: map[string]interface{}{
+				item := &unstructured.Unstructured{Object: map[string]interface{}{
 					"apiVersion": "v1",
 					"kind":       "ServiceAccount",
 					"metadata": map[string]interface{}{
