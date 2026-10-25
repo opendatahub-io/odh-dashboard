@@ -175,4 +175,8 @@ export type McpServerDeployReadiness = {
   /** Set only when `deployable` is false. */
   reason?: McpDeployReadinessReason;
   message?: string;
+  /** Platform support lane for the MCP workflow. */
+  supportLevel?: 'production' | 'technologyPreview' | 'developerPreview';
+  /** Explanation of the support lane shown in the installer. */
+  supportMessage?: string;
 };

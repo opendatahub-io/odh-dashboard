@@ -26,7 +26,7 @@ jest.mock('~/odh/hooks/useMcpServerDeployReadiness', () => ({
   default: jest.fn(),
 }));
 
-jest.mock('~/odh/components/McpDeployModal', () => ({
+jest.mock('~/odh/components/McpServerInstallModal', () => ({
   __esModule: true,
   default: () => <div data-testid="mcp-deploy-modal-stub" />,
 }));

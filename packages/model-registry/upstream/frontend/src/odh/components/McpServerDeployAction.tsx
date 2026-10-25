@@ -1,14 +1,11 @@
 import React from 'react';
 import { useParams } from 'react-router';
 import { FlexItem } from '@patternfly/react-core';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
 import useMcpServerConverter from '~/odh/hooks/useMcpServerConverter';
 import useMcpServerDeployReadiness from '~/odh/hooks/useMcpServerDeployReadiness';
-import { mcpServerCRToYaml } from '~/odh/utils/mcpServerYaml';
-import { McpDeployModalData } from '~/odh/types/mcpDeploymentTypes';
-import McpDeployModal from '~/odh/components/McpDeployModal';
+import McpServerInstallModal from '~/odh/components/McpServerInstallModal';
 import McpDeployButton from '~/odh/components/McpDeployButton';
 import {
   DeployButtonState,
@@ -23,25 +20,13 @@ const McpServerDeployAction: React.FC<{
 }> = ({ server }) => {
   const { serverId = '' } = useParams<{ serverId: string }>();
   const { available, loaded } = useMcpServerDeployAvailable();
-  const [crData, crLoaded, crError] = useMcpServerConverter(serverId);
+  const [crData, , crError] = useMcpServerConverter(serverId);
   // Without MCP Lifecycle nothing can be deployed, so there is nothing to check (or poll).
   const [readiness, readinessLoaded, readinessError] = useMcpServerDeployReadiness(
     loaded && available ? serverId : '',
   );
   const [openModal, setOpenModal] = React.useState(false);
   const hasDeployableArtifact = !!server.data?.artifacts?.some((a) => a.uri);
-
-  const prefillData: McpDeployModalData | undefined = React.useMemo(
-    () =>
-      crData
-        ? {
-            serverName: getDisplayNameFromK8sResource(crData),
-            image: crData.spec.source.containerImage?.ref ?? '',
-            yaml: mcpServerCRToYaml(crData),
-          }
-        : undefined,
-    [crData],
-  );
 
   const buttonState = React.useMemo<DeployButtonState>(() => {
     if (!loaded) {
@@ -61,7 +46,7 @@ const McpServerDeployAction: React.FC<{
     return { enabled: true, loading: false };
   }, [available, loaded, readiness, readinessLoaded, readinessError]);
 
-  if (!hasDeployableArtifact) {
+  if (!hasDeployableArtifact || !server.data) {
     return null;
   }
 
@@ -71,16 +56,21 @@ const McpServerDeployAction: React.FC<{
         state={buttonState}
         onDeploy={() => setOpenModal(true)}
         id="mcp-deploy-button"
-        ariaLabel="Deploy MCP server"
+        ariaLabel="Install MCP server"
         testId="mcp-deploy-button"
       >
-        Deploy MCP server
+        Install MCP server
       </McpDeployButton>
       {openModal && (
-        <McpDeployModal
-          data={prefillData}
-          isLoading={!crLoaded && !crError}
-          loadError={crError}
+        <McpServerInstallModal
+          server={server.data}
+          crData={crData ?? undefined}
+          crError={crError}
+          readiness={readiness}
+          readinessError={readinessError}
+          lifecycleAvailable={available}
+          lifecycleLoaded={loaded}
+          readinessLoaded={readinessLoaded}
           onClose={() => setOpenModal(false)}
         />
       )}

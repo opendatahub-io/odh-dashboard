@@ -32,6 +32,8 @@ const (
 	mcpDeployReadinessOperatorNotReadyMessage         = "The MCP lifecycle operator is not ready."
 	mcpDeployReadinessGatewayStatusUnavailableMessage = "MCP gateway availability could not be determined."
 	mcpDeployReadinessNoGatewayAvailableMessage       = "No MCP gateway is available on this cluster."
+	mcpSupportLevel                                   = models.McpSupportLevelTechnologyPreview
+	mcpSupportMessage                                 = "MCP Catalog, MCP Lifecycle, and MCP Gateway are Technology Preview features in this platform release."
 )
 
 // MCPLifecycleOperatorReader reads the MCPLifecycleOperator singleton.
@@ -185,19 +187,25 @@ func EvaluateMcpGatewayReadiness(obj *unstructured.Unstructured, getErr error) (
 	}
 	for _, g := range gateways {
 		if isUsableGateway(g) {
-			return models.McpServerDeployReadiness{GatewayRequired: true, Deployable: true}, nil
+			return supportStatus(models.McpServerDeployReadiness{GatewayRequired: true, Deployable: true}), nil
 		}
 	}
 	return notDeployable(models.McpDeployReadinessNoGatewayAvailable, mcpDeployReadinessNoGatewayAvailableMessage), nil
 }
 
 func notDeployable(reason models.McpDeployReadinessReason, message string) models.McpServerDeployReadiness {
-	return models.McpServerDeployReadiness{
+	return supportStatus(models.McpServerDeployReadiness{
 		GatewayRequired: true,
 		Deployable:      false,
 		Reason:          reason,
 		Message:         message,
-	}
+	})
+}
+
+func supportStatus(readiness models.McpServerDeployReadiness) models.McpServerDeployReadiness {
+	readiness.SupportLevel = mcpSupportLevel
+	readiness.SupportMessage = mcpSupportMessage
+	return readiness
 }
 
 // isUsableGateway reports whether a discovered gateway is ready and has at least one
