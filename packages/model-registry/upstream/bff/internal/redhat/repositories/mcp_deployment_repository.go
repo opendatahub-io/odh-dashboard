@@ -151,6 +151,18 @@ func (r *McpDeploymentRepository) Create(
 		return models.McpDeployment{}, err
 	}
 
+	if _, err := dyn.Resource(mcpServerGVR).Namespace(namespace).Get(ctx, server.Metadata.Name, metav1.GetOptions{}); err == nil {
+		return models.McpDeployment{}, fmt.Errorf("%w: %q in namespace %q", ErrMcpDeploymentConflict, server.Metadata.Name, namespace)
+	} else if !apierrors.IsNotFound(err) {
+		return models.McpDeployment{}, fmt.Errorf("failed to check MCPServer %q: %w", server.Metadata.Name, err)
+	}
+
+	createdPrerequisites, err := ensureMcpPrerequisites(ctx, dyn, namespace, server.Metadata.Name, req.Prerequisites)
+	if err != nil {
+		cleanupMcpPrerequisites(ctx, dyn, createdPrerequisites)
+		return models.McpDeployment{}, err
+	}
+
 	obj, err := convertMcpServerToUnstructured(server)
 	if err != nil {
 		return models.McpDeployment{}, err
@@ -158,6 +170,7 @@ func (r *McpDeploymentRepository) Create(
 
 	created, err := dyn.Resource(mcpServerGVR).Namespace(namespace).Create(ctx, &obj, metav1.CreateOptions{})
 	if err != nil {
+		cleanupMcpPrerequisites(ctx, dyn, createdPrerequisites)
 		if apierrors.IsAlreadyExists(err) {
 			return models.McpDeployment{}, fmt.Errorf("%w: %q in namespace %q", ErrMcpDeploymentConflict, server.Metadata.Name, namespace)
 		}
@@ -227,6 +240,7 @@ func (r *McpDeploymentRepository) Delete(
 		}
 		return fmt.Errorf("failed to delete MCPServer %q: %w", name, err)
 	}
+	cleanupOwnedMcpPrerequisites(ctx, dyn, namespace, name)
 
 	return nil
 }

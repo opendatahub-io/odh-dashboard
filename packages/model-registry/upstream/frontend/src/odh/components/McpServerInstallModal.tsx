@@ -40,7 +40,11 @@ import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import type { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import { mcpServerCRToYaml } from '~/odh/utils/mcpServerYaml';
-import { mcpServerCatalogImage, mcpServerCatalogToCR } from '~/odh/utils/mcpServerCatalog';
+import {
+  mcpServerCatalogImage,
+  mcpServerCatalogPrerequisites,
+  mcpServerCatalogToCR,
+} from '~/odh/utils/mcpServerCatalog';
 
 type InstallStep = 'preflight' | 'review' | 'installing';
 
@@ -105,6 +109,10 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   const displayName = server.displayName || server.name;
   const k8sName = translateDisplayNameForK8s(displayName);
   const crData = React.useMemo(() => mcpServerCatalogToCR(server, k8sName), [k8sName, server]);
+  const prerequisites = React.useMemo(
+    () => mcpServerCatalogPrerequisites(server.runtimeMetadata ?? {}),
+    [server.runtimeMetadata],
+  );
   const crError = crData
     ? undefined
     : new Error('Catalog entry does not include a deployable container image');
@@ -178,6 +186,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
         serverName: server.name,
         image: crData.spec.source.containerImage?.ref ?? '',
         yaml: mcpServerCRToYaml(crData),
+        prerequisites,
       });
       setDeploymentName(created.name);
       setStep('installing');

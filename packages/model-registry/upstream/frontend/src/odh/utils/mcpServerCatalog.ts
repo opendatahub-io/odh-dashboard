@@ -1,5 +1,10 @@
 import type { McpServer, McpRuntimeMetadata } from '~/app/mcpServerCatalogTypes';
-import type { MCPEnvVar, MCPServerCR, MCPStorageMount } from '~/odh/types/mcpDeploymentTypes';
+import type {
+  MCPEnvVar,
+  MCPServerCR,
+  MCPStorageMount,
+  McpDeploymentPrerequisite,
+} from '~/odh/types/mcpDeploymentTypes';
 
 const containerImageFrom = (server: McpServer): string => {
   const artifact = server.artifacts?.find((item) => item.uri);
@@ -20,6 +25,16 @@ const secretSource = (source: Record<string, unknown> | undefined) => {
     return undefined;
   }
   return { secretName: value };
+};
+
+const addDefaultContent = (
+  values: Record<string, string>,
+  key: { key: string; defaultContent?: string },
+): Record<string, string> => {
+  if (key.defaultContent === undefined) {
+    return values;
+  }
+  return { ...values, [key.key]: key.defaultContent };
 };
 
 const storageMountsFrom = (metadata: McpRuntimeMetadata): MCPStorageMount[] => {
@@ -146,3 +161,30 @@ export const mcpServerCatalogToCR = (server: McpServer, name: string): MCPServer
 };
 
 export const mcpServerCatalogImage = containerImageFrom;
+
+export const mcpServerCatalogPrerequisites = (
+  metadata: McpRuntimeMetadata,
+): McpDeploymentPrerequisite[] => {
+  const prerequisites: McpDeploymentPrerequisite[] = [];
+  const serviceAccount = metadata.prerequisites?.serviceAccount;
+
+  if (serviceAccount?.required) {
+    prerequisites.push({
+      type: 'ServiceAccount',
+      name: serviceAccount.suggestedName || 'mcp-viewer',
+      ...(serviceAccount.hint?.includes("'view' ClusterRole") ? { clusterRole: 'view' } : {}),
+    });
+  }
+
+  metadata.prerequisites?.configMaps?.forEach((configMap) => {
+    const data = configMap.keys?.reduce<Record<string, string>>(addDefaultContent, {}) ?? {};
+
+    prerequisites.push({
+      type: 'ConfigMap',
+      name: configMap.name,
+      ...(Object.keys(data).length > 0 ? { data } : {}),
+    });
+  });
+
+  return prerequisites;
+};

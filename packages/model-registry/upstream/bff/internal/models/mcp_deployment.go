@@ -45,13 +45,23 @@ type McpDeploymentList struct {
 }
 
 type McpDeploymentCreateRequest struct {
-	Name            string `json:"name,omitempty"`
-	DisplayName     string `json:"displayName,omitempty"`
-	ServerName      string `json:"serverName,omitempty"`
-	RegistryServer  string `json:"registryServer,omitempty"`
-	RegistryVersion string `json:"registryVersion,omitempty"`
-	Image           string `json:"image"`
-	YAML            string `json:"yaml,omitempty"`
+	Name            string                      `json:"name,omitempty"`
+	DisplayName     string                      `json:"displayName,omitempty"`
+	ServerName      string                      `json:"serverName,omitempty"`
+	RegistryServer  string                      `json:"registryServer,omitempty"`
+	RegistryVersion string                      `json:"registryVersion,omitempty"`
+	Image           string                      `json:"image"`
+	YAML            string                      `json:"yaml,omitempty"`
+	Prerequisites   []McpDeploymentPrerequisite `json:"prerequisites,omitempty"`
+}
+
+// McpDeploymentPrerequisite is intentionally limited to non-secret resources
+// that a catalog-guided install may create idempotently.
+type McpDeploymentPrerequisite struct {
+	Type        string            `json:"type"`
+	Name        string            `json:"name"`
+	ClusterRole string            `json:"clusterRole,omitempty"`
+	Data        map[string]string `json:"data,omitempty"`
 }
 
 type McpDeploymentUpdateRequest struct {

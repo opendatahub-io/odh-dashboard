@@ -130,7 +130,21 @@ export type McpDeploymentCreateRequest = {
   registryVersion?: string;
   image: string;
   yaml?: string;
+  prerequisites?: McpDeploymentPrerequisite[];
 };
+
+/** Catalog-declared, non-secret resources that the guided installer may create. */
+export type McpDeploymentPrerequisite =
+  | {
+      type: 'ServiceAccount';
+      name: string;
+      clusterRole?: 'view';
+    }
+  | {
+      type: 'ConfigMap';
+      name: string;
+      data?: Record<string, string>;
+    };
 
 export type McpDeploymentUpdateRequest = {
   displayName?: string;
