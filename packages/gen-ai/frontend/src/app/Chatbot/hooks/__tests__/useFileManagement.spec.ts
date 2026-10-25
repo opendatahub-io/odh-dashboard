@@ -172,6 +172,39 @@ describe('useFileManagement', () => {
       expect(result.current.files[0].bytes).toBe(2048);
     });
 
+    it('should list files from the signed-in user auto-provisioned store', async () => {
+      const otherUserStore = createMockVectorStore({
+        id: 'vs-other-user',
+        metadata: {
+          created_by: 'auto-provisioning',
+          provider_id: 'milvus',
+          username: 'bob',
+        },
+      });
+      const signedInUserStore = createMockVectorStore({
+        id: 'vs-alice',
+        metadata: {
+          created_by: 'auto-provisioning',
+          provider_id: 'milvus',
+          username: 'alice',
+        },
+      });
+      mockUseContext.mockReturnValue({ namespace: mockNamespace, username: 'alice' });
+      mockGetVectorStores.mockResolvedValue([otherUserStore, signedInUserStore]);
+      mockListVectorStoreFiles.mockResolvedValue([mockVectorStoreFile]);
+
+      const { result } = renderHook(() => useFileManagement());
+      await waitForLoadingComplete(result);
+
+      expect(mockListVectorStoreFiles).toHaveBeenCalledWith({
+        vector_store_id: 'vs-alice',
+        limit: 50,
+        order: 'desc',
+        filter: 'completed',
+      });
+      expect(result.current.currentVectorStoreId).toBe('vs-alice');
+    });
+
     it('should set empty files when no auto-provisioned vector store is available', async () => {
       mockGetVectorStores.mockResolvedValue([]);
 

@@ -150,6 +150,10 @@ const useFileUploadWithPolling = (
         // Create FormData for multipart/form-data upload
         const formData = new FormData();
         formData.append('file', file);
+        // The BFF applies chunk sizes only when chunking_type is set.
+        if (settings.maxChunkLength || settings.chunkOverlap) {
+          formData.append('chunking_type', 'static');
+        }
         if (settings.chunkOverlap) {
           formData.append('chunk_overlap_tokens', String(settings.chunkOverlap));
         }
