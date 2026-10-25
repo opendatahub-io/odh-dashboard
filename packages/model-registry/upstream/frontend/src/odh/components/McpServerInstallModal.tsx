@@ -35,26 +35,19 @@ import { useProjectsBridge } from '~/odh/context/ProjectsBridgeContext';
 import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
 import useMcpDeployments from '~/odh/pages/mcpDeployments/useMcpDeployments';
 import { createMcpDeployment } from '~/odh/api/mcpCatalogDeployment/service';
+import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
-import type {
-  MCPServerCR,
-  McpDeployment,
-  McpServerDeployReadiness,
-} from '~/odh/types/mcpDeploymentTypes';
+import type { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import { mcpServerCRToYaml } from '~/odh/utils/mcpServerYaml';
+import { mcpServerCatalogImage, mcpServerCatalogToCR } from '~/odh/utils/mcpServerCatalog';
 
 type InstallStep = 'preflight' | 'review' | 'installing';
 
 type McpServerInstallModalProps = {
   server: McpServer;
-  crData?: MCPServerCR;
-  crError?: Error;
-  readiness: McpServerDeployReadiness | null;
-  readinessError?: Error;
   lifecycleAvailable: boolean;
   lifecycleLoaded: boolean;
-  readinessLoaded: boolean;
   onClose: () => void;
 };
 
@@ -94,13 +87,8 @@ const conditionFor = (deployment: McpDeployment | undefined, type: string) =>
 
 const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   server,
-  crData,
-  crError,
-  readiness,
-  readinessError,
   lifecycleAvailable,
   lifecycleLoaded,
-  readinessLoaded,
   onClose,
 }) => {
   const navigate = useNavigate();
@@ -114,6 +102,14 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   const abortControllerRef = React.useRef<AbortController>();
   const [deploymentData] = useMcpDeployments(selectedNamespace);
   const deployments = deploymentData.items;
+  const displayName = server.displayName || server.name;
+  const k8sName = translateDisplayNameForK8s(displayName);
+  const crData = React.useMemo(() => mcpServerCatalogToCR(server, k8sName), [k8sName, server]);
+  const image = mcpServerCatalogImage(server);
+  const [readiness, readinessLoaded, readinessError] = useMcpImageDeployReadiness(
+    selectedNamespace,
+    image,
+  );
 
   React.useEffect(() => {
     if (!selectedNamespace && preferredProject?.name) {
@@ -128,19 +124,13 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
     [],
   );
 
-  const displayName = server.displayName || server.name;
-  const k8sName = translateDisplayNameForK8s(displayName);
   const deployment = deployments.find((item) => item.name === deploymentName);
   const readyCondition = conditionFor(deployment, 'Ready');
   const acceptedCondition = conditionFor(deployment, 'Accepted');
   const installFailed = readyCondition?.status === 'False' || acceptedCondition?.status === 'False';
   const installComplete = readyCondition?.status === 'True';
 
-  const runtimeState: CheckState = crError
-    ? 'blocked'
-    : crData && crData.spec.source.containerImage?.ref
-      ? 'ready'
-      : 'pending';
+  const runtimeState: CheckState = crData?.spec.source.containerImage?.ref ? 'ready' : 'blocked';
   const lifecycleState: CheckState = !lifecycleLoaded
     ? 'pending'
     : lifecycleAvailable

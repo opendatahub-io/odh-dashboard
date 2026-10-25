@@ -27,3 +27,18 @@ rules:
       - default
     verbs:
       - get
+  # Current MCP Lifecycle releases expose readiness through the Gateway API and
+  # MCPGatewayExtension resources instead of availableMCPGateways status.
+  - apiGroups:
+      - mcp.kuadrant.io
+    resources:
+      - mcpgatewayextensions
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - get
