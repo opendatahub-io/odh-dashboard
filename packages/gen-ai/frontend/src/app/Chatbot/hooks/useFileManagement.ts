@@ -3,7 +3,9 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { FileModel, VectorStoreFile } from '~/app/types';
+import { findInlineVectorStore } from '~/app/Chatbot/findInlineVectorStore';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { useUserContext } from '~/app/context/UserContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
 export interface UseFileManagementReturn {
@@ -42,6 +44,7 @@ export const DELETE_EVENT_NAME = 'Playground RAG Delete File';
 const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
   const { onShowDeleteSuccessAlert, onShowErrorAlert } = props;
   const { namespace } = React.useContext(GenAiContext);
+  const { username } = useUserContext();
   const [files, setFiles] = React.useState<FileModel[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -61,10 +64,12 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       // First, get the list of vector stores
       const vectorStores = await api.listVectorStores();
 
-      // Find the auto-provisioned file-upload store for this user
-      const userStore = vectorStores.find((vs) => vs.metadata.created_by === 'auto-provisioning');
+      // Find the auto-provisioned file-upload store for this user.
+      // The list includes every store, so match username when it is present.
+      const userStore = findInlineVectorStore(vectorStores, username);
       if (!userStore) {
         setFiles([]);
+        setCurrentVectorStoreId(null);
         return;
       }
 
@@ -90,7 +95,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
     } finally {
       setIsLoading(false);
     }
-  }, [onShowErrorAlert, api, apiAvailable]);
+  }, [onShowErrorAlert, api, apiAvailable, username]);
 
   const deleteFileById = React.useCallback(
     async (fileId: string) => {
@@ -138,7 +143,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
   React.useEffect(() => {
     refreshFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespace?.name]); // Only depend on namespace.name, not the entire refreshFiles function
+  }, [namespace?.name, username]); // Refresh when the project or signed-in user changes
 
   return {
     files,

@@ -22,6 +22,8 @@ import {
 } from '@patternfly/react-core';
 
 import { ChatbotSourceSettings } from '~/app/types';
+import { findInlineVectorStore } from '~/app/Chatbot/findInlineVectorStore';
+import { useUserContext } from '~/app/context/UserContext';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { DEFAULT_SOURCE_SETTINGS } from './utils';
@@ -53,18 +55,28 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   const vectorDatabaseLabelHelpRef = React.useRef(null);
   const chunkOverlapLabelHelpRef = React.useRef(null);
   const delimiterLabelHelpRef = React.useRef(null);
+  const { username } = useUserContext();
   const [vectorStores, vectorStoresLoaded, vectorStoresError, refreshVectorStores] =
     useFetchVectorStores();
+  const inlineVectorStore = React.useMemo(
+    () => findInlineVectorStore(vectorStores, username),
+    [vectorStores, username],
+  );
 
-  // Auto-select the first vector database when vector stores are loaded
+  // Upload into the same auto-provisioned store the chat searches.
   React.useEffect(() => {
-    if (vectorStoresLoaded && vectorStores.length > 0 && !fields.vectorStore) {
-      setFields((prev) => ({
-        ...prev,
-        vectorStore: vectorStores[0].id,
-      }));
+    if (!vectorStoresLoaded || !inlineVectorStore) {
+      return;
     }
-  }, [vectorStoresLoaded, vectorStores, fields.vectorStore]);
+    setFields((prev) =>
+      prev.vectorStore === inlineVectorStore.id
+        ? prev
+        : {
+            ...prev,
+            vectorStore: inlineVectorStore.id,
+          },
+    );
+  }, [vectorStoresLoaded, inlineVectorStore]);
 
   // Vector store creation state
   const [vectorStoreForm, setVectorStoreForm] = React.useState(DEFAULT_VECTOR_STORE_FORM);
