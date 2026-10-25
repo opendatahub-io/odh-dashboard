@@ -6,6 +6,22 @@ const containerImageFrom = (server: McpServer): string => {
   return artifact?.uri.replace(/^(oci|docker):\/\//, '') ?? '';
 };
 
+const configMapSource = (source: Record<string, unknown> | undefined) => {
+  const value = source?.name;
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  return { name: value };
+};
+
+const secretSource = (source: Record<string, unknown> | undefined) => {
+  const value = source?.secretName;
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  return { secretName: value };
+};
+
 const storageMountsFrom = (metadata: McpRuntimeMetadata): MCPStorageMount[] => {
   const mounts: MCPStorageMount[] = [];
 
@@ -35,8 +51,8 @@ const storageMountsFrom = (metadata: McpRuntimeMetadata): MCPStorageMount[] => {
       source: {
         type: mount.source.type,
         emptyDir: mount.source.emptyDir,
-        configMap: mount.source.configMap,
-        secret: mount.source.secret,
+        configMap: configMapSource(mount.source.configMap),
+        secret: secretSource(mount.source.secret),
       },
     };
     if (existingIndex >= 0) {

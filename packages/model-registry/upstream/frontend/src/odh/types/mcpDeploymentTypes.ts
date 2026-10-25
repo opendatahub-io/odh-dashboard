@@ -17,6 +17,7 @@ export type MCPEnvVar = {
 
 export type MCPStorageSource = {
   type: string;
+  emptyDir?: Record<string, unknown>;
   configMap?: { name: string };
   secret?: { secretName: string };
 };

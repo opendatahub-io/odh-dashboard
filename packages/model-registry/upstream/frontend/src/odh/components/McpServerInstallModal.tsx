@@ -105,6 +105,9 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   const displayName = server.displayName || server.name;
   const k8sName = translateDisplayNameForK8s(displayName);
   const crData = React.useMemo(() => mcpServerCatalogToCR(server, k8sName), [k8sName, server]);
+  const crError = crData
+    ? undefined
+    : new Error('Catalog entry does not include a deployable container image');
   const image = mcpServerCatalogImage(server);
   const [readiness, readinessLoaded, readinessError] = useMcpImageDeployReadiness(
     selectedNamespace,
