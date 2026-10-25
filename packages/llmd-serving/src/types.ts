@@ -103,6 +103,8 @@ type LLMInferenceServiceSpec = {
     imagePullSecrets?: ImagePullSecret[];
     resourceClaims?: PodSpec['resourceClaims'];
   };
+  // KServe copies these onto the model server pod.
+  labels?: Record<string, string>;
 };
 
 export type LLMInferenceServiceKind = K8sResourceCommon & {

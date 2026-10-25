@@ -54,6 +54,26 @@ describe('MaaSEndpointCheckbox', () => {
     expect(onChange).toHaveBeenCalledWith({ isChecked: true });
   });
 
+  it('shows metrics scraping only for subscribed users', () => {
+    const onChange = jest.fn();
+    const MaaSField = MaaSEndpointFieldWizardField.component;
+
+    const { rerender } = render(
+      <MaaSField
+        id="maas/save-as-maas-checkbox"
+        value={{ isChecked: false }}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.queryByTestId('enable-metrics-scraping-checkbox')).toBeNull();
+
+    rerender(
+      <MaaSField id="maas/save-as-maas-checkbox" value={{ isChecked: true }} onChange={onChange} />,
+    );
+    fireEvent.click(screen.getByTestId('enable-metrics-scraping-checkbox'));
+    expect(onChange).toHaveBeenCalledWith({ isChecked: true, enableMetricsScraping: true });
+  });
+
   it('locks the MaaS gateway and provides its routing guidance for subscribed users', () => {
     const overrides = MaaSEndpointFieldWizardField.reducerFunctions.getFieldOverrides?.(
       {
