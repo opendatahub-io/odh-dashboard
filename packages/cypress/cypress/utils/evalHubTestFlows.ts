@@ -503,12 +503,6 @@ const assertEvaluationHardwareConfig = (profileName?: string): void => {
 let dashboardSessionEstablished = false;
 
 export const navigateToEvaluationsPage = (evaluationTenantProject: string): void => {
-  // Reset on the command queue, not synchronously: previously queued commands (e.g. suite
-  // creation in the save-only flow) may still fail, and the flag must keep the session state
-  // established by an earlier navigation so cleanup does not skip API steps.
-  cy.then(() => {
-    dashboardSessionEstablished = false;
-  });
   cy.step('Log into the application and open Evaluations page');
   cy.visitWithLogin(
     evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject),
