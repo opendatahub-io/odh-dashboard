@@ -45,6 +45,14 @@ const hasEvalHubListPayload = (body: unknown): boolean => {
   return Array.isArray(data) || (isRecord(data) && Array.isArray(data.items));
 };
 
+/** Distinguishes an HTML login page from other non-JSON payloads in cleanup errors. */
+const describeEvalHubPayloadError = (body: unknown): string => {
+  if (typeof body === 'string' && body.trimStart().startsWith('<')) {
+    return 'received an HTML login page instead of JSON — the dashboard session is not established';
+  }
+  return 'unexpected response payload';
+};
+
 type EvalHubApiRequest = {
   method: 'GET' | 'DELETE';
   url: string;
@@ -154,7 +162,9 @@ const listEvalHubTenantCollections = (
       throw new Error(`Failed to list EvalHub tenant collections: HTTP ${response.status}`);
     }
     if (!hasEvalHubListPayload(response.body)) {
-      throw new Error('Failed to list EvalHub tenant collections: unexpected response payload');
+      throw new Error(
+        `Failed to list EvalHub tenant collections: ${describeEvalHubPayloadError(response.body)}`,
+      );
     }
 
     const pageCollections = extractCollectionRecords(response.body);
@@ -210,7 +220,9 @@ const listEvalHubJobIds = (
       throw new Error(`Failed to list EvalHub evaluation jobs: HTTP ${response.status}`);
     }
     if (!hasEvalHubListPayload(response.body)) {
-      throw new Error('Failed to list EvalHub evaluation jobs: unexpected response payload');
+      throw new Error(
+        `Failed to list EvalHub evaluation jobs: ${describeEvalHubPayloadError(response.body)}`,
+      );
     }
 
     const pageIds = extractJobIds(response.body);
@@ -470,6 +482,15 @@ const assertEvaluationHardwareConfig = (profileName?: string): void => {
 };
 
 // Navigation and test setup
+
+/**
+ * The EvalHub REST cleanup endpoints are served through the dashboard and return the OAuth
+ * login page when no browser session exists. Tracks whether setup reached the dashboard so
+ * cleanup can skip the API steps instead of failing with an error that hides the real
+ * setup failure.
+ */
+let dashboardSessionEstablished = false;
+
 export const navigateToEvaluationsPage = (evaluationTenantProject: string): void => {
   cy.step('Log into the application and open Evaluations page');
   cy.visitWithLogin(
@@ -483,7 +504,12 @@ export const navigateToEvaluationsPage = (evaluationTenantProject: string): void
     .and('contain.text', 'Evaluations');
   cy.step('Open the Benchmark collections tab');
   evaluationsPage.findEvaluateTab({ timeout: 30000 }).should('be.visible').click();
-  evaluationsPage.findEvaluateTabContent({ timeout: 30000 }).should('be.visible');
+  evaluationsPage
+    .findEvaluateTabContent({ timeout: 30000 })
+    .should('be.visible')
+    .then(() => {
+      dashboardSessionEstablished = true;
+    });
 };
 
 /** Removes stale EvalHub runs left by an earlier attempt using the same E2E tenant. */
@@ -855,6 +881,21 @@ export type EvalHubCleanupStep = {
   run: () => Cypress.Chainable | void;
 };
 
+/**
+ * Replacement for a cleanup step that calls the EvalHub REST API when no dashboard session
+ * exists (setup failed before the dashboard was opened). Keeps the step visible in the
+ * cleanup log without hiding the original setup failure behind an API error.
+ */
+const skipWithoutDashboardSession = (description: string): EvalHubCleanupStep => ({
+  description,
+  run: (): void => {
+    cy.log(
+      `${description}: skipped — no dashboard session was established during setup; ` +
+        'the EvalHub REST API would return the login page',
+    );
+  },
+});
+
 export type EvalHubCleanupOptions = {
   evaluationTenantProject: string;
   mlflowExperimentName: string;
@@ -891,25 +932,35 @@ export const createEvalHubCleanupSteps = ({
   ];
 
   if (evaluationTenantProject) {
-    cleanupSteps.push({
-      description: `Delete EvalHub evaluation jobs for ${evaluationTenantProject}`,
-      run: () => deleteEvalHubEvaluationJobs(evaluationTenantProject),
-    });
+    if (dashboardSessionEstablished) {
+      cleanupSteps.push({
+        description: `Delete EvalHub evaluation jobs for ${evaluationTenantProject}`,
+        run: () => deleteEvalHubEvaluationJobs(evaluationTenantProject),
+      });
+    } else {
+      // Evaluation jobs are namespaced resources, so the project-deletion step below
+      // removes them even when this API-based cleanup is skipped.
+      cleanupSteps.push(skipWithoutDashboardSession('Skip EvalHub evaluation job cleanup'));
+    }
   }
 
   if (evaluationTenantProject) {
-    collectionsToDelete.forEach((createdCollectionId) => {
-      cleanupSteps.push({
-        description: `Delete EvalHub collection ${createdCollectionId}`,
-        run: () => deleteEvalHubCollection(evaluationTenantProject, createdCollectionId),
+    if (dashboardSessionEstablished) {
+      collectionsToDelete.forEach((createdCollectionId) => {
+        cleanupSteps.push({
+          description: `Delete EvalHub collection ${createdCollectionId}`,
+          run: () => deleteEvalHubCollection(evaluationTenantProject, createdCollectionId),
+        });
       });
-    });
 
-    if (deleteAllTenantCollections) {
-      cleanupSteps.push({
-        description: `Delete remaining EvalHub tenant collections for ${evaluationTenantProject}`,
-        run: () => deleteEvalHubTenantCollections(evaluationTenantProject),
-      });
+      if (deleteAllTenantCollections) {
+        cleanupSteps.push({
+          description: `Delete remaining EvalHub tenant collections for ${evaluationTenantProject}`,
+          run: () => deleteEvalHubTenantCollections(evaluationTenantProject),
+        });
+      }
+    } else if (collectionsToDelete.length > 0 || deleteAllTenantCollections) {
+      cleanupSteps.push(skipWithoutDashboardSession('Skip EvalHub tenant collection cleanup'));
     }
 
     experimentsToDelete.forEach((experimentName) => {
