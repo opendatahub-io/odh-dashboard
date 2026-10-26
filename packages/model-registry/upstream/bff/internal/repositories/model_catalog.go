@@ -31,9 +31,10 @@ func (m *ModelCatalogRepository) GetModelCatalog(sessionCtx context.Context, cli
 		return models.ModelCatalogModel{}, fmt.Errorf("error fetching model catalog: %w", err)
 	}
 
-	// Use in-cluster DNS instead of ClusterIP or ExternalAddressRest to avoid
-	// external NLB hairpinning (RHOAIENG-101859).
-	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", ModelCatalogServiceName, namespace)
+	serviceHost := s.ServiceDNSName
+	if serviceHost == "" {
+		serviceHost = fmt.Sprintf("%s.%s.svc", ModelCatalogServiceName, namespace)
+	}
 	modelCatalog := models.ModelCatalogModel{
 		Name:          s.Name,
 		Description:   s.Description,

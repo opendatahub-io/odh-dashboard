@@ -23,6 +23,7 @@ var _ = Describe("ModelCatalogRepository", func() {
 			serviceDetails: k8s.ServiceDetails{
 				Name:                "model-catalog",
 				ClusterIP:           "10.0.0.15",
+				ServiceDNSName:      "model-catalog.rhoai-model-registries.svc",
 				HTTPPort:            8443,
 				IsHTTPS:             true,
 				ExternalAddressRest: "rh-ai.apps.example.com/catalog",
@@ -32,7 +33,7 @@ var _ = Describe("ModelCatalogRepository", func() {
 		modelCatalog, err := NewCatalogRepository().GetModelCatalog(ctx, client, "rhoai-model-registries")
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(modelCatalog.ServerAddress).To(Equal("https://model-catalog.rhoai-model-registries.svc.cluster.local:8443/api/model_catalog/v1alpha1"))
+		Expect(modelCatalog.ServerAddress).To(Equal("https://model-catalog.rhoai-model-registries.svc:8443/api/model_catalog/v1alpha1"))
 	})
 
 	It("resolves all catalog API paths", func() {
@@ -44,5 +45,20 @@ var _ = Describe("ModelCatalogRepository", func() {
 			To(Equal("https://model-catalog.test.svc.cluster.local:8443/api/mcp_catalog/v1alpha1"))
 		Expect(repository.ResolveServerAddress("model-catalog.test.svc.cluster.local", 8443, true, AgentCatalogAPIPath)).
 			To(Equal("https://model-catalog.test.svc.cluster.local:8443/api/agent_catalog/v1alpha1"))
+	})
+
+	It("falls back to the portable service DNS suffix", func() {
+		client := &modelCatalogKubernetesClient{
+			serviceDetails: k8s.ServiceDetails{
+				Name:     "model-catalog",
+				HTTPPort: 8443,
+				IsHTTPS:  true,
+			},
+		}
+
+		modelCatalog, err := NewCatalogRepository().GetModelCatalog(ctx, client, "rhoai-model-registries")
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(modelCatalog.ServerAddress).To(Equal("https://model-catalog.rhoai-model-registries.svc:8443/api/model_catalog/v1alpha1"))
 	})
 })
