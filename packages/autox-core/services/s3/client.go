@@ -329,9 +329,13 @@ func isAmazonS3Endpoint(endpoint string) bool {
 	host := strings.ToLower(strings.TrimSuffix(parsed.Hostname(), "."))
 	if strings.HasSuffix(host, ".vpce.amazonaws.com") {
 		// Regional, zonal, and bucket-prefixed S3 interface endpoints all place
-		// the S3 service label immediately before the Region label.
+		// the S3 or S3 FIPS service label immediately before the Region label.
 		labels := strings.Split(strings.TrimSuffix(host, ".vpce.amazonaws.com"), ".")
-		return len(labels) >= 3 && labels[len(labels)-2] == "s3" && strings.HasPrefix(labels[len(labels)-3], "vpce-")
+		if len(labels) < 3 {
+			return false
+		}
+		service := labels[len(labels)-2]
+		return (service == "s3" || service == "s3-fips") && strings.HasPrefix(labels[len(labels)-3], "vpce-")
 	}
 	for _, domain := range []string{"amazonaws.com", "amazonaws.com.cn"} {
 		if host == "s3."+domain {
