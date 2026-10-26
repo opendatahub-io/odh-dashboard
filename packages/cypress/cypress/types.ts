@@ -408,6 +408,9 @@ export type DataScienceProjectData = {
   awsBucket?: 'BUCKET_1' | 'BUCKET_3';
   servingRuntimeName?: string;
   servingRuntimeYamlPath?: string;
+  llmInferenceServiceConfigYamlPath?: string;
+  yamlEditorModelYamlPath?: string;
+  singleModelResourceName?: string;
 };
 
 export type NIMProjectScopedTestData = {

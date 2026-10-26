@@ -5,6 +5,7 @@
 projectResourceName: 'test-model-token-auth'
 projectDisplayName: 'Test Model Token Auth'
 singleModelName: 'python'
+singleModelResourceName: 'python'
 modelOpenVinoExamplePath: 'triton/model_repository'
 modelFormat: 'python - 1'
 servingRuntime: 'IBM Z Triton Inference Server'
