@@ -1758,11 +1758,36 @@ class OverviewTabPage {
     this.findModelRows().eq(index).findByTestId('expand-model').find('button').click();
   }
 
+  expandModelRowByTestId(modelId: string, namespace: string): void {
+    cy.findByTestId(`overview-model-row-${modelId}-${namespace}`)
+      .findByTestId('expand-model')
+      .find('button')
+      .click();
+  }
+
+  private findModelRowByTestId(
+    modelId: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`overview-model-row-${modelId}-${namespace}`);
+  }
+
   findGroupChip(group: string, index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     // Chips for the same group exist on every matching sub/policy in the DOM;
     // only query chips inside expanded nested items (not collapsed ones).
     return this.findModelRows()
       .eq(index)
+      .find('tbody.pf-m-expanded')
+      .find(`[data-testid="group-chip-${group}"]`)
+      .first();
+  }
+
+  findGroupChipByModel(
+    group: string,
+    modelId: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRowByTestId(modelId, namespace)
       .find('tbody.pf-m-expanded')
       .find(`[data-testid="group-chip-${group}"]`)
       .first();
@@ -1775,6 +1800,16 @@ class OverviewTabPage {
       .find(`[data-testid="group-chip-${group}"]`);
   }
 
+  findGroupChipsByModel(
+    group: string,
+    modelId: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRowByTestId(modelId, namespace)
+      .find('tbody.pf-m-expanded')
+      .find(`[data-testid="group-chip-${group}"]`);
+  }
+
   findExpandableItemInRow(
     rowIndex: number,
     name: string,
@@ -1782,12 +1817,38 @@ class OverviewTabPage {
     return this.findModelRows().eq(rowIndex).contains(name).closest('tbody');
   }
 
+  findExpandableItemInModel(
+    modelId: string,
+    namespace: string,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLTableSectionElement>> {
+    return this.findModelRowByTestId(modelId, namespace).contains(name).closest('tbody');
+  }
+
   findExpandableItemName(rowIndex: number, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findExpandableItemInRow(rowIndex, name).findByTestId('expandable-item-name');
   }
 
+  findExpandableItemNameByModel(
+    modelId: string,
+    namespace: string,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInModel(modelId, namespace, name).findByTestId(
+      'expandable-item-name',
+    );
+  }
+
   findExpandableItemPhase(rowIndex: number, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findExpandableItemInRow(rowIndex, name).findByTestId('phase-label');
+  }
+
+  findExpandableItemPhaseByModel(
+    modelId: string,
+    namespace: string,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInModel(modelId, namespace, name).findByTestId('phase-label');
   }
 
   findExpandableItemTokenLimits(
@@ -1795,6 +1856,16 @@ class OverviewTabPage {
     name: string,
   ): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findExpandableItemInRow(rowIndex, name).findByTestId(
+      'expandable-item-token-limits',
+    );
+  }
+
+  findExpandableItemTokenLimitsByModel(
+    modelId: string,
+    namespace: string,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInModel(modelId, namespace, name).findByTestId(
       'expandable-item-token-limits',
     );
   }
@@ -1807,8 +1878,33 @@ class OverviewTabPage {
     return this.findExpandableItemInRow(rowIndex, itemName).findByTestId(`group-chip-${group}`);
   }
 
+  findExpandableItemGroupChipByModel(
+    modelId: string,
+    namespace: string,
+    itemName: string,
+    group: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInModel(modelId, namespace, itemName).findByTestId(
+      `group-chip-${group}`,
+    );
+  }
+
   shouldExpandableItemInRowBeExpanded(rowIndex: number, name: string, expanded = true): void {
     const chain = this.findExpandableItemInRow(rowIndex, name);
+    if (expanded) {
+      chain.should('have.class', 'pf-m-expanded');
+    } else {
+      chain.should('not.have.class', 'pf-m-expanded');
+    }
+  }
+
+  shouldExpandableItemInModelBeExpanded(
+    modelId: string,
+    namespace: string,
+    name: string,
+    expanded = true,
+  ): void {
+    const chain = this.findExpandableItemInModel(modelId, namespace, name);
     if (expanded) {
       chain.should('have.class', 'pf-m-expanded');
     } else {
@@ -1831,9 +1927,33 @@ class OverviewTabPage {
     });
   }
 
+  shouldGroupChipsBeHighlightedByModel(
+    group: string,
+    modelId: string,
+    namespace: string,
+    highlighted = true,
+    expectedCount?: number,
+  ): void {
+    const chips = this.findGroupChipsByModel(group, modelId, namespace);
+    if (expectedCount !== undefined) {
+      chips.should('have.length', expectedCount);
+    }
+    chips.each(($chip) => {
+      cy.wrap($chip).should(highlighted ? 'have.class' : 'not.have.class', 'pf-m-blue');
+    });
+  }
+
   expandExpandableItemInRow(rowIndex: number, name: string): void {
     this.findModelRows()
       .eq(rowIndex)
+      .contains(name)
+      .closest('tr')
+      .find('button[aria-label="Details"]')
+      .click();
+  }
+
+  expandExpandableItemInModel(modelId: string, namespace: string, name: string): void {
+    this.findModelRowByTestId(modelId, namespace)
       .contains(name)
       .closest('tr')
       .find('button[aria-label="Details"]')
