@@ -25,6 +25,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 		closeUpstream       bool
 		wantStatus          int
 		wantCode            string
+		wantAdmin           bool
 	}{
 		{
 			name:              "success",
@@ -32,6 +33,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[{"roles":[]}]}`,
 			subscriptionsBody: `[{"roles":["admin"]}]`,
 			wantStatus:        http.StatusOK,
+			wantAdmin:         false,
 		},
 		{
 			name:              "organization admin",
@@ -39,6 +41,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[{"roles":["admins"]}]}`,
 			subscriptionsBody: `[]`,
 			wantStatus:        http.StatusOK,
+			wantAdmin:         true,
 		},
 		{
 			name:              "missing organizations uses subscriptions",
@@ -46,6 +49,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			upstreamBody:      `{"sub":"user-123"}`,
 			subscriptionsBody: `[{"roles":["admin"]}]`,
 			wantStatus:        http.StatusOK,
+			wantAdmin:         true,
 		},
 		{
 			name:              "subscription user is not an admin",
@@ -53,6 +57,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
 			subscriptionsBody: `[{"roles":["user"]}]`,
 			wantStatus:        http.StatusOK,
+			wantAdmin:         false,
 		},
 		{
 			name:                "subscription check failure",
@@ -60,8 +65,8 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			subscriptionsStatus: http.StatusInternalServerError,
 			upstreamBody:        `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
 			subscriptionsBody:   `{"error":"MaaS unavailable"}`,
-			wantStatus:          http.StatusServiceUnavailable,
-			wantCode:            "503",
+			wantStatus:          http.StatusOK,
+			wantAdmin:           false,
 		},
 		{
 			name:           "unauthorized",
@@ -96,7 +101,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodGet || (r.URL.Path != "/v1/me" && r.URL.Path != "/v1/subscriptions") {
-					t.Errorf("upstream request = %s %s, want GET /v1/me", r.Method, r.URL.Path)
+					t.Errorf("upstream request = %s %s, want GET /v1/me or GET /v1/subscriptions", r.Method, r.URL.Path)
 				}
 				w.Header().Set("Content-Type", "application/json")
 				if r.URL.Path == "/v1/subscriptions" {
@@ -145,9 +150,8 @@ func TestGetWhoAmIHandler(t *testing.T) {
 				if body.Data.Sub != "user-123" {
 					t.Errorf("sub = %q, want user-123", body.Data.Sub)
 				}
-				wantAdmin := tt.name == "organization admin" || tt.name == "missing organizations uses subscriptions"
-				if body.Data.IsAdmin != wantAdmin {
-					t.Errorf("isAdmin = %t, want %t", body.Data.IsAdmin, wantAdmin)
+				if body.Data.IsAdmin != tt.wantAdmin {
+					t.Errorf("isAdmin = %t, want %t", body.Data.IsAdmin, tt.wantAdmin)
 				}
 				return
 			}

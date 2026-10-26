@@ -57,7 +57,7 @@ describe('KeysAndSubsProvider', () => {
 
     await waitFor(() => expect(result.current.isMaasAdminLoaded).toBe(true));
     expect(result.current.isMaasAdmin).toBe(true);
-    expect(getMaaSWhoAmI).toHaveBeenCalled();
+    expect(getMaaSWhoAmI).not.toHaveBeenCalled();
     expect(getIsMaasAdmin).not.toHaveBeenCalled();
     expect(searchApiKeys).not.toHaveBeenCalled();
     expect(searchTenantApiKeys).toHaveBeenCalled();

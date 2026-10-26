@@ -3,8 +3,8 @@ import React from 'react';
 import { UserSubscription } from '~/app/types/subscriptions';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
 import { getIsMaasAdmin } from '~/app/api/k8s';
-import { getMaaSWhoAmI } from '~/app/api/whoami';
 import { searchApiKeys, searchTenantApiKeys } from '~/app/api/api-keys';
+import { useAppContext } from '~/app/context/AppContext';
 import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 import { useMaaSGatewayUrl } from '~/app/hooks/useMaaSGatewayUrl';
 import { useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
@@ -37,6 +37,7 @@ type KeysAndSubsProviderProps = {
 
 export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ children }) => {
   const isGridEnabled = useGridFeatureFlag();
+  const { user } = useAppContext();
 
   const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<UserSubscription[]>>(
     (opts: APIOptions) => listUserSubscriptions()(opts),
@@ -46,9 +47,9 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
   const isMaasAdminCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(
     (opts: APIOptions) =>
       isGridEnabled
-        ? getMaaSWhoAmI()(opts).then((result) => result.isAdmin)
+        ? Promise.resolve(Boolean(user.isAdmin))
         : getIsMaasAdmin()(opts).then((result) => result.allowed),
-    [isGridEnabled],
+    [isGridEnabled, user.isAdmin],
   );
 
   const hasAnyApiKeysCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(

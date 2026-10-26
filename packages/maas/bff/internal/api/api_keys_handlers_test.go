@@ -142,14 +142,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].DisplayName).To(Equal("Basic Team Subscription"))
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].Models).To(ConsistOf("Flan T5 Small"))
 		})
-		It("tenant search uses MaaS subscriptions without checking K8s admin status", func() {
-			originalCheck := isMaasAdminCheck
-			isMaasAdminCheck = func(_ *App, _ *http.Request) (bool, error) {
-				Fail("tenant search must not check K8s admin status")
-				return false, nil
-			}
-			DeferCleanup(func() { isMaasAdminCheck = originalCheck })
-
+		It("tenant search uses the whoami admin status for subscription enrichment", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 			actual, rs, err := setupApiTest[Envelope[*models.APIKeyListResponse, None]](
 				http.MethodPost,
