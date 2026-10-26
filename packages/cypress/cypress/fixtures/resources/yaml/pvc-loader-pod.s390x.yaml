@@ -12,7 +12,7 @@ spec:
     - name: s3-downloader
       # IBM Z Triton image is proven to pull in user namespaces on s390x clusters.
       # curl 8.20 ships with --aws-sigv4 support — no extra packages needed.
-      image: icr.io/ibmz/ibmz-accelerated-for-nvidia-triton-inference-server:1.6.0
+      image: icr.io/ibmz/ibmz-accelerated-for-nvidia-triton-inference-server:latest
       command: ["/bin/bash", "-c"]
       securityContext:
         allowPrivilegeEscalation: false

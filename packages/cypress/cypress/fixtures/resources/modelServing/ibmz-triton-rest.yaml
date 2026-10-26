@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: ibmz-triton-rest
   annotations:
-    opendatahub.io/runtime-version: v1.6.0
+    opendatahub.io/runtime-version: latest
     opendatahub.io/apiProtocol: REST
     opendatahub.io/model-type: '["predictive"]'
     opendatahub.io/modelServingSupport: '["single"]'
@@ -17,7 +17,7 @@ objects:
     metadata:
       name: ibmz-triton-rest
       annotations:
-        opendatahub.io/runtime-version: v1.6.0
+        opendatahub.io/runtime-version: latest
         prometheus.kserve.io/path: /metrics
         prometheus.kserve.io/port: "8002"
         openshift.io/display-name: IBM Z Triton Inference Server
@@ -35,7 +35,7 @@ objects:
               --http-port=8000 --grpc-port=8001 --metrics-port=8002
               --strict-readiness=false --model-control-mode=explicit
               --load-model=python
-          image: icr.io/ibmz/ibmz-accelerated-for-nvidia-triton-inference-server:1.6.0
+          image: icr.io/ibmz/ibmz-accelerated-for-nvidia-triton-inference-server:latest
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
