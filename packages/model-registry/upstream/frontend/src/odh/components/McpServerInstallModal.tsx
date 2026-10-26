@@ -141,6 +141,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   const gatewayRegistrationCondition = conditionFor(deployment, 'GatewayRegistration');
   const installFailed = readyCondition?.status === 'False' || acceptedCondition?.status === 'False';
   const gatewayRegistrationFailed = gatewayRegistrationCondition?.status === 'False';
+  const installNeedsAttention = installFailed || gatewayRegistrationFailed;
   const installComplete =
     readyCondition?.status === 'True' &&
     (!readiness?.gatewayRequired || gatewayRegistrationCondition?.status === 'True');
@@ -212,7 +213,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   };
 
   const renderInstallStatus = () => {
-    if (installFailed || gatewayRegistrationFailed) {
+    if (installNeedsAttention) {
       return (
         <Alert variant="danger" isInline title="Installation needs attention">
           {readyCondition?.message ||
@@ -246,11 +247,9 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
           state={
             gatewayRegistrationCondition?.status === 'True'
               ? 'ready'
-              : gatewayRegistrationFailed
-                ? 'blocked'
-                : readiness?.gatewayRequired
-                  ? 'pending'
-                  : 'ready'
+              : readiness?.gatewayRequired
+                ? 'pending'
+                : 'ready'
           }
         />
       </List>
@@ -416,7 +415,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
               <Title headingLevel="h3" size="lg">
                 {installComplete
                   ? 'Installation complete'
-                  : installFailed
+                  : installNeedsAttention
                     ? 'Installation needs attention'
                     : 'Installing...'}
               </Title>

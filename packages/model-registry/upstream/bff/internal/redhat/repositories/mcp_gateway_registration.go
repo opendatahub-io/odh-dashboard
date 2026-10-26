@@ -14,12 +14,6 @@ import (
 )
 
 var (
-	mcpGatewayExtensionGVRForRegistration = schema.GroupVersionResource{
-		Group: "mcp.kuadrant.io", Version: "v1alpha1", Resource: "mcpgatewayextensions",
-	}
-	mcpGatewayGVRForRegistration = schema.GroupVersionResource{
-		Group: "gateway.networking.k8s.io", Version: "v1", Resource: "gateways",
-	}
 	mcpHTTPRouteGVR = schema.GroupVersionResource{
 		Group: "gateway.networking.k8s.io", Version: "v1", Resource: "httproutes",
 	}
