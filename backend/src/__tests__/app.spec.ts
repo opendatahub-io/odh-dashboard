@@ -219,7 +219,9 @@ describe('app static and view wiring', () => {
       // `index: false` — '/' must fall through to the view route, not the static plugin.
       const response = await app.inject({ method: 'GET', url: '/' });
 
-      expect(response.headers['cache-control']).toBe('no-cache, no-store, must-revalidate');
+      expect(response.headers['cache-control']).toBe(
+        'no-cache, no-store, private, max-age=0, must-revalidate',
+      );
     });
   });
 
@@ -229,7 +231,9 @@ describe('app static and view wiring', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.body).toContain('mf-remotes-json');
-      expect(response.headers['cache-control']).toBe('no-cache, no-store, must-revalidate');
+      expect(response.headers['cache-control']).toBe(
+        'no-cache, no-store, private, max-age=0, must-revalidate',
+      );
     });
 
     it('should interpolate the template rather than emit raw EJS tags', async () => {
