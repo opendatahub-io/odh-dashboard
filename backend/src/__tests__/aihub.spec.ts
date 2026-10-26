@@ -34,7 +34,7 @@ describe('fetchAIHub', () => {
   const mockGetClusterCustomObject = jest.fn();
   const mockFastify = {
     kube: { customObjectsApi: { getClusterCustomObject: mockGetClusterCustomObject } },
-    log: { error: jest.fn() },
+    log: { error: jest.fn(), info: jest.fn(), debug: jest.fn() },
   } as unknown as KubeFastifyInstance;
 
   beforeEach(() => {
@@ -69,6 +69,31 @@ describe('fetchAIHub', () => {
     expect(mockFastify.log.error).toHaveBeenCalledWith(
       { statusCode: 403 },
       'Failure to fetch AIHub',
+    );
+  });
+
+  it('should use the DataScienceCluster model-registry namespace when AIHub is unavailable', async () => {
+    const aiHubNotFound = createAIHubNotFoundError();
+    mockGetClusterCustomObject.mockRejectedValueOnce(aiHubNotFound).mockResolvedValueOnce({
+      body: {
+        status: {
+          components: {
+            modelregistry: { registriesNamespace: 'rhoai-model-registries' },
+          },
+        },
+      },
+    });
+
+    await expect(fetchAIHub(mockFastify)).resolves.toMatchObject({
+      metadata: { name: 'default-aihub' },
+      spec: { instancesNamespace: 'rhoai-model-registries' },
+    });
+    expect(mockGetClusterCustomObject).toHaveBeenNthCalledWith(
+      2,
+      'datasciencecluster.opendatahub.io',
+      'v2',
+      'datascienceclusters',
+      'default-dsc',
     );
   });
 });
