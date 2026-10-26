@@ -580,7 +580,7 @@ export const getNotebookEventStatus = (
     const matchCandidates = containerNames.toSorted((a, b) => b.length - a.length);
     let matchedContainer: string | undefined;
 
-    // For Created/Started, try parsing the container name directly from the message.
+    // For Created/Started, parse the container name from the legacy message or fieldPath.
     if (reason === 'Created' || reason === 'Started') {
       const parsed = parseContainerNameFromEvent(event);
       if (parsed && containerNames.includes(parsed)) {
