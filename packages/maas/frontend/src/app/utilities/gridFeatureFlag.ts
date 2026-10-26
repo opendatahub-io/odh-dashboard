@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
-import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '~/app/types/whoami';
 
 declare global {
   interface Window {
@@ -65,6 +64,3 @@ export const useGridFeatureFlag = (): boolean => {
     dashboardConfig === null ? false : dashboardConfig.dashboardConfig.grid === true;
   return isDashboardGridEnabled || isGridFeatureFlagEnabledFromDevStorage();
 };
-
-export const isOrgAdmin = (whoAmI: MaaSWhoAmI): boolean =>
-  whoAmI[MAAS_ORGS_CLAIM].some((org) => org.roles.includes('admins'));
