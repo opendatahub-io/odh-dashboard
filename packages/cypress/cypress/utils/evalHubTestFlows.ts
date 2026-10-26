@@ -45,10 +45,18 @@ const hasEvalHubListPayload = (body: unknown): boolean => {
   return Array.isArray(data) || (isRecord(data) && Array.isArray(data.items));
 };
 
+/** Login pages reference the OAuth flow or Keycloak; other HTML (e.g. proxy error pages) does not. */
+const isEvalHubLoginPage = (body: string): boolean =>
+  body.includes('/oauth') || body.toLowerCase().includes('keycloak');
+
 /** Distinguishes an HTML login page from other non-JSON payloads in cleanup errors. */
 const describeEvalHubPayloadError = (body: unknown): string => {
+  // cy.request leaves Content-Type: text/html responses (e.g. OAuth redirects) as raw strings
+  // rather than JSON-parsing them, so a leading '<' reliably identifies HTML here.
   if (typeof body === 'string' && body.trimStart().startsWith('<')) {
-    return 'received an HTML login page instead of JSON — the dashboard session is not established';
+    return isEvalHubLoginPage(body)
+      ? 'received an HTML login page instead of JSON — the dashboard session is not established'
+      : 'received an unexpected HTML response instead of JSON';
   }
   return 'unexpected response payload';
 };
@@ -488,10 +496,14 @@ const assertEvaluationHardwareConfig = (profileName?: string): void => {
  * login page when no browser session exists. Tracks whether setup reached the dashboard so
  * cleanup can skip the API steps instead of failing with an error that hides the real
  * setup failure.
+ *
+ * Scoped per spec file: Cypress re-evaluates this module for each spec (fresh browser
+ * context), so the flag starts as false in every spec without an explicit reset.
  */
 let dashboardSessionEstablished = false;
 
 export const navigateToEvaluationsPage = (evaluationTenantProject: string): void => {
+  dashboardSessionEstablished = false;
   cy.step('Log into the application and open Evaluations page');
   cy.visitWithLogin(
     evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject),
@@ -909,7 +921,12 @@ export type EvalHubCleanupOptions = {
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-/** Builds the shared cleanup sequence used by the live EvalHub specs. */
+/**
+ * Builds the shared cleanup sequence used by the live EvalHub specs.
+ *
+ * Reads `dashboardSessionEstablished` synchronously at construction time — safe because
+ * specs invoke this from `after()`, once setup has finished setting the flag.
+ */
 export const createEvalHubCleanupSteps = ({
   evaluationTenantProject,
   mlflowExperimentName,
