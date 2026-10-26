@@ -47,7 +47,7 @@ Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federa
 
 `Cache-Control` is selective (not blanket `no-store`):
 
-- **Host APIs** (`/api/…`, `/wss/…`), **SPA document** responses, and **federated module API proxies** use `no-cache, no-store, must-revalidate`.
+- **Host APIs** (`/api/…`, `/wss/…`), **SPA document** responses, and **federated module API proxies** use `no-cache, no-store, private, max-age=0, must-revalidate`.
 - **Static / `/_mf` asset files** use filename-based policies (`immutable` for content-hashed bundles, `no-cache` for unhashed scripts, short TTL for media). Classification uses the URL pathname only.
   - Upstream `no-store` is preserved on every path.
   - Upstream `private` is preserved only for static assets. API-like and other non-asset paths are `no-store` even when upstream says `private`.
