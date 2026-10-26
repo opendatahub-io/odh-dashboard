@@ -15,7 +15,7 @@ Distributions live in `distributions/` — three are independently-deployable da
 | Directory | Type | Has BFF? | Build |
 |-----------|------|----------|-------|
 | `base/` | Shared app shell library (PatternFly chrome, no features) — **not deployed on its own** | Stub only | `pnpm run build` |
-| `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.25+) | `make build` |
+| `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.26+) | `make build` |
 | `rhaii/` | RHAII-specific distribution | No | `pnpm run build` |
 | `maas-portal/` | Standalone MaaS Portal (bundles maas + gen-ai packages) | No | `pnpm run build` |
 

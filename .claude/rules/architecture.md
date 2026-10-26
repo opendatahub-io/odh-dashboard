@@ -95,7 +95,7 @@ Dashboard variants — three independently-deployable distributions plus a share
 | Directory | Description | Has BFF? | Build System |
 |-----------|-------------|----------|--------------|
 | `base/` | Shared app shell library (PatternFly chrome, error boundary, extensibility hooks) — **not deployed on its own** | Stub only | Rspack |
-| `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.25+) | Make + Rspack |
+| `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.26+) | Make + Rspack |
 | `rhaii/` | RHAII-specific distribution | No | Rspack |
 | `maas-portal/` | Standalone MaaS Portal (bundles maas + gen-ai packages) | No | Rspack |
 
