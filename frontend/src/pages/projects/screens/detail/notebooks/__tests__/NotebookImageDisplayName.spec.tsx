@@ -72,9 +72,10 @@ describe('NotebookImageDisplayName', () => {
     expect(statusLabel).toHaveTextContent('Deprecated');
     await user.click(statusLabel);
 
+    expect(await screen.findByText('Workbench image deprecated')).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        'This image is deprecated. Select a different workbench image to keep receiving updates.',
+      screen.getByText(
+        'This workbench can continue using the deprecated image, but it will not receive any new updates.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('update-latest-version-button')).not.toBeInTheDocument();
@@ -86,8 +87,9 @@ describe('NotebookImageDisplayName', () => {
 
     await user.click(screen.getByTestId('notebook-image-availability'));
 
+    expect(await screen.findByText('Notebook image deprecated')).toBeInTheDocument();
     expect(
-      await screen.findByText(
+      screen.getByText(
         'This image version is deprecated. This workbench can continue using this version, but the workbench will not receive new version updates.',
       ),
     ).toBeInTheDocument();

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 import { useSettings } from 'mod-arch-core';
-import { getMaaSMe } from '@odh-dashboard/maas/api/me';
+import { getMaaSWhoAmI } from '@odh-dashboard/maas/api/whoami';
 
 import { PORTAL_BASE_PATH } from '../portalPaths';
 
@@ -58,10 +58,10 @@ const GridUserDropdown: React.FC = () => {
 
   React.useEffect(() => {
     let cancelled = false;
-    void getMaaSMe()({})
-      .then((me) => {
+    void getMaaSWhoAmI()({})
+      .then((whoAmI) => {
         if (!cancelled) {
-          setDisplayName(me.name || me.email || me.sub);
+          setDisplayName(whoAmI.name || whoAmI.email || whoAmI.sub);
         }
       })
       .catch(() => undefined);

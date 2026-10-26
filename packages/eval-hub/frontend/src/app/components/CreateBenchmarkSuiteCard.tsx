@@ -18,12 +18,7 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
   trackingSurface = 'collection_gallery',
   onCreateSuite = () => undefined,
 }) => (
-  <Card
-    className="evalhub-create-suite-card"
-    isFullHeight
-    variant="secondary"
-    data-testid="create-suite-card"
-  >
+  <Card className="evalhub-create-suite-card" isFullHeight data-testid="create-suite-card">
     <CardBody className="evalhub-create-suite-card__body">
       {/* Not Bullseye: its height: 100% is reapplied by the duplicate PatternFly styles
           the federated page loads (separate host/remote copies), stretching this fixed-size badge */}
@@ -33,7 +28,7 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
       >
         <PlusIcon />
       </div>
-      <Title headingLevel="h3" size="md" className="evalhub-create-suite-card__title">
+      <Title headingLevel="h3" size="xl" className="evalhub-create-suite-card__title">
         Create your own collection
       </Title>
       <Content component="p" className="evalhub-create-suite-card__description">

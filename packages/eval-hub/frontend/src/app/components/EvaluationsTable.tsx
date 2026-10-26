@@ -678,7 +678,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 Name
               </Th>
               <Th sort={getSortParams(1)} modifier="nowrap">
-                Status
+                Job status
               </Th>
               <Th
                 modifier="nowrap"

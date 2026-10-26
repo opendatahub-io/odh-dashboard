@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { FormProvider } from 'react-hook-form';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
@@ -29,14 +28,17 @@ import {
   evaluationEvaluateRoute,
   evaluationGalleryRoute,
   evaluationsBaseRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import {
   CURATED_SUITE_PAGE_CONFIG,
   getCuratedCollectionConfig,
   isCuratedEvaluationTarget,
   type CuratedEvaluationTarget,
 } from '~/app/curatedSuiteConfig';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
@@ -62,6 +64,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
 
   const [currentStep, setCurrentStep] = React.useState<CopySuiteStep>('settings');
   const [isRunModalOpen, setIsRunModalOpen] = React.useState(false);
@@ -247,18 +250,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
       ? 'Edit collection'
       : 'Customize collection';
 
-  const breadcrumbItems: React.ReactElement[] = [
-    <BreadcrumbItem
-      key="evaluations"
-      render={() =>
-        renderBreadcrumbLink(
-          evaluationsBaseRoute(namespace),
-          'Evaluations',
-          'copy-suite-breadcrumb-evaluations',
-        )
-      }
-    />,
-  ];
+  const breadcrumbItems: React.ReactElement[] = [];
 
   if (isCollectionSelectionOrigin) {
     breadcrumbItems.push(
@@ -403,7 +395,19 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   return (
     <ApplicationsPage
       noHeader
-      breadcrumb={<Breadcrumb>{breadcrumbItems}</Breadcrumb>}
+      breadcrumb={
+        <ContextBreadcrumb
+          pageName="Evaluations"
+          projectDisplayName={projectDisplayName}
+          homePath={evaluationsBaseRoute(namespace)}
+          projectHomePath={projectHomeRoute(namespace)}
+          isHomeDisabled={isPageInteractionDisabled}
+          isProjectLinkDisabled={isPageInteractionDisabled}
+          homeTestId="copy-suite-breadcrumb-evaluations"
+        >
+          {breadcrumbItems}
+        </ContextBreadcrumb>
+      }
       loaded
       empty={false}
     >

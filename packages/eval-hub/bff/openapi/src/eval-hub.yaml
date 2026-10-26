@@ -1844,17 +1844,13 @@ components:
           additionalProperties: true
           nullable: true
 
-    CollectionState:
+    CollectionStatus:
       type: object
+      description: Server-computed status for a collection.
       properties:
-        derived_from:
-          type: string
-          nullable: true
         run_count:
           type: integer
-          nullable: true
-        pinned_order:
-          type: integer
+          description: Number of successful evaluation runs that used this collection.
           nullable: true
 
     Collection:
@@ -1919,8 +1915,12 @@ components:
           type: integer
           description: Positive ordering priority for system-curated collections. Zero or absent means not curated.
           nullable: true
-        state:
-          $ref: '#/components/schemas/CollectionState'
+        pinned_order:
+          type: integer
+          description: Ordering priority for pinned tenant collections.
+          nullable: true
+        status:
+          $ref: '#/components/schemas/CollectionStatus'
         custom:
           type: object
           additionalProperties: true

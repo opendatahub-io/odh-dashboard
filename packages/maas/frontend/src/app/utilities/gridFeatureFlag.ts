@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
-import { MAAS_ORGS_CLAIM, type MaaSMe } from '~/app/types/me';
+import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '~/app/types/whoami';
 
 declare global {
   interface Window {
@@ -66,7 +66,8 @@ export const useGridFeatureFlag = (): boolean => {
   return isDashboardGridEnabled || isGridFeatureFlagEnabledFromDevStorage();
 };
 
-export const getMaaSMeDisplayName = (me: MaaSMe): string => me.name || me.email || me.sub;
+export const getMaaSWhoAmIDisplayName = (whoAmI: MaaSWhoAmI): string =>
+  whoAmI.name || whoAmI.email || whoAmI.sub;
 
-export const isOrgAdmin = (me: MaaSMe): boolean =>
-  me[MAAS_ORGS_CLAIM].some((org) => org.roles.includes('admins'));
+export const isOrgAdmin = (whoAmI: MaaSWhoAmI): boolean =>
+  whoAmI[MAAS_ORGS_CLAIM].some((org) => org.roles.includes('admins'));

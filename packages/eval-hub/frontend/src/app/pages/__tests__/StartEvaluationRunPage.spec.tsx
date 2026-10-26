@@ -23,6 +23,13 @@ jest.mock('~/app/hooks/useEvaluationSelection', () => ({
     mockUseEvaluationSelection(...args),
 }));
 
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-ns', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
+}));
+
 jest.mock('@odh-dashboard/internal/concepts/mlflow', () => {
   const actualReact = jest.requireActual<typeof import('react')>('react');
   const MlflowExperimentSelector = () =>
