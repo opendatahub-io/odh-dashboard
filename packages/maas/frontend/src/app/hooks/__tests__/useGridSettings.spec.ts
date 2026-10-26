@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { renderHook, waitFor } from '@testing-library/react';
 import * as modArchCore from 'mod-arch-core';
-import { getMaaSWhoAmI, getMaaSWhoAmIDisplayName } from '~/app/api/whoami';
+import { getMaaSWhoAmI } from '~/app/api/whoami';
 import { useGridSettings } from '~/app/hooks/useGridSettings';
 import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '~/app/types/whoami';
 
@@ -10,13 +10,12 @@ jest.mock('mod-arch-core', () => ({
   fetchConfig: jest.fn(),
 }));
 jest.mock('~/app/api/whoami', () => ({
+  ...jest.requireActual('~/app/api/whoami'),
   getMaaSWhoAmI: jest.fn(),
-  getMaaSWhoAmIDisplayName: jest.fn(),
 }));
 
 const mockFetchConfig = jest.mocked(modArchCore.fetchConfig);
 const mockGetMaaSWhoAmI = jest.mocked(getMaaSWhoAmI);
-const mockGetMaaSWhoAmIDisplayName = jest.mocked(getMaaSWhoAmIDisplayName);
 
 const config: modArchCore.ConfigSettings = { common: { featureFlags: { modelRegistry: false } } };
 const whoAmI: MaaSWhoAmI = {
@@ -29,7 +28,6 @@ describe('useGridSettings', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetMaaSWhoAmI.mockReturnValue(() => Promise.resolve(whoAmI));
-    mockGetMaaSWhoAmIDisplayName.mockReturnValue('Alex Doe');
   });
 
   it('should expose a startup failure without retrying', async () => {
