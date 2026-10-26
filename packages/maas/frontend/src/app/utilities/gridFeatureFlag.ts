@@ -66,8 +66,5 @@ export const useGridFeatureFlag = (): boolean => {
   return isDashboardGridEnabled || isGridFeatureFlagEnabledFromDevStorage();
 };
 
-export const getMaaSWhoAmIDisplayName = (whoAmI: MaaSWhoAmI): string =>
-  whoAmI.name || whoAmI.email || whoAmI.sub;
-
 export const isOrgAdmin = (whoAmI: MaaSWhoAmI): boolean =>
   whoAmI[MAAS_ORGS_CLAIM].some((org) => org.roles.includes('admins'));

@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as modArchCore from 'mod-arch-core';
-import { getMaaSWhoAmI } from '~/app/api/whoami';
+import { getMaaSWhoAmI, getMaaSWhoAmIDisplayName } from '~/app/api/whoami';
 import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '~/app/types/whoami';
 
 jest.mock('mod-arch-core', () => ({
@@ -50,5 +50,23 @@ describe('getMaaSWhoAmI', () => {
     mockRestGET.mockResolvedValue(validWhoAmI);
 
     await expect(getMaaSWhoAmI()({} as never)).rejects.toThrow('Invalid response format');
+  });
+});
+
+describe('getMaaSWhoAmIDisplayName', () => {
+  it.each([
+    ['Alex Doe', 'alex@example.com', ['users'], 'Alex Doe'],
+    [undefined, 'alex@example.com', ['users'], 'alex@example.com'],
+    [undefined, undefined, ['admins'], 'Admin'],
+    [undefined, undefined, ['users'], 'User'],
+  ])('uses the required identity fallback order', (name, email, roles, expected) => {
+    expect(
+      getMaaSWhoAmIDisplayName({
+        sub: 'subject',
+        name,
+        email,
+        [MAAS_ORGS_CLAIM]: [{ organization_id: 'org', roles }],
+      }),
+    ).toBe(expected);
   });
 });

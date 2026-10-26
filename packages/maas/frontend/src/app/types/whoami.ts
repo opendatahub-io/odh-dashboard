@@ -12,3 +12,8 @@ export type MaaSWhoAmI = {
   name?: string;
   [MAAS_ORGS_CLAIM]: MaaSOrg[];
 };
+
+export const getMaaSWhoAmIDisplayName = (whoAmI: MaaSWhoAmI): string =>
+  whoAmI.name?.trim() ||
+  whoAmI.email?.trim() ||
+  (whoAmI[MAAS_ORGS_CLAIM].some((org) => org.roles.includes('admins')) ? 'Admin' : 'User');
