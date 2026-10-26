@@ -182,9 +182,8 @@ const createTreeNode = (
     activeIconVariant: topologyNode.data?.activeIconVariant,
     ...dataExtras,
   };
-  if (dataExtras?.hideLabel) {
-    data.label = undefined;
-  } else if (data.label === undefined) {
+  // `hideLabel` controls the canvas caption; keep the node label in its data for the details panel.
+  if (data.label === undefined) {
     data.label = topologyNode.label;
   }
   return {

@@ -439,7 +439,8 @@ type Collection struct {
 	Industries        []string                `json:"industries,omitempty"`
 	EvaluationTargets []string                `json:"evaluation_targets,omitempty"`
 	CurationOrder     int                     `json:"curation_order,omitempty"`
-	State             *CollectionState        `json:"state,omitempty"`
+	PinnedOrder       int                     `json:"pinned_order,omitempty"`
+	Status            *CollectionStatus       `json:"status,omitempty"`
 	Custom            map[string]any          `json:"custom,omitempty"`
 	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
 	Benchmarks        []CollectionBenchmark   `json:"benchmarks,omitempty"`
@@ -456,11 +457,10 @@ type CollectionResource struct {
 	VersionCounter int    `json:"version_counter,omitempty"`
 }
 
-// CollectionState contains server-derived metadata used to order and summarize collections.
-type CollectionState struct {
-	DerivedFrom string `json:"derived_from,omitempty"`
-	RunCount    int    `json:"run_count,omitempty"`
-	PinnedOrder int    `json:"pinned_order,omitempty"`
+// CollectionStatus mirrors EvalHub's top-level status object on collections,
+// which carries the server-computed run count.
+type CollectionStatus struct {
+	RunCount int `json:"run_count"`
 }
 
 // CollectionBenchmark represents a BenchmarkConfig entry within a collection.

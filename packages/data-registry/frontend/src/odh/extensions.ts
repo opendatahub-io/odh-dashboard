@@ -20,6 +20,8 @@ const extensions: Extension[] = [
     properties: {
       id: 'data-tab-page',
       title: 'Data',
+      description:
+        'View and manage this project’s data assets. Data assets are metadata records that help users discover and understand external data. They store information like location, format, and schema, but not the data itself.',
       href: '/ai-hub/data',
       path: '/ai-hub/data/*',
       group: '4_data',
