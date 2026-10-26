@@ -1,3 +1,4 @@
+/* eslint-disable no-relative-import-paths/no-relative-import-paths -- Portal TS checks this shared utility across package boundaries. */
 import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '../types/whoami';
 
 export const isMaaSAdmin = (whoAmI: MaaSWhoAmI): boolean =>
