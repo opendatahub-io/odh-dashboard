@@ -344,7 +344,7 @@ describe('BenchmarkSuiteCard', () => {
   it('should show the successful run count when enabled', async () => {
     render(
       <BenchmarkSuiteCard
-        collection={{ ...mockCollection({ id: 'run-count-suite' }), state: { run_count: 3 } }}
+        collection={{ ...mockCollection({ id: 'run-count-suite' }), status: { run_count: 3 } }}
         primaryAction={{ label: 'Run', onClick: jest.fn() }}
         showRunCount
       />,
@@ -374,7 +374,7 @@ describe('BenchmarkSuiteCard', () => {
       <BenchmarkSuiteCard
         collection={{
           ...mockCollection({ id: 'hidden-run-count-suite' }),
-          state: { run_count: 3 },
+          status: { run_count: 3 },
         }}
         primaryAction={{ label: 'Run', onClick: jest.fn() }}
       />,
@@ -476,7 +476,7 @@ describe('BenchmarkSuiteCard', () => {
     const onEdit = jest.fn();
     const collection = {
       ...mockCollection({ id: 'run-suite' }),
-      state: { run_count: 1 },
+      status: { run_count: 1 },
     };
 
     render(

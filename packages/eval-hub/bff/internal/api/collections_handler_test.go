@@ -155,7 +155,7 @@ func TestPatchCollectionHandlerRejectsCollectionsThatHaveBeenRun(t *testing.T) {
 	mockClient.SetCollection("collection-001", &evalhub.Collection{
 		Resource: evalhub.CollectionResource{ID: "collection-001"},
 		Name:     "Already run suite",
-		State:    &evalhub.CollectionState{RunCount: 1},
+		Status:   &evalhub.CollectionStatus{RunCount: 1},
 	})
 	operations := []evalhub.CollectionPatchOperation{{
 		Op: "replace", Path: "/name", Value: json.RawMessage(`"Updated suite"`),
