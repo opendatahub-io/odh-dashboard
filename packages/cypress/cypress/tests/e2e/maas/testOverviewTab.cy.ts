@@ -46,6 +46,7 @@ let policyName: string;
 let subscriptionGroups: string[];
 let tokenRateLimit: string;
 let llmInferenceServiceFixturePath: string;
+
 describe('MaaS Governance Overview tab', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
@@ -62,11 +63,6 @@ describe('MaaS Governance Overview tab', () => {
       })
       .then(() => {
         ensureAdminOcSession();
-        // Clean up stale LLMInferenceServices from previous failed runs
-        cy.exec(
-          `oc get llminferenceservice -n ${modelsAsAServiceNamespace} -o name | grep test-maas-overview-model | xargs -r oc delete -n ${modelsAsAServiceNamespace} --ignore-not-found`,
-          { failOnNonZeroExit: false },
-        );
         cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
         cleanupAuthPolicy(policyName, modelsAsAServiceNamespace);
 
@@ -213,19 +209,19 @@ describe('MaaS Governance Overview tab', () => {
       overviewRow.findModelPhase().should('contain.text', PhaseStatus.READY);
 
       cy.step('Expand the model row and verify the subscription details');
-      overviewTabPage.expandModelRowByTestId(modelName, projectName);
-      overviewTabPage.expandExpandableItemInModel(modelName, projectName, subscriptionName);
+      overviewTabPage.expandModelRow(modelName, projectName);
+      overviewTabPage.expandExpandableItemInRow(modelName, projectName, subscriptionName);
       overviewTabPage
-        .findExpandableItemNameByModel(modelName, projectName, subscriptionName)
+        .findExpandableItemName(modelName, projectName, subscriptionName)
         .should('contain.text', subscriptionName);
       overviewTabPage
-        .findExpandableItemPhaseByModel(modelName, projectName, subscriptionName)
+        .findExpandableItemPhase(modelName, projectName, subscriptionName)
         .should('contain.text', PhaseStatus.READY);
       overviewTabPage
-        .findExpandableItemTokenLimitsByModel(modelName, projectName, subscriptionName)
+        .findExpandableItemTokenLimits(modelName, projectName, subscriptionName)
         .should('contain.text', tokenRateLimit);
       overviewTabPage
-        .findExpandableItemGroupChipByModel(
+        .findExpandableItemGroupChip(
           modelName,
           projectName,
           subscriptionName,
@@ -237,13 +233,13 @@ describe('MaaS Governance Overview tab', () => {
         'Verify highlight matching subscriptions and policies when a group chip is clicked and Items are expanded',
       );
       overviewTabPage
-        .findGroupChipByModel(subscriptionGroups[0], modelName, projectName)
+        .findGroupChip(subscriptionGroups[0], modelName, projectName)
         .should('be.visible');
-      overviewTabPage.findGroupChipByModel(subscriptionGroups[0], modelName, projectName).click();
+      overviewTabPage.findGroupChip(subscriptionGroups[0], modelName, projectName).click();
       [subscriptionName, policyName].forEach((name) => {
-        overviewTabPage.shouldExpandableItemInModelBeExpanded(modelName, projectName, name, true);
+        overviewTabPage.shouldExpandableItemInRowBeExpanded(modelName, projectName, name, true);
       });
-      overviewTabPage.shouldGroupChipsBeHighlightedByModel(
+      overviewTabPage.shouldGroupChipsBeHighlighted(
         subscriptionGroups[0],
         modelName,
         projectName,
@@ -252,25 +248,20 @@ describe('MaaS Governance Overview tab', () => {
       );
 
       cy.step('Verify the authorization policy name, status, and groups');
-      overviewTabPage.expandExpandableItemInModel(modelName, projectName, policyName);
+      overviewTabPage.expandExpandableItemInRow(modelName, projectName, policyName);
       overviewTabPage
-        .findExpandableItemNameByModel(modelName, projectName, policyName)
+        .findExpandableItemName(modelName, projectName, policyName)
         .should('contain.text', policyName);
       overviewTabPage
-        .findExpandableItemPhaseByModel(modelName, projectName, policyName)
+        .findExpandableItemPhase(modelName, projectName, policyName)
         .should('contain.text', PhaseStatus.READY);
       overviewTabPage
-        .findExpandableItemGroupChipByModel(
-          modelName,
-          projectName,
-          policyName,
-          subscriptionGroups[0],
-        )
+        .findExpandableItemGroupChip(modelName, projectName, policyName, subscriptionGroups[0])
         .should('contain.text', subscriptionGroups[0]);
 
       cy.step('Deselect the group chip and verify highlight clears on subscriptions and policies');
-      overviewTabPage.findGroupChipByModel(subscriptionGroups[0], modelName, projectName).click();
-      overviewTabPage.shouldGroupChipsBeHighlightedByModel(
+      overviewTabPage.findGroupChip(subscriptionGroups[0], modelName, projectName).click();
+      overviewTabPage.shouldGroupChipsBeHighlighted(
         subscriptionGroups[0],
         modelName,
         projectName,
@@ -278,9 +269,7 @@ describe('MaaS Governance Overview tab', () => {
       );
 
       cy.step('Verify the link on subscription name navigates to the subscription details page');
-      overviewTabPage
-        .findExpandableItemNameByModel(modelName, projectName, subscriptionName)
-        .click();
+      overviewTabPage.findExpandableItemName(modelName, projectName, subscriptionName).click();
       viewSubscriptionPage.findTitle().should('contain.text', `${subscriptionName}`);
       viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
       overviewTabPage.findTable().should('exist');
@@ -301,15 +290,15 @@ describe('MaaS Governance Overview tab', () => {
       overviewTabPage.findModelRows().should('have.length', 1);
 
       cy.step('Verify the link on policy name navigates to the policy details page');
-      overviewTabPage.expandModelRowByTestId(modelName, projectName);
-      overviewTabPage.expandExpandableItemInModel(modelName, projectName, policyName);
-      overviewTabPage.shouldExpandableItemInModelBeExpanded(
+      overviewTabPage.expandModelRow(modelName, projectName);
+      overviewTabPage.expandExpandableItemInRow(modelName, projectName, policyName);
+      overviewTabPage.shouldExpandableItemInRowBeExpanded(
         modelName,
         projectName,
         subscriptionName,
         false,
       );
-      overviewTabPage.findExpandableItemNameByModel(modelName, projectName, policyName).click();
+      overviewTabPage.findExpandableItemName(modelName, projectName, policyName).click();
       viewAuthPolicyPage.findTitle().should('contain.text', policyName);
       viewAuthPolicyPage.findBreadcrumbPoliciesLink().click();
       overviewTabPage.findTable().should('exist');
