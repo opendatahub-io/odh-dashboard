@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ConfigSettings, UserSettings, fetchConfig, useDeepCompareMemoize } from 'mod-arch-core';
 import { getMaaSWhoAmI, getMaaSWhoAmIDisplayName } from '~/app/api/whoami';
-import { isMaaSAdmin } from '~/app/types/whoami';
+import { isMaaSAdmin } from '~/app/utilities/whoami';
 
 export type MaaSUserSettings = UserSettings & {
   displayName: string;

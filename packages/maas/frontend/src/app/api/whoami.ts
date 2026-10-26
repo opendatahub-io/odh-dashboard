@@ -3,7 +3,7 @@ import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-
 import { BFF_API_VERSION, API_URL_PREFIX } from '../utilities/const';
 import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '../types/whoami';
 
-export { getMaaSWhoAmIDisplayName } from '../types/whoami';
+export { getMaaSWhoAmIDisplayName } from '../utilities/whoami';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 

@@ -40,9 +40,6 @@ export const isGridFeatureFlagEnabledFromDevStorage = (): boolean => {
   if (readGridFromQuery()) {
     return true;
   }
-  if (typeof window === 'undefined') {
-    return false;
-  }
   try {
     const rawFlags = window.sessionStorage.getItem(DEV_FEATURE_FLAGS_SESSION_KEY);
     if (!rawFlags) {
