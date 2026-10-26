@@ -27,6 +27,7 @@ const (
 
 // openShiftMcpServerCatalogName is the catalog name of the MCP server for Red Hat OpenShift.
 const openShiftMcpServerCatalogName = "com.redhat/openshift-mcp-server"
+const openShiftMcpServerCatalogShortName = "openshift-mcp-server"
 
 // openShiftMcpServerImageRepository matches the last path segment of the MCP server for
 // Red Hat OpenShift image repository (for example openshift-mcp-server-rhel9), on any
@@ -52,7 +53,7 @@ func init() {
 // Hat OpenShift. Replace with catalog metadata that declares the prerequisite; do not add
 // more servers here.
 func mcpServerRequiresGateway(server *models.McpServer) bool {
-	return server != nil && server.Name == openShiftMcpServerCatalogName
+	return server != nil && (server.Name == openShiftMcpServerCatalogName || server.Name == openShiftMcpServerCatalogShortName)
 }
 
 // mcpImageRequiresGateway reports whether deploying the given image requires an MCP

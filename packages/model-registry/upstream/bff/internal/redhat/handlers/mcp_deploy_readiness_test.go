@@ -35,6 +35,8 @@ func (m readinessCatalogMock) GetMcpServer(_ httpclient.HTTPClientInterface, ser
 	switch serverId {
 	case "4":
 		return &models.McpServer{ID: "4", Name: openShiftMcpServerCatalogName}, nil
+	case "5":
+		return &models.McpServer{ID: "5", Name: openShiftMcpServerCatalogShortName}, nil
 	case "1":
 		return &models.McpServer{ID: "1", Name: "io.github.example/other-mcp-server"}, nil
 	case "noname":
@@ -101,6 +103,7 @@ func TestMcpServerDeployReadiness(t *testing.T) {
 		wantReads       int32
 	}{
 		{name: "OpenShift server with a usable gateway", serverID: "4", reader: &countingOperatorReader{obj: redhatrepos.NewMockMCPLifecycleOperator()}, gatewayRequired: true, deployable: true, wantReads: 1},
+		{name: "current catalog OpenShift server with a usable gateway", serverID: "5", reader: &countingOperatorReader{obj: redhatrepos.NewMockMCPLifecycleOperator()}, gatewayRequired: true, deployable: true, wantReads: 1},
 		{name: "OpenShift server with operator not ready", serverID: "4", reader: &countingOperatorReader{obj: notReadyOperator}, gatewayRequired: true, reason: models.McpDeployReadinessOperatorNotReady, wantReads: 1},
 		{name: "OpenShift server when the CR cannot be read", serverID: "4", reader: &countingOperatorReader{err: errors.New("forbidden")}, gatewayRequired: true, reason: models.McpDeployReadinessGatewayStatusUnavailable, wantReads: 1},
 		{name: "other server does not read the CR", serverID: "1", reader: &countingOperatorReader{err: errors.New("must not be called")}, deployable: true, wantReads: 0},
@@ -167,6 +170,7 @@ func TestMcpServerDeployReadinessRequiresServiceAccess(t *testing.T) {
 
 func TestMcpServerRequiresGateway(t *testing.T) {
 	assert.True(t, mcpServerRequiresGateway(&models.McpServer{Name: openShiftMcpServerCatalogName}))       //nolint:staticcheck // testing the deprecated helper
+	assert.True(t, mcpServerRequiresGateway(&models.McpServer{Name: openShiftMcpServerCatalogShortName})) //nolint:staticcheck // testing the deprecated helper
 	assert.False(t, mcpServerRequiresGateway(&models.McpServer{Name: "com.redhat/other-server"}))          //nolint:staticcheck // testing the deprecated helper
 	assert.False(t, mcpServerRequiresGateway(&models.McpServer{DisplayName: ptr("openshift-mcp-server")})) //nolint:staticcheck // testing the deprecated helper
 	assert.False(t, mcpServerRequiresGateway(nil))                                                         //nolint:staticcheck // testing the deprecated helper
