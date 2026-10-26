@@ -111,10 +111,14 @@ export const getConnectionCreationErrorCategory = (error: unknown): string => {
 };
 
 export const fireDataConnectHubTrackEvent = (event: DataConnectHubEvent): void => {
-  if (event.eventName === DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated) {
-    fireFormTrackingEvent(event.eventName, event.properties);
+  try {
+    if (event.eventName === DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated) {
+      fireFormTrackingEvent(event.eventName, event.properties);
+      return;
+    }
+
+    fireMiscTrackingEvent(event.eventName, event.properties);
+  } catch {
     return;
   }
-
-  fireMiscTrackingEvent(event.eventName, event.properties);
 };

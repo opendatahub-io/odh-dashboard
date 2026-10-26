@@ -85,4 +85,37 @@ describe('fireDataConnectHubTrackEvent', () => {
       project: 'test-project',
     });
   });
+
+  it('should not propagate creation analytics failures', () => {
+    mockFireFormTrackingEvent.mockImplementation(() => {
+      throw new Error('tracking failed');
+    });
+
+    expect(() =>
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+        properties: {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          connectionTypeProvider: 'postgresql',
+          hasTags: false,
+          tagCount: 0,
+          project: 'test-project',
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it('should not propagate misc analytics failures', () => {
+    mockFireMiscTrackingEvent.mockImplementation(() => {
+      throw new Error('tracking failed');
+    });
+
+    expect(() =>
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.listFilterApplied,
+        properties: { filterType: 'type', project: 'test-project' },
+      }),
+    ).not.toThrow();
+  });
 });
