@@ -170,7 +170,7 @@ func TestMcpServerDeployReadinessRequiresServiceAccess(t *testing.T) {
 
 func TestMcpServerRequiresGateway(t *testing.T) {
 	assert.True(t, mcpServerRequiresGateway(&models.McpServer{Name: openShiftMcpServerCatalogName}))       //nolint:staticcheck // testing the deprecated helper
-	assert.True(t, mcpServerRequiresGateway(&models.McpServer{Name: openShiftMcpServerCatalogShortName})) //nolint:staticcheck // testing the deprecated helper
+	assert.True(t, mcpServerRequiresGateway(&models.McpServer{Name: openShiftMcpServerCatalogShortName}))  //nolint:staticcheck // testing the deprecated helper
 	assert.False(t, mcpServerRequiresGateway(&models.McpServer{Name: "com.redhat/other-server"}))          //nolint:staticcheck // testing the deprecated helper
 	assert.False(t, mcpServerRequiresGateway(&models.McpServer{DisplayName: ptr("openshift-mcp-server")})) //nolint:staticcheck // testing the deprecated helper
 	assert.False(t, mcpServerRequiresGateway(nil))                                                         //nolint:staticcheck // testing the deprecated helper
