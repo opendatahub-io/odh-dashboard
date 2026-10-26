@@ -39,16 +39,22 @@ export const cleanupLLMInferenceServiceConfig = (
  *
  * @param configName - The `metadata.name` of the config resource (used for cleanup).
  * @param configYamlPath - The fixture-relative path to the config YAML file.
+ * @param options.displayName - Optional `openshift.io/display-name`. Use a UUID-suffixed
+ *   name under parallel CI so the deploy wizard does not match other LLM-d simulator configs.
  */
 export const createCleanLLMInferenceServiceConfig = (
   configName: string,
   configYamlPath: string,
+  options?: { displayName?: string },
 ): void => {
   cy.log(`Cleaning up and creating LLMInferenceServiceConfig: ${configName}`);
   cleanupLLMInferenceServiceConfig(configName).then(() => {
     cy.log(`Creating LLMInferenceServiceConfig: ${configYamlPath}`);
     cy.fixture(configYamlPath, 'utf8').then((yaml: string) => {
-      const replacedYaml = replacePlaceholdersInYaml(yaml, { CONFIG_NAME: configName });
+      const replacedYaml = replacePlaceholdersInYaml(yaml, {
+        CONFIG_NAME: configName,
+        ...(options?.displayName ? { CONFIG_DISPLAY_NAME: options.displayName } : {}),
+      });
       applyOpenShiftYaml(replacedYaml, applicationNamespace);
     });
   });

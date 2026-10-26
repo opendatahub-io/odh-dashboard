@@ -86,7 +86,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-maassubs-${uuid}`;
         llmInferenceServiceConfigName = `${testData.llmInferenceServiceConfigName}-${uuid}`;
-        llmInferenceServiceConfigDisplayName = testData.llmInferenceServiceConfigDisplayName;
+        llmInferenceServiceConfigDisplayName = `${testData.llmInferenceServiceConfigDisplayName}-${uuid}`;
         llmInferenceServiceConfigContainerImage = testData.llmInferenceServiceConfigContainerImage;
         modelURI = testData.modelLocationURI;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
@@ -129,6 +129,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         createCleanLLMInferenceServiceConfig(
           llmInferenceServiceConfigName,
           llmInferenceServiceConfigYamlPath,
+          { displayName: llmInferenceServiceConfigDisplayName },
         );
       });
   });
@@ -208,6 +209,10 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findServingRuntimeTemplateSearchInput()
+        .clear()
+        .type(llmInferenceServiceConfigDisplayName);
       modelServingWizard
         .findGlobalScopedTemplateOption(llmInferenceServiceConfigDisplayName)
         .should('exist')
