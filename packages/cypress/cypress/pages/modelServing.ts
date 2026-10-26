@@ -1,3 +1,4 @@
+import { queryByTestId } from '@testing-library/dom';
 import { appChrome } from './appChrome';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
@@ -1289,9 +1290,9 @@ class ModelServingWizard extends Wizard {
     };
 
     this.findModelLocationSelectOption(name).click();
-    return cy.get('body').then(($body) => {
+    return cy.document().then((document) => {
       const connectionType = builtInTypes[name];
-      if (connectionType && $body.find('[data-testid="custom-type-select"]').length > 0) {
+      if (connectionType && queryByTestId(document.body, 'custom-type-select')) {
         this.findCustomModelLocationSelectOption(connectionType).click();
       }
     });
