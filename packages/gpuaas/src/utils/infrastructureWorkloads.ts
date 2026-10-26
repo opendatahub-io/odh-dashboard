@@ -636,6 +636,7 @@ const toTopLevelRow = (
     status: getInfrastructureWorkloadFilterStatus(resource, deploymentStatus, jobStatus),
     jobStatus,
     kueueStatus: kueueStatus?.status,
+    clusterQueueName: kueueRow?.clusterQueue,
     deploymentStatus,
     queuePosition: kueueRow?.queuePosition == null ? undefined : `${kueueRow.queuePosition}`,
     priority: kueueRow?.priority,
