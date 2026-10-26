@@ -78,7 +78,10 @@ describe('useSearchInputTracking', () => {
       act(() => {
         rerender({ value: 'kno' });
       });
-      // Intermediate keystrokes restart the settle timer.
+      act(() => {
+        jest.advanceTimersByTime(500);
+      });
+      // The second value must start a new 1,000 ms wait.
       act(() => {
         rerender({ value: 'knowledge' });
       });
@@ -219,6 +222,37 @@ describe('useSearchInputTracking', () => {
     expect(onCommit).toHaveBeenCalledTimes(2);
     expect(onCommit).toHaveBeenNthCalledWith(1, 5);
     expect(onCommit).toHaveBeenNthCalledWith(2, 5);
+  });
+
+  it('should re-emit the same value after the input is cleared and retyped', () => {
+    jest.useFakeTimers();
+    try {
+      const { onCommit, rerender } = renderTrackingHook();
+
+      act(() => {
+        rerender({ value: 'suite' });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      // Deleting the search and retyping it within the settle delay must still count
+      // as a new search — the empty value resets deduplication before its timer fires.
+      act(() => {
+        rerender({ value: '' });
+      });
+      act(() => {
+        rerender({ value: 'suite' });
+      });
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      expect(onCommit).toHaveBeenCalledTimes(2);
+      expect(onCommit).toHaveBeenNthCalledWith(1, 5);
+      expect(onCommit).toHaveBeenNthCalledWith(2, 5);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('should re-emit the same value after reset is called', () => {

@@ -45,9 +45,15 @@ const useSearchInputTracking = (
   // Live-filtering searches are often typed into and left without Enter or blur, so a
   // value that has stopped changing is a real filter and is reported on its own.
   React.useEffect(() => {
+    if (!value.trim()) {
+      // Deleting a reported search ends its deduplication window immediately — the
+      // empty-value settle timer is cancelled by the next keystroke before it fires.
+      reset();
+      return;
+    }
     const timer = window.setTimeout(() => commitSearchValue(value), SEARCH_SETTLE_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [commitSearchValue, value]);
+  }, [commitSearchValue, reset, value]);
 
   return React.useMemo(
     () => ({
