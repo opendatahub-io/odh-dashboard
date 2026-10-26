@@ -1619,7 +1619,7 @@ components:
           minLength: 1
           maxLength: 250
           description: Human-readable name for the indexing run
-          example: 'Index build - Pattern1'
+          example: "Index build - Pattern\u00A0A"
         description:
           type: string
           maxLength: 255

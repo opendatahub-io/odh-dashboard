@@ -48,6 +48,7 @@ import { isRunInTerminalState } from '~/app/types/pipeline';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import {
   downloadBlob,
+  formatPatternName,
   isRunCompleted,
   isRunRetryable,
   isRunTerminatable,
@@ -440,7 +441,7 @@ function AutoragResultsPage(): React.JSX.Element {
       const total = failedPatterns.length + Object.keys(patterns).length;
       notification.warning(
         `${failedPatterns.length} of ${total} patterns could not be loaded`,
-        `The following patterns failed to load: ${failedPatterns.join(', ')}`,
+        `The following patterns failed to load: ${failedPatterns.map(formatPatternName).join(', ')}`,
       );
     }
   }, [failedPatterns, patterns, notification, patternsLoading]);

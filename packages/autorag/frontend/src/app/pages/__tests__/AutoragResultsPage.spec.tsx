@@ -1423,7 +1423,7 @@ describe('AutoragResultsPage', () => {
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
       expect(mockNotification.warning).toHaveBeenCalledWith(
         '2 of 4 patterns could not be loaded',
-        'The following patterns failed to load: BrokenPattern1, BrokenPattern2',
+        'The following patterns failed to load: BrokenPattern\u00a01, BrokenPattern\u00a02',
       );
     });
 
