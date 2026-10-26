@@ -45,10 +45,17 @@ func (r *APIKeysRepository) GetAPIKeyConfig(ctx context.Context) (*models.APIKey
 	return r.maasClient.GetAPIKeyConfig(ctx)
 }
 
-func (r *APIKeysRepository) GetWhoAmI(ctx context.Context) (*models.MaaSWhoAmI, error) {
+func (r *APIKeysRepository) GetWhoAmI(ctx context.Context) (*models.MaaSWhoAmIUpstream, error) {
 	r.logger.Debug("Getting MaaS caller identity")
 
 	return r.maasClient.GetWhoAmI(ctx)
+}
+
+// HasSubscriptionAdminSignal returns the explicit admin signal from the
+// caller-scoped MaaS subscriptions response.
+func (r *APIKeysRepository) HasSubscriptionAdminSignal(ctx context.Context) (bool, error) {
+	r.logger.Debug("Checking MaaS subscription admin signal")
+	return r.maasClient.HasSubscriptionAdminSignal(ctx)
 }
 
 // CreateAPIKey creates a new API key

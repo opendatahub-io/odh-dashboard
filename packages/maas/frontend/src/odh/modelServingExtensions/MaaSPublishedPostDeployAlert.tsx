@@ -1,6 +1,8 @@
 import React from 'react';
 import { Alert, AlertActionCloseButton, AlertActionLink } from '@patternfly/react-core';
+import { useFetchState } from 'mod-arch-core';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getMaaSWhoAmI } from '~/app/api/whoami';
 import {
   cancelScheduledPostDeployAlertDismiss,
   dismissPostDeployAlert,
@@ -9,7 +11,6 @@ import {
   useHasPostDeployAlert,
   usePostDeployAlert,
 } from '~/app/utilities/postDeployAlertStore';
-import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
 
 export const MAAS_PUBLISHED_INTERNAL_ALERT_ID = 'maas-model-published-internal';
 export const MAAS_PUBLISHED_EXTERNAL_ALERT_ID = 'maas-model-published-external';
@@ -26,7 +27,11 @@ export const MaaSPublishedPostDeployAlert: React.FC<MaaSPublishedPostDeployAlert
   const location = useLocation();
   const navigate = useNavigate();
   const isVisible = useHasPostDeployAlert(alertId);
-  const [isMaasAdmin, isMaasAdminLoaded] = useIsMaasAdmin();
+  const [whoAmI, isMaasAdminLoaded] = useFetchState(getMaaSWhoAmI(), {
+    sub: '',
+    isAdmin: false,
+  });
+  const isMaasAdmin = whoAmI.isAdmin;
 
   React.useEffect(() => {
     if (!isVisible) {

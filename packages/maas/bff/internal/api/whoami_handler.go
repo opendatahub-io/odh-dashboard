@@ -36,7 +36,29 @@ func GetWhoAmIHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpro
 		return
 	}
 
-	response := WhoAmIEnvelope{Data: whoAmI}
+	isAdmin := false
+	if whoAmI.Orgs != nil && len(*whoAmI.Orgs) > 0 {
+		for _, org := range *whoAmI.Orgs {
+			for _, role := range org.Roles {
+				if role == "admins" {
+					isAdmin = true
+					break
+				}
+			}
+			if isAdmin {
+				break
+			}
+		}
+	} else {
+		isAdmin, err = app.repositories.APIKeys.HasSubscriptionAdminSignal(r.Context())
+		if err != nil {
+			app.logger.Warn("Failed to check MaaS subscription admin signal", "error", err)
+		}
+	}
+
+	response := WhoAmIEnvelope{Data: &models.MaaSWhoAmI{
+		Sub: whoAmI.Sub, Email: whoAmI.Email, Name: whoAmI.Name, IsAdmin: isAdmin,
+	}}
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

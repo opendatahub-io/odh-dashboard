@@ -17,18 +17,41 @@ import (
 
 func TestGetWhoAmIHandler(t *testing.T) {
 	tests := []struct {
-		name           string
-		upstreamStatus int
-		upstreamBody   string
-		closeUpstream  bool
-		wantStatus     int
-		wantCode       string
+		name              string
+		upstreamStatus    int
+		upstreamBody      string
+		subscriptionsBody string
+		closeUpstream     bool
+		wantStatus        int
+		wantCode          string
 	}{
 		{
-			name:           "success",
-			upstreamStatus: http.StatusOK,
-			upstreamBody:   `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
-			wantStatus:     http.StatusOK,
+			name:              "success",
+			upstreamStatus:    http.StatusOK,
+			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[{"roles":[]}]}`,
+			subscriptionsBody: `[{"roles":["admin"]}]`,
+			wantStatus:        http.StatusOK,
+		},
+		{
+			name:              "organization admin",
+			upstreamStatus:    http.StatusOK,
+			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[{"roles":["admins"]}]}`,
+			subscriptionsBody: `[]`,
+			wantStatus:        http.StatusOK,
+		},
+		{
+			name:              "missing organizations uses subscriptions",
+			upstreamStatus:    http.StatusOK,
+			upstreamBody:      `{"sub":"user-123"}`,
+			subscriptionsBody: `[{"roles":["admin"]}]`,
+			wantStatus:        http.StatusOK,
+		},
+		{
+			name:              "subscription user is not an admin",
+			upstreamStatus:    http.StatusOK,
+			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
+			subscriptionsBody: `[{"roles":["user"]}]`,
+			wantStatus:        http.StatusOK,
 		},
 		{
 			name:           "unauthorized",
@@ -62,12 +85,16 @@ func TestGetWhoAmIHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != http.MethodGet || r.URL.Path != "/v1/me" {
+				if r.Method != http.MethodGet || (r.URL.Path != "/v1/me" && r.URL.Path != "/v1/subscriptions") {
 					t.Errorf("upstream request = %s %s, want GET /v1/me", r.Method, r.URL.Path)
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tt.upstreamStatus)
-				_, _ = io.WriteString(w, tt.upstreamBody)
+				if r.URL.Path == "/v1/subscriptions" {
+					_, _ = io.WriteString(w, tt.subscriptionsBody)
+				} else {
+					_, _ = io.WriteString(w, tt.upstreamBody)
+				}
 			}))
 			if tt.closeUpstream {
 				upstream.Close()
@@ -102,6 +129,10 @@ func TestGetWhoAmIHandler(t *testing.T) {
 				}
 				if body.Data.Sub != "user-123" {
 					t.Errorf("sub = %q, want user-123", body.Data.Sub)
+				}
+				wantAdmin := tt.name == "organization admin" || tt.name == "missing organizations uses subscriptions"
+				if body.Data.IsAdmin != wantAdmin {
+					t.Errorf("isAdmin = %t, want %t", body.Data.IsAdmin, wantAdmin)
 				}
 				return
 			}

@@ -8,7 +8,7 @@ import {
   enqueuePostDeployAlert,
   resetPostDeployAlerts,
 } from '~/app/utilities/postDeployAlertStore';
-import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
+import { getMaaSWhoAmI } from '~/app/api/whoami';
 import {
   MAAS_PUBLISHED_INTERNAL_ALERT_ID,
   MaaSPublishedPostDeployAlert,
@@ -21,11 +21,9 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-jest.mock('~/app/hooks/useIsMaasAdmin', () => ({
-  useIsMaasAdmin: jest.fn(),
-}));
+jest.mock('~/app/api/whoami', () => ({ getMaaSWhoAmI: jest.fn() }));
 
-const mockUseIsMaasAdmin = jest.mocked(useIsMaasAdmin);
+const mockGetMaaSWhoAmI = jest.mocked(getMaaSWhoAmI);
 
 const renderAlert = (alertId: string, modelName = 'Test model'): void => {
   render(
@@ -39,7 +37,7 @@ describe('MaaSPublishedPostDeployAlert', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetPostDeployAlerts();
-    mockUseIsMaasAdmin.mockReturnValue([false, true, undefined]);
+    mockGetMaaSWhoAmI.mockReturnValue(() => Promise.resolve({ sub: 'user-123', isAdmin: false }));
   });
 
   it('should not render when the alert id is not enqueued', () => {
@@ -72,17 +70,17 @@ describe('MaaSPublishedPostDeployAlert', () => {
     expect(screen.queryByTestId('maas-published-post-deploy-alert')).not.toBeInTheDocument();
   });
 
-  it('should show the governance link when the user is a MaaS admin', () => {
-    mockUseIsMaasAdmin.mockReturnValue([true, true, undefined]);
+  it('should show the governance link when the user is a MaaS admin', async () => {
+    mockGetMaaSWhoAmI.mockReturnValue(() => Promise.resolve({ sub: 'user-123', isAdmin: true }));
     enqueuePostDeployAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID, { modelName: 'Test model' });
 
     renderAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID);
 
-    expect(screen.getByText('Go to MaaS governance')).toBeInTheDocument();
+    expect(await screen.findByText('Go to MaaS governance')).toBeInTheDocument();
   });
 
   it('should not show the governance link when the user is not a MaaS admin', () => {
-    mockUseIsMaasAdmin.mockReturnValue([false, true, undefined]);
+    mockGetMaaSWhoAmI.mockReturnValue(() => Promise.resolve({ sub: 'user-123', isAdmin: false }));
     enqueuePostDeployAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID, { modelName: 'Test model' });
 
     renderAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID);
@@ -91,7 +89,12 @@ describe('MaaSPublishedPostDeployAlert', () => {
   });
 
   it('should not show the governance link while MaaS admin status is loading', () => {
-    mockUseIsMaasAdmin.mockReturnValue([true, false, undefined]);
+    mockGetMaaSWhoAmI.mockReturnValue(
+      () =>
+        new Promise(() => {
+          // Keep the request pending to verify the loading state.
+        }),
+    );
     enqueuePostDeployAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID, { modelName: 'Test model' });
 
     renderAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID);
@@ -101,12 +104,12 @@ describe('MaaSPublishedPostDeployAlert', () => {
 
   it('should navigate to MaaS governance when the admin link is clicked', async () => {
     const user = userEvent.setup();
-    mockUseIsMaasAdmin.mockReturnValue([true, true, undefined]);
+    mockGetMaaSWhoAmI.mockReturnValue(() => Promise.resolve({ sub: 'user-123', isAdmin: true }));
     enqueuePostDeployAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID, { modelName: 'Test model' });
 
     renderAlert(MAAS_PUBLISHED_INTERNAL_ALERT_ID);
 
-    await user.click(screen.getByText('Go to MaaS governance'));
+    await user.click(await screen.findByText('Go to MaaS governance'));
 
     expect(mockNavigate).toHaveBeenCalledWith('/maas/maas-governance/overview', {
       state: {

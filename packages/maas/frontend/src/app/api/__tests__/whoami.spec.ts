@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import * as modArchCore from 'mod-arch-core';
 import { getMaaSWhoAmI, getMaaSWhoAmIDisplayName } from '~/app/api/whoami';
-import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '~/app/types/whoami';
+import { type MaaSWhoAmI } from '~/app/types/whoami';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
@@ -16,13 +16,7 @@ const validWhoAmI: MaaSWhoAmI = {
   sub: '00u7a1b2c3d4e5f6g7h8',
   email: 'alex@grid-tenant-1.com',
   name: 'Alex Doe',
-  [MAAS_ORGS_CLAIM]: [
-    {
-      organization_id: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa',
-      organization_name: 'coke',
-      roles: ['admins'],
-    },
-  ],
+  isAdmin: true,
 };
 
 describe('getMaaSWhoAmI', () => {
@@ -37,7 +31,7 @@ describe('getMaaSWhoAmI', () => {
     const result = await getMaaSWhoAmI()({} as never);
 
     expect(result.sub).toBe(validWhoAmI.sub);
-    expect(result[MAAS_ORGS_CLAIM][0].roles).toContain('admins');
+    expect(result.isAdmin).toBe(true);
   });
 
   it('should throw when required claims are missing', async () => {
@@ -55,17 +49,17 @@ describe('getMaaSWhoAmI', () => {
 
 describe('getMaaSWhoAmIDisplayName', () => {
   it.each([
-    ['Alex Doe', 'alex@example.com', ['users'], 'Alex Doe'],
-    [undefined, 'alex@example.com', ['users'], 'alex@example.com'],
-    [undefined, undefined, ['admins'], 'Admin'],
-    [undefined, undefined, ['users'], 'User'],
-  ])('uses the required identity fallback order', (name, email, roles, expected) => {
+    ['Alex Doe', 'alex@example.com', true, 'Alex Doe'],
+    [undefined, 'alex@example.com', false, 'alex@example.com'],
+    [undefined, undefined, true, 'Admin'],
+    [undefined, undefined, false, 'User'],
+  ])('uses the required identity fallback order', (name, email, isAdmin, expected) => {
     expect(
       getMaaSWhoAmIDisplayName({
         sub: 'subject',
         name,
         email,
-        [MAAS_ORGS_CLAIM]: [{ organization_id: 'org', roles }],
+        isAdmin,
       }),
     ).toBe(expected);
   });
