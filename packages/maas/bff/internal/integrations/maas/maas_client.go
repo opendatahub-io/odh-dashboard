@@ -140,29 +140,6 @@ func (c *MaasClient) GetWhoAmI(ctx context.Context) (*models.MaaSWhoAmIUpstream,
 	return &apiResponse, nil
 }
 
-// HasSubscriptionAdminSignal checks whether the caller is an administrator of
-// any subscription. This fallback supports token types that do not include the
-// MaaS organization claim in /v1/me.
-func (c *MaasClient) HasSubscriptionAdminSignal(ctx context.Context) (bool, error) {
-	endpoint, err := c.endpoint("subscriptions")
-	if err != nil {
-		return false, err
-	}
-
-	var subscriptions []models.SubscriptionListItem
-	if err := c.sendRequest(ctx, "GET", endpoint, nil, &subscriptions, nil); err != nil {
-		return false, err
-	}
-	for _, subscription := range subscriptions {
-		for _, role := range subscription.Roles {
-			if role == "admin" {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
-}
-
 func (c *MaasClient) CreateAPIKey(ctx context.Context, request models.APIKeyCreateRequest) (*models.APIKeyCreateResponse, error) {
 	jsonRequest, err := json.Marshal(request)
 	if err != nil {

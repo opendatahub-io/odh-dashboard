@@ -39,18 +39,21 @@ func GetWhoAmIHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpro
 	isAdmin := false
 	if whoAmI.Orgs != nil && len(*whoAmI.Orgs) > 0 {
 		for _, org := range *whoAmI.Orgs {
-			for _, role := range org.Roles {
-				if role == "admins" {
-					isAdmin = true
-					break
-				}
-			}
-			if isAdmin {
+			if hasRole(org.Roles, "admins") {
+				isAdmin = true
 				break
 			}
 		}
 	} else {
-		isAdmin, err = app.repositories.APIKeys.HasSubscriptionAdminSignal(r.Context())
+		subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
+		if err == nil {
+			for _, subscription := range subscriptions {
+				if hasRole(subscription.Roles, "admin") {
+					isAdmin = true
+					break
+				}
+			}
+		}
 		if err != nil {
 			app.logger.Warn("Failed to check MaaS subscription admin signal", "error", err)
 		}
@@ -62,4 +65,13 @@ func GetWhoAmIHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpro
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func hasRole(roles []string, expected string) bool {
+	for _, role := range roles {
+		if role == expected {
+			return true
+		}
+	}
+	return false
 }
