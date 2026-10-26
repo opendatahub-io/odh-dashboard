@@ -70,7 +70,7 @@ const project = mockProjectK8sResource({ k8sName: 'test-project', enableKueue: t
 const renderResourcesModal = ({
   clusterQueueName,
   currentProject = project,
-  infrastructureWorkloadProject = currentProject,
+  infrastructureWorkloadProject,
   localQueues = [],
 }: {
   clusterQueueName?: string;
@@ -425,6 +425,17 @@ describe('Start Notebook modal', () => {
       expectedClusterQueue: 'infrastructure-cluster-queue',
       expectedQueueValue: 'infrastructure-cluster-queue',
       expectedProjectName: 'infrastructure-project',
+    },
+    {
+      name: 'ProjectDetailsContext project fallback',
+      renderCase: () =>
+        renderResourcesModal({
+          currentProject: mockProjectK8sResource({ k8sName: 'context-project' }),
+          clusterQueueName: 'context-cluster-queue',
+        }),
+      expectedClusterQueue: 'context-cluster-queue',
+      expectedQueueValue: 'context-cluster-queue',
+      expectedProjectName: 'context-project',
     },
   ])(
     'should handle $name for Resources',
