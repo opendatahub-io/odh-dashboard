@@ -40,12 +40,10 @@ const openDeployWizardToDeploymentStep = (modelURI: string) => {
   modelServingGlobal.selectSingleServingModelButtonIfExists();
   modelServingGlobal.findDeployModelButton().click();
 
-  modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
-  modelServingWizard.selectUriConnectionTypeIfExists();
+  modelServingWizard.selectModelLocationOption(ModelLocationSelectOption.URI);
   modelServingWizard.findUrilocationInput().clear().type(modelURI);
   modelServingWizard.findSaveConnectionCheckbox().uncheck();
-  // Cypress misidentifies the clickable menu above the wizard footer as clipped.
-  modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click({ force: true });
+  modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
   modelServingWizard.findNextButton().should('be.enabled').click();
 
   modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);

@@ -8,6 +8,7 @@ import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
+import { ModelLocationSelectOption } from '../utils/modelServingConstants';
 
 type DeploymentMethodKey =
   | 'legacy'
@@ -1095,6 +1096,11 @@ class ModelServingWizard extends Wizard {
     });
   }
 
+  selectModelTypeOption(name: string) {
+    // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+    return this.findModelTypeSelectOption(name).click({ force: true });
+  }
+
   findModelDeploymentProjectSelector() {
     return cy.findByTestId('project-selector-toggle');
   }
@@ -1274,11 +1280,19 @@ class ModelServingWizard extends Wizard {
     return this.findModelLocationSelect().findSelectOption(name);
   }
 
-  /** Select the built-in URI type when multiple URI-compatible types are available. */
-  selectUriConnectionTypeIfExists() {
+  /** Select a location and its built-in connection type when a configuration choice is needed. */
+  selectModelLocationOption(name: string) {
+    const builtInTypes: Partial<Record<string, string>> = {
+      [ModelLocationSelectOption.URI]: 'URI - v1',
+      [ModelLocationSelectOption.S3]: 'S3 compatible object storage - v1',
+      [ModelLocationSelectOption.OCI]: 'OCI compliant registry - v1',
+    };
+
+    this.findModelLocationSelectOption(name).click();
     return cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="custom-type-select"]').length > 0) {
-        this.findCustomModelLocationSelectOption('URI - v1').click();
+      const connectionType = builtInTypes[name];
+      if (connectionType && $body.find('[data-testid="custom-type-select"]').length > 0) {
+        this.findCustomModelLocationSelectOption(connectionType).click();
       }
     });
   }

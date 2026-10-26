@@ -117,14 +117,10 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Fill model details and advance to deployment step');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
-      modelServingWizard.selectUriConnectionTypeIfExists();
+      modelServingWizard.selectModelLocationOption(ModelLocationSelectOption.URI);
       modelServingWizard.findUrilocationInput().clear().type(testData.modelLocationURI);
       modelServingWizard.findSaveConnectionCheckbox().uncheck();
-      // Cypress misidentifies the clickable menu above the wizard footer as clipped.
-      modelServingWizard
-        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
-        .click({ force: true });
+      modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select llm-d deployment method');
