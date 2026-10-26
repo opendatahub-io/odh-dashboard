@@ -1,4 +1,4 @@
-import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '~/app/types/whoami';
+import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '../types/whoami';
 
 export const isMaaSAdmin = (whoAmI: MaaSWhoAmI): boolean =>
   whoAmI[MAAS_ORGS_CLAIM].some((org) => org.roles.includes('admins'));
