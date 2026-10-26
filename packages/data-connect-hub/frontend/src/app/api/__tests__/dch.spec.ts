@@ -24,7 +24,6 @@ jest.mock('mod-arch-core', () => {
 const mockHandleRestFailures = jest.mocked(handleRestFailures);
 const mockIsModArchResponse = jest.mocked(isModArchResponse);
 const mockRestGET = jest.mocked(restGET);
-const actualModArchCore = jest.requireActual<typeof import('mod-arch-core')>('mod-arch-core');
 
 describe('getConnectionType', () => {
   beforeEach(() => {
@@ -235,8 +234,6 @@ describe('createConnection', () => {
           ),
         );
       Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
-      mockIsModArchResponse.mockReturnValue(false);
-      mockHandleRestFailures.mockImplementation(actualModArchCore.handleRestFailures);
 
       const error = await createConnection('')({}, 'test-project', request).catch(
         (caught: unknown) => caught,

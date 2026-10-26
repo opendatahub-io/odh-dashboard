@@ -38,6 +38,12 @@ describe('getConnectionCreationErrorCategory', () => {
     expect(getConnectionCreationErrorCategory({ response: { status: 503 } })).toBe('http_503');
   });
 
+  it('should prefer a structured HTTP status over an Error message', () => {
+    const error = Object.assign(new Error('status code 500: server failed'), { status: 403 });
+
+    expect(getConnectionCreationErrorCategory(error)).toBe('http_403');
+  });
+
   it('should return unknown_error without exposing the error message', () => {
     expect(getConnectionCreationErrorCategory(new Error('customer secret'))).toBe('unknown_error');
     expect(
