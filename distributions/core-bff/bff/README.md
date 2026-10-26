@@ -91,7 +91,7 @@ Every normal HTTP reply gets browser security headers via response-writer middle
 
 `Cache-Control` is selective:
 
-- **API paths** (`/api`, `/wss`, module `/…/api/…`) and **SPA document** responses use `no-cache, no-store, must-revalidate`.
+- **API paths** (`/api`, `/wss`, module `/…/api/…`) and **SPA document** responses use `no-cache, no-store, private, max-age=0, must-revalidate`.
 - **Module API proxies** also force `no-store` via `ModifyResponse` (parity with the Node `rewriteNoStoreCacheHeaders` helper).
 - **Host static assets** use filename-based policies (immutable for content-hashed bundles, `no-cache` for unhashed scripts, short TTL for media).
 
