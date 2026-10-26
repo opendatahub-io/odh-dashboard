@@ -46,16 +46,15 @@ func GetWhoAmIHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpro
 		}
 	} else {
 		subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
-		if err == nil {
-			for _, subscription := range subscriptions {
-				if hasRole(subscription.Roles, "admin") {
-					isAdmin = true
-					break
-				}
-			}
-		}
 		if err != nil {
-			app.logger.Warn("Failed to check MaaS subscription admin signal", "error", err)
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+		for _, subscription := range subscriptions {
+			if hasRole(subscription.Roles, "admin") {
+				isAdmin = true
+				break
+			}
 		}
 	}
 

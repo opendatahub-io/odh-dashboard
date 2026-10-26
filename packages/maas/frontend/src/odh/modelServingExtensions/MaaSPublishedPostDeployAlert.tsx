@@ -1,8 +1,7 @@
 import React from 'react';
 import { Alert, AlertActionCloseButton, AlertActionLink } from '@patternfly/react-core';
-import { useFetchState } from 'mod-arch-core';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getMaaSWhoAmI } from '~/app/api/whoami';
+import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
 import {
   cancelScheduledPostDeployAlertDismiss,
   dismissPostDeployAlert,
@@ -27,11 +26,7 @@ export const MaaSPublishedPostDeployAlert: React.FC<MaaSPublishedPostDeployAlert
   const location = useLocation();
   const navigate = useNavigate();
   const isVisible = useHasPostDeployAlert(alertId);
-  const [whoAmI, isMaasAdminLoaded] = useFetchState(getMaaSWhoAmI(), {
-    sub: '',
-    isAdmin: false,
-  });
-  const isMaasAdmin = whoAmI.isAdmin;
+  const [isMaasAdmin, isMaasAdminLoaded] = useIsMaasAdmin();
 
   React.useEffect(() => {
     if (!isVisible) {

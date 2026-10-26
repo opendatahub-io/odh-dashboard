@@ -17,13 +17,14 @@ import (
 
 func TestGetWhoAmIHandler(t *testing.T) {
 	tests := []struct {
-		name              string
-		upstreamStatus    int
-		upstreamBody      string
-		subscriptionsBody string
-		closeUpstream     bool
-		wantStatus        int
-		wantCode          string
+		name                string
+		upstreamStatus      int
+		subscriptionsStatus int
+		upstreamBody        string
+		subscriptionsBody   string
+		closeUpstream       bool
+		wantStatus          int
+		wantCode            string
 	}{
 		{
 			name:              "success",
@@ -52,6 +53,15 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
 			subscriptionsBody: `[{"roles":["user"]}]`,
 			wantStatus:        http.StatusOK,
+		},
+		{
+			name:                "subscription check failure",
+			upstreamStatus:      http.StatusOK,
+			subscriptionsStatus: http.StatusInternalServerError,
+			upstreamBody:        `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
+			subscriptionsBody:   `{"error":"MaaS unavailable"}`,
+			wantStatus:          http.StatusServiceUnavailable,
+			wantCode:            "503",
 		},
 		{
 			name:           "unauthorized",
@@ -89,10 +99,15 @@ func TestGetWhoAmIHandler(t *testing.T) {
 					t.Errorf("upstream request = %s %s, want GET /v1/me", r.Method, r.URL.Path)
 				}
 				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(tt.upstreamStatus)
 				if r.URL.Path == "/v1/subscriptions" {
+					status := tt.subscriptionsStatus
+					if status == 0 {
+						status = tt.upstreamStatus
+					}
+					w.WriteHeader(status)
 					_, _ = io.WriteString(w, tt.subscriptionsBody)
 				} else {
+					w.WriteHeader(tt.upstreamStatus)
 					_, _ = io.WriteString(w, tt.upstreamBody)
 				}
 			}))
