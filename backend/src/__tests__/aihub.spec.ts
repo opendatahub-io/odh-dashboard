@@ -96,6 +96,23 @@ describe('fetchAIHub', () => {
       'default-dsc',
     );
   });
+
+  it('should use the compatibility path when the unavailable AIHub API is reported as forbidden', async () => {
+    const aiHubForbidden = { response: { statusCode: 403 } };
+    mockGetClusterCustomObject.mockRejectedValueOnce(aiHubForbidden).mockResolvedValueOnce({
+      body: {
+        spec: {
+          components: {
+            modelregistry: { registriesNamespace: 'rhoai-model-registries' },
+          },
+        },
+      },
+    });
+
+    await expect(fetchAIHub(mockFastify)).resolves.toMatchObject({
+      spec: { instancesNamespace: 'rhoai-model-registries' },
+    });
+  });
 });
 
 describe('getAIHubErrorStatus', () => {

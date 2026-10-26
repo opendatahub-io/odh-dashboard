@@ -106,7 +106,9 @@ export const fetchAIHub = async (fastify: KubeFastifyInstance): Promise<AIHubKin
     // model-registry namespace through the DataScienceCluster. Keep the
     // upstream AIHub contract when it exists, but allow the dashboard to run
     // against those installations without requiring a synthetic CRD.
-    if (getAIHubErrorStatus(error) === 404) {
+    // Some older RHOAI distributions report an unavailable optional API as
+    // 403 instead of 404 from the dashboard service account.
+    if ([403, 404].includes(getAIHubErrorStatus(error) ?? 0)) {
       try {
         const response = await fastify.kube.customObjectsApi.getClusterCustomObject(
           DSC_GROUP,
