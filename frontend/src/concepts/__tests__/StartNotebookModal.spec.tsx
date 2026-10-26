@@ -70,10 +70,12 @@ const project = mockProjectK8sResource({ k8sName: 'test-project', enableKueue: t
 const renderResourcesModal = ({
   clusterQueueName,
   currentProject = project,
+  infrastructureWorkloadProject = currentProject,
   localQueues = [],
 }: {
   clusterQueueName?: string;
   currentProject?: typeof project;
+  infrastructureWorkloadProject?: typeof project;
   localQueues?: ReturnType<typeof mockLocalQueueK8sResource>[];
 }) => {
   const notebook = structuredClone(mockInitialStates.notebookState.notebook);
@@ -99,7 +101,7 @@ const renderResourcesModal = ({
         isRunning={false}
         events={[]}
         buttons={null}
-        infrastructureWorkloadProject={currentProject}
+        infrastructureWorkloadProject={infrastructureWorkloadProject}
         infrastructureWorkloadClusterQueueName={clusterQueueName}
       />
     </ProjectDetailsContext.Provider>,
@@ -410,10 +412,29 @@ describe('Start Notebook modal', () => {
       renderCase: () => renderResourcesModal({ currentProject: undefined }),
       expectedClusterQueue: undefined,
     },
+    {
+      name: 'distinct infrastructure project override',
+      renderCase: () =>
+        renderResourcesModal({
+          currentProject: mockProjectK8sResource({ k8sName: 'context-project' }),
+          infrastructureWorkloadProject: mockProjectK8sResource({
+            k8sName: 'infrastructure-project',
+          }),
+          clusterQueueName: 'infrastructure-cluster-queue',
+        }),
+      expectedClusterQueue: 'infrastructure-cluster-queue',
+      expectedQueueValue: 'infrastructure-cluster-queue',
+      expectedProjectName: 'infrastructure-project',
+    },
   ])(
     'should handle $name for Resources',
-    async ({ renderCase, expectedClusterQueue, expectedQueueValue }) => {
-      mockUseKueueConfiguration.mockReturnValue(kueueEnabledConfig);
+    async ({ renderCase, expectedClusterQueue, expectedQueueValue, expectedProjectName }) => {
+      mockUseKueueConfiguration.mockImplementation((selectedProject) => {
+        if (expectedProjectName) {
+          expect(selectedProject?.metadata.name).toBe(expectedProjectName);
+        }
+        return kueueEnabledConfig;
+      });
       mockUseAccessReview.mockReturnValue([true, false]);
 
       const user = userEvent.setup();

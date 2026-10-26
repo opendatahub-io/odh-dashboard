@@ -47,6 +47,12 @@ const kueueProjectA = mockProjectK8sResource({
   enableKueue: true,
 });
 const projectB = mockProjectK8sResource({ k8sName: PROJECT_B, displayName: 'Project-B' });
+const infrastructureClusterQueueName = 'test-cluster-queue';
+const fallbackClusterQueueName = 'fallback-cluster-queue';
+const mockInfrastructureLocalQueue = () => ({
+  ...mockLocalQueueK8sResource({ namespace: PROJECT_A, name: 'user-queue' }),
+  spec: { clusterQueue: fallbackClusterQueueName },
+});
 
 const initWorkloadsIntercepts = (
   workloads = true,
@@ -69,9 +75,7 @@ const initWorkloadsIntercepts = (
   if (enableKueue) {
     cy.interceptK8sList(
       { model: LocalQueueModel, ns: PROJECT_A },
-      mockK8sResourceList([
-        mockLocalQueueK8sResource({ namespace: PROJECT_A, name: 'user-queue' }),
-      ]),
+      mockK8sResourceList([mockInfrastructureLocalQueue()]),
     );
   }
   cy.interceptK8sList(
@@ -286,6 +290,13 @@ const initHybridWorkloadsIntercepts = () => {
           ...workload.metadata.labels,
           'kueue.x-k8s.io/job-name': name,
         };
+        workload.status = {
+          ...workload.status,
+          admission: {
+            clusterQueue: infrastructureClusterQueueName,
+            podSetAssignments: [],
+          },
+        };
       }
       return workload;
     }),
@@ -293,7 +304,7 @@ const initHybridWorkloadsIntercepts = () => {
 
   cy.interceptK8sList(
     { model: LocalQueueModel, ns: PROJECT_A },
-    mockK8sResourceList([mockLocalQueueK8sResource({ namespace: PROJECT_A, name: 'user-queue' })]),
+    mockK8sResourceList([mockInfrastructureLocalQueue()]),
   );
   cy.interceptK8sList({ model: WorkloadModel, ns: PROJECT_A }, mockK8sResourceList(kueueWorkloads));
 
@@ -369,6 +380,10 @@ describe('GPUaaS Infrastructure Workloads', () => {
     infrastructurePage.findWorkbenchStatusModal().should('be.visible');
     infrastructurePage.findWorkbenchStatusResourcesTab().should('be.visible').click();
     infrastructurePage.findWorkbenchStatusClusterQueueSection().should('be.visible');
+    infrastructurePage.findWorkbenchStatusQueueValue().should('have.text', 'test-cluster-queue');
+    infrastructurePage
+      .findWorkbenchStatusModal()
+      .should('not.contain.text', 'Unable to load consumption data.');
     infrastructurePage.findWorkbenchStatusModal().find('[aria-label="Close"]').click();
 
     infrastructurePage.findWorkloadTrainingStatus('gpu-training-job').click();
@@ -386,6 +401,29 @@ describe('GPUaaS Infrastructure Workloads', () => {
     infrastructurePage.findWorkloadInferenceStatus('gpu-llm-inference-service').click();
     infrastructurePage.findDeploymentStatusModal().should('be.visible');
     infrastructurePage.findDeploymentStatusModal().find('[aria-label="Close"]').click();
+  });
+
+  it('should hide Workbench Resources tab when ClusterQueue access is denied', () => {
+    initHybridWorkloadsIntercepts();
+    cy.interceptK8s(
+      'POST',
+      SelfSubjectAccessReviewModel,
+      mockSelfSubjectAccessReview({
+        group: ClusterQueueModel.apiGroup,
+        resource: ClusterQueueModel.plural,
+        verb: 'get',
+        allowed: false,
+        namespace: PROJECT_A,
+      }),
+    );
+
+    infrastructurePage.visit(false);
+    infrastructurePage.findWorkloadsTab().click();
+    infrastructurePage.selectProjectByName('Project-A');
+    infrastructurePage.findWorkloadWorkbenchStatus('gpu-queued-workbench').click();
+
+    infrastructurePage.findWorkbenchStatusModal().should('be.visible');
+    infrastructurePage.findWorkbenchStatusResourcesTab().should('not.exist');
   });
 
   it('should show the empty state when the selected project has no workloads', () => {

@@ -183,6 +183,10 @@ class InfrastructurePage {
     return this.findWorkbenchStatusModal().findByTestId('cluster-queue-section');
   }
 
+  findWorkbenchStatusQueueValue() {
+    return this.findWorkbenchStatusModal().findByTestId('queue-value');
+  }
+
   findTrainingJobStatusModal() {
     return cy.findByTestId('training-job-status-modal');
   }
