@@ -45,14 +45,26 @@ type McpDeploymentList struct {
 }
 
 type McpDeploymentCreateRequest struct {
-	Name            string                      `json:"name,omitempty"`
-	DisplayName     string                      `json:"displayName,omitempty"`
-	ServerName      string                      `json:"serverName,omitempty"`
-	RegistryServer  string                      `json:"registryServer,omitempty"`
-	RegistryVersion string                      `json:"registryVersion,omitempty"`
-	Image           string                      `json:"image"`
-	YAML            string                      `json:"yaml,omitempty"`
-	Prerequisites   []McpDeploymentPrerequisite `json:"prerequisites,omitempty"`
+	Name                string                      `json:"name,omitempty"`
+	DisplayName         string                      `json:"displayName,omitempty"`
+	ServerName          string                      `json:"serverName,omitempty"`
+	RegistryServer      string                      `json:"registryServer,omitempty"`
+	RegistryVersion     string                      `json:"registryVersion,omitempty"`
+	Image               string                      `json:"image"`
+	YAML                string                      `json:"yaml,omitempty"`
+	Prerequisites       []McpDeploymentPrerequisite `json:"prerequisites,omitempty"`
+	GatewayRegistration *McpGatewayRegistration     `json:"gatewayRegistration,omitempty"`
+}
+
+// McpGatewayRegistration describes the catalog-facing metadata used to expose
+// a deployed MCPServer through the discovered MCP Gateway. The BFF resolves
+// the actual Gateway and listener from the live cluster; callers never provide
+// cluster infrastructure names.
+type McpGatewayRegistration struct {
+	Category []string `json:"category,omitempty"`
+	Hint     string   `json:"hint,omitempty"`
+	Path     string   `json:"path,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
 }
 
 // McpDeploymentPrerequisite is intentionally limited to non-secret resources

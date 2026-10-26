@@ -131,6 +131,14 @@ export type McpDeploymentCreateRequest = {
   image: string;
   yaml?: string;
   prerequisites?: McpDeploymentPrerequisite[];
+  gatewayRegistration?: McpGatewayRegistration;
+};
+
+export type McpGatewayRegistration = {
+  category?: string[];
+  hint?: string;
+  path?: string;
+  tags?: string[];
 };
 
 /** Catalog-declared, non-secret resources that the guided installer may create. */

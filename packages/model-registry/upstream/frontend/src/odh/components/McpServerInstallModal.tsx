@@ -38,7 +38,7 @@ import { createMcpDeployment } from '~/odh/api/mcpCatalogDeployment/service';
 import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
-import type { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
+import type { McpDeployment, McpGatewayRegistration } from '~/odh/types/mcpDeploymentTypes';
 import { mcpServerCRToYaml } from '~/odh/utils/mcpServerYaml';
 import {
   mcpServerCatalogImage,
@@ -138,8 +138,12 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   const deployment = deployments.find((item) => item.name === deploymentName);
   const readyCondition = conditionFor(deployment, 'Ready');
   const acceptedCondition = conditionFor(deployment, 'Accepted');
+  const gatewayRegistrationCondition = conditionFor(deployment, 'GatewayRegistration');
   const installFailed = readyCondition?.status === 'False' || acceptedCondition?.status === 'False';
-  const installComplete = readyCondition?.status === 'True';
+  const gatewayRegistrationFailed = gatewayRegistrationCondition?.status === 'False';
+  const installComplete =
+    readyCondition?.status === 'True' &&
+    (!readiness?.gatewayRequired || gatewayRegistrationCondition?.status === 'True');
 
   const runtimeState: CheckState = crData?.spec.source.containerImage?.ref ? 'ready' : 'blocked';
   const lifecycleState: CheckState = !lifecycleLoaded
@@ -187,6 +191,14 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
         image: crData.spec.source.containerImage?.ref ?? '',
         yaml: mcpServerCRToYaml(crData),
         prerequisites,
+        gatewayRegistration: readiness?.gatewayRequired
+          ? ({
+              category: ['mcp'],
+              hint: server.description || displayName,
+              path: crData.spec.config.path || '/mcp',
+              tags: server.tags,
+            } satisfies McpGatewayRegistration)
+          : undefined,
       });
       setDeploymentName(created.name);
       setStep('installing');
@@ -200,11 +212,12 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   };
 
   const renderInstallStatus = () => {
-    if (installFailed) {
+    if (installFailed || gatewayRegistrationFailed) {
       return (
         <Alert variant="danger" isInline title="Installation needs attention">
           {readyCondition?.message ||
             acceptedCondition?.message ||
+            gatewayRegistrationCondition?.message ||
             'The MCP deployment did not become ready.'}
         </Alert>
       );
@@ -225,9 +238,20 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
         <CheckRow
           label="Validate gateway registration"
           detail={
-            installComplete ? 'The deployment reports Ready' : 'Waiting for the deployment status'
+            gatewayRegistrationCondition?.message ||
+            (readiness?.gatewayRequired
+              ? 'Waiting for MCP Gateway registration'
+              : 'Gateway registration is not required for this server')
           }
-          state={installComplete ? 'ready' : 'pending'}
+          state={
+            gatewayRegistrationCondition?.status === 'True'
+              ? 'ready'
+              : gatewayRegistrationFailed
+                ? 'blocked'
+                : readiness?.gatewayRequired
+                  ? 'pending'
+                  : 'ready'
+          }
         />
       </List>
     );

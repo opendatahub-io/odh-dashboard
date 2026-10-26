@@ -92,6 +92,7 @@ func (r *McpDeploymentRepository) List(
 			r.logger.Warn("skipping MCPServer conversion", "name", item.GetName(), "error", err)
 			continue
 		}
+		r.addGatewayRegistrationCondition(ctx, dyn, &deployment)
 		items = append(items, deployment)
 	}
 
@@ -124,7 +125,12 @@ func (r *McpDeploymentRepository) Get(
 		return models.McpDeployment{}, fmt.Errorf("failed to get MCPServer %q: %w", name, err)
 	}
 
-	return convertUnstructuredToMcpDeployment(*item)
+	deployment, err := convertUnstructuredToMcpDeployment(*item)
+	if err != nil {
+		return models.McpDeployment{}, err
+	}
+	r.addGatewayRegistrationCondition(ctx, dyn, &deployment)
+	return deployment, nil
 }
 
 func (r *McpDeploymentRepository) Create(
@@ -177,7 +183,20 @@ func (r *McpDeploymentRepository) Create(
 		return models.McpDeployment{}, fmt.Errorf("failed to create MCPServer: %w", err)
 	}
 
-	return convertUnstructuredToMcpDeployment(*created)
+	createdGatewayResources, err := ensureMcpGatewayRegistration(ctx, dyn, namespace, server, req.GatewayRegistration)
+	if err != nil {
+		cleanupMcpPrerequisites(ctx, dyn, createdGatewayResources)
+		_ = dyn.Resource(mcpServerGVR).Namespace(namespace).Delete(ctx, server.Metadata.Name, metav1.DeleteOptions{})
+		cleanupMcpPrerequisites(ctx, dyn, createdPrerequisites)
+		return models.McpDeployment{}, err
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(*created)
+	if err != nil {
+		return models.McpDeployment{}, err
+	}
+	r.addGatewayRegistrationCondition(ctx, dyn, &deployment)
+	return deployment, nil
 }
 
 func (r *McpDeploymentRepository) Update(
@@ -240,9 +259,51 @@ func (r *McpDeploymentRepository) Delete(
 		}
 		return fmt.Errorf("failed to delete MCPServer %q: %w", name, err)
 	}
+	cleanupOwnedMcpGatewayRegistration(ctx, dyn, name)
 	cleanupOwnedMcpPrerequisites(ctx, dyn, namespace, name)
 
 	return nil
+}
+
+// addGatewayRegistrationCondition exposes the live MCP Gateway registration
+// status beside the MCPServer conditions so the guided installer can report
+// the actual end-to-end state instead of inferring registration from Ready.
+func (r *McpDeploymentRepository) addGatewayRegistrationCondition(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	deployment *models.McpDeployment,
+) {
+	if deployment == nil || deployment.Name == "" {
+		return
+	}
+	selector := fmt.Sprintf("%s=%s,%s=%s", mcpPrerequisiteManagedByLabel, mcpPrerequisiteManager, mcpPrerequisiteServerLabel, deployment.Name)
+	list, err := dyn.Resource(mcpServerRegistrationGVR).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	if err != nil || len(list.Items) == 0 {
+		return
+	}
+
+	conditions, _, _ := unstructured.NestedSlice(list.Items[0].Object, "status", "conditions")
+	for _, raw := range conditions {
+		condition, ok := raw.(map[string]interface{})
+		if !ok || getString(condition, "type") != "Ready" {
+			continue
+		}
+		deployment.Conditions = append(deployment.Conditions, models.McpDeploymentCondition{
+			Type:               "GatewayRegistration",
+			Status:             getString(condition, "status"),
+			LastTransitionTime: getString(condition, "lastTransitionTime"),
+			Reason:             getString(condition, "reason"),
+			Message:            getString(condition, "message"),
+		})
+		return
+	}
+
+	deployment.Conditions = append(deployment.Conditions, models.McpDeploymentCondition{
+		Type:    "GatewayRegistration",
+		Status:  "False",
+		Reason:  "Pending",
+		Message: "MCP Gateway registration has not reported Ready yet.",
+	})
 }
 
 func validateCreateRequest(req models.McpDeploymentCreateRequest) error {
