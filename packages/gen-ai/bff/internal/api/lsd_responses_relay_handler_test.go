@@ -114,11 +114,13 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		t := GinkgoT()
 
 		var receivedMethod, receivedPath, receivedQuery, receivedAuth, receivedContentType, receivedAccept, receivedBody string
+		var receivedForwardedToken string
 		upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			receivedMethod = r.Method
 			receivedPath = r.URL.Path
 			receivedQuery = r.URL.RawQuery
 			receivedAuth = r.Header.Get("Authorization")
+			receivedForwardedToken = r.Header.Get("x-forwarded-access-token")
 			receivedContentType = r.Header.Get("Content-Type")
 			receivedAccept = r.Header.Get("Accept")
 			body, _ := io.ReadAll(r.Body)
@@ -161,9 +163,36 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		assert.Equal(t, "/autorag/api/v1/responses", receivedPath)
 		assert.Equal(t, "namespace=test-ns&dbSecretName=db&maasSecretName=maas", receivedQuery)
 		assert.Equal(t, "Bearer test-token", receivedAuth)
+		assert.Equal(t, "test-token", receivedForwardedToken)
 		assert.Equal(t, "application/json", receivedContentType)
 		assert.Equal(t, "text/event-stream", receivedAccept)
 		assert.Equal(t, body, receivedBody)
+	})
+
+	It("should honor a scheme-qualified gateway domain for local development", func() {
+		t := GinkgoT()
+
+		var receivedPath, receivedQuery string
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedPath = r.URL.Path
+			receivedQuery = r.URL.RawQuery
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"ok":true}`)
+		}))
+		defer upstream.Close()
+
+		app.config.GatewayDomain = upstream.URL + "/"
+		app.httpClient = upstream.Client()
+
+		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses?namespace=test-ns"), `{"model":"m"}`)
+		rr := httptest.NewRecorder()
+
+		app.ResponsesRelayHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "/autorag/api/v1/responses", receivedPath)
+		assert.Equal(t, "namespace=test-ns", receivedQuery)
+		assert.JSONEq(t, `{"ok":true}`, rr.Body.String())
 	})
 
 	It("should pipe a non-200 upstream error envelope verbatim", func() {

@@ -957,6 +957,55 @@ func TestValidateCreateIndexingPipelineRunRequest(t *testing.T) {
 	})
 }
 
+func TestValidateGraphExtractionConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		params  map[string]any
+		wantErr string
+	}{
+		{name: "absent"},
+		{name: "constrained", params: map[string]any{"graph_extraction_config": map[string]any{"mode": "constrained"}}},
+		{name: "mode defaults to constrained", params: map[string]any{"graph_extraction_config": map[string]any{}}},
+		{name: "constrained with extra settings is accepted", params: map[string]any{
+			"graph_extraction_config": map[string]any{"mode": "constrained", "max_entities_per_chunk": 2},
+		}},
+		{name: "free with limits", params: map[string]any{"graph_extraction_config": map[string]any{
+			"mode": "free", "max_entities_per_chunk": float64(8), "max_relationships_per_chunk": 4,
+		}}},
+		{name: "free as JSON string", params: map[string]any{
+			"graph_extraction_config": `{"mode":"free","max_entities_per_chunk":2,"max_relationships_per_chunk":1}`,
+		}},
+		{name: "pattern setting name", params: map[string]any{"graph_extraction": map[string]any{"mode": "constrained"}}},
+		{name: "unknown mode", params: map[string]any{"graph_extraction_config": map[string]any{"mode": "auto"}}, wantErr: "must be 'constrained' or 'free'"},
+		{name: "mode not a string", params: map[string]any{"graph_extraction_config": map[string]any{"mode": 1}}, wantErr: "mode must be a string"},
+		{name: "config not an object", params: map[string]any{"graph_extraction_config": []any{"constrained"}}, wantErr: "must be an object"},
+		{name: "free missing entity limit", params: map[string]any{"graph_extraction_config": map[string]any{
+			"mode": "free", "max_relationships_per_chunk": 4,
+		}}, wantErr: "max_entities_per_chunk must be a positive integer"},
+		{name: "free zero relationship limit", params: map[string]any{"graph_extraction_config": map[string]any{
+			"mode": "free", "max_entities_per_chunk": 4, "max_relationships_per_chunk": 0,
+		}}, wantErr: "max_relationships_per_chunk must be a positive integer"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateGraphExtractionConfig(tt.params)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("error = %v, want containing %q", err, tt.wantErr)
+			}
+			if !errors.Is(err, ErrValidation) {
+				t.Fatalf("error should unwrap to ErrValidation: %v", err)
+			}
+		})
+	}
+}
+
 func TestCreateIndexingRun(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		var gotInput *pipelines.CreatePipelineRunInput

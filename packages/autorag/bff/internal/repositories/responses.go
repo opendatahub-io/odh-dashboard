@@ -196,7 +196,7 @@ func (r *ResponsesRepository) resolveVectorDB(ctx context.Context, namespace, se
 	}
 
 	providers := database.Classify(secret.Data)
-	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector) {
+	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector && providers[0] != database.Neo4j) {
 		return nil, fmt.Errorf("failed to classify vector DB secret %q: %w", secretName, vectordb.ErrUnsupportedVectorDB)
 	}
 
@@ -675,7 +675,7 @@ func (r *ResponsesRepository) ValidateResponses(ctx context.Context, params Resp
 	}
 	validationCtx := ctx
 	providers := database.Classify(secret.Data)
-	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector) {
+	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector && providers[0] != database.Neo4j) {
 		return fmt.Errorf("failed to classify vector DB secret %q: %w", params.DBSecretName, vectordb.ErrUnsupportedVectorDB)
 	}
 	if providers[0] == database.Milvus {
