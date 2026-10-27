@@ -221,6 +221,9 @@ func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input
 		if isS3ConditionalCreateConflict(err) {
 			return ErrObjectAlreadyExists
 		}
+		if !opts.DisableUploadChecksumTrailers && isS3InvalidArgumentBadRequest(err) {
+			return fmt.Errorf("%w: %w", ErrUploadChecksumRejected, err)
+		}
 		if translated := translateS3Error(err); translated != nil {
 			return translated
 		}
@@ -446,6 +449,13 @@ func isS3ConditionalCreateConflict(err error) bool {
 		}
 	}
 	return false
+}
+
+func isS3InvalidArgumentBadRequest(err error) bool {
+	var codedErr interface{ ErrorCode() string }
+	var responseErr interface{ HTTPStatusCode() int }
+	return errors.As(err, &codedErr) && codedErr.ErrorCode() == "InvalidArgument" &&
+		errors.As(err, &responseErr) && responseErr.HTTPStatusCode() == http.StatusBadRequest
 }
 
 // Compile-time interface checks.

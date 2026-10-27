@@ -300,6 +300,12 @@ Validator tests live in **`internal/integrations/s3/client_test.go`**. HTTP stat
 
 ## Troubleshooting
 
+### "The S3 endpoint rejected the upload's streaming checksum trailer."
+
+**Problem**: The endpoint returned `400 InvalidArgument` because it does not support streaming checksum trailers. This can occur with affected NetApp ONTAP versions.
+
+**Solution**: Set `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS=true` on the data connection Secret. If the Secret has `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM`, remove it first because the two settings cannot be combined. Disabling optional trailers does not disable checksums required by the S3 operation.
+
 ### "endpoint URL must use HTTPS scheme"
 
 **Problem**: Secret contains HTTP URL instead of HTTPS.

@@ -21,6 +21,7 @@ import (
 	transfertypes "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
 // --- Mock implementations ---
@@ -323,6 +324,42 @@ func TestClient_UploadObject(t *testing.T) {
 			t.Errorf("expected ErrObjectAlreadyExists, got %v", err)
 		}
 	})
+}
+
+func TestClient_UploadObjectClassifiesChecksumRejection(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		statusCode        int
+		errorCode         string
+		disableTrailers   bool
+		wantChecksumError bool
+	}{
+		{name: "optional checksum trailer rejected", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", wantChecksumError: true},
+		{name: "trailers disabled", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", disableTrailers: true},
+		{name: "other HTTP status", statusCode: http.StatusForbidden, errorCode: "InvalidArgument"},
+		{name: "other S3 error", statusCode: http.StatusBadRequest, errorCode: "AccessDenied"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			transferClient := &mockTransferClient{
+				uploadObjectFn: func(context.Context, *transfermanager.UploadObjectInput, ...func(*transfermanager.Options)) (*transfermanager.UploadObjectOutput, error) {
+					return nil, &smithyhttp.ResponseError{
+						Response: &smithyhttp.Response{Response: &http.Response{StatusCode: tc.statusCode}},
+						Err:      &s3CodedError{code: tc.errorCode},
+					}
+				},
+			}
+			c := &client{Provider: &mockProvider{transferClient: transferClient}}
+			opts := testOpts()
+			opts.DisableUploadChecksumTrailers = tc.disableTrailers
+
+			err := c.UploadObject(context.Background(), opts, UploadObjectInput{
+				Bucket: "bucket", Key: "object", Body: bytes.NewReader([]byte("data")),
+			})
+			if got := errors.Is(err, ErrUploadChecksumRejected); got != tc.wantChecksumError {
+				t.Errorf("errors.Is(err, ErrUploadChecksumRejected) = %t, want %t (err: %v)", got, tc.wantChecksumError, err)
+			}
+		})
+	}
 }
 
 // NetApp ONTAP S3 rejects the optional streaming checksum trailer, so its
