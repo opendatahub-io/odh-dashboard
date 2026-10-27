@@ -340,17 +340,19 @@ func TestDefaultClient_UploadObjectWithoutChecksumTrailer(t *testing.T) {
 
 func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
 	const content = "retention-protected object"
+	// Expected Base64 digests of content, calculated independently of the SDK.
 	for _, tc := range []struct {
 		name      string
 		algorithm ChecksumAlgorithm
 		trailer   string
+		checksum  string
 	}{
 		{name: "missing checksum"},
-		{name: "CRC32", algorithm: transfertypes.ChecksumAlgorithmCrc32, trailer: "x-amz-checksum-crc32"},
-		{name: "CRC32C", algorithm: transfertypes.ChecksumAlgorithmCrc32c, trailer: "x-amz-checksum-crc32c"},
-		{name: "SHA1", algorithm: transfertypes.ChecksumAlgorithmSha1, trailer: "x-amz-checksum-sha1"},
-		{name: "SHA256", algorithm: transfertypes.ChecksumAlgorithmSha256, trailer: "x-amz-checksum-sha256"},
-		{name: "SHA512", algorithm: transfertypes.ChecksumAlgorithmSha512, trailer: "x-amz-checksum-sha512"},
+		{name: "CRC32", algorithm: transfertypes.ChecksumAlgorithmCrc32, trailer: "x-amz-checksum-crc32", checksum: "EfRGpg=="},
+		{name: "CRC32C", algorithm: transfertypes.ChecksumAlgorithmCrc32c, trailer: "x-amz-checksum-crc32c", checksum: "kOsnJw=="},
+		{name: "SHA1", algorithm: transfertypes.ChecksumAlgorithmSha1, trailer: "x-amz-checksum-sha1", checksum: "6iogebScdIc9CIgmjP2vWJ+RHGs="},
+		{name: "SHA256", algorithm: transfertypes.ChecksumAlgorithmSha256, trailer: "x-amz-checksum-sha256", checksum: "1GnKAUBPcu+CPrc+C2liUVW8psZYRgk2UEi31gEg4Kw="},
+		{name: "SHA512", algorithm: transfertypes.ChecksumAlgorithmSha512, trailer: "x-amz-checksum-sha512", checksum: "YumVYUQuvqhk6CioQ3+SFyxGkarjzrn4khLXA0QOYUHbA51o5KLvhWxoELCE6ZUGfDcnmWaigrEDtW+pC2dq9A=="},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var receivedChecksumAlgorithm, receivedChecksumTrailer, receivedSHA256, receivedIfNoneMatch string
@@ -404,8 +406,8 @@ func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
 				if receivedChecksumTrailer != tc.trailer || receivedSHA256 != "STREAMING-UNSIGNED-PAYLOAD-TRAILER" {
 					t.Errorf("unexpected checksum framing: trailer=%q, sha256=%q", receivedChecksumTrailer, receivedSHA256)
 				}
-				if !strings.Contains(string(receivedWireBody), tc.trailer+":") {
-					t.Errorf("%s checksum trailer missing from wire body %q", tc.algorithm, receivedWireBody)
+				if !strings.Contains(string(receivedWireBody), tc.trailer+":"+tc.checksum+"\r\n") {
+					t.Errorf("%s checksum trailer has the wrong value in wire body %q", tc.algorithm, receivedWireBody)
 				}
 			}
 			if receivedChecksumAlgorithm != string(tc.algorithm) {
