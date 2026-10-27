@@ -679,7 +679,8 @@ describe('ChatbotMain - Empty State Logic', () => {
     );
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
 
-    // Tool order within a server carries semantics — reordering reads as dirty
+    // The modal saves tool names in selection order — restoring the same tools in a
+    // different order is an equivalent allowlist, not a settings change
     act(() =>
       actualStore
         .getState()
@@ -687,6 +688,14 @@ describe('ChatbotMain - Empty State Logic', () => {
           'tool-2',
           'tool-1',
         ]),
+    );
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+
+    // A different set of tools is a real change
+    act(() =>
+      actualStore
+        .getState()
+        .saveToolSelections('default', 'test-namespace', 'https://a.example.com/mcp', ['tool-2']),
     );
     expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
 

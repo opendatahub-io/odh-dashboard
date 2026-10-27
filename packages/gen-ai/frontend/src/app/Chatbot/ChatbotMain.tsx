@@ -61,13 +61,15 @@ import useAgentDeploymentPolling from './hooks/useAgentDeploymentPolling';
 import useSaveAgentProfile from './hooks/useSaveAgentProfile';
 import AgentDeploymentsModal from './components/AgentDeploymentsModal';
 
-// Canonicalize the nested MCP selections map's keys (namespace, then server) before
-// comparison — JSON.stringify walks keys in insertion order, so a server removed and
-// re-added with unchanged selections would otherwise read as dirty. Tool arrays keep
-// their order: it carries selection semantics. Empty namespace maps are dropped:
-// removing the last server entry of a namespace leaves `{}` behind, which would
-// otherwise serialize differently from the never-selected baseline. Tool arrays
-// are preserved even when empty — they represent an explicit selection of no tools.
+// Canonicalize the nested MCP selections map's keys (namespace, then server) and
+// tool-name arrays before comparison — JSON.stringify walks keys in insertion
+// order, so a server removed and re-added with unchanged selections would
+// otherwise read as dirty, and equivalent tool allowlists can be saved in a
+// different order than the route-provided baseline. Empty namespace maps are
+// dropped: removing the last server entry of a namespace leaves `{}` behind,
+// which would otherwise serialize differently from the never-selected baseline.
+// Tool arrays are preserved even when empty — they represent an explicit
+// selection of no tools, distinct from an absent allowlist.
 const canonicalizeMcpToolSelections = (selections: McpToolSelectionsMap): McpToolSelectionsMap =>
   Object.fromEntries(
     Object.entries(selections)
@@ -80,7 +82,9 @@ const canonicalizeMcpToolSelections = (selections: McpToolSelectionsMap): McpToo
                 namespace,
                 serverMap
                   ? Object.fromEntries(
-                      Object.entries(serverMap).toSorted(([a], [b]) => a.localeCompare(b)),
+                      Object.entries(serverMap)
+                        .toSorted(([a], [b]) => a.localeCompare(b))
+                        .map(([serverUrl, toolNames]) => [serverUrl, toolNames.toSorted()]),
                     )
                   : undefined,
               ],
