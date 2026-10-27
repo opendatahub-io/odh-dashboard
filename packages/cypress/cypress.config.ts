@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 // @ts-expect-error: Types are not available for this third-party library
 import registerCypressGrep from '@cypress/grep/src/plugin';
@@ -91,6 +92,14 @@ export default defineConfig({
       : ['cypress/tests/e2e/**/*.cy.ts', ...getCypressTestPatterns('e2e')],
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
+      const ociSecretFiles = new Set<string>();
+      const deleteOCISecretFile = (filePath: string): void => {
+        if (ociSecretFiles.has(filePath)) {
+          fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
+          ociSecretFiles.delete(filePath);
+        }
+      };
+
       registerCypressGrep(config);
       cypressHighResolution(on, config);
       // Rspack MF runtime is a data:text/javascript URI; nyc HTML reports ENAMETOOLONG on it.
@@ -133,6 +142,23 @@ export default defineConfig({
       });
 
       on('task', {
+        createOCISecretFile(content: Record<string, unknown>) {
+          const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'oci-data-connection-secret-'));
+          const filePath = path.join(directory, 'secret.json');
+          try {
+            fs.chmodSync(directory, 0o700);
+            fs.writeFileSync(filePath, JSON.stringify(content), { flag: 'wx', mode: 0o600 });
+            ociSecretFiles.add(filePath);
+            return filePath;
+          } catch (error) {
+            fs.rmSync(directory, { recursive: true, force: true });
+            throw error;
+          }
+        },
+        deleteOCISecretFile(filePath: string) {
+          deleteOCISecretFile(filePath);
+          return null;
+        },
         readJSON(filePath: string) {
           const absPath = path.resolve(__dirname, filePath);
           if (fs.existsSync(absPath)) {
@@ -186,6 +212,9 @@ export default defineConfig({
 
       // Delete videos for specs without failing or retried tests
       on('after:spec', (_, results) => {
+        for (const filePath of ociSecretFiles) {
+          deleteOCISecretFile(filePath);
+        }
         if (results.video) {
           const failures =
             !Array.isArray(results.tests) ||
