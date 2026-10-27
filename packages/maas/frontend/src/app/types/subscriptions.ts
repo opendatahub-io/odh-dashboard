@@ -169,6 +169,7 @@ export type ModelRefInfo = {
 export type UserSubscription = {
   subscription_id_header: string;
   subscription_description: string;
+  roles?: string[];
   display_name?: string;
   inference_priority?: number;
   key_count?: number;

@@ -38,6 +38,8 @@ export const cleanupLLMInferenceServiceConfig = (
  * with the same name, then applying the provided YAML fixture.
  *
  * @param configName - The `metadata.name` of the config resource (used for cleanup).
+ *   Simulator fixtures also use this value for `openshift.io/display-name` so the
+ *   deploy wizard can uniquely select the config under parallel CI.
  * @param configYamlPath - The fixture-relative path to the config YAML file.
  */
 export const createCleanLLMInferenceServiceConfig = (

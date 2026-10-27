@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
-import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '~/app/types/whoami';
 
 declare global {
   interface Window {
@@ -41,9 +40,6 @@ export const isGridFeatureFlagEnabledFromDevStorage = (): boolean => {
   if (readGridFromQuery()) {
     return true;
   }
-  if (typeof window === 'undefined') {
-    return false;
-  }
   try {
     const rawFlags = window.sessionStorage.getItem(DEV_FEATURE_FLAGS_SESSION_KEY);
     if (!rawFlags) {
@@ -65,9 +61,3 @@ export const useGridFeatureFlag = (): boolean => {
     dashboardConfig === null ? false : dashboardConfig.dashboardConfig.grid === true;
   return isDashboardGridEnabled || isGridFeatureFlagEnabledFromDevStorage();
 };
-
-export const getMaaSWhoAmIDisplayName = (whoAmI: MaaSWhoAmI): string =>
-  whoAmI.name || whoAmI.email || whoAmI.sub;
-
-export const isOrgAdmin = (whoAmI: MaaSWhoAmI): boolean =>
-  whoAmI[MAAS_ORGS_CLAIM].some((org) => org.roles.includes('admins'));
