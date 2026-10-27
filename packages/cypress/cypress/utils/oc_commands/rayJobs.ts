@@ -1,3 +1,4 @@
+import type { ClusterArchitecture } from './baseCommands';
 import { createTrainingKueueResources } from './trainingJobs';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -32,6 +33,7 @@ export type RayJobResourcesConfig = {
   workerGroupName: string;
   rayImage: string;
   rayVersion: string;
+  architecture?: ClusterArchitecture;
 };
 
 /**
@@ -44,6 +46,7 @@ export const createRayJob = (
   workerGroupName: string,
   rayImage: string,
   rayVersion: string,
+  architecture?: ClusterArchitecture,
 ): void => {
   const ns = assertK8sName(namespace, 'namespace');
   const rj = assertK8sName(rayJobName, 'rayJobName');
@@ -51,6 +54,7 @@ export const createRayJob = (
   const wg = assertK8sName(workerGroupName, 'workerGroupName');
 
   cy.fixture('resources/yaml/ray-job-e2e.yaml').then((yamlTemplate: string) => {
+    const nodeSelector = architecture === 'arm64' ? '{kubernetes.io/arch: arm64}' : '{}';
     const variables: Record<string, string> = {
       namespace: ns,
       rayJobName: rj,
@@ -58,6 +62,7 @@ export const createRayJob = (
       workerGroupName: wg,
       rayImage,
       rayVersion,
+      nodeSelector,
     };
     let yamlContent = yamlTemplate;
     Object.keys(variables).forEach((key) => {
@@ -92,12 +97,15 @@ export const createBasicRayJob = (
   rayJobName: string,
   rayImage: string,
   localQueueName: string,
+  architecture?: ClusterArchitecture,
 ): void => {
   cy.fixture('resources/yaml/ray-job.yaml').then((yamlTemplate) => {
+    const nodeSelector = architecture === 'arm64' ? '{kubernetes.io/arch: arm64}' : '{}';
     let yamlContent = yamlTemplate.replace(/\$\{namespace\}/g, namespace);
     yamlContent = yamlContent.replace(/\$\{rayJobName\}/g, rayJobName);
     yamlContent = yamlContent.replace(/\$\{rayImage\}/g, rayImage);
     yamlContent = yamlContent.replace(/\$\{localQueueName\}/g, localQueueName);
+    yamlContent = yamlContent.replace(/\$\{nodeSelector\}/g, nodeSelector);
 
     cy.log(`Creating RayJob ${rayJobName} in namespace: ${namespace}`);
 
@@ -130,6 +138,7 @@ export const setupRayJobResources = (config: RayJobResourcesConfig): void => {
     workerGroupName,
     rayImage,
     rayVersion,
+    architecture,
   } = config;
 
   cy.log(`Setting up RayJob resources in namespace: ${namespace}`);
@@ -144,7 +153,15 @@ export const setupRayJobResources = (config: RayJobResourcesConfig): void => {
     gpuQuota,
   );
 
-  createRayJob(namespace, rayJobName, localQueueName, workerGroupName, rayImage, rayVersion);
+  createRayJob(
+    namespace,
+    rayJobName,
+    localQueueName,
+    workerGroupName,
+    rayImage,
+    rayVersion,
+    architecture,
+  );
 
   const ns = assertK8sName(namespace, 'namespace');
   const rj = assertK8sName(rayJobName, 'rayJobName');
