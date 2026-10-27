@@ -31,6 +31,12 @@ func (m *ModelCatalogRepository) GetModelCatalog(sessionCtx context.Context, cli
 		return models.ModelCatalogModel{}, fmt.Errorf("error fetching model catalog: %w", err)
 	}
 
+	// Resolve the catalog via its in-cluster service DNS name rather than s.ClusterIP
+	// or s.ExternalAddressRest. Routing through the external address can hairpin
+	// through an external NLB and be silently dropped on some platforms (e.g. ROSA
+	// HCP), so those fields are intentionally not used for address resolution here
+	// (RHOAIENG-101859). Fall back to a namespace-scoped .svc name for older clients
+	// that do not populate ServiceDNSName.
 	serviceHost := s.ServiceDNSName
 	if serviceHost == "" {
 		serviceHost = fmt.Sprintf("%s.%s.svc", ModelCatalogServiceName, namespace)

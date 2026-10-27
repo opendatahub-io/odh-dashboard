@@ -18,7 +18,7 @@ func (client *modelCatalogKubernetesClient) GetServiceDetailsByName(sessionCtx c
 }
 
 var _ = Describe("ModelCatalogRepository", func() {
-	It("uses the in-cluster service address in federated mode", func() {
+	It("ignores ExternalAddressRest in favour of the in-cluster service DNS name", func() {
 		client := &modelCatalogKubernetesClient{
 			serviceDetails: k8s.ServiceDetails{
 				Name:                "model-catalog",
