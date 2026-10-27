@@ -59,7 +59,7 @@ Replacement PRs (package renames), pnpm itself, React majors, `pnpm-workspace.ya
 
 1. the PR is authored by `odh-dashboard-agent[bot]`;
 2. it carries exactly one eligible tier label, added by that app;
-3. **every commit is attributable to that app** — this is what makes the diff check meaningful, and it is why `platformCommit` is enabled in `renovate.json5`. Branches must accept pushes from the app and **nobody else**;
+3. **every commit is platform-verified and attributed to that app** — the signature is the part a branch writer cannot forge, which is why `platformCommit` is enabled in `renovate.json5`. Author and committer logins are metadata, so they are only a second signal. Branches must accept pushes from the app and **nobody else**;
 4. `.github/scripts/renovate-automerge-check.js` — run from the base branch — confirms from the diff that only manifests/lockfiles changed, nothing under `/upstream/`, no dependencies added or removed, no new or altered non-registry resolutions, no graph entry changed outside the update (an unchanged package may only follow a bumped dependency), no indirect Go version bump, and that every direct change matches the tier;
 5. the PR head is unchanged when the labels are applied.
 
@@ -68,7 +68,7 @@ A crash in validation removes the labels this workflow added instead of leaving 
 **Troubleshooting**
 
 - *PR not rebased / stuck on an old version* — download the `renovate-log` artifact and search for the branch name. `Cannot force-push to this branch` means a branch protection rule covers `renovate/*`; Renovate must be able to force-push its own branches.
-- *Eligible PR reports "commits not attributable to odh-dashboard-agent"* — `platformCommit` is off, or the app token lost `contents: write`. The check fails closed on purpose; fix the attribution rather than the check.
+- *Eligible PR reports commits that are unsigned or not attributable to odh-dashboard-agent* — `platformCommit` is off, or the app token lost `contents: write`. Provenance fails closed on purpose, so unsigned commits go to a human; fix the cause rather than the check.
 - *Need an update now* — *Run workflow* with `force_updates`. To re-create a closed PR, delete its `renovate/*` branch and rename the old PR.
 - *Rollback* — disable the Renovate workflow and revert the cutover PR; Dependabot version updates come back with the old `dependabot.yml`. Disabling the workflow **alone** leaves Dependabot muted (`open-pull-requests-limit: 0`), i.e. no dependency updates at all.
 
