@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   ActionList,
   ActionListGroup,
@@ -49,6 +50,7 @@ import type {
   ConnectionType,
   ConnectionTypeCredentialField,
   CreateConnectionRequest,
+  Connection,
   NamespaceKind,
 } from '~/app/types';
 import './CreateConnectionWizard.scss';
@@ -59,7 +61,10 @@ export type CreateConnectionWizardProps = {
   isOpen: boolean;
   namespace: string;
   onClose: () => void;
-  onCreate?: (data: CreateConnectionFormData, selectedNamespace: string) => void | Promise<void>;
+  onCreate?: (
+    data: CreateConnectionFormData,
+    selectedNamespace: string,
+  ) => Connection | void | Promise<Connection | void>;
   initialFormData?: Partial<CreateConnectionFormData>;
 };
 
@@ -812,6 +817,9 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const availableNamespaces = namespaces.some((item) => item.name === namespace)
     ? namespaces
     : [{ name: namespace }, ...namespaces];
+  const selectedNamespaceDisplayName = availableNamespaces.find(
+    (item) => item.name === selectedNamespace,
+  )?.displayName;
   const selectedConnectionType = connectionTypes.find(
     (connectionType) => connectionType.metadata.id === formData.data_connection_type_id,
   );
@@ -1073,8 +1081,32 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
 
     setIsCreating(true);
     try {
-      await onCreate(formData, selectedNamespace);
-      notification.success(`"${formData.name}" was created successfully.`);
+      const createdConnection = await onCreate(formData, selectedNamespace);
+      const connectionName = createdConnection?.resource.name ?? formData.name;
+      const projectName = selectedNamespaceDisplayName ?? selectedNamespace;
+      notification.success(
+        'Connection created',
+        <>
+          "{connectionName}" was created in{' '}
+          <Button
+            component={(props) => (
+              <Link {...props} to={`/projects/${encodeURIComponent(selectedNamespace)}`} />
+            )}
+            variant="link"
+            isInline
+          >
+            {projectName}
+          </Button>
+        </>,
+        createdConnection
+          ? {
+              linkLabel: 'View connection details',
+              linkUrl: `/ai-hub/connections/connections/${encodeURIComponent(
+                createdConnection.metadata.id,
+              )}?project=${encodeURIComponent(selectedNamespace)}`,
+            }
+          : undefined,
+      );
       resetForm();
       onClose();
     } catch (error) {

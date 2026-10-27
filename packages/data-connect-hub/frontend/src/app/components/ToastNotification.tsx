@@ -1,5 +1,11 @@
 import React from 'react';
-import { Alert, AlertActionCloseButton, AlertVariant } from '@patternfly/react-core';
+import { useNavigate } from 'react-router-dom';
+import {
+  Alert,
+  AlertActionCloseButton,
+  AlertActionLink,
+  AlertVariant,
+} from '@patternfly/react-core';
 import { asEnumMember, type Notification } from 'mod-arch-core';
 import { useNotification } from '~/app/hooks/useNotification';
 
@@ -7,6 +13,8 @@ const TOAST_TIMEOUT = 8 * 1000;
 
 const ToastNotification: React.FC<{ notification: Notification }> = ({ notification }) => {
   const notifications = useNotification();
+  const navigate = useNavigate();
+  const { linkUrl, linkLabel } = notification;
   const [mouseOver, setMouseOver] = React.useState(false);
   const remainingRef = React.useRef(TOAST_TIMEOUT);
   const startRef = React.useRef(Date.now());
@@ -35,8 +43,14 @@ const ToastNotification: React.FC<{ notification: Notification }> = ({ notificat
   return (
     <Alert
       variant={asEnumMember(notification.status, AlertVariant) ?? undefined}
+      data-testid="toast-notification-alert"
       title={notification.title}
       actionClose={<AlertActionCloseButton onClose={() => notifications.remove(notification.id)} />}
+      actionLinks={
+        linkUrl && linkLabel ? (
+          <AlertActionLink onClick={() => navigate(linkUrl)}>{linkLabel}</AlertActionLink>
+        ) : undefined
+      }
       onMouseEnter={() => setMouseOver(true)}
       onMouseLeave={() => setMouseOver(false)}
     >
