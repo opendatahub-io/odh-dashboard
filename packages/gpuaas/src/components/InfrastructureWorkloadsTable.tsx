@@ -46,6 +46,7 @@ import {
   getWorkloadsSearchTrackingProperties,
   getWorkloadsFilterClearTrackingProperties,
   GPUAAS_EVENTS,
+  shouldTrackWorkloadsSearch,
 } from '../tracking/gpuaasTrackingConstants';
 
 type FilterValues = InfrastructureWorkloadsFilterValues;
@@ -337,6 +338,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   );
 
   const clearFilters = React.useCallback(() => {
+    window.clearTimeout(searchTrackingTimeoutRef.current);
     const filterCount = Object.values(selectedFilterValues).reduce(
       (count, values) => count + values.length,
       0,
@@ -355,7 +357,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   const handleSearchChange = React.useCallback((value: string) => {
     setSearchValue(value);
     window.clearTimeout(searchTrackingTimeoutRef.current);
-    if (value.trim()) {
+    if (shouldTrackWorkloadsSearch(value)) {
       searchTrackingTimeoutRef.current = window.setTimeout(() => {
         fireMiscTrackingEvent(
           GPUAAS_EVENTS.WORKLOADS_TAB_WORKLOAD_SEARCH_USED,

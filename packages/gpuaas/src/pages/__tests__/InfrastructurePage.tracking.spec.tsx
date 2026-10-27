@@ -8,6 +8,7 @@ import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useA
 import {
   GPUAAS_EVENTS,
   QUOTA_USAGE_INTERACTION_TYPES,
+  WORKLOADS_INTERACTION_TYPES,
 } from '../../tracking/gpuaasTrackingConstants';
 import type { ClusterMetrics } from '../../hooks/useInfrastructureMetrics';
 import InfrastructurePage from '../InfrastructurePage';
@@ -277,6 +278,27 @@ describe('InfrastructurePage - Tracking Events', () => {
       expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, expect.any(Object));
       expect(mockRefresh).toHaveBeenCalled();
       expect(mockBorrowingRefresh).toHaveBeenCalled();
+    });
+
+    it('tracks workloads refresh on refresh button click', async () => {
+      const user = userEvent.setup();
+      render(<InfrastructurePage />);
+
+      await user.click(screen.getByTestId('infrastructure-tab-workloads'));
+      const refreshButton = within(
+        screen.getByTestId('infrastructure-workloads-refresh'),
+      ).getByRole('button', { name: 'Refresh' });
+      await user.click(refreshButton);
+
+      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, {
+        refreshSource: 'workloads',
+        outcome: 'click',
+        secondsSinceLastUpdate: expect.any(Number),
+      });
+      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.WORKLOADS_TAB_INTERACTED, {
+        interactionType: WORKLOADS_INTERACTION_TYPES.refresh,
+        secondsSinceTabLoad: expect.any(Number),
+      });
     });
 
     it('tracks quota usage refresh on refresh button click', async () => {

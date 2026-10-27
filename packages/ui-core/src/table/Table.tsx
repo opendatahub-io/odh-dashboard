@@ -15,6 +15,8 @@ type TableProps<DataType> = Omit<
     { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
   >;
 
+type PaginationAction = 'first' | 'previous' | 'next' | 'last';
+
 const Table = <T,>({
   data: allData,
   columns,
@@ -28,6 +30,14 @@ const Table = <T,>({
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
+  const createPaginationHandler = React.useCallback(
+    (action: PaginationAction) =>
+      (_event: React.SyntheticEvent<HTMLButtonElement>, newPage: number) => {
+        setPage(newPage);
+        onPagination?.(action, newPage);
+      },
+    [onPagination],
+  );
   const sort = useTableColumnSort<T>(columns, subColumns || [], defaultSortColumn, false, onSort);
   const sortedData = sort.transformData(allData);
 
@@ -56,32 +66,16 @@ const Table = <T,>({
       itemCount={allData.length}
       perPage={pageSize}
       page={page}
-      onSetPage={(e, newPage) => {
-        const action = newPage < page ? 'previous' : 'next';
-        setPage(newPage);
-        onPagination?.(action, newPage);
-      }}
+      onSetPage={(_event, newPage) => setPage(newPage)}
       onPerPageSelect={(e, newSize, newPage) => {
         setPageSize(newSize);
         setPage(newPage);
       }}
       getColumnSort={sort.getColumnSort}
-      onFirstClick={(_event, newPage) => {
-        setPage(newPage);
-        onPagination?.('first', newPage);
-      }}
-      onPreviousClick={(_event, newPage) => {
-        setPage(newPage);
-        onPagination?.('previous', newPage);
-      }}
-      onNextClick={(_event, newPage) => {
-        setPage(newPage);
-        onPagination?.('next', newPage);
-      }}
-      onLastClick={(_event, newPage) => {
-        setPage(newPage);
-        onPagination?.('last', newPage);
-      }}
+      onFirstClick={createPaginationHandler('first')}
+      onPreviousClick={createPaginationHandler('previous')}
+      onNextClick={createPaginationHandler('next')}
+      onLastClick={createPaginationHandler('last')}
       {...props}
     />
   );

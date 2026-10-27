@@ -389,6 +389,7 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
                   onPopoverOpen={onPopoverOpen}
                   onPopoverClose={onPopoverClose}
                   onViewInTable={onViewInTable}
+                  onViewInTableClicked={onViewInTableClicked}
                   onPopoverClosed={
                     onPopoverClosed ? (method) => onPopoverClosed(bucket, method) : undefined
                   }

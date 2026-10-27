@@ -32,6 +32,7 @@ export const GPUAAS_EVENTS = {
   WORKLOADS_TAB_PAGINATION_USED: 'Workloads Tab Pagination Used',
   WORKLOADS_TAB_SECTION_TOGGLED: 'Workloads Tab Section Toggled',
   WORKLOADS_TAB_WORKLOAD_SEARCH_USED: 'Workloads Tab Workload Search Used',
+  WORKLOADS_TAB_INTERACTED: 'Workloads Tab Interacted',
   WORKLOADS_TAB_FILTERS_CLEARED: 'Workloads Tab Filters Cleared',
 } as const;
 
@@ -44,6 +45,10 @@ export const QUOTA_USAGE_INTERACTION_TYPES = {
   viewProjects: 'view-projects',
   workloadsFilter: 'workloads-filter',
   breadcrumb: 'breadcrumb',
+} as const;
+
+export const WORKLOADS_INTERACTION_TYPES = {
+  refresh: 'refresh',
 } as const;
 
 export const QUOTA_USAGE_DETAIL_SECTION_NAMES = {
@@ -98,7 +103,7 @@ export type CohortSectionToggledProperties = {
 
 export type DataRefreshedProperties = {
   /** Set when refresh outcome can be determined; omitted for fire-and-forget clicks. */
-  refreshSource?: 'utilization' | 'quota-usage';
+  refreshSource?: 'utilization' | 'quota-usage' | 'workloads';
   outcome?: 'click';
   success?: boolean;
   error?: string;
@@ -237,6 +242,8 @@ export type WorkloadsTabWorkloadSearchUsedProperties = {
 export const getWorkloadsSearchTrackingProperties = (
   query: string,
 ): WorkloadsTabWorkloadSearchUsedProperties => ({ queryLength: query.length });
+
+export const shouldTrackWorkloadsSearch = (query: string): boolean => Boolean(query.trim());
 
 export type WorkloadsTabFiltersClearedProperties = {
   hadActiveFilters: boolean;

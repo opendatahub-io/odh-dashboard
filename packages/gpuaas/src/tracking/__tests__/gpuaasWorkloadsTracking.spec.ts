@@ -1,6 +1,7 @@
 import {
   getWorkloadsFilterClearTrackingProperties,
   getWorkloadsSearchTrackingProperties,
+  shouldTrackWorkloadsSearch,
 } from '../gpuaasTrackingConstants';
 
 describe('Workloads tracking properties', () => {
@@ -19,5 +20,15 @@ describe('Workloads filter clear tracking', () => {
     [2, { hadActiveFilters: true, filterCount: 2 }],
   ])('reports active filter state before clear: %j', (filterCount, expected) => {
     expect(getWorkloadsFilterClearTrackingProperties(filterCount)).toEqual(expected);
+  });
+});
+
+describe('Workloads search tracking', () => {
+  it.each([
+    ['', false],
+    ['   ', false],
+    ['model', true],
+  ])('tracks only non-empty queries: %j', (query, expected) => {
+    expect(shouldTrackWorkloadsSearch(query)).toBe(expected);
   });
 });
