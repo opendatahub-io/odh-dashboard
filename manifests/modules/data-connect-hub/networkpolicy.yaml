@@ -35,6 +35,15 @@ spec:
                 values:
                   - odh-dashboard
                   - rhods-dashboard
+        # Workbench pods may call the DCH UI/BFF service directly. The
+        # namespace and pod selectors are ANDed to avoid admitting arbitrary
+        # pods from dashboard-managed project namespaces.
+        - namespaceSelector:
+            matchLabels:
+              opendatahub.io/dashboard: "true"
+          podSelector:
+            matchLabels:
+              opendatahub.io/workbenches: "true"
   egress:
     - to:
         - namespaceSelector:

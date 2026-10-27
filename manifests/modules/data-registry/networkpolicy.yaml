@@ -30,6 +30,15 @@ spec:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
+        # Workbench pods call the BFF directly from RHOAI project namespaces.
+        # The namespace and pod selectors are ANDed, so only workbench pods in
+        # dashboard-managed project namespaces are admitted.
+        - namespaceSelector:
+            matchLabels:
+              opendatahub.io/dashboard: "true"
+          podSelector:
+            matchLabels:
+              opendatahub.io/workbenches: "true"
   egress:
     # The Data Registry Service exposes HTTPS on 443 and forwards to the
     # kube-rbac-proxy sidecar on pod port 8443.
