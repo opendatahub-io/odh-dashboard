@@ -55,30 +55,23 @@ For key-based detection, a secret must contain **ALL** required keys for a type 
 ### S3 upload checksums
 
 The S3 connection Secret can optionally include `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM`.
-Accepted values are `CRC32`, `CRC32C`, `SHA1`, `SHA256`, and `SHA512`
+Accepted values are `NONE`, `CRC32`, `CRC32C`, `SHA1`, `SHA256`, and `SHA512`
 (case-insensitive). This is a Secret key, not a BFF environment variable.
 
-By default (key absent or empty), local-file uploads to Amazon S3 endpoints retain
-the SDK-generated CRC32 checksum. Uploads to other S3-compatible endpoints omit
-optional checksums, though the SDK still calculates any checksum required by the
-S3 API operation. A bucket configuration such as
-[Amazon S3 Object Lock retention](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html)
-can require a checksum even when the API operation does not. Amazon S3 connections
-using standard AWS endpoints need no Secret change. For non-Amazon buckets that
-require checksums, set an algorithm supported by the endpoint (for example,
-`CRC32`).
+When the key is absent or empty, uploads retain the AWS SDK's default checksum
+behavior, including CRC32 for supported S3 upload operations. This preserves
+existing connections, including buckets that require upload checksums. Set an
+explicit algorithm when a bucket requires a particular checksum and the endpoint
+supports its streaming trailer.
 
-**Upgrade action:** Existing connections that relied on the SDK-generated
-checksum need this Secret update when adopting this release; otherwise uploads
-can fail with S3 400 `InvalidRequest`.
-
-With an algorithm configured, non-seekable uploads send a streaming checksum
-trailer. Keep the key absent or empty for S3-compatible endpoints that reject
-`STREAMING-UNSIGNED-PAYLOAD-TRAILER`, including
+Set `NONE` for S3-compatible endpoints that reject optional
+`STREAMING-UNSIGNED-PAYLOAD-TRAILER` uploads, including
 [affected NetApp ONTAP versions](https://kb.netapp.com/on-prem/ontap/da/S3/S3-Issues/CONTAP-576720).
-Connections to affected NetApp endpoints should leave the key absent or empty.
-The setting applies only to uploads through this S3 connection; selecting or
-downloading existing objects is unaffected.
+This disables optional checksums; it does not satisfy bucket-level checksum
+requirements such as Object Lock. Existing connections to endpoints that reject
+the SDK default should set this key to `NONE` to use the workaround. The setting
+applies only to uploads through this S3 connection; selecting or downloading
+existing objects is unaffected.
 
 ## Response Format
 

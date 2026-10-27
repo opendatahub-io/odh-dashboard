@@ -8,20 +8,27 @@ import (
 	transfertypes "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager/types"
 )
 
-// ChecksumAlgorithmSecretKey optionally selects the checksum used for S3 uploads.
-// It can be set on an S3 connection secret for buckets that require upload checksums.
+// ChecksumAlgorithmSecretKey selects checksum behavior for S3 uploads.
+// It can be set on an S3 connection secret for buckets that require checksums or
+// endpoints that reject optional checksum trailers.
 const ChecksumAlgorithmSecretKey = "AWS_S3_UPLOAD_CHECKSUM_ALGORITHM"
 
 // ChecksumAlgorithm is the checksum algorithm accepted by the AWS S3 transfer manager.
 type ChecksumAlgorithm = transfertypes.ChecksumAlgorithm
 
+// ChecksumAlgorithmNone disables optional checksums for endpoints that reject
+// streaming checksum trailers. Checksums required by the S3 operation are still sent.
+const ChecksumAlgorithmNone ChecksumAlgorithm = "NONE"
+
 // ParseChecksumAlgorithm validates and normalizes a transfer manager checksum algorithm.
-// An empty value keeps optional checksums disabled for non-Amazon endpoints unless
-// the S3 operation requires one. Amazon S3 endpoints retain the SDK default.
+// An empty value keeps the SDK default checksum behavior for backwards compatibility.
+// NONE disables optional checksums for endpoints that reject streaming trailers.
 func ParseChecksumAlgorithm(value string) (ChecksumAlgorithm, error) {
 	switch strings.ToUpper(strings.TrimSpace(value)) {
 	case "":
 		return "", nil
+	case string(ChecksumAlgorithmNone):
+		return ChecksumAlgorithmNone, nil
 	case string(transfertypes.ChecksumAlgorithmCrc32):
 		return transfertypes.ChecksumAlgorithmCrc32, nil
 	case string(transfertypes.ChecksumAlgorithmCrc32c):
@@ -33,7 +40,7 @@ func ParseChecksumAlgorithm(value string) (ChecksumAlgorithm, error) {
 	case string(transfertypes.ChecksumAlgorithmSha512):
 		return transfertypes.ChecksumAlgorithmSha512, nil
 	default:
-		return "", errors.New("unsupported S3 upload checksum algorithm (supported: CRC32, CRC32C, SHA1, SHA256, SHA512)")
+		return "", errors.New("unsupported S3 upload checksum algorithm (supported: NONE, CRC32, CRC32C, SHA1, SHA256, SHA512)")
 	}
 }
 
@@ -100,10 +107,9 @@ type UploadObjectInput struct {
 	Key         string
 	Body        io.Reader
 	ContentType string
-	// ChecksumAlgorithm opts this upload into checksum calculation. Leave it empty
-	// for endpoints that reject optional streaming checksum trailers. Amazon S3
-	// endpoints retain the SDK default; set an algorithm for other buckets that
-	// require a checksum, such as with Object Lock.
+	// ChecksumAlgorithm opts this upload into a specific checksum algorithm. Leave
+	// it empty to retain the SDK default; use ChecksumAlgorithmNone for endpoints
+	// that reject optional streaming checksum trailers.
 	ChecksumAlgorithm transfertypes.ChecksumAlgorithm
 }
 

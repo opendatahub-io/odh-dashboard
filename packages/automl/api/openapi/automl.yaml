@@ -385,13 +385,13 @@ paths:
         Uploads a CSV file to S3 using credentials from the specified Kubernetes secret.
         The request must be multipart/form-data with a part named `file`.
 
-        The secret may contain `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` (CRC32, CRC32C, SHA1,
-        SHA256, or SHA512; case-insensitive). Amazon S3 endpoints use the SDK's CRC32
-        checksum by default. Other S3-compatible endpoints omit optional checksums
-        unless this key is set. Existing connections to non-Amazon buckets that require
-        checksums must add the key before uploading with this version. A configured
-        checksum uses a streaming trailer for non-seekable uploads, so leave the key
-        unset for endpoints that reject checksum trailers, including affected NetApp ONTAP S3.
+        The secret may contain `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` (NONE, CRC32, CRC32C,
+        SHA1, SHA256, or SHA512; case-insensitive). When the key is absent or empty,
+        uploads retain the AWS SDK's default checksum behavior, preserving existing
+        connections and buckets that require upload checksums. Set an explicit algorithm
+        when a bucket requires a particular checksum. Set NONE to disable optional
+        checksums for endpoints that reject streaming trailers, including affected
+        NetApp ONTAP S3. NONE does not satisfy bucket-level checksum requirements.
 
         Only CSV uploads are allowed: Content-Type `text/csv`, or `application/octet-stream` (or empty)
         when the part filename ends with `.csv`. The body is size-limited (declared Content-Length

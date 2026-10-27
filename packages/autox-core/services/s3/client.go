@@ -55,8 +55,8 @@ type ConnectionOptions struct {
 	Region          string
 	BaseEndpoint    string
 	// ChecksumAlgorithm is an optional upload checksum setting from the S3 connection.
-	// Leave empty for S3-compatible endpoints that reject streaming checksum trailers;
-	// Amazon S3 endpoints retain the SDK's default checksum when this is empty.
+	// Leave empty to retain the SDK's default checksum behavior, or use
+	// ChecksumAlgorithmNone for endpoints that reject optional streaming trailers.
 	ChecksumAlgorithm ChecksumAlgorithm
 }
 
@@ -211,7 +211,7 @@ func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input
 		Body:              input.Body,
 		ContentType:       aws.String(input.ContentType),
 		IfNoneMatch:       aws.String("*"),
-		ChecksumAlgorithm: input.ChecksumAlgorithm,
+		ChecksumAlgorithm: uploadChecksumAlgorithm(input.ChecksumAlgorithm),
 	})
 	if err != nil {
 		if isS3ConditionalCreateConflict(err) {
@@ -307,18 +307,27 @@ func (p *awsClientProvider) CreateTransferClient(opts ConnectionOptions) (Transf
 		o.GetObjectBufferSize = cfg.GetObjectBufSize
 		o.PartBodyMaxRetries = cfg.PartBodyMaxRetries
 		o.DisableChecksumValidation = false
-		// Amazon S3 keeps the SDK's default checksum for Object Lock buckets.
-		// Other stores avoid optional CRC32 trailers unless the upload explicitly
-		// sets a ChecksumAlgorithm.
-		o.RequestChecksumCalculation = requestChecksumCalculation(opts.BaseEndpoint)
+		// Keep the SDK default for existing connections. Endpoints that reject
+		// optional trailers can opt out with ChecksumAlgorithmNone.
+		o.RequestChecksumCalculation = requestChecksumCalculation(opts.BaseEndpoint, opts.ChecksumAlgorithm)
 	}), nil
 }
 
-func requestChecksumCalculation(endpoint string) aws.RequestChecksumCalculation {
-	if isAmazonS3Endpoint(endpoint) {
-		return aws.RequestChecksumCalculationWhenSupported
+func requestChecksumCalculation(endpoint string, algorithm ChecksumAlgorithm) aws.RequestChecksumCalculation {
+	if algorithm == ChecksumAlgorithmNone {
+		return aws.RequestChecksumCalculationWhenRequired
 	}
-	return aws.RequestChecksumCalculationWhenRequired
+	if algorithm != "" && !isAmazonS3Endpoint(endpoint) {
+		return aws.RequestChecksumCalculationWhenRequired
+	}
+	return aws.RequestChecksumCalculationWhenSupported
+}
+
+func uploadChecksumAlgorithm(algorithm ChecksumAlgorithm) ChecksumAlgorithm {
+	if algorithm == ChecksumAlgorithmNone {
+		return ""
+	}
+	return algorithm
 }
 
 func isAmazonS3Endpoint(endpoint string) bool {
@@ -369,7 +378,7 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 		),
 		RetryMaxAttempts:           1,
 		HTTPClient:                 p.buildHTTPClient(),
-		RequestChecksumCalculation: requestChecksumCalculation(validatedEndpoint),
+		RequestChecksumCalculation: requestChecksumCalculation(validatedEndpoint, opts.ChecksumAlgorithm),
 	}
 
 	return awss3.NewFromConfig(awsCfg, func(o *awss3.Options) {
