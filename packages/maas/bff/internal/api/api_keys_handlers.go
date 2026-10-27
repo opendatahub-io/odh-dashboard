@@ -188,7 +188,6 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 }
 
 // SearchTenantAPIKeysHandler handles POST /api/v1/api-keys/search/tenant.
-// It uses MaaS API data only and does not perform Kubernetes-backed enrichment.
 func SearchTenantAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var request Envelope[*models.APIKeySearchRequest, None]
 
@@ -249,7 +248,11 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 	enrichAPIKeysFromMaasSubscriptions(app, r, response, subNames)
 }
 
-func enrichTenantAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *models.APIKeyListResponse) {
+func enrichTenantAPIKeysWithSubscriptionDetails(
+	app *App,
+	r *http.Request,
+	response *models.APIKeyListResponse,
+) {
 	subNames := make(map[string]struct{})
 	for _, key := range response.Data {
 		if key.SubscriptionName != "" {
