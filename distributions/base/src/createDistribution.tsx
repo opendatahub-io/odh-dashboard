@@ -11,6 +11,7 @@ import ShellNav from './ShellNav';
 import ShellRoutes from './ShellRoutes';
 import { ThemeProvider } from './ThemeContext';
 import { ErrorBoundary } from './ErrorBoundary';
+import { AccessReviewProvider } from './AccessReviewProvider';
 
 export interface DistributionConfig {
   extensions: Record<string, Extension[]>;
@@ -45,9 +46,11 @@ const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) =
   const { AppWrapper, PluginStoreWrapper } = config;
 
   const shellContent = (
-    <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
-      <ShellRoutes />
-    </Shell>
+    <AccessReviewProvider>
+      <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
+        <ShellRoutes />
+      </Shell>
+    </AccessReviewProvider>
   );
 
   const appContent = AppWrapper ? <AppWrapper>{shellContent}</AppWrapper> : shellContent;

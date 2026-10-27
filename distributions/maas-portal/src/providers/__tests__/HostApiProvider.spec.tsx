@@ -20,9 +20,26 @@ const AccessReview: React.FC = () => {
   return <div data-testid="access-result">{`${allowed}-${loaded}`}</div>;
 };
 
+const MaaSAccessReview: React.FC = () => {
+  const [allowed, loaded] = useAccessReview({
+    group: 'maas.custom',
+    resource: 'maas-admin',
+    verb: 'get',
+  });
+
+  return <div data-testid="maas-access-result">{`${allowed}-${loaded}`}</div>;
+};
+
 describe('HostApiProvider', () => {
+  let originalFetch: typeof global.fetch;
+
   beforeEach(() => {
+    originalFetch = global.fetch;
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
   });
 
   it('uses the portal Kubernetes client for access reviews', async () => {
@@ -75,5 +92,68 @@ describe('HostApiProvider', () => {
     render(consumer);
     await waitFor(() => expect(screen.getByTestId('access-result').textContent).toBe('true-true'));
     expect(checkAccessMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('routes MaaS custom access reviews to the who-am-I endpoint', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { isAdmin: true } }),
+    } as Response);
+
+    render(
+      <HostApiProvider>
+        <MaaSAccessReview />
+      </HostApiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('maas-access-result').textContent).toBe('true-true'),
+    );
+    expect(global.fetch).toHaveBeenCalledWith('/maas-portal/maas/api/v1/whoami');
+    expect(checkAccessMock).not.toHaveBeenCalled();
+  });
+
+  it('denies MaaS custom access when the user is not an administrator', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { isAdmin: false } }),
+    } as Response);
+
+    render(
+      <HostApiProvider>
+        <MaaSAccessReview />
+      </HostApiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('maas-access-result').textContent).toBe('false-true'),
+    );
+  });
+
+  it('uses Kubernetes access reviews for other custom resources', async () => {
+    checkAccessMock.mockResolvedValue(true);
+    global.fetch = jest.fn();
+
+    const OtherCustomAccessReview: React.FC = () => {
+      const [allowed, loaded] = useAccessReview({
+        group: 'maas.custom',
+        resource: 'other-resource',
+        verb: 'get',
+      });
+
+      return <div data-testid="other-custom-access-result">{`${allowed}-${loaded}`}</div>;
+    };
+
+    render(
+      <HostApiProvider>
+        <OtherCustomAccessReview />
+      </HostApiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('other-custom-access-result').textContent).toBe('true-true'),
+    );
+    expect(checkAccessMock).toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

@@ -26,6 +26,7 @@ import {
   type TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
+import { useAccessReviewExtensions } from './AccessReviewProvider';
 
 // TODO: Dedup — compareNavItemGroups and getTopLevelExtensions are copied from
 // frontend/src/app/navigation/utils.ts. Move to plugin-core when consolidating.
@@ -236,15 +237,18 @@ const ShellNav: React.FC = () => {
     () => getTopLevelExtensions([...navExtensions, ...tabRouteExtensions]),
     [navExtensions, tabRouteExtensions],
   );
+  const [allowedTopLevelExtensions, isAccessReviewLoaded] =
+    useAccessReviewExtensions(topLevelExtensions);
 
   return (
     <PageSidebar>
       <PageSidebarBody>
         <Nav aria-label="Navigation">
           <NavList>
-            {topLevelExtensions.map((extension) => (
-              <ShellNavItem key={extension.uid} extension={extension} />
-            ))}
+            {isAccessReviewLoaded &&
+              allowedTopLevelExtensions.map((extension) => (
+                <ShellNavItem key={extension.uid} extension={extension} />
+              ))}
           </NavList>
         </Nav>
       </PageSidebarBody>

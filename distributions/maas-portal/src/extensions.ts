@@ -87,6 +87,14 @@ const extensions: Extension[] = [
       path: '/gen-ai-studio/assets/*',
     },
   } satisfies HrefNavItemExtension,
+  {
+    type: 'app.route',
+    properties: {
+      path: '/model-access',
+      component: () => import('./pages/ModelAccessPage'),
+      accessReview: { group: 'maas.custom', resource: 'maas-admin', verb: 'get' },
+    },
+  } satisfies RouteExtension,
 
   // Hide the Playground navigation item in the MaaS Portal.
   {
@@ -125,6 +133,16 @@ const extensions: Extension[] = [
       group: '4_dashboard',
     },
   },
+  {
+    type: 'app.navigation/href',
+    properties: {
+      id: 'maas-model-access',
+      title: 'Model Access',
+      href: '/model-access',
+      path: '/model-access/*',
+      accessReview: { group: 'maas.custom', resource: 'maas-admin', verb: 'get' },
+    },
+  } satisfies HrefNavItemExtension,
   {
     type: 'app.patch',
     properties: {
