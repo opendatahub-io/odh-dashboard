@@ -57,15 +57,7 @@ const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
         <Skeleton height="20px" width="80%" />
       )}
     </Alert>
-  ) : (
-    <Content data-testid="ray-job-status-no-info">
-      {isComplete
-        ? 'The job completed successfully.'
-        : isDeleting
-        ? 'The job is being deleted.'
-        : 'No additional status information is available for this job.'}
-    </Content>
-  );
+  ) : null;
 
   const showDeleteButton = !isDeleting && !isComplete;
 
