@@ -1030,7 +1030,6 @@ export type ModelAsAServiceTestData = {
   singleModelName: string;
   singleModelDescription: string;
   llmInferenceServiceConfigName: string;
-  llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
   llmInferenceServiceFixturePath: string;
   hardwareProfileName: string;

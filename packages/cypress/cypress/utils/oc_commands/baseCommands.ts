@@ -369,6 +369,37 @@ export const deleteNotebook = (
   });
 };
 
+/** Discover a uniquely named Service's namespace instead of assuming an applications namespace. */
+export const getServiceNamespace = (serviceName: string): Cypress.Chainable<string> => {
+  if (!/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(serviceName) || serviceName.length > 63) {
+    throw new Error(`Invalid Service name: ${serviceName}`);
+  }
+
+  return cy
+    .exec(
+      `oc get services --all-namespaces --field-selector metadata.name=${serviceName} -o jsonpath='{.items[*].metadata.namespace}'`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to discover namespace for Service ${serviceName}: ${maskSensitiveInfo(
+            result.stderr || result.stdout,
+          )}`,
+        );
+      }
+      const namespaces = result.stdout.trim().split(/\s+/).filter(Boolean);
+      if (namespaces.length !== 1 || !/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(namespaces[0])) {
+        throw new Error(
+          `Expected Service ${serviceName} in exactly one namespace; found: ${
+            namespaces.join(', ') || 'none'
+          }`,
+        );
+      }
+      return namespaces[0];
+    });
+};
+
 /**
  * Handle for a port-forward process started by `startPortForward`, used to stop it via `stopPortForward`.
  */
@@ -378,7 +409,8 @@ export type PortForwardHandle = {
 };
 
 /**
- * Starts a background `oc port-forward` for a Service or Deployment and briefly waits for the tunnel to establish.
+ * Starts a background `oc port-forward` for a Service or Deployment and waits for its readiness log.
+ * Fails with the oc output and cleans up the process/log if startup fails or times out.
  * Only runs when the dashboard `baseUrl` is localhost (e.g. GitHub PR CI runs, where the test runner
  * accesses cluster services via localhost rather than in-cluster networking). No-ops otherwise, since
  * on a real cluster the service is already reachable directly.
@@ -389,7 +421,7 @@ export type PortForwardHandle = {
  * @param namespace The namespace containing the resource.
  * @param resourceName The name of the resource to port-forward.
  * @param port The local port to forward.
- * @param waitTimeMs Time to wait after starting the port-forward for the tunnel to establish (default 3000ms).
+ * @param timeoutMs Maximum time to wait for the tunnel to establish (default 3000ms).
  * @param targetPort The remote port to forward (defaults to the local port).
  * @param resourceKind The Kubernetes resource kind (defaults to Service).
  * @returns A Cypress chainable resolving to a handle for cleanup, or `null` if the port-forward was skipped.
@@ -398,7 +430,7 @@ export const startPortForward = (
   namespace: string,
   resourceName: string,
   port: number,
-  waitTimeMs = 3000,
+  timeoutMs = 3000,
   targetPort = port,
   resourceKind: 'svc' | 'deployment' = 'svc',
 ): Cypress.Chainable<PortForwardHandle | null> => {
@@ -409,17 +441,36 @@ export const startPortForward = (
   }
 
   const logFile = `/tmp/port-forward-${resourceName}-${port}-${Date.now()}.log`;
+  const maxAttempts = Math.ceil(timeoutMs / 200);
 
   return cy
     .exec(
-      `nohup oc port-forward -n ${namespace} ${resourceKind}/${resourceName} ${port}:${targetPort} > ${logFile} 2>&1 & echo $!`,
-      { failOnNonZeroExit: false },
+      `nohup oc port-forward -n ${namespace} ${resourceKind}/${resourceName} ${port}:${targetPort} > ${logFile} 2>&1 &
+      pid=$!
+      attempt=0
+      while [ "$attempt" -lt ${maxAttempts} ]; do
+        if ! kill -0 "$pid" 2>/dev/null; then break; fi
+        if grep -q '^Forwarding from ' ${logFile}; then echo "$pid"; exit 0; fi
+        attempt=$((attempt + 1))
+        sleep 0.2
+      done
+      kill "$pid" 2>/dev/null || true
+      cat ${logFile} >&2
+      rm -f ${logFile}
+      exit 1`,
+      { failOnNonZeroExit: false, timeout: timeoutMs + 10000 },
     )
     .then((result: CommandLineResult): Cypress.Chainable<PortForwardHandle | null> => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Port-forward for ${namespace}/${resourceKind}/${resourceName} on port ${port} ` +
+            `failed to become ready within ${timeoutMs}ms: ${maskSensitiveInfo(
+              result.stderr || result.stdout,
+            )}`,
+        );
+      }
       const pid = result.stdout.trim();
-      cy.log(`Port-forward PID: ${pid}`);
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      cy.wait(waitTimeMs);
+      cy.log(`Port-forward ready (PID ${pid})`);
       return cy.wrap<PortForwardHandle | null>({ pid, logFile });
     });
 };

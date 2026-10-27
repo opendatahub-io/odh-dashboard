@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	milvusclient "github.com/milvus-io/milvus/client/v2/milvusclient"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -88,6 +89,26 @@ func TestNewFromSecretDataWithForwarderValidatesOriginalBeforeCallingForwarder(t
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported credentials, query, fragment, or path")
 	assert.False(t, called)
+}
+
+func TestNewFromSecretDataWithForwarderTreatsPortlessExternalNoOpAsUnforwarded(t *testing.T) {
+	var clientConfig *milvusclient.ClientConfig
+	_, err := newFromSecretDataWithClient(
+		context.Background(),
+		map[string][]byte{"MILVUS_URI": []byte("https://milvus.example.com")},
+		func(_ context.Context, rawURL string) (string, error) {
+			assert.Equal(t, "https://milvus.example.com", rawURL)
+			return rawURL, nil
+		},
+		func(_ context.Context, cfg *milvusclient.ClientConfig) (milvusClient, error) {
+			clientConfig = cfg
+			return &captureMilvusClient{}, nil
+		},
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, clientConfig)
+	assert.Equal(t, "milvus.example.com:19530", clientConfig.Address)
 }
 
 func TestNewFromSecretDataWithForwarderRejectsUntrustedDestinations(t *testing.T) {

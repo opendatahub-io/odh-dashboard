@@ -46,7 +46,6 @@ let policyName: string;
 let subscriptionGroups: string[];
 let tokenRateLimit: string;
 let llmInferenceServiceFixturePath: string;
-const rowIndex = 0;
 
 describe('MaaS Governance Overview tab', () => {
   retryableBefore(() => {
@@ -210,49 +209,67 @@ describe('MaaS Governance Overview tab', () => {
       overviewRow.findModelPhase().should('contain.text', PhaseStatus.READY);
 
       cy.step('Expand the model row and verify the subscription details');
-      overviewTabPage.expandModelRow(rowIndex);
-      overviewTabPage.expandExpandableItemInRow(rowIndex, subscriptionName);
+      overviewTabPage.expandModelRow(modelName, projectName);
+      overviewTabPage.expandExpandableItemInRow(modelName, projectName, subscriptionName);
       overviewTabPage
-        .findExpandableItemName(rowIndex, subscriptionName)
+        .findExpandableItemName(modelName, projectName, subscriptionName)
         .should('contain.text', subscriptionName);
       overviewTabPage
-        .findExpandableItemPhase(rowIndex, subscriptionName)
+        .findExpandableItemPhase(modelName, projectName, subscriptionName)
         .should('contain.text', PhaseStatus.READY);
       overviewTabPage
-        .findExpandableItemTokenLimits(rowIndex, subscriptionName)
+        .findExpandableItemTokenLimits(modelName, projectName, subscriptionName)
         .should('contain.text', tokenRateLimit);
       overviewTabPage
-        .findExpandableItemGroupChip(rowIndex, subscriptionName, subscriptionGroups[0])
+        .findExpandableItemGroupChip(
+          modelName,
+          projectName,
+          subscriptionName,
+          subscriptionGroups[0],
+        )
         .should('contain.text', subscriptionGroups[0]);
 
       cy.step(
         'Verify highlight matching subscriptions and policies when a group chip is clicked and Items are expanded',
       );
-      overviewTabPage.findGroupChip(subscriptionGroups[0], rowIndex).should('be.visible');
-      overviewTabPage.findGroupChip(subscriptionGroups[0], rowIndex).click();
+      overviewTabPage
+        .findGroupChip(subscriptionGroups[0], modelName, projectName)
+        .should('be.visible');
+      overviewTabPage.findGroupChip(subscriptionGroups[0], modelName, projectName).click();
       [subscriptionName, policyName].forEach((name) => {
-        overviewTabPage.shouldExpandableItemInRowBeExpanded(rowIndex, name, true);
+        overviewTabPage.shouldExpandableItemInRowBeExpanded(modelName, projectName, name, true);
       });
-      overviewTabPage.shouldGroupChipsBeHighlighted(subscriptionGroups[0], rowIndex, true, 2);
+      overviewTabPage.shouldGroupChipsBeHighlighted(
+        subscriptionGroups[0],
+        modelName,
+        projectName,
+        true,
+        2,
+      );
 
       cy.step('Verify the authorization policy name, status, and groups');
-      overviewTabPage.expandExpandableItemInRow(rowIndex, policyName);
+      overviewTabPage.expandExpandableItemInRow(modelName, projectName, policyName);
       overviewTabPage
-        .findExpandableItemName(rowIndex, policyName)
+        .findExpandableItemName(modelName, projectName, policyName)
         .should('contain.text', policyName);
       overviewTabPage
-        .findExpandableItemPhase(rowIndex, policyName)
+        .findExpandableItemPhase(modelName, projectName, policyName)
         .should('contain.text', PhaseStatus.READY);
       overviewTabPage
-        .findExpandableItemGroupChip(rowIndex, policyName, subscriptionGroups[0])
+        .findExpandableItemGroupChip(modelName, projectName, policyName, subscriptionGroups[0])
         .should('contain.text', subscriptionGroups[0]);
 
       cy.step('Deselect the group chip and verify highlight clears on subscriptions and policies');
-      overviewTabPage.findGroupChip(subscriptionGroups[0], rowIndex).click();
-      overviewTabPage.shouldGroupChipsBeHighlighted(subscriptionGroups[0], rowIndex, false);
+      overviewTabPage.findGroupChip(subscriptionGroups[0], modelName, projectName).click();
+      overviewTabPage.shouldGroupChipsBeHighlighted(
+        subscriptionGroups[0],
+        modelName,
+        projectName,
+        false,
+      );
 
       cy.step('Verify the link on subscription name navigates to the subscription details page');
-      overviewTabPage.findExpandableItemName(rowIndex, subscriptionName).click();
+      overviewTabPage.findExpandableItemName(modelName, projectName, subscriptionName).click();
       viewSubscriptionPage.findTitle().should('contain.text', `${subscriptionName}`);
       viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
       overviewTabPage.findTable().should('exist');
@@ -273,10 +290,15 @@ describe('MaaS Governance Overview tab', () => {
       overviewTabPage.findModelRows().should('have.length', 1);
 
       cy.step('Verify the link on policy name navigates to the policy details page');
-      overviewTabPage.expandModelRow(rowIndex);
-      overviewTabPage.expandExpandableItemInRow(rowIndex, policyName);
-      overviewTabPage.shouldExpandableItemInRowBeExpanded(rowIndex, subscriptionName, false);
-      overviewTabPage.findExpandableItemName(rowIndex, policyName).click();
+      overviewTabPage.expandModelRow(modelName, projectName);
+      overviewTabPage.expandExpandableItemInRow(modelName, projectName, policyName);
+      overviewTabPage.shouldExpandableItemInRowBeExpanded(
+        modelName,
+        projectName,
+        subscriptionName,
+        false,
+      );
+      overviewTabPage.findExpandableItemName(modelName, projectName, policyName).click();
       viewAuthPolicyPage.findTitle().should('contain.text', policyName);
       viewAuthPolicyPage.findBreadcrumbPoliciesLink().click();
       overviewTabPage.findTable().should('exist');

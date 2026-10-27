@@ -133,7 +133,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
           pipelineDeleteModal.findSubmitButton().click();
 
           cy.step('Verify that the pipeline no longer exist');
-          pipelinesTable.shouldBeEmpty();
+          pipelinesTable.shouldRowNotBeVisible(testData.pipelineName);
         } else {
           throw new Error('Pipeline ID and Version ID could not be extracted from the URL.');
         }

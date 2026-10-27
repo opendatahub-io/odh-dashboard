@@ -360,6 +360,22 @@ class EvaluationsPage {
     return this.findStatusModal().findByTestId(`status-label-${state}`);
   }
 
+  findFailureSummaryText() {
+    return this.findStatusModal().findByTestId('failure-summary-text');
+  }
+
+  findFailureSummaryToggle() {
+    return this.findStatusModal().findByTestId('failure-summary-toggle');
+  }
+
+  findStatusModalBody() {
+    return this.findStatusModal().findByTestId('status-modal-body');
+  }
+
+  findStatusModalTabContent() {
+    return this.findStatusModal().findByTestId('status-modal-tab-content');
+  }
+
   findStatusDetailHeader() {
     return cy.findByTestId('status-detail-header');
   }

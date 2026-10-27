@@ -8,6 +8,7 @@ import { MemoryRouter } from 'react-router';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragResultsPage, {
   buildResponsesTemplate,
+  getResponsesTemplateForPattern,
   normalizeResponsesTemplate,
 } from '~/app/pages/AutoragResultsPage';
 import type { AutoRAGResponsesTemplate, AutoragPattern } from '~/app/types/autoragPattern';
@@ -323,7 +324,65 @@ describe('buildResponsesTemplate', () => {
 
     expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
       ranker: 'rrf',
-      alpha: 0.5,
+      ranker_k: 60,
+    });
+  });
+
+  it('should reject a Milvus RRF ranker_k at the exclusive maximum', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_k: 16384,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(() => buildResponsesTemplate(pattern, 'run-123')).toThrow(
+      'Milvus RRF ranker_k must be greater than 0 and less than 16384',
+    );
+  });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, null])(
+    'should reject an invalid configured Milvus RRF ranker_k %p',
+    (rankerK) => {
+      const pattern = {
+        ...mockPatterns['pattern-1'],
+        settings: {
+          ...mockPatterns['pattern-1'].settings,
+          retrieval: {
+            ...mockPatterns['pattern-1'].settings.retrieval,
+            search_mode: 'hybrid',
+            ranker_k: rankerK,
+          },
+        },
+      } as AutoragPattern;
+
+      expect(() => buildResponsesTemplate(pattern, 'run-123')).toThrow(
+        'Milvus RRF ranker_k must be greater than 0 and less than 16384',
+      );
+    },
+  );
+
+  it('should preserve a valid Milvus RRF ranker_k below the exclusive maximum', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_k: 16383.999,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      ranker_k: 16383.999,
     });
   });
 
@@ -335,15 +394,116 @@ describe('buildResponsesTemplate', () => {
         retrieval: {
           ...mockPatterns['pattern-1'].settings.retrieval,
           search_mode: 'hybrid',
+          ranker_strategy: 'weighted',
           ranker_alpha: 0,
         },
       },
     } as AutoragPattern;
 
     expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
-      ranker: 'rrf',
+      ranker: 'weighted',
       alpha: 0,
     });
+  });
+
+  it('should default weighted alpha when it is absent', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_strategy: 'weighted',
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
+      ranker: 'weighted',
+      alpha: 0.5,
+    });
+  });
+
+  it('should accept the inclusive upper alpha boundary', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_strategy: 'weighted',
+          ranker_alpha: 1,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
+      ranker: 'weighted',
+      alpha: 1,
+    });
+  });
+
+  it.each([-0.1, 1.1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'should reject an invalid configured ranking alpha %p',
+    (alpha) => {
+      const pattern = {
+        ...mockPatterns['pattern-1'],
+        settings: {
+          ...mockPatterns['pattern-1'].settings,
+          retrieval: {
+            ...mockPatterns['pattern-1'].settings.retrieval,
+            search_mode: 'hybrid',
+            ranker_strategy: 'weighted',
+            ranker_alpha: alpha,
+          },
+        },
+      } as AutoragPattern;
+
+      expect(() => buildResponsesTemplate(pattern, 'run-123')).toThrow(
+        'Ranking alpha must be between 0 and 1',
+      );
+    },
+  );
+
+  it('should keep pgvector RRF alpha when building a hybrid template', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        store_binding: { provider_type: 'pgvector' as const, collection_name: 'chunks' },
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_alpha: 0.3,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 0.3,
+    });
+  });
+
+  it('should reject unknown pgvector ranking strategies', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        store_binding: { provider_type: 'pgvector' as const, collection_name: 'chunks' },
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_strategy: 'unknown',
+        },
+      },
+    } as AutoragPattern;
+
+    expect(() => buildResponsesTemplate(pattern, 'run-123')).toThrow(
+      'Unsupported retrieval ranker: unknown',
+    );
   });
 });
 
@@ -356,23 +516,248 @@ describe('normalizeResponsesTemplate', () => {
         {
           ...template.tools[0],
           ranking_options: {
-            ranker: 'legacy-ranker',
+            ranker: 'rrf',
             alpha: 0.25,
-            impact_factor: 0.75,
+            impact_factor: 42,
           },
         },
       ],
     } as unknown as typeof template;
 
-    expect(normalizeResponsesTemplate(legacyTemplate)).toEqual({
+    expect(normalizeResponsesTemplate(legacyTemplate, 'milvus')).toEqual({
       ...template,
       tools: [
         {
           ...template.tools[0],
-          ranking_options: { ranker: 'rrf', alpha: 0.25 },
+          ranking_options: { ranker: 'rrf', ranker_k: 42 },
         },
       ],
     });
+  });
+
+  it('should retain pgvector RRF alpha when normalizing a persisted template', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const withRanking = {
+      ...template,
+      tools: [{ ...template.tools[0], ranking_options: { ranker: 'rrf' as const, alpha: 0.2 } }],
+    };
+
+    expect(normalizeResponsesTemplate(withRanking, 'pgvector').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 0.2,
+    });
+  });
+
+  it('should default pgvector RRF alpha when it is absent', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const withoutAlpha = {
+      ...template,
+      tools: [{ ...template.tools[0], ranking_options: { ranker: 'rrf' as const } }],
+    };
+
+    expect(normalizeResponsesTemplate(withoutAlpha, 'pgvector').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 0.5,
+    });
+  });
+
+  it('should accept persisted pgvector alpha at the upper boundary', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const withAlpha = {
+      ...template,
+      tools: [{ ...template.tools[0], ranking_options: { ranker: 'rrf' as const, alpha: 1 } }],
+    };
+
+    expect(normalizeResponsesTemplate(withAlpha, 'pgvector').tools[0].ranking_options).toEqual({
+      ranker: 'rrf',
+      alpha: 1,
+    });
+  });
+
+  it('should default Milvus RRF ranker_k when persisted ranking fields are absent', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const withoutRankingFields = {
+      ...template,
+      tools: [{ ...template.tools[0], ranking_options: { ranker: 'rrf' as const } }],
+    };
+
+    expect(
+      normalizeResponsesTemplate(withoutRankingFields, 'milvus').tools[0].ranking_options,
+    ).toEqual({
+      ranker: 'rrf',
+      ranker_k: 60,
+    });
+  });
+
+  it('should reject an invalid persisted Milvus RRF ranker_k', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const invalidTemplate = {
+      ...template,
+      tools: [
+        { ...template.tools[0], ranking_options: { ranker: 'rrf' as const, ranker_k: 16384 } },
+      ],
+    };
+
+    expect(() => normalizeResponsesTemplate(invalidTemplate, 'milvus')).toThrow(
+      'Invalid persisted Milvus RRF ranker_k',
+    );
+  });
+
+  it('should reject an invalid legacy Milvus impact_factor', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const invalidTemplate = {
+      ...template,
+      tools: [
+        { ...template.tools[0], ranking_options: { ranker: 'rrf' as const, impact_factor: 16384 } },
+      ],
+    };
+
+    expect(() => normalizeResponsesTemplate(invalidTemplate, 'milvus')).toThrow(
+      'Invalid persisted Milvus RRF impact_factor',
+    );
+  });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'should reject an invalid persisted Milvus RRF value %p',
+    (value) => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const invalidTemplate = {
+        ...template,
+        tools: [
+          { ...template.tools[0], ranking_options: { ranker: 'rrf' as const, ranker_k: value } },
+        ],
+      };
+
+      expect(() => normalizeResponsesTemplate(invalidTemplate, 'milvus')).toThrow(
+        'Invalid persisted Milvus RRF ranker_k',
+      );
+    },
+  );
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'should reject an invalid persisted Milvus impact_factor %p',
+    (value) => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const invalidTemplate = {
+        ...template,
+        tools: [
+          {
+            ...template.tools[0],
+            ranking_options: { ranker: 'rrf' as const, impact_factor: value },
+          },
+        ],
+      };
+
+      expect(() => normalizeResponsesTemplate(invalidTemplate, 'milvus')).toThrow(
+        'Invalid persisted Milvus RRF impact_factor',
+      );
+    },
+  );
+
+  it('should ignore Milvus-only RRF fields when normalizing pgvector templates', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const pgvectorTemplate = {
+      ...template,
+      tools: [
+        {
+          ...template.tools[0],
+          ranking_options: {
+            ranker: 'rrf' as const,
+            ranker_k: 16384,
+            impact_factor: Number.POSITIVE_INFINITY,
+            alpha: 0.2,
+          },
+        },
+      ],
+    };
+
+    expect(
+      normalizeResponsesTemplate(pgvectorTemplate, 'pgvector').tools[0].ranking_options,
+    ).toEqual({
+      ranker: 'rrf',
+      alpha: 0.2,
+    });
+  });
+
+  it.each([-0.1, 1.1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'should reject an invalid persisted ranking alpha %p',
+    (alpha) => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const invalidTemplate = {
+        ...template,
+        tools: [
+          {
+            ...template.tools[0],
+            ranking_options: { ranker: 'weighted' as const, alpha },
+          },
+        ],
+      };
+
+      expect(() => normalizeResponsesTemplate(invalidTemplate, 'milvus')).toThrow(
+        'Invalid persisted ranking alpha',
+      );
+    },
+  );
+
+  it('should preserve a valid persisted template when the generated fallback is invalid', () => {
+    const persistedTemplate = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_k: 16384,
+        },
+      },
+      inference: { responses_template: persistedTemplate },
+    } as AutoragPattern;
+
+    expect(getResponsesTemplateForPattern(pattern, 'milvus', 'run-123')).toEqual(persistedTemplate);
+  });
+
+  it('should prefer a valid persisted template when both candidates are usable', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+        },
+      },
+    } as AutoragPattern;
+    const persistedTemplate = {
+      ...buildResponsesTemplate(pattern, 'run-123'),
+      tools: [
+        {
+          ...buildResponsesTemplate(pattern, 'run-123').tools[0],
+          ranking_options: { ranker: 'rrf' as const, ranker_k: 42 },
+        },
+      ],
+    };
+    const patternWithPersistedTemplate = {
+      ...pattern,
+      inference: { responses_template: persistedTemplate },
+    };
+
+    expect(
+      getResponsesTemplateForPattern(patternWithPersistedTemplate, 'milvus', 'run-123')?.tools[0]
+        .ranking_options,
+    ).toEqual({ ranker: 'rrf', ranker_k: 42 });
+  });
+
+  it('should return no template when both persisted and generated templates are unusable', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        generation: { ...mockPatterns['pattern-1'].settings.generation, model_id: '' },
+      },
+    } as AutoragPattern;
+
+    expect(getResponsesTemplateForPattern(pattern, 'milvus', 'run-123')).toBeUndefined();
   });
 });
 
@@ -614,7 +999,7 @@ describe('AutoragResultsPage', () => {
         tools: [
           {
             ...legacyTemplate.tools[0],
-            ranking_options: { ranker: 'rrf', alpha: 0.5 },
+            ranking_options: { ranker: 'weighted', alpha: 0.5 },
           },
         ],
       });
@@ -716,6 +1101,40 @@ describe('AutoragResultsPage', () => {
           optimization_max_rag_patterns: 10,
         },
       });
+    });
+
+    it('should reject unsupported persisted ranking strategies', () => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const invalidTemplate = {
+        ...template,
+        tools: [
+          {
+            ...template.tools[0],
+            ranking_options: { ranker: 'unsupported' },
+          },
+        ],
+      } as unknown as typeof template;
+
+      expect(() => normalizeResponsesTemplate(invalidTemplate, 'milvus')).toThrow(
+        'Unsupported persisted retrieval ranker',
+      );
+    });
+
+    it('should reject weighted pgvector templates', () => {
+      const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+      const withRanking = {
+        ...template,
+        tools: [
+          {
+            ...template.tools[0],
+            ranking_options: { ranker: 'weighted' as const, alpha: 0.3 },
+          },
+        ],
+      };
+
+      expect(() => normalizeResponsesTemplate(withRanking, 'pgvector')).toThrow(
+        'Weighted ranking is not supported for pgvector',
+      );
     });
 
     it('should render a canonical run without an OGX secret', () => {

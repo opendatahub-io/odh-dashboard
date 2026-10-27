@@ -2,7 +2,11 @@
   .pf-v6-c-modal-box__body {
     display: flex;
     flex-direction: column;
-    overflow-y: hidden;
+    // Keep PatternFly's default outer scroll (overflow-y: auto) as a fallback for
+    // viewports too short to fit the modal: the header stack below is
+    // flex-shrink: 0, so clipping it with `hidden` left the content below
+    // unreachable (RHAI-10244). On normal viewports the flex layout fits exactly
+    // and no outer scrollbar appears.
 
     > .pf-v6-l-stack {
       flex: 1;
@@ -52,7 +56,10 @@
 
 .evalhub-status-modal__tab-content {
   flex: 1;
-  min-height: 0;
+  // Floor the region instead of min-height: 0 — on a short viewport the flex item
+  // must hold real height so the modal body overflows (and scrolls, see above)
+  // rather than collapsing the tab content to zero (RHAI-10244).
+  min-height: 25vh;
   padding-block-start: var(--pf-t--global--spacer--md);
 
   &--progress {
@@ -82,11 +89,24 @@
   padding-top: var(--pf-t--global--spacer--md);
 }
 
-.evalhub-status-modal__failure-summary--clamped {
+// TODO: PatternFly has no built-in clamped/scrollable long-form text component;
+// replace this custom styling when one is available upstream (RHAI-10244).
+.evalhub-status-modal__failure-summary.m-clamped {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+// Expanded summary is capped and scrolls within itself so the modal keeps a
+// stable height instead of growing with the message (RHAI-10244). The cap is
+// 10lh normally and 40vh on short viewports, so the summary cannot consume the
+// whole modal when vertical space is scarce. The scroll region is
+// keyboard-focusable (see the tabIndex/role in the component) so the hidden
+// text stays reachable without a pointer.
+.evalhub-status-modal__failure-summary.m-expanded {
+  max-height: min(10lh, 40vh);
+  overflow-y: auto;
 }
 
 .evalhub-status-modal__empty-progress {

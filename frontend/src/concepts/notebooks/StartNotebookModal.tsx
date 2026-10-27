@@ -49,7 +49,11 @@ import {
   InProgressIcon,
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
-import { getDescriptionFromK8sResource, type PodContainerStatus } from '@odh-dashboard/k8s-core';
+import {
+  getDescriptionFromK8sResource,
+  type PodContainerStatus,
+  type ProjectKind,
+} from '@odh-dashboard/k8s-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
@@ -122,6 +126,8 @@ type StartNotebookModalButtonsContext = {
 
 type StartNotebookModalProps = {
   notebook?: NotebookKind;
+  infrastructureWorkloadProject?: ProjectKind;
+  infrastructureWorkloadClusterQueueName?: string;
   isStarting: boolean;
   isRunning: boolean;
   isStopping: boolean;
@@ -145,6 +151,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   notebookStatus,
   events,
   notebook = null,
+  infrastructureWorkloadProject,
+  infrastructureWorkloadClusterQueueName,
   isStarting,
   isRunning,
   isStopping,
@@ -196,7 +204,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   }, [notebookProgress, userCollapsedIds]);
 
   const inProgress = isStarting || isStopping;
-  const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
+  const { currentProject: contextProject, localQueues } = React.useContext(ProjectDetailsContext);
+  const project = infrastructureWorkloadProject ?? contextProject;
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
   const [canViewClusterQueue] = useAccessReview(
     { group: ClusterQueueModel.apiGroup, resource: ClusterQueueModel.plural, verb: 'get' },
@@ -235,7 +244,9 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     }
   }, [showResourcesTab, activeTab]);
   const localQueueName = notebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
-  const clusterQueueName = getClusterQueueNameFromLocalQueues(localQueueName, localQueues);
+  const clusterQueueName =
+    infrastructureWorkloadClusterQueueName ??
+    getClusterQueueNameFromLocalQueues(localQueueName, localQueues);
   const shouldShowResources = Boolean(
     showResourcesTab && isProjectKueueEnabled && localQueueName && clusterQueueName,
   );

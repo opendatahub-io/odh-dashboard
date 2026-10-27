@@ -139,12 +139,12 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 pnpm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme PORT=9104 PROXY_PORT=8081 pnpm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
 	@$(resolve_maas_api_url) \
-	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
+	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" MAAS_API_URL="$$MAAS_URL"
 
 .PHONY: dev-bff-federated-mock
 dev-bff-federated-mock:
@@ -152,7 +152,7 @@ dev-bff-federated-mock:
 
 .PHONY: dev-frontend-federated-mock
 dev-frontend-federated-mock:
-	cd frontend && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 pnpm run start:dev
+	cd frontend && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme PORT=9104 PROXY_PORT=8081 pnpm run start:dev
 
 .PHONY: dev-start-mock-federated
 dev-start-mock-federated:

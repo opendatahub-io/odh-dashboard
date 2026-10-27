@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	milvusclient "github.com/milvus-io/milvus-sdk-go/v2/client"
+	milvusclient "github.com/milvus-io/milvus/client/v2/milvusclient"
 	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 )
 
@@ -22,26 +22,37 @@ func NewFromSecretDataWithForwarder(ctx context.Context, data map[string][]byte,
 	return newFromSecretData(ctx, data, forwardURL)
 }
 
+type milvusClientFactory func(context.Context, *milvusclient.ClientConfig) (milvusClient, error)
+
 func newFromSecretData(ctx context.Context, data map[string][]byte, forwardURL func(context.Context, string) (string, error)) (VectorDB, error) {
+	return newFromSecretDataWithClient(ctx, data, forwardURL, func(connectCtx context.Context, cfg *milvusclient.ClientConfig) (milvusClient, error) {
+		return milvusclient.New(connectCtx, cfg)
+	})
+}
+
+func newFromSecretDataWithClient(
+	ctx context.Context,
+	data map[string][]byte,
+	forwardURL func(context.Context, string) (string, error),
+	newClient milvusClientFactory,
+) (VectorDB, error) {
 	providers := database.Classify(data)
 	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector) {
 		return nil, fmt.Errorf("%w: expected exactly one supported vector database provider", ErrUnsupportedVectorDB)
 	}
 
-	allowLoopback := forwardURL != nil
+	allowLoopbackForOriginal := forwardURL != nil
 	if providers[0] == database.Milvus {
 		if forwardURL != nil {
 			original := strings.TrimSpace(string(data["MILVUS_URI"]))
-			originalEndpoint, err := parseMilvusEndpointWithLoopback(original, allowLoopback)
+			originalEndpoint, err := parseMilvusEndpointWithLoopback(original, allowLoopbackForOriginal)
 			if err != nil {
 				return nil, err
 			}
 			// localhost is already an internal endpoint; it must not be replaced
 			// by a dev port-forward target.
 			if originalEndpoint.loopback {
-				return newMilvusFromSecretWithTimeoutPolicy(ctx, data, allowLoopback, MilvusOperationTimeout, func(connectCtx context.Context, cfg milvusclient.Config) (milvusClient, error) {
-					return milvusclient.NewClient(connectCtx, cfg)
-				})
+				return newMilvusFromSecretWithTimeoutPolicy(ctx, data, true, "", MilvusOperationTimeout, newClient)
 			}
 			forwarded, err := forwardURL(ctx, original)
 			if err != nil {
@@ -56,16 +67,16 @@ func newFromSecretData(ctx context.Context, data map[string][]byte, forwardURL f
 					forwardedData[key] = value
 				}
 				forwardedData["MILVUS_URI"] = []byte(forwarded)
-				return newMilvusFromSecretWithTimeoutPolicy(ctx, forwardedData, true, MilvusOperationTimeout, func(connectCtx context.Context, cfg milvusclient.Config) (milvusClient, error) {
-					return milvusclient.NewClient(connectCtx, cfg)
-				})
+				return newMilvusFromSecretWithTimeoutPolicy(ctx, forwardedData, true, originalEndpoint.host, MilvusOperationTimeout, newClient)
 			}
 		}
-		return newMilvusFromSecretWithTimeoutPolicy(ctx, data, allowLoopback, MilvusOperationTimeout, func(connectCtx context.Context, cfg milvusclient.Config) (milvusClient, error) {
-			return milvusclient.NewClient(connectCtx, cfg)
-		})
+		// An unchanged external endpoint must retain the normal safe-dial policy.
+		// A configured forwarder alone is not evidence that loopback is trusted.
+		return newMilvusFromSecretWithTimeoutPolicy(ctx, data, false, "", MilvusOperationTimeout, newClient)
 	}
 	if providers[0] == database.PGVector {
+		host := strings.TrimSuffix(strings.TrimSpace(string(data["PGVECTOR_HOST"])), ".")
+		allowLoopback := forwardURL != nil && strings.EqualFold(host, "localhost")
 		return newPgvectorFromSecretWithLoopback(ctx, data, allowLoopback)
 	}
 	return nil, fmt.Errorf("%w", ErrUnsupportedVectorDB)

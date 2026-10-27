@@ -105,8 +105,8 @@ func parseMilvusEndpointWithLoopback(raw string, allowLoopback bool) (vectorEndp
 	inCluster := false
 	if allowLoopback && strings.EqualFold(host, "localhost") {
 		port := parsed.Port()
-		if parsed.Scheme != "http" || port == "" {
-			return vectorEndpoint{}, fmt.Errorf("forwarded Milvus endpoint must use http")
+		if port == "" {
+			return vectorEndpoint{}, fmt.Errorf("forwarded Milvus endpoint must specify a port")
 		}
 		portNumber, portErr := strconv.Atoi(port)
 		if portErr != nil || portNumber < 1024 || portNumber > 65535 {
@@ -156,8 +156,15 @@ func ValidateForwardedMilvusEndpoint(original, forwarded string) error {
 	if !originalEndpoint.inCluster && !originalEndpoint.loopback {
 		return fmt.Errorf("original Milvus endpoint is not an in-cluster service")
 	}
-	if _, err := parseMilvusEndpointWithLoopback(forwarded, true); err != nil {
+	forwardedEndpoint, err := parseMilvusEndpointWithLoopback(forwarded, true)
+	if err != nil {
 		return err
+	}
+	if !forwardedEndpoint.loopback {
+		return fmt.Errorf("forwarded Milvus endpoint must use localhost")
+	}
+	if forwardedEndpoint.useTLS != originalEndpoint.useTLS {
+		return fmt.Errorf("forwarded Milvus endpoint must preserve TLS")
 	}
 	return nil
 }

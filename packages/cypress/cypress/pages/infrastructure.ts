@@ -175,6 +175,18 @@ class InfrastructurePage {
     return cy.findByTestId('notebook-status-modal');
   }
 
+  findWorkbenchStatusResourcesTab() {
+    return this.findWorkbenchStatusModal().findByTestId('expand-resources');
+  }
+
+  findWorkbenchStatusClusterQueueSection() {
+    return this.findWorkbenchStatusModal().findByTestId('cluster-queue-section');
+  }
+
+  findWorkbenchStatusQueueValue() {
+    return this.findWorkbenchStatusModal().findByTestId('queue-value');
+  }
+
   findTrainingJobStatusModal() {
     return cy.findByTestId('training-job-status-modal');
   }

@@ -105,10 +105,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/me:
+  /api/v1/whoami:
     get:
       summary: Get MaaS Caller Identity
-      operationId: getMaaSMe
+      operationId: getMaaSWhoAmI
       description: >
         Returns structured metadata about the authenticated caller from MaaS
         /v1/me. This is the grid-mode replacement for the Kubernetes-backed
@@ -122,7 +122,7 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/MaasMe'
+                    $ref: '#/components/schemas/MaaSWhoAmI'
                 required:
                   - data
               example:
@@ -2217,7 +2217,7 @@ components:
           example:
             - admins
 
-    MaasMe:
+    MaaSWhoAmI:
       type: object
       required:
         - sub

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   ActionGroup,
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
@@ -41,10 +40,13 @@ import {
   evaluationsBaseRoute,
   evaluationBenchmarksRoute,
   evaluationCollectionsRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField';
@@ -74,6 +76,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const isReconfigure = !!sourceJobId;
 
   const selectionResult = useEvaluationSelection(namespace, isReconfigure);
@@ -139,12 +142,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select collection' : 'Select benchmark';
 
   const getBreadcrumbItems = (): React.ReactElement[] => {
-    const items: React.ReactElement[] = [
-      <BreadcrumbItem
-        key="evaluations"
-        render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-      />,
-    ];
+    const items: React.ReactElement[] = [];
     if (isReconfigure) {
       items.push(
         <BreadcrumbItem key="active" isActive>
@@ -227,7 +225,16 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   return (
     <ApplicationsPage
       noHeader
-      breadcrumb={<Breadcrumb>{getBreadcrumbItems()}</Breadcrumb>}
+      breadcrumb={
+        <ContextBreadcrumb
+          pageName="Evaluations"
+          projectDisplayName={projectDisplayName}
+          homePath={evaluationsBaseRoute(namespace)}
+          projectHomePath={projectHomeRoute(namespace)}
+        >
+          {getBreadcrumbItems()}
+        </ContextBreadcrumb>
+      }
       loaded
       empty={false}
     >
