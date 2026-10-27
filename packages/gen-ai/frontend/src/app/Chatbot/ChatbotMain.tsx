@@ -621,7 +621,11 @@ const ChatbotMain: React.FunctionComponent = () => {
       // ASR edits made before compare mode stay dirty and revertible, and reverting
       // either pane restores the same shared values without flagging the sibling
       // dirty against its own baseline.
-      const primaryBaseline = configBaselinesRef.current[firstConfigId] ?? duplicatedConfig;
+      // When no primary baseline exists, the primary pane's own dirty check compares
+      // against DEFAULT_CONFIGURATION — use the same fallback here so both panes
+      // stay symmetric instead of baking duplication-time ASR values into the
+      // secondary baseline.
+      const primaryBaseline = configBaselinesRef.current[firstConfigId] ?? DEFAULT_CONFIGURATION;
       configBaselinesRef.current[newConfigId] = {
         ...duplicatedConfig,
         selectedAsrModel: primaryBaseline.selectedAsrModel,
