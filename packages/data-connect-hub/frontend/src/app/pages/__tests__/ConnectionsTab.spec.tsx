@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -150,6 +150,14 @@ describe('ConnectionsTab', () => {
     ).toEqual(['550e8400-e29b-41d4-a716-446655440003']);
   });
 
+  it('keeps an absent type selection absent when types become available', () => {
+    expect(synchronizeTypeSelection(null, [], ['type-one', 'type-two'])).toBeNull();
+  });
+
+  it('keeps an empty type selection empty when new types are discovered', () => {
+    expect(synchronizeTypeSelection([], ['type-one'], ['type-one', 'type-two'])).toEqual([]);
+  });
+
   it('adds a newly discovered type while preserving existing selection', () => {
     expect(
       synchronizeTypeSelection(
@@ -166,6 +174,45 @@ describe('ConnectionsTab', () => {
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Unverified')).toBeTruthy();
+  });
+
+  it('defaults the type filter to unselected without filtering connections', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.getByText('object-store')).toBeTruthy();
+    expect(screen.queryByTestId('connections-type-filter-badge')).toBeNull();
+
+    await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
+    expect(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
+    expect(
+      within(screen.getByRole('menuitem', { name: 'S3' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
+  });
+
+  it('shows a count badge and filters by selected connection types', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
+    fireEvent.click(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    );
+
+    expect(screen.getByTestId('connections-type-filter-badge').textContent).toBe('1');
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.queryByText('object-store')).toBeNull();
+
+    fireEvent.click(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    );
+
+    expect(screen.queryByTestId('connections-type-filter-badge')).toBeNull();
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.getByText('object-store')).toBeTruthy();
   });
 
   it('renders a newly created connection as unverified', () => {

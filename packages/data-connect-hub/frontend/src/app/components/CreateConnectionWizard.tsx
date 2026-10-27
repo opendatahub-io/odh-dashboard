@@ -23,6 +23,11 @@ import {
   Label,
   LabelGroup,
   MenuToggle,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
   Select,
   SelectList,
   SelectOption,
@@ -114,7 +119,7 @@ const ConnectionTypeStep: React.FC<ConnectionTypeStepProps> = ({
   <Form>
     <StepHeader
       title="Connection type"
-      description="Select the type of external resource you want to connect to. Compare options below before continuing."
+      description="Select the type of external resource you want to connect to."
     />
     {connectionTypesError ? (
       <Alert variant="danger" isInline title="Unable to load connection types">
@@ -174,10 +179,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
 
   return (
     <Form className="dch-connection-wizard-step-form">
-      <StepHeader
-        title="Connection details"
-        description="Choose the project and provide a name for this connection."
-      />
+      <StepHeader title="Details" description="" />
       {namespacesError ? (
         <Alert variant="danger" isInline title="Unable to load projects">
           {namespacesError.message}
@@ -374,7 +376,7 @@ const VerifyConnectionSection: React.FC<VerificationSectionProps> = ({
     <div className="pf-v6-u-mt-xl">
       <Content component={ContentVariants.h3}>Verify connection</Content>
       <Content component={ContentVariants.p}>
-        Optionally verify your credentials and endpoint.
+        Verify that the credentials are accurate and the endpoint can be reached.
       </Content>
       <Button
         variant="tertiary"
@@ -389,11 +391,7 @@ const VerifyConnectionSection: React.FC<VerificationSectionProps> = ({
       >
         Verify
       </Button>
-      {isVerified ? (
-        <Alert variant="success" isInline title="Connection successful">
-          {connectionType?.resource.name ?? 'The connection type'} is reachable
-        </Alert>
-      ) : null}
+      {isVerified ? <Alert variant="success" isInline title="Connection verified" /> : null}
       {verificationError ? (
         <Alert variant="danger" isInline title="Connection verification failed">
           {verificationError.message}
@@ -413,8 +411,9 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = (props) => {
         title="Configuration"
         description={
           <>
-            Configure credentials and connection parameters for{' '}
-            <strong>{connectionType?.resource.name ?? 'the selected connection type'}</strong>.
+            Provide credentials and complete required fields defined by the selected connection
+            type, <strong>{connectionType?.resource.name ?? 'the selected connection type'}</strong>
+            .
           </>
         }
       />
@@ -497,10 +496,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
   return (
     <Grid hasGutter>
-      <StepHeader
-        title="Review"
-        description="Review the information below and click Create connection to complete. Use the Back button to make changes."
-      />
+      <StepHeader title="Review" description="" />
       <DescriptionList
         className="dch-connection-wizard-review-summary"
         columnModifier={{
@@ -619,7 +615,7 @@ const KeyValueInput: React.FC<KeyValueInputProps> = ({
   <Stack hasGutter>
     <StackItem>
       <Content component={ContentVariants.small}>
-        Optionally define metadata to help discover and govern this connection in Data Connect Hub.
+        Optionally define custom properties using key-value pairs.
       </Content>
     </StackItem>
     <StackItem>
@@ -693,6 +689,7 @@ const KeyValueInput: React.FC<KeyValueInputProps> = ({
 
 type CreateConnectionWizardFooterProps = {
   onCreate: () => void;
+  onCancel: () => void;
   isCreating: boolean;
   hasSelectedConnectionType: boolean;
   hasValidDetails: boolean;
@@ -701,12 +698,13 @@ type CreateConnectionWizardFooterProps = {
 
 const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> = ({
   onCreate,
+  onCancel,
   isCreating,
   hasSelectedConnectionType,
   hasValidDetails,
   hasValidConfiguration,
 }) => {
-  const { activeStep, steps, goToNextStep, goToPrevStep, close } = useWizardContext();
+  const { activeStep, steps, goToNextStep, goToPrevStep } = useWizardContext();
   const isFirstStep = activeStep.index === 1;
   const isLastStep = activeStep.index === steps.length;
   const isNextDisabled = (() => {
@@ -761,7 +759,12 @@ const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> 
         </ActionListGroup>
         <ActionListGroup>
           <ActionListItem>
-            <Button variant="link" onClick={close} isDisabled={isCreating}>
+            <Button
+              variant="link"
+              onClick={onCancel}
+              isDisabled={isCreating}
+              data-testid="cancel-connection-wizard-button"
+            >
               Cancel
             </Button>
           </ActionListItem>
@@ -788,6 +791,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const [isOpenSessionReady, setIsOpenSessionReady] = React.useState(false);
   const [selectedNamespace, setSelectedNamespace] = React.useState(namespace);
   const [isCreating, setIsCreating] = React.useState(false);
+  const [isDiscardModalOpen, setIsDiscardModalOpen] = React.useState(false);
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [isVerified, setIsVerified] = React.useState(false);
   const [verificationError, setVerificationError] = React.useState<Error>();
@@ -803,6 +807,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const verificationRequestRef = React.useRef(0);
   const verificationAbortRef = React.useRef<AbortController>();
   const wasOpenRef = React.useRef(false);
+  const discardButtonRef = React.useRef<HTMLButtonElement | null>(null);
+  const discardButtonFocusTimeoutRef = React.useRef<number | undefined>(undefined);
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
     selectedNamespace,
     isOpen,
@@ -920,6 +926,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   React.useEffect(() => {
     if (!isOpen) {
       invalidateVerification();
+      setIsDiscardModalOpen(false);
     }
   }, [invalidateVerification, isOpen]);
   const handleConnectionTypeChange = (connectionTypeId: string) => {
@@ -1059,6 +1066,25 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       onClose();
     }
   }, [isCreating, onClose, resetForm]);
+  const requestClose = React.useCallback(() => {
+    if (!isCreating) {
+      setIsDiscardModalOpen(true);
+    }
+  }, [isCreating]);
+  const handleDiscard = React.useCallback(() => {
+    setIsDiscardModalOpen(false);
+    handleClose();
+  }, [handleClose]);
+  const setDiscardButtonRef = React.useCallback((button: HTMLButtonElement | null) => {
+    discardButtonRef.current = button;
+    window.clearTimeout(discardButtonFocusTimeoutRef.current);
+    if (button) {
+      discardButtonFocusTimeoutRef.current = window.setTimeout(() => {
+        window.setTimeout(() => button.focus(), 0);
+      }, 0);
+    }
+  }, []);
+  React.useEffect(() => () => window.clearTimeout(discardButtonFocusTimeoutRef.current), []);
 
   const handleCreate = async () => {
     if (!hasValidConfiguration) {
@@ -1087,95 +1113,133 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   };
 
   return isOpen ? (
-    <Tearsheet
-      isOpen
-      onEscapePress={handleClose}
-      aria-labelledby="create-connection-wizard-title"
-      data-testid="create-connection-tearsheet"
-    >
-      <Wizard
-        key={startIndex}
-        startIndex={startIndex}
-        onClose={handleClose}
-        header={
-          <WizardHeader
-            title="Create connection"
-            description="Configure your connection to an external resource."
-            titleId="create-connection-wizard-title"
-            onClose={handleClose}
-            closeButtonAriaLabel="Close wizard"
-          />
-        }
-        footer={
-          <CreateConnectionWizardFooter
-            onCreate={handleCreate}
-            isCreating={isCreating}
-            hasSelectedConnectionType={hasSelectedConnectionType}
-            hasValidDetails={hasValidDetailsWithProperties}
-            hasValidConfiguration={hasValidConfiguration}
-          />
-        }
+    <>
+      <Tearsheet
+        isOpen
+        onEscapePress={requestClose}
+        aria-labelledby="create-connection-wizard-title"
+        data-testid="create-connection-tearsheet"
+        modalProps={{ disableFocusTrap: isDiscardModalOpen }}
       >
-        <WizardStep name="Connection type" id="connection-type-step">
-          <ConnectionTypeStep
-            connectionTypes={connectionTypes}
-            connectionTypesLoaded={connectionTypesLoaded}
-            connectionTypesError={connectionTypesError}
-            selectedConnectionTypeId={formData.data_connection_type_id}
-            onConnectionTypeChange={(connectionType) =>
-              handleConnectionTypeChange(connectionType.metadata.id)
-            }
-          />
-        </WizardStep>
-        <WizardStep
-          name="Connection details"
-          id="connection-details-step"
-          isDisabled={!hasSelectedConnectionType}
+        <Wizard
+          key={startIndex}
+          startIndex={startIndex}
+          onClose={requestClose}
+          header={
+            <WizardHeader
+              title="Create connection"
+              description="Configure a connection to an external resource."
+              titleId="create-connection-wizard-title"
+              onClose={requestClose}
+              closeButtonAriaLabel="Close wizard"
+            />
+          }
+          footer={
+            <CreateConnectionWizardFooter
+              onCreate={handleCreate}
+              onCancel={requestClose}
+              isCreating={isCreating}
+              hasSelectedConnectionType={hasSelectedConnectionType}
+              hasValidDetails={hasValidDetailsWithProperties}
+              hasValidConfiguration={hasValidConfiguration}
+            />
+          }
         >
-          <ConnectionDetailsStep
-            namespaces={availableNamespaces}
-            selectedNamespace={selectedNamespace}
-            connectionName={formData.name}
-            properties={propertyRows}
-            propertyErrors={propertyErrors}
-            touchedProperties={touchedProperties}
-            namespacesLoaded={namespacesLoaded}
-            namespacesError={namespacesError}
-            connectionTypeWarning={connectionTypeWarning}
-            onNamespaceChange={handleNamespaceChange}
-            onConnectionNameChange={handleConnectionNameChange}
-            onPropertyAdd={handleAddProperty}
-            onPropertyChange={handlePropertyChange}
-            onPropertyBlur={handlePropertyBlur}
-            onPropertyRemove={handleRemoveProperty}
-          />
-        </WizardStep>
-        <WizardStep
-          name="Configuration"
-          id="configuration-step"
-          isDisabled={!hasValidDetailsWithProperties}
+          <WizardStep name="Connection type" id="connection-type-step">
+            <ConnectionTypeStep
+              connectionTypes={connectionTypes}
+              connectionTypesLoaded={connectionTypesLoaded}
+              connectionTypesError={connectionTypesError}
+              selectedConnectionTypeId={formData.data_connection_type_id}
+              onConnectionTypeChange={(connectionType) =>
+                handleConnectionTypeChange(connectionType.metadata.id)
+              }
+            />
+          </WizardStep>
+          <WizardStep
+            name="Connection details"
+            id="connection-details-step"
+            isDisabled={!hasSelectedConnectionType}
+          >
+            <ConnectionDetailsStep
+              namespaces={availableNamespaces}
+              selectedNamespace={selectedNamespace}
+              connectionName={formData.name}
+              properties={propertyRows}
+              propertyErrors={propertyErrors}
+              touchedProperties={touchedProperties}
+              namespacesLoaded={namespacesLoaded}
+              namespacesError={namespacesError}
+              connectionTypeWarning={connectionTypeWarning}
+              onNamespaceChange={handleNamespaceChange}
+              onConnectionNameChange={handleConnectionNameChange}
+              onPropertyAdd={handleAddProperty}
+              onPropertyChange={handlePropertyChange}
+              onPropertyBlur={handlePropertyBlur}
+              onPropertyRemove={handleRemoveProperty}
+            />
+          </WizardStep>
+          <WizardStep
+            name="Configuration"
+            id="configuration-step"
+            isDisabled={!hasValidDetailsWithProperties}
+          >
+            <ConfigurationStep
+              connectionType={selectedConnectionType}
+              credentials={formData.credentials.properties}
+              onCredentialChange={handleCredentialChange}
+              onVerify={() => void handleVerify()}
+              isVerifying={isVerifying}
+              isVerified={isVerified}
+              verificationError={verificationError}
+            />
+          </WizardStep>
+          <WizardStep name="Review" id="review-step" isDisabled={!hasValidConfiguration}>
+            <ReviewStep
+              name={formData.name}
+              namespace={selectedNamespace}
+              connectionType={selectedConnectionType}
+              credentials={formData.credentials.properties}
+              properties={formData.properties}
+            />
+          </WizardStep>
+        </Wizard>
+      </Tearsheet>
+      {isDiscardModalOpen ? (
+        <Modal
+          isOpen
+          variant={ModalVariant.small}
+          aria-label="Discard unsaved changes?"
+          elementToFocus="#discard-connection-changes-button"
+          onClose={() => setIsDiscardModalOpen(false)}
+          data-testid="discard-connection-changes-modal"
         >
-          <ConfigurationStep
-            connectionType={selectedConnectionType}
-            credentials={formData.credentials.properties}
-            onCredentialChange={handleCredentialChange}
-            onVerify={() => void handleVerify()}
-            isVerifying={isVerifying}
-            isVerified={isVerified}
-            verificationError={verificationError}
-          />
-        </WizardStep>
-        <WizardStep name="Review" id="review-step" isDisabled={!hasValidConfiguration}>
-          <ReviewStep
-            name={formData.name}
-            namespace={selectedNamespace}
-            connectionType={selectedConnectionType}
-            credentials={formData.credentials.properties}
-            properties={formData.properties}
-          />
-        </WizardStep>
-      </Wizard>
-    </Tearsheet>
+          <ModalHeader title="Discard unsaved changes?" />
+          <ModalBody>
+            Your changes on this page are not saved yet. Discard your changes and leave this page,
+            or cancel to continue editing.
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="primary"
+              id="discard-connection-changes-button"
+              ref={setDiscardButtonRef}
+              onClick={handleDiscard}
+              data-testid="discard-connection-changes-button"
+            >
+              Discard
+            </Button>
+            <Button
+              variant="link"
+              onClick={() => setIsDiscardModalOpen(false)}
+              data-testid="cancel-connection-changes-button"
+            >
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      ) : null}
+    </>
   ) : null;
 };
 

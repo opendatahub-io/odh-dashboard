@@ -91,7 +91,7 @@ describe('CreateConnectionWizard', () => {
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect(screen.getByTestId('connection-project-select').textContent).toContain('test-project');
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
   });
@@ -111,7 +111,7 @@ describe('CreateConnectionWizard', () => {
     expect(await screen.findByRole('heading', { name: 'Connection type' })).toBeTruthy();
     expect(screen.getByText('Unable to load connection types')).toBeTruthy();
     expect(screen.getByText('request failed')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Connection details' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Details' })).toBeNull();
   });
 
   it.each([undefined, 'postgres://supplied', ''])(
@@ -167,7 +167,7 @@ describe('CreateConnectionWizard', () => {
       ]);
       rerender(<CreateConnectionWizard {...props} isOpen />);
 
-      expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+      expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
       await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
       await user.click(screen.getByRole('button', { name: 'Next' }));
       expect(screen.getByTestId('credential-URI')).toHaveProperty(
@@ -211,7 +211,7 @@ describe('CreateConnectionWizard', () => {
 
     expect(await screen.findByRole('heading', { name: 'Connection type' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
-    expect(screen.queryByRole('heading', { name: 'Connection details' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Details' })).toBeNull();
   });
 
   it('should show connection details when namespace loading fails for valid initial form data', async () => {
@@ -234,7 +234,7 @@ describe('CreateConnectionWizard', () => {
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect(screen.getByText('Unable to load projects')).toBeTruthy();
     expect(screen.getByText('namespace request failed')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
@@ -664,14 +664,15 @@ describe('CreateConnectionWizard', () => {
     };
     const { rerender } = render(<CreateConnectionWizard {...props} isOpen />);
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     await user.type(screen.getByTestId('connection-name-input'), 'temporary-name');
     await user.click(screen.getByRole('button', { name: 'Close wizard' }));
+    await user.click(screen.getByTestId('discard-connection-changes-button'));
 
     rerender(<CreateConnectionWizard {...props} isOpen={false} />);
     rerender(<CreateConnectionWizard {...props} isOpen />);
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
   });
 
@@ -699,7 +700,7 @@ describe('CreateConnectionWizard', () => {
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     await user.type(screen.getByTestId('connection-name-input'), 'session-edit');
 
     rerender(
@@ -730,7 +731,7 @@ describe('CreateConnectionWizard', () => {
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect((screen.getByTestId('connection-property-key-1') as HTMLInputElement).value).toBe(
       'region',
     );
@@ -750,6 +751,32 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByText('zone: west')).toBeTruthy();
   });
 
+  it('warns before discarding unsaved connection changes', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('heading', { name: 'Discard unsaved changes?' })).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByTestId('discard-connection-changes-button')).toBe(document.activeElement),
+    );
+    await user.tab();
+    expect(screen.getByTestId('cancel-connection-changes-button')).toBe(document.activeElement);
+    expect(
+      screen.getByText(
+        'Your changes on this page are not saved yet. Discard your changes and leave this page, or cancel to continue editing.',
+      ),
+    ).toBeTruthy();
+
+    await user.click(screen.getByTestId('cancel-connection-changes-button'));
+
+    expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Connection type' })).toBeTruthy();
+  });
+
   it('starts with a blank wizard after the modal is cancelled', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();
@@ -766,6 +793,7 @@ describe('CreateConnectionWizard', () => {
       ),
     );
     await user.click(screen.getByRole('button', { name: 'Close wizard' }));
+    await user.click(screen.getByTestId('discard-connection-changes-button'));
     expect(onClose).toHaveBeenCalled();
     rerender(<CreateConnectionWizard isOpen={false} namespace="test-project" onClose={onClose} />);
     rerender(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
@@ -793,7 +821,7 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByTestId('verify-connection-button')).toBeTruthy();
     await user.click(screen.getByTestId('verify-connection-button'));
     expect(mockTestCredentials).toHaveBeenCalled();
-    expect(await screen.findByText('Connection successful')).toBeTruthy();
+    expect(await screen.findByText('Connection verified')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Next' }));
 

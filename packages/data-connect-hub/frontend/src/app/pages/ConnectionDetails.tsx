@@ -10,6 +10,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -177,6 +178,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
               >
                 Verify connection
               </DropdownItem>
+              <Divider />
               <DropdownItem
                 onClick={() => {
                   setActionsOpen(false);
@@ -265,9 +267,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                           variant="outline"
                           status={statusVariant[testedConnection.status.state]}
                         >
-                          {testedConnection.status.state === 'ready'
-                            ? 'Verified'
-                            : 'Verification failed'}
+                          {testedConnection.status.state === 'ready' ? 'Verified' : 'Failed'}
                         </Label>
                       ) : (
                         <Label variant="outline" color="grey">
