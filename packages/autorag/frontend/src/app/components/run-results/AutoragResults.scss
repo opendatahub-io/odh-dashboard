@@ -26,3 +26,9 @@
 .autorag-results {
   margin-block-start: var(--pf-t--global--spacer--md);
 }
+
+// PatternFly stacks default to height: 100%. The results stack follows the
+// breadcrumb inside the full-height page, so size it to its content instead.
+.autorag-results.pf-v6-l-stack {
+  height: auto;
+}
