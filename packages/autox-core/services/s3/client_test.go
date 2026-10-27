@@ -77,7 +77,6 @@ func TestParseChecksumAlgorithm(t *testing.T) {
 		want  string
 	}{
 		{value: "", want: ""},
-		{value: " none ", want: "NONE"},
 		{value: " crc32 ", want: "CRC32"},
 		{value: "CRC32C", want: "CRC32C"},
 		{value: "sha1", want: "SHA1"},
@@ -97,8 +96,10 @@ func TestParseChecksumAlgorithm(t *testing.T) {
 		})
 	}
 
-	if _, err := ParseChecksumAlgorithm("not-a-checksum"); err == nil {
-		t.Fatal("expected unsupported checksum algorithm to fail")
+	for _, value := range []string{"NONE", "not-a-checksum"} {
+		if _, err := ParseChecksumAlgorithm(value); err == nil {
+			t.Errorf("expected unsupported checksum algorithm %q to fail", value)
+		}
 	}
 }
 
@@ -329,10 +330,9 @@ func TestDefaultClient_UploadObjectWithoutChecksumTrailer(t *testing.T) {
 	})
 
 	opts := testOpts()
-	opts.ChecksumAlgorithm = ChecksumAlgorithmNone
+	opts.DisableUploadChecksumTrailers = true
 	err := c.UploadObject(context.Background(), opts, UploadObjectInput{
 		Bucket: "bucket", Key: "file.pdf", Body: io.LimitReader(strings.NewReader(content), int64(len(content))), ContentType: "application/pdf",
-		ChecksumAlgorithm: opts.ChecksumAlgorithm,
 	})
 	if err != nil {
 		t.Fatalf("small upload rejected by strict S3 endpoint (x-amz-content-sha256=%q): %v", receivedSHA256, err)
@@ -354,6 +354,7 @@ func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
 		name               string
 		connectionChecksum ChecksumAlgorithm
 		inputChecksum      ChecksumAlgorithm
+		disableTrailers    bool
 		wantAlgorithm      string
 		wantTrailer        string
 	}{
@@ -363,9 +364,8 @@ func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
 			wantTrailer:   "x-amz-checksum-crc32",
 		},
 		{
-			name:               "NONE disables optional checksum",
-			connectionChecksum: ChecksumAlgorithmNone,
-			inputChecksum:      ChecksumAlgorithmNone,
+			name:            "disable flag opts out of optional checksum",
+			disableTrailers: true,
 		},
 		{
 			name:               "CRC32",
@@ -438,6 +438,7 @@ func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
 			defer body.Close()
 			opts := testOpts()
 			opts.ChecksumAlgorithm = tc.connectionChecksum
+			opts.DisableUploadChecksumTrailers = tc.disableTrailers
 			err := c.UploadObject(context.Background(), opts, UploadObjectInput{
 				Bucket: "bucket", Key: "locked-file.pdf",
 				Body: body, ContentType: "application/pdf",
@@ -448,7 +449,7 @@ func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
 					t.Fatalf("expected checksum-required S3 endpoint to reject an upload without a checksum, got %v", err)
 				}
 				if receivedChecksumTrailer != "" || receivedSHA256 != "UNSIGNED-PAYLOAD" {
-					t.Errorf("unexpected checksum framing with NONE: trailer=%q, sha256=%q", receivedChecksumTrailer, receivedSHA256)
+					t.Errorf("unexpected checksum framing with disabled trailers: trailer=%q, sha256=%q", receivedChecksumTrailer, receivedSHA256)
 				}
 			} else {
 				if err != nil {
@@ -556,38 +557,6 @@ func TestDefaultClient_UploadObjectToAmazonS3WithObjectLock(t *testing.T) {
 	}
 	if !strings.Contains(string(receivedWireBody), content) || !strings.Contains(string(receivedWireBody), "x-amz-checksum-crc32:") {
 		t.Errorf("wire body missing payload or checksum trailer: %q", receivedWireBody)
-	}
-}
-
-func TestIsAmazonS3Endpoint(t *testing.T) {
-	for _, tc := range []struct {
-		endpoint string
-		want     bool
-	}{
-		{"https://s3.amazonaws.com", true},
-		{"https://s3.us-east-1.amazonaws.com", true},
-		{"https://s3.dualstack.us-east-1.amazonaws.com", true},
-		{"https://s3-fips.us-gov-west-1.amazonaws.com", true},
-		{"https://s3.cn-north-1.amazonaws.com.cn", true},
-		{"https://vpce-1a2b3c4d-5e6f.s3.us-east-1.vpce.amazonaws.com", true},
-		{"https://vpce-1a2b3c4d-5e6f.s3-fips.us-east-1.vpce.amazonaws.com", true},
-		{"https://vpce-1a2b3c4d-5e6f-us-east-1a.s3.us-east-1.vpce.amazonaws.com", true},
-		{"https://bucket.vpce-1a2b3c4d-5e6f.s3.us-east-1.vpce.amazonaws.com", true},
-		{"https://endpoint.s3-fips.us-east-1.vpce.amazonaws.com", false},
-		{"https://vpce-1a2b3c4d-5e6f.ec2.us-east-1.vpce.amazonaws.com", false},
-		{"https://vpce-1a2b3c4d-5e6f.ec2-fips.us-east-1.vpce.amazonaws.com", false},
-		{"https://vpce-1a2b3c4d-5e6f.s3tables.us-east-1.vpce.amazonaws.com", false},
-		{"https://vpce-1a2b3c4d-5e6f.s3.ec2.us-east-1.vpce.amazonaws.com", false},
-		{"https://vpce-1a2b3c4d-5e6f.s3.us-east-1.vpce.amazonaws.com.evil.example", false},
-		{"https://s3.us-east-1.amazonaws.com.evil.example", false},
-		{"https://not-s3.amazonaws.com", false},
-		{"https://s3.example.com", false},
-	} {
-		t.Run(tc.endpoint, func(t *testing.T) {
-			if got := isAmazonS3Endpoint(tc.endpoint); got != tc.want {
-				t.Errorf("isAmazonS3Endpoint(%q) = %t, want %t", tc.endpoint, got, tc.want)
-			}
-		})
 	}
 }
 

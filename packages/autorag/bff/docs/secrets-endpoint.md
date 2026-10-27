@@ -84,9 +84,10 @@ The `database` result requires every required value for a matching provider to b
 
 ### S3 upload checksums
 
-The S3 connection Secret can optionally include `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM`.
-Accepted values are `NONE`, `CRC32`, `CRC32C`, `SHA1`, `SHA256`, and `SHA512`
-(case-insensitive). This is a Secret key, not a BFF environment variable.
+The S3 connection Secret can optionally include `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM`
+or `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS`. The algorithm key accepts `CRC32`,
+`CRC32C`, `SHA1`, `SHA256`, and `SHA512` (case-insensitive). These are Secret
+keys, not BFF environment variables.
 
 When the key is absent or empty, uploads retain the AWS SDK's default checksum
 behavior, including CRC32 for supported S3 upload operations. This preserves
@@ -94,14 +95,15 @@ existing connections, including buckets that require upload checksums. Set an
 explicit algorithm when a bucket requires a particular checksum and the endpoint
 supports its streaming trailer.
 
-Set `NONE` for S3-compatible endpoints that reject optional
-`STREAMING-UNSIGNED-PAYLOAD-TRAILER` uploads, including
+Set `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS=true` for S3-compatible endpoints
+that reject optional `STREAMING-UNSIGNED-PAYLOAD-TRAILER` uploads, including
 [affected NetApp ONTAP versions](https://kb.netapp.com/on-prem/ontap/da/S3/S3-Issues/CONTAP-576720).
 This disables optional checksums; it does not satisfy bucket-level checksum
-requirements such as Object Lock. Existing connections to endpoints that reject
-the SDK default should set this key to `NONE` to use the workaround. The setting
-applies only to uploads through this S3 connection; selecting or downloading
-existing objects is unaffected.
+requirements such as Object Lock. Enabling the flag and setting an explicit
+checksum algorithm are mutually exclusive. With no algorithm selected and the
+flag absent or `false`, the SDK default is preserved. The setting applies only
+to uploads through this S3 connection; selecting or downloading existing
+objects is unaffected.
 
 ## Response Format
 

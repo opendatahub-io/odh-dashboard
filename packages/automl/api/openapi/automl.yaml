@@ -315,8 +315,9 @@ paths:
             Name of the Kubernetes secret containing S3 credentials (required for POST).
             The secret must provide AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
             and AWS_S3_ENDPOINT using those exact field names. Bucket may come from this secret
-            (e.g. AWS_S3_BUCKET) when the bucket query parameter is omitted. The optional
-            AWS_S3_UPLOAD_CHECKSUM_ALGORITHM field controls upload checksums as described below.
+            (e.g. AWS_S3_BUCKET) when the bucket query parameter is omitted. Optional
+            AWS_S3_UPLOAD_CHECKSUM_ALGORITHM and AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS fields
+            control upload checksums as described below.
           schema:
             type: string
             maxLength: 253
@@ -385,13 +386,15 @@ paths:
         Uploads a CSV file to S3 using credentials from the specified Kubernetes secret.
         The request must be multipart/form-data with a part named `file`.
 
-        The secret may contain `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` (NONE, CRC32, CRC32C,
-        SHA1, SHA256, or SHA512; case-insensitive). When the key is absent or empty,
-        uploads retain the AWS SDK's default checksum behavior, preserving existing
-        connections and buckets that require upload checksums. Set an explicit algorithm
-        when a bucket requires a particular checksum. Set NONE to disable optional
-        checksums for endpoints that reject streaming trailers, including affected
-        NetApp ONTAP S3. NONE does not satisfy bucket-level checksum requirements.
+        The secret may contain `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` (CRC32, CRC32C, SHA1,
+        SHA256, or SHA512; case-insensitive) to select a checksum explicitly, or
+        `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS=true` for endpoints that reject optional
+        streaming trailers, including affected NetApp ONTAP S3. When no algorithm is
+        selected and the disable flag is absent or false, uploads retain the AWS SDK's
+        default checksum behavior. This preserves existing connections and buckets that
+        require upload checksums. Enabling the disable flag and setting an explicit
+        algorithm are mutually exclusive. Disabling optional checksums does not satisfy
+        bucket-level checksum requirements.
 
         Only CSV uploads are allowed: Content-Type `text/csv`, or `application/octet-stream` (or empty)
         when the part filename ends with `.csv`. The body is size-limited (declared Content-Length

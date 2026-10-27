@@ -210,7 +210,8 @@ For a Kubernetes secret to be used with S3 endpoints, it must contain:
 | Field | Description | Example |
 |-------|-------------|---------|
 | `AWS_S3_BUCKET` | Default bucket name | `my-training-data` |
-| `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` | Checksum algorithm, or `NONE` to disable optional checksums | `NONE` or `CRC32` |
+| `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` | Optional explicit upload checksum algorithm | `CRC32` |
+| `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS` | Disable optional streaming checksum trailers | `true` |
 
 **Note**: Field names are case-insensitive (`AWS_S3_ENDPOINT` = `aws_s3_endpoint`)
 

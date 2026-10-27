@@ -9,8 +9,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -55,9 +53,11 @@ type ConnectionOptions struct {
 	Region          string
 	BaseEndpoint    string
 	// ChecksumAlgorithm is an optional upload checksum setting from the S3 connection.
-	// Leave empty to retain the SDK's default checksum behavior, or use
-	// ChecksumAlgorithmNone for endpoints that reject optional streaming trailers.
+	// Leave empty to retain the SDK's default checksum behavior.
 	ChecksumAlgorithm ChecksumAlgorithm
+	// DisableUploadChecksumTrailers disables optional streaming checksum trailers.
+	// Checksums required by the S3 operation are still sent.
+	DisableUploadChecksumTrailers bool
 }
 
 // ClientConfig holds knobs for the default S3 client provider.
@@ -200,6 +200,10 @@ func (c *client) DownloadObject(ctx context.Context, opts ConnectionOptions, inp
 }
 
 func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input UploadObjectInput) error {
+	if opts.DisableUploadChecksumTrailers && (opts.ChecksumAlgorithm != "" || input.ChecksumAlgorithm != "") {
+		return fmt.Errorf("%w: %s cannot be combined with %s", ErrChecksumConfiguration, DisableUploadChecksumTrailersSecretKey, ChecksumAlgorithmSecretKey)
+	}
+
 	transferClient, err := c.Provider.CreateTransferClient(opts)
 	if err != nil {
 		return err
@@ -211,7 +215,7 @@ func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input
 		Body:              input.Body,
 		ContentType:       aws.String(input.ContentType),
 		IfNoneMatch:       aws.String("*"),
-		ChecksumAlgorithm: uploadChecksumAlgorithm(input.ChecksumAlgorithm),
+		ChecksumAlgorithm: input.ChecksumAlgorithm,
 	})
 	if err != nil {
 		if isS3ConditionalCreateConflict(err) {
@@ -307,57 +311,17 @@ func (p *awsClientProvider) CreateTransferClient(opts ConnectionOptions) (Transf
 		o.GetObjectBufferSize = cfg.GetObjectBufSize
 		o.PartBodyMaxRetries = cfg.PartBodyMaxRetries
 		o.DisableChecksumValidation = false
-		// Keep the SDK default for existing connections. Endpoints that reject
-		// optional trailers can opt out with ChecksumAlgorithmNone.
-		o.RequestChecksumCalculation = requestChecksumCalculation(opts.BaseEndpoint, opts.ChecksumAlgorithm)
+		// Keep the SDK default for existing connections. Connections that reject
+		// optional trailers can opt out explicitly.
+		o.RequestChecksumCalculation = requestChecksumCalculation(opts.DisableUploadChecksumTrailers)
 	}), nil
 }
 
-func requestChecksumCalculation(endpoint string, algorithm ChecksumAlgorithm) aws.RequestChecksumCalculation {
-	if algorithm == ChecksumAlgorithmNone {
-		return aws.RequestChecksumCalculationWhenRequired
-	}
-	if algorithm != "" && !isAmazonS3Endpoint(endpoint) {
+func requestChecksumCalculation(disableUploadChecksumTrailers bool) aws.RequestChecksumCalculation {
+	if disableUploadChecksumTrailers {
 		return aws.RequestChecksumCalculationWhenRequired
 	}
 	return aws.RequestChecksumCalculationWhenSupported
-}
-
-func uploadChecksumAlgorithm(algorithm ChecksumAlgorithm) ChecksumAlgorithm {
-	if algorithm == ChecksumAlgorithmNone {
-		return ""
-	}
-	return algorithm
-}
-
-func isAmazonS3Endpoint(endpoint string) bool {
-	parsed, err := url.Parse(endpoint)
-	if err != nil {
-		return false
-	}
-	host := strings.ToLower(strings.TrimSuffix(parsed.Hostname(), "."))
-	if strings.HasSuffix(host, ".vpce.amazonaws.com") {
-		// Regional, zonal, and bucket-prefixed S3 interface endpoints all place
-		// the S3 or S3 FIPS service label immediately before the Region label.
-		labels := strings.Split(strings.TrimSuffix(host, ".vpce.amazonaws.com"), ".")
-		if len(labels) < 3 {
-			return false
-		}
-		service := labels[len(labels)-2]
-		return (service == "s3" || service == "s3-fips") && strings.HasPrefix(labels[len(labels)-3], "vpce-")
-	}
-	for _, domain := range []string{"amazonaws.com", "amazonaws.com.cn"} {
-		if host == "s3."+domain {
-			return true
-		}
-		if suffix := "." + domain; strings.HasSuffix(host, suffix) {
-			service := strings.TrimSuffix(host, suffix)
-			if strings.HasPrefix(service, "s3.") || strings.HasPrefix(service, "s3-") {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // buildAWSClient creates a real *awss3.Client with validated endpoint, credentials, and TLS.
@@ -378,7 +342,7 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 		),
 		RetryMaxAttempts:           1,
 		HTTPClient:                 p.buildHTTPClient(),
-		RequestChecksumCalculation: requestChecksumCalculation(validatedEndpoint, opts.ChecksumAlgorithm),
+		RequestChecksumCalculation: requestChecksumCalculation(opts.DisableUploadChecksumTrailers),
 	}
 
 	return awss3.NewFromConfig(awsCfg, func(o *awss3.Options) {

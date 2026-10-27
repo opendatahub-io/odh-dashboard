@@ -12,6 +12,9 @@ var (
 	// Use errors.Is to classify client creation failures.
 	ErrEndpointValidation = errors.New("endpoint validation failed")
 
+	// ErrChecksumConfiguration is returned when S3 upload checksum settings conflict.
+	ErrChecksumConfiguration = errors.New("invalid S3 upload checksum configuration")
+
 	// ErrObjectAlreadyExists is returned by UploadObject when the object key already exists.
 	// Uploads use S3 conditional create (If-None-Match: *): 412 Precondition Failed or 409 ConditionalRequestConflict.
 	ErrObjectAlreadyExists = errors.New("s3 object already exists at key")

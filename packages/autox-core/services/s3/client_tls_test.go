@@ -135,11 +135,10 @@ func TestDefaultClient_UploadObjectToStrictTLSS3(t *testing.T) {
 			})
 			opts := testOpts()
 			opts.BaseEndpoint = "https://example.com:" + port
-			opts.ChecksumAlgorithm = ChecksumAlgorithmNone
+			opts.DisableUploadChecksumTrailers = true
 
 			err = client.UploadObject(context.Background(), opts, UploadObjectInput{
 				Bucket: "bucket", Key: "file.pdf", Body: io.LimitReader(bytes.NewReader(payload), int64(len(payload))), ContentType: "application/pdf",
-				ChecksumAlgorithm: opts.ChecksumAlgorithm,
 			})
 			if err != nil {
 				t.Fatalf("upload to strict TLS S3 endpoint failed: %v", err)

@@ -108,7 +108,7 @@ func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestConte
 		return s3.ConnectionOptions{}, "", fmt.Errorf("secret %q: %w", req.SecretName, err)
 	}
 	if forUpload {
-		opts.ChecksumAlgorithm, err = parseS3ChecksumAlgorithm(secret.Data)
+		opts.ChecksumAlgorithm, opts.DisableUploadChecksumTrailers, err = parseS3UploadChecksumOptions(secret.Data)
 		if err != nil {
 			return s3.ConnectionOptions{}, "", fmt.Errorf("secret %q: %w: %v", req.SecretName, ErrS3Configuration, err)
 		}
@@ -190,19 +190,21 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string, fo
 		bucket = secretBucket
 	}
 	var checksumAlgorithm s3.ChecksumAlgorithm
+	var disableUploadChecksumTrailers bool
 	if forUpload {
-		checksumAlgorithm, err = parseS3ChecksumAlgorithm(secret.Data)
+		checksumAlgorithm, disableUploadChecksumTrailers, err = parseS3UploadChecksumOptions(secret.Data)
 		if err != nil {
 			return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q: %v", ErrDSPAConfiguration, spec.SecretName, err)
 		}
 	}
 
 	return s3.ConnectionOptions{
-		AccessKeyID:       accessKeyID,
-		SecretAccessKey:   secretAccessKey,
-		Region:            region,
-		BaseEndpoint:      endpointURL,
-		ChecksumAlgorithm: checksumAlgorithm,
+		AccessKeyID:                   accessKeyID,
+		SecretAccessKey:               secretAccessKey,
+		Region:                        region,
+		BaseEndpoint:                  endpointURL,
+		ChecksumAlgorithm:             checksumAlgorithm,
+		DisableUploadChecksumTrailers: disableUploadChecksumTrailers,
 	}, bucket, nil
 }
 
@@ -357,6 +359,26 @@ func parseS3ChecksumAlgorithm(data map[string][]byte) (s3.ChecksumAlgorithm, err
 		return "", fmt.Errorf("field %s: %w", s3.ChecksumAlgorithmSecretKey, err)
 	}
 	return algorithm, nil
+}
+
+func parseS3UploadChecksumOptions(data map[string][]byte) (s3.ChecksumAlgorithm, bool, error) {
+	algorithm, err := parseS3ChecksumAlgorithm(data)
+	if err != nil {
+		return "", false, err
+	}
+
+	disableValue, err := kubernetes.LookupSecretValue(data, s3.DisableUploadChecksumTrailersSecretKey)
+	if err != nil {
+		return "", false, fmt.Errorf("field %s: %w", s3.DisableUploadChecksumTrailersSecretKey, err)
+	}
+	disableTrailers, err := s3.ParseDisableUploadChecksumTrailers(disableValue)
+	if err != nil {
+		return "", false, fmt.Errorf("field %s: %w", s3.DisableUploadChecksumTrailersSecretKey, err)
+	}
+	if disableTrailers && algorithm != "" {
+		return "", false, fmt.Errorf("field %s cannot be combined with field %s", s3.DisableUploadChecksumTrailersSecretKey, s3.ChecksumAlgorithmSecretKey)
+	}
+	return algorithm, disableTrailers, nil
 }
 
 // UploadCSVFile validates the upload is a CSV, resolves a non-colliding key, and uploads
