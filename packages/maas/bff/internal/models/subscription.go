@@ -29,6 +29,7 @@ type ModelRefInfo struct {
 type SubscriptionListItem struct {
 	SubscriptionIDHeader    string            `json:"subscription_id_header"`
 	SubscriptionDescription string            `json:"subscription_description"`
+	Roles                   []string          `json:"roles,omitempty"`
 	DisplayName             string            `json:"display_name,omitempty"`
 	KeyCount                int32             `json:"key_count"`
 	ModelRefs               []ModelRefInfo    `json:"model_refs"`

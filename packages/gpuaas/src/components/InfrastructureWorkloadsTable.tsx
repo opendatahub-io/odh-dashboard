@@ -10,6 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { DashboardEmptyTableView, Table, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import TrainingJobStatusModal from '@odh-dashboard/model-training/components/TrainingJobStatusModal';
 import RayJobStatusModal from '@odh-dashboard/model-training/components/RayJobStatusModal';
 import DeploymentStatusModal from '@odh-dashboard/model-serving/components/DeploymentStatusModal';
@@ -18,6 +19,7 @@ import type { NotebookState } from '@odh-dashboard/internal/pages/projects/noteb
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import StartNotebookModal from '@odh-dashboard/internal/concepts/notebooks/StartNotebookModal';
 import { useNotebookStatus } from '@odh-dashboard/internal/utilities/notebookControllerUtils';
+import { EventStatus } from '@odh-dashboard/internal/types';
 import { startNotebook, stopNotebook } from '@odh-dashboard/internal/api';
 import { fireWorkbenchStatusModalAction } from '@odh-dashboard/internal/concepts/kueue/workbenchTracking';
 import { isRayJob, isTrainJob } from '@odh-dashboard/model-training/types';
@@ -125,10 +127,17 @@ const InfrastructureWorkloadTableRow: React.FC<InfrastructureWorkloadTableRowPro
 
 const WorkbenchStatusModalAdapter: React.FC<{
   notebookState: NotebookState;
+  infrastructureWorkloadClusterQueueName?: InfrastructureWorkloadRow['clusterQueueName'];
   kueueStatus?: InfrastructureWorkloadRow['kueueStatus'];
   onClose: () => void;
-}> = ({ notebookState, kueueStatus: workloadKueueStatus, onClose }) => {
+}> = ({
+  notebookState,
+  infrastructureWorkloadClusterQueueName,
+  kueueStatus: workloadKueueStatus,
+  onClose,
+}) => {
   const { kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
+  const { preferredProject } = React.useContext(ProjectsContext);
   const { notebook, isStarting, isRunning, isStopping, runningPodUid, containerStatuses } =
     notebookState;
   const kueueStatus = workloadKueueStatus
@@ -140,12 +149,14 @@ const WorkbenchStatusModalAdapter: React.FC<{
     isRunning,
     runningPodUid,
   );
-  const isError = notebookStatus?.currentStatus === 'Error';
+  const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
 
   return (
     <StartNotebookModal
       notebook={notebook}
+      infrastructureWorkloadProject={preferredProject ?? undefined}
+      infrastructureWorkloadClusterQueueName={infrastructureWorkloadClusterQueueName}
       isStarting={isStarting}
       isRunning={isRunning}
       isStopping={isStopping}
@@ -235,6 +246,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
       return notebookState ? (
         <WorkbenchStatusModalAdapter
           notebookState={notebookState}
+          infrastructureWorkloadClusterQueueName={selectedWorkload.clusterQueueName}
           kueueStatus={selectedWorkload.kueueStatus}
           onClose={closeStatusModal}
         />
