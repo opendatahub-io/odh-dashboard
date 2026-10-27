@@ -103,6 +103,41 @@ func TestParseChecksumAlgorithm(t *testing.T) {
 	}
 }
 
+func TestParseUploadChecksumOptions(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		algorithmValue string
+		disableValue   string
+		wantAlgorithm  ChecksumAlgorithm
+		wantDisable    bool
+		wantErrorField string
+	}{
+		{name: "unset options"},
+		{name: "false disable flag", disableValue: "false"},
+		{name: "true disable flag", disableValue: "true", wantDisable: true},
+		{name: "algorithm", algorithmValue: "sha256", wantAlgorithm: ChecksumAlgorithm(transfertypes.ChecksumAlgorithmSha256)},
+		{name: "invalid flag", disableValue: "sometimes", wantErrorField: DisableUploadChecksumTrailersSecretKey},
+		{name: "invalid algorithm", algorithmValue: "invalid", wantErrorField: ChecksumAlgorithmSecretKey},
+		{name: "conflicting options", algorithmValue: "CRC32", disableValue: "true", wantErrorField: DisableUploadChecksumTrailersSecretKey},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			algorithm, disable, err := ParseUploadChecksumOptions(tc.algorithmValue, tc.disableValue)
+			if tc.wantErrorField != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantErrorField) {
+					t.Fatalf("error = %v, want error mentioning %s", err, tc.wantErrorField)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if algorithm != tc.wantAlgorithm || disable != tc.wantDisable {
+				t.Errorf("ParseUploadChecksumOptions() = (%q, %t), want (%q, %t)", algorithm, disable, tc.wantAlgorithm, tc.wantDisable)
+			}
+		})
+	}
+}
+
 // --- GetObject ---
 
 func TestClient_GetObject(t *testing.T) {
@@ -250,10 +285,11 @@ func TestClient_UploadObject(t *testing.T) {
 			},
 		}
 		c := &client{Provider: &mockProvider{transferClient: tc}}
+		opts := testOpts()
+		opts.ChecksumAlgorithm = transfertypes.ChecksumAlgorithmCrc32
 
-		err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{
+		err := c.UploadObject(context.Background(), opts, UploadObjectInput{
 			Bucket: "b", Key: "k", Body: bytes.NewReader([]byte("data")), ContentType: "text/plain",
-			ChecksumAlgorithm: transfertypes.ChecksumAlgorithmCrc32,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -353,7 +389,6 @@ func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
 	for _, tc := range []struct {
 		name               string
 		connectionChecksum ChecksumAlgorithm
-		inputChecksum      ChecksumAlgorithm
 		disableTrailers    bool
 		wantAlgorithm      string
 		wantTrailer        string
@@ -370,35 +405,30 @@ func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
 		{
 			name:               "CRC32",
 			connectionChecksum: transfertypes.ChecksumAlgorithmCrc32,
-			inputChecksum:      transfertypes.ChecksumAlgorithmCrc32,
 			wantAlgorithm:      "CRC32",
 			wantTrailer:        "x-amz-checksum-crc32",
 		},
 		{
 			name:               "CRC32C",
 			connectionChecksum: transfertypes.ChecksumAlgorithmCrc32c,
-			inputChecksum:      transfertypes.ChecksumAlgorithmCrc32c,
 			wantAlgorithm:      "CRC32C",
 			wantTrailer:        "x-amz-checksum-crc32c",
 		},
 		{
 			name:               "SHA1",
 			connectionChecksum: transfertypes.ChecksumAlgorithmSha1,
-			inputChecksum:      transfertypes.ChecksumAlgorithmSha1,
 			wantAlgorithm:      "SHA1",
 			wantTrailer:        "x-amz-checksum-sha1",
 		},
 		{
 			name:               "SHA256",
 			connectionChecksum: transfertypes.ChecksumAlgorithmSha256,
-			inputChecksum:      transfertypes.ChecksumAlgorithmSha256,
 			wantAlgorithm:      "SHA256",
 			wantTrailer:        "x-amz-checksum-sha256",
 		},
 		{
 			name:               "SHA512",
 			connectionChecksum: transfertypes.ChecksumAlgorithmSha512,
-			inputChecksum:      transfertypes.ChecksumAlgorithmSha512,
 			wantAlgorithm:      "SHA512",
 			wantTrailer:        "x-amz-checksum-sha512",
 		},
@@ -442,7 +472,6 @@ func TestDefaultClient_UploadObjectWithChecksumAlgorithm(t *testing.T) {
 			err := c.UploadObject(context.Background(), opts, UploadObjectInput{
 				Bucket: "bucket", Key: "locked-file.pdf",
 				Body: body, ContentType: "application/pdf",
-				ChecksumAlgorithm: tc.inputChecksum,
 			})
 			if tc.wantAlgorithm == "" {
 				if err == nil || !strings.Contains(err.Error(), "InvalidRequest") {

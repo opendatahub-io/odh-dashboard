@@ -2,6 +2,7 @@ package s3
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -52,6 +53,26 @@ func ParseDisableUploadChecksumTrailers(value string) (bool, error) {
 	default:
 		return false, errors.New("must be true or false")
 	}
+}
+
+// ParseUploadChecksumOptions parses the optional upload checksum settings from
+// their Secret values. Disabling optional checksum trailers and selecting an
+// explicit checksum algorithm are mutually exclusive.
+func ParseUploadChecksumOptions(algorithmValue, disableTrailersValue string) (ChecksumAlgorithm, bool, error) {
+	algorithm, err := ParseChecksumAlgorithm(algorithmValue)
+	if err != nil {
+		return "", false, fmt.Errorf("field %s: %w", ChecksumAlgorithmSecretKey, err)
+	}
+
+	disableTrailers, err := ParseDisableUploadChecksumTrailers(disableTrailersValue)
+	if err != nil {
+		return "", false, fmt.Errorf("field %s: %w", DisableUploadChecksumTrailersSecretKey, err)
+	}
+	if disableTrailers && algorithm != "" {
+		return "", false, fmt.Errorf("field %s cannot be combined with field %s", DisableUploadChecksumTrailersSecretKey, ChecksumAlgorithmSecretKey)
+	}
+
+	return algorithm, disableTrailers, nil
 }
 
 // ObjectInfo represents a single S3 object in the listing response.
@@ -117,9 +138,6 @@ type UploadObjectInput struct {
 	Key         string
 	Body        io.Reader
 	ContentType string
-	// ChecksumAlgorithm opts this upload into a specific checksum algorithm. Leave
-	// it empty to retain the SDK default checksum behavior.
-	ChecksumAlgorithm transfertypes.ChecksumAlgorithm
 }
 
 // ObjectExistsInput holds the parameters for an ObjectExists operation.

@@ -200,7 +200,7 @@ func (c *client) DownloadObject(ctx context.Context, opts ConnectionOptions, inp
 }
 
 func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input UploadObjectInput) error {
-	if opts.DisableUploadChecksumTrailers && (opts.ChecksumAlgorithm != "" || input.ChecksumAlgorithm != "") {
+	if opts.DisableUploadChecksumTrailers && opts.ChecksumAlgorithm != "" {
 		return fmt.Errorf("%w: %s cannot be combined with %s", ErrChecksumConfiguration, DisableUploadChecksumTrailersSecretKey, ChecksumAlgorithmSecretKey)
 	}
 
@@ -215,7 +215,7 @@ func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input
 		Body:              input.Body,
 		ContentType:       aws.String(input.ContentType),
 		IfNoneMatch:       aws.String("*"),
-		ChecksumAlgorithm: input.ChecksumAlgorithm,
+		ChecksumAlgorithm: opts.ChecksumAlgorithm,
 	})
 	if err != nil {
 		if isS3ConditionalCreateConflict(err) {

@@ -235,11 +235,10 @@ func (r *S3Repository) UploadFile(ctx context.Context, req S3RequestContext, key
 	}
 
 	return resolvedKey, r.s3Service.UploadObject(ctx, opts, s3.UploadObjectInput{
-		Bucket:            bucket,
-		Key:               resolvedKey,
-		Body:              body,
-		ContentType:       SanitizeContentType(rawContentType),
-		ChecksumAlgorithm: opts.ChecksumAlgorithm,
+		Bucket:      bucket,
+		Key:         resolvedKey,
+		Body:        body,
+		ContentType: SanitizeContentType(rawContentType),
 	})
 }
 
@@ -319,37 +318,17 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions
 	}, bucket, nil
 }
 
-func parseS3ChecksumAlgorithm(data map[string][]byte) (s3.ChecksumAlgorithm, error) {
-	value, err := kubernetes.LookupSecretValue(data, s3.ChecksumAlgorithmSecretKey)
-	if err != nil {
-		return "", fmt.Errorf("field %s: %w", s3.ChecksumAlgorithmSecretKey, err)
-	}
-
-	algorithm, err := s3.ParseChecksumAlgorithm(value)
-	if err != nil {
-		return "", fmt.Errorf("field %s: %w", s3.ChecksumAlgorithmSecretKey, err)
-	}
-	return algorithm, nil
-}
-
 func parseS3UploadChecksumOptions(data map[string][]byte) (s3.ChecksumAlgorithm, bool, error) {
-	algorithm, err := parseS3ChecksumAlgorithm(data)
+	algorithmValue, err := kubernetes.LookupSecretValue(data, s3.ChecksumAlgorithmSecretKey)
 	if err != nil {
-		return "", false, err
+		return "", false, fmt.Errorf("field %s: %w", s3.ChecksumAlgorithmSecretKey, err)
 	}
 
 	disableValue, err := kubernetes.LookupSecretValue(data, s3.DisableUploadChecksumTrailersSecretKey)
 	if err != nil {
 		return "", false, fmt.Errorf("field %s: %w", s3.DisableUploadChecksumTrailersSecretKey, err)
 	}
-	disableTrailers, err := s3.ParseDisableUploadChecksumTrailers(disableValue)
-	if err != nil {
-		return "", false, fmt.Errorf("field %s: %w", s3.DisableUploadChecksumTrailersSecretKey, err)
-	}
-	if disableTrailers && algorithm != "" {
-		return "", false, fmt.Errorf("field %s cannot be combined with field %s", s3.DisableUploadChecksumTrailersSecretKey, s3.ChecksumAlgorithmSecretKey)
-	}
-	return algorithm, disableTrailers, nil
+	return s3.ParseUploadChecksumOptions(algorithmValue, disableValue)
 }
 
 // --- Content-type policy ---
