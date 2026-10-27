@@ -1,7 +1,6 @@
 import React from 'react';
 import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
-import { useSettings } from 'mod-arch-core';
-import { getMaaSWhoAmI } from '@odh-dashboard/maas/api/whoami';
+import { getMaaSWhoAmI, getMaaSWhoAmIDisplayName } from '@odh-dashboard/maas/api/whoami';
 
 import { PORTAL_BASE_PATH } from '../portalPaths';
 
@@ -48,12 +47,7 @@ const UserDropdownMenu: React.FC<{ displayName: string }> = ({ displayName }) =>
   );
 };
 
-const LegacyUserDropdown: React.FC = () => {
-  const { userSettings } = useSettings();
-  return <UserDropdownMenu displayName={userSettings?.userId ?? 'User'} />;
-};
-
-const GridUserDropdown: React.FC = () => {
+const WhoAmIUserDropdown: React.FC = () => {
   const [displayName, setDisplayName] = React.useState('User');
 
   React.useEffect(() => {
@@ -61,7 +55,7 @@ const GridUserDropdown: React.FC = () => {
     void getMaaSWhoAmI()({})
       .then((whoAmI) => {
         if (!cancelled) {
-          setDisplayName(whoAmI.name || whoAmI.email || whoAmI.sub);
+          setDisplayName(getMaaSWhoAmIDisplayName(whoAmI));
         }
       })
       .catch(() => undefined);
@@ -74,7 +68,6 @@ const GridUserDropdown: React.FC = () => {
   return <UserDropdownMenu displayName={displayName} />;
 };
 
-const UserDropdown: React.FC = () =>
-  window.__MAAS_CONSUMER_PORTAL_GRID__ === true ? <GridUserDropdown /> : <LegacyUserDropdown />;
+const UserDropdown: React.FC = () => <WhoAmIUserDropdown />;
 
 export default UserDropdown;

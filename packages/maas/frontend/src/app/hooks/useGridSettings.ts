@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ConfigSettings, UserSettings, fetchConfig, useDeepCompareMemoize } from 'mod-arch-core';
-import { getMaaSWhoAmI } from '~/app/api/whoami';
-import { getMaaSWhoAmIDisplayName, isOrgAdmin } from '~/app/utilities/gridFeatureFlag';
+import { getMaaSWhoAmI, getMaaSWhoAmIDisplayName } from '~/app/api/whoami';
+import { isMaaSAdmin } from '~/app/utilities/whoami';
 
 export type MaaSUserSettings = UserSettings & {
   displayName: string;
@@ -35,7 +35,7 @@ export const useGridSettings = (): {
           sub: whoAmI.sub,
           displayName: getMaaSWhoAmIDisplayName(whoAmI),
           email: whoAmI.email,
-          orgAdmin: isOrgAdmin(whoAmI),
+          orgAdmin: isMaaSAdmin(whoAmI),
         });
         setLoaded(true);
         setLoadError(undefined);

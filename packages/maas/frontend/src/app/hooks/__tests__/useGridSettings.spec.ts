@@ -9,7 +9,10 @@ jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
   fetchConfig: jest.fn(),
 }));
-jest.mock('~/app/api/whoami', () => ({ getMaaSWhoAmI: jest.fn() }));
+jest.mock('~/app/api/whoami', () => ({
+  ...jest.requireActual('~/app/api/whoami'),
+  getMaaSWhoAmI: jest.fn(),
+}));
 
 const mockFetchConfig = jest.mocked(modArchCore.fetchConfig);
 const mockGetMaaSWhoAmI = jest.mocked(getMaaSWhoAmI);
