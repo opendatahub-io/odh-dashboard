@@ -83,22 +83,51 @@ export const getClusterAppsDomain = (): Cypress.Chainable<string> => {
     });
 };
 
+export type ClusterArchitecture = 'x86_64' | 's390x' | 'arm64';
+
 /**
- * Gets the CPU architecture of cluster nodes by querying node labels.
- * Returns 's390x' when at least one node carries the s390x architecture label,
- * otherwise returns 'x86_64'.
+ * Gets the CPU architecture of cluster nodes from node status.
+ * Returns 'arm64' if any node reports 'arm64' or 'aarch64', then 's390x' if present,
+ * and otherwise returns 'x86_64'. In strict mode, a failed command, empty output,
+ * or an unrecognized architecture throws.
  *
  * @returns A Cypress chainable resolving to the architecture string.
  */
-export const getClusterArchitecture = (): Cypress.Chainable<string> => {
+export const getClusterArchitecture = ({
+  strict = false,
+}: {
+  strict?: boolean;
+} = {}): Cypress.Chainable<ClusterArchitecture> => {
   return cy
     .exec(`oc get nodes -o jsonpath='{.items[*].status.nodeInfo.architecture}'`, {
       failOnNonZeroExit: false,
     })
     .then((result: CommandLineResult) => {
       const archOutput = result.stdout.trim().replace(/^'|'$/g, '');
-      const isS390x = archOutput.split(/\s+/).some((a) => a === 's390x');
-      const arch = isS390x ? 's390x' : 'x86_64';
+      if (result.exitCode !== 0 || !archOutput) {
+        if (strict) {
+          throw new Error(
+            `Unable to determine cluster architecture from oc get nodes (exitCode: ${result.exitCode})`,
+          );
+        }
+        cy.log(
+          `Unable to determine cluster architecture from oc get nodes; defaulting to x86_64 (exitCode: ${result.exitCode}, stderr: ${result.stderr})`,
+        );
+        return cy.wrap<ClusterArchitecture>('x86_64');
+      }
+      const architectures = archOutput.split(/\s+/);
+      if (
+        strict &&
+        architectures.some((a) => !['amd64', 'x86_64', 'arm64', 'aarch64', 's390x'].includes(a))
+      ) {
+        throw new Error('Unable to determine cluster architecture: unrecognized node architecture');
+      }
+      let arch: ClusterArchitecture = 'x86_64';
+      if (architectures.some((a) => a === 'arm64' || a === 'aarch64')) {
+        arch = 'arm64';
+      } else if (architectures.includes('s390x')) {
+        arch = 's390x';
+      }
       cy.log(`Detected cluster architecture: ${arch} (raw: ${archOutput})`);
       return cy.wrap(arch);
     });
