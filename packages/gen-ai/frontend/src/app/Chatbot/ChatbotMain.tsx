@@ -64,17 +64,28 @@ import AgentDeploymentsModal from './components/AgentDeploymentsModal';
 // Canonicalize the nested MCP selections map's keys (namespace, then server) before
 // comparison — JSON.stringify walks keys in insertion order, so a server removed and
 // re-added with unchanged selections would otherwise read as dirty. Tool arrays keep
-// their order: it carries selection semantics.
+// their order: it carries selection semantics. Empty namespace maps are dropped:
+// removing the last server entry of a namespace leaves `{}` behind, which would
+// otherwise serialize differently from the never-selected baseline. Tool arrays
+// are preserved even when empty — they represent an explicit selection of no tools.
 const canonicalizeMcpToolSelections = (selections: McpToolSelectionsMap): McpToolSelectionsMap =>
   Object.fromEntries(
     Object.entries(selections)
       .toSorted(([a], [b]) => a.localeCompare(b))
-      .map(([namespace, serverMap]) => [
-        namespace,
-        serverMap
-          ? Object.fromEntries(Object.entries(serverMap).toSorted(([a], [b]) => a.localeCompare(b)))
-          : undefined,
-      ]),
+      .flatMap(([namespace, serverMap]) =>
+        serverMap && Object.keys(serverMap).length === 0
+          ? []
+          : [
+              [
+                namespace,
+                serverMap
+                  ? Object.fromEntries(
+                      Object.entries(serverMap).toSorted(([a], [b]) => a.localeCompare(b)),
+                    )
+                  : undefined,
+              ],
+            ],
+      ),
   );
 
 const ChatbotMain: React.FunctionComponent = () => {

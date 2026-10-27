@@ -532,6 +532,35 @@ describe('ChatbotMain - Empty State Logic', () => {
     act(() => actualStore.getState().resetConfiguration());
   });
 
+  it('should not treat an empty MCP namespace map as an unsaved change', () => {
+    const actualStore = renderWithActualStore([]);
+
+    act(() => actualStore.getState().resetConfiguration({ selectedMcpServerIds: ['server-1'] }));
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+
+    // Save a partial tool selection, then select all tools again — the store removes
+    // the server entry but leaves an empty namespace map behind, which must not read
+    // as dirty against the never-restricted baseline
+    act(() =>
+      actualStore
+        .getState()
+        .saveToolSelections('default', 'test-namespace', 'server-1', ['tool-a']),
+    );
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() =>
+      actualStore.getState().saveToolSelections('default', 'test-namespace', 'server-1', undefined),
+    );
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    // An explicit selection of no tools is a real restriction — still dirty
+    act(() =>
+      actualStore.getState().saveToolSelections('default', 'test-namespace', 'server-1', []),
+    );
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() => actualStore.getState().resetConfiguration());
+  });
+
   it('should not treat the auto-picked model subscription as an unsaved change', () => {
     const actualStore = renderWithActualStore([
       {
