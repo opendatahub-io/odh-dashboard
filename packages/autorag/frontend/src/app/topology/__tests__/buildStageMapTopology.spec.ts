@@ -13,7 +13,6 @@ import {
 import { MAX_PATTERN_SELECTION_STEPS } from '~/app/topology/stageMapConstants';
 import { MAX_CONFIGURE_MAX_PATTERNS } from '~/app/topology/stageMapStatus';
 import { MIN_RAG_PATTERNS } from '~/app/utilities/const';
-import { formatPatternName } from '~/app/utilities/utils';
 
 jest.mock('@patternfly/react-topology', () => ({
   DEFAULT_TASK_NODE_TYPE: 'DEFAULT_TASK_NODE',
@@ -83,9 +82,6 @@ const makeStageMap = (components: ComponentStageMapComponent[]): ComponentStageM
   kfp_run_id: 'run-1',
   published_at: '2025-01-01T00:00:00Z',
 });
-
-const expectedPatternLabel = (raw: string): string =>
-  formatPatternName(raw.replace(/(\D)(\d)/, '$1 $2'));
 
 const makeRunDetails = (
   tasks: { display_name?: string; state: string; task_id?: string }[],
@@ -575,10 +571,8 @@ describe('buildStageMapTopology', () => {
         (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
       expect(patternNodes).toHaveLength(MAX_CONFIGURE_MAX_PATTERNS);
-      expect(patternNodes[0].label).toBe(expectedPatternLabel(oversizedSelectedPatterns[0]));
-      expect(patternNodes[MAX_CONFIGURE_MAX_PATTERNS - 1].label).toBe(
-        expectedPatternLabel(oversizedSelectedPatterns[MAX_CONFIGURE_MAX_PATTERNS - 1]),
-      );
+      expect(patternNodes[0].label).toBe('Pattern_\u00a01');
+      expect(patternNodes[MAX_CONFIGURE_MAX_PATTERNS - 1].label).toBe('Pattern_\u00a010');
     });
 
     it('should dedupe selected_patterns before clamping to the configure UI maximum', () => {
@@ -631,9 +625,9 @@ describe('buildStageMapTopology', () => {
         (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
       expect(patternNodes).toHaveLength(MAX_CONFIGURE_MAX_PATTERNS);
-      expect(patternNodes[0].label).toBe(expectedPatternLabel(oversizedLeaderboardNames[0]));
+      expect(patternNodes[0].label).toBe('LeaderboardPattern_\u00a01');
       expect(patternNodes[MAX_CONFIGURE_MAX_PATTERNS - 1].label).toBe(
-        expectedPatternLabel(oversizedLeaderboardNames[MAX_CONFIGURE_MAX_PATTERNS - 1]),
+        'LeaderboardPattern_\u00a010',
       );
     });
 
