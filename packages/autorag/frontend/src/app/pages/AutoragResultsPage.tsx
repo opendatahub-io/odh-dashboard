@@ -596,7 +596,7 @@ function AutoragResultsPage(): React.JSX.Element {
           <SplitItem>
             {runTerminatable && (
               <Button
-                variant="secondary"
+                variant="link"
                 icon={<StopCircleIcon />}
                 onClick={() => setIsStopModalOpen(true)}
                 isDisabled={isTerminating || isStopModalOpen}
@@ -609,7 +609,7 @@ function AutoragResultsPage(): React.JSX.Element {
             )}
             {runRetryable && (
               <Button
-                variant="secondary"
+                variant="link"
                 icon={<RedoIcon />}
                 onClick={() => void handleRetry().catch(() => undefined)}
                 isDisabled={isRetrying}
@@ -624,7 +624,7 @@ function AutoragResultsPage(): React.JSX.Element {
         ) : null}
         <SplitItem>
           <Button
-            variant="secondary"
+            variant="link"
             icon={<CogIcon />}
             component={ReconfigureLink}
             data-testid="reconfigure-run-button"
@@ -638,7 +638,7 @@ function AutoragResultsPage(): React.JSX.Element {
             trigger={starterKitDisabled ? 'mouseenter focus' : ''}
           >
             <Button
-              variant="secondary"
+              variant="link"
               icon={<DownloadIcon />}
               onClick={() => void handleDownloadStarterKit()}
               isAriaDisabled={starterKitDisabled}

@@ -38,6 +38,10 @@ describe('AutoRAG run results metrics', () => {
       });
     });
 
+    autoragRunResultsPage.findReconfigureButton().should('have.class', 'pf-m-link');
+    autoragRunResultsPage.findStarterKitDownloadButton().should('have.class', 'pf-m-link');
+    autoragRunResultsPage.findRunDetailsButton().should('have.class', 'pf-m-link');
+
     // At a narrower viewport the actions stay reachable without page-level
     // horizontal overflow.
     cy.viewport(900, 660);
