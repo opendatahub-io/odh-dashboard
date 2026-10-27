@@ -4,12 +4,14 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { type ConfigSettings } from 'mod-arch-core';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
 import { getIsMaasAdmin } from '~/app/api/k8s';
+import { getMaaSWhoAmI } from '~/app/api/whoami';
 import { searchApiKeys, searchTenantApiKeys } from '~/app/api/api-keys';
 import { AppContext } from '~/app/context/AppContext';
 import { KeysAndSubsProvider, useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 
 jest.mock('~/app/api/subscriptions', () => ({ listUserSubscriptions: jest.fn() }));
 jest.mock('~/app/api/k8s', () => ({ getIsMaasAdmin: jest.fn() }));
+jest.mock('~/app/api/whoami', () => ({ getMaaSWhoAmI: jest.fn() }));
 jest.mock('~/app/api/api-keys', () => ({
   searchApiKeys: jest.fn(),
   searchTenantApiKeys: jest.fn(),
@@ -29,7 +31,7 @@ jest.mock('~/app/hooks/useMaaSGatewayUrl', () => ({
 const config: ConfigSettings = { common: { featureFlags: { modelRegistry: false } } };
 
 const wrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
-  <AppContext.Provider value={{ config, user: { userId: 'user-123', orgAdmin: true } }}>
+  <AppContext.Provider value={{ config, user: { userId: 'user-123', isAdmin: true } }}>
     <KeysAndSubsProvider>{children}</KeysAndSubsProvider>
   </AppContext.Provider>
 );
@@ -39,6 +41,8 @@ describe('KeysAndSubsProvider', () => {
     jest.clearAllMocks();
     window.__MAAS_CONSUMER_PORTAL_GRID__ = true;
     jest.mocked(listUserSubscriptions).mockReturnValue(jest.fn().mockResolvedValue([]));
+    jest.mocked(getMaaSWhoAmI).mockReturnValue(jest.fn().mockResolvedValue({ isAdmin: true }));
+    jest.mocked(getIsMaasAdmin).mockReturnValue(jest.fn().mockResolvedValue({ allowed: false }));
     jest
       .mocked(searchTenantApiKeys)
       .mockReturnValue(jest.fn().mockResolvedValue({ object: 'list', data: [], has_more: false }));
@@ -53,6 +57,7 @@ describe('KeysAndSubsProvider', () => {
 
     await waitFor(() => expect(result.current.isMaasAdminLoaded).toBe(true));
     expect(result.current.isMaasAdmin).toBe(true);
+    expect(getMaaSWhoAmI).not.toHaveBeenCalled();
     expect(getIsMaasAdmin).not.toHaveBeenCalled();
     expect(searchApiKeys).not.toHaveBeenCalled();
     expect(searchTenantApiKeys).toHaveBeenCalled();
@@ -70,6 +75,7 @@ describe('KeysAndSubsProvider', () => {
     await waitFor(() => expect(result.current.isMaasAdminLoaded).toBe(true));
     expect(result.current.isMaasAdmin).toBe(false);
     expect(getIsMaasAdmin).toHaveBeenCalled();
+    expect(getMaaSWhoAmI).not.toHaveBeenCalled();
     expect(searchApiKeys).toHaveBeenCalled();
     expect(searchTenantApiKeys).not.toHaveBeenCalled();
   });
