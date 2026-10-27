@@ -192,7 +192,13 @@ class PipelinesTable {
   }
 
   shouldRowNotBeVisible(name: string) {
-    this.find().find('tr').contains(name).should('not.exist');
+    cy.get('body').then(($body) => {
+      if ($body.find(`[data-testid="global-no-pipelines"]`).length) {
+        cy.findByTestId('global-no-pipelines').should('exist');
+      } else {
+        this.find().find('tr').contains(name).should('not.exist');
+      }
+    });
     return this;
   }
 
