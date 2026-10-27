@@ -510,6 +510,28 @@ describe('ChatbotMain - Empty State Logic', () => {
     return actualStore;
   };
 
+  it('should not treat a reordered MCP server selection as an unsaved change', () => {
+    const actualStore = renderWithActualStore([]);
+
+    // Route-provided IDs can arrive in a different order than the picker emits
+    // the equivalent selection (catalog order on init, or after a remount)
+    act(() =>
+      actualStore.getState().resetConfiguration({ selectedMcpServerIds: ['server-2', 'server-1'] }),
+    );
+    act(() => mockChatbotPlayground.mock.calls.at(-1)?.[0].onInitialModelSelected?.('test-model'));
+    act(() => actualStore.getState().updateSelectedModel('default', 'test-model'));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+
+    act(() =>
+      actualStore.getState().updateSelectedMcpServerIds('default', ['server-1', 'server-2']),
+    );
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(false);
+    // Changing the selection itself is still a user edit
+    act(() => actualStore.getState().updateSelectedMcpServerIds('default', ['server-1']));
+    expect(mockChatbotPlayground.mock.calls.at(-1)?.[0].isDefaultConfigDirty).toBe(true);
+    act(() => actualStore.getState().resetConfiguration());
+  });
+
   it('should not treat the auto-picked model subscription as an unsaved change', () => {
     const actualStore = renderWithActualStore([
       {

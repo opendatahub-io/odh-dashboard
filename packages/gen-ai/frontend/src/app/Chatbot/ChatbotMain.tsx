@@ -224,6 +224,10 @@ const ChatbotMain: React.FunctionComponent = () => {
   ): string =>
     JSON.stringify({
       ...config,
+      // The picker treats server IDs as a set — the hook can emit an equivalent
+      // selection in a different order than the route-provided baseline (catalog
+      // order on init, or after a picker remount), so order must not read as dirty
+      selectedMcpServerIds: config.selectedMcpServerIds.toSorted(),
       mcpToolSelections: hasBaseline ? canonicalizeMcpToolSelections(config.mcpToolSelections) : {},
       guardrail:
         config.guardrail ===
