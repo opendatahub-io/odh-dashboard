@@ -5,7 +5,7 @@ import { KubeFastifyInstance } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
 import { isImpersonating, getImpersonateAccessToken } from '../../../devFlags';
 import { getAccessToken } from '../../../utils/directCallUtils';
-import { bracketHostIfIPv6, ipv6AwareCheckServerIdentity } from '../../../utils/networkUtils';
+import { bracketHostIfIPv6 } from '../../../utils/networkUtils';
 
 const REGISTRY_CONDITION_TYPE = 'Registry';
 
@@ -557,10 +557,7 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
 ): Promise<{ data: T; statusCode: number }> {
   const { timeout = 60000, rejectUnauthorized = false, agent } = options;
 
-  const urlObj = new URL(url);
-
-  const isHttps = urlObj.protocol === 'https:';
-  const defaultPort = isHttps ? 443 : 80;
+  const isHttps = new URL(url).protocol === 'https:';
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -571,19 +568,18 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
   }
 
   const requestOptions = {
-    hostname: urlObj.hostname,
-    port: urlObj.port || defaultPort,
-    path: urlObj.pathname + urlObj.search,
     method: 'GET',
     headers,
     rejectUnauthorized,
-    ...(isHttps && { checkServerIdentity: ipv6AwareCheckServerIdentity }),
     ...(agent && { agent }),
   };
 
   return new Promise((resolve, reject) => {
     const requestModule = isHttps ? https : http;
-    const req = requestModule.request(requestOptions, (res) => {
+    // Pass the URL string (not a hostname option) so Node strips the surrounding brackets from an
+    // IPv6 literal when deriving the connect host — `URL.hostname` keeps the brackets, which the
+    // `hostname` request option would reject.
+    const req = requestModule.request(url, requestOptions, (res) => {
       let data = '';
       res.on('data', (chunk) => {
         data += chunk;

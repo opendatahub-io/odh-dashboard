@@ -1,5 +1,5 @@
 import tls, { PeerCertificate } from 'tls';
-import { bracketHostIfIPv6, normalizeIPv6, ipv6AwareCheckServerIdentity } from '../networkUtils';
+import { bracketHostIfIPv6, ipv6AwareCheckServerIdentity } from '../networkUtils';
 
 describe('bracketHostIfIPv6', () => {
   it('should wrap a raw IPv6 literal in brackets', () => {
@@ -32,103 +32,87 @@ describe('bracketHostIfIPv6', () => {
   });
 });
 
-describe('normalizeIPv6', () => {
-  it('should expand a compressed address to eight padded hextets', () => {
-    expect(normalizeIPv6('fc00:30::1')).toBe('fc00:0030:0000:0000:0000:0000:0000:0001');
-  });
-
-  it('should lowercase and pad a fully-expanded address', () => {
-    expect(normalizeIPv6('FC00:30:0:0:0:0:0:1')).toBe('fc00:0030:0000:0000:0000:0000:0000:0001');
-  });
-
-  it('should treat compressed and expanded forms of the same address as equal', () => {
-    expect(normalizeIPv6('fc00:30::1')).toBe(normalizeIPv6('FC00:30:0:0:0:0:0:1'));
-  });
-
-  it('should normalize the loopback address', () => {
-    expect(normalizeIPv6('::1')).toBe('0000:0000:0000:0000:0000:0000:0000:0001');
-  });
-
-  it('should normalize the unspecified address', () => {
-    expect(normalizeIPv6('::')).toBe('0000:0000:0000:0000:0000:0000:0000:0000');
-  });
-
-  it('should convert an embedded IPv4 suffix to hextets', () => {
-    expect(normalizeIPv6('::ffff:192.168.0.1')).toBe('0000:0000:0000:0000:0000:ffff:c0a8:0001');
-  });
-
-  it('should return null for an IPv4 address', () => {
-    expect(normalizeIPv6('10.0.0.1')).toBeNull();
-  });
-
-  it('should return null for a hostname', () => {
-    expect(normalizeIPv6('example.com')).toBeNull();
-  });
-
-  it('should return null for an empty string', () => {
-    expect(normalizeIPv6('')).toBeNull();
-  });
-});
-
 describe('ipv6AwareCheckServerIdentity', () => {
+  // Self-signed cert whose only SAN is `IP Address:FC00:30:0:0:0:0:0:1` (expanded form).
+  // Generated with:
+  //   openssl req -x509 -newkey rsa:2048 -nodes -days 36500 -subj "/CN=ipv6-test" \
+  //     -addext "subjectAltName=IP:fc00:30:0:0:0:0:0:1"
+  const CERT_WITH_IPV6_SAN = Buffer.from(
+    `-----BEGIN CERTIFICATE-----
+MIIDBzCCAe+gAwIBAgIUWjwNzebRfbkfLbp5Fhjqd41T/8UwDQYJKoZIhvcNAQEL
+BQAwFDESMBAGA1UEAwwJaXB2Ni10ZXN0MCAXDTI2MTAyNzA4NTUxNVoYDzIxMjYx
+MDAzMDg1NTE1WjAUMRIwEAYDVQQDDAlpcHY2LXRlc3QwggEiMA0GCSqGSIb3DQEB
+AQUAA4IBDwAwggEKAoIBAQCksAXEIzkoYfCEIkG0E9J3FTKLjjJNv1WrP2Sh5EFA
+/ciaNSoVUOSUkUrOhMBuVp7RUC99MwT4H4SLncqPt2AnCzftDKlpkobU4sa3WCIc
+4q4thezgB/GaBMy7POrETO/BaEc82qPdlICi3/wjKvKjppo08kvC9U8atebWuXc9
+Na1Gy60jPWKShzSBeWV/51a85JjwPm4cRnRkybMnvmJ7ngSJBwOUpg+QBtuLH2mV
+QCAVa9eJ9cOPhfgbuo9nh8k1kTZfjfXpJmzbdEoTDEsks8ohesOj5kYrkeieBRim
+ET/BcpTAyEzxhbu6kdlt9S6M0w7JLOYSjeQvHExEefaFAgMBAAGjTzBNMB0GA1Ud
+DgQWBBRWBqqdpd8NqBsTkJ6LK9WH3lPOoTAPBgNVHRMBAf8EBTADAQH/MBsGA1Ud
+EQQUMBKHEPwAADAAAAAAAAAAAAAAAAEwDQYJKoZIhvcNAQELBQADggEBAD3VIu7/
+p7bAUkTbwzl7PLljXs4645108ZxJRmj32AfWbGMYa1MNyRFh+0JYVbflk+El4ev6
+h1TajnXuRXBn2UJEGv4Ub5P+tmO4VhW53t0vESBF6Dk0NxlbVoRkFvMufrkUNJ0g
+lUhH/Kjdjxw/nN5nTaMCwA2h9ZnTRE60q0mP86CNbZuR1LkPqOz8nAc+bF7xuP3Y
+cC7HITaVN9p2imYJplcgNXPPzRJxiB/vCVQ3EOH+TJjD1poib+bVYF9zBhJbtU6T
++U4bGg0TVkPzHmVtueS0ZOdqX5nhtsXspaTw9B6Q9+SzK7yr1KhoF6dg5g38bBZT
+GUmYbRybS9WwUxM=
+-----END CERTIFICATE-----`,
+  );
+
+  const certMock = (raw?: Buffer): PeerCertificate => ({ raw } as unknown as PeerCertificate);
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  const certWithSan = (subjectaltname: string): PeerCertificate =>
-    ({ subjectaltname } as PeerCertificate);
-
   it('should return undefined when the default check passes', () => {
     const spy = jest.spyOn(tls, 'checkServerIdentity').mockReturnValue(undefined);
     expect(
-      ipv6AwareCheckServerIdentity('fc00:30::1', certWithSan('IP Address:FC00:30:0:0:0:0:0:1')),
+      ipv6AwareCheckServerIdentity('fc00:30::1', certMock(CERT_WITH_IPV6_SAN)),
     ).toBeUndefined();
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('should accept an IPv6 host that matches an expanded IP Address SAN', () => {
+  it('should accept a compressed IPv6 host that matches an expanded IP Address SAN', () => {
     jest
       .spyOn(tls, 'checkServerIdentity')
       .mockReturnValue(new Error('IP: fc00:30::1 is not in the cert'));
     expect(
-      ipv6AwareCheckServerIdentity('fc00:30::1', certWithSan('IP Address:FC00:30:0:0:0:0:0:1')),
+      ipv6AwareCheckServerIdentity('fc00:30::1', certMock(CERT_WITH_IPV6_SAN)),
     ).toBeUndefined();
   });
 
-  it('should accept an IPv6 host that matches an IPv6 literal DNS SAN', () => {
-    jest.spyOn(tls, 'checkServerIdentity').mockReturnValue(new Error('no match'));
+  it('should accept the fully-expanded form of the same host', () => {
+    jest.spyOn(tls, 'checkServerIdentity').mockReturnValue(new Error('mismatch'));
     expect(
-      ipv6AwareCheckServerIdentity('fc00:30::1', certWithSan('DNS:fc00:30::1')),
+      ipv6AwareCheckServerIdentity('fc00:30:0:0:0:0:0:1', certMock(CERT_WITH_IPV6_SAN)),
     ).toBeUndefined();
   });
 
-  it('should match against the correct SAN entry among several', () => {
-    jest.spyOn(tls, 'checkServerIdentity').mockReturnValue(new Error('no match'));
-    expect(
-      ipv6AwareCheckServerIdentity(
-        'fc00:30::1',
-        certWithSan('DNS:example.com, IP Address:10.0.0.1, IP Address:FC00:30:0:0:0:0:0:1'),
-      ),
-    ).toBeUndefined();
-  });
-
-  it('should return the default error when no SAN matches', () => {
-    const error = new Error('no match');
+  it('should return the default error when the IPv6 host does not match any IP SAN', () => {
+    const error = new Error('mismatch');
     jest.spyOn(tls, 'checkServerIdentity').mockReturnValue(error);
-    expect(
-      ipv6AwareCheckServerIdentity('fc00:30::1', certWithSan('IP Address:FC00:40:0:0:0:0:0:1')),
-    ).toBe(error);
+    expect(ipv6AwareCheckServerIdentity('fc00:40::1', certMock(CERT_WITH_IPV6_SAN))).toBe(error);
   });
 
-  it('should return the default error for a non-IPv6 host', () => {
+  it('should return the default error for a non-IPv6 host (no structured re-check)', () => {
     const error = new Error('hostname mismatch');
-    jest.spyOn(tls, 'checkServerIdentity').mockReturnValue(error);
-    expect(ipv6AwareCheckServerIdentity('example.com', certWithSan('DNS:other.com'))).toBe(error);
+    const spy = jest.spyOn(tls, 'checkServerIdentity').mockReturnValue(error);
+    expect(ipv6AwareCheckServerIdentity('example.com', certMock(CERT_WITH_IPV6_SAN))).toBe(error);
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('should return the default error when the cert has no SANs', () => {
-    const error = new Error('no san');
+  it('should return the default error when the raw certificate is unavailable', () => {
+    const error = new Error('mismatch');
     jest.spyOn(tls, 'checkServerIdentity').mockReturnValue(error);
-    expect(ipv6AwareCheckServerIdentity('fc00:30::1', {} as PeerCertificate)).toBe(error);
+    expect(ipv6AwareCheckServerIdentity('fc00:30::1', certMock(undefined))).toBe(error);
+  });
+
+  it('should return the default error when the raw certificate cannot be parsed', () => {
+    const error = new Error('mismatch');
+    jest.spyOn(tls, 'checkServerIdentity').mockReturnValue(error);
+    expect(
+      ipv6AwareCheckServerIdentity('fc00:30::1', certMock(Buffer.from('not a certificate'))),
+    ).toBe(error);
   });
 });
