@@ -213,7 +213,7 @@
     },
     "product_ask": {
       "type": "object",
-      "description": "PR description vs linked Jira description. Not code-vs-acceptance-criteria and not sent through the challenger.",
+      "description": "PR description vs linked Jira description(s). Not code-vs-acceptance-criteria and not sent through the challenger. When issues[] is present, top-level status is host-computed from per-issue statuses.",
       "additionalProperties": false,
       "required": ["status"],
       "properties": {
@@ -221,7 +221,25 @@
         "aligned": { "type": "array", "items": { "type": "string" } },
         "mismatched": { "type": "array", "items": { "type": "string" } },
         "justified_in_description": { "type": "boolean" },
-        "needs_human": { "type": "boolean" }
+        "needs_human": { "type": "boolean" },
+        "issues": {
+          "type": "array",
+          "description": "Per-issue product-ask evaluation. When present, top-level status is overwritten by post-review from the per-issue statuses.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["key", "status"],
+            "properties": {
+              "key": { "type": "string", "minLength": 1 },
+              "url": { "type": "string" },
+              "status": { "type": "string", "enum": ["none", "aligned", "mismatch-justified", "mismatch-unjustified"] },
+              "aligned": { "type": "array", "items": { "type": "string" } },
+              "mismatched": { "type": "array", "items": { "type": "string" } },
+              "justified_in_description": { "type": "boolean" },
+              "needs_human": { "type": "boolean" }
+            }
+          }
+        }
       }
     },
     "readiness_check": {
