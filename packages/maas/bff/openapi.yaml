@@ -105,24 +105,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/me:
+  /api/v1/whoami:
     get:
       summary: Get MaaS Caller Identity
-      operationId: getMaaSMe
+      operationId: getMaaSWhoAmI
       description: >
-        Returns structured metadata about the authenticated caller from MaaS
-        /v1/me. This is the grid-mode replacement for the Kubernetes-backed
-        /api/v1/user and /api/v1/is-maas-admin endpoints.
+        Returns structured identity metadata about the authenticated caller from
+        MaaS /v1/me. The BFF reduces organization and subscription authorization
+        data to the isAdmin boolean.
       responses:
         '200':
-          description: Caller identity and MaaS organization roles
+          description: Caller identity and MaaS admin status
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/MaasMe'
+                    $ref: '#/components/schemas/MaaSWhoAmI'
                 required:
                   - data
               example:
@@ -130,11 +130,7 @@ paths:
                   sub: 00u7a1b2c3d4e5f6g7h8
                   email: alex@grid-tenant-1.com
                   name: Alex Doe
-                  https://redhat.com/maas/orgs:
-                    - organization_id: 42c3e46f-2477-44d7-a85b-d3b43f6b31fa
-                      organization_name: coke
-                      roles:
-                        - admins
+                  isAdmin: true
         '401':
           description: Unauthorized
           content:
@@ -2217,11 +2213,11 @@ components:
           example:
             - admins
 
-    MaasMe:
+    MaaSWhoAmI:
       type: object
       required:
         - sub
-        - https://redhat.com/maas/orgs
+        - isAdmin
       properties:
         sub:
           type: string
@@ -2233,10 +2229,10 @@ components:
         name:
           type: string
           example: Alex Doe
-        https://redhat.com/maas/orgs:
-          type: array
-          items:
-            $ref: '#/components/schemas/MaasOrg'
+        isAdmin:
+          type: boolean
+          description: Whether the caller has MaaS administrator access.
+          example: true
 
     Namespace:
       type: object
@@ -2675,6 +2671,13 @@ components:
           type: string
           description: Human-readable description (falls back to display-name, then name)
           example: Premium Team Subscription
+        roles:
+          type: array
+          description: Roles the caller has for this subscription, when provided by maas-api
+          items:
+            type: string
+          example:
+            - admin
         display_name:
           type: string
           description: Display name from the openshift.io/display-name annotation

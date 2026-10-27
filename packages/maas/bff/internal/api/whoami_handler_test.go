@@ -15,20 +15,58 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
-func TestGetMeHandler(t *testing.T) {
+func TestGetWhoAmIHandler(t *testing.T) {
 	tests := []struct {
-		name           string
-		upstreamStatus int
-		upstreamBody   string
-		closeUpstream  bool
-		wantStatus     int
-		wantCode       string
+		name                string
+		upstreamStatus      int
+		subscriptionsStatus int
+		upstreamBody        string
+		subscriptionsBody   string
+		closeUpstream       bool
+		wantStatus          int
+		wantCode            string
+		wantAdmin           bool
 	}{
 		{
-			name:           "success",
-			upstreamStatus: http.StatusOK,
-			upstreamBody:   `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
-			wantStatus:     http.StatusOK,
+			name:              "success",
+			upstreamStatus:    http.StatusOK,
+			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[{"roles":[]}]}`,
+			subscriptionsBody: `[{"roles":["admin"]}]`,
+			wantStatus:        http.StatusOK,
+			wantAdmin:         false,
+		},
+		{
+			name:              "organization admin",
+			upstreamStatus:    http.StatusOK,
+			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[{"roles":["admins"]}]}`,
+			subscriptionsBody: `[]`,
+			wantStatus:        http.StatusOK,
+			wantAdmin:         true,
+		},
+		{
+			name:              "missing organizations uses subscriptions",
+			upstreamStatus:    http.StatusOK,
+			upstreamBody:      `{"sub":"user-123"}`,
+			subscriptionsBody: `[{"roles":["admin"]}]`,
+			wantStatus:        http.StatusOK,
+			wantAdmin:         true,
+		},
+		{
+			name:              "subscription user is not an admin",
+			upstreamStatus:    http.StatusOK,
+			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
+			subscriptionsBody: `[{"roles":["user"]}]`,
+			wantStatus:        http.StatusOK,
+			wantAdmin:         false,
+		},
+		{
+			name:                "subscription check failure",
+			upstreamStatus:      http.StatusOK,
+			subscriptionsStatus: http.StatusInternalServerError,
+			upstreamBody:        `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
+			subscriptionsBody:   `{"error":"MaaS unavailable"}`,
+			wantStatus:          http.StatusOK,
+			wantAdmin:           false,
 		},
 		{
 			name:           "unauthorized",
@@ -62,12 +100,21 @@ func TestGetMeHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != http.MethodGet || r.URL.Path != "/v1/me" {
-					t.Errorf("upstream request = %s %s, want GET /v1/me", r.Method, r.URL.Path)
+				if r.Method != http.MethodGet || (r.URL.Path != "/v1/me" && r.URL.Path != "/v1/subscriptions") {
+					t.Errorf("upstream request = %s %s, want GET /v1/me or GET /v1/subscriptions", r.Method, r.URL.Path)
 				}
 				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(tt.upstreamStatus)
-				_, _ = io.WriteString(w, tt.upstreamBody)
+				if r.URL.Path == "/v1/subscriptions" {
+					status := tt.subscriptionsStatus
+					if status == 0 {
+						status = tt.upstreamStatus
+					}
+					w.WriteHeader(status)
+					_, _ = io.WriteString(w, tt.subscriptionsBody)
+				} else {
+					w.WriteHeader(tt.upstreamStatus)
+					_, _ = io.WriteString(w, tt.upstreamBody)
+				}
 			}))
 			if tt.closeUpstream {
 				upstream.Close()
@@ -89,19 +136,22 @@ func TestGetMeHandler(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodGet, constants.MePath, nil)
-			handlerWithMaasApi(app, GetMeHandler)(rr, req, nil)
+			req := httptest.NewRequest(http.MethodGet, constants.WhoAmIPath, nil)
+			handlerWithMaasApi(app, GetWhoAmIHandler)(rr, req, nil)
 
 			if rr.Code != tt.wantStatus {
 				t.Fatalf("status = %d, want %d; body = %s", rr.Code, tt.wantStatus, rr.Body.String())
 			}
 			if tt.wantStatus == http.StatusOK {
-				var body Envelope[models.MaaSCallerIdentity, None]
+				var body Envelope[models.MaaSWhoAmI, None]
 				if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
 					t.Fatalf("decode success response: %v", err)
 				}
 				if body.Data.Sub != "user-123" {
 					t.Errorf("sub = %q, want user-123", body.Data.Sub)
+				}
+				if body.Data.IsAdmin != tt.wantAdmin {
+					t.Errorf("isAdmin = %t, want %t", body.Data.IsAdmin, tt.wantAdmin)
 				}
 				return
 			}

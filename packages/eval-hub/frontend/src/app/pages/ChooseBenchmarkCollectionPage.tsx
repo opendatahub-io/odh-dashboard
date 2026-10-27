@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
@@ -39,10 +38,11 @@ import {
 import { ExclamationCircleIcon, FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useProviders } from '~/app/hooks/useProviders';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { Collection } from '~/app/types';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
@@ -52,8 +52,10 @@ import {
   evaluationCreateRoute,
   evaluationStartRoute,
   evaluationsBaseRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import {
   formatCategory,
@@ -70,6 +72,7 @@ const isCollectionSortOption = (value: unknown): value is BenchmarkSortOption =>
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const [selectedCollection, setSelectedCollection] = React.useState<Collection | undefined>(
     undefined,
   );
@@ -111,14 +114,9 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     return map;
   }, [providers]);
 
-  const handleRunCollection = React.useCallback(
+  // The drawer tracks BENCHMARK_RUN_SELECTED itself before invoking this callback
+  const navigateToRun = React.useCallback(
     (c: Collection) => {
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-        runType: 'collection',
-        collectionName: c.name,
-        benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
-        countOfBenchmarks: c.benchmarks?.length ?? 0,
-      });
       const params = new URLSearchParams({
         type: 'collection',
         collectionId: c.resource.id,
@@ -128,6 +126,26 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
       });
     },
     [navigate, namespace],
+  );
+
+  const handleRunCollection = React.useCallback(
+    (c: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+        {
+          runType: 'collection',
+          collectionName: c.name,
+          benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
+          countOfBenchmarks: c.benchmarks?.length ?? 0,
+        },
+        {
+          collectionType: c.resource.read_only ? 'system' : 'custom',
+          providerType: c.benchmarks?.[0]?.provider_id,
+        },
+      );
+      navigateToRun(c);
+    },
+    [navigateToRun],
   );
 
   const handleCustomizeCollection = React.useCallback(
@@ -147,7 +165,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             collection={selectedCollection}
             benchmarkDetailsMap={benchmarkDetailsMap}
             onClose={() => setSelectedCollection(undefined)}
-            onRunCollection={handleRunCollection}
+            onRunCollection={navigateToRun}
             onCustomizeCollection={handleCustomizeCollection}
           />
         }
@@ -157,17 +175,19 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             title="Select collection"
             description="Select a collection to evaluate your model, agent, or dataset."
             breadcrumb={
-              <Breadcrumb>
-                <BreadcrumbItem
-                  render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-                />
+              <ContextBreadcrumb
+                pageName="Evaluations"
+                projectDisplayName={projectDisplayName}
+                homePath={evaluationsBaseRoute(namespace)}
+                projectHomePath={projectHomeRoute(namespace)}
+              >
                 <BreadcrumbItem
                   render={() => (
                     <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
                 <BreadcrumbItem isActive>Select collection</BreadcrumbItem>
-              </Breadcrumb>
+              </ContextBreadcrumb>
             }
             loaded={loaded}
             loadError={loadError}

@@ -2,7 +2,10 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import { createEvaluationJob } from '~/app/api/k8s';
@@ -218,6 +221,20 @@ describe('StartEvaluationRunModal', () => {
       error: undefined,
     });
     mockCreateEvaluationJob.mockReturnValue(() => Promise.resolve(mockEvaluationJob()));
+  });
+
+  it('should track job create opened when the modal opens', () => {
+    renderModal();
+
+    expect(jest.mocked(fireMiscTrackingEvent)).toHaveBeenCalledTimes(1);
+    expect(jest.mocked(fireMiscTrackingEvent)).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
+      expect.objectContaining({
+        surface: 'copy_suite',
+        collection_type: 'custom',
+        provider_type: 'provider-a',
+      }),
+    );
   });
 
   it('shows a required HardwareProfile before collapsed advanced configuration for Kueue', () => {

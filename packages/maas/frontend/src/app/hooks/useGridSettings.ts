@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { ConfigSettings, UserSettings, fetchConfig, useDeepCompareMemoize } from 'mod-arch-core';
-import { getMaaSMe } from '~/app/api/me';
-import { getMaaSMeDisplayName, isOrgAdmin } from '~/app/utilities/gridFeatureFlag';
+import { getMaaSWhoAmI, getMaaSWhoAmIDisplayName } from '~/app/api/whoami';
 
 export type MaaSUserSettings = UserSettings & {
   displayName: string;
   email?: string;
   sub: string;
-  orgAdmin: boolean;
+  isAdmin: boolean;
 };
 
 export const useGridSettings = (): {
@@ -24,18 +23,18 @@ export const useGridSettings = (): {
   React.useEffect(() => {
     let cancelled = false;
 
-    Promise.all([fetchConfig(), getMaaSMe()({})])
-      .then(([fetchedConfig, me]) => {
+    Promise.all([fetchConfig(), getMaaSWhoAmI()({})])
+      .then(([fetchedConfig, whoAmI]) => {
         if (cancelled) {
           return;
         }
         setConfig(fetchedConfig);
         setUser({
-          userId: me.sub,
-          sub: me.sub,
-          displayName: getMaaSMeDisplayName(me),
-          email: me.email,
-          orgAdmin: isOrgAdmin(me),
+          userId: whoAmI.sub,
+          sub: whoAmI.sub,
+          displayName: getMaaSWhoAmIDisplayName(whoAmI),
+          email: whoAmI.email,
+          isAdmin: whoAmI.isAdmin,
         });
         setLoaded(true);
         setLoadError(undefined);

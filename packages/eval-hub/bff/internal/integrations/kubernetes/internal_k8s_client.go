@@ -324,7 +324,7 @@ func (kc *InternalKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ 
 		return "", fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	list, err := listEvalHubCRs(ctx, dynClient, namespace)
 	if err != nil {
 		kc.Logger.Error("failed to list EvalHub CRs", "namespace", namespace, "error", err)
 		return "", fmt.Errorf("failed to list EvalHub CRs in namespace %q: %w", namespace, err)
@@ -376,7 +376,7 @@ func (kc *InternalKubernetesClient) GetEvalHubCRStatus(ctx context.Context, _ *R
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	list, err := listEvalHubCRs(ctx, dynClient, namespace)
 	if err != nil {
 		kc.Logger.Error("failed to list EvalHub CRs", "namespace", namespace, "error", err)
 		return nil, fmt.Errorf("failed to list EvalHub CRs in namespace %q: %w", namespace, err)

@@ -32,6 +32,13 @@ jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-namespace', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
+}));
+
 jest.mock('~/app/pages/useCopySuiteForm', () => ({
   MAX_BENCHMARKS: 20,
   getBenchmarkKey: (benchmark: { providerId: string; id: string }) =>

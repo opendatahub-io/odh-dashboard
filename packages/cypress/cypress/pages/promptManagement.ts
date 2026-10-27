@@ -11,6 +11,12 @@ class PromptManagement {
     this.wait();
   }
 
+  visitWithoutGenAiStudio(workspace?: string) {
+    const qs = workspace ? `?workspace=${workspace}` : '';
+    cy.visitWithLogin(`/gen-ai-studio/prompts${qs}`);
+    this.wait();
+  }
+
   navigate() {
     this.findNavItem().click();
     this.wait();

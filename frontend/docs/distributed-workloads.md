@@ -4,6 +4,7 @@
 
 - Monitor Kueue-managed batch and training work: pick a project namespace and inspect queue status and resource metrics.
 - Two tabs: distributed workload status and project metrics.
+- This page is deprecated. Use the **Workloads** tab under **Observe & monitor > Infrastructure** for the replacement workload view.
 
 ## UI Entry Points
 
@@ -16,6 +17,7 @@
 - Visibility: `useIsAreaAvailable(SupportedArea.DISTRIBUTED_WORKLOADS)`—driven by `disableDistributedWorkloads` in `OdhDashboardConfig` and Kueue presence in the DSC.
 - Root path redirects to the first tab for the preferred or first available project.
 - Legacy camelCase paths (`workloadStatus`, `projectMetrics`) redirect via `v2Redirects.ts` to kebab-case routes.
+- The page displays a deprecation banner linking to the replacement Workloads page when Infrastructure page is available.
 
 ## Design Intent
 

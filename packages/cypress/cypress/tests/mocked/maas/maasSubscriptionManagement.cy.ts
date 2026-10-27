@@ -132,8 +132,8 @@ describe('MaaS Governance Page / Overview Tab', () => {
 
     // Sort by project
     overviewTabPage.findColumnSortButton('Project').click();
-    overviewTabPage.getRowByIndex(0).findModelProject().should('have.text', 'maas-models');
-    overviewTabPage.getRowByIndex(5).findModelProject().should('have.text', 'team-sandbox');
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'maas-models');
+    overviewTabPage.findModelRows().eq(5).should('contain.text', 'team-sandbox');
 
     // Sort by subscriptions
     overviewTabPage.findColumnSortButton('Subscriptions').click();
@@ -147,22 +147,26 @@ describe('MaaS Governance Page / Overview Tab', () => {
     overviewTabPage.findColumnSortButton('Authorization policies').click();
     overviewTabPage.findModelRows().eq(0).should('contain.text', 'Llama 3 70B Instruct');
 
+    const llamaRow = overviewTabPage.findModelRow('llama-3-70b-instruct', 'maas-models');
+    const failedModelRow = overviewTabPage.findModelRow('failed-model', 'maas-models');
+
     // Check warning icon for 0 policies
-    overviewTabPage.findModelRows().eq(0).findByTestId('no-policies-warning').should('exist');
-    overviewTabPage.findModelRows().eq(0).findByTestId('no-policies-warning').click();
+    llamaRow.findModelPoliciesWarning().should('exist');
+    llamaRow.findModelPoliciesWarning().click();
     cy.findByTestId('no-policies-warning-popover')
       .should('be.visible')
       .and('contain.text', 'No authorization policies');
 
-    // Check warning icon for 0 subscriptions
-    overviewTabPage.findModelRows().eq(1).findByTestId('no-subscriptions-warning').should('exist');
-    overviewTabPage.findModelRows().eq(1).findByTestId('no-subscriptions-warning').click();
+    // Check warning icon for 0 subscriptions (failed-model also has 0 policies, so it
+    // sorts next to Llama when sorted by authorization policy count)
+    failedModelRow.findModelSubscriptionsWarning().should('exist');
+    failedModelRow.findModelSubscriptionsWarning().click();
     cy.findByTestId('no-subscriptions-warning-popover')
       .should('be.visible')
       .and('contain.text', 'No subscriptions');
 
     // Check the phase modal contains the correct information
-    overviewTabPage.findPhaseLabelInRow(1).click();
+    overviewTabPage.findPhaseLabelInRow('failed-model', 'maas-models').click();
     phaseModal.find().should('exist');
     phaseModal.findAlert().should('exist');
     phaseModal.findAlertBody().should('exist');
@@ -172,49 +176,70 @@ describe('MaaS Governance Page / Overview Tab', () => {
     phaseModal.shouldBeOpen(false);
 
     // Expand the Llama row
-    overviewTabPage.expandModelRow(0);
-    overviewTabPage.findModelRows().eq(0).should('contain.text', 'No authorization policies');
-    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Enterprise Multi-Group Llama');
+    overviewTabPage.expandModelRow('llama-3-70b-instruct', 'maas-models');
+    overviewTabPage
+      .findModelRowRoot('llama-3-70b-instruct', 'maas-models')
+      .should('contain.text', 'No authorization policies')
+      .and('contain.text', 'Enterprise Multi-Group Llama');
 
     // Expand the single subscription within Llama row (no "Expand all" since only 1)
+    overviewTabPage.expandExpandableItemInRow(
+      'llama-3-70b-instruct',
+      'maas-models',
+      'Enterprise Multi-Group Llama Access',
+    );
     overviewTabPage
-      .findModelRows()
-      .eq(0)
-      .contains('Enterprise Multi-Group Llama')
-      .closest('tr')
-      .find('button[aria-label="Details"]')
-      .click();
-    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Token limits');
-    overviewTabPage.findShowMoreGroupsInRow(0).should('contain.text', '4 more');
-    overviewTabPage.findShowMoreGroupsInRow(0).click();
-    overviewTabPage.findModelRows().eq(0).contains('interns').should('be.visible');
-    overviewTabPage.findShowLessGroupsInRow(0).should('contain.text', 'Show less');
-    overviewTabPage.findShowLessGroupsInRow(0).click();
-    overviewTabPage.findShowMoreGroupsInRow(0).should('exist');
-
-    // Re-sort by model name
-    overviewTabPage.findColumnSortButton('Model name').click();
+      .findModelRowRoot('llama-3-70b-instruct', 'maas-models')
+      .should('contain.text', 'Token limits');
+    overviewTabPage
+      .findShowMoreGroupsInRow('llama-3-70b-instruct', 'maas-models')
+      .should('contain.text', '4 more');
+    overviewTabPage.findShowMoreGroupsInRow('llama-3-70b-instruct', 'maas-models').click();
+    overviewTabPage
+      .findModelRowRoot('llama-3-70b-instruct', 'maas-models')
+      .contains('interns')
+      .should('be.visible');
+    overviewTabPage
+      .findShowLessGroupsInRow('llama-3-70b-instruct', 'maas-models')
+      .should('contain.text', 'Show less');
+    overviewTabPage.findShowLessGroupsInRow('llama-3-70b-instruct', 'maas-models').click();
+    overviewTabPage.findShowMoreGroupsInRow('llama-3-70b-instruct', 'maas-models').should('exist');
 
     // Expand primary Granite row (maas-models) without expanding the sandbox duplicate
-    overviewTabPage.expandModelRow(3);
-    overviewTabPage.findModelRows().eq(3).should('contain.text', 'Granite 3 8B Instruct');
-    overviewTabPage.findModelRows().eq(4).should('not.have.class', 'pf-m-expanded');
-    overviewTabPage.findExpandAllPoliciesInRow(3).should('contain.text', 'Expand all');
-    overviewTabPage.findExpandAllPoliciesInRow(3).click();
-    overviewTabPage.findExpandAllPoliciesInRow(3).should('contain.text', 'Collapse all');
-    overviewTabPage.findExpandAllPoliciesInRow(3).click();
-    overviewTabPage.findExpandAllPoliciesInRow(3).should('contain.text', 'Expand all');
+    overviewTabPage.expandModelRow('granite-3-8b-instruct', 'maas-models');
+    overviewTabPage
+      .findModelRow('granite-3-8b-instruct', 'maas-models')
+      .findModelName()
+      .should('contain.text', 'Granite 3 8B Instruct');
+    overviewTabPage
+      .findModelRowRoot('granite-3-8b-instruct', 'team-sandbox')
+      .should('not.have.class', 'pf-m-expanded');
+    overviewTabPage
+      .findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models')
+      .should('contain.text', 'Expand all');
+    overviewTabPage.findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models').click();
+    overviewTabPage
+      .findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models')
+      .should('contain.text', 'Collapse all');
+    overviewTabPage.findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models').click();
+    overviewTabPage
+      .findExpandAllPoliciesInRow('granite-3-8b-instruct', 'maas-models')
+      .should('contain.text', 'Expand all');
 
     // Same model ID in different namespaces expand independently
-    overviewTabPage.expandModelRow(4);
-    overviewTabPage.findModelRows().eq(3).should('have.class', 'pf-m-expanded');
-    overviewTabPage.findModelRows().eq(4).should('have.class', 'pf-m-expanded');
-    overviewTabPage.findModelRows().eq(4).should('contain.text', 'Sandbox Granite Subscription');
+    overviewTabPage.expandModelRow('granite-3-8b-instruct', 'team-sandbox');
+    overviewTabPage
+      .findModelRowRoot('granite-3-8b-instruct', 'maas-models')
+      .should('have.class', 'pf-m-expanded');
+    overviewTabPage
+      .findModelRowRoot('granite-3-8b-instruct', 'team-sandbox')
+      .should('have.class', 'pf-m-expanded')
+      .and('contain.text', 'Sandbox Granite Subscription');
     overviewTabPage.findFilterInput('model').type('Granite');
     overviewTabPage.findModelRows().should('have.length', 2);
 
     // The duplicate ID Granite model prefilled in the create subscription form
-    overviewTabPage.findKebabToggleInRow(1).click();
+    overviewTabPage.findKebabToggleInRow('granite-3-8b-instruct', 'team-sandbox').click();
     overviewTabPage.findKebabAction('Create subscription').should('be.visible').click();
     cy.url().should('include', '/maas-governance/subscriptions/create');
     createSubscriptionPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
@@ -228,7 +253,7 @@ describe('MaaS Governance Page / Overview Tab', () => {
 
     // The original Granite model prefilled in the create authorization policy form
     overviewTabPage.findModelRows().should('have.length', 2);
-    overviewTabPage.findKebabToggleInRow(0).click();
+    overviewTabPage.findKebabToggleInRow('granite-3-8b-instruct', 'maas-models').click();
     overviewTabPage.findKebabAction('Create authorization policy').should('be.visible').click();
     cy.url().should('include', '/maas-governance/auth-policies/create');
     policyPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
@@ -309,17 +334,32 @@ describe('MaaS Governance Page / Overview Tab', () => {
     overviewTabPage.findFilterInput('model').type('Granite 3 8B Instruct');
     overviewTabPage.findModelRows().should('have.length', 2);
 
-    const graniteRow = 0;
-    overviewTabPage.expandModelRow(graniteRow);
-    overviewTabPage.findModelRows().eq(graniteRow).should('have.class', 'pf-m-expanded');
+    const graniteModelId = 'granite-3-8b-instruct';
+    const graniteNamespace = 'maas-models';
+    overviewTabPage.expandModelRow(graniteModelId, graniteNamespace);
+    overviewTabPage
+      .findModelRowRoot(graniteModelId, graniteNamespace)
+      .should('have.class', 'pf-m-expanded');
 
     // Manually expand one subscription so its group chips are visible
-    overviewTabPage.expandExpandableItemInRow(graniteRow, 'Premium Team Subscription');
-    overviewTabPage.findGroupChip('premium-users', graniteRow).should('be.visible');
+    overviewTabPage.expandExpandableItemInRow(
+      graniteModelId,
+      graniteNamespace,
+      'Premium Team Subscription',
+    );
+    overviewTabPage
+      .findGroupChip('premium-users', graniteModelId, graniteNamespace)
+      .should('be.visible');
 
     // Select the group —> matching subs/policies expand and chips turn blue
-    overviewTabPage.findGroupChip('premium-users', graniteRow).click();
-    overviewTabPage.shouldGroupChipsBeHighlighted('premium-users', graniteRow, true, 5);
+    overviewTabPage.findGroupChip('premium-users', graniteModelId, graniteNamespace).click();
+    overviewTabPage.shouldGroupChipsBeHighlighted(
+      'premium-users',
+      graniteModelId,
+      graniteNamespace,
+      true,
+      5,
+    );
 
     [
       'Premium Team Subscription',
@@ -329,33 +369,41 @@ describe('MaaS Governance Page / Overview Tab', () => {
       'deleting-policy',
     ].forEach((name) => {
       overviewTabPage
-        .findExpandableItemInRow(graniteRow, name)
+        .findExpandableItemInRow(graniteModelId, graniteNamespace, name)
         .should('have.class', 'pf-m-expanded');
     });
 
     // Items with non-matching groups stay collapsed
     ['failed-sub', 'failed-policy'].forEach((name) => {
       overviewTabPage
-        .findExpandableItemInRow(graniteRow, name)
+        .findExpandableItemInRow(graniteModelId, graniteNamespace, name)
         .should('not.have.class', 'pf-m-expanded');
     });
 
     // Unselect the group —> chips return to grey and the expanded items close
-    overviewTabPage.findGroupChip('premium-users', graniteRow).click();
-    overviewTabPage.shouldGroupChipsBeHighlighted('premium-users', graniteRow, false, 1);
+    overviewTabPage.findGroupChip('premium-users', graniteModelId, graniteNamespace).click();
+    overviewTabPage.shouldGroupChipsBeHighlighted(
+      'premium-users',
+      graniteModelId,
+      graniteNamespace,
+      false,
+      1,
+    );
 
     ['deleting-sub', 'test-subscription-policy', 'Premium Team Policy', 'deleting-policy'].forEach(
       (name) => {
         overviewTabPage
-          .findExpandableItemInRow(graniteRow, name)
+          .findExpandableItemInRow(graniteModelId, graniteNamespace, name)
           .should('not.have.class', 'pf-m-expanded');
       },
     );
 
     // Manually expanded subscription and model row should have stayed open after we unselect the group
     overviewTabPage
-      .findExpandableItemInRow(graniteRow, 'Premium Team Subscription')
+      .findExpandableItemInRow(graniteModelId, graniteNamespace, 'Premium Team Subscription')
       .should('have.class', 'pf-m-expanded');
-    overviewTabPage.findModelRows().eq(graniteRow).should('have.class', 'pf-m-expanded');
+    overviewTabPage
+      .findModelRowRoot(graniteModelId, graniteNamespace)
+      .should('have.class', 'pf-m-expanded');
   });
 });

@@ -1,7 +1,6 @@
 // Styles specific to the StartNotebookModal component
 
 .start-notebook-modal {
-  
   &__content-height {
     height: 500px;
     overflow: hidden;
@@ -18,6 +17,4 @@
     overflow-y: auto;
     min-height: 0;
   }
-
 }
-

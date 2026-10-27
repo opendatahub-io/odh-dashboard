@@ -1,30 +1,33 @@
 /* eslint-disable camelcase */
 import { renderHook, waitFor } from '@testing-library/react';
 import * as modArchCore from 'mod-arch-core';
-import { getMaaSMe } from '~/app/api/me';
+import { getMaaSWhoAmI } from '~/app/api/whoami';
 import { useGridSettings } from '~/app/hooks/useGridSettings';
-import { MAAS_ORGS_CLAIM, type MaaSMe } from '~/app/types/me';
+import { type MaaSWhoAmI } from '~/app/types/whoami';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
   fetchConfig: jest.fn(),
 }));
-jest.mock('~/app/api/me', () => ({ getMaaSMe: jest.fn() }));
+jest.mock('~/app/api/whoami', () => ({
+  ...jest.requireActual('~/app/api/whoami'),
+  getMaaSWhoAmI: jest.fn(),
+}));
 
 const mockFetchConfig = jest.mocked(modArchCore.fetchConfig);
-const mockGetMaaSMe = jest.mocked(getMaaSMe);
+const mockGetMaaSWhoAmI = jest.mocked(getMaaSWhoAmI);
 
 const config: modArchCore.ConfigSettings = { common: { featureFlags: { modelRegistry: false } } };
-const me: MaaSMe = {
+const whoAmI: MaaSWhoAmI = {
   sub: 'user-123',
   name: 'Alex Doe',
-  [MAAS_ORGS_CLAIM]: [{ organization_id: 'org-123', roles: ['admins'] }],
+  isAdmin: true,
 };
 
 describe('useGridSettings', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetMaaSMe.mockReturnValue(() => Promise.resolve(me));
+    mockGetMaaSWhoAmI.mockReturnValue(() => Promise.resolve(whoAmI));
   });
 
   it('should expose a startup failure without retrying', async () => {
@@ -35,7 +38,7 @@ describe('useGridSettings', () => {
     await waitFor(() => expect(result.current.loadError?.message).toBe('Network failure'));
     expect(result.current.loaded).toBe(false);
     expect(mockFetchConfig).toHaveBeenCalledTimes(1);
-    expect(mockGetMaaSMe).toHaveBeenCalledTimes(1);
+    expect(mockGetMaaSWhoAmI).toHaveBeenCalledTimes(1);
   });
 
   it('should load caller identity and organization admin status', async () => {
@@ -50,25 +53,25 @@ describe('useGridSettings', () => {
       sub: 'user-123',
       displayName: 'Alex Doe',
       email: undefined,
-      orgAdmin: true,
+      isAdmin: true,
     });
     expect(mockFetchConfig).toHaveBeenCalledTimes(1);
-    expect(mockGetMaaSMe).toHaveBeenCalledTimes(1);
+    expect(mockGetMaaSWhoAmI).toHaveBeenCalledTimes(1);
   });
 
   it('should keep a regular user separate from Kubernetes cluster admin status', async () => {
     mockFetchConfig.mockResolvedValue(config);
-    mockGetMaaSMe.mockReturnValue(() =>
+    mockGetMaaSWhoAmI.mockReturnValue(() =>
       Promise.resolve({
-        ...me,
-        [MAAS_ORGS_CLAIM]: [{ organization_id: 'org-123', roles: [] }],
+        ...whoAmI,
+        isAdmin: false,
       }),
     );
 
     const { result } = renderHook(useGridSettings);
 
     await waitFor(() => expect(result.current.loaded).toBe(true));
-    expect(result.current.userSettings?.orgAdmin).toBe(false);
+    expect(result.current.userSettings?.isAdmin).toBe(false);
     expect(result.current.userSettings?.clusterAdmin).toBeUndefined();
   });
 });

@@ -214,7 +214,7 @@ const InfrastructureWorkloadsToolbar: React.FC<InfrastructureWorkloadsToolbarPro
               ) : null,
             )}
             <ToolbarItem>
-              <Button variant="link" onClick={onClearFilters}>
+              <Button isInline variant="link" onClick={onClearFilters}>
                 Clear filters
               </Button>
             </ToolbarItem>

@@ -4,9 +4,9 @@ import { UserSubscription } from '~/app/types/subscriptions';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
 import { getIsMaasAdmin } from '~/app/api/k8s';
 import { searchApiKeys, searchTenantApiKeys } from '~/app/api/api-keys';
+import { useAppContext } from '~/app/context/AppContext';
 import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 import { useMaaSGatewayUrl } from '~/app/hooks/useMaaSGatewayUrl';
-import useUser from '~/app/hooks/useUser';
 import { useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -37,7 +37,7 @@ type KeysAndSubsProviderProps = {
 
 export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ children }) => {
   const isGridEnabled = useGridFeatureFlag();
-  const { orgAdmin } = useUser();
+  const { user } = useAppContext();
 
   const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<UserSubscription[]>>(
     (opts: APIOptions) => listUserSubscriptions()(opts),
@@ -47,9 +47,9 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
   const isMaasAdminCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(
     (opts: APIOptions) =>
       isGridEnabled
-        ? Promise.resolve(Boolean(orgAdmin))
+        ? Promise.resolve(Boolean(user.isAdmin))
         : getIsMaasAdmin()(opts).then((result) => result.allowed),
-    [isGridEnabled, orgAdmin],
+    [isGridEnabled, user.isAdmin],
   );
 
   const hasAnyApiKeysCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(

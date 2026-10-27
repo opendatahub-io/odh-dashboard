@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Card,
   CardBody,
@@ -10,12 +9,15 @@ import {
   Gallery,
   PageSection,
 } from '@patternfly/react-core';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import {
   evaluationBenchmarksRoute,
   evaluationCollectionsRoute,
   evaluationsBaseRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import paperLinedIcon from '~/app/bgimages/paper-lined.svg';
 import paperStackIcon from '~/app/bgimages/paper-stack-ined.svg';
@@ -24,18 +26,21 @@ import './NewEvaluationRunPage.scss';
 const NewEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
 
   return (
     <ApplicationsPage
       title="Select evaluation type"
       description="Select the type of evaluation to run: a single benchmark or a collection."
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-          />
+        <ContextBreadcrumb
+          pageName="Evaluations"
+          projectDisplayName={projectDisplayName}
+          homePath={evaluationsBaseRoute(namespace)}
+          projectHomePath={projectHomeRoute(namespace)}
+        >
           <BreadcrumbItem isActive>Select evaluation type</BreadcrumbItem>
-        </Breadcrumb>
+        </ContextBreadcrumb>
       }
       loaded
       empty={false}

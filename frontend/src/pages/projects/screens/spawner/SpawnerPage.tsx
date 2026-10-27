@@ -112,7 +112,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageStream: undefined,
     imageVersion: undefined,
   });
-  const [defaultStorageClass] = useDefaultStorageClass();
+  const [defaultStorageClass, defaultStorageClassLoaded] = useDefaultStorageClass();
 
   const {
     data: storages,
@@ -150,6 +150,20 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
           },
         ],
   );
+
+  // Sync the default storage class into the first storage entry when it loads.
+  // useDefaultStorageClass is async, so the initial useState value may be stale.
+  React.useEffect(() => {
+    if (!existingNotebook && defaultStorageClassName) {
+      setStorageData((prev) =>
+        prev.map((entry, index) =>
+          index === 0 && entry.storageType === StorageType.NEW_PVC && !entry.storageClassName
+            ? { ...entry, storageClassName: defaultStorageClassName }
+            : entry,
+        ),
+      );
+    }
+  }, [existingNotebook, defaultStorageClassName]);
 
   const existingMountPaths = storageData.reduce(
     (acc: string[], storageDataEntry) =>
@@ -515,6 +529,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   featureStoresLoading={featureStoresLoading}
                   existingNotebook={existingNotebook}
                   existingSecretsData={existingSecretsData}
+                  defaultStorageClassLoaded={defaultStorageClassLoaded}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

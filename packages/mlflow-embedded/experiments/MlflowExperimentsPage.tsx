@@ -52,6 +52,7 @@ export type MlflowExperimentWrapperProps = {
 
 type MlflowExperimentsPageProps = {
   pageTitle?: string;
+  setupFeatureName?: string;
   objectType?: ProjectObjectType;
   basePath?: string;
   getRedirectPath?: (namespace: string) => string;
@@ -61,6 +62,7 @@ type MlflowExperimentsPageProps = {
 
 const MlflowExperimentsPage: React.FC<MlflowExperimentsPageProps> = ({
   pageTitle = EXPERIMENTS_PAGE_TITLE,
+  setupFeatureName = pageTitle.toLowerCase(),
   objectType = ProjectObjectType.pipelineExperiment,
   basePath = mlflowExperimentsPath,
   getRedirectPath = mlflowExperimentsBaseRoute,
@@ -123,7 +125,11 @@ const MlflowExperimentsPage: React.FC<MlflowExperimentsPageProps> = ({
       empty={mlflowLoaded && !mlflowAvailable}
       emptyStatePage={
         <PageSection hasBodyWrapper={false} isFilled>
-          {mlflowStatusError ? <MLflowUnavailable /> : <MLflowNotConfigured />}
+          {mlflowStatusError ? (
+            <MLflowUnavailable />
+          ) : (
+            <MLflowNotConfigured featureName={setupFeatureName} />
+          )}
         </PageSection>
       }
       noHeader={!isTopLevel}
@@ -149,13 +155,15 @@ const MlflowExperimentsPage: React.FC<MlflowExperimentsPageProps> = ({
               }
             />
           </FlexItem>
-          <FlexItem>
-            <LaunchMlflowButton
-              testId="mlflow-embedded-jump-link"
-              section={launchSection}
-              workspace={workspace}
-            />
-          </FlexItem>
+          {mlflowAvailable && (
+            <FlexItem>
+              <LaunchMlflowButton
+                testId="mlflow-embedded-jump-link"
+                section={launchSection}
+                workspace={workspace}
+              />
+            </FlexItem>
+          )}
         </Flex>
       }
       keepBodyWrapper={false}

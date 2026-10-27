@@ -45,10 +45,10 @@ func (r *APIKeysRepository) GetAPIKeyConfig(ctx context.Context) (*models.APIKey
 	return r.maasClient.GetAPIKeyConfig(ctx)
 }
 
-func (r *APIKeysRepository) GetMe(ctx context.Context) (*models.MaaSCallerIdentity, error) {
+func (r *APIKeysRepository) GetWhoAmI(ctx context.Context) (*models.MaaSWhoAmIUpstream, error) {
 	r.logger.Debug("Getting MaaS caller identity")
 
-	return r.maasClient.GetMe(ctx)
+	return r.maasClient.GetWhoAmI(ctx)
 }
 
 // CreateAPIKey creates a new API key

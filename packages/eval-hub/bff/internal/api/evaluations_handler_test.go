@@ -24,6 +24,8 @@ func TestEvaluationJobsHandler(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Len(t, result.Data, 6)
+	assert.Equal(t, 6, result.Metadata.TotalCount)
+	assert.False(t, result.Metadata.Truncated)
 	assert.Equal(t, "eval-job-001", result.Data[0].Resource.ID)
 	assert.Equal(t, "running", result.Data[0].Status.State)
 	assert.Equal(t, "gpt-4-turbo", result.Data[0].Model.Name)

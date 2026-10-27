@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import TableDetailView from '~/app/pages/TableDetailView';
 import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
@@ -123,7 +123,7 @@ describe('TableDetailView', () => {
     expect(screen.queryByTestId('connection-ref-link')).not.toBeInTheDocument();
   });
 
-  it('should render relative created and last modified timestamps with hover details', () => {
+  it('should render relative timestamps with unambiguous UTC hover details', async () => {
     const asset = mockAssetResponse();
     const dateNowSpy = jest
       .spyOn(Date, 'now')
@@ -136,6 +136,14 @@ describe('TableDetailView', () => {
       expect(screen.getByTestId('asset-updated-at')).toHaveTextContent('1 day ago');
       expect(screen.getByTestId('asset-created-at')).not.toHaveTextContent('View timestamp');
       expect(screen.getByTestId('asset-updated-at')).not.toHaveTextContent('View timestamp');
+
+      const createdTimestamp = screen
+        .getByTestId('asset-created-at')
+        .querySelector('span[tabindex="0"]');
+      expect(createdTimestamp).not.toBeNull();
+      fireEvent.mouseEnter(createdTimestamp as Element);
+
+      expect(await screen.findByRole('tooltip')).toHaveTextContent('15 Jul 2026, 10:30 UTC');
     } finally {
       dateNowSpy.mockRestore();
     }
