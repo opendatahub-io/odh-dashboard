@@ -218,8 +218,16 @@ func (app *App) VerifyExternalModelHandler(
 		}
 	}
 
-	// 3. Call repository
-	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, req, app.rootCAs, app.config.InsecureSkipVerify)
+	// 3. Get the caller's authorized namespace (set by AttachNamespace middleware);
+	// it scopes which in-cluster service hosts may skip SSRF validation.
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+		return
+	}
+
+	// 4. Call repository
+	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, req, namespace, app.rootCAs, app.config.InsecureSkipVerify)
 	if err != nil {
 		// Handle custom error types
 		if extErr, ok := err.(*externalmodels.ExternalModelError); ok {
@@ -237,7 +245,7 @@ func (app *App) VerifyExternalModelHandler(
 		return
 	}
 
-	// 4. Return success
+	// 5. Return success
 	envelope := VerifyExternalModelEnvelope{
 		Data: *response,
 	}

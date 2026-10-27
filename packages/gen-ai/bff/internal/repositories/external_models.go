@@ -189,9 +189,13 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 }
 
 // isInternalHost reports whether a URL targets a host that is known to be internal
-// (localhost or a Kubernetes in-cluster service). These legitimately resolve to private
-// IPs, so SSRF validation is skipped for them. All other URLs are subject to SSRF checks.
-func isInternalHost(baseURL string) bool {
+// and trusted for the caller's authorized namespace: localhost/loopback (for local
+// development) or a Kubernetes in-cluster service in the caller's own namespace.
+// These legitimately resolve to private IPs, so SSRF validation is skipped for them.
+// In-cluster services in other namespaces are NOT trusted: the caller is only
+// authorized for their own namespace, so cross-namespace hosts must go through
+// normal SSRF validation (which blocks private IPs).
+func isInternalHost(baseURL string, namespace string) bool {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return false
@@ -200,31 +204,37 @@ func isInternalHost(baseURL string) bool {
 	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF
 	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
 	// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
-	isK8sService := strings.HasSuffix(h, ".svc.cluster.local") && len(strings.Split(h, ".")) >= 5
+	labels := strings.Split(h, ".")
+	isK8sService := strings.HasSuffix(h, ".svc.cluster.local") && len(labels) >= 5
+	if isK8sService {
+		// labels[len-4] is the namespace: <service>.<namespace>.svc.cluster.local
+		return labels[len(labels)-4] == namespace
+	}
 	ip := net.ParseIP(h)
-	return h == "localhost" ||
-		(ip != nil && ip.IsLoopback()) ||
-		isK8sService
+	return h == "localhost" || (ip != nil && ip.IsLoopback())
 }
 
 // internalHostRootCAs returns the provided CA pool only when the URL targets an internal
 // host. For external hosts it returns nil so the client falls back to the system CA pool,
 // which contains the public root CAs needed to verify certificates from services like
 // api.openai.com. Passing a cluster-only CA pool to an external host would break TLS.
-func internalHostRootCAs(baseURL string, rootCAs *x509.CertPool) *x509.CertPool {
-	if isInternalHost(baseURL) {
+func internalHostRootCAs(baseURL string, rootCAs *x509.CertPool, namespace string) *x509.CertPool {
+	if isInternalHost(baseURL, namespace) {
 		return rootCAs
 	}
 	return nil
 }
 
 // VerifyExternalModel tests an external model endpoint using the external models client.
+// namespace is the caller's authorized namespace (from AttachNamespace); it scopes which
+// in-cluster service hosts are trusted to skip SSRF validation.
 // rootCAs is the application CA pool (nil falls back to system pool for external hosts).
 // insecureSkipVerify mirrors cfg.InsecureSkipVerify and disables TLS cert validation when true.
 func (r *ExternalModelsRepository) VerifyExternalModel(
 	logger *slog.Logger,
 	ctx context.Context,
 	req models.VerifyExternalModelRequest,
+	namespace string,
 	rootCAs *x509.CertPool,
 	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
@@ -234,12 +244,12 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 		req.SecretValue,
 		req.ModelType,
 		&externalmodels.ClientOptions{
-			AllowHTTP:          isInternalHost(req.BaseURL),
-			SkipSSRFValidation: isInternalHost(req.BaseURL),
+			AllowHTTP:          isInternalHost(req.BaseURL, namespace),
+			SkipSSRFValidation: isInternalHost(req.BaseURL, namespace),
 			// Only supply the cluster CA pool for internal hosts; external hosts
 			// must use the system CA pool to verify public certificates.
-			SkipTLSVerification: insecureSkipVerify && isInternalHost(req.BaseURL),
-			RootCAs:             internalHostRootCAs(req.BaseURL, rootCAs),
+			SkipTLSVerification: insecureSkipVerify && isInternalHost(req.BaseURL, namespace),
+			RootCAs:             internalHostRootCAs(req.BaseURL, rootCAs, namespace),
 		},
 	)
 	if err != nil {
