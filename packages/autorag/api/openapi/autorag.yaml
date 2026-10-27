@@ -77,8 +77,9 @@ paths:
   /api/v1/responses:
     summary: Execute an AutoRAG Responses API query
     description: >-
-      Executes retrieval against a Milvus or pgvector database and generates an answer through
-      MaaS. Neo4j/GraphRAG runs are not supported by this endpoint.
+      Executes retrieval against a Milvus, pgvector, or Neo4j database and generates an answer
+      through MaaS. Neo4j collections use graph retrieval; the vector index and knowledge graph
+      are read from the collection named by the file_search vector_store_id.
     post:
       summary: Create an AutoRAG response
       tags:
@@ -95,7 +96,7 @@ paths:
         - name: dbSecretName
           in: query
           required: true
-          description: Kubernetes Secret containing Milvus or pgvector credentials
+          description: Kubernetes Secret containing Milvus, pgvector, or Neo4j credentials
           schema:
             type: string
             pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'

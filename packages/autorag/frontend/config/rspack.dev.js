@@ -29,26 +29,40 @@ const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/autorag/' : PUBLIC_PATH;
 const IS_CYPRESS_RUN = process.env.CYPRESS_RUN === 'true';
 
-// Get the kubeconfig token at startup as a fallback for standalone dev mode.
-const getKubeconfigToken = () => {
-  try {
-    const token = execSync(
-      "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
-    )
-      .toString()
-      .trim();
-    const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
-      .toString()
-      .trim();
-    console.info('Logged in as user:', username);
-    return token;
-  } catch (error) {
-    console.error('Failed to get Kubernetes token:', error.message);
-    return '';
+// Get the CLI token at startup as a fallback for standalone dev mode. Use the
+// same oc-first lookup as the Gen AI dev server so the playground's relay can
+// forward a bearer token when only oc is installed.
+const getCLIToken = () => {
+  if (process.env.KUBE_TOKEN) {
+    return process.env.KUBE_TOKEN;
   }
+  const cliCommands = [
+    { token: 'oc whoami --show-token', username: 'oc whoami' },
+    {
+      token: "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
+      username: "kubectl auth whoami -o jsonpath='{.status.userInfo.username}'",
+    },
+  ];
+  for (const { token: tokenCommand, username: usernameCommand } of cliCommands) {
+    try {
+      const token = execSync(tokenCommand).toString().trim();
+      if (!token) {
+        continue;
+      }
+      const username = execSync(usernameCommand).toString().trim();
+      console.info('Logged in as user:', username);
+      return token;
+    } catch {
+      // Try the next CLI, then fall through to an empty token.
+    }
+  }
+  console.error(
+    'Failed to get a Kubernetes token. Run `oc login` or set KUBE_TOKEN for the playground relay.',
+  );
+  return '';
 };
 
-const fallbackToken = AUTH_METHOD === 'user_token' ? getKubeconfigToken() : '';
+const fallbackToken = AUTH_METHOD === 'user_token' ? getCLIToken() : '';
 
 // Build static proxy headers for auth methods that don't need dynamic forwarding.
 const getProxyHeaders = () => {

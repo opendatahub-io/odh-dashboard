@@ -124,8 +124,9 @@ export const buildResponsesTemplate = (
   const { generation, retrieval } = pattern.settings;
   const collectionName = getPatternCollectionName(pattern);
   const embeddingModel = getPatternEmbeddingModel(pattern);
-  const isHybrid = retrieval.search_mode === 'hybrid';
   const provider = getPatternStoreProvider(pattern);
+  // Neo4j collections use graph retrieval and do not support hybrid ranking.
+  const isHybrid = retrieval.search_mode === 'hybrid' && provider !== 'neo4j';
   /* eslint-disable camelcase */
   let rankingOptions:
     | { ranker: 'rrf'; alpha: number }
@@ -206,6 +207,9 @@ export const normalizeResponsesTemplate = (
       ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
     },
     tools: template.tools.map((tool) => {
+      if (provider === 'neo4j') {
+        return { ...tool, ranking_options: undefined };
+      }
       if (!tool.ranking_options) {
         return tool;
       }

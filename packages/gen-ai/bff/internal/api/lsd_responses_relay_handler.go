@@ -34,13 +34,25 @@ const relayTimeout = 3 * time.Minute
 // destination is a deliberate, reviewed change to this list.
 var relayTargetPrefixes = []string{"/autorag/"}
 
+// relayBaseURL returns the scheme and host the relay forwards to. GATEWAY_DOMAIN
+// is a bare host in production (the operator injects it), but accepting an
+// explicit scheme lets local development point the relay at a local BFF.
+func relayBaseURL(gatewayDomain string) string {
+	domain := strings.TrimSpace(gatewayDomain)
+	if strings.HasPrefix(domain, "http://") || strings.HasPrefix(domain, "https://") {
+		return strings.TrimRight(domain, "/")
+	}
+	return "https://" + domain
+}
+
 // ResponsesRelayHandler handles POST /api/v1/lsd/responses/relay.
 //
 // This endpoint serves embedder-controlled targets for the embedded playground
 // (e.g. AutoRAG's responsesEndpointUrl prop): the request body is forwarded
 // verbatim to the same-origin path given by the required "target" query
 // parameter, resolved against the externally accessed gateway route
-// (https://{GATEWAY_DOMAIN}{target}). The user's bearer token is attached and
+// ({scheme}://{GATEWAY_DOMAIN}{target}, HTTPS unless GATEWAY_DOMAIN carries an
+// explicit scheme). The user's bearer token is attached and
 // the response — including SSE streams and non-200 error envelopes — is piped
 // back transparently, with no synthetic events added.
 //
@@ -148,7 +160,7 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 	// Build from the validated parsed components rather than the raw target,
 	// so the wire request carries exactly the validated path (EscapedPath
 	// re-encodes anything url.Parse decoded); fragments never reach the wire.
-	upstreamURL := "https://" + app.config.GatewayDomain + parsedTarget.EscapedPath()
+	upstreamURL := relayBaseURL(app.config.GatewayDomain) + parsedTarget.EscapedPath()
 	if parsedTarget.RawQuery != "" {
 		upstreamURL += "?" + parsedTarget.RawQuery
 	}
@@ -158,6 +170,10 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 	proxyReq.Header.Set("Authorization", "Bearer "+identity.Token)
+	// Embedders behind the gateway receive the token as x-forwarded-access-token
+	// (kube-rbac-proxy sets it in-cluster); set it too so a relay pointed at a
+	// BFF directly, as in local development, still authenticates the same token.
+	proxyReq.Header.Set("x-forwarded-access-token", identity.Token)
 	proxyReq.Header.Set("Content-Type", "application/json")
 	proxyReq.Header.Set("Accept", "text/event-stream")
 
