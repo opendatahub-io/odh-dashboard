@@ -969,3 +969,65 @@ export const verifyModelExternalToken = (
     return makeRequest();
   });
 };
+
+/**
+ * Wait for a KServe InferenceService to exist on the cluster, then patch
+ * `spec.predictor.model.storage.path` onto it.
+ *
+ * Only intended for s390x clusters where the running dashboard image pre-dates
+ * the storage.path fix in deployUtils.ts.  Must always be called inside an
+ * `if (isS390x)` guard so the x86 flow is never touched.
+ *
+ * Internally polls with `oc get` (same pattern as checkInferenceServiceState)
+ * rather than relying on `oc wait --for=create` which is not available in all
+ * oc/kubectl versions.
+ *
+ * @param inferenceServiceName  k8s resource name of the InferenceService.
+ * @param namespace             Namespace it lives in.
+ * @param storagePath           S3 prefix path (e.g. 'triton/model_repository').
+ * @param maxWaitSeconds        How long to poll for IS creation (default 60 s).
+ */
+export const patchInferenceServiceStoragePath = (
+  inferenceServiceName: string,
+  namespace: string,
+  storagePath: string,
+  maxWaitSeconds = 60,
+): Cypress.Chainable<Cypress.Exec> => {
+  const pollInterval = 5000;
+  const maxAttempts = Math.ceil((maxWaitSeconds * 1000) / pollInterval);
+  let attempts = 0;
+
+  const waitForIS = (): Cypress.Chainable<null> =>
+    cy
+      .exec(`oc get inferenceservice ${inferenceServiceName} -n ${namespace}`, {
+        failOnNonZeroExit: false,
+        timeout: 10000,
+      })
+      .then((result): Cypress.Chainable<null> => {
+        attempts++;
+        if (result.exitCode === 0) {
+          return cy.wrap<null>(null);
+        }
+        if (attempts >= maxAttempts) {
+          throw new Error(
+            `InferenceService ${inferenceServiceName} did not appear within ${maxWaitSeconds}s`,
+          );
+        }
+        return cy.wait(pollInterval).then(() => waitForIS());
+      });
+
+  return waitForIS().then(() =>
+    cy
+      .exec(
+        `oc patch inferenceservice ${inferenceServiceName} -n ${namespace} --type=json ` +
+          `-p='[{"op":"add","path":"/spec/predictor/model/storage/path","value":"${storagePath}"}]'`,
+        { failOnNonZeroExit: false, timeout: 30000 },
+      )
+      .then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(`Failed to patch InferenceService storage path: ${result.stderr}`);
+        }
+        return result;
+      }),
+  );
+};

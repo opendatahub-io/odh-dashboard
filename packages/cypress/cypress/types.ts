@@ -344,6 +344,8 @@ export type TestConfig = {
   FILEMAPPING?: FileMapping;
 };
 
+export type FileMapping = Record<string, string>;
+
 export type DataScienceProjectData = {
   projectDisplayName: string;
   projectDescription: string;
@@ -402,6 +404,13 @@ export type DataScienceProjectData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigContainerImage: string;
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
+  isS390x?: boolean;
+  awsBucket?: 'BUCKET_1' | 'BUCKET_3';
+  servingRuntimeName?: string;
+  servingRuntimeYamlPath?: string;
+  llmInferenceServiceConfigYamlPath?: string;
+  yamlEditorModelYamlPath?: string;
+  singleModelResourceName?: string;
 };
 
 export type NIMProjectScopedTestData = {
@@ -603,6 +612,10 @@ export type DeployOCIModelData = {
   modelDeploymentName: string;
   modelFormat: string;
   servingRuntime: string;
+  isS390x?: boolean;
+  modelOciUri?: string;
+  servingRuntimeName?: string;
+  servingRuntimeYamlPath?: string;
 };
 
 export type ModelTolerationsTestData = {
