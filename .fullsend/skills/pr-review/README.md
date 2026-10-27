@@ -341,6 +341,15 @@ skip-author checks:
   this one. If a run is not cancelled, its adapter context still describes the
   head the sandbox reviewed. Fullsend's steer and coalesce work (fullsend#7689
   follow-ups) can change this; recheck it when that lands.
+- **Jira key selection.** [`fetch-jira-context.sh`](../../scripts/fetch-jira-context.sh)
+  collects keys from the PR preamble (before the first Markdown heading),
+  after stripping HTML comments so template placeholders in `<!-- ... -->`
+  are ignored; if the preamble has none, it falls back to the
+  comment-stripped title. Keys are deduplicated in encounter order and capped
+  at 10 (`omitted_keys` records the rest). Fetches land in `issues[]` next to
+  the backward-compatible top-level fields (first successful issue).
+  `post-review.sh` surfaces failed keys/reasons and `omitted_keys` as an
+  evaluation-limit notice under Product ask when that section is rendered.
 - **Adding a credential.** Add the secret to the shim's `format(...)`
   expression with the same placeholder fallback, reference it in
   `env.runner`, add it to `post-review.sh`'s unset line, and name it in the
