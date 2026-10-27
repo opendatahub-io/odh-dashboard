@@ -294,10 +294,10 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(premium.TokenMetadata).NotTo(BeNil())
 			Expect(premium.TokenMetadata.OrganizationID).To(Equal("org-123"))
 			Expect(premium.TokenMetadata.CostCenter).To(Equal("engineering"))
-			// owner.groups is not exposed by the maas-api passthrough, but the field must still
-			// be present (non-nil) so the payload stays compatible with all-subscriptions.
-			Expect(premium.Owner.Groups).NotTo(BeNil())
-			Expect(premium.Owner.Groups).To(BeEmpty())
+			// Mock upstream group names are mapped to owner.groups for the UI.
+			Expect(premium.Owner.Groups).To(ConsistOf(
+				models.GroupReference{Name: "premium-users"},
+			))
 			Expect(premium.ModelRefs).To(HaveLen(2))
 			Expect(premium.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))
 			Expect(premium.ModelRefs[0].Namespace).To(Equal("maas-models"))
