@@ -14,10 +14,11 @@
  *   diff attributable to a low-risk dependency update?", under the assumption
  *   that the diff was produced by the app. That assumption is enforced
  *   separately, before this script runs: renovate-auto-merge.yml requires every
- *   commit to be attributable to the Renovate app (platformCommit) and
- *   renovate/* branches accept pushes from that app only. Content that cannot
- *   be attributed to a changed direct dependency is refused rather than
- *   trusted, so an unexpected resolution or snapshot edit fails closed.
+ *   commit to be platform-verified (the signature is the part a branch writer
+ *   cannot forge) and attributed to the Renovate app, which is what
+ *   platformCommit produces. Content that cannot be attributed to a changed
+ *   direct dependency is refused rather than trusted, so an unexpected
+ *   resolution, snapshot or top-level lockfile edit fails closed.
  *
  * Eligible tiers and what they allow:
  *   npm-patch — direct npm deps change only within the same major.minor
@@ -58,6 +59,9 @@ const LOCK_DEP_SECTIONS = ['dependencies', 'devDependencies', 'optionalDependenc
 // Resolution fields that make pnpm fetch from somewhere other than the registry.
 // Renovate never emits them, so their presence is tampering, not an update.
 const NON_REGISTRY_RESOLUTION_KEYS = ['tarball', 'repo', 'directory', 'type'];
+// Sections of pnpm-lock.yaml that describe the update itself. Every other
+// top-level key must be identical, so an unrecognized field cannot ride along.
+const LOCK_UPDATE_SECTIONS = ['importers', 'packages', 'snapshots'];
 // Sections of pnpm-lock.yaml that carry the resolved graph, not the change set.
 const LOCK_GRAPH_SECTIONS = ['packages', 'snapshots'];
 const STABLE_VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
@@ -360,11 +364,16 @@ const checkNpm = (base, head, files, max) => {
     let after;
     [baseLock, before] = lockDirectDeps(blob(base, 'pnpm-lock.yaml') ?? '');
     [headLock, after] = lockDirectDeps(blob(head, 'pnpm-lock.yaml') ?? '');
-    ['lockfileVersion', 'settings', 'overrides'].forEach((key) => {
-      if (!sameValue(baseLock[key], headLock[key])) {
-        throw new Ineligible(`pnpm-lock.yaml: '${key}' changed`);
-      }
-    });
+    // Fail closed on every top-level key we do not know: lockfileVersion,
+    // settings, overrides, and anything pnpm adds later. Only the three
+    // update-carrying sections may differ, and those are checked below.
+    union(Object.keys(baseLock), Object.keys(headLock))
+      .filter((key) => !LOCK_UPDATE_SECTIONS.includes(key))
+      .forEach((key) => {
+        if (!sameValue(baseLock[key], headLock[key])) {
+          throw new Ineligible(`pnpm-lock.yaml: '${key}' changed`);
+        }
+      });
     checkResolutions(baseLock, headLock);
 
     const added = Object.keys(after).filter((k) => !Object.hasOwn(before, k));

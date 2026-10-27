@@ -10,10 +10,11 @@ name: Renovate Auto-merge
 #   1. PR author is odh-dashboard-agent[bot] (the app that runs renovate.yml).
 #   2. Exactly one renovate/<tier> label, added by that same app — a label
 #      added by anyone else grants nothing.
-#   3. Every commit is attributable to that app. This is what makes the diff
-#      parser meaningful: it classifies bot output, and content pushed by
-#      anyone else is refused before it is examined. renovate/* branches must
-#      therefore accept pushes from the app and nobody else.
+#   3. Every commit is platform-verified (signed by GitHub, which is what
+#      platformCommit produces) and attributed to that app. Author and
+#      committer logins are metadata that anyone able to push to the branch can
+#      forge, so the signature is what authenticates the content. An unsigned
+#      commit fails closed.
 #   4. The tier is eligible (npm-patch, npm-minor, go-patch, go-minor).
 #   5. .github/scripts/renovate-automerge-check.js, run from the BASE branch
 #      (never from the PR), re-derives the update class from the diff and
@@ -89,18 +90,28 @@ jobs:
             echo "tier label $LABEL removed — re-evaluating eligibility"
             echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          # Re-label only if the head moved after we last applied lgtm, i.e.
-          # this removal is Prow invalidating a stale review, not a person.
-          events=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate --jq '.[]' | jq -s '.')
-          last_label=$(jq -r '[.[] | select(.event == "labeled" and .label.name == "lgtm" and .actor.login == "github-actions[bot]") | .created_at] | max // ""' <<<"$events")
-          last_push=$(jq -r '[.[] | select(.event == "head_ref_force_pushed" or .event == "committed") | (.created_at // .committer.date)] | max // ""' <<<"$events")
-          if [ -n "$last_label" ] && [[ "$last_push" > "$last_label" ]]; then
-            echo "lgtm removed after a push ($last_push > $last_label) — re-validating"
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "lgtm removed without a newer push — respecting it"
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
+          # Attribute the removal instead of comparing timestamps. A delayed
+          # Prow removal after a push can land AFTER this workflow re-applied
+          # lgtm, so "push newer than label" misses exactly the race this step
+          # exists for. Who removed it is unambiguous:
+          #   - another bot (Prow) is invalidating a stale review: revalidate
+          #   - a human, or this workflow's own cleanup, is deliberate: respect
+          remover=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate \
+            | jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""')
+          case "$remover" in
+            "github-actions[bot]")
+              echo "lgtm removed by this workflow, respecting it"
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *"[bot]")
+              echo "lgtm removed by $remover (stale review), revalidating the current head"
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "lgtm removed by '${remover:-unknown}', respecting it"
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: Find tier label and who added it
         id: tier
@@ -120,8 +131,10 @@ jobs:
             exit 0
           fi
           label=$(jq -r '.[0]' <<<"$labels")
+          # Pass the label as a jq variable. Interpolating it into the filter
+          # would let a label name containing quotes rewrite the program.
           actor=$(gh api "repos/$REPO/issues/$PR_NUMBER/events" --paginate \
-            --jq ".[] | select(.event == \"labeled\" and .label.name == \"$label\") | .actor.login" \
+            | jq -r --arg l "$label" '.[] | select(.event == "labeled" and .label.name == $l) | .actor.login' \
             | tail -n 1)
           if [ "$actor" != "$RENOVATE_APP_LOGIN" ]; then
             echo "Not eligible: $label was added by '$actor', not $RENOVATE_APP_LOGIN"
@@ -131,7 +144,7 @@ jobs:
           echo "Tier label $label added by $actor"
           echo "tier=${label#renovate/}" >> "$GITHUB_OUTPUT"
 
-      - name: Verify every commit is app-authored
+      - name: Verify commit provenance
         id: authors
         if: steps.tier.outputs.tier != ''
         env:
@@ -141,27 +154,28 @@ jobs:
           APP_LOGIN: ${{ env.RENOVATE_APP_LOGIN }}
         run: |
           set -euo pipefail
-          # The trust boundary is the write access to renovate/* branches, not
-          # this diff parser. Anyone able to push to a bot PR could otherwise
-          # add a resolution or indirect bump that no direct update explains, so
-          # require every commit to be attributable to the app. Requires
-          # platformCommit in renovate.json5; a mis-attributed commit fails
-          # closed (the PR is left for a human).
+          # Provenance is what lets the diff checker treat its input as bot
+          # output. Two things must hold for EVERY commit:
+          #   1. GitHub verified the signature. platformCommit makes GitHub the
+          #      signer, so this is the part a branch writer cannot forge.
+          #   2. The commit is attributed to the app. This is metadata and is
+          #      forgeable on its own, which is why it is not sufficient.
+          # An unsigned commit fails closed and the PR is left for a human.
           rows=$(gh api "repos/$REPO/pulls/$PR_NUMBER/commits" --paginate \
-            --jq '.[] | [(.author.login // ""), (.committer.login // ""), .sha] | @tsv')
+            --jq '.[] | [(.author.login // ""), (.committer.login // ""), ((.commit.verification.verified // false) | tostring), .sha] | @tsv')
           if [ -z "$rows" ]; then
             echo "Not eligible: no commits returned for the PR"
             echo "authors=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           foreign=$(printf '%s\n' "$rows" | awk -F'\t' -v app="$APP_LOGIN" \
-            'NF && $1 != app && $2 != app {print $3}')
+            'NF && ($3 != "true" || ($1 != app && $2 != app)) {print $4}')
           if [ -n "$foreign" ]; then
-            echo "Not eligible: commits not attributable to $APP_LOGIN:"
+            echo "Not eligible: commits are unsigned or not attributable to $APP_LOGIN:"
             echo "$foreign"
             echo "authors=false" >> "$GITHUB_OUTPUT"
           else
-            echo "All commits attributable to $APP_LOGIN"
+            echo "All commits are verified and attributable to $APP_LOGIN"
             echo "authors=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -240,7 +254,8 @@ jobs:
             # add them; a human's /lgtm or /approve stays.
             for l in lgtm approved; do
               by=$(gh api "repos/$REPO/issues/$PR_NUMBER/events" --paginate \
-                --jq ".[] | select(.event == \"labeled\" and .label.name == \"$l\") | .actor.login" | tail -n 1)
+                | jq -r --arg l "$l" '.[] | select(.event == "labeled" and .label.name == $l) | .actor.login' \
+                | tail -n 1)
               if [ "$by" = "github-actions[bot]" ]; then
                 gh pr edit "$PR_URL" --remove-label "$l" 2>/dev/null || true
               fi

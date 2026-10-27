@@ -442,6 +442,25 @@ integration('npm-patch: a pre-existing local resolution does not block the updat
   assert.equal(eligible, true, output);
 });
 
+integration('npm: an unknown top-level lockfile key is refused', () => {
+  // Fail closed on fields the checker does not model, so pnpm additions or a
+  // hand-injected key cannot ride along with an eligible bump.
+  const { dir, base } = npmRepo();
+  const head = commitFiles(
+    dir,
+    {
+      'pnpm-lock.yaml': lock({ root: '1.0.2', workspace: '1.0.2' }).replace(
+        "lockfileVersion: '9.0'",
+        "lockfileVersion: '9.0'\nevil: true",
+      ),
+    },
+    'extra top-level key',
+  );
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, false, output);
+  assert.match(output, /'evil' changed/);
+});
+
 integration('npm-minor: a legitimate specifier bump is eligible', () => {
   const { dir, base } = npmRepo();
   const head = commitFiles(
