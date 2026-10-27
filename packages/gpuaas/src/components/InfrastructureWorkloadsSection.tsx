@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useProjectNotebookStates from '@odh-dashboard/internal/pages/projects/notebook/useProjectNotebookStates';
@@ -26,6 +27,7 @@ import WorkloadOverview from './WorkloadOverview';
 import useInfrastructureWorkloads from '../hooks/useInfrastructureWorkloads';
 import useWorkloadStatusFilters from '../hooks/useWorkloadStatusFilters';
 import { isKueueManagedDataScienceProject } from '../utils/kueueProjects';
+import { GPUAAS_EVENTS } from '../tracking/gpuaasTrackingConstants';
 import {
   INFRASTRUCTURE_WORKLOADS_EMPTY_BODY,
   INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE,
@@ -240,6 +242,23 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
           namespace={namespace}
           refreshTrigger={refreshTrigger}
           onViewInTable={workloadStatusFilters.viewBucketInTable}
+          onStatusOverviewSegmentClick={(statusClicked) =>
+            fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_SEGMENT_CLICKED, {
+              statusClicked,
+            })
+          }
+          onPopoverClosed={(statusClicked, closeMethod) =>
+            fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_POPOVER_CLOSED, {
+              statusClicked,
+              closeMethod,
+            })
+          }
+          onViewInTableClicked={(overviewSegment) =>
+            fireMiscTrackingEvent(
+              GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_VIEW_IN_TABLE_CLICKED,
+              { overviewSegment },
+            )
+          }
         />
       </StackItem>
       <StackItem>
@@ -320,6 +339,7 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
 
   const handleProjectSelection = React.useCallback(
     (projectName: string) => {
+      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_PROJECT_FILTER_SELECTED, { projectName });
       updatePreferredProject(
         projects.find((project) => project.metadata.name === projectName) ?? null,
       );
