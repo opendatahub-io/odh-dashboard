@@ -44,6 +44,7 @@
     "test:dsc-workaround": "python3 -m unittest discover -s .claude/skills/dsc-outage-workaround/tests -v",
     "test:adr": "./hack/__tests__/lint-adr.test.sh",
     "test:css-guard": "node --test scripts/__tests__/check-css-lowering.test.js",
+    "test:renovate-automerge": "node --test .github/scripts/__tests__/*.test.js",
     "test:cypress-ci": "pnpm --filter odh-dashboard-frontend test:cypress-ci",
     "test:unit": "pnpm run test:dsc-workaround && pnpm run test:css-guard && turbo run test:unit",
     "lint:frontend:backend": "run-p test:lint:*",

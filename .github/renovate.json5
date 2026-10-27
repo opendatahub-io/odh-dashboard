@@ -41,6 +41,12 @@
   "dependencyDashboard": false,
   "configMigration": true,
   "semanticCommits": "enabled",
+  // Create commits through the platform API so every commit on a renovate/*
+  // branch is attributable to odh-dashboard-agent. renovate-auto-merge.yml
+  // refuses to auto-merge unless every commit is attributable to the app, which
+  // is what makes the diff checker a classifier of bot output rather than an
+  // adversary-proof sandbox. Do not disable without removing that check too.
+  "platformCommit": "enabled",
   "timezone": "UTC",
 
   // New PRs only in the Monday window. Daily runs outside it still rebase and
