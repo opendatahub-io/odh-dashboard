@@ -33,6 +33,10 @@ const useServerSelection = ({
   // Last selection reported to the parent — distinguishes the parent's echo of our
   // own emissions from external selection resets
   const lastEmittedIdsRef = React.useRef<string[]>([]);
+  // Last initialSelectedServerIds observed by ID value — the adoption effect only
+  // runs on external changes, so a server-list refresh with unchanged initial IDs
+  // must not reapply them over a local edit the parent never echoed back
+  const lastObservedInitialIdsRef = React.useRef<string[] | null>(null);
   // Set when an external reset was just adopted but the adopted selection has not
   // rendered yet. The notify pass consumes it to skip pushing the pre-adoption
   // local selection back over the adopted value, and reconciliation defers until
@@ -92,6 +96,16 @@ const useServerSelection = ({
     if (!initialSelectedServerIds) {
       return;
     }
+    const lastObserved = lastObservedInitialIdsRef.current;
+    if (lastObserved) {
+      const isUnchanged =
+        initialSelectedServerIds.length === lastObserved.length &&
+        initialSelectedServerIds.every((id) => lastObserved.includes(id));
+      if (isUnchanged) {
+        return;
+      }
+    }
+    lastObservedInitialIdsRef.current = initialSelectedServerIds;
     const emittedIds = lastEmittedIdsRef.current;
     const isEcho =
       initialSelectedServerIds.length === emittedIds.length &&

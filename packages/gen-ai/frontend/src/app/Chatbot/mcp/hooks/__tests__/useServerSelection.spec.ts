@@ -224,6 +224,40 @@ describe('useServerSelection', () => {
     expect(mockOnSelectionChange).toHaveBeenLastCalledWith([]);
   });
 
+  it('should not reapply unchanged initial IDs over a local edit on server-list refresh', () => {
+    const { result, rerender } = renderHook(
+      ({ servers, initialIds }: { servers: MCPServer[]; initialIds: string[] }) =>
+        useServerSelection({
+          transformedServers: servers,
+          initialSelectedServerIds: initialIds,
+          onSelectionChange: mockOnSelectionChange,
+        }),
+      {
+        initialProps: {
+          servers: mockServers,
+          initialIds: ['server1'],
+        },
+      },
+    );
+
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server1']);
+
+    // The user edits the picker and the parent has not echoed the emission back
+    act(() => result.current.setSelectedServers([mockServers[1]]));
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server2']);
+
+    // A server-list refresh produces a new array while the initial IDs keep
+    // their unchanged values — the stale initial IDs must not reset the
+    // selection to server1
+    rerender({
+      servers: [...mockServers],
+      initialIds: ['server1'],
+    });
+
+    expect(result.current.selectedServers.map((s) => s.id)).toEqual(['server2']);
+    expect(mockOnSelectionChange).toHaveBeenLastCalledWith(['server2']);
+  });
+
   it('should handle selection of multiple servers from route state', () => {
     const { result } = renderHook(() =>
       useServerSelection({
