@@ -20,6 +20,9 @@ const PORT = process.env._PORT;
 const PROXY_PROTOCOL = process.env._PROXY_PROTOCOL;
 const PROXY_HOST = process.env._PROXY_HOST;
 const PROXY_PORT = process.env._PROXY_PORT;
+const GEN_AI_BFF_PROTOCOL = process.env.GEN_AI_BFF_PROTOCOL || 'http';
+const GEN_AI_BFF_HOST = process.env.GEN_AI_BFF_HOST || 'localhost';
+const GEN_AI_BFF_PORT = process.env.GEN_AI_BFF_PORT || 8080;
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
@@ -104,11 +107,28 @@ module.exports = merge(
       open: false,
       proxy: [
         {
-          context: ['/api', '/autorag/api', '/gen-ai/api'],
+          context: ['/_mf/genAi'],
+          target: `http://localhost:${process.env.GEN_AI_REMOTE_PORT || 9102}`,
+          pathRewrite: { '^/_mf/genAi': '' },
+          changeOrigin: true,
+        },
+        {
+          context: ['/api', '/autorag/api'],
           target: {
             host: PROXY_HOST,
             protocol: PROXY_PROTOCOL,
             port: PROXY_PORT,
+          },
+          changeOrigin: true,
+          headers: getProxyHeaders(),
+          on: { proxyReq: onProxyReq },
+        },
+        {
+          context: ['/gen-ai/api'],
+          target: {
+            host: GEN_AI_BFF_HOST,
+            protocol: GEN_AI_BFF_PROTOCOL,
+            port: GEN_AI_BFF_PORT,
           },
           changeOrigin: true,
           headers: getProxyHeaders(),

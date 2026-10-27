@@ -3,13 +3,16 @@ import { renderHook, waitFor } from '@testing-library/react';
 import * as modArchCore from 'mod-arch-core';
 import { getMaaSWhoAmI } from '~/app/api/whoami';
 import { useGridSettings } from '~/app/hooks/useGridSettings';
-import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '~/app/types/whoami';
+import { type MaaSWhoAmI } from '~/app/types/whoami';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
   fetchConfig: jest.fn(),
 }));
-jest.mock('~/app/api/whoami', () => ({ getMaaSWhoAmI: jest.fn() }));
+jest.mock('~/app/api/whoami', () => ({
+  ...jest.requireActual('~/app/api/whoami'),
+  getMaaSWhoAmI: jest.fn(),
+}));
 
 const mockFetchConfig = jest.mocked(modArchCore.fetchConfig);
 const mockGetMaaSWhoAmI = jest.mocked(getMaaSWhoAmI);
@@ -18,7 +21,7 @@ const config: modArchCore.ConfigSettings = { common: { featureFlags: { modelRegi
 const whoAmI: MaaSWhoAmI = {
   sub: 'user-123',
   name: 'Alex Doe',
-  [MAAS_ORGS_CLAIM]: [{ organization_id: 'org-123', roles: ['admins'] }],
+  isAdmin: true,
 };
 
 describe('useGridSettings', () => {
@@ -50,7 +53,7 @@ describe('useGridSettings', () => {
       sub: 'user-123',
       displayName: 'Alex Doe',
       email: undefined,
-      orgAdmin: true,
+      isAdmin: true,
     });
     expect(mockFetchConfig).toHaveBeenCalledTimes(1);
     expect(mockGetMaaSWhoAmI).toHaveBeenCalledTimes(1);
@@ -61,14 +64,14 @@ describe('useGridSettings', () => {
     mockGetMaaSWhoAmI.mockReturnValue(() =>
       Promise.resolve({
         ...whoAmI,
-        [MAAS_ORGS_CLAIM]: [{ organization_id: 'org-123', roles: [] }],
+        isAdmin: false,
       }),
     );
 
     const { result } = renderHook(useGridSettings);
 
     await waitFor(() => expect(result.current.loaded).toBe(true));
-    expect(result.current.userSettings?.orgAdmin).toBe(false);
+    expect(result.current.userSettings?.isAdmin).toBe(false);
     expect(result.current.userSettings?.clusterAdmin).toBeUndefined();
   });
 });

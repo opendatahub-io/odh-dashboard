@@ -7,7 +7,15 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 jest.mock('mod-arch-core', () => ({
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone' },
+  asEnumMember: (value: unknown) => value,
   useModularArchContext: () => ({ config: { deploymentMode: 'federated' } }),
+}));
+
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-project', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
 }));
 
 let mockRemoteAvailable = true;

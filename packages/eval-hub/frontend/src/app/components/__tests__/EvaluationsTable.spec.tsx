@@ -159,6 +159,7 @@ describe('EvaluationsTable', () => {
   it('should render the table with rows', () => {
     renderTable({ evaluations: mockJobs, loaded: true });
     expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Job status' })).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-1')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-2')).toBeInTheDocument();
@@ -584,7 +585,7 @@ describe('EvaluationsTable', () => {
       renderTable({ evaluations: mockJobs, loaded: true });
       const table = screen.getByTestId('evaluations-table');
       expect(table).toHaveTextContent('Name');
-      expect(table).toHaveTextContent('Status');
+      expect(table).toHaveTextContent('Job status');
       expect(table).toHaveTextContent('Evaluation');
       expect(table).toHaveTextContent('Evaluated');
       expect(table).toHaveTextContent('Date');

@@ -26,16 +26,16 @@ import { createCollection, isConflictError } from '~/app/api/dataRegistry';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useCollections, type CollectionInfo } from '~/app/hooks/useCollections';
 import { collectionDetailUrl } from '~/app/utilities/routes';
+import {
+  DEFAULT_COLLECTION_DELETE_MESSAGE,
+  DEFAULT_COLLECTION_NAME,
+  NON_EMPTY_COLLECTION_DELETE_MESSAGE,
+} from '~/app/utilities/collectionConstants';
 import DeleteCollectionModal from './DeleteCollectionModal';
 import './ManageCollectionsModal.scss';
 
 const COLLECTION_SEARCH_PLACEHOLDER = 'Filter by name or description';
 const COLLECTION_NAME_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
-const DEFAULT_COLLECTION_NAME = 'default';
-const DEFAULT_COLLECTION_DELETE_MESSAGE = 'The default collection cannot be deleted.';
-const NON_EMPTY_COLLECTION_DELETE_MESSAGE =
-  'Remove all associated assets to delete this collection';
-
 type ManageCollectionsModalProps = {
   isOpen: boolean;
   onClose: () => void;

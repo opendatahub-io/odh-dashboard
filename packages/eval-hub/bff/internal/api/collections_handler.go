@@ -73,7 +73,7 @@ func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, p
 		app.notFoundResponse(w, r)
 		return
 	}
-	if currentCollection.State != nil && currentCollection.State.RunCount > 0 {
+	if currentCollection.Status != nil && currentCollection.Status.RunCount > 0 {
 		app.conflictResponse(w, r, fmt.Errorf("collection cannot be edited after it has been run"))
 		return
 	}

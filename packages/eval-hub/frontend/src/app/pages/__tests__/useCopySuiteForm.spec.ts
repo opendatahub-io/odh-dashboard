@@ -381,7 +381,7 @@ describe('useCopySuiteForm', () => {
   it('should reject save-only edits after the source collection has been run', async () => {
     const result = renderForm({
       mode: 'edit',
-      sourceCollection: { ...sourceCollection, state: { run_count: 1 } },
+      sourceCollection: { ...sourceCollection, status: { run_count: 1 } },
     });
 
     await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
@@ -1630,7 +1630,7 @@ describe('useCopySuiteForm', () => {
   it('should reject edit-mode save and run after the source collection has been run', async () => {
     const result = renderForm({
       mode: 'edit',
-      sourceCollection: { ...sourceCollection, state: { run_count: 1 } },
+      sourceCollection: { ...sourceCollection, status: { run_count: 1 } },
     });
 
     await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));

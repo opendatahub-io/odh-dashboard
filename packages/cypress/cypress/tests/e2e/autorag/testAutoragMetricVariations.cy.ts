@@ -1,6 +1,6 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
+import { deleteAutoXS3TestFiles } from '../../../utils/oc_commands/autoXS3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -69,7 +69,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       testData.vectorDbSecretName,
       connectionOwnership,
     );
-    deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
+    deleteAutoXS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 

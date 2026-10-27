@@ -372,7 +372,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     },
     [trackCollectionFilterApplied],
   );
-  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit);
+  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit, nameFilter);
   const resetSearchInputTracking = searchInputTrackingProps.reset;
 
   const clearFilters = React.useCallback(() => {
@@ -872,7 +872,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             {
               id: 'edit',
               label: 'Edit',
-              isDisabled: (collection.state?.run_count ?? 0) > 0,
+              isDisabled: (collection.status?.run_count ?? 0) > 0,
               onSelect: onEditCollection,
             },
           ]
@@ -918,7 +918,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     value={nameFilter}
                     isDisabled={areFiltersDisabled}
                     onChange={(_event, value) => setNameFilter(value)}
-                    onSearch={searchInputTrackingProps.onSearch}
                     inputProps={searchInputTrackingProps.inputProps}
                     onClear={() => {
                       setNameFilter('');
