@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Content, Flex, FlexItem, Skeleton, Title } from '@patternfly/react-core';
+import { Alert, Content, Flex, Skeleton, Title } from '@patternfly/react-core';
 import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 import RayJobStatus from './components/RayJobStatus';
 import { getRayJobStatusSync, getStatusFlags, getRayJobStatusAlert } from './utils';
@@ -101,9 +101,7 @@ const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
           <Title headingLevel="h2" size="lg">
             Ray job progress
           </Title>
-          <FlexItem>
-            <RayJobStatus job={job} jobStatus={status} />
-          </FlexItem>
+          <RayJobStatus job={job} jobStatus={status} />
         </Flex>
       }
       contents={bodyContent}

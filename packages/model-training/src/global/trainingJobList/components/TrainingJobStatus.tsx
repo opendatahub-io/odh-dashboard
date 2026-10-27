@@ -41,7 +41,7 @@ const TrainingJobStatus = ({
 
   return (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
-      <FlexItem>
+      <Flex>
         <Label
           variant={onClick ? 'filled' : 'outline'}
           isCompact={isCompact}
@@ -54,7 +54,7 @@ const TrainingJobStatus = ({
         >
           {statusInfo.label}
         </Label>
-      </FlexItem>
+      </Flex>
       {showProgress && (
         <FlexItem>
           <Progress
