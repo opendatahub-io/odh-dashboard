@@ -3,16 +3,24 @@
 name: Renovate Auto-merge
 
 # Applies Tide's merge labels (lgtm + approved) to Renovate PRs whose update
-# is provably low-risk. Tide then merges after required CI passes.
+# is low-risk and attributable to the bot. Tide then merges after required CI
+# passes.
 #
 # Trust chain, all of which must hold:
 #   1. PR author is odh-dashboard-agent[bot] (the app that runs renovate.yml).
 #   2. Exactly one renovate/<tier> label, added by that same app — a label
 #      added by anyone else grants nothing.
-#   3. The tier is eligible (npm-patch, npm-minor, go-patch, go-minor).
-#   4. .github/scripts/renovate-automerge-check.js, run from the BASE branch
+#   3. Every commit is attributable to that app. This is what makes the diff
+#      parser meaningful: it classifies bot output, and content pushed by
+#      anyone else is refused before it is examined. renovate/* branches must
+#      therefore accept pushes from the app and nobody else.
+#   4. The tier is eligible (npm-patch, npm-minor, go-patch, go-minor).
+#   5. .github/scripts/renovate-automerge-check.js, run from the BASE branch
 #      (never from the PR), re-derives the update class from the diff and
 #      agrees with the tier.
+# The PR head is re-read immediately before labeling, so a push during
+# validation labels nothing. A crash or an ineligible result removes labels
+# this workflow added; a human's /lgtm or /approve is never touched.
 # Re-runs on every push, and again when Prow strips lgtm after a push (Prow
 # can do that after this workflow already re-labeled, which is how Dependabot
 # PRs got stuck, e.g. #10320). A manual `/lgtm cancel` with no push since our
@@ -29,9 +37,9 @@ on:
   pull_request_target:  # zizmor: ignore[dangerous-triggers]
     types: [opened, reopened, synchronize, labeled, unlabeled]
 
-permissions:
-  contents: read
-  pull-requests: write
+# Least privilege: the write token is scoped to the job below, not the
+# workflow, so a future job cannot inherit it by accident.
+permissions: {}
 
 env:
   # Upstream is pinned to the app; a fork rehearsing with a personal token
@@ -42,6 +50,9 @@ jobs:
   auto-merge:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read        # checkout of the base SHA
+      pull-requests: write  # add/remove lgtm and approved
     # Job-level, without cancel-in-progress: Renovate fires opened + several
     # labeled events at once. Workflow-level cancellation let an irrelevant
     # event (e.g. labeled:dependencies, skipped by `if`) cancel the run for
@@ -55,7 +66,9 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository &&
       startsWith(github.event.pull_request.head.ref, 'renovate/') &&
       (github.event.action != 'labeled' || startsWith(github.event.label.name, 'renovate/')) &&
-      (github.event.action != 'unlabeled' || github.event.label.name == 'lgtm')
+      (github.event.action != 'unlabeled' ||
+        startsWith(github.event.label.name, 'renovate/') ||
+        github.event.label.name == 'lgtm')
     steps:
       - name: Decide whether an lgtm removal needs action
         id: gate
@@ -64,9 +77,16 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           ACTION: ${{ github.event.action }}
+          LABEL: ${{ github.event.label.name }}
         run: |
           set -euo pipefail
           if [ "$ACTION" != "unlabeled" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Removing a tier label revokes eligibility: re-evaluate and withdraw
+          # whatever this workflow added, even if no push happened.
+          if [[ "$LABEL" == renovate/* ]]; then
+            echo "tier label $LABEL removed — re-evaluating eligibility"
             echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           # Re-label only if the head moved after we last applied lgtm, i.e.
@@ -111,9 +131,43 @@ jobs:
           echo "Tier label $label added by $actor"
           echo "tier=${label#renovate/}" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout base branch (trusted script only)
+      - name: Verify every commit is app-authored
+        id: authors
         if: steps.tier.outputs.tier != ''
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          APP_LOGIN: ${{ env.RENOVATE_APP_LOGIN }}
+        run: |
+          set -euo pipefail
+          # The trust boundary is the write access to renovate/* branches, not
+          # this diff parser. Anyone able to push to a bot PR could otherwise
+          # add a resolution or indirect bump that no direct update explains, so
+          # require every commit to be attributable to the app. Requires
+          # platformCommit in renovate.json5; a mis-attributed commit fails
+          # closed (the PR is left for a human).
+          rows=$(gh api "repos/$REPO/pulls/$PR_NUMBER/commits" --paginate \
+            --jq '.[] | [(.author.login // ""), (.committer.login // ""), .sha] | @tsv')
+          if [ -z "$rows" ]; then
+            echo "Not eligible: no commits returned for the PR"
+            echo "authors=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          foreign=$(printf '%s\n' "$rows" | awk -F'\t' -v app="$APP_LOGIN" \
+            'NF && $1 != app && $2 != app {print $3}')
+          if [ -n "$foreign" ]; then
+            echo "Not eligible: commits not attributable to $APP_LOGIN:"
+            echo "$foreign"
+            echo "authors=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "All commits attributable to $APP_LOGIN"
+            echo "authors=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout base branch (trusted script only)
+        if: steps.tier.outputs.tier != '' && steps.authors.outputs.authors == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
@@ -121,7 +175,7 @@ jobs:
 
       - name: Validate diff against tier
         id: check
-        if: steps.tier.outputs.tier != ''
+        if: steps.tier.outputs.tier != '' && steps.authors.outputs.authors == 'true'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -139,17 +193,45 @@ jobs:
           echo "$result"
           echo "$result" | tail -n 1 >> "$GITHUB_OUTPUT"
 
+      - name: Re-check head before labeling
+        id: head
+        if: steps.tier.outputs.tier != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Validation and labeling are not atomic: a push in between would
+          # label a head this run never saw. Defer to the run for the new head
+          # instead of adding or removing anything.
+          live=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq .head.sha)
+          if [ "$live" != "$HEAD_SHA" ]; then
+            echo "::warning::PR head moved ($HEAD_SHA -> $live); deferring to the run for the new head"
+            echo "moved=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "moved=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Apply or remove merge labels
-        if: steps.gate.outputs.run == 'true'
+        # `!cancelled()` so a crash in validation cannot leave stale
+        # lgtm/approved behind: an empty ELIGIBLE already means "not eligible".
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           ELIGIBLE: ${{ steps.check.outputs.eligible }}
+          MOVED: ${{ steps.head.outputs.moved }}
           TIER: ${{ steps.tier.outputs.tier }}
         run: |
           set -euo pipefail
+          if [ "$MOVED" = "true" ]; then
+            echo "Head moved during validation — leaving labels for the new head's run"
+            exit 0
+          fi
           if [ "$ELIGIBLE" = "true" ]; then
             gh pr edit "$PR_URL" --add-label "lgtm,approved"
             echo "### ✅ Auto-merge labels applied (tier: $TIER)" >> "$GITHUB_STEP_SUMMARY"

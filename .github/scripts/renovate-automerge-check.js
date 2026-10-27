@@ -9,6 +9,16 @@
  * script re-derives the update class from the files and refuses anything that
  * does not match, so a wrong or tampered label can never widen what merges.
  *
+ * Trust model — read this before relying on the output:
+ *   This is a CLASSIFIER, not a sandbox. It answers "is every change in this
+ *   diff attributable to a low-risk dependency update?", under the assumption
+ *   that the diff was produced by the app. That assumption is enforced
+ *   separately, before this script runs: renovate-auto-merge.yml requires every
+ *   commit to be attributable to the Renovate app (platformCommit) and
+ *   renovate/* branches accept pushes from that app only. Content that cannot
+ *   be attributed to a changed direct dependency is refused rather than
+ *   trusted, so an unexpected resolution or snapshot edit fails closed.
+ *
  * Eligible tiers and what they allow:
  *   npm-patch — direct npm deps change only within the same major.minor
  *   npm-minor — direct npm deps change within the same major, and every
@@ -45,7 +55,14 @@ const NPM_DEP_SECTIONS = [
   'peerDependencies',
 ];
 const LOCK_DEP_SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies'];
+// Resolution fields that make pnpm fetch from somewhere other than the registry.
+// Renovate never emits them, so their presence is tampering, not an update.
+const NON_REGISTRY_RESOLUTION_KEYS = ['tarball', 'repo', 'directory', 'type'];
+// Sections of pnpm-lock.yaml that carry the resolved graph, not the change set.
+const LOCK_GRAPH_SECTIONS = ['packages', 'snapshots'];
 const STABLE_VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
+// A plain semver range: optional operator, optional v, three numeric parts.
+const SEMVER_RANGE = /^(?<op>\^|~|>=|<=|>|<|=)?v?(?<version>\d+\.\d+\.\d+)$/;
 const MAX_BUFFER = 256 * 1024 * 1024;
 
 class Ineligible extends Error {}
@@ -93,7 +110,7 @@ const yamlToJson = (text, path) => {
   }
 };
 
-// Order-insensitive deep equality for parsed JSON/YAML values.
+/** Deep equality. Object key order is ignored; array order is significant. */
 const sameValue = (a, b) => {
   if (a === b) {
     return true;
@@ -179,6 +196,17 @@ const uniqueChanges = (changes) => {
 
 // ── npm ──────────────────────────────────────────────────────────────────
 
+/**
+ * Splits a package.json specifier into its range operator and version.
+ * Returns null for anything that is not a plain semver range (aliases, URLs,
+ * `file:`/`link:`/`workspace:`/`catalog:` protocols, tags, ...), which are
+ * refused rather than guessed at.
+ */
+const parseSpec = (spec) => {
+  const m = SEMVER_RANGE.exec(String(spec ?? '').trim());
+  return m ? { op: m.groups.op ?? '', version: m.groups.version } : null;
+};
+
 /** [lock, { "importer|section|dep": version }] for direct deps in a pnpm v9 lockfile. */
 const lockDirectDeps = (text) => {
   const lock = yamlToJson(text, 'pnpm-lock.yaml') ?? {};
@@ -197,16 +225,148 @@ const lockDirectDeps = (text) => {
   return [lock, deps];
 };
 
+/**
+ * Package name from a pnpm graph key.
+ *   /foo@1.2.3             -> foo
+ *   /@scope/pkg@1.2.3(a@1) -> @scope/pkg
+ *   1.2.3                  -> '' (not a package key)
+ */
+const snapshotName = (key) => {
+  const m = /^\/?(?<name>(?:@[^/]+\/)?[^@(]+)@/.exec(String(key ?? ''));
+  return m ? m.groups.name.trim() : '';
+};
+
+/**
+ * Renovate only ever resolves packages from the npm registry. A new or altered
+ * non-registry entry (tarball URL, git repo, local directory) is tampering, not
+ * an update. Entries that already existed unchanged in the base lockfile are
+ * tolerated: they are not part of this diff, and refusing them would block every
+ * npm PR in a repo that pins one package from a local path.
+ */
+const checkResolutions = (baseLock, headLock) => {
+  LOCK_GRAPH_SECTIONS.forEach((section) => {
+    const before = baseLock[section] ?? {};
+    Object.entries(headLock[section] ?? {}).forEach(([key, info]) => {
+      const resolution = info?.resolution;
+      if (!resolution || typeof resolution !== 'object') {
+        return;
+      }
+      const bad = Object.keys(resolution).filter((k) => NON_REGISTRY_RESOLUTION_KEYS.includes(k));
+      if (bad.length === 0) {
+        return;
+      }
+      if (Object.hasOwn(before, key) && sameValue(before[key]?.resolution, resolution)) {
+        return;
+      }
+      throw new Ineligible(
+        `pnpm-lock.yaml: ${section}['${key}'] resolves outside the registry (${bad.join(', ')})`,
+      );
+    });
+  });
+};
+
+const LINK_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependencies'];
+
+/**
+ * A snapshot entry lists the resolved versions of that package's own
+ * dependencies. An unchanged package may follow a bumped transitive dep, but
+ * only in those version maps, and only for a dependency that is part of the
+ * update. Every other field must be identical.
+ */
+const attributableSnapshot = (before = {}, after = {}, changedNames) => {
+  const fields = union(Object.keys(before), Object.keys(after));
+  return fields.every((field) => {
+    if (!LINK_FIELDS.includes(field)) {
+      return sameValue(before[field], after[field]);
+    }
+    const a = before[field] ?? {};
+    const b = after[field] ?? {};
+    return union(Object.keys(a), Object.keys(b)).every(
+      (dep) => sameValue(a[dep], b[dep]) || changedNames.has(dep),
+    );
+  });
+};
+
+/**
+ * The resolved graph may only change where a changed dependency explains it.
+ * Entries for packages that are not part of the update must be byte-equal.
+ * Newly added entries are allowed (a bump legitimately pulls new transitive
+ * versions); removals are allowed (pnpm prunes what is no longer reachable).
+ */
+const checkAttributable = (baseLock, headLock, changedNames) => {
+  LOCK_GRAPH_SECTIONS.forEach((section) => {
+    const before = baseLock[section] ?? {};
+    Object.entries(headLock[section] ?? {}).forEach(([key, info]) => {
+      if (!Object.hasOwn(before, key)) {
+        return;
+      }
+      const name = snapshotName(key);
+      if (name && changedNames.has(name)) {
+        return;
+      }
+      const original = before[key];
+      if (sameValue(original, info)) {
+        return;
+      }
+      // `packages` holds resolution/integrity metadata: any difference on a
+      // package outside the update is unexplained. `snapshots` holds resolved
+      // dependency versions, which may legitimately follow a bumped transitive.
+      const allowed = section === 'snapshots' && attributableSnapshot(original, info, changedNames);
+      if (!allowed) {
+        throw new Ineligible(
+          `pnpm-lock.yaml: ${section}['${key}'] changed, but '${name || key}' is not a ` +
+            'changed direct dependency',
+        );
+      }
+    });
+  });
+};
+
+/** Whether a resolved version falls inside a parsed semver range. */
+const satisfies = (resolved, spec) => {
+  const r = stable(resolved);
+  const s = stable(spec.version);
+  if (!r || !s) {
+    return false;
+  }
+  switch (spec.op) {
+    case '':
+    case '=':
+      return compare(r, s) === 0;
+    case '^':
+      return compare(r, s) >= 0 && r[0] === s[0] && (s[0] !== 0 || r[1] === s[1]);
+    case '~':
+      return compare(r, s) >= 0 && r[0] === s[0] && r[1] === s[1];
+    case '>=':
+      return compare(r, s) >= 0;
+    case '>':
+      return compare(r, s) > 0;
+    case '<=':
+      return compare(r, s) <= 0;
+    case '<':
+      return compare(r, s) < 0;
+    default:
+      return false;
+  }
+};
+
 const checkNpm = (base, head, files, max) => {
   let changes = [];
+  const changedKeys = new Map();
+  let baseLock = null;
+  let headLock = null;
   if (files.includes('pnpm-lock.yaml')) {
-    const [baseLock, before] = lockDirectDeps(blob(base, 'pnpm-lock.yaml') ?? '');
-    const [headLock, after] = lockDirectDeps(blob(head, 'pnpm-lock.yaml') ?? '');
+    let before;
+    let after;
+    [baseLock, before] = lockDirectDeps(blob(base, 'pnpm-lock.yaml') ?? '');
+    [headLock, after] = lockDirectDeps(blob(head, 'pnpm-lock.yaml') ?? '');
     ['lockfileVersion', 'settings', 'overrides'].forEach((key) => {
       if (!sameValue(baseLock[key], headLock[key])) {
         throw new Ineligible(`pnpm-lock.yaml: '${key}' changed`);
       }
     });
+    checkResolutions(baseLock, headLock);
+
     const added = Object.keys(after).filter((k) => !Object.hasOwn(before, k));
     const removed = Object.keys(before).filter((k) => !Object.hasOwn(after, k));
     if (added.length > 0) {
@@ -218,12 +378,17 @@ const checkNpm = (base, head, files, max) => {
     Object.entries(before).forEach(([key, from]) => {
       const to = after[key];
       if (from !== to) {
-        changes.push([key.split('|').pop(), from, to]);
+        const [, , name] = key.split('|');
+        changedKeys.set(key, { from, to });
+        changes.push([name, from, to]);
       }
     });
   }
   changes = uniqueChanges(changes);
   const changedNames = new Set(changes.map(([name]) => name));
+  if (baseLock && headLock) {
+    checkAttributable(baseLock, headLock, changedNames);
+  }
 
   files
     .filter((path) => path !== 'pnpm-lock.yaml')
@@ -243,6 +408,8 @@ const checkNpm = (base, head, files, max) => {
           throw new Ineligible(`${path}: '${key}' changed`);
         }
       });
+      // The importer a package.json belongs to, using pnpm's relative-dir keys.
+      const importer = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '.';
       NPM_DEP_SECTIONS.forEach((section) => {
         const o = prev[section] ?? {};
         const n = next[section] ?? {};
@@ -250,10 +417,43 @@ const checkNpm = (base, head, files, max) => {
           throw new Ineligible(`${path}: ${section} entries added/removed`);
         }
         Object.entries(o).forEach(([dep, spec]) => {
-          // A specifier change must belong to a dependency whose resolved
-          // version was checked above.
-          if (n[dep] !== spec && !changedNames.has(dep)) {
-            throw new Ineligible(`${path}: ${dep} specifier changed without a lockfile change`);
+          if (n[dep] === spec) {
+            return;
+          }
+          // A specifier edit must be explained by the SAME importer+section+dep
+          // resolving to a new version. A change elsewhere in the monorepo does
+          // not authorize it.
+          const key = `${importer}|${section}|${dep}`;
+          const change = changedKeys.get(key);
+          if (!change) {
+            throw new Ineligible(
+              `${path}: ${dep} specifier changed (${spec} -> ${n[dep]}) without a matching ` +
+                `lockfile change for importer '${importer}'`,
+            );
+          }
+          const from = parseSpec(spec);
+          const to = parseSpec(n[dep]);
+          if (!from || !to) {
+            throw new Ineligible(
+              `${path}: ${dep} specifier ${spec} -> ${n[dep]} is not a plain semver range`,
+            );
+          }
+          if (from.op !== to.op) {
+            throw new Ineligible(
+              `${path}: ${dep} range operator changed ('${from.op}' -> '${to.op}')`,
+            );
+          }
+          if (!satisfies(change.from, from) || !satisfies(change.to, to)) {
+            throw new Ineligible(
+              `${path}: ${dep} specifier ${spec} -> ${n[dep]} does not cover the resolved ` +
+                `versions ${change.from} -> ${change.to}`,
+            );
+          }
+          const kind = classify(`${path}: ${dep} specifier`, from.version, to.version);
+          if (kind === 'minor' && max === 'patch') {
+            throw new Ineligible(
+              `${path}: ${dep} specifier ${spec} -> ${n[dep]} is a minor update in a patch tier`,
+            );
           }
         });
       });
@@ -287,7 +487,9 @@ const parseGoMod = (text) => {
       other.push(line.trim());
     }
   });
-  return [requires, other];
+  // `go mod tidy` may reorder non-require blocks; sort so the comparison is
+  // insensitive to ordering rather than failing on a cosmetic rewrite.
+  return [requires, other.toSorted()];
 };
 
 const checkGo = (base, head, files, max) => {
@@ -310,10 +512,11 @@ const checkGo = (base, head, files, max) => {
       }
 
       // `go mod tidy` legitimately adds, drops, and re-classifies `// indirect`
-      // requires (e.g. testify 1.12 no longer pulls in gopkg.in/yaml.v3). Their
-      // versions are fixed by go.sum and the direct requires, so they are not
-      // checked. A DIRECT require is different: it is code the module imports,
-      // so a module may become direct only if it was already required.
+      // requires (e.g. testify 1.12 no longer pulls in gopkg.in/yaml.v3). Those
+      // are bookkeeping and are allowed. A VERSION CHANGE of an indirect module
+      // is not bookkeeping: it selects different dependency code that no direct
+      // update explains, so it needs a human. go.sum authenticates module
+      // CONTENTS; it does not pin which version go.mod selects.
       const oldDirect = Object.keys(oldReq).filter((mod) => !oldReq[mod][1]);
       const newDirect = Object.keys(newReq).filter((mod) => !newReq[mod][1]);
       const gone = oldDirect.filter((mod) => !Object.hasOwn(newReq, mod));
@@ -331,6 +534,52 @@ const checkGo = (base, head, files, max) => {
           changes.push([mod, from, to]);
         }
       });
+
+      const addedIndirect = [];
+      Object.keys(newReq)
+        .filter((mod) => newReq[mod][1])
+        .forEach((mod) => {
+          if (!Object.hasOwn(oldReq, mod)) {
+            if (!stable(newReq[mod][0])) {
+              throw new Ineligible(
+                `${path}: new indirect require ${mod} ${newReq[mod][0]} is not a stable release`,
+              );
+            }
+            addedIndirect.push([mod, newReq[mod][0]]);
+            return;
+          }
+          if (oldReq[mod][0] !== newReq[mod][0]) {
+            throw new Ineligible(
+              `${path}: indirect require ${mod} ${oldReq[mod][0]} -> ${newReq[mod][0]} changed; ` +
+                'indirect version changes need human review',
+            );
+          }
+        });
+      // A module that stops being direct is only bookkeeping if its version did
+      // not move; a re-classification plus a bump is an unexplained change.
+      oldDirect
+        .filter((mod) => Object.hasOwn(newReq, mod) && newReq[mod][1])
+        .forEach((mod) => {
+          if (oldReq[mod][0] !== newReq[mod][0]) {
+            throw new Ineligible(
+              `${path}: ${mod} became indirect with a version change; needs human review`,
+            );
+          }
+        });
+      if (addedIndirect.length > 0) {
+        // The module@version must be described by go.sum. If the diff does not
+        // touch go.sum, an already-known version is still acceptable (tidy can
+        // promote a require whose hashes were already present).
+        const sumPath = path.replace(/go\.mod$/, 'go.sum');
+        const sum =
+          (files.includes(sumPath) ? blob(head, sumPath) : null) ?? blob(base, sumPath) ?? '';
+        addedIndirect.forEach(([mod, version]) => {
+          const line = `${mod} ${version}`;
+          if (!sum.split('\n').some((l) => l.startsWith(`${line} `))) {
+            throw new Ineligible(`${path}: new indirect require ${line} is not in go.sum`);
+          }
+        });
+      }
     });
 
   // A go.sum may legitimately change alone only when its go.mod is untouched
@@ -385,7 +634,23 @@ const main = (base, head, tier) => {
   }
 };
 
-if (process.argv.length !== 5) {
-  throw new Error('usage: renovate-automerge-check.js <base_sha> <head_sha> <tier>');
+module.exports = {
+  TIERS,
+  Ineligible,
+  classify,
+  compare,
+  main,
+  parseGoMod,
+  parseSpec,
+  sameValue,
+  snapshotName,
+  stable,
+  uniqueChanges,
+};
+
+if (require.main === module) {
+  if (process.argv.length !== 5) {
+    throw new Error('usage: renovate-automerge-check.js <base_sha> <head_sha> <tier>');
+  }
+  main(...process.argv.slice(2));
 }
-main(...process.argv.slice(2));
