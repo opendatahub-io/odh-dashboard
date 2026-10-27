@@ -66,7 +66,7 @@ export type CreateConnectionWizardProps = {
 const INITIAL_FORM_DATA: CreateConnectionFormData = {
   name: '',
   data_connection_type_id: '',
-  format: 'tabular',
+  format: 'tabular', // TODO [ Gustavo + Matthew ] Needs to support binary. We will need to get this from the API that informs the UI on the input fields
   credentials: {
     secret: '',
     properties: {},

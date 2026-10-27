@@ -12,6 +12,7 @@ import {
   HelperText,
   HelperTextItem,
   Label,
+  LabelColor,
   LabelGroup,
   MenuToggle,
   PageSection,
@@ -80,6 +81,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const [sortColumn, setSortColumn] = React.useState<'name' | 'type' | 'status'>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const typeNames = new Map(connectionTypes.map((type) => [type.metadata.id, type.resource.name]));
+  const connectionTypesMap = new Map(connectionTypes.map((type) => [type.metadata.id, type]));
   const typeIds = React.useMemo(
     () =>
       Array.from(
@@ -151,6 +153,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   }
 
   const getTypeName = (id: string) => typeNames.get(id) ?? id;
+  const getType = (id: string) => connectionTypesMap.get(id);
 
   const filtered = connections.filter(
     (connection) =>
@@ -406,6 +409,11 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                   </Td>
                   <Td dataLabel="Type">
                     {getTypeName(connection.resource.data_connection_type_id)}
+                    {getType(connection.resource.data_connection_type_id)?.status?.flight_ready && (
+                      <Label color={LabelColor.teal} className="pf-v6-u-ml-sm">
+                        Ingestion supported
+                      </Label>
+                    )}
                   </Td>
                   <Td dataLabel="Status">
                     {verifying.has(connection.metadata.id) ? (

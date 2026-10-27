@@ -2893,6 +2893,9 @@ importers:
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
+      '@patternfly/react-code-editor':
+        specifier: 6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-component-groups':
         specifier: ~6.7.0
         version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
