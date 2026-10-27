@@ -26,10 +26,23 @@ export const panFocusedControlIntoView = (element: Node, button: HTMLButtonEleme
   const buttonBounds = button.getBoundingClientRect();
   const viewportBounds = viewport.getBoundingClientRect();
   const padding = 20;
+  const controlBar = button
+    .closest('.pipeline-visualization')
+    ?.querySelector<HTMLElement>('[data-testid="pipeline-topology-control-bar"]');
+  const controlBarBounds = controlBar?.getBoundingClientRect();
+  const controlBarOverlapsViewport =
+    controlBarBounds &&
+    controlBarBounds.left < viewportBounds.right &&
+    controlBarBounds.right > viewportBounds.left &&
+    controlBarBounds.top < viewportBounds.bottom &&
+    controlBarBounds.bottom > viewportBounds.top;
   const left = viewportBounds.left + padding;
   const right = viewportBounds.right - padding;
   const top = viewportBounds.top + padding;
-  const bottom = viewportBounds.bottom - padding;
+  // Reserve the control bar's full bottom strip: horizontal panning can move a button into it.
+  const bottom = controlBarOverlapsViewport
+    ? Math.min(viewportBounds.bottom - padding, controlBarBounds.top - padding)
+    : viewportBounds.bottom - padding;
   const x =
     buttonBounds.left < left
       ? left - buttonBounds.left

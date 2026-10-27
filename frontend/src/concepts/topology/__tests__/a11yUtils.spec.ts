@@ -117,11 +117,14 @@ describe('panFocusedControlIntoView', () => {
       return;
     }
 
+    const visualization = document.createElement('div');
+    visualization.className = 'pipeline-visualization';
     const viewport = document.createElement('div');
     viewport.dataset.testId = 'topology';
     const button = document.createElement('button');
     viewport.append(button);
-    document.body.append(viewport);
+    visualization.append(viewport);
+    document.body.append(visualization);
     jest.spyOn(viewport, 'getBoundingClientRect').mockReturnValue({
       left: 100,
       right: 500,
@@ -152,6 +155,60 @@ describe('panFocusedControlIntoView', () => {
     panFocusedControlIntoView(group, button);
     expect(controller.getGraph().getPosition().x).toBe(positionBeforePartialPan.x + 10);
     expect(controller.getGraph().getPosition().y).toBe(positionBeforePartialPan.y - 10);
-    viewport.remove();
+    visualization.remove();
+  });
+
+  it('keeps a focused control above the topology control bar', () => {
+    const controller = new Visualization();
+    controller.registerElementFactory(pipelineElementFactory);
+    controller.fromModel(
+      {
+        graph: { id: 'graph', type: 'graph' },
+        nodes: [{ id: 'group', type: DEFAULT_TASK_NODE_TYPE, group: true }],
+      },
+      false,
+    );
+    const group = controller.getNodeById('group');
+    expect(group).toBeDefined();
+    if (!group) {
+      return;
+    }
+
+    const visualization = document.createElement('div');
+    visualization.className = 'pipeline-visualization';
+    const viewport = document.createElement('div');
+    viewport.dataset.testId = 'topology';
+    const controlBar = document.createElement('div');
+    controlBar.dataset.testid = 'pipeline-topology-control-bar';
+    const button = document.createElement('button');
+    viewport.append(button);
+    visualization.append(viewport, controlBar);
+    document.body.append(visualization);
+    jest.spyOn(viewport, 'getBoundingClientRect').mockReturnValue({
+      left: 100,
+      right: 500,
+      top: 100,
+      bottom: 400,
+    } as DOMRect);
+    jest.spyOn(controlBar, 'getBoundingClientRect').mockReturnValue({
+      left: 140,
+      right: 260,
+      top: 350,
+      bottom: 390,
+    } as DOMRect);
+    jest.spyOn(button, 'getBoundingClientRect').mockReturnValue({
+      left: 80,
+      right: 110,
+      top: 360,
+      bottom: 390,
+    } as DOMRect);
+
+    const positionBefore = controller.getGraph().getPosition().clone();
+    panFocusedControlIntoView(group, button);
+
+    expect(controller.getGraph().getPosition().x).toBe(positionBefore.x + 40);
+    expect(controller.getGraph().getPosition().y).toBe(positionBefore.y - 60);
+
+    visualization.remove();
   });
 });

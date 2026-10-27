@@ -94,6 +94,15 @@ const mockRun = buildMockRunKF({
     pipeline_version_id: mockVersion.pipeline_version_id,
   },
 });
+const mockRunningGroupedRun = buildMockRunKF({
+  ...mockRun,
+  finished_at: undefined,
+  state: RuntimeStateKF.RUNNING,
+  pipeline_version_reference: {
+    pipeline_id: mockPipeline.pipeline_id,
+    pipeline_version_id: mockGroupedVersion.pipeline_version_id,
+  },
+});
 const mockRecurringRun = buildMockRecurringRunKF({
   display_name: 'test-pipeline',
   recurring_run_id: 'test-pipeline',
@@ -104,7 +113,7 @@ const mockRecurringRun = buildMockRecurringRunKF({
   experiment_id: 'test-experiment',
 });
 
-const initIntercepts = (pipelineVersion = mockVersion) => {
+const initIntercepts = (pipelineVersion = mockVersion, run = mockRun) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -179,8 +188,8 @@ const initIntercepts = (pipelineVersion = mockVersion) => {
     {
       path: { namespace: projectId, serviceName: 'dspa', runId: mockRun.run_id },
     },
-    mockRun,
-  );
+    run,
+  ).as('getPipelineRun');
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
     {
@@ -474,6 +483,9 @@ describe('Pipeline topology', () => {
       pipelineDetails.findGroupButton('for-loop-2').focus();
       cy.press(Cypress.Keyboard.Keys.ENTER);
       pipelineDetails.findGroupDetails('for-loop-2').focus();
+      pipelineDetails
+        .findGroupDetails('for-loop-2')
+        .should('have.attr', 'aria-label', 'View group details for for-loop-2');
       cy.press(Cypress.Keyboard.Keys.ENTER);
       pipelineDetails.findDrawerTaskTitle().should('be.focused');
       pipelineDetails.findDrawerCloseButton().click();
@@ -520,29 +532,6 @@ describe('Pipeline topology', () => {
         .should('have.attr', 'aria-expanded', 'false')
         .and('be.focused');
       pipelineDetails.findTaskButton('simple-task').should('not.exist');
-    });
-
-    it('keeps focus on the group toggle when hiding a selected child', () => {
-      initIntercepts(mockGroupedVersion);
-      pipelineDetails.visit(
-        projectId,
-        mockPipeline.pipeline_id,
-        mockGroupedVersion.pipeline_version_id,
-      );
-
-      pipelineDetails.findGroupToggle('for-loop-2').focus();
-      cy.press(Cypress.Keyboard.Keys.ENTER);
-      pipelineDetails.findTaskButton('simple-task').focus();
-      cy.press(Cypress.Keyboard.Keys.ENTER);
-      pipelineDetails.findDrawerTaskTitle().should('be.focused');
-
-      pipelineDetails.findGroupToggle('for-loop-2').focus();
-      cy.clock();
-      cy.press(Cypress.Keyboard.Keys.ENTER);
-      pipelineDetails.findTaskButton('simple-task').should('not.exist');
-      pipelineDetails.findGroupToggle('for-loop-2').should('be.focused');
-      cy.tick(600);
-      pipelineDetails.findGroupToggle('for-loop-2').should('be.focused');
     });
 
     it('keeps the expanded group toggle aligned with its SVG action for a long label', () => {
@@ -597,6 +586,34 @@ describe('Pipeline topology', () => {
   });
 
   describe('Pipeline run details', () => {
+    it('keeps focus on the group toggle after collapse and a run poll', () => {
+      initIntercepts(mockGroupedVersion, mockRunningGroupedRun);
+      cy.on('window:before:load', (win) => {
+        Object.assign(win, { FAST_POLL_INTERVAL: 3000 });
+      });
+      pipelineRunDetails.visit(projectId, mockRunningGroupedRun.run_id);
+      cy.wait('@getPipelineRun');
+
+      pipelineRunDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      // Pointer selection does not schedule the keyboard focus effect before the group collapses.
+      pipelineRunDetails.findTaskNode('simple-task').click();
+      pipelineRunDetails.findDrawerTaskTitle().should('exist');
+      pipelineRunDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineRunDetails.findTaskButton('simple-task').should('not.exist');
+
+      // Collapsing can re-render the surface; neither that nor the next poll should reclaim focus.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(600);
+      pipelineRunDetails.findGroupToggle('for-loop-2').should('be.focused');
+      cy.wait('@getPipelineRun');
+      // Wait past the focus timeout after the next run update, too.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(600);
+      pipelineRunDetails.findGroupToggle('for-loop-2').should('be.focused');
+    });
+
     it('tabs directly between accessible task buttons without stopping on SVG labels', () => {
       initIntercepts();
       pipelineRunDetails.visit(projectId, mockRun.run_id);

@@ -33,6 +33,8 @@ import { activateNodeButtonOnKeyDown } from '#~/concepts/topology/PipelineNodeBu
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
 
 const MAX_TIP_ITEMS = 6;
+// Approximate PF pill-label action bounds until the measured SVG rectangles are available:
+// 42.5-unit inset from the default right edge, 13-unit rise, and a 28.25 × 26-unit toggle.
 const EXPANDED_TOGGLE_OFFSET_FROM_CENTER = NODE_WIDTH / 2 - 42.5;
 
 type ControlBounds = { x: number; y: number; width: number; height: number };
@@ -240,7 +242,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
               selectNode(element.getId());
             }}
             onKeyDown={activateNodeButtonOnKeyDown}
-            aria-label={`View details for ${element.getLabel()} task group`}
+            aria-label={`View group details for ${element.getLabel()}`}
             data-pipeline-node-id={element.getId()}
             data-testid={`pipeline-group-details-${element.getLabel()}`}
           >
@@ -312,6 +314,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         }, ${groupStatusLabel}`
       : `${groupLabel} task group, ${childCount} ${childCount === 1 ? 'task' : 'tasks'}`;
     const bounds = element.getBounds();
+    // The collapsed popover stops 12 units short of the pill edge to leave the toggle hit target.
     const expandedCenterX = bounds.x + bounds.width / 2;
     const fallbackExpandedToggle: ControlBounds = {
       x: expandedCenterX + EXPANDED_TOGGLE_OFFSET_FROM_CENTER,
