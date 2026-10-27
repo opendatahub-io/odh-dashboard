@@ -359,7 +359,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
           return;
         }
         const displayName = sanitizeFilename(pipelineRun?.display_name || 'pipeline');
-        const safePatternName = sanitizeFilename(patternName);
+        // formatPatternName joins the label with a non-breaking space; filenames omit it (PatternA).
+        const patternLabel = formatPatternName(patternName).replace(/\u00a0/g, '');
+        const safePatternName = sanitizeFilename(patternLabel);
         const filename = `${displayName}_${safePatternName}_${notebookType}_notebook.ipynb`;
         downloadBlob(notebook, filename);
         fireAutoragNotebookDownloaded(notebookType);

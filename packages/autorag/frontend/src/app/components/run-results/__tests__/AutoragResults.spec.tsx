@@ -535,7 +535,7 @@ describe('AutoragResults', () => {
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(
           mockBlob,
-          'My AutoRAG Run_Pattern1_indexing_notebook.ipynb',
+          'My AutoRAG Run_PatternA_indexing_notebook.ipynb',
         );
       });
 
@@ -571,7 +571,7 @@ describe('AutoragResults', () => {
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(
           mockBlob,
-          'My AutoRAG Run_Pattern1_inference_notebook.ipynb',
+          'My AutoRAG Run_PatternA_inference_notebook.ipynb',
         );
       });
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
