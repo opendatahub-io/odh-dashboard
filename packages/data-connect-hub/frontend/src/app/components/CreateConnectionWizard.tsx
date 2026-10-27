@@ -45,6 +45,7 @@ import PasswordInput from '~/app/components/PasswordInput';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useNotification } from '~/app/hooks/useNotification';
+import { connectionDetailsRoute, projectHomeRoute } from '~/app/routes';
 import { SENSITIVE_CREDENTIAL_MASK, isSensitiveCredentialField } from '~/app/utilities/credentials';
 import type {
   ConnectionType,
@@ -1084,26 +1085,27 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       const createdConnection = await onCreate(formData, selectedNamespace);
       const connectionName = createdConnection?.resource.name ?? formData.name;
       const projectName = selectedNamespaceDisplayName ?? selectedNamespace;
+      const projectHomePath = projectHomeRoute(selectedNamespace);
       notification.success(
         'Connection created',
         <>
           "{connectionName}" was created in{' '}
-          <Button
-            component={(props) => (
-              <Link {...props} to={`/projects/${encodeURIComponent(selectedNamespace)}`} />
-            )}
-            variant="link"
-            isInline
-          >
-            {projectName}
-          </Button>
+          {projectHomePath ? (
+            <Button
+              component={(props) => <Link {...props} to={projectHomePath} />}
+              variant="link"
+              isInline
+            >
+              {projectName}
+            </Button>
+          ) : (
+            projectName
+          )}
         </>,
         createdConnection
           ? {
               linkLabel: 'View connection details',
-              linkUrl: `/ai-hub/connections/connections/${encodeURIComponent(
-                createdConnection.metadata.id,
-              )}?project=${encodeURIComponent(selectedNamespace)}`,
+              linkUrl: connectionDetailsRoute(createdConnection.metadata.id, selectedNamespace),
             }
           : undefined,
       );

@@ -315,7 +315,7 @@ describe('CreateConnectionWizard', () => {
     ];
     expect(title).toBe('Connection created');
     const { container } = render(<MemoryRouter>{message as React.ReactNode}</MemoryRouter>);
-    expect(container.textContent).toBe('existing-connection was created in Test Project');
+    expect(container.textContent).toBe('"existing-connection" was created in Test Project');
     expect(screen.getByRole('link', { name: 'Test Project' })).toHaveProperty(
       'href',
       'http://localhost/projects/test-project',

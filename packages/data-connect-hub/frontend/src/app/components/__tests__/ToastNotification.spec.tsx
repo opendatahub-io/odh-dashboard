@@ -21,7 +21,9 @@ describe('ToastNotification', () => {
       warning: jest.fn(),
       remove: jest.fn(),
     });
-    const Location = () => <div data-testid="toast-test-location">{useLocation().pathname}</div>;
+    const Location = () => (
+      <div data-testid="toast-test-location">{`${useLocation().pathname}${useLocation().search}`}</div>
+    );
 
     render(
       <MemoryRouter>
@@ -54,7 +56,7 @@ describe('ToastNotification', () => {
     );
     await user.click(screen.getByRole('button', { name: 'View connection details' }));
     expect(screen.getByTestId('toast-test-location').textContent).toBe(
-      '/ai-hub/connections/connections/connection-id',
+      '/ai-hub/connections/connections/connection-id?project=test-project',
     );
   });
 });
