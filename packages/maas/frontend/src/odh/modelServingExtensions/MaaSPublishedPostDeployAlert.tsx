@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, AlertActionCloseButton, AlertActionLink } from '@patternfly/react-core';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
 import {
   cancelScheduledPostDeployAlertDismiss,
   dismissPostDeployAlert,
@@ -9,7 +10,6 @@ import {
   useHasPostDeployAlert,
   usePostDeployAlert,
 } from '~/app/utilities/postDeployAlertStore';
-import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
 
 export const MAAS_PUBLISHED_INTERNAL_ALERT_ID = 'maas-model-published-internal';
 export const MAAS_PUBLISHED_EXTERNAL_ALERT_ID = 'maas-model-published-external';

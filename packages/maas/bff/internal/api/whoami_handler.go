@@ -36,8 +36,52 @@ func GetWhoAmIHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpro
 		return
 	}
 
-	response := WhoAmIEnvelope{Data: whoAmI}
+	isAdmin, err := getMaaSAdminStatusFromWhoAmI(app, r, whoAmI)
+	if err != nil {
+		app.logger.Warn("Failed to determine MaaS admin status", "error", err)
+	}
+
+	response := WhoAmIEnvelope{Data: &models.MaaSWhoAmI{
+		Sub: whoAmI.Sub, Email: whoAmI.Email, Name: whoAmI.Name, IsAdmin: isAdmin,
+	}}
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func getMaaSAdminStatusFromWhoAmI(
+	app *App,
+	r *http.Request,
+	whoAmI *models.MaaSWhoAmIUpstream,
+) (bool, error) {
+	isAdmin := false
+	if whoAmI.Orgs != nil && len(*whoAmI.Orgs) > 0 {
+		for _, org := range *whoAmI.Orgs {
+			if hasRole(org.Roles, "admins") {
+				isAdmin = true
+				break
+			}
+		}
+	} else {
+		subscriptions, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(r.Context())
+		if err != nil {
+			return false, err
+		}
+		for _, subscription := range subscriptions {
+			if hasRole(subscription.Roles, "admin") {
+				isAdmin = true
+				break
+			}
+		}
+	}
+	return isAdmin, nil
+}
+
+func hasRole(roles []string, expected string) bool {
+	for _, role := range roles {
+		if role == expected {
+			return true
+		}
+	}
+	return false
 }
