@@ -327,25 +327,32 @@ func TestClient_UploadObject(t *testing.T) {
 }
 
 func TestClient_UploadObjectClassifiesChecksumRejection(t *testing.T) {
+	const checksumTrailerRejectionMessage = "x-amz-content-sha256 must be UNSIGNED-PAYLOAD, STREAMING-AWS4-HMAC-SHA256-PAYLOAD or a valid sha256 value"
+
 	for _, tc := range []struct {
 		name              string
 		statusCode        int
 		errorCode         string
+		errorMessage      string
 		disableTrailers   bool
 		wantChecksumError bool
+		wantOriginalError bool
 	}{
-		{name: "optional checksum trailer rejected", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", wantChecksumError: true},
-		{name: "trailers disabled", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", disableTrailers: true},
+		{name: "optional checksum trailer rejected", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", errorMessage: checksumTrailerRejectionMessage, wantChecksumError: true},
+		{name: "ambiguous InvalidArgument", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", errorMessage: "The request is invalid", wantOriginalError: true},
+		{name: "unrelated streaming error", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", errorMessage: "x-amz-content-sha256 is invalid"},
+		{name: "trailers disabled", statusCode: http.StatusBadRequest, errorCode: "InvalidArgument", errorMessage: checksumTrailerRejectionMessage, disableTrailers: true},
 		{name: "other HTTP status", statusCode: http.StatusForbidden, errorCode: "InvalidArgument"},
 		{name: "other S3 error", statusCode: http.StatusBadRequest, errorCode: "AccessDenied"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			responseErr := &smithyhttp.ResponseError{
+				Response: &smithyhttp.Response{Response: &http.Response{StatusCode: tc.statusCode}},
+				Err:      &s3CodedError{code: tc.errorCode, message: tc.errorMessage},
+			}
 			transferClient := &mockTransferClient{
 				uploadObjectFn: func(context.Context, *transfermanager.UploadObjectInput, ...func(*transfermanager.Options)) (*transfermanager.UploadObjectOutput, error) {
-					return nil, &smithyhttp.ResponseError{
-						Response: &smithyhttp.Response{Response: &http.Response{StatusCode: tc.statusCode}},
-						Err:      &s3CodedError{code: tc.errorCode},
-					}
+					return nil, responseErr
 				},
 			}
 			c := &client{Provider: &mockProvider{transferClient: transferClient}}
@@ -357,6 +364,12 @@ func TestClient_UploadObjectClassifiesChecksumRejection(t *testing.T) {
 			})
 			if got := errors.Is(err, ErrUploadChecksumRejected); got != tc.wantChecksumError {
 				t.Errorf("errors.Is(err, ErrUploadChecksumRejected) = %t, want %t (err: %v)", got, tc.wantChecksumError, err)
+			}
+			if tc.wantOriginalError {
+				var gotResponseErr *smithyhttp.ResponseError
+				if !errors.As(err, &gotResponseErr) || gotResponseErr != responseErr {
+					t.Errorf("ambiguous InvalidArgument did not preserve its response error: %v", err)
+				}
 			}
 		})
 	}
@@ -943,10 +956,12 @@ func TestBuildHTTPClient_TransportTimeouts(t *testing.T) {
 
 // --- test helpers ---
 
-// s3CodedError implements the ErrorCode() interface used by translateS3Error.
+// s3CodedError implements the error interfaces used by S3 response classification and translation.
 type s3CodedError struct {
-	code string
+	code    string
+	message string
 }
 
-func (e *s3CodedError) Error() string     { return "s3 error: " + e.code }
-func (e *s3CodedError) ErrorCode() string { return e.code }
+func (e *s3CodedError) Error() string        { return "s3 error: " + e.code }
+func (e *s3CodedError) ErrorCode() string    { return e.code }
+func (e *s3CodedError) ErrorMessage() string { return e.message }

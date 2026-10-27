@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -221,7 +222,7 @@ func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input
 		if isS3ConditionalCreateConflict(err) {
 			return ErrObjectAlreadyExists
 		}
-		if !opts.DisableUploadChecksumTrailers && isS3InvalidArgumentBadRequest(err) {
+		if !opts.DisableUploadChecksumTrailers && isS3StreamingChecksumTrailerRejection(err) {
 			return fmt.Errorf("%w: %w", ErrUploadChecksumRejected, err)
 		}
 		if translated := translateS3Error(err); translated != nil {
@@ -451,11 +452,20 @@ func isS3ConditionalCreateConflict(err error) bool {
 	return false
 }
 
-func isS3InvalidArgumentBadRequest(err error) bool {
-	var codedErr interface{ ErrorCode() string }
+func isS3StreamingChecksumTrailerRejection(err error) bool {
+	var codedErr interface {
+		ErrorCode() string
+		ErrorMessage() string
+	}
 	var responseErr interface{ HTTPStatusCode() int }
-	return errors.As(err, &codedErr) && codedErr.ErrorCode() == "InvalidArgument" &&
-		errors.As(err, &responseErr) && responseErr.HTTPStatusCode() == http.StatusBadRequest
+	if !errors.As(err, &codedErr) || codedErr.ErrorCode() != "InvalidArgument" ||
+		!errors.As(err, &responseErr) || responseErr.HTTPStatusCode() != http.StatusBadRequest {
+		return false
+	}
+
+	message := strings.ToLower(codedErr.ErrorMessage())
+	return strings.Contains(message, "x-amz-content-sha256") &&
+		strings.Contains(message, "streaming-aws4-hmac-sha256-payload")
 }
 
 // Compile-time interface checks.
