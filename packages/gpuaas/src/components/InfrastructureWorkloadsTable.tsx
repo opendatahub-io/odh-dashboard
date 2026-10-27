@@ -208,7 +208,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [searchValue, setSearchValue] = React.useState('');
   const searchTrackingTimeoutRef = React.useRef<number>();
-  const [filterType, setFilterType] = React.useState<InfrastructureWorkloadsFilterType>('status');
+  const [filterType, setFilterType] = React.useState<InfrastructureWorkloadsFilterType>('type');
   const [filterValues, setFilterValues] = React.useState<LocalFilterValues>({
     type: [],
     hardwareProfile: [],
