@@ -196,6 +196,11 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
           ? ({
               category: ['mcp'],
               hint: server.description || displayName,
+              // Keep independently installed catalog servers coexistable when a
+              // cluster already federates the same tool names through another
+              // registration. The Gateway CRD uses this prefix only for the
+              // federated capability names; the upstream MCP server is unchanged.
+              prefix: `${k8sName.replace(/-/g, '_')}_`,
               path: crData.spec.config.path || '/mcp',
               tags: server.tags,
             } satisfies McpGatewayRegistration)

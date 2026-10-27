@@ -137,6 +137,7 @@ export type McpDeploymentCreateRequest = {
 export type McpGatewayRegistration = {
   category?: string[];
   hint?: string;
+  prefix?: string;
   path?: string;
   tags?: string[];
 };

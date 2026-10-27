@@ -18,6 +18,9 @@ var (
 	mcpHTTPRouteGVR = schema.GroupVersionResource{
 		Group: "gateway.networking.k8s.io", Version: "v1", Resource: "httproutes",
 	}
+	mcpReferenceGrantGVR = schema.GroupVersionResource{
+		Group: "gateway.networking.k8s.io", Version: "v1beta1", Resource: "referencegrants",
+	}
 	mcpServerRegistrationGVR = schema.GroupVersionResource{
 		Group: "mcp.kuadrant.io", Version: "v1alpha1", Resource: "mcpserverregistrations",
 	}
@@ -61,7 +64,7 @@ func ensureMcpGatewayRegistration(
 	routeName := mcpGatewayRouteName(serverName)
 	hostname := mcpGatewayHostname(serverName, target.hostname)
 	labels := mcpPrerequisiteLabels(serverName)
-	created := make([]createdMcpPrerequisite, 0, 2)
+	created := make([]createdMcpPrerequisite, 0, 3)
 
 	routes := dyn.Resource(mcpHTTPRouteGVR).Namespace(target.namespace)
 	route, err := routes.Get(ctx, routeName, metav1.GetOptions{})
@@ -76,6 +79,25 @@ func ensureMcpGatewayRegistration(
 		created = append(created, createdMcpPrerequisite{mcpHTTPRouteGVR, target.namespace, routeName})
 	} else if !mcpGatewayHTTPRouteMatches(route, target, hostname, namespace, serverName, server.Spec.Config.Port) {
 		return created, fmt.Errorf("MCP gateway HTTPRoute %q already exists with a different target", routeName)
+	}
+
+	grants := dyn.Resource(mcpReferenceGrantGVR).Namespace(namespace)
+	grantName := mcpGatewayReferenceGrantName(serverName)
+	grant, err := grants.Get(ctx, grantName, metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		cleanupMcpPrerequisites(ctx, dyn, created)
+		return created, fmt.Errorf("failed to inspect MCP gateway ReferenceGrant %q: %w", grantName, err)
+	}
+	if apierrors.IsNotFound(err) {
+		grant = buildMcpGatewayReferenceGrant(grantName, namespace, target.namespace, labels)
+		if _, err := grants.Create(ctx, grant, metav1.CreateOptions{}); err != nil {
+			cleanupMcpPrerequisites(ctx, dyn, created)
+			return created, fmt.Errorf("failed to create MCP gateway ReferenceGrant %q: %w", grantName, err)
+		}
+		created = append(created, createdMcpPrerequisite{mcpReferenceGrantGVR, namespace, grantName})
+	} else if !mcpGatewayReferenceGrantMatches(grant, target.namespace) {
+		cleanupMcpPrerequisites(ctx, dyn, created)
+		return created, fmt.Errorf("MCP gateway ReferenceGrant %q already exists with a different policy", grantName)
 	}
 
 	registrations := dyn.Resource(mcpServerRegistrationGVR).Namespace(target.namespace)
@@ -199,6 +221,60 @@ func buildMcpGatewayHTTPRoute(
 	}}
 }
 
+func buildMcpGatewayReferenceGrant(
+	name string,
+	backendNamespace string,
+	gatewayNamespace string,
+	labels map[string]string,
+) *unstructured.Unstructured {
+	return &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "gateway.networking.k8s.io/v1beta1",
+		"kind":       "ReferenceGrant",
+		"metadata": map[string]interface{}{
+			"name":      name,
+			"namespace": backendNamespace,
+			"labels":    stringMapToInterface(labels),
+		},
+		"spec": map[string]interface{}{
+			"from": []interface{}{map[string]interface{}{
+				"group":     "gateway.networking.k8s.io",
+				"kind":      "HTTPRoute",
+				"namespace": gatewayNamespace,
+			}},
+			"to": []interface{}{map[string]interface{}{
+				"group": "",
+				"kind":  "Service",
+			}},
+		},
+	}}
+}
+
+func mcpGatewayReferenceGrantMatches(grant *unstructured.Unstructured, gatewayNamespace string) bool {
+	from, _, _ := unstructured.NestedSlice(grant.Object, "spec", "from")
+	to, _, _ := unstructured.NestedSlice(grant.Object, "spec", "to")
+	if len(from) != 1 || len(to) != 1 {
+		return false
+	}
+	fromObject, ok := from[0].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	toObject, ok := to[0].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	fromGroup, _, _ := unstructured.NestedString(fromObject, "group")
+	fromKind, _, _ := unstructured.NestedString(fromObject, "kind")
+	fromNamespace, _, _ := unstructured.NestedString(fromObject, "namespace")
+	toGroup, _, _ := unstructured.NestedString(toObject, "group")
+	toKind, _, _ := unstructured.NestedString(toObject, "kind")
+	return fromGroup == "gateway.networking.k8s.io" &&
+		fromKind == "HTTPRoute" &&
+		fromNamespace == gatewayNamespace &&
+		toGroup == "" &&
+		toKind == "Service"
+}
+
 func buildMcpServerRegistration(name, routeName string, metadata *models.McpGatewayRegistration, labels map[string]string) *unstructured.Unstructured {
 	category := metadata.Category
 	if len(category) == 0 {
@@ -218,6 +294,22 @@ func buildMcpServerRegistration(name, routeName string, metadata *models.McpGate
 	for i, value := range metadata.Tags {
 		tagValues[i] = value
 	}
+	spec := map[string]interface{}{
+		"category": categoryValues,
+		"hint":     hint,
+		"path":     path,
+		"state":    "Enabled",
+		"tags":     tagValues,
+		"targetRef": map[string]interface{}{
+			"group": "gateway.networking.k8s.io",
+			"kind":  "HTTPRoute",
+			"name":  routeName,
+		},
+		"userSpecificList": "Disabled",
+	}
+	if metadata.Prefix != "" {
+		spec["prefix"] = metadata.Prefix
+	}
 
 	return &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": mcpGatewayRegistrationAPIVersion,
@@ -226,19 +318,7 @@ func buildMcpServerRegistration(name, routeName string, metadata *models.McpGate
 			"name":   name,
 			"labels": stringMapToInterface(labels),
 		},
-		"spec": map[string]interface{}{
-			"category": categoryValues,
-			"hint":     hint,
-			"path":     path,
-			"state":    "Enabled",
-			"tags":     tagValues,
-			"targetRef": map[string]interface{}{
-				"group": "gateway.networking.k8s.io",
-				"kind":  "HTTPRoute",
-				"name":  routeName,
-			},
-			"userSpecificList": "Disabled",
-		},
+		"spec": spec,
 	}}
 }
 
@@ -320,6 +400,14 @@ func mcpGatewayRouteName(serverName string) string {
 	return name
 }
 
+func mcpGatewayReferenceGrantName(serverName string) string {
+	name := "mcp-" + serverName + "-gateway"
+	if len(name) > 63 {
+		name = strings.TrimRight(name[:63], "-")
+	}
+	return name
+}
+
 func mcpGatewayHostname(serverName, listenerHostname string) string {
 	if strings.HasPrefix(listenerHostname, "*.") {
 		return serverName + listenerHostname[1:]
@@ -332,7 +420,7 @@ func mcpGatewayHostname(serverName, listenerHostname string) string {
 
 func cleanupOwnedMcpGatewayRegistration(ctx context.Context, dyn dynamic.Interface, serverName string) {
 	selector := fmt.Sprintf("%s=%s,%s=%s", mcpPrerequisiteManagedByLabel, mcpPrerequisiteManager, mcpPrerequisiteServerLabel, serverName)
-	for _, resource := range []schema.GroupVersionResource{mcpServerRegistrationGVR, mcpHTTPRouteGVR} {
+	for _, resource := range []schema.GroupVersionResource{mcpServerRegistrationGVR, mcpHTTPRouteGVR, mcpReferenceGrantGVR} {
 		list, err := dyn.Resource(resource).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{LabelSelector: selector})
 		if err != nil {
 			continue

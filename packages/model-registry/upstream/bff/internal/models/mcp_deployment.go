@@ -63,6 +63,7 @@ type McpDeploymentCreateRequest struct {
 type McpGatewayRegistration struct {
 	Category []string `json:"category,omitempty"`
 	Hint     string   `json:"hint,omitempty"`
+	Prefix   string   `json:"prefix,omitempty"`
 	Path     string   `json:"path,omitempty"`
 	Tags     []string `json:"tags,omitempty"`
 }

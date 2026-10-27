@@ -39,11 +39,25 @@ func TestBuildMcpGatewayResources(t *testing.T) {
 	registration := buildMcpServerRegistration("weather", "weather-route", &models.McpGatewayRegistration{
 		Category: []string{"mcp"},
 		Hint:     "Weather tools",
+		Prefix:   "weather_",
 		Path:     "/mcp",
 		Tags:     []string{"evaluation"},
 	}, map[string]string{mcpPrerequisiteManagedByLabel: mcpPrerequisiteManager})
 	if !mcpServerRegistrationMatches(registration, "weather-route") {
 		t.Fatal("expected generated registration to target its HTTPRoute")
+	}
+	prefix, found, err := unstructured.NestedString(registration.Object, "spec", "prefix")
+	if err != nil || !found || prefix != "weather_" {
+		t.Fatalf("expected generated registration prefix, got %q err=%v found=%v", prefix, err, found)
+	}
+	grant := buildMcpGatewayReferenceGrant(
+		mcpGatewayReferenceGrantName("weather"),
+		"team-a",
+		"mcp-gateway-system",
+		nil,
+	)
+	if !mcpGatewayReferenceGrantMatches(grant, "mcp-gateway-system") {
+		t.Fatal("expected generated ReferenceGrant to allow the Gateway namespace")
 	}
 }
 

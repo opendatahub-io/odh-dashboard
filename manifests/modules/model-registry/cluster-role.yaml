@@ -54,6 +54,17 @@ rules:
       - list
       - create
       - delete
+  # Cross-namespace MCP routes require a ReferenceGrant in the backend
+  # namespace. The BFF creates and cleans up only its labeled grants.
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - referencegrants
+    verbs:
+      - get
+      - list
+      - create
+      - delete
   - apiGroups:
       - mcp.kuadrant.io
     resources:
