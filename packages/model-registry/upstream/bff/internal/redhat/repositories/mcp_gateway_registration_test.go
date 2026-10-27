@@ -1,9 +1,12 @@
 package repositories
 
 import (
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/kubeflow/hub/ui/bff/internal/models"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestMcpGatewayHostnameUsesListenerWildcard(t *testing.T) {
@@ -41,5 +44,19 @@ func TestBuildMcpGatewayResources(t *testing.T) {
 	}, map[string]string{mcpPrerequisiteManagedByLabel: mcpPrerequisiteManager})
 	if !mcpServerRegistrationMatches(registration, "weather-route") {
 		t.Fatal("expected generated registration to target its HTTPRoute")
+	}
+}
+
+func TestBuildMcpServerRegistrationBoundsHint(t *testing.T) {
+	registration := buildMcpServerRegistration("weather", "weather-route", &models.McpGatewayRegistration{
+		Hint: strings.Repeat("界", 200),
+	}, nil)
+
+	hint, found, err := unstructured.NestedString(registration.Object, "spec", "hint")
+	if err != nil || !found {
+		t.Fatalf("expected registration hint, got err=%v found=%v", err, found)
+	}
+	if len(hint) > mcpGatewayHintMaxBytes || !utf8.ValidString(hint) {
+		t.Fatalf("expected valid hint no longer than %d bytes, got %d bytes", mcpGatewayHintMaxBytes, len(hint))
 	}
 }

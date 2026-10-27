@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/kubeflow/hub/ui/bff/internal/models"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,6 +27,7 @@ const (
 	mcpGatewayRegistrationAPIVersion = "mcp.kuadrant.io/v1alpha1"
 	mcpGatewayRegistrationKind       = "MCPServerRegistration"
 	mcpGatewayRegistrationRouteKind  = "HTTPRoute"
+	mcpGatewayHintMaxBytes           = 256
 )
 
 type mcpGatewayTarget struct {
@@ -206,7 +208,7 @@ func buildMcpServerRegistration(name, routeName string, metadata *models.McpGate
 	if path == "" {
 		path = "/mcp"
 	}
-	hint := metadata.Hint
+	hint := truncateMcpGatewayHint(metadata.Hint)
 
 	categoryValues := make([]interface{}, len(category))
 	for i, value := range category {
@@ -238,6 +240,21 @@ func buildMcpServerRegistration(name, routeName string, metadata *models.McpGate
 			"userSpecificList": "Disabled",
 		},
 	}}
+}
+
+// truncateMcpGatewayHint keeps catalog-provided descriptions within the
+// MCPServerRegistration CRD's 256-byte validation limit without splitting a
+// UTF-8 code point.
+func truncateMcpGatewayHint(value string) string {
+	if len(value) <= mcpGatewayHintMaxBytes {
+		return value
+	}
+
+	value = value[:mcpGatewayHintMaxBytes]
+	for !utf8.ValidString(value) {
+		value = value[:len(value)-1]
+	}
+	return value
 }
 
 func mcpGatewayHTTPRouteMatches(
