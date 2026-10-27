@@ -64,15 +64,19 @@ optional checksums, though the SDK still calculates any checksum required by the
 S3 API operation. A bucket configuration such as
 [Amazon S3 Object Lock retention](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html)
 can require a checksum even when the API operation does not. Amazon S3 connections
-using standard AWS endpoints need no Secret change. For other checksum-required
-endpoints, set a supported algorithm (for example, `CRC32`) on the connection.
+using standard AWS endpoints need no Secret change. For non-Amazon buckets that
+require checksums, set an algorithm supported by the endpoint (for example,
+`CRC32`).
+
+**Upgrade action:** Existing connections that relied on the SDK-generated
+checksum need this Secret update when adopting this release; otherwise uploads
+can fail with S3 400 `InvalidRequest`.
+
 With an algorithm configured, non-seekable uploads send a streaming checksum
 trailer. Keep the key absent or empty for S3-compatible endpoints that reject
 `STREAMING-UNSIGNED-PAYLOAD-TRAILER`, including
 [affected NetApp ONTAP versions](https://kb.netapp.com/on-prem/ontap/da/S3/S3-Issues/CONTAP-576720).
-When upgrading an existing non-Amazon connection to a checksum-required bucket,
-add this key to its Secret before uploading new files. Connections to affected
-NetApp endpoints should leave the key absent or empty.
+Connections to affected NetApp endpoints should leave the key absent or empty.
 The setting applies only to uploads through this S3 connection; selecting or
 downloading existing objects is unaffected.
 
