@@ -813,6 +813,36 @@ describe('CreateConnectionWizard', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('tracks cancellation from the step the user abandons', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Close wizard' }));
+    await user.click(screen.getByTestId('discard-connection-changes-button'));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Create Canceled',
+      properties: {
+        cancelMethod: 'close_x',
+        abandonStep: 'configuration',
+        project: 'test-project',
+        connectionTypeProvider: 'postgresql',
+      },
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('should apply the latest initial data on open without overwriting session edits', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();

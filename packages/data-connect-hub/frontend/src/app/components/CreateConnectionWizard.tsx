@@ -31,9 +31,9 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Spinner,
   Stack,
   StackItem,
-  Spinner,
   TextInput,
   Wizard,
   WizardFooterWrapper,
@@ -1300,6 +1300,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
         <Wizard
           key={startIndex}
           startIndex={startIndex}
+          onStepChange={(_event, currentStep) => setActiveStepIndex(currentStep.index)}
           onClose={() => requestClose('close_x')}
           header={
             <WizardHeader

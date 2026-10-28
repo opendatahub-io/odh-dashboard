@@ -429,8 +429,8 @@ describe('ConnectionsTab', () => {
     const postgresqlFilter = screen.getByRole('menuitem', { name: 'PostgreSQL' });
     fireEvent.click(within(postgresqlFilter).getByRole('checkbox'));
 
-    expect(screen.queryByText('warehouse')).toBeNull();
-    expect(screen.getByText('object-store')).toBeTruthy();
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.queryByText('object-store')).toBeNull();
     expect(mockTrackEvent).toHaveBeenCalledWith({
       eventName: 'Connections List Filter Applied',
       properties: { filterType: 'type', project: 'test-project' },
@@ -439,6 +439,7 @@ describe('ConnectionsTab', () => {
     fireEvent.click(within(postgresqlFilter).getByRole('checkbox'));
 
     expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.getByText('object-store')).toBeTruthy();
   });
 
   it('refreshes the list when verification fails', async () => {
