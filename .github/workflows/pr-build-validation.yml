@@ -687,6 +687,20 @@ jobs:
           du -sh /tmp/odh-dist
           echo "::endgroup::"
 
+          # Guard (RHOAIENG-100835): LightningCSS logical-properties lowering must
+          # never re-enter built CSS — the :lang() RTL fallback selectors it emits
+          # carry specificity that beats PatternFly's contextual overrides.
+          echo "::group::Guarding CSS logical-properties lowering"
+          if grep -R -l -F ':lang(ae)' /tmp/odh-dist --include='*.css' 2>/dev/null; then
+            echo "❌ FAIL: Emitted CSS contains LightningCSS :lang() RTL fallback selectors"
+            echo "Fix: build with lightningCssMinimizerOptions from @odh-dashboard/app-config/rspack"
+            FAILURES=$((FAILURES + 1))
+          else
+            CSS_COUNT=$(find /tmp/odh-dist -name '*.css' | wc -l | tr -d ' ')
+            echo "✅ PASS: no logical-properties lowering in ${CSS_COUNT} CSS file(s)"
+          fi
+          echo "::endgroup::"
+
           if [ $FAILURES -gt 0 ]; then
             echo ""
             echo "❌ TOTAL FAILURES: $FAILURES"

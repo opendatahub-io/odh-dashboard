@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
+const { lightningCssMinimizerOptions } = require('@odh-dashboard/app-config/rspack');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 const getRsdoctorPlugin = () => {
@@ -47,10 +48,7 @@ module.exports = merge(
       minimizer: [
         new rspack.SwcJsMinimizerRspackPlugin(),
         new rspack.LightningCssMinimizerRspackPlugin({
-          minimizerOptions: {
-            // Keep logical properties from being lowered into :lang() fallbacks.
-            exclude: { logicalProperties: true },
-          },
+          minimizerOptions: lightningCssMinimizerOptions,
         }),
       ],
     },
