@@ -126,16 +126,17 @@ describe('proxyCall', () => {
     expect(capturedOptions?.checkServerIdentity).toBeUndefined();
   });
 
-  it('should keep the IPv6-aware check on the origin request even when a proxy agent is used', async () => {
+  it('should not install the IPv6-aware check when a proxy agent is used', async () => {
     process.env.E2E_USE_PROXY_FROM_ENV = 'true';
     process.env.HTTPS_PROXY = 'http://proxy.example.invalid:3128';
 
     await proxyCall(fastify, request, { method: 'GET', url: 'https://[fc00:30::1]/api/config' });
 
-    // The agent establishes the TLS session with the origin (CONNECT tunnel), so the identity
-    // check applies to the destination host, not the proxy.
+    // Through the (E2E-only) proxy agent the tunneled TLS connection may not surface the origin host
+    // to the identity callback, so we leave Node's default check in place to avoid validating against
+    // the proxy host.
     expect(capturedOptions?.agent).toBeInstanceOf(HttpsProxyAgent);
-    expect(capturedOptions?.checkServerIdentity).toBe(ipv6AwareCheckServerIdentity);
+    expect(capturedOptions?.checkServerIdentity).toBeUndefined();
   });
 
   it('should not set checkServerIdentity for http targets', async () => {
