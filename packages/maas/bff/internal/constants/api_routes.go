@@ -25,11 +25,12 @@ const (
 	SubscriptionByIDPassthroughPath = ApiPathPrefix + "/subscriptions/:id"
 
 	// Subscription routes
-	SubscriptionListPath   = ApiPathPrefix + "/all-subscriptions"
-	SubscriptionInfoPath   = ApiPathPrefix + "/subscription-info/:name"
-	SubscriptionCreatePath = ApiPathPrefix + "/new-subscription"
-	SubscriptionUpdatePath = ApiPathPrefix + "/update-subscription/:name"
-	SubscriptionDeletePath = ApiPathPrefix + "/subscription/:name"
+	SubscriptionListPath      = ApiPathPrefix + "/all-subscriptions"
+	AdminSubscriptionListPath = ApiPathPrefix + "/admin-subscriptions"
+	SubscriptionInfoPath      = ApiPathPrefix + "/subscription-info/:name"
+	SubscriptionCreatePath    = ApiPathPrefix + "/new-subscription"
+	SubscriptionUpdatePath    = ApiPathPrefix + "/update-subscription/:name"
+	SubscriptionDeletePath    = ApiPathPrefix + "/subscription/:name"
 
 	// Policy routes
 	PolicyListPath   = ApiPathPrefix + "/all-policies"

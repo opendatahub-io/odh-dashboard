@@ -43,7 +43,9 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}, builder.WithPredicates(serviceChangedPredicate())).
-		Owns(&corev1.ServiceAccount{}).
+		// ServiceAccounts are watched for ownership drift only; the reconciler never
+		// reads their spec/status from cache, so a metadata-only informer suffices.
+		Owns(&corev1.ServiceAccount{}, builder.OnlyMetadata).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
@@ -100,6 +102,14 @@ func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *
 		return err
 	}
 	for _, resource := range resources {
+		// ConsoleLink is watched for ownership drift only and is never read from
+		// cache (teardown lists it directly via the API reader), so a metadata-only
+		// informer suffices. HTTPRoute status drives MaaS portal availability, so it
+		// must keep its full-object informer.
+		if resource.GetObjectKind().GroupVersionKind() == consoleLinkGVK {
+			controllerBuilder.Owns(resource, builder.OnlyMetadata)
+			continue
+		}
 		controllerBuilder.Owns(resource)
 	}
 	return nil

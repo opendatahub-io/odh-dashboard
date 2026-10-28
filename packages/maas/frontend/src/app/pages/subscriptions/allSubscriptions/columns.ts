@@ -31,3 +31,21 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
       a.modelRefs.length - b.modelRefs.length,
   },
 ];
+
+export const GROUP_COLUMN_FIELD = 'owner.groups';
+export const MODEL_COLUMN_FIELD = 'modelRefs';
+
+type SubscriptionsColumnsOptions = {
+  /** Read-only viewers hide the Status column. Defaults to true. */
+  showStatus?: boolean;
+};
+
+/**
+ * Subscriptions columns for the governance table.
+ *
+ * Read-only consumers (e.g. the MaaS Portal model access page) omit the Status column.
+ */
+export const getSubscriptionsColumns = ({
+  showStatus = true,
+}: SubscriptionsColumnsOptions = {}): SortableData<MaaSSubscription>[] =>
+  showStatus ? subscriptionsColumns : subscriptionsColumns.filter((col) => col.field !== 'phase');

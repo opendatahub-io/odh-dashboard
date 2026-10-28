@@ -558,6 +558,7 @@ describe('GPUaaS Infrastructure Workloads', () => {
       .find('[data-label="Priority class"]')
       .should('contain.text', 'Non-Kueue');
 
+    infrastructurePage.selectWorkloadsFilterType('status');
     infrastructurePage.selectWorkloadsStatus('Queued');
 
     infrastructurePage.findWorkloadRow('gpu-queued-job').should('exist');

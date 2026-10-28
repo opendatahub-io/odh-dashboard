@@ -28,7 +28,7 @@ agents:
       # review uploads is listed, so no frontmatter tier resolves to Claude;
       # rows without a persona run on the agent model.
       runtime: pi
-      model: openai/gpt-6-luna
+      model: openai/gpt-6.1-sol
       subagents:
           challenger: openai/gpt-6.1-sol
           correctness: openai/gpt-6.1-sol

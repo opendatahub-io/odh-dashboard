@@ -25,6 +25,7 @@ import {
 } from '../../../../utils/oc_commands/hardwareProfiles';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
 import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
+import { getClusterArchitecture } from '../../../../utils/oc_commands/baseCommands';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -61,8 +62,17 @@ describe('A user can deploy an LLMD model', () => {
         yamlEditorModelName = testData.yamlEditorModelName;
         yamlEditorModelPath = 'cypress/fixtures/resources/yaml/yaml_editor_model_serving.yaml';
 
-        cy.log(`Loaded project name: ${projectName}`);
-        createCleanProject(projectName);
+        return getClusterArchitecture().then((arch) => {
+          if (arch === 'arm64') {
+            if (!testData.replaceImageArm64 || !testData.yamlEditorModelPathArm64) {
+              throw new Error('ARM64 llm-d fixture data is incomplete');
+            }
+            replaceImage = testData.replaceImageArm64;
+            yamlEditorModelPath = testData.yamlEditorModelPathArm64;
+          }
+          cy.log(`Loaded project name: ${projectName}`);
+          createCleanProject(projectName);
+        });
       })
       .then(() => {
         // Load Hardware Profile

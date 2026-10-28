@@ -609,7 +609,7 @@ describe('RayJob Status Modal', () => {
     rayJobStatusModal.findStatusLabel().should('be.visible');
   });
 
-  it('should display "Running" status label in the modal header for a running RayJob', () => {
+  it('should display "Running" status label and no description for a running RayJob', () => {
     modelTrainingGlobal.visit(projectName);
 
     trainingJobTable.filterByName('ray-data-processing');
@@ -617,9 +617,13 @@ describe('RayJob Status Modal', () => {
 
     rayJobStatusModal.shouldBeOpen();
     rayJobStatusModal.getRayJobStatus('Running');
+    rayJobStatusModal.findAlertDescription().should('not.exist');
+    rayJobStatusModal
+      .find()
+      .should('not.contain', 'No additional status information is available for this job.');
   });
 
-  it('should display "Complete" status label for a succeeded RayJob', () => {
+  it('should display "Complete" status label and no description for a succeeded RayJob', () => {
     modelTrainingGlobal.visit(projectName);
 
     trainingJobTable.filterByName('ray-completed-job');
@@ -627,6 +631,8 @@ describe('RayJob Status Modal', () => {
 
     rayJobStatusModal.shouldBeOpen();
     rayJobStatusModal.getRayJobStatus('Complete');
+    rayJobStatusModal.findAlertDescription().should('not.exist');
+    rayJobStatusModal.find().should('not.contain', 'The job completed successfully.');
   });
 
   it('should display "Failed" status and danger alert for a failed RayJob', () => {
@@ -641,6 +647,34 @@ describe('RayJob Status Modal', () => {
     rayJobStatusModal
       .findAlertDescription()
       .should('contain', 'Ray job failed due to application error.');
+  });
+
+  it('should show the backend status message for a pending RayJob', () => {
+    cy.interceptK8sList(
+      { model: RayJobModel, ns: projectName },
+      mockK8sResourceList(
+        mockRayJobK8sResourceList([
+          {
+            name: 'ray-pending-with-message',
+            namespace: projectName,
+            jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING,
+            jobStatus: undefined,
+            message: 'Waiting for the Ray cluster to become ready.',
+          },
+        ]),
+      ),
+    );
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-pending-with-message');
+    trainingJobTable.getTableRow('ray-pending-with-message').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.getRayJobStatus('Pending');
+    rayJobStatusModal.findAlert('info').should('exist');
+    rayJobStatusModal
+      .findAlertDescription()
+      .should('contain', 'Waiting for the Ray cluster to become ready.');
   });
 
   it('should show Pause job button for a running RayJob', () => {
