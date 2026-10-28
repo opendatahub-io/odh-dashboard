@@ -954,9 +954,9 @@ paths:
         for API key creation). Only subscriptions whose `roles` list contains the
         exact value `admin` are returned. Missing, empty, or non-admin roles are
         excluded; no matches returns an empty `data` array. Because that payload is
-        sanitised, the mapped items do not carry `owner.groups` (returned as an empty
-        list), `phase`/status conditions or `resourceVersion`; clients must not rely
-        on those fields here.
+        sanitised, `phase`/status conditions and `resourceVersion` are not populated.
+        Group references are copied from upstream `owner.groups`, preserving their
+        full names. Missing groups are returned as an empty list.
 
         Returns 503 while maas-api is not reachable.
       responses:
@@ -2728,6 +2728,8 @@ components:
       type: object
       description: Sanitised subscription view returned by the maas-api passthrough endpoint, safe to expose to basic users
       properties:
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
         subscription_id_header:
           type: string
           description: Subscription name to use in the X-MaaS-Subscription header

@@ -50,7 +50,12 @@ const subscription = (): MaaSSubscription => ({
   namespace: 'maas-system',
   displayName: 'Premium Team',
   description: 'Premium Team Subscription',
-  owner: { groups: [{ name: 'premium-users' }, { name: 'data-science' }] },
+  owner: {
+    groups: [
+      { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users' },
+      { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/data-science' },
+    ],
+  },
   modelRefs: [
     {
       name: 'granite-3-8b-instruct',
@@ -102,8 +107,8 @@ describe('ModelAccessPage', () => {
     renderPage();
     const groups = await screen.findByTestId('subscription-groups-expand-btn');
     await user.click(within(groups).getByRole('button'));
-    expect(screen.getByText('premium-users')).toBeVisible();
-    expect(screen.getByText('data-science')).toBeVisible();
+    expect(screen.getByText('42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users')).toBeVisible();
+    expect(screen.getByText('42c3e46f-2477-44d7-a85b-d3b43f6b31fa/data-science')).toBeVisible();
     await user.click(
       within(screen.getByTestId('subscription-models-expand-btn')).getByRole('button'),
     );

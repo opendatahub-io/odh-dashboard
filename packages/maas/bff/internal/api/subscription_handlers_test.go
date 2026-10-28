@@ -296,7 +296,8 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 			Expect(premium.TokenMetadata.CostCenter).To(Equal("engineering"))
 			// Mock upstream group names are mapped to owner.groups for the UI.
 			Expect(premium.Owner.Groups).To(ConsistOf(
-				models.GroupReference{Name: "premium-users"},
+				models.GroupReference{Name: "42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users"},
+				models.GroupReference{Name: "42c3e46f-2477-44d7-a85b-d3b43f6b31fa/data-science"},
 			))
 			Expect(premium.ModelRefs).To(HaveLen(2))
 			Expect(premium.ModelRefs[0].Name).To(Equal("granite-3-8b-instruct"))

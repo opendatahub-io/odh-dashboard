@@ -12,10 +12,8 @@ import (
 // endpoints stay response-compatible.
 //
 // The maas-api payload is sanitised and does not carry the full subscription record:
-//   - owner.groups is mapped from the upstream `owner_groups` field (group names). maas-api
-//     does not expose it yet, so it is empty unless that field is present, in which case it
-//     is converted to group references, skipping empty names. An explicit empty list means the
-//     subscription really has no groups. Never read group membership from elsewhere here;
+//   - owner.groups is copied from the upstream owner, preserving full group names.
+//     Missing groups are normalized to an empty list;
 //   - phase/status/conditions and resourceVersion are not exposed, so they are left
 //     empty. Consumers of this endpoint must not rely on them.
 //
@@ -85,19 +83,12 @@ func convertSubscriptionListItemToSubscription(
 	return subscription
 }
 
-// ownerGroupsFromListItem converts the optional upstream `owner_groups` names into the
-// owner.groups shape used by all-subscriptions. It always returns a non-nil slice so the JSON
-// payload stays `[]` rather than `null` when the upstream field is absent.
+// ownerGroupsFromListItem copies upstream owner.groups, normalizing absent groups to [].
 func ownerGroupsFromListItem(item models.SubscriptionListItem) []models.GroupReference {
 	groups := []models.GroupReference{}
-	if item.OwnerGroups == nil {
+	if item.Owner == nil {
 		return groups
 	}
-	for _, name := range *item.OwnerGroups {
-		if name == "" {
-			continue
-		}
-		groups = append(groups, models.GroupReference{Name: name})
-	}
+	groups = append(groups, item.Owner.Groups...)
 	return groups
 }

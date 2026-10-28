@@ -38,11 +38,8 @@ type SubscriptionListItem struct {
 	Labels                  map[string]string `json:"labels,omitempty"`
 	// InferencePriority uses snake_case to match the maas-api passthrough payload.
 	InferencePriority *int32 `json:"inference_priority,omitempty"`
-	// OwnerGroups lists the OpenShift group names that grant access to this subscription,
-	// using maas-api naming (snake_case). It is a pointer on purpose: nil means maas-api did
-	// not report group membership (field absent), while an empty slice means the subscription
-	// genuinely has no owner groups. Exposed as owner.groups on the BFF responses.
-	OwnerGroups *[]string `json:"owner_groups,omitempty"`
+	// Owner contains group references supplied by maas-api, including full group names.
+	Owner *OwnerSpec `json:"owner,omitempty"`
 }
 
 // GroupReference references a Kubernetes group by name.
