@@ -97,12 +97,14 @@ const ContentModal: React.FC<ContentModalProps> = ({
         titleIconVariant={titleIconVariant}
         data-testid="generic-modal-header"
       />
-      <ModalBody
-        className={`${bodyClassName}${noBodyPadding ? ' pf-v6-u-p-0' : ''}`}
-        aria-label={bodyLabel}
-      >
-        {contents}
-      </ModalBody>
+      {contents != null && (
+        <ModalBody
+          className={`${bodyClassName}${noBodyPadding ? ' pf-v6-u-p-0' : ''}`}
+          aria-label={bodyLabel}
+        >
+          {contents}
+        </ModalBody>
+      )}
       {(error || (buttonActions && buttonActions.length > 0)) && (
         <ModalFooter>
           <Stack hasGutter style={{ flex: 'auto' }}>

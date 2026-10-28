@@ -492,6 +492,15 @@ paths:
         The request must include a multipart form with a file part (e.g. "file").
         The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
         AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+        The secret may contain `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` (CRC32, CRC32C, SHA1,
+        SHA256, or SHA512; case-insensitive) to select a checksum explicitly, or
+        `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS=true` for endpoints that reject optional
+        streaming trailers, including affected NetApp ONTAP S3. When no algorithm is
+        selected and the disable flag is absent or false, uploads retain the AWS SDK's
+        default checksum behavior. This preserves existing connections and buckets that
+        require upload checksums. Enabling the disable flag and setting an explicit
+        algorithm are mutually exclusive. Disabling optional checksums does not satisfy
+        bucket-level checksum requirements.
         Chunked transfer encoding is supported. When Content-Length is set, it must not exceed
         32 MiB plus allowance for multipart framing (~64 MiB) or the request is rejected with 413.
         The file part is streamed via http.MaxBytesReader (32 MiB max); larger file parts fail with 413.
@@ -1619,7 +1628,7 @@ components:
           minLength: 1
           maxLength: 250
           description: Human-readable name for the indexing run
-          example: 'Index build - Pattern1'
+          example: "Index build - Pattern\u00A0A"
         description:
           type: string
           maxLength: 255

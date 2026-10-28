@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useProjectNotebookStates from '@odh-dashboard/internal/pages/projects/notebook/useProjectNotebookStates';
@@ -26,6 +27,7 @@ import WorkloadOverview from './WorkloadOverview';
 import useInfrastructureWorkloads from '../hooks/useInfrastructureWorkloads';
 import useWorkloadStatusFilters from '../hooks/useWorkloadStatusFilters';
 import { isKueueManagedDataScienceProject } from '../utils/kueueProjects';
+import { GPUAAS_EVENTS, WORKLOADS_INTERACTION_TYPES } from '../tracking/gpuaasTrackingConstants';
 import {
   INFRASTRUCTURE_WORKLOADS_EMPTY_BODY,
   INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE,
@@ -203,6 +205,23 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
             refreshTrigger={refreshTrigger}
             partial
             onViewInTable={workloadStatusFilters.viewBucketInTable}
+            onStatusOverviewSegmentClick={(statusClicked) =>
+              fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_SEGMENT_CLICKED, {
+                statusClicked,
+              })
+            }
+            onPopoverClosed={(statusClicked, closeMethod) =>
+              fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_POPOVER_CLOSED, {
+                statusClicked,
+                closeMethod,
+              })
+            }
+            onViewInTableClicked={(overviewSegment) =>
+              fireMiscTrackingEvent(
+                GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_VIEW_IN_TABLE_CLICKED,
+                { overviewSegment },
+              )
+            }
           />
         </StackItem>
         {workloads.length > 0 && (
@@ -240,6 +259,23 @@ const InfrastructureWorkloadsContent: React.FC<InfrastructureWorkloadsContentPro
           namespace={namespace}
           refreshTrigger={refreshTrigger}
           onViewInTable={workloadStatusFilters.viewBucketInTable}
+          onStatusOverviewSegmentClick={(statusClicked) =>
+            fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_SEGMENT_CLICKED, {
+              statusClicked,
+            })
+          }
+          onPopoverClosed={(statusClicked, closeMethod) =>
+            fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_POPOVER_CLOSED, {
+              statusClicked,
+              closeMethod,
+            })
+          }
+          onViewInTableClicked={(overviewSegment) =>
+            fireMiscTrackingEvent(
+              GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_VIEW_IN_TABLE_CLICKED,
+              { overviewSegment },
+            )
+          }
         />
       </StackItem>
       <StackItem>
@@ -286,6 +322,7 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
     refresh,
     failedSources,
   } = useInfrastructureWorkloads(preferredProject?.metadata.name, preferredProject);
+  const tabLoadedAt = React.useRef(Date.now());
   const [lastRefreshed, setLastRefreshed] = React.useState(() => new Date());
   const [currentTime, setCurrentTime] = React.useState(() => Date.now());
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
@@ -314,12 +351,25 @@ const InfrastructureWorkloadsSection: React.FC<InfrastructureWorkloadsSectionPro
   }, [refresh, refreshTrigger]);
 
   const handleRefresh = React.useCallback(() => {
+    const now = Date.now();
+    const secondsSinceLastUpdate = Math.round((now - lastRefreshed.getTime()) / 1000);
+    const secondsSinceTabLoad = Math.round((now - tabLoadedAt.current) / 1000);
     setRefreshTrigger((current) => current + 1);
     void refreshNotebooks();
-  }, [refreshNotebooks]);
+    fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, {
+      refreshSource: 'workloads',
+      outcome: 'click',
+      secondsSinceLastUpdate,
+    });
+    fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_INTERACTED, {
+      interactionType: WORKLOADS_INTERACTION_TYPES.refresh,
+      secondsSinceTabLoad,
+    });
+  }, [lastRefreshed, refreshNotebooks]);
 
   const handleProjectSelection = React.useCallback(
     (projectName: string) => {
+      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_PROJECT_FILTER_SELECTED, { projectName });
       updatePreferredProject(
         projects.find((project) => project.metadata.name === projectName) ?? null,
       );

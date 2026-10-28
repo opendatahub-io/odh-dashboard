@@ -38,6 +38,7 @@ import {
 } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Tearsheet } from '@patternfly/react-component-groups';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { testCredentials } from '~/app/api/dch';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
 import PasswordInput from '~/app/components/PasswordInput';
@@ -51,6 +52,15 @@ import type {
   CreateConnectionRequest,
   NamespaceKind,
 } from '~/app/types';
+import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+  getCreateConnectionAbandonStep,
+  getConnectionCreationErrorCategory,
+  getConnectionTypeProvider,
+  isGlobalConnectionType,
+  type DataConnectHubCancelMethod,
+} from '~/app/utilities/tracking';
 import './CreateConnectionWizard.scss';
 
 export type CreateConnectionFormData = CreateConnectionRequest;
@@ -697,6 +707,7 @@ type CreateConnectionWizardFooterProps = {
   hasSelectedConnectionType: boolean;
   hasValidDetails: boolean;
   hasValidConfiguration: boolean;
+  onCancel: () => void;
 };
 
 const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> = ({
@@ -705,8 +716,9 @@ const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> 
   hasSelectedConnectionType,
   hasValidDetails,
   hasValidConfiguration,
+  onCancel,
 }) => {
-  const { activeStep, steps, goToNextStep, goToPrevStep, close } = useWizardContext();
+  const { activeStep, steps, goToNextStep, goToPrevStep } = useWizardContext();
   const isFirstStep = activeStep.index === 1;
   const isLastStep = activeStep.index === steps.length;
   const isNextDisabled = (() => {
@@ -761,7 +773,7 @@ const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> 
         </ActionListGroup>
         <ActionListGroup>
           <ActionListItem>
-            <Button variant="link" onClick={close} isDisabled={isCreating}>
+            <Button variant="link" onClick={onCancel} isDisabled={isCreating}>
               Cancel
             </Button>
           </ActionListItem>
@@ -785,6 +797,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const [formData, setFormData] = React.useState<CreateConnectionFormData>(initialFormData);
   const [sessionStartIndex, setSessionStartIndex] = React.useState(1);
   const [hasResolvedSessionStartIndex, setHasResolvedSessionStartIndex] = React.useState(false);
+  const [activeStepIndex, setActiveStepIndex] = React.useState(1);
   const [isOpenSessionReady, setIsOpenSessionReady] = React.useState(false);
   const [selectedNamespace, setSelectedNamespace] = React.useState(namespace);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -803,6 +816,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const verificationRequestRef = React.useRef(0);
   const verificationAbortRef = React.useRef<AbortController>();
   const wasOpenRef = React.useRef(false);
+  const lastTrackedConnectionTypeIdRef = React.useRef<string>();
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
     selectedNamespace,
     isOpen,
@@ -878,10 +892,13 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       setTouchedProperties(new Set());
       propertyIdRef.current = initialPropertyRows.length;
       setIsOpenSessionReady(true);
+      setActiveStepIndex(1);
+      lastTrackedConnectionTypeIdRef.current = undefined;
     } else if (!isOpen && wasOpenRef.current) {
       setIsOpenSessionReady(false);
       setHasResolvedSessionStartIndex(false);
       setSessionStartIndex(1);
+      setActiveStepIndex(1);
     }
     wasOpenRef.current = isOpen;
   }, [initialFormData, isOpen, namespace]);
@@ -905,6 +922,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   React.useEffect(() => {
     if (isOpen && !hasResolvedSessionStartIndex && canResolveStartIndex) {
       setSessionStartIndex(calculatedStartIndex);
+      setActiveStepIndex(calculatedStartIndex);
       setHasResolvedSessionStartIndex(true);
     }
   }, [calculatedStartIndex, canResolveStartIndex, hasResolvedSessionStartIndex, isOpen]);
@@ -927,6 +945,17 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     const selectedType = connectionTypes.find(
       (connectionType) => connectionType.metadata.id === connectionTypeId,
     );
+    if (selectedType && lastTrackedConnectionTypeIdRef.current !== connectionTypeId) {
+      lastTrackedConnectionTypeIdRef.current = connectionTypeId;
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.typeSelected,
+        properties: {
+          connectionTypeProvider: getConnectionTypeProvider(selectedType) ?? connectionTypeId,
+          isGlobalType: isGlobalConnectionType(selectedType),
+          project: selectedNamespace,
+        },
+      });
+    }
     const defaultsForType = Object.fromEntries(
       (selectedType?.resource.credentials_fields ?? [])
         .filter((field) => field.default_value !== undefined)
@@ -1053,12 +1082,47 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     setTouchedProperties(new Set());
     propertyIdRef.current = initialPropertyRows.length;
   }, [invalidateVerification, namespace, initialFormData]);
-  const handleClose = React.useCallback(() => {
-    if (!isCreating) {
-      resetForm();
-      onClose();
-    }
-  }, [isCreating, onClose, resetForm]);
+  const handleClose = React.useCallback(
+    (cancelMethod: DataConnectHubCancelMethod) => {
+      if (!isCreating) {
+        const tagCount = Object.keys(formData.properties).length;
+        fireDataConnectHubTrackEvent({
+          eventName: DATA_CONNECT_HUB_EVENT_NAMES.createCanceled,
+          properties: {
+            cancelMethod,
+            abandonStep: getCreateConnectionAbandonStep(activeStepIndex),
+            project: selectedNamespace,
+            connectionTypeProvider: selectedConnectionType
+              ? getConnectionTypeProvider(selectedConnectionType)
+              : undefined,
+          },
+        });
+        fireDataConnectHubTrackEvent({
+          eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+          properties: {
+            outcome: TrackingOutcome.cancel,
+            connectionTypeProvider: selectedConnectionType
+              ? getConnectionTypeProvider(selectedConnectionType)
+              : undefined,
+            hasTags: tagCount > 0,
+            tagCount,
+            project: selectedNamespace,
+          },
+        });
+        resetForm();
+        onClose();
+      }
+    },
+    [
+      activeStepIndex,
+      formData.properties,
+      isCreating,
+      onClose,
+      resetForm,
+      selectedConnectionType,
+      selectedNamespace,
+    ],
+  );
 
   const handleCreate = async () => {
     if (!hasValidConfiguration) {
@@ -1066,6 +1130,19 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     }
 
     if (!onCreate) {
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+        properties: {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          connectionTypeProvider: selectedConnectionType
+            ? getConnectionTypeProvider(selectedConnectionType)
+            : undefined,
+          hasTags: Object.keys(formData.properties).length > 0,
+          tagCount: Object.keys(formData.properties).length,
+          project: selectedNamespace,
+        },
+      });
       resetForm();
       onClose();
       return;
@@ -1074,12 +1151,41 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     setIsCreating(true);
     try {
       await onCreate(formData, selectedNamespace);
+      const tagCount = Object.keys(formData.properties).length;
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+        properties: {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          connectionTypeProvider: selectedConnectionType
+            ? getConnectionTypeProvider(selectedConnectionType)
+            : undefined,
+          hasTags: tagCount > 0,
+          tagCount,
+          project: selectedNamespace,
+        },
+      });
       notification.success(`"${formData.name}" was created successfully.`);
       resetForm();
       onClose();
     } catch (error) {
       const creationError =
         error instanceof Error ? error : new Error('Unable to create connection');
+      const tagCount = Object.keys(formData.properties).length;
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+        properties: {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: getConnectionCreationErrorCategory(error),
+          connectionTypeProvider: selectedConnectionType
+            ? getConnectionTypeProvider(selectedConnectionType)
+            : undefined,
+          hasTags: tagCount > 0,
+          tagCount,
+          project: selectedNamespace,
+        },
+      });
       notification.error('Unable to create connection', creationError.message);
     } finally {
       setIsCreating(false);
@@ -1089,20 +1195,21 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   return isOpen ? (
     <Tearsheet
       isOpen
-      onEscapePress={handleClose}
+      onEscapePress={() => handleClose('close_x')}
       aria-labelledby="create-connection-wizard-title"
       data-testid="create-connection-tearsheet"
     >
       <Wizard
         key={startIndex}
         startIndex={startIndex}
-        onClose={handleClose}
+        onClose={() => handleClose('close_x')}
+        onStepChange={(_event, currentStep) => setActiveStepIndex(currentStep.index)}
         header={
           <WizardHeader
             title="Create connection"
             description="Configure your connection to an external resource."
             titleId="create-connection-wizard-title"
-            onClose={handleClose}
+            onClose={() => handleClose('close_x')}
             closeButtonAriaLabel="Close wizard"
           />
         }
@@ -1113,6 +1220,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
             hasSelectedConnectionType={hasSelectedConnectionType}
             hasValidDetails={hasValidDetailsWithProperties}
             hasValidConfiguration={hasValidConfiguration}
+            onCancel={() => handleClose('cancel_button')}
           />
         }
       >

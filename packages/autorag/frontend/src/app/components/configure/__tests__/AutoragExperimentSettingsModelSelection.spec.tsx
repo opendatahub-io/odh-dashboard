@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { FormProvider, useForm, useFormContext, useWatch } from 'react-hook-form';
 import userEvent from '@testing-library/user-event';
@@ -23,6 +23,12 @@ const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     defaultValues: { ...schema.defaults, maas_secret_name: 'maas-secret' },
   });
   return <FormProvider {...form}>{children}</FormProvider>;
+};
+
+const tabTo = async (user: ReturnType<typeof userEvent.setup>, target: HTMLElement) => {
+  for (let attempt = 0; attempt < 20 && document.activeElement !== target; attempt += 1) {
+    await user.tab();
+  }
 };
 
 const ModelSelectionForm: React.FC = () => {
@@ -98,13 +104,75 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
     expect(screen.getByTestId('llm-selected-count')).toHaveTextContent(/1.2/);
     expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent(/0.2/);
-    expect(screen.getAllByTestId('model-row-model-a')[1].querySelector('input')).toBeDisabled();
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Model A unavailable: already selected in Foundation models',
+      }),
+    ).toBeDisabled();
     expect(
       screen.getAllByTestId('model-row-model-a')[1].querySelector('input'),
     ).toHaveAccessibleName('Model A unavailable: already selected in Foundation models');
     expect(screen.getAllByText('Unavailable: already selected in Foundation models')).toHaveLength(
       1,
     );
+
+    const disabledModelTooltipTrigger = screen.getByTestId(
+      'embedding-disabled-model-tooltip-model-a',
+    );
+    expect(disabledModelTooltipTrigger).toHaveAccessibleName(
+      'Model A unavailable: already selected in Foundation models',
+    );
+    await user.hover(disabledModelTooltipTrigger);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      /^This model is already selected as a foundation model\.$/,
+    );
+    await user.unhover(disabledModelTooltipTrigger);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+
+    const embeddingTable = within(screen.getByTestId('embedding-models-table'));
+    embeddingTable.getAllByRole('checkbox')[0].focus();
+    await tabTo(user, disabledModelTooltipTrigger);
+    expect(disabledModelTooltipTrigger).toHaveFocus();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      /^This model is already selected as a foundation model\.$/,
+    );
+  });
+
+  it('should explain why a foundation model checkbox is disabled when it is selected as an embedding model', async () => {
+    const user = userEvent.setup();
+    render(
+      <FormWrapper>
+        <ModelSelectionForm />
+      </FormWrapper>,
+    );
+
+    await user.click(screen.getByTestId('embedding-models-tab'));
+    await user.click(screen.getByTestId('embedding-model-checkbox-model-a'));
+    await user.click(screen.getByTestId('foundation-models-tab'));
+
+    const disabledModelTooltipTrigger = screen.getByTestId('llm-disabled-model-tooltip-model-a');
+    expect(disabledModelTooltipTrigger).toHaveAccessibleName(
+      'Model A unavailable: already selected in Embedding models',
+    );
+    await user.hover(disabledModelTooltipTrigger);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      /^This model is already selected as an embedding model\.$/,
+    );
+    await user.unhover(disabledModelTooltipTrigger);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+
+    const foundationTable = within(screen.getByTestId('llm-models-table'));
+    foundationTable.getAllByRole('checkbox')[0].focus();
+    await tabTo(user, disabledModelTooltipTrigger);
+    expect(disabledModelTooltipTrigger).toHaveFocus();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      /^This model is already selected as an embedding model\.$/,
+    );
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Model A unavailable: already selected in Embedding models',
+      }),
+    ).toBeDisabled();
   });
 
   it('should select only models not selected in the opposite category with select all', async () => {

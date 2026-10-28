@@ -135,6 +135,10 @@ func handleS3RepoError(logger *slog.Logger, w http.ResponseWriter, r *http.Reque
 		conflictResponse(logger, w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", key))
 		return
 	}
+	if errors.Is(err, s3.ErrUploadChecksumRejected) {
+		badRequestResponse(logger, w, r, s3.UploadChecksumRejectedMessage)
+		return
+	}
 
 	if errors.Is(err, repositories.ErrDSPAConfiguration) {
 		serviceUnavailableResponseWithMessage(logger, w, r, err, err.Error())
