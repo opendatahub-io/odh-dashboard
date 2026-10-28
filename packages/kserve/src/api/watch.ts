@@ -9,6 +9,13 @@ import {
 } from '@odh-dashboard/internal/api/models/kserve';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 
+const EMPTY_SERVING_RUNTIMES_RESULT: CustomWatchK8sResult<ServingRuntimeKind[]> = [
+  [],
+  true,
+  undefined,
+];
+const EMPTY_DEPLOYMENT_PODS_RESULT: CustomWatchK8sResult<PodKind[]> = [[], true, undefined];
+
 export const useWatchInferenceServices = (
   project?: ProjectKind,
   labelSelectors?: { [key: string]: string },
@@ -28,35 +35,47 @@ export const useWatchInferenceServices = (
 export const useWatchServingRuntimes = (
   project?: ProjectKind,
   opts?: K8sAPIOptions,
-): CustomWatchK8sResult<ServingRuntimeKind[]> =>
-  useK8sWatchResourceList<ServingRuntimeKind[]>(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(ServingRuntimeModel),
-      namespace: project?.metadata.name,
-    },
+  enabled = true,
+): CustomWatchK8sResult<ServingRuntimeKind[]> => {
+  const result = useK8sWatchResourceList<ServingRuntimeKind[]>(
+    enabled
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(ServingRuntimeModel),
+          namespace: project?.metadata.name,
+        }
+      : null,
     ServingRuntimeModel,
     opts,
   );
 
+  return enabled ? result : EMPTY_SERVING_RUNTIMES_RESULT;
+};
+
 export const useWatchDeploymentPods = (
   project?: ProjectKind,
   opts?: K8sAPIOptions,
-): CustomWatchK8sResult<PodKind[]> =>
-  useK8sWatchResourceList<PodKind[]>(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(PodModel),
-      namespace: project?.metadata.name,
-      selector: {
-        matchExpressions: [
-          {
-            key: 'serving.kserve.io/inferenceservice',
-            operator: 'Exists',
+  enabled = true,
+): CustomWatchK8sResult<PodKind[]> => {
+  const result = useK8sWatchResourceList<PodKind[]>(
+    enabled
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(PodModel),
+          namespace: project?.metadata.name,
+          selector: {
+            matchExpressions: [
+              {
+                key: 'serving.kserve.io/inferenceservice',
+                operator: 'Exists',
+              },
+            ],
           },
-        ],
-      },
-    },
+        }
+      : null,
     PodModel,
     opts,
   );
+
+  return enabled ? result : EMPTY_DEPLOYMENT_PODS_RESULT;
+};

@@ -22,17 +22,20 @@ export const useWatchDeployments = (
     opts,
   );
 
+  const filteredNIMServices = React.useMemo(
+    () => (filterFn ? nimServices.filter(filterFn) : nimServices),
+    [nimServices, filterFn],
+  );
+
+  const hasNIMServices = filteredNIMServices.length > 0;
+
   const [inferenceServices, inferenceServicesLoaded, inferenceServicesError] =
-    useWatchInferenceServices(project, opts);
+    useWatchInferenceServices(project, opts, hasNIMServices);
 
   const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useWatchNIMDeploymentPods(
     project,
     opts,
-  );
-
-  const filteredNIMServices = React.useMemo(
-    () => (filterFn ? nimServices.filter(filterFn) : nimServices),
-    [nimServices, filterFn],
+    hasNIMServices,
   );
 
   const nimOwnedInferenceServices = React.useMemo(
