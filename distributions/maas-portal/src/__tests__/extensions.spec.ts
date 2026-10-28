@@ -375,6 +375,27 @@ describe('MaaS Portal extensions', () => {
     expect(governanceExtensions).toHaveLength(0);
   });
 
+  it('should show Model Access navigation and route only for whoami administrators', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    const modelAccessExtensions = (): Extension[] =>
+      store
+        .getExtensions()
+        .filter(
+          (extension) =>
+            (extension.type === 'app.navigation/href' &&
+              extension.properties.id === 'maas-model-access') ||
+            (extension.type === 'app.route' && extension.properties.path === '/model-access'),
+        );
+
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: false });
+    expect(modelAccessExtensions()).toHaveLength(0);
+
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: true });
+    expect(modelAccessExtensions()).toHaveLength(2);
+  });
+
   it('should not contain the gen-ai-studio section', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
