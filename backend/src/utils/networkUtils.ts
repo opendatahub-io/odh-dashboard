@@ -14,6 +14,19 @@ import tls, { PeerCertificate } from 'tls';
 export const bracketHostIfIPv6 = (host: string): string => (net.isIPv6(host) ? `[${host}]` : host);
 
 /**
+ * Return true when the host portion of `url` is an IPv6 literal. `URL.hostname` keeps the surrounding
+ * brackets for an IPv6 host (e.g. `[fc00:30::1]`), which are stripped before the `net.isIPv6` check.
+ * Invalid URLs return false. Used to scope IPv6-specific TLS handling to only IPv6 destinations.
+ */
+export const isIPv6Url = (url: string): boolean => {
+  try {
+    return net.isIPv6(new URL(url).hostname.replace(/^\[|\]$/g, ''));
+  } catch {
+    return false;
+  }
+};
+
+/**
  * TLS certificate identity check that is tolerant of IPv6 canonicalization differences.
  *
  * Node's default `checkServerIdentity` can reject a connection to an IPv6 literal even when the

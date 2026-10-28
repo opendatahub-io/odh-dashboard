@@ -109,11 +109,21 @@ describe('proxyCall', () => {
     process.env = originalEnv;
   });
 
-  it('should wire the IPv6-aware checkServerIdentity for https targets', async () => {
+  it('should wire the IPv6-aware checkServerIdentity for IPv6 https targets', async () => {
     await proxyCall(fastify, request, { method: 'GET', url: 'https://[fc00:30::1]/api/config' });
 
     expect(mockHttpsRequest).toHaveBeenCalledTimes(1);
     expect(capturedOptions?.checkServerIdentity).toBe(ipv6AwareCheckServerIdentity);
+  });
+
+  it('should not set checkServerIdentity for non-IPv6 (DNS) https targets', async () => {
+    await proxyCall(fastify, request, {
+      method: 'GET',
+      url: 'https://kubernetes.default.svc/api/config',
+    });
+
+    expect(mockHttpsRequest).toHaveBeenCalledTimes(1);
+    expect(capturedOptions?.checkServerIdentity).toBeUndefined();
   });
 
   it('should keep the IPv6-aware check on the origin request even when a proxy agent is used', async () => {
