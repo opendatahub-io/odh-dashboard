@@ -232,12 +232,19 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 			apierrors.IsServerTimeout(err),
 			apierrors.IsTooManyRequests(err),
 			errors.Is(err, context.DeadlineExceeded):
+			// Transient failures are treated leniently (consistent with the shared
+			// BFF and operator resolvers): the watcher re-resolves and self-heals, so
+			// a brownout at startup should not crash-loop the pod. Degraded (not
+			// PolicyUnreadable) lets a Legacy/unset consumer keep its own config
+			// (e.g. the backend's TLS 1.3) rather than fail closed on a flaky read.
 			log.Info("Transient error reading APIServer TLS profile, using hardened defaults", "error", err)
 			result.APIAvailable = true
 			result.Degraded = true
-			result.PolicyUnreadable = true
 			result.Profile = intermediateProfileMap()
 		case apierrors.IsForbidden(err), apierrors.IsUnauthorized(err):
+			// Denied reads are a persistent misconfiguration (missing RBAC), not a
+			// brownout: mark the policy unreadable so fail-closed consumers refuse to
+			// start rather than silently serving unverified defaults.
 			log.Info("Forbidden/Unauthorized reading APIServer TLS profile, registering watcher for self-heal", "error", err)
 			result.APIAvailable = true
 			result.Degraded = true

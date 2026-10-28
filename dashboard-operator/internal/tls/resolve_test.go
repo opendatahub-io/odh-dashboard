@@ -206,6 +206,31 @@ func TestResolve_CustomGroups(t *testing.T) {
 	}
 }
 
+func TestResolve_CustomIANACipherNames(t *testing.T) {
+	// Cross-resolver parity: a Custom profile naming TLS 1.2 ciphers in IANA form
+	// (which pkg/tls and the notebooks resolver accept) must resolve here too, not
+	// crash the operator with "none supported by Go".
+	apiServer := newAPIServer(map[string]interface{}{
+		"type": "Custom",
+		"custom": map[string]interface{}{
+			"minTLSVersion": "VersionTLS12",
+			"ciphers":       []interface{}{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_RSA_WITH_AES_128_GCM_SHA256"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v; IANA cipher names should resolve", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	if len(cfg.CipherSuites) != 2 {
+		t.Errorf("expected 2 resolved cipher suites, got %d", len(cfg.CipherSuites))
+	}
+}
+
 func TestResolve_CustomCanonicalGroupNames(t *testing.T) {
 	// OpenShift uses secp256r1/secp384r1/secp521r1; these valid names must resolve.
 	apiServer := newAPIServer(map[string]interface{}{

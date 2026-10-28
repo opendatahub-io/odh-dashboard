@@ -237,6 +237,15 @@ func TestResolve_TransientError_SetsAPIAvailable(t *testing.T) {
 	if !result.APIAvailable {
 		t.Error("expected APIAvailable = true on transient error")
 	}
+	// Transient is lenient (consistent with the BFF/operator resolvers): Degraded
+	// but NOT PolicyUnreadable, so a Legacy consumer self-heals rather than
+	// crash-looping on a brownout.
+	if !result.Degraded {
+		t.Error("expected Degraded = true on transient error")
+	}
+	if result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = false on transient error (lenient, self-heals)")
+	}
 }
 
 func TestResolve_Forbidden_SetsAPIAvailable(t *testing.T) {
@@ -419,9 +428,13 @@ func TestResolve_ForbiddenMarksDegraded(t *testing.T) {
 		t.Fatalf("resolve() error = %v (controller stays fail-open)", err)
 	}
 	// Controller stays fail-open (APIAvailable true), but the result is flagged
-	// degraded so fail-closed consumers (the backend listener) can reject it.
+	// degraded AND PolicyUnreadable so fail-closed consumers (the backend listener)
+	// reject it — a denied read is a persistent misconfiguration, not a brownout.
 	if !result.Degraded {
 		t.Error("expected Degraded = true on Forbidden read")
+	}
+	if !result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = true on Forbidden read (denied, not transient)")
 	}
 }
 

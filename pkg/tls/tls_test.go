@@ -163,6 +163,21 @@ func TestResolveCiphersMixedTLS13And12Exact(t *testing.T) {
 	}
 }
 
+func TestResolveCiphersChaChaSHA256Aliases(t *testing.T) {
+	// Cross-resolver parity: the OpenSSL CHACHA20-POLY1305-SHA256 aliases (used by
+	// the operator and notebooks maps) must also resolve here.
+	codes, dropped := resolveCiphers([]string{
+		"ECDHE-ECDSA-CHACHA20-POLY1305-SHA256",
+		"ECDHE-RSA-CHACHA20-POLY1305-SHA256",
+	})
+	if len(dropped) != 0 {
+		t.Errorf("expected no dropped ciphers, got %v", dropped)
+	}
+	if len(codes) != 2 {
+		t.Errorf("expected 2 resolved ciphers, got %d (%v)", len(codes), codes)
+	}
+}
+
 func TestResolveCiphersDHEDropped(t *testing.T) {
 	// DHE ciphers are not supported by Go and should be dropped, not remapped.
 	names := []string{
