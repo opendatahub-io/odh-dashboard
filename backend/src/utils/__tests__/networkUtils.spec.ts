@@ -1,6 +1,13 @@
 import { X509Certificate } from 'crypto';
+import https from 'https';
 import tls, { PeerCertificate } from 'tls';
-import { bracketHostIfIPv6, ipv6AwareCheckServerIdentity, isIPv6Url } from '../networkUtils';
+import type { KubeConfig } from '@kubernetes/client-node';
+import {
+  applyIpv6AwareIdentityCheck,
+  bracketHostIfIPv6,
+  ipv6AwareCheckServerIdentity,
+  isIPv6Url,
+} from '../networkUtils';
 
 describe('bracketHostIfIPv6', () => {
   it('should wrap a raw IPv6 literal in brackets', () => {
@@ -198,5 +205,55 @@ FBGQ5ML+k9MgI2zBO32YBmZZX8G/rqHLlsYXGkfRC3AfLsyIpuFdjYXvox8tOH7G
     expect(
       ipv6AwareCheckServerIdentity('fc00:30::1', certMock(Buffer.from('not a certificate'))),
     ).toBe(error);
+  });
+});
+
+describe('applyIpv6AwareIdentityCheck', () => {
+  // Minimal KubeConfig stand-in whose applyToRequest sets TLS material like the real one does.
+  const fakeKubeConfig = (): { kc: KubeConfig; original: jest.Mock } => {
+    const original = jest.fn(async (opts: Record<string, unknown>) => {
+      opts.ca = Buffer.from('ca-data');
+      opts.cert = Buffer.from('cert-data');
+      opts.key = Buffer.from('key-data');
+    });
+    return { kc: { applyToRequest: original } as unknown as KubeConfig, original };
+  };
+
+  it('should attach an https.Agent carrying ipv6AwareCheckServerIdentity and the TLS material', async () => {
+    const { kc } = fakeKubeConfig();
+    applyIpv6AwareIdentityCheck(kc);
+
+    const opts: Record<string, unknown> = {};
+    await kc.applyToRequest(opts as unknown as Parameters<KubeConfig['applyToRequest']>[0]);
+
+    expect(opts.agent).toBeInstanceOf(https.Agent);
+    const agentOptions = (opts.agent as https.Agent).options;
+    expect(agentOptions.checkServerIdentity).toBe(ipv6AwareCheckServerIdentity);
+    expect(agentOptions.ca).toEqual(Buffer.from('ca-data'));
+    expect(agentOptions.cert).toEqual(Buffer.from('cert-data'));
+    expect(agentOptions.key).toEqual(Buffer.from('key-data'));
+  });
+
+  it('should still invoke the original applyToRequest (auth/TLS material preserved)', async () => {
+    const { kc, original } = fakeKubeConfig();
+    applyIpv6AwareIdentityCheck(kc);
+
+    const opts: Record<string, unknown> = {};
+    await kc.applyToRequest(opts as unknown as Parameters<KubeConfig['applyToRequest']>[0]);
+
+    expect(original).toHaveBeenCalledTimes(1);
+    expect(opts.ca).toEqual(Buffer.from('ca-data'));
+  });
+
+  it('should reuse a single agent instance across requests (connection pooling)', async () => {
+    const { kc } = fakeKubeConfig();
+    applyIpv6AwareIdentityCheck(kc);
+
+    const opts1: Record<string, unknown> = {};
+    const opts2: Record<string, unknown> = {};
+    await kc.applyToRequest(opts1 as unknown as Parameters<KubeConfig['applyToRequest']>[0]);
+    await kc.applyToRequest(opts2 as unknown as Parameters<KubeConfig['applyToRequest']>[0]);
+
+    expect(opts1.agent).toBe(opts2.agent);
   });
 });

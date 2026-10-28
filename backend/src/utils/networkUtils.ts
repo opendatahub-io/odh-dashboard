@@ -1,6 +1,8 @@
 import { X509Certificate } from 'crypto';
+import https from 'https';
 import net from 'net';
 import tls, { PeerCertificate } from 'tls';
+import type { KubeConfig } from '@kubernetes/client-node';
 
 /**
  * Wrap a raw IPv6 literal in square brackets so it can be safely concatenated into a
@@ -68,4 +70,37 @@ export const ipv6AwareCheckServerIdentity = (
   }
 
   return defaultError;
+};
+
+/**
+ * Make a `@kubernetes/client-node` KubeConfig apply the IPv6-aware TLS identity check to the typed
+ * API clients created from it (`makeApiClient(...)`), which otherwise bypass the fix wired into
+ * `proxyCall`.
+ *
+ * Those clients make requests through the `request` library, which on affected Node releases (see
+ * nodejs/node#64144 — 22.23.1/.2 mis-normalize IPv6 literals) fail IPv6 API-server calls with
+ * `ERR_TLS_CERT_ALTNAME_INVALID`. `request` drops a bare `checkServerIdentity` option and pools
+ * agents by a key that ignores it, so the only reliable injection point is a pre-built `agent`. We
+ * wrap `applyToRequest` to attach an `https.Agent` carrying the KubeConfig's own TLS material plus
+ * `ipv6AwareCheckServerIdentity`. The agent is built once (TLS material is stable for a KubeConfig)
+ * and reused for connection pooling.
+ */
+export const applyIpv6AwareIdentityCheck = (kubeConfig: KubeConfig): void => {
+  const applyToRequest = kubeConfig.applyToRequest.bind(kubeConfig);
+  let agent: https.Agent | undefined;
+  kubeConfig.applyToRequest = async (opts) => {
+    await applyToRequest(opts);
+    if (!agent) {
+      agent = new https.Agent({
+        ca: opts.ca,
+        cert: opts.cert,
+        key: opts.key,
+        ...(typeof opts.rejectUnauthorized === 'boolean'
+          ? { rejectUnauthorized: opts.rejectUnauthorized }
+          : {}),
+        checkServerIdentity: ipv6AwareCheckServerIdentity,
+      });
+    }
+    opts.agent = agent;
+  };
 };

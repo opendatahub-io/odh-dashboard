@@ -5,7 +5,7 @@ import { KubeFastifyInstance } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
 import { isImpersonating, getImpersonateAccessToken } from '../../../devFlags';
 import { getAccessToken } from '../../../utils/directCallUtils';
-import { bracketHostIfIPv6 } from '../../../utils/networkUtils';
+import { applyIpv6AwareIdentityCheck, bracketHostIfIPv6 } from '../../../utils/networkUtils';
 
 const REGISTRY_CONDITION_TYPE = 'Registry';
 
@@ -110,6 +110,7 @@ function getUserScopedCustomObjectsApi(
 
   const userKc = new k8s.KubeConfig();
   userKc.loadFromClusterAndUser(cluster, { name: 'current-user', token });
+  applyIpv6AwareIdentityCheck(userKc);
 
   return {
     api: userKc.makeApiClient(k8s.CustomObjectsApi),
