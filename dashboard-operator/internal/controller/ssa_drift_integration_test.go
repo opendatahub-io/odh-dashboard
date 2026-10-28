@@ -106,8 +106,8 @@ spec:
 	require.NoError(t, ctrl.SetControllerReference(dashboard, drifted, directClient.Scheme()))
 	require.NoError(t, directClient.Create(ctx, drifted, client.FieldOwner(ssaDriftOperatorManager)))
 	require.True(t, managerOwnsServicePorts(drifted, ssaDriftOperatorManager))
-	require.NoError(t, patchSSADriftService(ctx, directClient))
-	drifted = getSSADriftService(t, ctx, directClient)
+	drifted, err = patchSSADriftService(ctx, directClient)
+	require.NoError(t, err)
 	require.Equal(t, ssaDriftExternalPort, drifted.Spec.Ports[0].Port)
 	require.True(t, managerOwnsServicePorts(drifted, ssaDriftExternalManager))
 
@@ -149,9 +149,8 @@ spec:
 
 	// Reproduce the live oc patch after startup. The repair must arrive through
 	// the Service watch, without manually invoking Reconcile.
-	require.NoError(t, patchSSADriftService(ctx, directClient))
-
-	external := getSSADriftService(t, ctx, directClient)
+	external, err := patchSSADriftService(ctx, directClient)
+	require.NoError(t, err)
 	require.Equal(t, ssaDriftExternalPort, external.Spec.Ports[0].Port)
 	require.True(t, managerOwnsServicePorts(external, ssaDriftExternalManager),
 		"external field manager did not take ownership of spec.ports")
@@ -160,14 +159,17 @@ spec:
 		"owned-Service watch did not restore the externally managed port")
 }
 
-func patchSSADriftService(ctx context.Context, cli client.Client) error {
+func patchSSADriftService(ctx context.Context, cli client.Client) (*corev1.Service, error) {
 	patch := []byte(`{"spec":{"ports":[{"name":"maas-ui","port":9999,"protocol":"TCP","targetPort":8543}]}}`)
-	return cli.Patch(
-		ctx,
-		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: ssaDriftServiceName, Namespace: ssaDriftNamespace}},
+	service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: ssaDriftServiceName, Namespace: ssaDriftNamespace}}
+	if err := cli.Patch(
+		ctx, service,
 		client.RawPatch(types.MergePatchType, patch),
 		client.FieldOwner(ssaDriftExternalManager),
-	)
+	); err != nil {
+		return nil, err
+	}
+	return service, nil
 }
 
 func assertServicePortAndOwner(

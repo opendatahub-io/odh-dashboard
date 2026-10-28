@@ -14,6 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const managedAnnotation = "opendatahub.io/managed"
+
 // revertServicePortDrift replaces a live Service's port list when an external
 // field manager changes an associative-list key such as spec.ports[*].port.
 // ForceOwnership alone cannot remove the now externally owned list entry, so
@@ -32,6 +34,9 @@ func revertServicePortDrift(
 		if desired.GetKind() != "Service" || desired.GroupVersionKind().Group != "" {
 			continue
 		}
+		if servicePortRepairOptedOut(desired) {
+			continue
+		}
 
 		live := &unstructured.Unstructured{}
 		live.SetGroupVersionKind(desired.GroupVersionKind())
@@ -41,6 +46,9 @@ func revertServicePortDrift(
 				continue
 			}
 			return fmt.Errorf("getting live Service %s: %w", key, err)
+		}
+		if servicePortRepairOptedOut(live) {
+			continue
 		}
 
 		patch, err := buildServicePortDriftPatch(live, desired)
@@ -72,6 +80,10 @@ func revertServicePortDrift(
 	}
 
 	return nil
+}
+
+func servicePortRepairOptedOut(service *unstructured.Unstructured) bool {
+	return service.GetAnnotations()[managedAnnotation] == "false"
 }
 
 func buildServicePortDriftPatch(live, desired *unstructured.Unstructured) (map[string]any, error) {
@@ -170,6 +182,14 @@ func desiredServicePortFieldsMatch(live, desired map[string]any) bool {
 			return false
 		}
 	}
+	for key := range live {
+		if key == "nodePort" || key == "protocol" || key == "targetPort" || key == "port" {
+			continue
+		}
+		if _, exists := desired[key]; !exists {
+			return false
+		}
+	}
 	return true
 }
 
@@ -215,22 +235,35 @@ func servicePortNumber(value any) (int64, bool) {
 }
 
 func preserveAllocatedNodePorts(livePorts, desiredPorts []any) {
-	for _, desiredPort := range desiredPorts {
+	for desiredIndex, desiredPort := range desiredPorts {
 		desired, ok := desiredPort.(map[string]any)
 		if !ok || hasExplicitNodePort(desired) {
 			continue
 		}
+		var matchingLive map[string]any
 		for _, livePort := range livePorts {
 			live, ok := livePort.(map[string]any)
 			if !ok || !sameServicePortIdentity(live, desired) {
 				continue
 			}
-			if nodePort, exists := live["nodePort"]; exists {
-				desired["nodePort"] = nodePort
-			}
+			matchingLive = live
 			break
 		}
+		if matchingLive == nil && desiredPortIsUnnamed(desired) && desiredIndex < len(livePorts) {
+			live, ok := livePorts[desiredIndex].(map[string]any)
+			if ok && desiredPortIsUnnamed(live) && normalizedProtocol(live) == normalizedProtocol(desired) {
+				matchingLive = live
+			}
+		}
+		if nodePort, exists := matchingLive["nodePort"]; exists {
+			desired["nodePort"] = nodePort
+		}
 	}
+}
+
+func desiredPortIsUnnamed(port map[string]any) bool {
+	name, _ := port["name"].(string)
+	return name == ""
 }
 
 func hasExplicitNodePort(port map[string]any) bool {
