@@ -39,7 +39,7 @@ type FieldConfig = {
   helperText?: string;
 };
 
-const SOURCE_LABELS: Record<TestDataRefFormValues['source'], string> = {
+export const SOURCE_LABELS: Record<TestDataRefFormValues['source'], string> = {
   '': 'None (use benchmark default data)',
   s3: 'S3 — object storage',
   pvc: 'Persistent volume claim (PVC)',

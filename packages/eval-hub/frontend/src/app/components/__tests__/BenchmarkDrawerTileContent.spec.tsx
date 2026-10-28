@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
 import BenchmarkDrawerTileContent from '~/app/components/BenchmarkDrawerTileContent';
@@ -195,6 +195,149 @@ describe('BenchmarkDrawerTileContent', () => {
     expect(screen.getByText('0.5 output tokens/s')).toBeInTheDocument();
   });
 
+  /* eslint-disable camelcase */
+  describe('test data reference', () => {
+    it('should render an S3 test data reference definition', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          trackingSurface="test_surface"
+          testDataRef={{
+            s3: {
+              bucket: 'eval-data',
+              key: 'datasets/benchmark-a/v1',
+              secret_ref: 's3-connection',
+              type: 'data_set',
+            },
+          }}
+        />,
+      );
+
+      const section = screen.getByTestId('benchmark-test-data-ref');
+      expect(within(section).getByText('S3 — object storage')).toBeInTheDocument();
+      expect(within(section).getByText('Data set')).toBeInTheDocument();
+      expect(within(section).getByText('Bucket')).toBeInTheDocument();
+      expect(within(section).getByText('eval-data')).toBeInTheDocument();
+      expect(within(section).getByText('Object key or prefix')).toBeInTheDocument();
+      expect(within(section).getByText('datasets/benchmark-a/v1')).toBeInTheDocument();
+      expect(within(section).getByText('Secret')).toBeInTheDocument();
+      expect(within(section).getByText('s3-connection')).toBeInTheDocument();
+    });
+
+    it('should render a PVC test data reference definition', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          trackingSurface="test_surface"
+          testDataRef={{
+            pvc: { claim_name: 'responses', sub_path: 'runs/v1', type: 'pre_recorded_data' },
+          }}
+        />,
+      );
+
+      const section = screen.getByTestId('benchmark-test-data-ref');
+      expect(within(section).getByText('Persistent volume claim (PVC)')).toBeInTheDocument();
+      expect(within(section).getByText('Pre-recorded data')).toBeInTheDocument();
+      expect(within(section).getByText('Claim name')).toBeInTheDocument();
+      expect(within(section).getByText('responses')).toBeInTheDocument();
+      expect(within(section).getByText('Sub path')).toBeInTheDocument();
+      expect(within(section).getByText('runs/v1')).toBeInTheDocument();
+    });
+
+    it('should render a Git test data reference definition', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          trackingSurface="test_surface"
+          testDataRef={{
+            git: {
+              url: 'https://example.com/data.git',
+              ref: 'main',
+              sub_path: 'datasets',
+              secret_ref: 'git-auth',
+            },
+          }}
+        />,
+      );
+
+      const section = screen.getByTestId('benchmark-test-data-ref');
+      expect(within(section).getByText('Git repository')).toBeInTheDocument();
+      expect(within(section).getByText('Repository URL')).toBeInTheDocument();
+      expect(within(section).getByText('https://example.com/data.git')).toBeInTheDocument();
+      expect(within(section).getByText('Git reference')).toBeInTheDocument();
+      expect(within(section).getByText('main')).toBeInTheDocument();
+      expect(within(section).getByText('datasets')).toBeInTheDocument();
+      expect(within(section).getByText('git-auth')).toBeInTheDocument();
+      expect(within(section).queryByText('Data type')).not.toBeInTheDocument();
+    });
+
+    it('should render a Hugging Face test data reference definition', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          trackingSurface="test_surface"
+          testDataRef={{
+            hf: { repo_id: 'cais/mmlu', revision: 'v1', secret_ref: 'hf-token' },
+          }}
+        />,
+      );
+
+      const section = screen.getByTestId('benchmark-test-data-ref');
+      expect(within(section).getByText('Hugging Face dataset')).toBeInTheDocument();
+      expect(within(section).getByText('Repository ID')).toBeInTheDocument();
+      expect(within(section).getByText('cais/mmlu')).toBeInTheDocument();
+      expect(within(section).getByText('Revision')).toBeInTheDocument();
+      expect(within(section).getByText('v1')).toBeInTheDocument();
+      expect(within(section).getByText('hf-token')).toBeInTheDocument();
+    });
+
+    it('should render the test data section with the None source when no ref is provided', () => {
+      render(
+        <BenchmarkDrawerTileContent name="Test" id="bench-1" trackingSurface="test_surface" />,
+      );
+      const section = screen.getByTestId('benchmark-test-data-ref');
+      expect(within(section).getByText('None (use benchmark default data)')).toBeInTheDocument();
+      expect(within(section).queryByText('Data type')).not.toBeInTheDocument();
+    });
+
+    it('should render the test data section with the None source when the ref has no source', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          trackingSurface="test_surface"
+          testDataRef={{}}
+        />,
+      );
+      const section = screen.getByTestId('benchmark-test-data-ref');
+      expect(within(section).getByText('None (use benchmark default data)')).toBeInTheDocument();
+    });
+
+    it('should hide test data behind the expand toggle when collapsible', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          trackingSurface="test_surface"
+          isCollapsible
+          testDataRef={{ pvc: { claim_name: 'responses' } }}
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: /^Expand/ })).toBeInTheDocument();
+      expect(screen.queryByText('Test data')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
+      expect(screen.getByText('Test data')).toBeInTheDocument();
+      expect(screen.getByText('responses')).toBeInTheDocument();
+    });
+  });
+  /* eslint-enable camelcase */
+
   it('should not render provider section when providerName is undefined', () => {
     render(<BenchmarkDrawerTileContent name="Test" id="bench-1" trackingSurface="test_surface" />);
     expect(screen.queryByText('Evaluation framework')).not.toBeInTheDocument();
@@ -238,6 +381,30 @@ describe('BenchmarkDrawerTileContent', () => {
   });
 
   describe('collapsible behavior', () => {
+    it('should include the benchmark name in the toggle and expand when the name is clicked', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Named Benchmark"
+          id="bench-1"
+          description="Hidden description"
+          trackingSurface="test_surface"
+          isCollapsible
+        />,
+      );
+
+      const expandButton = screen.getByRole('button', { name: 'Expand Named Benchmark' });
+      expect(expandButton).toHaveAttribute('aria-expanded', 'false');
+      expect(within(expandButton).getByText('Named Benchmark')).toBeInTheDocument();
+
+      fireEvent.click(expandButton);
+
+      expect(screen.getByText('Hidden description')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Collapse Named Benchmark' })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
+    });
+
     it('should not show expand/collapse button when isCollapsible is false', () => {
       render(
         <BenchmarkDrawerTileContent
@@ -265,7 +432,7 @@ describe('BenchmarkDrawerTileContent', () => {
           isCollapsible
         />,
       );
-      expect(screen.getByRole('button', { name: 'Expand' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Expand/ })).toBeInTheDocument();
       expect(screen.queryByText('Description')).not.toBeInTheDocument();
       expect(screen.queryByText('Hidden description')).not.toBeInTheDocument();
       expect(screen.queryByText('Metrics evaluated')).not.toBeInTheDocument();
@@ -284,8 +451,8 @@ describe('BenchmarkDrawerTileContent', () => {
           isCollapsible
         />,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
-      expect(screen.getByRole('button', { name: 'Collapse' })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
+      expect(screen.getByRole('button', { name: /^Collapse/ })).toBeInTheDocument();
       expect(screen.getByText('Description')).toBeInTheDocument();
       expect(screen.getByText('Revealed description')).toBeInTheDocument();
       expect(screen.getByText('Metrics evaluated')).toBeInTheDocument();
@@ -302,10 +469,10 @@ describe('BenchmarkDrawerTileContent', () => {
           isCollapsible
         />,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+      fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
       expect(screen.getByText('Toggle description')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Collapse' }));
+      fireEvent.click(screen.getByRole('button', { name: /^Collapse/ }));
       expect(screen.queryByText('Toggle description')).not.toBeInTheDocument();
     });
 
@@ -327,7 +494,7 @@ describe('BenchmarkDrawerTileContent', () => {
       expect(screen.getByText('Metrics evaluated')).toBeInTheDocument();
     });
 
-    it('should not be collapsible when tile has no description or metadata', () => {
+    it('should be collapsible with only the None test data section when tile has no description or metadata', () => {
       render(
         <BenchmarkDrawerTileContent
           name="Empty Benchmark"
@@ -336,10 +503,13 @@ describe('BenchmarkDrawerTileContent', () => {
           isCollapsible
         />,
       );
-      expect(screen.queryByRole('button', { name: /expand/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /collapse/i })).not.toBeInTheDocument();
       expect(screen.getByText('Empty Benchmark')).toBeInTheDocument();
       expect(screen.getByText('bench-empty')).toBeInTheDocument();
+      expect(screen.queryByText('Test data')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
+      expect(screen.getByText('Test data')).toBeInTheDocument();
+      expect(screen.getByText('None (use benchmark default data)')).toBeInTheDocument();
     });
 
     it('should still show header name and subtitle when collapsed', () => {

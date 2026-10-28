@@ -18,6 +18,7 @@ import {
   ProviderAgentMetadata,
   ProviderBenchmarkPassCriteria,
   ProviderBenchmarkScore,
+  TestDataRef,
 } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
@@ -25,6 +26,7 @@ import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import { formatThresholdValue } from '~/app/utilities/evaluationUtils';
 import { capitalizeFirst, getMetricDisplayName, toSafeExternalUrl } from './benchmarkUtils';
+import { SOURCE_LABELS } from './BenchmarkTestDataRefFields';
 
 type BenchmarkDrawerTileContentProps = {
   name: string;
@@ -35,11 +37,100 @@ type BenchmarkDrawerTileContentProps = {
   providerAgent?: ProviderAgentMetadata;
   primaryScore?: ProviderBenchmarkScore;
   passCriteria?: ProviderBenchmarkPassCriteria;
+  testDataRef?: TestDataRef;
   url?: string;
   trackingSurface: string;
   showHeader?: boolean;
   isCollapsible?: boolean;
   isCompact?: boolean;
+};
+
+type TestDataRefDetail = {
+  label: string;
+  value: string;
+};
+
+type TestDataRefSummary = {
+  source: string;
+  typeLabel?: string;
+  details: TestDataRefDetail[];
+};
+
+const getTestDataRefTypeLabel = (type?: string): string | undefined => {
+  if (!type) {
+    return undefined;
+  }
+  if (type === 'pre_recorded_data') {
+    return 'Pre-recorded data';
+  }
+  if (type === 'data_set') {
+    return 'Data set';
+  }
+  return capitalizeFirst(type.replace(/_/g, ' '));
+};
+
+const buildTestDataRefDetails = (
+  entries: [label: string, value: string | undefined][],
+): TestDataRefDetail[] => entries.flatMap(([label, value]) => (value ? [{ label, value }] : []));
+
+/**
+ * Flattens a benchmark's test_data_ref into the definition rendered on the card.
+ * Exactly one source is set per the API contract, so the first match wins.
+ * A missing or source-less ref falls back to the "None" summary so the section
+ * still renders, mirroring the None option in the test data source dropdown.
+ */
+const summarizeTestDataRef = (ref?: TestDataRef): TestDataRefSummary | undefined => {
+  if (ref?.s3) {
+    return {
+      source: SOURCE_LABELS.s3,
+      typeLabel: getTestDataRefTypeLabel(ref.s3.type),
+      details: buildTestDataRefDetails([
+        ['Bucket', ref.s3.bucket],
+        ['Object key or prefix', ref.s3.key],
+        ['Secret', ref.s3.secret_ref],
+      ]),
+    };
+  }
+  if (ref?.pvc) {
+    return {
+      source: SOURCE_LABELS.pvc,
+      typeLabel: getTestDataRefTypeLabel(ref.pvc.type),
+      details: buildTestDataRefDetails([
+        ['Claim name', ref.pvc.claim_name],
+        ['Sub path', ref.pvc.sub_path],
+      ]),
+    };
+  }
+  if (ref?.git) {
+    return {
+      source: SOURCE_LABELS.git,
+      typeLabel: getTestDataRefTypeLabel(ref.git.type),
+      details: buildTestDataRefDetails([
+        ['Repository URL', ref.git.url],
+        ['Git reference', ref.git.ref],
+        ['Sub path', ref.git.sub_path],
+        ['Secret', ref.git.secret_ref],
+      ]),
+    };
+  }
+  if (ref?.hf) {
+    return {
+      source: SOURCE_LABELS.hf,
+      typeLabel: getTestDataRefTypeLabel(ref.hf.type),
+      details: buildTestDataRefDetails([
+        ['Repository ID', ref.hf.repo_id],
+        ['Revision', ref.hf.revision],
+        ['Sub path', ref.hf.sub_path],
+        ['Secret', ref.hf.secret_ref],
+      ]),
+    };
+  }
+  return undefined;
+};
+
+const NONE_TEST_DATA_REF_SUMMARY: TestDataRefSummary = {
+  source: SOURCE_LABELS[''],
+  details: [],
 };
 
 const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
@@ -51,6 +142,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
   providerAgent,
   primaryScore,
   passCriteria,
+  testDataRef,
   url,
   trackingSurface,
   showHeader = true,
@@ -59,10 +151,21 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const resolvedUrl = toSafeExternalUrl(url) ?? getBenchmarkDatasetUrl(id);
+  const testDataRefSummary = summarizeTestDataRef(testDataRef) ?? NONE_TEST_DATA_REF_SUMMARY;
 
   const compactFontStyle: React.CSSProperties | undefined = isCompact
     ? { fontSize: 'var(--pf-t--global--font--size--sm)' }
     : undefined;
+
+  const testDataDetailFontStyle: React.CSSProperties = {
+    fontSize: isCompact
+      ? 'var(--pf-t--global--font--size--xs)'
+      : 'var(--pf-t--global--font--size--sm)',
+  };
+
+  const testDataListStyle: React.CSSProperties = {
+    paddingInlineStart: 'var(--pf-t--global--spacer--sm)',
+  };
 
   const subtleStyle: React.CSSProperties = {
     color: 'var(--pf-t--global--text--color--subtle)',
@@ -71,7 +174,8 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
   };
 
   const hasMetrics = metrics && metrics.length > 0;
-  const hasDescriptionList = hasMetrics || providerName || primaryScore || passCriteria;
+  const hasDescriptionList =
+    hasMetrics || providerName || primaryScore || passCriteria || !!testDataRefSummary;
   const collapsible = isCollapsible && showHeader && (!!description || !!hasDescriptionList);
 
   return (
@@ -80,28 +184,35 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
         <>
           <FlexItem>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              {collapsible && (
-                <FlexItem>
+              <FlexItem>
+                {collapsible ? (
                   <Button
                     variant="plain"
-                    aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${name}`}
+                    aria-expanded={isExpanded}
                     onClick={() => setIsExpanded((prev) => !prev)}
                     isInline
+                    icon={isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
                   >
-                    {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
+                    <span
+                      style={{
+                        fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+                      }}
+                    >
+                      {name}
+                    </span>
                   </Button>
-                </FlexItem>
-              )}
-              <FlexItem>
-                <Content
-                  component="p"
-                  style={{
-                    fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
-                    margin: 0,
-                  }}
-                >
-                  {name}
-                </Content>
+                ) : (
+                  <Content
+                    component="p"
+                    style={{
+                      fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+                      margin: 0,
+                    }}
+                  >
+                    {name}
+                  </Content>
+                )}
               </FlexItem>
             </Flex>
           </FlexItem>
@@ -196,6 +307,45 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 )}
+                <DescriptionListGroup>
+                  <DescriptionListTerm style={compactFontStyle}>Test data</DescriptionListTerm>
+                  <DescriptionListDescription data-testid="benchmark-test-data-ref">
+                    <DescriptionList
+                      isCompact={isCompact}
+                      isAutoFit={isCompact}
+                      style={testDataListStyle}
+                    >
+                      <DescriptionListGroup>
+                        <DescriptionListTerm style={testDataDetailFontStyle}>
+                          Source
+                        </DescriptionListTerm>
+                        <DescriptionListDescription style={testDataDetailFontStyle}>
+                          {testDataRefSummary.source}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                      {testDataRefSummary.typeLabel && (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm style={testDataDetailFontStyle}>
+                            Data type
+                          </DescriptionListTerm>
+                          <DescriptionListDescription style={testDataDetailFontStyle}>
+                            {testDataRefSummary.typeLabel}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      )}
+                      {testDataRefSummary.details.map((detail) => (
+                        <DescriptionListGroup key={detail.label}>
+                          <DescriptionListTerm style={testDataDetailFontStyle}>
+                            {detail.label}
+                          </DescriptionListTerm>
+                          <DescriptionListDescription style={testDataDetailFontStyle}>
+                            {detail.value}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      ))}
+                    </DescriptionList>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
                 {providerName && (
                   <DescriptionListGroup>
                     <DescriptionListTerm style={compactFontStyle}>
