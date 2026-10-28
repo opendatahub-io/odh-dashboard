@@ -90,6 +90,24 @@ After the installer completes, verify the following files exist and are correct.
   ```
 - Note: The `service` config is used by the operator when generating the federation-config ConfigMap
 
+- If BFF included, add `cypress:server:e2e` script to the **parent module's** `package.json`:
+
+  ```json
+  "scripts": {
+    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=<allocated-frontend-port>"
+  }
+  ```
+
+  This allows the package's BFF to run on the allocated port during E2E tests. The port must match `module-federation.local.port`.
+
+  Examples from existing packages:
+  - `maas`: `E2E_BFF_PORT=9104`
+  - `gen-ai`: `E2E_BFF_PORT=9102`
+  - `notebooks`: `E2E_BFF_PORT=9105`
+  - `data-connect-hub`: `E2E_BFF_PORT=9113`
+
+  The `dev-bff-e2e-cluster` Makefile target passes this port to the BFF via `PORT=$(E2E_BFF_PORT)`. See existing packages for the full Makefile pattern.
+
 - Dependencies include `@odh-dashboard/plugin-core` and `@odh-dashboard/internal`
 - `exports` includes `"./extensions": "./frontend/src/odh/extensions.ts"`
 
