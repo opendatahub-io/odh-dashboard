@@ -1,6 +1,8 @@
 import React from 'react';
 import {
+  Badge,
   Button,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -50,16 +52,12 @@ type ConnectionsTabProps = { namespace: string; isActive?: boolean };
 
 export const synchronizeTypeSelection = (
   current: string[] | null,
-  previousIds: string[],
   availableIds: string[],
 ): string[] | null => {
-  if (current === null) {
-    return availableIds.length > 0 ? availableIds : null;
+  if (current === null || current.length === 0) {
+    return current;
   }
-  const newIds = availableIds.filter((id) => !previousIds.includes(id));
-  const next = Array.from(new Set([...current, ...newIds])).filter((id) =>
-    availableIds.includes(id),
-  );
+  const next = current.filter((id) => availableIds.includes(id));
   return next.length === current.length && next.every((id, index) => id === current[index])
     ? current
     : next;
@@ -110,13 +108,11 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       ),
     [connections],
   );
-  const activeTypes = (selectedTypes ?? typeIds).filter((typeId) => typeIds.includes(typeId));
-  const previousTypeIds = React.useRef<string[]>([]);
+  const selectedTypeIds = (selectedTypes ?? []).filter((typeId) => typeIds.includes(typeId));
+  const hasTypeFilter = selectedTypeIds.length > 0;
+  const filterTypes = hasTypeFilter ? selectedTypeIds : typeIds;
   React.useEffect(() => {
-    const previousIds = previousTypeIds.current;
-    previousTypeIds.current = typeIds;
-
-    setSelectedTypes((current) => synchronizeTypeSelection(current, previousIds, typeIds));
+    setSelectedTypes((current) => synchronizeTypeSelection(current, typeIds));
   }, [typeIds]);
 
   const previousConnections = React.useRef(connections);
@@ -178,7 +174,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const filtered = connections.filter(
     (connection) =>
       connection.resource.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-      activeTypes.includes(connection.resource.data_connection_type_id),
+      filterTypes.includes(connection.resource.data_connection_type_id),
   );
 
   const sorted = filtered.toSorted((left, right) => {
@@ -206,11 +202,11 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     },
     columnIndex: index,
   });
-  const hasFilters = nameFilter !== '' || activeTypes.length < typeIds.length;
+  const hasFilters = nameFilter !== '' || hasTypeFilter;
   const toggleType = (id: string) => {
     trackListFilterApplied('type');
     setSelectedTypes((current) => {
-      const values = current ?? typeIds;
+      const values = current ?? [];
       return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
     });
   };
@@ -304,9 +300,8 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   return (
     <PageSection isFilled>
       <p className="pf-v6-u-mb-md">
-        View and manage the data connections available in this project. This registry provides a
-        structured way to store and configure namespace-scoped connections for use by catalog assets
-        and workloads.
+        View and manage connections to external data sources. Connections enable you to securely
+        store credentials, and can be used in workbenches, pipelines, and to create data assets.
       </p>
       <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-md">
         Data connections
@@ -327,11 +322,16 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                           ref={ref}
                           icon={<FilterIcon />}
                           onClick={() => setTypeOpen((open) => !open)}
+                          badge={
+                            hasTypeFilter ? (
+                              <Badge isRead data-testid="connections-type-filter-badge">
+                                {selectedTypeIds.length}
+                              </Badge>
+                            ) : undefined
+                          }
                           data-testid="connection-type-filter-toggle"
                         >
-                          {activeTypes.length === typeIds.length
-                            ? 'Type'
-                            : `Type: ${activeTypes.length} selected`}
+                          Type
                         </MenuToggle>
                       )}
                     >
@@ -341,7 +341,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                             key={id}
                             value={id}
                             hasCheckbox
-                            isSelected={activeTypes.includes(id)}
+                            isSelected={selectedTypeIds.includes(id)}
                             onClick={(event) => {
                               event.stopPropagation();
                               toggleType(id);
@@ -374,11 +374,11 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
             </ToolbarItem>
           ) : null}
         </ToolbarContent>
-        {connections.length > 0 && activeTypes.length < typeIds.length && (
+        {connections.length > 0 && hasTypeFilter && (
           <ToolbarContent>
             <ToolbarItem>
-              <LabelGroup categoryName="Type">
-                {activeTypes.map((id) => (
+              <LabelGroup categoryName="Type" data-testid="connections-type-filter-labels">
+                {selectedTypeIds.map((id) => (
                   <Label key={id} variant="outline" onClose={() => toggleType(id)}>
                     {getTypeName(id)}
                   </Label>
@@ -412,7 +412,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
             <Tr>
               <Th sort={getSort(0)}>Name</Th>
               <Th sort={getSort(1)}>Type</Th>
-              <Th sort={getSort(2)}>Status</Th>
+              <Th sort={getSort(2)}>Verification status</Th>
               <Th screenReaderText="Actions" />
             </Tr>
           </Thead>
@@ -440,7 +440,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                               nameFilterTrackingTimerRef.current = undefined;
                             }
                             setNameFilter('');
-                            setSelectedTypes(typeIds);
+                            setSelectedTypes(null);
                           }}
                         >
                           Clear all filters
@@ -464,7 +464,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                   <Td dataLabel="Type">
                     {getTypeName(connection.resource.data_connection_type_id)}
                   </Td>
-                  <Td dataLabel="Status">
+                  <Td dataLabel="Verification status">
                     {verifying.has(connection.metadata.id) ? (
                       <Label
                         color="blue"
@@ -477,7 +477,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                       hasVerificationOutcome(connection) ? (
                       <>
                         <Label variant="outline" status={statusVariant[connection.status.state]}>
-                          {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}
+                          {connection.status.state === 'ready' ? 'Verified' : 'Failed'}
                         </Label>
                         <HelperText>
                           <HelperTextItem>
@@ -529,6 +529,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                         >
                           Verify connection
                         </DropdownItem>
+                        <Divider />
                         <DropdownItem
                           onClick={() => {
                             setActionsFor(undefined);
