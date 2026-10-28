@@ -255,6 +255,147 @@ func TestPatchCollectionHandlerRejectsInvalidOperations(t *testing.T) {
 	}
 }
 
+func TestPatchCollectionHandlerRejectsInvalidBenchmarkTestDataRefs(t *testing.T) {
+	gitCollection := func() *evalhub.Collection {
+		return &evalhub.Collection{
+			Resource: evalhub.CollectionResource{ID: "collection-001"},
+			Name:     "Suite with git test data",
+			Benchmarks: []evalhub.CollectionBenchmark{{
+				ID:         "mmlu",
+				ProviderID: "lm_evaluation_harness",
+				Weight:     1,
+				TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+					URL: "https://github.com/example/data.git",
+					Ref: "main",
+				}},
+			}},
+		}
+	}
+
+	tests := []struct {
+		name       string
+		collection *evalhub.Collection
+		operations []evalhub.CollectionPatchOperation
+		message    string
+	}{
+		{
+			name:       "whole benchmark replacement with embedded credentials",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0",
+				Value: json.RawMessage(`{"id":"mmlu","weight":1,"test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}`),
+			}},
+			message: "must not embed credentials",
+		},
+		{
+			name:       "nested git url patch with embedded credentials",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/test_data_ref/git/url",
+				Value: json.RawMessage(`"https://user:pass@example.com/data.git"`),
+			}},
+			message: "must not embed credentials",
+		},
+		{
+			name:       "appended benchmark with http url and secret reference",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/-",
+				Value: json.RawMessage(`{"id":"hellaswag","weight":1,"test_data_ref":{"git":{"url":"http://example.com/data.git","ref":"main","secret_ref":"my-secret"}}}`),
+			}},
+			message: "must use https when a secret reference is provided",
+		},
+		{
+			name:       "nested secret ref patch added to http url",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/test_data_ref/git/url",
+				Value: json.RawMessage(`"http://example.com/data.git"`),
+			}, {
+				Op:    "add",
+				Path:  "/benchmarks/0/test_data_ref/git/secret_ref",
+				Value: json.RawMessage(`"my-secret"`),
+			}},
+			message: "must use https when a secret reference is provided",
+		},
+		{
+			name:       "patch that does not apply to current collection",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:   "remove",
+				Path: "/benchmarks/9",
+			}},
+			message: "patch does not apply to the current collection",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			mockClient := ehmocks.NewMockEvalHubClient()
+			mockClient.SetCollection("collection-001", tt.collection)
+
+			result, response, err := setupApiTestWithEvalHub[HTTPError](
+				http.MethodPatch,
+				ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+				tt.operations, nil, identity, mockClient,
+			)
+
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+			assert.Contains(t, result.Error.Message, tt.message)
+
+			getResult, getResponse, err := setupApiTestWithEvalHub[CollectionEnvelope](
+				http.MethodGet,
+				ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+				nil, nil, identity, mockClient,
+			)
+
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusOK, getResponse.StatusCode)
+			assert.Equal(t, "https://github.com/example/data.git", getResult.Data.Benchmarks[0].TestDataRef.Git.URL)
+		})
+	}
+}
+
+func TestPatchCollectionHandlerAllowsValidBenchmarkTestDataRef(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+	mockClient.SetCollection("collection-001", &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite with git test data",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID:         "mmlu",
+			ProviderID: "lm_evaluation_harness",
+			Weight:     1,
+			TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+				URL: "https://github.com/example/data.git",
+				Ref: "main",
+			}},
+		}},
+	})
+	operations := []evalhub.CollectionPatchOperation{{
+		Op:    "replace",
+		Path:  "/benchmarks/0/test_data_ref",
+		Value: json.RawMessage(`{"git":{"url":"https://github.com/example/data-v2.git","ref":"v2"}}`),
+	}}
+
+	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
+		http.MethodPatch,
+		ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+		operations, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "https://github.com/example/data-v2.git", result.Data.Benchmarks[0].TestDataRef.Git.URL)
+	assert.Equal(t, "v2", result.Data.Benchmarks[0].TestDataRef.Git.Ref)
+}
+
 func TestPatchCollectionHandlerServerError(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	operations := []evalhub.CollectionPatchOperation{{

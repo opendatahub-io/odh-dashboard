@@ -1,6 +1,7 @@
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import type { Collection, EvaluationJob, InferenceServiceItem, TestDataRef } from '~/app/types';
 import extractReconfigureData, { inferSourceMode } from '~/app/utils/extractReconfigureData';
+import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 
 const mockInferenceService = (name: string, url?: string): InferenceServiceItem => ({
@@ -428,6 +429,56 @@ describe('extractReconfigureData', () => {
 
     expect(result.sourceMode).toBe('model');
     expect(result.datasetUrl).toBe('');
+  });
+
+  it('should keep an untyped split bucket and key dataset ref in model mode through a round-trip', () => {
+    const job = mockEvaluationJob({ modelName: 'model-a', benchmarkId: 'b1' });
+    job.benchmarks = [
+      {
+        id: 'b1',
+        test_data_ref: {
+          // Omitted type defaults to data_set per the contract.
+          s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
+        },
+      },
+    ];
+    job.model.url = 'https://ext.example.com/v1';
+    job.model.auth = { secret_ref: 'model-secret' };
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.sourceMode).toBe('model');
+    expect(result.testDataRef).toEqual({
+      ...testDataRefDefaultValues,
+      source: 's3',
+      bucket: 'eval-data',
+      key: 'ragas',
+      secretRef: 's3-secret',
+    });
+
+    const request = buildEvaluationRequest({
+      evaluationName: result.evaluationName,
+      sourceMode: result.sourceMode,
+      benchmark: result.benchmark,
+      collection: result.collection,
+      modelName: result.modelName,
+      endpointUrl: result.endpointUrl,
+      apiKeySecretRef: result.apiKeySecretRef,
+      sourceName: result.sourceName,
+      datasetUrl: result.datasetUrl,
+      accessToken: result.accessToken,
+      testDataRef: result.testDataRef,
+      additionalArgs: {},
+    });
+
+    expect(request.model).toEqual({
+      name: 'model-a',
+      url: 'https://ext.example.com/v1',
+      auth: { secret_ref: 'model-secret' },
+    });
+    expect(request.benchmarks?.[0].test_data_ref).toEqual({
+      s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+    });
   });
 
   it('should hydrate testDataRef for model-mode reconfigures from any variant', () => {

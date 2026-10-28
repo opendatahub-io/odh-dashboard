@@ -49,9 +49,14 @@ const isPrerecordedTestDataRef = (
     if (!s3) {
       return false;
     }
-    // An explicit type wins; fall back to s3 presence for legacy jobs created
-    // before the UI emitted an explicit type (those were prerecorded runs).
-    return s3.type ? s3.type === 'pre_recorded_data' : true;
+    // An explicit type wins. The contract defaults an omitted type to
+    // data_set, so the fallback matches only the legacy prerecorded
+    // representation the old UI emitted: no bucket, with the full s3:// URL
+    // stored in key.
+    if (s3.type) {
+      return s3.type === 'pre_recorded_data';
+    }
+    return !s3.bucket && (s3.key ?? '').startsWith('s3://');
   }) ?? false;
 
 // Non-S3 references typed pre_recorded_data. The UI has no flow to create or
@@ -158,7 +163,8 @@ const extractReconfigureData = (
     if (refBenchmark?.test_data_ref?.s3) {
       const { s3 } = refBenchmark.test_data_ref;
       // Jobs created after the S3DataRef contract split store bucket and key
-      // separately; legacy jobs stored the full s3:// URL in key.
+      // separately; the previous UI emitted the full s3:// URL in key with no
+      // bucket.
       datasetUrl = s3.bucket ? buildS3DatasetUrl(s3.bucket, s3.key ?? '') : (s3.key ?? '');
       // eslint-disable-next-line camelcase
       accessToken = s3.secret_ref ?? '';

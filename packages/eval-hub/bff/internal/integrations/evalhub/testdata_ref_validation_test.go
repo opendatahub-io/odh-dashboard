@@ -1,6 +1,7 @@
 package evalhub
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -84,7 +85,7 @@ func TestTestDataRefValidate(t *testing.T) {
 		},
 		{
 			name: "git without secret over http is valid",
-			ref:  &TestDataRef{Git: &TestDataRefGit{URL: "http://example.com/repo.git"}},
+			ref:  &TestDataRef{Git: &TestDataRefGit{URL: "http://example.com/repo.git", Ref: "main"}},
 		},
 		{
 			name: "git with relative sub_path is valid",
@@ -130,6 +131,79 @@ func TestTestDataRefValidate(t *testing.T) {
 			name:    "hf sub_path with leading slash is rejected",
 			ref:     &TestDataRef{HF: &TestDataRefHF{RepoID: "org/repo", SubPath: "/abs"}},
 			wantErr: "hf test data sub_path must not start with a slash",
+		},
+		{
+			name:    "pvc with missing claim_name is rejected",
+			ref:     &TestDataRef{PVC: &TestDataRefPVC{SubPath: "data"}},
+			wantErr: "pvc test data claim_name must not be empty",
+		},
+		{
+			name:    "pvc with whitespace claim_name is rejected",
+			ref:     &TestDataRef{PVC: &TestDataRefPVC{ClaimName: "  "}},
+			wantErr: "pvc test data claim_name must not be empty",
+		},
+		{
+			name: "pvc with 63 character claim_name is valid",
+			ref:  &TestDataRef{PVC: &TestDataRefPVC{ClaimName: strings.Repeat("a", 63)}},
+		},
+		{
+			name:    "pvc with 64 character claim_name is rejected",
+			ref:     &TestDataRef{PVC: &TestDataRefPVC{ClaimName: strings.Repeat("a", 64)}},
+			wantErr: "pvc test data claim_name must be at most 63 characters, got 64",
+		},
+		{
+			name:    "git with missing ref is rejected",
+			ref:     &TestDataRef{Git: &TestDataRefGit{URL: "https://example.com/repo.git"}},
+			wantErr: "git test data ref must not be empty",
+		},
+		{
+			name:    "hf with missing repo_id is rejected",
+			ref:     &TestDataRef{HF: &TestDataRefHF{SubPath: "data"}},
+			wantErr: "hf test data repo_id must not be empty",
+		},
+		{
+			name: "s3 with data_set type is valid",
+			ref:  &TestDataRef{S3: &S3DataRef{Bucket: "b", Key: "k", Type: TestDataRefTypeDataSet}},
+		},
+		{
+			name: "s3 with pre_recorded_data type is valid",
+			ref:  &TestDataRef{S3: &S3DataRef{Bucket: "b", Key: "k", Type: TestDataRefTypePreRecordedData}},
+		},
+		{
+			name:    "s3 with unsupported type is rejected",
+			ref:     &TestDataRef{S3: &S3DataRef{Bucket: "b", Key: "k", Type: "dataset"}},
+			wantErr: `s3 test data type must be "data_set" or "pre_recorded_data"`,
+		},
+		{
+			name:    "pvc with unsupported type is rejected",
+			ref:     &TestDataRef{PVC: &TestDataRefPVC{ClaimName: "claim", Type: "random"}},
+			wantErr: `pvc test data type must be "data_set" or "pre_recorded_data"`,
+		},
+		{
+			name: "git with pre_recorded_data type is valid",
+			ref: &TestDataRef{Git: &TestDataRefGit{
+				URL:  "https://example.com/repo.git",
+				Ref:  "main",
+				Type: TestDataRefTypePreRecordedData,
+			}},
+		},
+		{
+			name: "git with unsupported type is rejected",
+			ref: &TestDataRef{Git: &TestDataRefGit{
+				URL:  "https://example.com/repo.git",
+				Ref:  "main",
+				Type: "bogus",
+			}},
+			wantErr: `git test data type must be "data_set" or "pre_recorded_data"`,
+		},
+		{
+			name: "hf with data_set type is valid",
+			ref:  &TestDataRef{HF: &TestDataRefHF{RepoID: "org/repo", Type: TestDataRefTypeDataSet}},
+		},
+		{
+			name:    "hf with unsupported type is rejected",
+			ref:     &TestDataRef{HF: &TestDataRefHF{RepoID: "org/repo", Type: "responses"}},
+			wantErr: `hf test data type must be "data_set" or "pre_recorded_data"`,
 		},
 	}
 

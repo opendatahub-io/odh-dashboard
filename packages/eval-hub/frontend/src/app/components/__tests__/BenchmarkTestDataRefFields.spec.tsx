@@ -210,11 +210,11 @@ describe('BenchmarkTestDataRefFields', () => {
   });
 
   it('should indent source-specific fields under the source selector', () => {
-    const { container } = renderFields({
+    renderFields({
       value: { ...testDataRefDefaultValues, source: 's3' },
     });
 
-    const children = container.querySelector('.evalhub-benchmark-test-data-ref__children');
+    const children = screen.getByTestId('test-test-data-ref-children');
     expect(children).toBeInTheDocument();
     expect(children).toContainElement(screen.getByTestId('test-test-data-ref-bucket'));
     expect(children).not.toContainElement(screen.getByTestId('test-test-data-ref-source-toggle'));

@@ -114,7 +114,9 @@ export const getTestDataRefFieldErrors = (
 };
 
 const S3_BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
-const RFC_1123_LABEL_PATTERN = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
+// K8s object names (e.g. PersistentVolumeClaim) follow DNS subdomain rules — dot-separated labels
+const RFC_1123_SUBDOMAIN_PATTERN =
+  /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 const HF_REPO_ID_PATTERN = /^[\w.-]+\/[\w.-]+$/;
 
 const isBlank = (value: string | undefined): boolean => !value || value.trim() === '';
@@ -176,11 +178,11 @@ export const refineTestDataRef = (
         addIssue('claimName', 'Claim name is required.');
       } else if (
         values.claimName.trim().length > 63 ||
-        !RFC_1123_LABEL_PATTERN.test(values.claimName.trim())
+        !RFC_1123_SUBDOMAIN_PATTERN.test(values.claimName.trim())
       ) {
         addIssue(
           'claimName',
-          'Claim name must be a DNS label (lowercase alphanumeric or hyphens, max 63 characters).',
+          'Claim name must be a DNS subdomain (lowercase alphanumeric, hyphens, or dots, max 63 characters).',
         );
       }
       if (!isBlank(values.subPath)) {

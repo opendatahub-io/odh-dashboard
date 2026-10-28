@@ -21,8 +21,6 @@ import {
   type TestDataRefSource,
 } from '~/app/schemas/testDataRef.schema';
 
-import './BenchmarkTestDataRefFields.scss';
-
 type BenchmarkTestDataRefFieldsProps = {
   value: TestDataRefFormValues;
   idPrefix: string;
@@ -188,7 +186,7 @@ const BenchmarkTestDataRefFields: React.FC<BenchmarkTestDataRefFieldsProps> = ({
     : (['', ...TEST_DATA_REF_SOURCES] as const);
 
   return (
-    <Stack hasGutter className="evalhub-benchmark-test-data-ref">
+    <Stack hasGutter>
       <StackItem>
         <FormGroup
           label="Test data source"
@@ -216,6 +214,7 @@ const BenchmarkTestDataRefFields: React.FC<BenchmarkTestDataRefFieldsProps> = ({
             toggle={(toggleRef) => (
               <MenuToggle
                 ref={toggleRef}
+                id={`${idPrefix}-test-data-ref`}
                 onClick={() => {
                   if (!isDisabled) {
                     markTouched('source');
@@ -271,7 +270,8 @@ const BenchmarkTestDataRefFields: React.FC<BenchmarkTestDataRefFieldsProps> = ({
 
       {fields.length > 0 ? (
         <StackItem>
-          <Stack hasGutter className="evalhub-benchmark-test-data-ref__children">
+          {/* Indent source-specific fields so they read as children of the selected source. */}
+          <Stack hasGutter className="pf-v6-u-pl-xl" data-testid={`${testIdPrefix}-children`}>
             {fields.map(({ field, label, required, placeholder, helperText }) => {
               const error = touched[field] ? errors?.[field] : undefined;
               return (

@@ -1,12 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
@@ -35,6 +37,56 @@ func validateCollectionPatchOperations(operations []evalhub.CollectionPatchOpera
 		}
 	}
 
+	return nil
+}
+
+// validatePatchedBenchmarks applies the patch operations to the current
+// collection and validates the resulting benchmark test data references, so a
+// patch cannot bypass the checks that create and clone enforce (e.g. embedded
+// Git credentials or non-HTTPS URLs with a secret reference). Patches that do
+// not touch the benchmarks are passed through without applying them.
+func validatePatchedBenchmarks(current *evalhub.Collection, operations []evalhub.CollectionPatchOperation) error {
+	touchesBenchmarks := false
+	for _, operation := range operations {
+		if operation.Path == "/benchmarks" || strings.HasPrefix(operation.Path, "/benchmarks/") {
+			touchesBenchmarks = true
+			break
+		}
+	}
+	if !touchesBenchmarks {
+		return nil
+	}
+
+	currentJSON, err := json.Marshal(current)
+	if err != nil {
+		return fmt.Errorf("failed to encode current collection: %w", err)
+	}
+	operationsJSON, err := json.Marshal(operations)
+	if err != nil {
+		return fmt.Errorf("failed to encode patch operations: %w", err)
+	}
+	patch, err := jsonpatch.DecodePatch(operationsJSON)
+	if err != nil {
+		return fmt.Errorf("failed to decode patch operations: %w", err)
+	}
+	patchedJSON, err := patch.Apply(currentJSON)
+	if err != nil {
+		return fmt.Errorf("patch does not apply to the current collection: %w", err)
+	}
+
+	var patched evalhub.Collection
+	if err := json.Unmarshal(patchedJSON, &patched); err != nil {
+		return fmt.Errorf("failed to decode patched collection: %w", err)
+	}
+	for index, benchmark := range patched.Benchmarks {
+		if err := benchmark.TestDataRef.Validate(); err != nil {
+			id := benchmark.ID
+			if id == "" {
+				id = strconv.Itoa(index)
+			}
+			return fmt.Errorf("benchmark %s: %w", id, err)
+		}
+	}
 	return nil
 }
 
@@ -75,6 +127,10 @@ func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, p
 	}
 	if currentCollection.Status != nil && currentCollection.Status.RunCount > 0 {
 		app.conflictResponse(w, r, fmt.Errorf("collection cannot be edited after it has been run"))
+		return
+	}
+	if err := validatePatchedBenchmarks(currentCollection, operations); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 

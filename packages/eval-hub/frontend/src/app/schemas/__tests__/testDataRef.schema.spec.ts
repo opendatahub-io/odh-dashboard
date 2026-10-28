@@ -122,14 +122,24 @@ describe('refineTestDataRef', () => {
       expect(errors.claimName).toBe('Claim name is required.');
     });
 
-    it('should reject non-DNS-label claim names', () => {
+    it('should reject claim names that are not valid DNS subdomains', () => {
       const errors = fieldErrors({ ...pvcValues, claimName: 'Invalid_Name' });
-      expect(errors.claimName).toContain('Claim name must be a DNS label');
+      expect(errors.claimName).toContain('Claim name must be a DNS subdomain');
+    });
+
+    it('should accept dotted claim names (DNS subdomain)', () => {
+      const errors = fieldErrors({ ...pvcValues, claimName: 'eval.data' });
+      expect(errors.claimName).toBeUndefined();
+    });
+
+    it('should reject claim names with malformed dots', () => {
+      const errors = fieldErrors({ ...pvcValues, claimName: 'eval..data' });
+      expect(errors.claimName).toContain('Claim name must be a DNS subdomain');
     });
 
     it('should reject claim names longer than 63 characters', () => {
       const errors = fieldErrors({ ...pvcValues, claimName: 'a'.repeat(64) });
-      expect(errors.claimName).toContain('Claim name must be a DNS label');
+      expect(errors.claimName).toContain('Claim name must be a DNS subdomain');
     });
 
     it('should reject sub paths with a leading slash', () => {

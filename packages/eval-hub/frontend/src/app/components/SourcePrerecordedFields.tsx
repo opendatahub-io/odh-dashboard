@@ -76,7 +76,7 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
         </FormGroup>
       </StackItem>
       <StackItem>
-        <FormGroup label="Access token" isRequired fieldId="access-token">
+        <FormGroup label="Secret name" isRequired fieldId="access-token">
           <TextInput
             id="access-token"
             data-testid="access-token-input"
