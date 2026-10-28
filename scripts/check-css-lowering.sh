@@ -19,7 +19,20 @@ if [ "$#" -eq 0 ]; then
   exit 2
 fi
 
-offenders=$(grep -R -l -F "$SIGNATURE" "$@" --include='*.css' 2>/dev/null || true)
+# grep exits 0 when matches are found, 1 on a clean scan, and >=2 when the
+# scan itself fails (unreadable file, missing directory). A failed scan must
+# never read as a pass — that is the false negative this guard exists to
+# prevent — so distinguish the statuses instead of suppressing them.
+offenders=""
+grep_status=0
+offenders=$(grep -R -l -F "$SIGNATURE" "$@" --include='*.css' 2>/dev/null) || grep_status=$?
+
+if [ "$grep_status" -ge 2 ]; then
+  echo "❌ FAIL: CSS scan error (grep exit ${grep_status}) — could not read scan target(s): $*" >&2
+  echo "The build output could not be verified; this must not pass silently." >&2
+  exit 1
+fi
+
 if [ -n "$offenders" ]; then
   echo "❌ FAIL: LightningCSS logical-properties lowering found in:" >&2
   echo "$offenders" | sed 's/^/  - /' >&2
@@ -31,5 +44,17 @@ if [ -n "$offenders" ]; then
   exit 1
 fi
 
-count=$(find "$@" -name '*.css' -type f 2>/dev/null | wc -l | tr -d ' ')
+count=""
+count=$(find "$@" -name '*.css' -type f 2>/dev/null | wc -l | tr -d ' ') || {
+  echo "❌ FAIL: could not enumerate CSS files under $*" >&2
+  exit 1
+}
+
+# A scan target with zero CSS files means the expected build output is
+# missing — treat as a failure so an absent or empty dist cannot pass.
+if [ "$count" -eq 0 ]; then
+  echo "❌ FAIL: no CSS files found under $* — expected built stylesheets are missing" >&2
+  exit 1
+fi
+
 echo "✅ PASS: no logical-properties lowering in ${count} CSS file(s)"
