@@ -123,6 +123,19 @@ var consoleLinkListGVK = schema.GroupVersionKind{
 	Kind:    "ConsoleLinkList",
 }
 
+var serviceAccountListGVK = corev1.SchemeGroupVersion.WithKind("ServiceAccountList")
+
+// newMetadataList returns a metadata-only list for the given list GVK. GVKs that
+// the controller watches as metadata-only (ServiceAccount, ConsoleLink) only
+// register a metadata informer, so cache-backed reads of those types must request
+// PartialObjectMetadata to reuse that informer. A full-object list would otherwise
+// fail under the manager cache's ReaderFailOnMissingInformer setting.
+func newMetadataList(gvk schema.GroupVersionKind) *metav1.PartialObjectMetadataList {
+	list := &metav1.PartialObjectMetadataList{}
+	list.SetGroupVersionKind(gvk)
+	return list
+}
+
 // Version is set at build time via -ldflags.
 var Version = "unknown"
 
@@ -1045,19 +1058,10 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		return err
 	}
 
-	var serviceAccounts corev1.ServiceAccountList
-	if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
-		return fmt.Errorf("listing ServiceAccounts: %w", err)
-	}
-	for i := range serviceAccounts.Items {
-		sa := &serviceAccounts.Items[i]
-		if isOperatorOwned(operatorResources, "ServiceAccount", sa.Name) || shouldPreserve(sa) {
-			continue
-		}
-		logger.Info("Deleting managed resource", "kind", "ServiceAccount", "name", sa.Name)
-		if err := r.Delete(ctx, sa); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting ServiceAccount %s: %w", sa.Name, err)
-		}
+	// ServiceAccounts are cached as metadata-only, so sweep them through the
+	// metadata informer rather than a full-object list.
+	if err := deleteTyped(r, newMetadataList(serviceAccountListGVK), "ServiceAccount", matchLabels, inNamespace); err != nil {
+		return err
 	}
 
 	var secrets corev1.SecretList
@@ -1140,6 +1144,12 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 // extractItems returns the slice of client.Object from a supported list.
 func extractItems(list client.ObjectList) []client.Object {
 	switch l := list.(type) {
+	case *metav1.PartialObjectMetadataList:
+		items := make([]client.Object, len(l.Items))
+		for i := range l.Items {
+			items[i] = &l.Items[i]
+		}
+		return items
 	case *unstructured.UnstructuredList:
 		items := make([]client.Object, len(l.Items))
 		for i := range l.Items {

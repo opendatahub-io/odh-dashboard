@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
@@ -173,6 +174,108 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	require.Len(t, driftedRoleBinding.Subjects, 1)
 	assert.Equal(t, "odh-dashboard", driftedRoleBinding.Subjects[0].Name)
 	assert.Equal(t, applicationsNamespace, driftedRoleBinding.Subjects[0].Namespace)
+}
+
+// TestIntegration_ManagerCacheWatchesMetadataOnly proves that the GVKs converted
+// to metadata-only watches (ServiceAccount, ConsoleLink) cache only ObjectMeta:
+// their metadata informers deliver scoped objects, while a full-object read of the
+// same GVK fails because no structured/unstructured informer exists.
+func TestIntegration_ManagerCacheWatchesMetadataOnly(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(s))
+	require.NoError(t, gatewayv1.Install(s))
+	require.NoError(t, v1alpha1.AddToScheme(s))
+
+	localEnv := &envtest.Environment{
+		CRDDirectoryPaths: []string{filepath.Join("testdata", "crd")},
+		Scheme:            s,
+	}
+	cfg, err := localEnv.Start()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, localEnv.Stop()) })
+
+	const applicationsNamespace = "metadata-applications"
+	ctx, cancel := context.WithCancel(context.Background())
+	directClient, err := client.New(cfg, client.Options{Scheme: s})
+	require.NoError(t, err)
+	require.NoError(t, directClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: applicationsNamespace}}))
+
+	consoleLinkPrototype := &unstructured.Unstructured{}
+	consoleLinkPrototype.SetAPIVersion("console.openshift.io/v1")
+	consoleLinkPrototype.SetKind("ConsoleLink")
+	consoleLinkGVK := consoleLinkPrototype.GroupVersionKind()
+	serviceAccountGVK := corev1.SchemeGroupVersion.WithKind("ServiceAccount")
+
+	// Selected objects carry the dashboard label (and the ServiceAccount lives in the
+	// applications namespace); filtered objects are excluded by the cache selectors.
+	selectedSA := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "selected-sa", Namespace: applicationsNamespace, Labels: map[string]string{platformlabels.PlatformPartOf: "dashboard"}}}
+	filteredSA := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "filtered-sa", Namespace: applicationsNamespace, Labels: map[string]string{platformlabels.PlatformPartOf: "other"}}}
+	require.NoError(t, directClient.Create(ctx, selectedSA))
+	require.NoError(t, directClient.Create(ctx, filteredSA))
+
+	selectedLink := consoleLinkPrototype.DeepCopy()
+	selectedLink.SetName("selected-link")
+	selectedLink.SetLabels(map[string]string{platformlabels.PlatformPartOf: "dashboard"})
+	filteredLink := consoleLinkPrototype.DeepCopy()
+	filteredLink.SetName("filtered-link")
+	filteredLink.SetLabels(map[string]string{platformlabels.PlatformPartOf: "other"})
+	require.NoError(t, directClient.Create(ctx, selectedLink))
+	require.NoError(t, directClient.Create(ctx, filteredLink))
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme: s, NewCache: ctrlpkg.NewManagerCache(applicationsNamespace),
+		Metrics: metricsserver.Options{BindAddress: "0"}, HealthProbeBindAddress: "0",
+	})
+	require.NoError(t, err)
+
+	// Register the metadata-only informers the production builder sets up via
+	// builder.OnlyMetadata, before starting the manager.
+	saInformer := &metav1.PartialObjectMetadata{}
+	saInformer.SetGroupVersionKind(serviceAccountGVK)
+	_, err = mgr.GetCache().GetInformer(ctx, saInformer)
+	require.NoError(t, err, "registering ServiceAccount metadata informer")
+	linkInformer := &metav1.PartialObjectMetadata{}
+	linkInformer.SetGroupVersionKind(consoleLinkGVK)
+	_, err = mgr.GetCache().GetInformer(ctx, linkInformer)
+	require.NoError(t, err, "registering ConsoleLink metadata informer")
+
+	managerErr := make(chan error, 1)
+	go func() { managerErr <- mgr.Start(ctx) }()
+	t.Cleanup(func() {
+		cancel()
+		require.NoError(t, <-managerErr)
+	})
+
+	metadataGet := func(gvk schema.GroupVersionKind, key client.ObjectKey) error {
+		obj := &metav1.PartialObjectMetadata{}
+		obj.SetGroupVersionKind(gvk)
+		return mgr.GetCache().Get(ctx, key, obj)
+	}
+
+	// Selected objects are delivered through the metadata informer.
+	assert.Eventually(t, func() bool {
+		return metadataGet(serviceAccountGVK, client.ObjectKeyFromObject(selectedSA)) == nil
+	}, 10*time.Second, 100*time.Millisecond, "selected ServiceAccount not visible via metadata cache")
+	assert.Eventually(t, func() bool {
+		return metadataGet(consoleLinkGVK, client.ObjectKeyFromObject(selectedLink)) == nil
+	}, 10*time.Second, 100*time.Millisecond, "selected ConsoleLink not visible via metadata cache")
+
+	// Filtered objects are excluded by the cache selectors.
+	assert.True(t, apierrors.IsNotFound(metadataGet(serviceAccountGVK, client.ObjectKeyFromObject(filteredSA))),
+		"filtered ServiceAccount must be absent from the metadata cache")
+	assert.True(t, apierrors.IsNotFound(metadataGet(consoleLinkGVK, client.ObjectKeyFromObject(filteredLink))),
+		"filtered ConsoleLink must be absent from the metadata cache")
+
+	// A full-object read of the same GVK fails: only a metadata informer exists,
+	// so nothing but ObjectMeta is cached for these types.
+	var notCached *ctrlcache.ErrResourceNotCached
+	err = mgr.GetCache().Get(ctx, client.ObjectKeyFromObject(selectedSA), &corev1.ServiceAccount{})
+	require.ErrorAs(t, err, &notCached, "ServiceAccount must not have a full-object informer")
+	notCached = nil
+	fullLink := &unstructured.Unstructured{}
+	fullLink.SetGroupVersionKind(consoleLinkGVK)
+	err = mgr.GetCache().Get(ctx, client.ObjectKeyFromObject(selectedLink), fullLink)
+	require.ErrorAs(t, err, &notCached, "ConsoleLink must not have a full-object informer")
 }
 
 func cacheTestDeployment(namespace string) *appsv1.Deployment {

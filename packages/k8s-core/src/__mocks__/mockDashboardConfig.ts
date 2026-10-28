@@ -81,6 +81,8 @@ export type MockDashboardConfigType = {
   hardwareProfileDRA?: boolean;
   modelCapabilities?: boolean;
   globalMLflowNamespaces?: string[];
+  isLLMdDefault?: boolean;
+  deploymentStrategy?: string;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -163,6 +165,8 @@ export const mockDashboardConfig = ({
   modelCapabilities = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
+  isLLMdDefault,
+  deploymentStrategy,
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
       externalProviders: false,
@@ -381,5 +385,13 @@ export const mockDashboardConfig = ({
     hardwareProfileOrder,
     globalMLflowNamespaces,
     genAiStudioConfig,
+    ...(isLLMdDefault !== undefined || deploymentStrategy !== undefined
+      ? {
+          modelServing: {
+            ...(isLLMdDefault !== undefined ? { isLLMdDefault } : {}),
+            ...(deploymentStrategy !== undefined ? { deploymentStrategy } : {}),
+          },
+        }
+      : {}),
   },
 });

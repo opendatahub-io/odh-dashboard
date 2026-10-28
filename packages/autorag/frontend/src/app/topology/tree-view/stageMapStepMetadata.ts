@@ -14,7 +14,7 @@ import {
   NESTED_STAGE_FIELD_KEY_SET,
   parseBranchIndexFromSuffix,
 } from '~/app/topology/stageMapConstants';
-import { formatDurationBetween } from '~/app/utilities/utils';
+import { formatDurationBetween, formatPatternName } from '~/app/utilities/utils';
 import { metricLabel } from '~/app/utilities/metricUtils';
 import type { StepDetail } from './stepMetadata';
 
@@ -189,7 +189,10 @@ function formatStageFieldValue(key: string, value: unknown): string {
       return '—';
     }
     if (key === 'selected_patterns') {
-      return value.every(isNonblankString) ? value.join(', ') : '—';
+      const patternNames = value.filter(isNonblankString);
+      return patternNames.length === value.length
+        ? patternNames.map(formatPatternName).join(', ')
+        : '—';
     }
     return value.every(isRenderablePrimitive) ? value.join(', ') : '—';
   }
@@ -533,7 +536,7 @@ function buildBranchStepDetails(
       : undefined;
   const patternDetail: StepDetail = {
     label: 'Selected pattern',
-    value: selectedPatternName ?? '—',
+    value: selectedPatternName ? formatPatternName(selectedPatternName) : '—',
   };
 
   if (shouldShowPlaceholderFields(stepState) || selectedPatternName != null) {

@@ -2,12 +2,14 @@ import { handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { describe, expect, it, jest } from '@jest/globals';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import {
+  createConnection,
   deleteConnection,
   getConnection,
   getConnectionType,
   testCredentials,
   verifyConnection,
 } from '~/app/api/dch';
+import { getConnectionCreationErrorCategory } from '~/app/utilities/tracking';
 
 jest.mock('mod-arch-core', () => {
   const { jest: jestMock } = require('@jest/globals') as typeof import('@jest/globals');
@@ -209,6 +211,40 @@ describe('getConnection', () => {
     ).rejects.toThrow('the server encountered a problem');
     delete (globalThis as { fetch?: typeof fetch }).fetch;
   });
+});
+
+describe('createConnection', () => {
+  const request = {
+    name: 'warehouse',
+    data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
+    format: 'tabular' as const,
+    credentials: { secret: 'warehouse', properties: {} },
+    properties: {},
+  };
+
+  it.each([400, 403, 500])(
+    'preserves HTTP %i failures for connection creation analytics',
+    async (status) => {
+      const fetchMock = jest
+        .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+        .mockResolvedValue(
+          response(
+            status,
+            `{"error":{"code":"${status}","message":"connection creation rejected"}}`,
+          ),
+        );
+      Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+      const error = await createConnection('')({}, 'test-project', request).catch(
+        (caught: unknown) => caught,
+      );
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe('connection creation rejected');
+      expect(getConnectionCreationErrorCategory(error)).toBe(`http_${status}`);
+      delete (globalThis as { fetch?: typeof fetch }).fetch;
+    },
+  );
 });
 
 describe('testCredentials', () => {
