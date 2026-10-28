@@ -691,13 +691,8 @@ jobs:
           # never re-enter built CSS — the :lang() RTL fallback selectors it emits
           # carry specificity that beats PatternFly's contextual overrides.
           echo "::group::Guarding CSS logical-properties lowering"
-          if grep -R -l -F ':lang(ae)' /tmp/odh-dist --include='*.css' 2>/dev/null; then
-            echo "❌ FAIL: Emitted CSS contains LightningCSS :lang() RTL fallback selectors"
-            echo "Fix: build with lightningCssMinimizerOptions from @odh-dashboard/app-config/rspack"
+          if ! bash scripts/check-css-lowering.sh /tmp/odh-dist; then
             FAILURES=$((FAILURES + 1))
-          else
-            CSS_COUNT=$(find /tmp/odh-dist -name '*.css' | wc -l | tr -d ' ')
-            echo "✅ PASS: no logical-properties lowering in ${CSS_COUNT} CSS file(s)"
           fi
           echo "::endgroup::"
 
@@ -1413,6 +1408,23 @@ jobs:
                 FAILURES=$((FAILURES + 1))
               fi
             done
+
+            # Guard (RHOAIENG-100835): scan the module image's frontend output
+            # for LightningCSS logical-properties lowering, same as the host.
+            echo "::group::Guarding CSS logical-properties lowering (${MODULE})"
+            CSS_TMP=$(mktemp -d)
+            CSS_CONTAINER=$(docker create "$IMAGE")
+            if docker cp "$CSS_CONTAINER":/static "$CSS_TMP/static" 2>/dev/null; then
+              if ! bash scripts/check-css-lowering.sh "$CSS_TMP/static"; then
+                echo "::error::$MODULE emitted CSS contains LightningCSS logical-properties lowering"
+                FAILURES=$((FAILURES + 1))
+              fi
+            else
+              echo "ℹ️  INFO: $MODULE image has no /static directory (BFF-only module)"
+            fi
+            docker rm "$CSS_CONTAINER" >/dev/null 2>&1 || true
+            rm -rf "$CSS_TMP"
+            echo "::endgroup::"
 
             if [ "$RUNNING" = "true" ]; then
               echo "INFO: $MODULE BFF is still running after 5s"
