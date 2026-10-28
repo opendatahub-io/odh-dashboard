@@ -222,7 +222,7 @@ func (app *App) VerifyExternalModelHandler(
 	// it scopes which in-cluster service hosts may skip SSRF validation.
 	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+		app.serverErrorResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 		return
 	}
 

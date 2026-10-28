@@ -16,6 +16,12 @@ func TestIsInternalHost(t *testing.T) {
 			want:      true,
 		},
 		{
+			name:      "http in-cluster service in caller's namespace is trusted",
+			baseURL:   "http://my-model.test-namespace.svc.cluster.local/v1",
+			namespace: "test-namespace",
+			want:      true,
+		},
+		{
 			name:      "in-cluster service in a different namespace is not trusted",
 			baseURL:   "https://my-model.other-namespace.svc.cluster.local:8080/v1",
 			namespace: "test-namespace",

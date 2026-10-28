@@ -194,7 +194,9 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 // These legitimately resolve to private IPs, so SSRF validation is skipped for them.
 // In-cluster services in other namespaces are NOT trusted: the caller is only
 // authorized for their own namespace, so cross-namespace hosts must go through
-// normal SSRF validation (which blocks private IPs).
+// normal SSRF validation (which blocks private IPs). Short-form service DNS
+// names (without the .svc.cluster.local suffix) do not match the FQDN check and
+// likewise go through normal SSRF validation.
 func isInternalHost(baseURL string, namespace string) bool {
 	u, err := url.Parse(baseURL)
 	if err != nil {
@@ -238,17 +240,18 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	rootCAs *x509.CertPool,
 	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
+	trusted := isInternalHost(req.BaseURL, namespace)
 	client, err := externalmodels.NewExternalModelsClient(
 		logger,
 		req.BaseURL,
 		req.SecretValue,
 		req.ModelType,
 		&externalmodels.ClientOptions{
-			AllowHTTP:          isInternalHost(req.BaseURL, namespace),
-			SkipSSRFValidation: isInternalHost(req.BaseURL, namespace),
+			AllowHTTP:          trusted,
+			SkipSSRFValidation: trusted,
 			// Only supply the cluster CA pool for internal hosts; external hosts
 			// must use the system CA pool to verify public certificates.
-			SkipTLSVerification: insecureSkipVerify && isInternalHost(req.BaseURL, namespace),
+			SkipTLSVerification: insecureSkipVerify && trusted,
 			RootCAs:             internalHostRootCAs(req.BaseURL, rootCAs, namespace),
 		},
 	)
