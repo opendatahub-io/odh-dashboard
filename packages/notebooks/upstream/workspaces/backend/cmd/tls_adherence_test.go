@@ -87,9 +87,14 @@ func TestEffectiveServerTLSConfig(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:           "legacy adherence ignores degraded profile and keeps TLS 1.3",
-			result:         tlsprofile.Result{Adherence: tlsprofile.AdherenceLegacy, Degraded: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
-			wantMinVersion: tls.VersionTLS13,
+			name:    "legacy adherence with degraded read fails closed (cannot trust adherence)",
+			result:  tlsprofile.Result{Adherence: tlsprofile.AdherenceLegacy, Degraded: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
+			wantErr: true,
+		},
+		{
+			name:    "empty adherence with degraded read fails closed (unreadable, not Legacy)",
+			result:  tlsprofile.Result{Adherence: "", Degraded: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

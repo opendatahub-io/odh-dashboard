@@ -78,12 +78,12 @@ func TestParseProfile(t *testing.T) {
 			wantCiphers:    nil,
 		},
 		{
-			name: "Old returns TLS 1.0 with nil ciphers",
+			name: "Old returns TLS 1.0 with the resolved Old cipher set",
 			apiServer: newAPIServer(map[string]any{
 				fieldType: profileTypeOld,
 			}),
 			wantMinVersion: tls.VersionTLS10,
-			wantCiphers:    nil,
+			wantCiphers:    resolveCipherNames(oldCipherNames),
 		},
 		{
 			name: "Custom with valid ciphers",
@@ -573,6 +573,48 @@ func newAPIServerWithAdherence(profile map[string]any, adherence string) *unstru
 	spec[fieldTLSAdherence] = adherence
 	obj.Object[fieldSpec] = spec
 	return obj
+}
+
+func TestResolve_OldProfileAppliesCiphers(t *testing.T) {
+	// The Old profile must install the runtime-supported Old cipher set (parity with
+	// the shared BFF and operator resolvers), not leave Go defaults.
+	apiServer := newAPIServer(map[string]any{fieldType: profileTypeOld})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	if cfg.MinVersion != tls.VersionTLS10 {
+		t.Errorf("expected TLS 1.0, got %d", cfg.MinVersion)
+	}
+	if len(cfg.CipherSuites) == 0 {
+		t.Error("expected the Old profile to install a non-empty cipher set, got none")
+	}
+}
+
+func TestResolve_MalformedGroupsMarksDegraded(t *testing.T) {
+	// A groups field of the wrong shape (not a string array) must surface as degraded
+	// so a strict consumer rejects it rather than silently serving default curves.
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName12,
+			fieldCiphers:       []any{openSSLCipherECDHEECDSAAES128GCMSHA256},
+			fieldGroups:        "not-a-string-array",
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	if !result.Degraded {
+		t.Error("expected Degraded = true for a malformed groups field")
+	}
 }
 
 func TestResolve_PopulatesAdherence(t *testing.T) {

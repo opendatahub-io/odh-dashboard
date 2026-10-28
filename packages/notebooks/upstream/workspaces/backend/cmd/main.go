@@ -57,18 +57,20 @@ func adherenceIsStrict(adherence string) bool {
 // effectiveServerTLSConfig derives the HTTPS listener configuration from a resolved
 // cluster result, honoring the cluster TLS adherence policy (RHOAIENG-96984).
 //
-//   - Strict adherence: adopt the resolved cluster profile. If the profile could
-//     not be authoritatively resolved (degraded: denied/transient read or malformed
-//     profile), fail closed rather than serve an unverified policy.
-//   - Legacy/unset/unreadable adherence: preserve the backend's historical TLS 1.3
-//     minimum instead of downgrading to the (possibly weaker) cluster profile. TLS
-//     1.3 is the stronger policy, so this is both compatibility-preserving and safe
-//     even when the profile read was denied.
+//   - Degraded result: the cluster policy (both profile AND adherence, which share
+//     one APIServer read) could not be authoritatively resolved — a denied/transient
+//     read or a malformed profile. Return an error rather than guess the adherence:
+//     at startup the caller fails closed; on reload the watcher callback propagates
+//     the error so it keeps the running configuration and retries (no silent fail-open
+//     to TLS 1.3 and no lost policy update once the API recovers).
+//   - Strict adherence (clean read): adopt the resolved cluster profile.
+//   - Legacy/unset adherence (clean read): preserve the backend's historical TLS 1.3
+//     minimum instead of downgrading to the (possibly weaker) cluster profile.
 func effectiveServerTLSConfig(result tlsprofile.Result) (*tls.Config, error) {
+	if result.Degraded {
+		return nil, fmt.Errorf("cluster TLS policy could not be authoritatively resolved (degraded); refusing to apply an unverified configuration")
+	}
 	if adherenceIsStrict(result.Adherence) {
-		if result.Degraded {
-			return nil, fmt.Errorf("StrictAllComponents TLS adherence requires the cluster profile but it could not be authoritatively resolved (degraded)")
-		}
 		cfg := &tls.Config{}
 		for _, opt := range result.TLSOpts {
 			opt(cfg)

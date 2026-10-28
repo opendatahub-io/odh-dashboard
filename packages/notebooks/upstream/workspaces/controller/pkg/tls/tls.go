@@ -277,6 +277,30 @@ func intermediateWithALPN(c *tls.Config) {
 	c.NextProtos = []string{"h2", "http/1.1"}
 }
 
+// oldCipherNames is the Mozilla Old cipher set (OpenSSL names), matching the
+// pkg/tls and operator resolvers. Names Go does not support (e.g. DES-CBC3-SHA)
+// are dropped by resolveCipherNames at runtime.
+var oldCipherNames = []string{
+	"ECDHE-ECDSA-AES128-GCM-SHA256",
+	"ECDHE-RSA-AES128-GCM-SHA256",
+	"ECDHE-ECDSA-AES256-GCM-SHA384",
+	"ECDHE-RSA-AES256-GCM-SHA384",
+	"ECDHE-ECDSA-CHACHA20-POLY1305",
+	"ECDHE-RSA-CHACHA20-POLY1305",
+	"ECDHE-ECDSA-AES128-SHA256",
+	"ECDHE-RSA-AES128-SHA256",
+	"ECDHE-ECDSA-AES128-SHA",
+	"ECDHE-RSA-AES128-SHA",
+	"ECDHE-ECDSA-AES256-SHA",
+	"ECDHE-RSA-AES256-SHA",
+	"AES128-GCM-SHA256",
+	"AES256-GCM-SHA384",
+	"AES128-SHA256",
+	"AES128-SHA",
+	"AES256-SHA",
+	"DES-CBC3-SHA",
+}
+
 // parseProfile returns the resolved minimum TLS version, cipher suites, and
 // key-exchange curves, plus a degraded flag. degraded is true when the profile
 // was malformed or unknown and Intermediate was substituted — consumers that
@@ -304,7 +328,9 @@ func parseProfile(apiServer *unstructured.Unstructured) (uint16, []uint16, []tls
 	case profileTypeModern:
 		return tls.VersionTLS13, nil, nil, false
 	case profileTypeOld:
-		return tls.VersionTLS10, nil, nil, false
+		// Apply the Old cipher set (the runtime-supported subset), matching the
+		// shared BFF and operator resolvers, rather than leaving Go defaults.
+		return tls.VersionTLS10, resolveCipherNames(oldCipherNames), nil, false
 	case profileTypeCustom:
 		return parseCustomProfile(spec)
 	default:
@@ -331,7 +357,7 @@ func parseCustomProfile(spec map[string]any) (uint16, []uint16, []tls.CurveID, b
 		return tls.VersionTLS12, IntermediateCiphers, nil, true
 	}
 
-	curves := parseCustomGroups(custom)
+	curves, groupsMalformed := parseCustomGroups(custom)
 
 	cipherNames, found, err := unstructured.NestedStringSlice(custom, fieldCiphers)
 	if err != nil {
@@ -345,7 +371,9 @@ func parseCustomProfile(spec map[string]any) (uint16, []uint16, []tls.CurveID, b
 		return minVersion, IntermediateCiphers, curves, true
 	}
 
-	return minVersion, resolveCipherNames(cipherNames), curves, false
+	// A malformed groups field must also be surfaced as degraded so a strict
+	// consumer rejects the profile rather than silently serving default curves.
+	return minVersion, resolveCipherNames(cipherNames), curves, groupsMalformed
 }
 
 // resolveCipherNames maps OpenSSL/IANA cipher names to Go cipher suite IDs,
@@ -375,17 +403,19 @@ func resolveCipherNames(names []string) []uint16 {
 	return ciphers
 }
 
-// parseCustomGroups maps a Custom profile's `groups` to Go curve IDs. A nil
-// return means no restriction; a non-nil empty slice means every requested group
-// was unusable (the caller fails closed).
-func parseCustomGroups(custom map[string]any) []tls.CurveID {
+// parseCustomGroups maps a Custom profile's `groups` to Go curve IDs. It returns
+// the curves (nil = no restriction; non-nil empty slice = every requested group was
+// unusable, caller fails closed) and malformed=true when the groups field itself is
+// the wrong shape, so fail-closed consumers reject it rather than silently serving
+// Go's default (unrestricted) curves.
+func parseCustomGroups(custom map[string]any) ([]tls.CurveID, bool) {
 	groupNames, found, err := unstructured.NestedStringSlice(custom, fieldGroups)
 	if err != nil {
 		log.Error(err, "Failed to read groups from custom TLS profile")
-		return nil
+		return nil, true
 	}
 	if !found || len(groupNames) == 0 {
-		return nil
+		return nil, false
 	}
 
 	seen := make(map[tls.CurveID]bool)
@@ -402,7 +432,7 @@ func parseCustomGroups(custom map[string]any) []tls.CurveID {
 		seen[id] = true
 		curves = append(curves, id)
 	}
-	return curves
+	return curves, false
 }
 
 func intermediateProfileMap() map[string]any {
