@@ -575,8 +575,9 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
         namespace={namespace}
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={async (data, selectedNamespace) => {
-          await createConnection('')({}, selectedNamespace, data);
+          const connection = await createConnection('')({}, selectedNamespace, data);
           refresh();
+          return connection;
         }}
       />
     </PageSection>

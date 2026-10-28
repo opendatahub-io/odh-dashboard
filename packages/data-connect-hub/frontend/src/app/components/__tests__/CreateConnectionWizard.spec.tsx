@@ -1,4 +1,5 @@
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -7,7 +8,7 @@ import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { testCredentials } from '~/app/api/dch';
-import type { CreateConnectionRequest } from '~/app/types';
+import type { Connection, CreateConnectionRequest } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
@@ -264,7 +265,24 @@ describe('CreateConnectionWizard', () => {
 
   it('should start at review when all initial form data is valid', async () => {
     const user = userEvent.setup();
-    const onCreate = jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => void>();
+    const createdConnection: Connection = {
+      metadata: { id: 'connection-id' },
+      resource: {
+        name: 'existing-connection',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials_ref: { secret: 'existing-connection' },
+      },
+      status: { state: 'ready' },
+    };
+    const onCreate =
+      jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<Connection>>();
+    onCreate.mockResolvedValue(createdConnection);
+    mockUseNamespaces.mockReturnValue([
+      [{ name: 'test-project', displayName: 'Test Project' }],
+      true,
+      undefined,
+    ]);
     render(
       <CreateConnectionWizard
         isOpen
@@ -311,6 +329,24 @@ describe('CreateConnectionWizard', () => {
         'test-project',
       ),
     );
+    await waitFor(() => expect(mockNotificationSuccess).toHaveBeenCalled());
+    const [title, message, link] = mockNotificationSuccess.mock.calls[0] as [
+      string,
+      React.ReactNode,
+      { linkUrl: string; linkLabel: string },
+    ];
+    expect(title).toBe('Connection created');
+    const { container } = render(<MemoryRouter>{message as React.ReactNode}</MemoryRouter>);
+    expect(container.textContent).toBe('"existing-connection" was created in Test Project');
+    expect(screen.getByRole('link', { name: 'Test Project' })).toHaveProperty(
+      'href',
+      'http://localhost/projects/test-project',
+    );
+    expect(link).toEqual({
+      linkLabel: 'View connection details',
+      linkUrl: '/ai-hub/connections/connections/connection-id?project=test-project',
+    });
+    expect(onCreate.mock.results[0]?.value).resolves.toBe(createdConnection);
   });
 
   it('tracks successful connection creation', async () => {
