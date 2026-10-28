@@ -382,7 +382,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
 
   return (
     <>
-      <Stack hasGutter className="autorag-results">
+      <Stack hasGutter className="autorag-results pf-v6-u-h-auto">
         {downloadError && (
           <StackItem>
             <Alert
