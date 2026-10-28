@@ -21,6 +21,16 @@ func assertConsoleSecurityHeaders(t *testing.T, h http.Header) {
 	assert.Equal(t, constants.XDNSPrefetchControlOff, h.Get(constants.HeaderXDNSPrefetchControl))
 }
 
+func assertContentSecurityPolicy(t *testing.T, h http.Header) {
+	t.Helper()
+	assert.Equal(t, constants.ContentSecurityPolicy, h.Get(constants.HeaderContentSecurityPolicy))
+}
+
+func assertNoContentSecurityPolicy(t *testing.T, h http.Header) {
+	t.Helper()
+	assert.Empty(t, h.Get(constants.HeaderContentSecurityPolicy))
+}
+
 func assertNoStoreCache(t *testing.T, h http.Header) {
 	t.Helper()
 	assert.Equal(t, constants.CacheControlNoStore, h.Get(constants.HeaderCacheControl))

@@ -88,6 +88,12 @@ Every normal HTTP reply gets browser security headers via response-writer middle
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `X-Frame-Options` | `DENY` |
 | `X-DNS-Prefetch-Control` | `off` |
+| `Content-Security-Policy` | enforcing policy — HTML responses only (see [CSP docs](../../../docs/content-security-policy.md)) |
+
+`Content-Security-Policy` is set only when the handler wrote a `text/html` document, so JSON
+APIs, static assets, and module proxy responses carry no policy. The value must stay in sync
+with the Node backend (`backend/src/utils/securityHeaders.ts`); see
+[docs/content-security-policy.md](../../../docs/content-security-policy.md).
 
 `Cache-Control` is selective:
 

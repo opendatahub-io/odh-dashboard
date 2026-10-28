@@ -23,6 +23,43 @@ const COMMON_SECURITY_HEADERS: ReadonlyArray<[string, string]> = [
   ['Referrer-Policy', REFERRER_POLICY],
 ];
 
+/**
+ * The only third-party origin the dashboard loads from. It mirrors the hardcoded
+ * `cdnURL` / `apiHost` in `packages/analytics/src/initSegment.ts` — update both
+ * together if the Segment endpoint ever moves.
+ *
+ * Analytics is initialized only when tracking is enabled
+ * (`disableTracking: false` plus a segment key), but the origin is allowlisted
+ * unconditionally so enabling tracking never breaks under an enforcing policy.
+ */
+export const SEGMENT_TELEMETRY_ORIGIN = 'https://console.redhat.com';
+
+/**
+ * Enforcing `Content-Security-Policy` for HTML responses. Mirrors OpenShift
+ * Console's `BuildCSPDirectives`, with two deltas documented in
+ * `docs/content-security-policy.md`:
+ * - `frame-src` allows `https:` for KFP artifact previews (Console uses `'none'`)
+ * - `img-src` / `media-src` allow `blob:` for gen-ai attachment previews
+ */
+export const CONTENT_SECURITY_POLICY_DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
+  ['default-src', "'self'"],
+  ['base-uri', "'self'"],
+  ['object-src', "'self'"],
+  ['script-src', `'self' ${SEGMENT_TELEMETRY_ORIGIN}`],
+  ['style-src', "'self' 'unsafe-inline'"],
+  ['img-src', "'self' https: data: blob:"],
+  ['font-src', "'self' data:"],
+  ['media-src', "'self' https: data: blob:"],
+  ['connect-src', `'self' ${SEGMENT_TELEMETRY_ORIGIN}`],
+  ['frame-src', "'self' https:"],
+  ['frame-ancestors', "'none'"],
+];
+
+/** Serialized `Content-Security-Policy` header value. */
+export const CONTENT_SECURITY_POLICY = CONTENT_SECURITY_POLICY_DIRECTIVES.map(
+  ([directive, value]) => `${directive} ${value}`,
+).join('; ');
+
 /** Code and text suffixes. Fonts and images use {@link isStaticAsset}. */
 const LIKELY_CODE_EXT = /\.(?:js|mjs|cjs|css|map|json|wasm|html?|txt)$/i;
 
@@ -96,15 +133,39 @@ export const setNoStoreCacheHeaders = (reply: FastifyReply): void => {
   reply.header('Cache-Control', CACHE_CONTROL_NO_STORE);
 };
 
+/** `text/html` with an optional charset, as set by `@fastify/view` and `@fastify/static`. */
+export const isHtmlContentType = (value: unknown): boolean => {
+  const contentType = Array.isArray(value) ? value[0] : value;
+  const mediaType = String(contentType ?? '')
+    .split(';')[0]
+    .trim()
+    .toLowerCase();
+  return mediaType === 'text/html';
+};
+
+/**
+ * Sets the enforcing CSP on HTML documents only. JSON APIs, static assets, and
+ * Module Federation proxy responses are not documents and carry no policy.
+ * Must run after the payload content type is known — `onSend` satisfies that.
+ */
+export const applyContentSecurityPolicy = (reply: FastifyReply): void => {
+  if (!isHtmlContentType(reply.getHeader('content-type'))) {
+    return;
+  }
+  reply.header('Content-Security-Policy', CONTENT_SECURITY_POLICY);
+};
+
 /**
  * Applies shared browser security headers on normal HTTP replies.
  * Common security headers are set on every response (including static `/*` and `/_mf/`).
- * no-store is applied on host `/api` and `/wss` paths.
+ * CSP is set on HTML documents. no-store is applied on host `/api` and `/wss` paths.
  */
 export const applySecurityHeaders = (request: FastifyRequest, reply: FastifyReply): void => {
   for (const [name, value] of COMMON_SECURITY_HEADERS) {
     reply.header(name, value);
   }
+
+  applyContentSecurityPolicy(reply);
 
   if (isApiPath(getUrlPath(request.url))) {
     setNoStoreCacheHeaders(reply);

@@ -166,10 +166,11 @@ func TestRoutes_SecurityHeadersOnRepresentativeRoutes(t *testing.T) {
 		name        string
 		path        string
 		wantNoStore bool
+		wantCSP     bool
 	}{
-		{"SPA HTML", "/", true},                        // document cache set by static handler
-		{"public healthcheck", HealthCheckPath, false}, // not under /api
-		{"authenticated API health", APIHealthCheckPath, true},
+		{"SPA HTML", "/", true, true},                         // document cache set by static handler
+		{"public healthcheck", HealthCheckPath, false, false}, // not under /api, JSON body
+		{"authenticated API health", APIHealthCheckPath, true, false},
 	}
 
 	for _, tt := range tests {
@@ -180,6 +181,11 @@ func TestRoutes_SecurityHeadersOnRepresentativeRoutes(t *testing.T) {
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 			assertConsoleSecurityHeaders(t, resp.Header)
+			if tt.wantCSP {
+				assertContentSecurityPolicy(t, resp.Header)
+			} else {
+				assertNoContentSecurityPolicy(t, resp.Header)
+			}
 			if tt.wantNoStore {
 				assertNoStoreCache(t, resp.Header)
 			} else {
