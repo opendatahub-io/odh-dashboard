@@ -314,6 +314,33 @@ describe('MaaS Portal extensions', () => {
     expect(governanceRoute).toBeDefined();
   });
 
+  it('should expose the read-only Model Access page route to every user while grid is enabled', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ ADMIN_USER: false, [GRID]: true });
+
+    const modelAccessRoute = store
+      .getExtensions()
+      .find((e) => e.type === 'app.route' && e.properties.path === '/maas/model-access/*');
+
+    expect(modelAccessRoute).toBeDefined();
+  });
+
+  it('should require grid for the read-only Model Access page route', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    // Exercise both initial states and runtime flag changes on the same store.
+    [false, true, false].forEach((grid) => {
+      store.setFeatureFlags({ [GRID]: grid });
+      const modelAccessRoutes = store
+        .getExtensions()
+        .filter((e) => e.type === 'app.route' && e.properties.path === '/maas/model-access/*');
+
+      expect(modelAccessRoutes).toHaveLength(grid ? 1 : 0);
+    });
+  });
+
   it('should place MaaS governance last at the top level', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
@@ -346,6 +373,27 @@ describe('MaaS Portal extensions', () => {
       );
 
     expect(governanceExtensions).toHaveLength(0);
+  });
+
+  it('should show Model Access navigation and route only for whoami administrators', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    const modelAccessExtensions = (): Extension[] =>
+      store
+        .getExtensions()
+        .filter(
+          (extension) =>
+            (extension.type === 'app.navigation/href' &&
+              extension.properties.id === 'maas-model-access') ||
+            (extension.type === 'app.route' && extension.properties.path === '/model-access'),
+        );
+
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: false });
+    expect(modelAccessExtensions()).toHaveLength(0);
+
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: true });
+    expect(modelAccessExtensions()).toHaveLength(2);
   });
 
   it('should not contain the gen-ai-studio section', () => {
