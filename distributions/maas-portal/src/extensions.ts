@@ -8,6 +8,9 @@ import type {
   HrefNavItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
+// Keep in sync with PORTAL_MODEL_ACCESS_PATH in ./portalPaths.ts (value imports are disallowed here).
+const PORTAL_MODEL_ACCESS_PATH = '/maas/model-access';
+
 const extensions: Extension[] = [
   // Root redirect
   {
@@ -130,6 +133,20 @@ const extensions: Extension[] = [
       patch: { section: null, group: '5_maas_governance' },
     },
   } satisfies PatchExtension<NavPatch>,
+
+  // Read-only model access viewer: the MaaS governance subscriptions table
+  // (Subscription / Groups / Models, with the Groups and Models sub-tables)
+  // without Status, row actions, or create/delete affordances. Available to
+  // every portal user (no ADMIN_USER gate), unlike the admin-only MaaS
+  // governance page above, but only in the grid portal mode.
+  {
+    type: 'app.route',
+    flags: { required: ['grid'] },
+    properties: {
+      path: `${PORTAL_MODEL_ACCESS_PATH}/*`,
+      component: () => import('@odh-dashboard/maas/ModelAccessPage'),
+    },
+  } satisfies RouteExtension,
   {
     type: 'app.route',
     flags: { required: ['grid'] },
