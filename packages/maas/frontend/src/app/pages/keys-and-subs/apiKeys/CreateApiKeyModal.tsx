@@ -279,7 +279,10 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
 
   const sortedSubscriptions = React.useMemo(
     () =>
-      subscriptions.toSorted((a, b) => (b.inference_priority ?? 0) - (a.inference_priority ?? 0)),
+      subscriptions.toSorted(
+        (a, b) =>
+          (b.priority ?? b.inference_priority ?? 0) - (a.priority ?? a.inference_priority ?? 0),
+      ),
     [subscriptions],
   );
 

@@ -461,7 +461,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 	var _ = Describe("ListSubscriptionsPassthroughHandler", Ordered, func() {
 		It("returns 200 and a list of subscriptions from the maas-api passthrough", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
-			actual, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+			actual, rs, err := setupApiTest[Envelope[[]models.MySubscriptionListItem, None]](
 				http.MethodGet,
 				"/api/v1/subscriptions",
 				nil,
@@ -486,7 +486,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 		})
 
 		It("returns 400 when no identity is provided", func() {
-			_, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+			_, rs, err := setupApiTest[Envelope[[]models.MySubscriptionListItem, None]](
 				http.MethodGet,
 				"/api/v1/subscriptions",
 				nil,
@@ -554,7 +554,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(res.StatusCode).To(Equal(http.StatusOK))
 			body, err := io.ReadAll(res.Body)
 			Expect(err).NotTo(HaveOccurred())
-			var actual Envelope[[]models.SubscriptionListItem, None]
+			var actual Envelope[[]models.MySubscriptionListItem, None]
 			Expect(json.Unmarshal(body, &actual)).To(Succeed())
 			Expect(actual.Data).NotTo(BeNil())
 			Expect(len(actual.Data)).Should(BeNumerically(">", 0))

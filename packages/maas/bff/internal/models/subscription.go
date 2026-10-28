@@ -23,23 +23,53 @@ type ModelRefInfo struct {
 	Namespace       string               `json:"namespace,omitempty"`
 	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits"`
 	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`
+	Subjects        *SubjectSpec         `json:"subjects,omitempty"`
 }
 
-// SubscriptionListItem is the sanitised subscription view from the maas-api /v1/subscriptions passthrough.
+// SubscriptionListItem is the raw subscription shape returned by maas-api /v1/subscriptions.
 type SubscriptionListItem struct {
 	SubscriptionIDHeader    string            `json:"subscription_id_header"`
 	SubscriptionDescription string            `json:"subscription_description"`
 	Roles                   []string          `json:"roles,omitempty"`
 	DisplayName             string            `json:"display_name,omitempty"`
-	KeyCount                int32             `json:"key_count"`
+	Priority                *int32            `json:"priority,omitempty"`
+	KeyCount                int32             `json:"key_count,omitempty"`
 	ModelRefs               []ModelRefInfo    `json:"model_refs"`
 	OrganizationID          string            `json:"organization_id,omitempty"`
 	CostCenter              string            `json:"cost_center,omitempty"`
 	Labels                  map[string]string `json:"labels,omitempty"`
+	Owner                   *OwnerSpec        `json:"owner,omitempty"`
 	// InferencePriority uses snake_case to match the maas-api passthrough payload.
 	InferencePriority *int32 `json:"inference_priority,omitempty"`
 	// Owner contains group references supplied by maas-api, including full group names.
 	Owner *OwnerSpec `json:"owner,omitempty"`
+}
+
+// MyModelRefInfo is the model reference exposed to the MaaS portal. Access subjects
+// are backend authorization metadata and are intentionally omitted.
+type MyModelRefInfo struct {
+	Name            string               `json:"name"`
+	ModelName       string               `json:"model_name,omitempty"`
+	DisplayName     string               `json:"display_name,omitempty"`
+	Source          string               `json:"source,omitempty"`
+	Description     string               `json:"description,omitempty"`
+	Namespace       string               `json:"namespace,omitempty"`
+	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits"`
+	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`
+}
+
+// MySubscriptionListItem is the sanitized subscription shape returned to the
+// MaaS portal. It intentionally excludes roles, owner, and model subjects.
+type MySubscriptionListItem struct {
+	SubscriptionIDHeader    string            `json:"subscription_id_header"`
+	SubscriptionDescription string            `json:"subscription_description"`
+	DisplayName             string            `json:"display_name,omitempty"`
+	Priority                *int32            `json:"priority,omitempty"`
+	KeyCount                int32             `json:"key_count,omitempty"`
+	ModelRefs               []MyModelRefInfo  `json:"model_refs"`
+	OrganizationID          string            `json:"organization_id,omitempty"`
+	CostCenter              string            `json:"cost_center,omitempty"`
+	Labels                  map[string]string `json:"labels,omitempty"`
 }
 
 // GroupReference references a Kubernetes group by name.
@@ -50,6 +80,7 @@ type GroupReference struct {
 // OwnerSpec defines who owns a subscription.
 type OwnerSpec struct {
 	Groups []GroupReference `json:"groups"`
+	Users  []string         `json:"users,omitempty"`
 }
 
 // TokenRateLimit defines a token-based rate limit.
@@ -125,6 +156,7 @@ type MaaSSubscription struct {
 // SubjectSpec defines subjects (groups) that have access.
 type SubjectSpec struct {
 	Groups []GroupReference `json:"groups"`
+	Users  []string         `json:"users,omitempty"`
 }
 
 // ModelRef is a simple reference to a MaaSModelRef by name and namespace.
