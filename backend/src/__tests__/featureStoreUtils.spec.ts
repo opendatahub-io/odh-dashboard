@@ -120,8 +120,9 @@ const spyKubeConfigForMockApi = (getMockApi: () => ReturnType<typeof createMockA
       ({
         loadFromClusterAndUser,
         makeApiClient: jest.fn().mockReturnValue(getMockApi()),
-        // applyIpv6AwareIdentityCheck wraps this; provide a no-op so the wrapper can bind it.
+        // applyIpv6AwareIdentityCheck wraps applyToRequest and reads getCurrentCluster().server.
         applyToRequest: jest.fn(),
+        getCurrentCluster: () => ({ server: 'https://test' }),
       } as any),
   );
   return { loadFromClusterAndUser };

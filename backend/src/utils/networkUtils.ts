@@ -84,8 +84,15 @@ export const ipv6AwareCheckServerIdentity = (
  * wrap `applyToRequest` to attach an `https.Agent` carrying the KubeConfig's own TLS material plus
  * `ipv6AwareCheckServerIdentity`. The agent is built once (TLS material is stable for a KubeConfig)
  * and reused for connection pooling.
+ *
+ * No-op when the current cluster is not HTTPS: attaching an `https.Agent` to an `http://` API server
+ * (e.g. `loadFromDefault()`'s `http://localhost:8080` fallback) would make Node reject requests with
+ * `ERR_INVALID_PROTOCOL`, and the IPv6 TLS identity check is irrelevant without TLS.
  */
 export const applyIpv6AwareIdentityCheck = (kubeConfig: KubeConfig): void => {
+  if (!kubeConfig.getCurrentCluster()?.server?.startsWith('https:')) {
+    return;
+  }
   const applyToRequest = kubeConfig.applyToRequest.bind(kubeConfig);
   let agent: https.Agent | undefined;
   kubeConfig.applyToRequest = async (opts) => {

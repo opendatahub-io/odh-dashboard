@@ -210,13 +210,21 @@ FBGQ5ML+k9MgI2zBO32YBmZZX8G/rqHLlsYXGkfRC3AfLsyIpuFdjYXvox8tOH7G
 
 describe('applyIpv6AwareIdentityCheck', () => {
   // Minimal KubeConfig stand-in whose applyToRequest sets TLS material like the real one does.
-  const fakeKubeConfig = (): { kc: KubeConfig; original: jest.Mock } => {
+  const fakeKubeConfig = (
+    server = 'https://[fc00:30::1]:6443',
+  ): { kc: KubeConfig; original: jest.Mock } => {
     const original = jest.fn(async (opts: Record<string, unknown>) => {
       opts.ca = Buffer.from('ca-data');
       opts.cert = Buffer.from('cert-data');
       opts.key = Buffer.from('key-data');
     });
-    return { kc: { applyToRequest: original } as unknown as KubeConfig, original };
+    return {
+      kc: {
+        applyToRequest: original,
+        getCurrentCluster: () => ({ server }),
+      } as unknown as KubeConfig,
+      original,
+    };
   };
 
   it('should attach an https.Agent carrying ipv6AwareCheckServerIdentity and the TLS material', async () => {
@@ -255,5 +263,29 @@ describe('applyIpv6AwareIdentityCheck', () => {
     await kc.applyToRequest(opts2 as unknown as Parameters<KubeConfig['applyToRequest']>[0]);
 
     expect(opts1.agent).toBe(opts2.agent);
+  });
+
+  it('should not attach an agent when the cluster server is http (avoids ERR_INVALID_PROTOCOL)', async () => {
+    const { kc } = fakeKubeConfig('http://localhost:8080');
+    applyIpv6AwareIdentityCheck(kc);
+
+    const opts: Record<string, unknown> = {};
+    await kc.applyToRequest(opts as unknown as Parameters<KubeConfig['applyToRequest']>[0]);
+
+    expect(opts.agent).toBeUndefined();
+  });
+
+  it('should not attach an agent when there is no current cluster', async () => {
+    const original = jest.fn(async () => undefined);
+    const kc = {
+      applyToRequest: original,
+      getCurrentCluster: () => null,
+    } as unknown as KubeConfig;
+    applyIpv6AwareIdentityCheck(kc);
+
+    const opts: Record<string, unknown> = {};
+    await kc.applyToRequest(opts as unknown as Parameters<KubeConfig['applyToRequest']>[0]);
+
+    expect(opts.agent).toBeUndefined();
   });
 });
