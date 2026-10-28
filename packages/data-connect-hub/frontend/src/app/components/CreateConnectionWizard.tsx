@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   ActionList,
   ActionListGroup,
@@ -51,11 +52,13 @@ import PasswordInput from '~/app/components/PasswordInput';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useNotification } from '~/app/hooks/useNotification';
+import { connectionDetailsRoute, projectHomeRoute } from '~/app/routes';
 import { SENSITIVE_CREDENTIAL_MASK, isSensitiveCredentialField } from '~/app/utilities/credentials';
 import type {
   ConnectionType,
   ConnectionTypeCredentialField,
   CreateConnectionRequest,
+  Connection,
   NamespaceKind,
 } from '~/app/types';
 import {
@@ -75,7 +78,10 @@ export type CreateConnectionWizardProps = {
   isOpen: boolean;
   namespace: string;
   onClose: () => void;
-  onCreate?: (data: CreateConnectionFormData, selectedNamespace: string) => void | Promise<void>;
+  onCreate?: (
+    data: CreateConnectionFormData,
+    selectedNamespace: string,
+  ) => Connection | void | Promise<Connection | void>;
   initialFormData?: Partial<CreateConnectionFormData>;
 };
 
@@ -849,6 +855,9 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const availableNamespaces = namespaces.some((item) => item.name === namespace)
     ? namespaces
     : [{ name: namespace }, ...namespaces];
+  const selectedNamespaceDisplayName = availableNamespaces.find(
+    (item) => item.name === selectedNamespace,
+  )?.displayName;
   const selectedConnectionType = connectionTypes.find(
     (connectionType) => connectionType.metadata.id === formData.data_connection_type_id,
   );
@@ -1245,7 +1254,10 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
 
     setIsCreating(true);
     try {
-      await onCreate(formData, selectedNamespace);
+      const createdConnection = await onCreate(formData, selectedNamespace);
+      const connectionName = createdConnection?.resource.name ?? formData.name;
+      const projectName = selectedNamespaceDisplayName ?? selectedNamespace;
+      const projectHomePath = projectHomeRoute(selectedNamespace);
       const tagCount = Object.keys(formData.properties).length;
       fireDataConnectHubTrackEvent({
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
@@ -1260,7 +1272,29 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
           project: selectedNamespace,
         },
       });
-      notification.success(`"${formData.name}" was created successfully.`);
+      notification.success(
+        'Connection created',
+        <>
+          "{connectionName}" was created in{' '}
+          {projectHomePath ? (
+            <Button
+              component={(props) => <Link {...props} to={projectHomePath} />}
+              variant="link"
+              isInline
+            >
+              {projectName}
+            </Button>
+          ) : (
+            projectName
+          )}
+        </>,
+        createdConnection
+          ? {
+              linkLabel: 'View connection details',
+              linkUrl: connectionDetailsRoute(createdConnection.metadata.id, selectedNamespace),
+            }
+          : undefined,
+      );
       resetForm();
       onClose();
     } catch (error) {
