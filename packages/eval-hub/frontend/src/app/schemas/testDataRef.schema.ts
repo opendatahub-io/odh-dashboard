@@ -117,7 +117,8 @@ const S3_BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 // K8s object names (e.g. PersistentVolumeClaim) follow DNS subdomain rules — dot-separated labels
 const RFC_1123_SUBDOMAIN_PATTERN =
   /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
-const HF_REPO_ID_PATTERN = /^[\w.-]+\/[\w.-]+$/;
+// Hugging Face accepts both `repo` (legacy dataset IDs like `squad`) and `namespace/repo`
+const HF_REPO_ID_PATTERN = /^[\w.-]+(\/[\w.-]+)?$/;
 
 const isBlank = (value: string | undefined): boolean => !value || value.trim() === '';
 
@@ -224,7 +225,7 @@ export const refineTestDataRef = (
       if (isBlank(values.repoId)) {
         addIssue('repoId', 'Repository ID is required.');
       } else if (!HF_REPO_ID_PATTERN.test(values.repoId.trim())) {
-        addIssue('repoId', 'Repository ID must be in the format owner/repo.');
+        addIssue('repoId', 'Repository ID must be a repo name or in the format owner/repo.');
       }
       if (!isBlank(values.subPath)) {
         const subPath = values.subPath.trim();

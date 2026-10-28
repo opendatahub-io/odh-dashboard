@@ -261,9 +261,13 @@ describe('refineTestDataRef', () => {
       expect(errors.repoId).toBe('Repository ID is required.');
     });
 
-    it('should reject repo ids without an owner', () => {
-      const errors = fieldErrors({ ...hfValues, repoId: 'just-a-repo' });
-      expect(errors.repoId).toBe('Repository ID must be in the format owner/repo.');
+    it('should accept single-component repo ids (legacy datasets)', () => {
+      expect(collectIssues({ ...hfValues, repoId: 'squad' })).toEqual([]);
+    });
+
+    it('should reject repo ids with more than one slash', () => {
+      const errors = fieldErrors({ ...hfValues, repoId: 'owner/repo/extra' });
+      expect(errors.repoId).toBe('Repository ID must be a repo name or in the format owner/repo.');
     });
 
     it('should reject sub paths with path traversal segments', () => {
