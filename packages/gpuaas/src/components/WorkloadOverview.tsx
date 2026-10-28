@@ -31,7 +31,11 @@ import {
 } from '@patternfly/react-tokens';
 import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
 import { ADMISSION_TIME_WINDOW_OPTIONS } from '../utils/workloadAdmissions';
-import { GPUAAS_EVENTS } from '../tracking/gpuaasTrackingConstants';
+import {
+  GPUAAS_EVENTS,
+  WORKLOADS_POPOVER_CLOSE_METHODS,
+  type WorkloadsTabStatusOverviewPopoverClosedProperties,
+} from '../tracking/gpuaasTrackingConstants';
 import {
   calculateWorkloadOverviewPercentages,
   overviewBuckets,
@@ -40,6 +44,8 @@ import {
   type WorkloadOverviewRow,
 } from '../utils/workloadOverview';
 import './InfrastructureWorkloadsSection.scss';
+
+type PopoverCloseMethod = WorkloadsTabStatusOverviewPopoverClosedProperties['closeMethod'];
 
 type WorkloadOverviewProps = {
   workloads: WorkloadOverviewRow[];
@@ -54,7 +60,7 @@ type WorkloadOverviewProps = {
   onViewInTable?: (bucket: OverviewBucket) => void;
   onViewInTableClicked?: (bucket: OverviewBucket) => void;
   onStatusOverviewSegmentClick?: (bucket: OverviewBucket) => void;
-  onPopoverClosed?: (bucket: OverviewBucket, method: 'close-button') => void;
+  onPopoverClosed?: (bucket: OverviewBucket, method: PopoverCloseMethod) => void;
 };
 
 const WorkloadAdmissionsTab = React.lazy(() => import('./WorkloadAdmissionsTab'));
@@ -94,7 +100,7 @@ type WorkloadStatusPopoverProps = {
   visible: boolean;
   onOpen: () => void;
   onClose: () => void;
-  onPopoverClosed: (method: 'close-button') => void;
+  onPopoverClosed: (method: PopoverCloseMethod) => void;
   onViewInTable?: () => void;
   onViewInTableClicked?: () => void;
   children: React.ReactElement;
@@ -109,7 +115,7 @@ type WorkloadStatusControlProps = {
   onPopoverClose: () => void;
   onViewInTable?: (bucket: OverviewBucket) => void;
   onViewInTableClicked?: (bucket: OverviewBucket) => void;
-  onPopoverClosed?: (method: 'close-button') => void;
+  onPopoverClosed?: (method: PopoverCloseMethod) => void;
   children: React.ReactElement;
 };
 
@@ -121,7 +127,7 @@ type WorkloadStatusCountsProps = Pick<
   details: Record<OverviewBucket, Record<string, number>>;
   onStatusOverviewSegmentClick?: (bucket: OverviewBucket) => void;
   onViewInTableClicked?: (bucket: OverviewBucket) => void;
-  onPopoverClosed?: (bucket: OverviewBucket, method: 'close-button') => void;
+  onPopoverClosed?: (bucket: OverviewBucket, method: PopoverCloseMethod) => void;
 };
 
 type WorkloadStatusTabProps = {
@@ -134,7 +140,7 @@ type WorkloadStatusTabProps = {
   onViewInTable?: (bucket: OverviewBucket) => void;
   onStatusOverviewSegmentClick?: (bucket: OverviewBucket) => void;
   onViewInTableClicked?: (bucket: OverviewBucket) => void;
-  onPopoverClosed?: (bucket: OverviewBucket, method: 'close-button') => void;
+  onPopoverClosed?: (bucket: OverviewBucket, method: PopoverCloseMethod) => void;
 };
 
 const labels: Record<OverviewBucket, string> = {
@@ -151,6 +157,29 @@ const colors: Record<OverviewBucket, string> = {
   waiting: chartYellow.var,
   blockers: chartOrange.var,
   failed: chartRed.var,
+};
+
+const getPopoverCloseMethod = (
+  event: MouseEvent | KeyboardEvent,
+): PopoverCloseMethod | undefined => {
+  if (event instanceof KeyboardEvent && event.key === 'Escape') {
+    return WORKLOADS_POPOVER_CLOSE_METHODS.escape;
+  }
+
+  const { target, type } = event;
+  if (type !== 'click') {
+    return undefined;
+  }
+
+  const element = target instanceof Element ? target : null;
+  if (element?.closest('[data-workload-status-trigger]')) {
+    return undefined;
+  }
+  if (element?.closest('[aria-label="Close workload status overview"]')) {
+    return WORKLOADS_POPOVER_CLOSE_METHODS.closeButton;
+  }
+
+  return WORKLOADS_POPOVER_CLOSE_METHODS.outsideClick;
 };
 
 const WorkloadStatusPopover: React.FC<WorkloadStatusPopoverProps> = ({
@@ -184,13 +213,12 @@ const WorkloadStatusPopover: React.FC<WorkloadStatusPopoverProps> = ({
     closeBtnAriaLabel="Close workload status overview"
     shouldOpen={onOpen}
     shouldClose={(event) => {
-      const isCloseButton = Boolean(
-        event.target instanceof HTMLElement &&
-          event.target.closest('[aria-label="Close workload status overview"]'),
-      );
-
-      if (isCloseButton) {
-        onPopoverClosed('close-button');
+      if (!visible) {
+        return;
+      }
+      const closeMethod = getPopoverCloseMethod(event);
+      if (closeMethod) {
+        onPopoverClosed(closeMethod);
       }
       onClose();
     }}
@@ -288,6 +316,7 @@ const WorkloadStatusCounts: React.FC<WorkloadStatusCountsProps> = ({
               variant="plain"
               isInline
               data-testid={`workload-count-${bucket}`}
+              data-workload-status-trigger
               onClick={() => onStatusOverviewSegmentClick?.(bucket)}
             >
               <Flex
@@ -397,6 +426,7 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
                   <button
                     type="button"
                     data-testid={`workload-segment-${bucket}`}
+                    data-workload-status-trigger
                     className="gpuaas-workload-overview__segment"
                     style={{ backgroundColor: colors[bucket] }}
                     data-status={bucket}

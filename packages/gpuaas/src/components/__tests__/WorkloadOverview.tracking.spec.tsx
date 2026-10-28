@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -29,6 +29,7 @@ jest.mock('../../hooks/useWorkloadAdmissionMetrics', () => ({
 }));
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+const mockPopoverClosed = jest.fn();
 const workloads: WorkloadOverviewRow[] = [
   { bucket: 'active', detail: 'running', statusFilters: ['Running'] },
   { bucket: 'waiting', detail: 'queued', statusFilters: ['Queued'] },
@@ -46,6 +47,7 @@ describe('WorkloadOverview tracking events', () => {
         loaded
         kueueAvailable
         canAccessAdminMetrics
+        onPopoverClosed={mockPopoverClosed}
         onViewInTable={jest.fn()}
         onViewInTableClicked={(overviewSegment) =>
           fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_VIEW_IN_TABLE_CLICKED, {
@@ -105,4 +107,51 @@ describe('WorkloadOverview tracking events', () => {
       { overviewSegment: 'active' },
     );
   });
+
+  it.each(['close-button', 'outside-click', 'escape'] as const)(
+    'should report one popover dismissal with close method %s',
+    async (closeMethod) => {
+      const user = userEvent.setup();
+      renderOverview();
+      await user.click(screen.getByTestId('workload-segment-active'));
+      const closeButton = await screen.findByRole('button', {
+        name: 'Close workload status overview',
+      });
+
+      if (closeMethod === 'close-button') {
+        // Exercise the nested icon target as well as the button's close callback.
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        closeButton.appendChild(icon);
+        fireEvent.click(icon);
+      } else if (closeMethod === 'escape') {
+        await user.keyboard('{Escape}');
+      } else {
+        await user.click(document.body);
+      }
+
+      expect(mockPopoverClosed).toHaveBeenCalledTimes(1);
+      expect(mockPopoverClosed).toHaveBeenCalledWith('active', closeMethod);
+    },
+  );
+
+  it.each(['count', 'segment'] as const)(
+    'should not report a dismissal when switching to a %s trigger',
+    async (source) => {
+      const user = userEvent.setup();
+      renderOverview();
+      await user.click(screen.getByTestId('workload-count-active'));
+      const trigger = screen.getByTestId(`workload-${source}-waiting`);
+
+      // Production detection must not depend on test IDs or the exact clicked child.
+      trigger.removeAttribute('data-testid');
+      const target = source === 'count' ? within(trigger).getByText('Waiting') : trigger;
+      await user.click(target);
+
+      expect(mockPopoverClosed).not.toHaveBeenCalled();
+      expect(mockFireMisc).toHaveBeenLastCalledWith(
+        GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_SEGMENT_CLICKED,
+        { statusClicked: 'waiting' },
+      );
+    },
+  );
 });

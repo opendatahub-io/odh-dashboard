@@ -16,10 +16,11 @@ describe('Workloads tracking properties', () => {
 
 describe('Workloads filter clear tracking', () => {
   it.each([
-    [0, { hadActiveFilters: false, filterCount: 0 }],
-    [2, { hadActiveFilters: true, filterCount: 2 }],
-  ])('reports active filter state before clear: %j', (filterCount, expected) => {
-    expect(getWorkloadsFilterClearTrackingProperties(filterCount)).toEqual(expected);
+    [0, 0, { hadActiveFilters: false, filterCount: 0 }],
+    [2, 1, { hadActiveFilters: true, filterCount: 1 }],
+    [2, 0, { hadActiveFilters: true, filterCount: 0 }],
+  ])('reports remaining filters after clearing from %j to %j', (previous, remaining, expected) => {
+    expect(getWorkloadsFilterClearTrackingProperties(previous, remaining)).toEqual(expected);
   });
 });
 

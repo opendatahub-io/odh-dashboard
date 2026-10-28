@@ -207,9 +207,15 @@ export type WorkloadsTabOverviewTabSelectedProperties = {
   tabName: 'status' | 'admission';
 };
 
+export const WORKLOADS_POPOVER_CLOSE_METHODS = {
+  closeButton: 'close-button',
+  outsideClick: 'outside-click',
+  escape: 'escape',
+} as const;
+
 export type WorkloadsTabStatusOverviewPopoverClosedProperties = {
   statusClicked: string;
-  closeMethod: 'close-button';
+  closeMethod: (typeof WORKLOADS_POPOVER_CLOSE_METHODS)[keyof typeof WORKLOADS_POPOVER_CLOSE_METHODS];
 };
 
 export type WorkloadsTabColumnSortedProperties = {
@@ -251,8 +257,9 @@ export type WorkloadsTabFiltersClearedProperties = {
 };
 
 export const getWorkloadsFilterClearTrackingProperties = (
-  filterCount: number,
+  previousFilterCount: number,
+  remainingFilterCount: number,
 ): WorkloadsTabFiltersClearedProperties => ({
-  hadActiveFilters: filterCount > 0,
-  filterCount,
+  hadActiveFilters: previousFilterCount > 0,
+  filterCount: remainingFilterCount,
 });

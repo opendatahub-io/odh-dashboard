@@ -326,17 +326,6 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
     [onOverviewStatusFiltersChange],
   );
 
-  const toggleFilterValue = React.useCallback(
-    (type: InfrastructureWorkloadsFilterType, value: string) => {
-      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_ATTRIBUTE_FILTER_APPLIED, {
-        filterType: type,
-        filterValue: value,
-      });
-      updateFilterValue(type, value);
-    },
-    [updateFilterValue],
-  );
-
   const clearFilters = React.useCallback(() => {
     window.clearTimeout(searchTrackingTimeoutRef.current);
     const filterCount = Object.values(selectedFilterValues).reduce(
@@ -345,7 +334,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
     );
     fireMiscTrackingEvent(
       GPUAAS_EVENTS.WORKLOADS_TAB_FILTERS_CLEARED,
-      getWorkloadsFilterClearTrackingProperties(filterCount),
+      getWorkloadsFilterClearTrackingProperties(filterCount, 0),
     );
     setSearchValue('');
     setFilterValues({ type: [], hardwareProfile: [] });
@@ -375,7 +364,10 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
       );
       fireMiscTrackingEvent(
         GPUAAS_EVENTS.WORKLOADS_TAB_FILTERS_CLEARED,
-        getWorkloadsFilterClearTrackingProperties(filterCount),
+        getWorkloadsFilterClearTrackingProperties(
+          filterCount,
+          filterCount - (selectedFilterValues[type].includes(value) ? 1 : 0),
+        ),
       );
       updateFilterValue(type, value);
     },
@@ -385,6 +377,22 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   const columns = React.useMemo(
     () => getInfrastructureWorkloadsTableColumns(kueueEnabled),
     [kueueEnabled],
+  );
+
+  const toggleFilterValue = React.useCallback(
+    (type: InfrastructureWorkloadsFilterType, value: string) => {
+      if (selectedFilterValues[type].includes(value)) {
+        clearFilterChip(type, value);
+        return;
+      }
+
+      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_ATTRIBUTE_FILTER_APPLIED, {
+        filterType: type,
+        filterValue: value,
+      });
+      updateFilterValue(type, value);
+    },
+    [clearFilterChip, selectedFilterValues, updateFilterValue],
   );
 
   const handleSort = React.useCallback(
