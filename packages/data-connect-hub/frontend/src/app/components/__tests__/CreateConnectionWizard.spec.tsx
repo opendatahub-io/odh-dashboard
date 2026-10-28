@@ -751,11 +751,70 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByText('zone: west')).toBeTruthy();
   });
 
+  it('closes without a warning when the form has not been modified', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
+
+    await user.click(screen.getByTestId('cancel-connection-wizard-button'));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
+  });
+
+  it('does not treat asynchronously loaded credential defaults as user changes', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              {
+                name: 'URI',
+                label: 'URI',
+                required: true,
+                type: 'string',
+                default_value: 'postgres://default',
+              },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    await user.click(screen.getByTestId('cancel-connection-wizard-button'));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
+  });
+
   it('warns before discarding unsaved connection changes', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();
     render(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
 
+    await user.click(
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
+    );
     await user.keyboard('{Escape}');
 
     expect(screen.getByRole('heading', { name: 'Discard unsaved changes?' })).toBeTruthy();
@@ -770,7 +829,7 @@ describe('CreateConnectionWizard', () => {
       ),
     ).toBeTruthy();
 
-    await user.click(screen.getByTestId('cancel-connection-changes-button'));
+    await user.keyboard('{Escape}');
 
     expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
@@ -799,6 +858,34 @@ describe('CreateConnectionWizard', () => {
     rerender(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
 
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+  });
+
+  it('keeps the discard confirmation accessible when the wizard re-renders', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />,
+    );
+
+    await user.click(
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
+    );
+    await user.keyboard('{Escape}');
+    await waitFor(() =>
+      expect(screen.getByTestId('discard-connection-changes-button')).toBe(document.activeElement),
+    );
+
+    rerender(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
+
+    expect(screen.getByRole('dialog', { name: 'Discard unsaved changes?' })).toBeTruthy();
+    expect(screen.getByTestId('discard-connection-changes-button')).toBe(document.activeElement);
+    await user.tab();
+    expect(screen.getByTestId('cancel-connection-changes-button')).toBe(document.activeElement);
   });
 
   it('shows verification for a flight-ready connection type', async () => {

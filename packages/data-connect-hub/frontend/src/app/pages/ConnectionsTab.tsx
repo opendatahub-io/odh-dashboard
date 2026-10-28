@@ -47,16 +47,12 @@ type ConnectionsTabProps = { namespace: string; isActive?: boolean };
 
 export const synchronizeTypeSelection = (
   current: string[] | null,
-  previousIds: string[],
   availableIds: string[],
 ): string[] | null => {
   if (current === null || current.length === 0) {
     return current;
   }
-  const newIds = availableIds.filter((id) => !previousIds.includes(id));
-  const next = Array.from(new Set([...current, ...newIds])).filter((id) =>
-    availableIds.includes(id),
-  );
+  const next = current.filter((id) => availableIds.includes(id));
   return next.length === current.length && next.every((id, index) => id === current[index])
     ? current
     : next;
@@ -92,12 +88,8 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const selectedTypeIds = (selectedTypes ?? []).filter((typeId) => typeIds.includes(typeId));
   const hasTypeFilter = selectedTypeIds.length > 0;
   const filterTypes = hasTypeFilter ? selectedTypeIds : typeIds;
-  const previousTypeIds = React.useRef<string[]>([]);
   React.useEffect(() => {
-    const previousIds = previousTypeIds.current;
-    previousTypeIds.current = typeIds;
-
-    setSelectedTypes((current) => synchronizeTypeSelection(current, previousIds, typeIds));
+    setSelectedTypes((current) => synchronizeTypeSelection(current, typeIds));
   }, [typeIds]);
 
   const previousConnections = React.useRef(connections);
@@ -332,7 +324,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
         {connections.length > 0 && hasTypeFilter && (
           <ToolbarContent>
             <ToolbarItem>
-              <LabelGroup categoryName="Type">
+              <LabelGroup categoryName="Type" data-testid="connections-type-filter-labels">
                 {selectedTypeIds.map((id) => (
                   <Label key={id} variant="outline" onClose={() => toggleType(id)}>
                     {getTypeName(id)}
@@ -391,7 +383,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                           variant="link"
                           onClick={() => {
                             setNameFilter('');
-                            setSelectedTypes(typeIds);
+                            setSelectedTypes(null);
                           }}
                         >
                           Clear all filters

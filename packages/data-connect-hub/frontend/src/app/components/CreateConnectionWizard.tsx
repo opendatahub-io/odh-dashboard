@@ -43,6 +43,7 @@ import {
 } from '@patternfly/react-core';
 import { EyeIcon, EyeSlashIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Tearsheet } from '@patternfly/react-component-groups';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { testCredentials } from '~/app/api/dch';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
 import PasswordInput from '~/app/components/PasswordInput';
@@ -79,7 +80,7 @@ const INITIAL_FORM_DATA: CreateConnectionFormData = {
   properties: {},
 };
 
-const StepHeader: React.FC<{ title: string; description: React.ReactNode }> = ({
+const StepHeader: React.FC<{ title: string; description?: React.ReactNode }> = ({
   title,
   description,
 }) => (
@@ -87,9 +88,11 @@ const StepHeader: React.FC<{ title: string; description: React.ReactNode }> = ({
     <StackItem>
       <Content component={ContentVariants.h2}>{title}</Content>
     </StackItem>
-    <StackItem>
-      <Content component={ContentVariants.p}>{description}</Content>
-    </StackItem>
+    {description && (
+      <StackItem>
+        <Content component={ContentVariants.p}>{description}</Content>
+      </StackItem>
+    )}
   </Stack>
 );
 
@@ -179,7 +182,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
 
   return (
     <Form className="dch-connection-wizard-step-form">
-      <StepHeader title="Details" description="" />
+      <StepHeader title="Details" />
       {namespacesError ? (
         <Alert variant="danger" isInline title="Unable to load projects">
           {namespacesError.message}
@@ -496,7 +499,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
   return (
     <Grid hasGutter>
-      <StepHeader title="Review" description="" />
+      <StepHeader title="Review" />
       <DescriptionList
         className="dch-connection-wizard-review-summary"
         columnModifier={{
@@ -561,6 +564,21 @@ type PropertyRow = { id: number; key: string; value: string };
 
 const createPropertyRows = (properties: Record<string, string>): PropertyRow[] =>
   Object.entries(properties).map(([key, value], index) => ({ id: index + 1, key, value }));
+
+const arePropertyValuesEqual = (curr: Record<string, string>, orig: Record<string, string>) =>
+  Object.keys(curr).length === Object.keys(orig).length &&
+  Object.entries(curr).every(([key, value]) => orig[key] === value);
+
+const isConnectionFormDataEqual = (
+  curr: CreateConnectionFormData,
+  orig: CreateConnectionFormData,
+) =>
+  curr.name === orig.name &&
+  curr.data_connection_type_id === orig.data_connection_type_id &&
+  curr.format === orig.format &&
+  curr.credentials.secret === orig.credentials.secret &&
+  arePropertyValuesEqual(curr.properties, orig.properties) &&
+  arePropertyValuesEqual(curr.credentials.properties, orig.credentials.properties);
 
 export const getPropertyErrors = (properties: PropertyRow[]): Record<number, string> => {
   const errors: Record<number, string> = {};
@@ -792,6 +810,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const [selectedNamespace, setSelectedNamespace] = React.useState(namespace);
   const [isCreating, setIsCreating] = React.useState(false);
   const [isDiscardModalOpen, setIsDiscardModalOpen] = React.useState(false);
+  const discardButtonFocusTimeoutRef = React.useRef<number | undefined>(undefined);
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [isVerified, setIsVerified] = React.useState(false);
   const [verificationError, setVerificationError] = React.useState<Error>();
@@ -807,8 +826,6 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const verificationRequestRef = React.useRef(0);
   const verificationAbortRef = React.useRef<AbortController>();
   const wasOpenRef = React.useRef(false);
-  const discardButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const discardButtonFocusTimeoutRef = React.useRef<number | undefined>(undefined);
   const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
     selectedNamespace,
     isOpen,
@@ -821,6 +838,9 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const selectedConnectionType = connectionTypes.find(
     (connectionType) => connectionType.metadata.id === formData.data_connection_type_id,
   );
+  const initialConnectionType = connectionTypes.find(
+    (connectionType) => connectionType.metadata.id === initialFormData.data_connection_type_id,
+  );
   const hasConnectionType = Boolean(formData.data_connection_type_id);
   const hasConnectionTypesReady = connectionTypesLoaded && !connectionTypesError;
   const hasSelectedConnectionType = hasConnectionTypesReady && Boolean(selectedConnectionType);
@@ -832,6 +852,32 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
           .map((field) => [field.name, field.default_value ?? '']),
       ),
     [selectedConnectionType],
+  );
+  const initialDefaultCredentials = React.useMemo(
+    () =>
+      Object.fromEntries(
+        (initialConnectionType?.resource.credentials_fields ?? [])
+          .filter((field) => field.default_value !== undefined)
+          .map((field) => [field.name, field.default_value ?? '']),
+      ),
+    [initialConnectionType],
+  );
+  const baselinePropertyRows = React.useMemo(
+    () => createPropertyRows(initialFormData.properties),
+    [initialFormData],
+  );
+  const baselineFormData = React.useMemo(
+    () => ({
+      ...initialFormData,
+      credentials: {
+        ...initialFormData.credentials,
+        properties: {
+          ...initialDefaultCredentials,
+          ...initialFormData.credentials.properties,
+        },
+      },
+    }),
+    [initialDefaultCredentials, initialFormData],
   );
   const hasMissingCredentialDefaults = Object.keys(defaultCredentials).some(
     (name) => !(name in formData.credentials.properties),
@@ -874,6 +920,15 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     : canResolveStartIndex
       ? calculatedStartIndex
       : 1;
+  const isFormDirty =
+    selectedNamespace !== namespace ||
+    !isConnectionFormDataEqual(formData, baselineFormData) ||
+    propertyRows.length !== baselinePropertyRows.length ||
+    propertyRows.some(
+      (row, index) =>
+        row.key !== baselinePropertyRows[index]?.key ||
+        row.value !== baselinePropertyRows[index]?.value,
+    );
 
   React.useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
@@ -929,6 +984,17 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       setIsDiscardModalOpen(false);
     }
   }, [invalidateVerification, isOpen]);
+  React.useEffect(() => {
+    if (!isDiscardModalOpen) {
+      return;
+    }
+    discardButtonFocusTimeoutRef.current = window.setTimeout(() => {
+      document
+        .querySelector<HTMLElement>('[data-testid="discard-connection-changes-button"]')
+        ?.focus();
+    }, 0);
+    return () => window.clearTimeout(discardButtonFocusTimeoutRef.current);
+  }, [isDiscardModalOpen]);
   const handleConnectionTypeChange = (connectionTypeId: string) => {
     invalidateVerification();
     const selectedType = connectionTypes.find(
@@ -1068,24 +1134,22 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   }, [isCreating, onClose, resetForm]);
   const requestClose = React.useCallback(() => {
     if (!isCreating) {
+      if (!isFormDirty) {
+        handleClose();
+        return;
+      }
       setIsDiscardModalOpen(true);
     }
-  }, [isCreating]);
+  }, [handleClose, isCreating, isFormDirty]);
+  const handleTearsheetEscape = React.useCallback(() => {
+    if (!isDiscardModalOpen) {
+      requestClose();
+    }
+  }, [isDiscardModalOpen, requestClose]);
   const handleDiscard = React.useCallback(() => {
     setIsDiscardModalOpen(false);
     handleClose();
   }, [handleClose]);
-  const setDiscardButtonRef = React.useCallback((button: HTMLButtonElement | null) => {
-    discardButtonRef.current = button;
-    window.clearTimeout(discardButtonFocusTimeoutRef.current);
-    if (button) {
-      discardButtonFocusTimeoutRef.current = window.setTimeout(() => {
-        window.setTimeout(() => button.focus(), 0);
-      }, 0);
-    }
-  }, []);
-  React.useEffect(() => () => window.clearTimeout(discardButtonFocusTimeoutRef.current), []);
-
   const handleCreate = async () => {
     if (!hasValidConfiguration) {
       return;
@@ -1116,7 +1180,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     <>
       <Tearsheet
         isOpen
-        onEscapePress={requestClose}
+        onEscapePress={handleTearsheetEscape}
+        id="create-connection-tearsheet-modal"
         aria-labelledby="create-connection-wizard-title"
         data-testid="create-connection-tearsheet"
         modalProps={{ disableFocusTrap: isDiscardModalOpen }}
@@ -1210,8 +1275,11 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
           isOpen
           variant={ModalVariant.small}
           aria-label="Discard unsaved changes?"
-          elementToFocus="#discard-connection-changes-button"
+          elementToFocus='[data-testid="discard-connection-changes-button"]'
           onClose={() => setIsDiscardModalOpen(false)}
+          appendTo={() =>
+            document.getElementById('create-connection-tearsheet-modal') ?? document.body
+          }
           data-testid="discard-connection-changes-modal"
         >
           <ModalHeader title="Discard unsaved changes?" />
@@ -1220,22 +1288,13 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
             or cancel to continue editing.
           </ModalBody>
           <ModalFooter>
-            <Button
-              variant="primary"
-              id="discard-connection-changes-button"
-              ref={setDiscardButtonRef}
-              onClick={handleDiscard}
-              data-testid="discard-connection-changes-button"
-            >
-              Discard
-            </Button>
-            <Button
-              variant="link"
-              onClick={() => setIsDiscardModalOpen(false)}
-              data-testid="cancel-connection-changes-button"
-            >
-              Cancel
-            </Button>
+            <DashboardModalFooter
+              submitLabel="Discard"
+              onSubmit={handleDiscard}
+              onCancel={() => setIsDiscardModalOpen(false)}
+              submitButtonTestId="discard-connection-changes-button"
+              cancelButtonTestId="cancel-connection-changes-button"
+            />
           </ModalFooter>
         </Modal>
       ) : null}

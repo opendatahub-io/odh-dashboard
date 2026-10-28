@@ -145,27 +145,25 @@ describe('ConnectionsTab', () => {
       synchronizeTypeSelection(
         ['550e8400-e29b-41d4-a716-446655440003'],
         ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
-        ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440004'],
       ),
     ).toEqual(['550e8400-e29b-41d4-a716-446655440003']);
   });
 
   it('keeps an absent type selection absent when types become available', () => {
-    expect(synchronizeTypeSelection(null, [], ['type-one', 'type-two'])).toBeNull();
+    expect(synchronizeTypeSelection(null, ['type-one', 'type-two'])).toBeNull();
   });
 
   it('keeps an empty type selection empty when new types are discovered', () => {
-    expect(synchronizeTypeSelection([], ['type-one'], ['type-one', 'type-two'])).toEqual([]);
+    expect(synchronizeTypeSelection([], ['type-one', 'type-two'])).toEqual([]);
   });
 
-  it('adds a newly discovered type while preserving existing selection', () => {
+  it('keeps a newly discovered type unselected while preserving existing selection', () => {
     expect(
       synchronizeTypeSelection(
         ['550e8400-e29b-41d4-a716-446655440003'],
-        ['550e8400-e29b-41d4-a716-446655440003'],
         ['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006'],
       ),
-    ).toEqual(['550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440006']);
+    ).toEqual(['550e8400-e29b-41d4-a716-446655440003']);
   });
 
   it('renders connection names and readable type names', () => {
@@ -183,6 +181,7 @@ describe('ConnectionsTab', () => {
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('object-store')).toBeTruthy();
     expect(screen.queryByTestId('connections-type-filter-badge')).toBeNull();
+    expect(screen.queryByTestId('connections-type-filter-labels')).toBeNull();
 
     await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
     expect(
@@ -202,7 +201,9 @@ describe('ConnectionsTab', () => {
       within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
     );
 
-    expect(screen.getByTestId('connections-type-filter-badge').textContent).toBe('1');
+    await waitFor(() =>
+      expect(screen.getByTestId('connections-type-filter-badge').textContent).toBe('1'),
+    );
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.queryByText('object-store')).toBeNull();
 
@@ -213,6 +214,33 @@ describe('ConnectionsTab', () => {
     expect(screen.queryByTestId('connections-type-filter-badge')).toBeNull();
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.getByText('object-store')).toBeTruthy();
+  });
+
+  it('clears the name and type filters from the empty state', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
+    fireEvent.click(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    );
+    await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'no-match');
+
+    expect(screen.getByText('No results found')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    expect(screen.getByText('warehouse')).toBeTruthy();
+    expect(screen.getByText('object-store')).toBeTruthy();
+    expect(screen.queryByTestId('connections-type-filter-badge')).toBeNull();
+
+    await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
+    expect(
+      within(screen.getByRole('menuitem', { name: 'PostgreSQL' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
+    expect(
+      within(screen.getByRole('menuitem', { name: 'S3' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
   });
 
   it('renders a newly created connection as unverified', () => {
@@ -360,12 +388,12 @@ describe('ConnectionsTab', () => {
     expect(screen.queryByTestId('delete-modal')).toBeNull();
   });
 
-  it('includes newly discovered connection types after polling', async () => {
+  it('keeps newly discovered connection types unselected after polling', async () => {
     const user = userEvent.setup();
     const { rerender } = renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getAllByRole('button', { name: 'Type' })[0]);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'S3' }));
+    fireEvent.click(within(screen.getByRole('menuitem', { name: 'S3' })).getByRole('checkbox'));
     mockUseConnections.mockReturnValue([
       [...connections, newConnection],
       true,
@@ -383,7 +411,13 @@ describe('ConnectionsTab', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => expect(screen.getByText('analytics')).toBeTruthy());
+    expect(screen.getByTestId('connections-type-filter-badge').textContent).toBe('1');
+    expect(screen.getByText('object-store')).toBeTruthy();
+    expect(screen.queryByText('warehouse')).toBeNull();
+    expect(screen.queryByText('analytics')).toBeNull();
+    expect(
+      within(screen.getByRole('menuitem', { name: 'Snowflake' })).getByRole('checkbox'),
+    ).toHaveProperty('checked', false);
   });
 
   it('resets type selections when the project changes', async () => {
