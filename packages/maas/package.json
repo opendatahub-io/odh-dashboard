@@ -55,6 +55,10 @@
       "types": "./types/ModelAccessPage.d.ts",
       "default": "./frontend/src/app/pages/model-access/ModelAccessPage.tsx"
     },
+    "./ModelAccessSubscriptionPage": {
+      "types": "./types/ModelAccessSubscriptionPage.d.ts",
+      "default": "./frontend/src/app/pages/model-access/ModelAccessSubscriptionPage.tsx"
+    },
     "./extensions/static": "./frontend/src/odh/odhExtensions/odhExtensions.ts"
   },
   "dependencies": {
