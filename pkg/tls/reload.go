@@ -153,9 +153,15 @@ const (
 
 // watchForReload blocks until the context is cancelled, the server stops, or the
 // resolved TLS configuration changes. When a change is detected it returns the
-// new config with reloadRequested. Transient resolver errors are logged and the
-// current configuration is kept (a working listener is never torn down because
-// of a flaky read).
+// new config with reloadRequested.
+//
+// Policy on a poll resolver error (any kind — transient, denied, or
+// malformed/unknown): the error is logged and the current (last-known-good)
+// configuration is retained; the running listener keeps serving and is never torn
+// down. This is deliberate — a reload poll failing is not a reason to stop serving
+// a policy that was already validated at the previous successful read. Startup is
+// where resolution is fail-closed; reload prefers availability of the
+// last-known-good policy, then re-applies automatically on the next clean read.
 func watchForReload(
 	ctx context.Context,
 	logger *slog.Logger,

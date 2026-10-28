@@ -158,6 +158,14 @@ type Result struct {
 	// It governs whether a component must adopt the cluster profile or may keep its
 	// own (stronger) configuration under Legacy/unset adherence.
 	Adherence string
+	// PolicyUnreadable is true when the APIServer resource (and therefore the
+	// adherence decision) could not be trusted at all — a denied/transient read or a
+	// malformed adherence field. It is distinct from Degraded, which also covers a
+	// cleanly-read profile whose cipher/group restriction is merely inapplicable.
+	// Consumers that key off adherence (the backend) must fail closed when
+	// PolicyUnreadable regardless of adherence, but may keep their own configuration
+	// for a Degraded-but-readable profile under Legacy/unset adherence.
+	PolicyUnreadable bool
 }
 
 // tlsGroupMap maps OpenShift TLS group (key-exchange curve) names to Go
@@ -227,11 +235,13 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 			log.Info("Transient error reading APIServer TLS profile, using hardened defaults", "error", err)
 			result.APIAvailable = true
 			result.Degraded = true
+			result.PolicyUnreadable = true
 			result.Profile = intermediateProfileMap()
 		case apierrors.IsForbidden(err), apierrors.IsUnauthorized(err):
 			log.Info("Forbidden/Unauthorized reading APIServer TLS profile, registering watcher for self-heal", "error", err)
 			result.APIAvailable = true
 			result.Degraded = true
+			result.PolicyUnreadable = true
 			result.Profile = intermediateProfileMap()
 		default:
 			return result, fmt.Errorf("failed to read APIServer TLS profile: %w", err)
@@ -243,19 +253,35 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 	result.APIAvailable = true
 	profile, _, _ := unstructured.NestedMap(apiServer.Object, fieldSpec, fieldTLSSecurityProfile)
 	result.Profile = normalizeProfileMap(profile)
-	result.Adherence, _, _ = unstructured.NestedString(apiServer.Object, fieldSpec, fieldTLSAdherence)
+
+	// A malformed adherence field means we cannot trust the adherence decision, so
+	// mark the policy unreadable and fail open to hardened defaults (consumers that
+	// key off adherence fail closed).
+	adherence, _, adhErr := unstructured.NestedString(apiServer.Object, fieldSpec, fieldTLSAdherence)
+	if adhErr != nil {
+		log.Error(adhErr, "Failed to read spec.tlsAdherence from APIServer, treating policy as unreadable")
+		result.Degraded = true
+		result.PolicyUnreadable = true
+		result.TLSOpts = append(result.TLSOpts, intermediateWithALPN)
+		return result, nil
+	}
+	result.Adherence = adherence
 
 	minVersion, ciphers, curves, degraded := parseProfile(apiServer)
 	result.Degraded = degraded
-	// A Custom profile that enumerated TLS ≤1.2 ciphers must leave at least one
-	// usable one. A TLS 1.3 profile legitimately resolves to no ≤1.2 ciphers
-	// (Go manages TLS 1.3 suites), so only enforce below TLS 1.3.
-	if minVersion < tls.VersionTLS13 && ciphers != nil && len(ciphers) == 0 {
-		return result, fmt.Errorf("custom TLS profile specified ciphers but none are supported by Go")
-	}
-	// A Custom profile that restricts groups must leave at least one usable curve.
-	if curves != nil && len(curves) == 0 {
-		return result, fmt.Errorf("custom TLS profile specified groups but none are supported by Go")
+	// A sub-TLS-1.3 profile whose ciphers (or a restricted group set) resolve to
+	// nothing usable is inapplicable. This is a CLEAN read — adherence is trusted —
+	// so mark it degraded and fail open to hardened defaults rather than erroring:
+	// a Strict consumer rejects a degraded result, while a Legacy/unset consumer
+	// keeps its own (stronger) configuration. (TLS 1.3 profiles legitimately resolve
+	// to no ≤1.2 ciphers, since Go manages TLS 1.3 suites.)
+	inapplicable := (minVersion < tls.VersionTLS13 && ciphers != nil && len(ciphers) == 0) ||
+		(curves != nil && len(curves) == 0)
+	if inapplicable {
+		log.Info("Custom TLS profile resolved to no usable ciphers/groups, using hardened defaults (degraded)")
+		result.Degraded = true
+		result.TLSOpts = append(result.TLSOpts, intermediateWithALPN)
+		return result, nil
 	}
 
 	result.TLSOpts = append(result.TLSOpts, func(c *tls.Config) {

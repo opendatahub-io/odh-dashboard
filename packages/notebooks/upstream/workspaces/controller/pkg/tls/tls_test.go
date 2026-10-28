@@ -282,7 +282,11 @@ func TestResolve_FatalError_Returns(t *testing.T) {
 	}
 }
 
-func TestResolve_UnsupportedCiphers_FailsClosed(t *testing.T) {
+func TestResolve_UnsupportedCiphers_MarksDegradedReadable(t *testing.T) {
+	// An all-unsupported Custom cipher set is a clean read with an inapplicable
+	// profile: it must be flagged Degraded (so a Strict consumer rejects it) but NOT
+	// PolicyUnreadable (so a Legacy consumer can keep its own config) and NOT a hard
+	// error (which would crash Legacy notebooks startup).
 	apiServer := newAPIServer(map[string]any{
 		fieldType: profileTypeCustom,
 		fieldCustom: map[string]any{
@@ -292,9 +296,15 @@ func TestResolve_UnsupportedCiphers_FailsClosed(t *testing.T) {
 	})
 	s := testScheme()
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(apiServer).Build()
-	_, err := resolve(context.Background(), fc)
-	if err == nil {
-		t.Fatal("expected fail-closed error for all-unsupported ciphers")
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v; inapplicable profile should be degraded, not a hard error", err)
+	}
+	if !result.Degraded {
+		t.Error("expected Degraded = true for all-unsupported ciphers")
+	}
+	if result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = false (the policy was read cleanly)")
 	}
 }
 
@@ -495,7 +505,9 @@ func TestResolve_CustomCanonicalGroupNames(t *testing.T) {
 	}
 }
 
-func TestResolve_CustomAllUnsupportedGroupsFailsClosed(t *testing.T) {
+func TestResolve_CustomAllUnsupportedGroupsMarksDegradedReadable(t *testing.T) {
+	// All-unsupported groups: a clean read with an inapplicable restriction → degraded
+	// (Strict consumer rejects) but readable (Legacy consumer keeps its config), no error.
 	apiServer := newAPIServer(map[string]any{
 		fieldType: profileTypeCustom,
 		fieldCustom: map[string]any{
@@ -505,8 +517,38 @@ func TestResolve_CustomAllUnsupportedGroupsFailsClosed(t *testing.T) {
 		},
 	})
 	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
-	if _, err := resolve(context.Background(), fc); err == nil {
-		t.Fatal("expected error when all custom groups are unsupported")
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v; inapplicable groups should be degraded, not a hard error", err)
+	}
+	if !result.Degraded {
+		t.Error("expected Degraded = true for all-unsupported groups")
+	}
+	if result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = false (policy read cleanly)")
+	}
+}
+
+func TestResolve_MalformedAdherenceMarksUnreadable(t *testing.T) {
+	// A non-string spec.tlsAdherence means the adherence decision cannot be trusted:
+	// the result must be PolicyUnreadable so adherence-keyed consumers fail closed
+	// rather than silently treating it as unset/Legacy.
+	apiServer := newAPIServerWithAdherence(map[string]any{fieldType: profileTypeIntermediate}, "")
+	// Overwrite adherence with a non-string value.
+	spec, _, _ := unstructured.NestedMap(apiServer.Object, fieldSpec)
+	spec[fieldTLSAdherence] = int64(7)
+	apiServer.Object[fieldSpec] = spec
+
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	if !result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = true for a malformed adherence field")
+	}
+	if result.Adherence != "" {
+		t.Errorf("expected empty Adherence on malformed read, got %q", result.Adherence)
 	}
 }
 

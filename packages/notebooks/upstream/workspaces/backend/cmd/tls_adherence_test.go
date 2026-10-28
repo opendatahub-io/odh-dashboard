@@ -82,18 +82,33 @@ func TestEffectiveServerTLSConfig(t *testing.T) {
 			wantMinVersion: tls.VersionTLS12,
 		},
 		{
-			name:    "strict adherence with degraded profile fails closed",
+			name:    "strict adherence with degraded (inapplicable) profile fails closed",
 			result:  tlsprofile.Result{Adherence: tlsprofile.AdherenceStrict, Degraded: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
 			wantErr: true,
 		},
 		{
-			name:    "legacy adherence with degraded read fails closed (cannot trust adherence)",
-			result:  tlsprofile.Result{Adherence: tlsprofile.AdherenceLegacy, Degraded: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
+			name:           "legacy adherence with a degraded (inapplicable) but readable profile keeps TLS 1.3",
+			result:         tlsprofile.Result{Adherence: tlsprofile.AdherenceLegacy, Degraded: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
+			wantMinVersion: tls.VersionTLS13,
+		},
+		{
+			name:           "unset adherence with a degraded (inapplicable) but readable profile keeps TLS 1.3",
+			result:         tlsprofile.Result{Adherence: "", Degraded: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
+			wantMinVersion: tls.VersionTLS13,
+		},
+		{
+			name:    "unreadable policy fails closed under legacy (cannot trust adherence)",
+			result:  tlsprofile.Result{Adherence: tlsprofile.AdherenceLegacy, Degraded: true, PolicyUnreadable: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
 			wantErr: true,
 		},
 		{
-			name:    "empty adherence with degraded read fails closed (unreadable, not Legacy)",
-			result:  tlsprofile.Result{Adherence: "", Degraded: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
+			name:    "unreadable policy fails closed under empty adherence",
+			result:  tlsprofile.Result{Adherence: "", Degraded: true, PolicyUnreadable: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
+			wantErr: true,
+		},
+		{
+			name:    "unreadable policy fails closed under strict",
+			result:  tlsprofile.Result{Adherence: tlsprofile.AdherenceStrict, Degraded: true, PolicyUnreadable: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
 			wantErr: true,
 		},
 	}

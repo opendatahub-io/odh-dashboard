@@ -136,6 +136,33 @@ func TestResolveCiphers(t *testing.T) {
 	}
 }
 
+func TestResolveCiphersMixedTLS13And12Exact(t *testing.T) {
+	// A profile naming both TLS 1.3 and TLS 1.2 suites must skip the (Go-managed)
+	// TLS 1.3 names and resolve the TLS 1.2 names to the exact IDs, in order.
+	names := []string{
+		"TLS_AES_128_GCM_SHA256",        // TLS 1.3 - skipped (Go-managed)
+		"ECDHE-RSA-AES128-GCM-SHA256",   // TLS 1.2
+		"TLS_CHACHA20_POLY1305_SHA256",  // TLS 1.3 - skipped
+		"ECDHE-ECDSA-AES256-GCM-SHA384", // TLS 1.2
+	}
+	codes, dropped := resolveCiphers(names)
+	if len(dropped) != 0 {
+		t.Errorf("expected no dropped ciphers, got %v", dropped)
+	}
+	want := []uint16{
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	}
+	if len(codes) != len(want) {
+		t.Fatalf("expected %d resolved ciphers, got %d (%v)", len(want), len(codes), codes)
+	}
+	for i, c := range want {
+		if codes[i] != c {
+			t.Errorf("cipher[%d] = 0x%x, want 0x%x", i, codes[i], c)
+		}
+	}
+}
+
 func TestResolveCiphersDHEDropped(t *testing.T) {
 	// DHE ciphers are not supported by Go and should be dropped, not remapped.
 	names := []string{
