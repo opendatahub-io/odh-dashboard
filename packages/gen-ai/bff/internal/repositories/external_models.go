@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -196,7 +197,9 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 // authorized for their own namespace, so cross-namespace hosts must go through
 // normal SSRF validation (which blocks private IPs). Short-form service DNS
 // names (without the .svc.cluster.local suffix) do not match the FQDN check and
-// likewise go through normal SSRF validation.
+// likewise go through normal SSRF validation. Name shape alone is not sufficient:
+// resolveTrustedHost additionally verifies the backing Service (rejecting
+// ServiceTypeExternalName aliases) before an in-namespace name is actually trusted.
 func isInternalHost(baseURL string, namespace string) bool {
 	u, err := url.Parse(baseURL)
 	if err != nil {
@@ -216,12 +219,63 @@ func isInternalHost(baseURL string, namespace string) bool {
 	return h == "localhost" || (ip != nil && ip.IsLoopback())
 }
 
+// k8sServiceHost extracts the service and namespace labels from a fully-qualified
+// in-cluster service DNS name (<service>.<namespace>.svc.cluster.local).
+func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return "", "", false
+	}
+	h := u.Hostname()
+	labels := strings.Split(h, ".")
+	if !strings.HasSuffix(h, ".svc.cluster.local") || len(labels) < 5 {
+		return "", "", false
+	}
+	return labels[0], labels[len(labels)-4], true
+}
+
+// resolveTrustedHost decides whether a base URL may skip SSRF validation, and returns the
+// destination IPs the host must resolve to at request time (DNS rebinding guard).
+//
+// An in-namespace service DNS name is only trusted after resolving the backing Service
+// through the Kubernetes API: a namespace user can create a ServiceTypeExternalName
+// Service whose in-namespace DNS name aliases an arbitrary target (e.g. in another
+// namespace), so ExternalName services and unresolvable names are not trusted. ClusterIPs
+// of regular services are returned as the expected dial-time destination; headless
+// services have none and get no destination pinning.
+func resolveTrustedHost(
+	ctx context.Context,
+	client kubernetes.KubernetesClientInterface,
+	baseURL string,
+	namespace string,
+) (bool, []string) {
+	if !isInternalHost(baseURL, namespace) {
+		return false, nil
+	}
+	svcName, svcNamespace, ok := k8sServiceHost(baseURL)
+	if !ok {
+		// localhost/loopback for local development
+		return true, nil
+	}
+	svc, err := client.GetService(ctx, svcNamespace, svcName)
+	if err != nil || svc.Spec.Type == corev1.ServiceTypeExternalName {
+		return false, nil
+	}
+	var clusterIPs []string
+	for _, ip := range svc.Spec.ClusterIPs {
+		if ip != "" && ip != "None" {
+			clusterIPs = append(clusterIPs, ip)
+		}
+	}
+	return true, clusterIPs
+}
+
 // internalHostRootCAs returns the provided CA pool only when the URL targets an internal
 // host. For external hosts it returns nil so the client falls back to the system CA pool,
 // which contains the public root CAs needed to verify certificates from services like
 // api.openai.com. Passing a cluster-only CA pool to an external host would break TLS.
-func internalHostRootCAs(baseURL string, rootCAs *x509.CertPool, namespace string) *x509.CertPool {
-	if isInternalHost(baseURL, namespace) {
+func internalHostRootCAs(trusted bool, rootCAs *x509.CertPool) *x509.CertPool {
+	if trusted {
 		return rootCAs
 	}
 	return nil
@@ -235,13 +289,14 @@ func internalHostRootCAs(baseURL string, rootCAs *x509.CertPool, namespace strin
 func (r *ExternalModelsRepository) VerifyExternalModel(
 	logger *slog.Logger,
 	ctx context.Context,
+	client kubernetes.KubernetesClientInterface,
 	req models.VerifyExternalModelRequest,
 	namespace string,
 	rootCAs *x509.CertPool,
 	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
-	trusted := isInternalHost(req.BaseURL, namespace)
-	client, err := externalmodels.NewExternalModelsClient(
+	trusted, trustedDestinationIPs := resolveTrustedHost(ctx, client, req.BaseURL, namespace)
+	modelsClient, err := externalmodels.NewExternalModelsClient(
 		logger,
 		req.BaseURL,
 		req.SecretValue,
@@ -251,8 +306,9 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 			SkipSSRFValidation: trusted,
 			// Only supply the cluster CA pool for internal hosts; external hosts
 			// must use the system CA pool to verify public certificates.
-			SkipTLSVerification: insecureSkipVerify && trusted,
-			RootCAs:             internalHostRootCAs(req.BaseURL, rootCAs, namespace),
+			SkipTLSVerification:   insecureSkipVerify && trusted,
+			RootCAs:               internalHostRootCAs(trusted, rootCAs),
+			TrustedDestinationIPs: trustedDestinationIPs,
 		},
 	)
 	if err != nil {
@@ -260,5 +316,5 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	}
 
 	// Verify the model using the client (pass embedding dimension for embedding models)
-	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
+	return modelsClient.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
 }

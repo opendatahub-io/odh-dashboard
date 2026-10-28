@@ -61,6 +61,10 @@ type ClientOptions struct {
 	SkipTLSVerification bool
 	// RootCAs for TLS verification (defaults to system pool if not provided)
 	RootCAs *x509.CertPool
+	// TrustedDestinationIPs, when non-empty, requires the hostname to resolve to one of
+	// these IPs at request time even though SSRF validation is skipped. Used for trusted
+	// in-cluster services (matched to their ClusterIPs) to guard against DNS rebinding.
+	TrustedDestinationIPs []string
 }
 
 // ExternalModelsClient handles communication with external model endpoints
@@ -70,7 +74,8 @@ type ExternalModelsClient struct {
 	baseURL            string
 	apiKey             string
 	modelType          models.ModelTypeEnum
-	skipSSRFValidation bool // For testing only - allows localhost/private IPs
+	skipSSRFValidation bool     // For testing only - allows localhost/private IPs
+	trustedDestination []string // Expected resolved IPs for trusted hosts (DNS rebinding guard)
 }
 
 // isPrivateIP checks if an IP is a loopback, RFC1918, or unique-local address
@@ -154,6 +159,28 @@ func validateRequestSSRF(hostname string, logger *slog.Logger) error {
 	return nil
 }
 
+// validateTrustedDestination ensures a trusted hostname (SSRF validation skipped) still
+// resolves to the expected destination IPs at request time, guarding against DNS rebinding.
+func validateTrustedDestination(hostname string, expectedIPs []string, logger *slog.Logger) error {
+	ips, err := net.LookupIP(hostname)
+	if err != nil {
+		return fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
+	}
+
+	allowed := make(map[string]bool, len(expectedIPs))
+	for _, ip := range expectedIPs {
+		allowed[ip] = true
+	}
+	for _, ip := range ips {
+		if !allowed[ip.String()] {
+			return fmt.Errorf("request blocked: destination %s resolves to %s, expected one of %v (DNS rebinding guard)", hostname, ip.String(), expectedIPs)
+		}
+	}
+
+	logger.Debug("trusted destination validation passed", "hostname", hostname, "ips", ips)
+	return nil
+}
+
 // NewExternalModelsClient creates a client for verifying external model endpoints
 func NewExternalModelsClient(
 	logger *slog.Logger,
@@ -216,6 +243,7 @@ func NewExternalModelsClient(
 		apiKey:             apiKey,
 		modelType:          modelType,
 		skipSSRFValidation: opts.SkipSSRFValidation,
+		trustedDestination: opts.TrustedDestinationIPs,
 	}, nil
 }
 
@@ -302,13 +330,17 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	if !c.skipSSRFValidation {
+	if !c.skipSSRFValidation || len(c.trustedDestination) > 0 {
 		parsedURL, err := url.Parse(fullURL)
 		if err != nil {
 			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to parse request URL: %v", err))
 		}
 
-		if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
+		if !c.skipSSRFValidation {
+			if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
+				return nil, NewConnectionError(c.baseURL, err.Error())
+			}
+		} else if err := validateTrustedDestination(parsedURL.Hostname(), c.trustedDestination, c.logger); err != nil {
 			return nil, NewConnectionError(c.baseURL, err.Error())
 		}
 	}
@@ -379,13 +411,17 @@ func (c *ExternalModelsClient) verifyTranscriptionModel(ctx context.Context, mod
 	endpoint := "/audio/transcriptions"
 	fullURL := strings.TrimSuffix(c.baseURL, "/") + endpoint
 
-	// SSRF protection at request time
-	if !c.skipSSRFValidation {
+	// SSRF protection at request time (plus trusted-destination check for internal hosts)
+	if !c.skipSSRFValidation || len(c.trustedDestination) > 0 {
 		parsedURL, err := url.Parse(fullURL)
 		if err != nil {
 			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to parse request URL: %v", err))
 		}
-		if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
+		if !c.skipSSRFValidation {
+			if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
+				return nil, NewConnectionError(c.baseURL, err.Error())
+			}
+		} else if err := validateTrustedDestination(parsedURL.Hostname(), c.trustedDestination, c.logger); err != nil {
 			return nil, NewConnectionError(c.baseURL, err.Error())
 		}
 	}

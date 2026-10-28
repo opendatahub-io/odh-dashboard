@@ -782,6 +782,22 @@ func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, name
 	return configMap, nil
 }
 
+// GetService reads a core Service through the dashboard service account so callers
+// can verify what a service DNS name actually backs (e.g. reject ExternalName aliases).
+// It falls back to the request client for local development.
+func (kc *TokenKubernetesClient) GetService(ctx context.Context, namespace string, name string) (*corev1.Service, error) {
+	reader := kc.SAClient
+	if reader == nil {
+		reader = kc.Client
+	}
+
+	service := &corev1.Service{}
+	if err := reader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, service); err != nil {
+		return nil, fmt.Errorf("failed to get Service %s/%s: %w", namespace, name, err)
+	}
+	return service, nil
+}
+
 // ValidatedVectorStore pairs a VectorIOProvider with its associated RegisteredVectorStore
 // after they have been correlated by provider_id from the gen-ai-aa-vector-stores ConfigMap.
 type ValidatedVectorStore struct {

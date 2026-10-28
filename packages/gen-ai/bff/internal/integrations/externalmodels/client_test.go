@@ -176,3 +176,47 @@ func TestVerifyModel_Transcription_ServerError(t *testing.T) {
 	assert.Equal(t, ErrCodeConnectionFailed, extErr.Code)
 	assert.Contains(t, extErr.Message, "HTTP 500")
 }
+
+func TestVerifyModel_TrustedDestinationMismatchBlocked(t *testing.T) {
+	// A trusted host whose dial-time resolution does not match the pinned destination
+	// IPs (DNS rebinding) must be blocked even though SSRF validation is skipped.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": "1", "choices": []any{}})
+	}))
+	defer server.Close()
+
+	client, err := NewExternalModelsClient(
+		slog.Default(),
+		server.URL,
+		"test-api-key",
+		models.ModelTypeLLM,
+		&ClientOptions{SkipSSRFValidation: true, AllowHTTP: true, TrustedDestinationIPs: []string{"10.96.10.5"}},
+	)
+	require.NoError(t, err)
+
+	_, err = client.VerifyModel(context.Background(), "test-model", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DNS rebinding guard")
+}
+
+func TestVerifyModel_TrustedDestinationMatchAllowed(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": "1", "choices": []any{}})
+	}))
+	defer server.Close()
+
+	client, err := NewExternalModelsClient(
+		slog.Default(),
+		server.URL,
+		"test-api-key",
+		models.ModelTypeLLM,
+		&ClientOptions{SkipSSRFValidation: true, AllowHTTP: true, TrustedDestinationIPs: []string{"127.0.0.1", "::1"}},
+	)
+	require.NoError(t, err)
+
+	resp, err := client.VerifyModel(context.Background(), "test-model", nil)
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+}
