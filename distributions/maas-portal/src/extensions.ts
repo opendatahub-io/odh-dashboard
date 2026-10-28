@@ -92,7 +92,7 @@ const extensions: Extension[] = [
     flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
     properties: {
       path: '/model-access',
-      component: () => import('./pages/ModelAccessPage'),
+      component: () => import('@odh-dashboard/maas/ModelAccessPage'),
     },
   } satisfies RouteExtension,
 
