@@ -5,8 +5,8 @@ const isAutoProvisioned = (store: VectorStore): boolean =>
 
 /**
  * The playground-local store created for this signed-in user.
- * Returns nothing until the username is known. An exact username match wins.
- * A store with no username metadata is used only when no exact match exists.
+ * Returns nothing until the username is known, and only a store whose
+ * metadata.username matches that user. An unlabeled store is not used.
  */
 export const findInlineVectorStore = (
   stores: VectorStore[],
@@ -15,9 +15,7 @@ export const findInlineVectorStore = (
   if (!username) {
     return undefined;
   }
-  const eligible = stores.filter(isAutoProvisioned);
-  return (
-    eligible.find((store) => store.metadata.username === username) ??
-    eligible.find((store) => !store.metadata.username)
+  return stores.find(
+    (store) => isAutoProvisioned(store) && store.metadata.username === username,
   );
 };
