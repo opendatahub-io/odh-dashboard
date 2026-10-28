@@ -14,11 +14,6 @@ import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
  * `subscriptionsOnly` keeps the page off Kubernetes: the provider does not fetch
  * auth policies, model refs, or groups, none of which this page renders.
  *
- * Known gap: `admin-subscriptions` serves the maas-api passthrough, which does not
- * expose `owner.groups`, so the Groups cell currently has no data behind it. Covering
- * it requires maas-api to include group membership in `/v1/subscriptions`; do not read
- * it from Kubernetes here.
- *
  * The tab owns its own loading, error, and empty states.
  */
 const ModelAccessPageContent: React.FC = () => (

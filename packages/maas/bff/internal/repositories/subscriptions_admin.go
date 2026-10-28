@@ -1,8 +1,6 @@
 package repositories
 
 import (
-	"sort"
-
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
@@ -27,9 +25,6 @@ func ConvertSubscriptionListItemsToSubscriptions(
 	for _, item := range items {
 		subscriptions = append(subscriptions, convertSubscriptionListItemToSubscription(item, namespace))
 	}
-	sort.SliceStable(subscriptions, func(i, j int) bool {
-		return subscriptions[i].Name < subscriptions[j].Name
-	})
 	return subscriptions
 }
 
