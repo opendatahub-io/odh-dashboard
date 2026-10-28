@@ -70,7 +70,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         return;
       }
 
-      // Exact username match, then an unlabeled legacy store.
+      // Only the signed-in user's auto-provisioned store.
       const userStore = findInlineVectorStore(vectorStores, username);
       if (!userStore) {
         setFiles([]);

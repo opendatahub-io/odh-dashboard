@@ -47,7 +47,11 @@ describe('useFileManagement', () => {
   // Test data
   const mockVectorStore = createMockVectorStore({
     id: VECTOR_STORE_ID,
-    metadata: { created_by: 'auto-provisioning', provider_id: 'milvus' },
+    metadata: {
+      created_by: 'auto-provisioning',
+      provider_id: 'milvus',
+      username: 'test-user',
+    },
   });
   const mockVectorStoreFile = createMockVectorStoreFile({
     id: FILE_ID_1,
@@ -207,6 +211,21 @@ describe('useFileManagement', () => {
         filter: 'completed',
       });
       expect(result.current.currentVectorStoreId).toBe('vs-alice');
+    });
+
+    it('should ignore an auto-provisioned store that has no username', async () => {
+      const unlabeledStore = createMockVectorStore({
+        id: 'vs-legacy',
+        metadata: { created_by: 'auto-provisioning', provider_id: 'milvus' },
+      });
+      mockGetVectorStores.mockResolvedValue([unlabeledStore]);
+
+      const { result } = renderHook(() => useFileManagement());
+      await waitForLoadingComplete(result);
+
+      expect(mockListVectorStoreFiles).not.toHaveBeenCalled();
+      expect(result.current.files).toEqual([]);
+      expect(result.current.currentVectorStoreId).toBe(null);
     });
 
     it('should not list files before the signed-in username is known', async () => {
