@@ -42,7 +42,6 @@ const mockAreaStatus = (status: boolean): ReturnType<typeof useIsAreaAvailable> 
   reliantAreas: null,
   requiredComponents: null,
   requiredCapabilities: null,
-  customCondition: () => false,
 });
 
 const mockSetIsOpen = jest.fn();

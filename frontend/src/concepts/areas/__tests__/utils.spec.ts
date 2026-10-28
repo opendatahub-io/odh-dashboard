@@ -547,6 +547,60 @@ describe('isAreaAvailable', () => {
     });
   });
 
+  describe('DS_PIPELINES_ARGO_INVALID area', () => {
+    const argoCondition = (status: string) => [{ type: 'CapabilityDSPv2Argo', status }];
+
+    it('should be available when an unmanaged Argo install blocks pipelines', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.DS_PIPELINES_ARGO_INVALID,
+        mockDashboardConfig({ disablePipelines: false }).spec,
+        mockDscStatus({ conditions: argoCondition('False') }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+    });
+
+    it.each(['True', 'Unknown'])(
+      'should be unavailable when the Argo condition is %s',
+      (status) => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.DS_PIPELINES_ARGO_INVALID,
+          mockDashboardConfig({ disablePipelines: false }).spec,
+          mockDscStatus({ conditions: argoCondition(status) }),
+          null,
+        );
+
+        expect(isAvailable.status).toBe(false);
+      },
+    );
+
+    it('should be unavailable when the Argo condition is absent', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.DS_PIPELINES_ARGO_INVALID,
+        mockDashboardConfig({ disablePipelines: false }).spec,
+        mockDscStatus({ conditions: [] }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+    });
+
+    // Pins the deliberate omission of `reliantAreas: [DS_PIPELINES]`. This area reports a pipelines
+    // failure, so it must not be gated on pipelines being available.
+    it('should stay available when pipelines are disabled', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.DS_PIPELINES_ARGO_INVALID,
+        mockDashboardConfig({ disablePipelines: true }).spec,
+        mockDscStatus({ conditions: argoCondition('False') }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.reliantAreas).toBe(null);
+    });
+  });
+
   describe('FEATURE_STORE area', () => {
     it.each([
       { featureStore: 'Managed', dataRegistry: 'Removed', expected: true },

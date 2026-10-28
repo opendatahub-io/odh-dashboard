@@ -20,7 +20,6 @@ const mockAreaStatus = (status: boolean): IsAreaAvailableStatus => ({
   reliantAreas: null,
   requiredComponents: null,
   requiredCapabilities: null,
-  customCondition: () => false,
 });
 
 describe('useIsDRAHardwareProfileEnabled', () => {
