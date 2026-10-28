@@ -255,10 +255,33 @@ func preserveAllocatedNodePorts(livePorts, desiredPorts []any) {
 				matchingLive = live
 			}
 		}
+		if matchingLive == nil {
+			matchingLive = uniquelyMatchingLivePort(livePorts, desired)
+		}
 		if nodePort, exists := matchingLive["nodePort"]; exists {
 			desired["nodePort"] = nodePort
 		}
 	}
+}
+
+// uniquelyMatchingLivePort preserves an allocation when a named port was
+// renamed but its externally visible port and protocol did not change. It
+// deliberately declines ambiguous matches rather than copying the wrong
+// allocation between ports.
+func uniquelyMatchingLivePort(livePorts []any, desired map[string]any) map[string]any {
+	var match map[string]any
+	for _, livePort := range livePorts {
+		live, ok := livePort.(map[string]any)
+		if !ok || !servicePortNumberEqual(live["port"], desired["port"]) ||
+			normalizedProtocol(live) != normalizedProtocol(desired) {
+			continue
+		}
+		if match != nil {
+			return nil
+		}
+		match = live
+	}
+	return match
 }
 
 func desiredPortIsUnnamed(port map[string]any) bool {
