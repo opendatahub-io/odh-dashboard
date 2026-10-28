@@ -98,6 +98,7 @@ describe('startEvaluationRunSchema', () => {
       selectedInferenceServiceName: undefined,
       sourceName: '',
       datasetUrl: '',
+      accessToken: '',
     });
 
     expect(invalidResult.success).toBe(false);
@@ -106,6 +107,7 @@ describe('startEvaluationRunSchema', () => {
         expect.arrayContaining([
           expect.objectContaining({ path: ['sourceName'], message: 'Source name is required' }),
           expect.objectContaining({ path: ['datasetUrl'], message: 'Dataset URL is required.' }),
+          expect.objectContaining({ path: ['accessToken'], message: 'Access token is required.' }),
         ]),
       );
     }
@@ -116,7 +118,19 @@ describe('startEvaluationRunSchema', () => {
         sourceMode: 'prerecorded',
         selectedInferenceServiceName: undefined,
         sourceName: 'Recorded responses',
-        datasetUrl: 'not-required-to-be-a-url-by-this-form',
+        datasetUrl: 'not-an-s3-url',
+        accessToken: 'tok-123',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      startEvaluationRunSchema.safeParse({
+        ...validValues(),
+        sourceMode: 'prerecorded',
+        selectedInferenceServiceName: undefined,
+        sourceName: 'Recorded responses',
+        datasetUrl: 's3://bucket-name/data.jsonl',
+        accessToken: 'tok-123',
       }).success,
     ).toBe(true);
   });

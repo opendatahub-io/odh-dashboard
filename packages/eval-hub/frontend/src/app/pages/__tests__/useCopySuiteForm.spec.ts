@@ -364,6 +364,7 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.benchmarks[0].testDataRef).toEqual({
       ...testDataRefDefaultValues,
       source: 's3',
+      type: 'data_set',
       bucket: 'eval-data',
       key: 'ragas',
       secretRef: 's3-secret',
@@ -372,6 +373,35 @@ describe('useCopySuiteForm', () => {
     const pending = result.result.current.buildPendingCollection();
     expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
       s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+    });
+  });
+
+  it('should preserve a pre_recorded_data test data ref through hydrate and serialize', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        benchmarks: [
+          {
+            ...sourceCollection.benchmarks![0],
+            test_data_ref: {
+              pvc: { claim_name: 'responses', type: 'pre_recorded_data' },
+            },
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks[0].id).toBe('benchmark-one'));
+    expect(result.result.current.benchmarks[0].testDataRef).toEqual({
+      ...testDataRefDefaultValues,
+      source: 'pvc',
+      type: 'pre_recorded_data',
+      claimName: 'responses',
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
+      pvc: { claim_name: 'responses', type: 'pre_recorded_data' },
     });
   });
 

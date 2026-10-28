@@ -8,6 +8,8 @@ import {
   Select,
   SelectOption,
   SelectList,
+  Stack,
+  StackItem,
   TextInput,
 } from '@patternfly/react-core';
 import {
@@ -171,10 +173,14 @@ const BenchmarkTestDataRefFields: React.FC<BenchmarkTestDataRefFieldsProps> = ({
   };
 
   const handleSourceSelect = (source: TestDataRefFormValues['source']): void => {
-    // Changing the source clears all values for the previous source.
-    onChange({ ...testDataRefDefaultValues, source });
-    setTouched({});
     setSourceOpen(false);
+    if (source === value.source) {
+      return;
+    }
+    // Changing the source clears all values for the previous source. The
+    // reference type is source-independent, so it is preserved.
+    onChange({ ...testDataRefDefaultValues, source, type: value.type });
+    setTouched({});
   };
 
   const sourceOptions = isRequired
@@ -182,133 +188,137 @@ const BenchmarkTestDataRefFields: React.FC<BenchmarkTestDataRefFieldsProps> = ({
     : (['', ...TEST_DATA_REF_SOURCES] as const);
 
   return (
-    <div className="evalhub-benchmark-test-data-ref">
-      <FormGroup
-        label="Test data source"
-        fieldId={`${idPrefix}-test-data-ref`}
-        isRequired={isRequired}
-      >
-        <Select
-          id={`${idPrefix}-test-data-ref-source`}
-          data-testid={`${testIdPrefix}-source`}
-          isOpen={sourceOpen && !isDisabled}
-          selected={value.source}
-          onSelect={(_event, selected) => {
-            if (typeof selected === 'string' && isTestDataRefSource(selected)) {
-              handleSourceSelect(selected);
-            }
-          }}
-          onOpenChange={(isOpen) => {
-            if (!isDisabled) {
-              if (isOpen) {
-                markTouched('source');
-              }
-              setSourceOpen(isOpen);
-            }
-          }}
-          toggle={(toggleRef) => (
-            <MenuToggle
-              ref={toggleRef}
-              onClick={() => {
-                if (!isDisabled) {
-                  markTouched('source');
-                  setSourceOpen((prev) => !prev);
-                }
-              }}
-              isExpanded={sourceOpen && !isDisabled}
-              isDisabled={isDisabled}
-              isFullWidth
-              status={sourceError ? 'danger' : undefined}
-              data-testid={`${testIdPrefix}-source-toggle`}
-            >
-              {value.source
-                ? SOURCE_LABELS[value.source]
-                : isRequired
-                  ? 'Select a test data source'
-                  : SOURCE_LABELS['']}
-            </MenuToggle>
-          )}
-          shouldFocusToggleOnSelect
+    <Stack hasGutter className="evalhub-benchmark-test-data-ref">
+      <StackItem>
+        <FormGroup
+          label="Test data source"
+          fieldId={`${idPrefix}-test-data-ref`}
+          isRequired={isRequired}
         >
-          <SelectList>
-            {sourceOptions.map((source) => (
-              <SelectOption
-                key={source || 'none'}
-                value={source}
-                isSelected={value.source === source}
+          <Select
+            id={`${idPrefix}-test-data-ref-source`}
+            data-testid={`${testIdPrefix}-source`}
+            isOpen={sourceOpen && !isDisabled}
+            selected={value.source}
+            onSelect={(_event, selected) => {
+              if (typeof selected === 'string' && isTestDataRefSource(selected)) {
+                handleSourceSelect(selected);
+              }
+            }}
+            onOpenChange={(isOpen) => {
+              if (!isDisabled) {
+                if (isOpen) {
+                  markTouched('source');
+                }
+                setSourceOpen(isOpen);
+              }
+            }}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                onClick={() => {
+                  if (!isDisabled) {
+                    markTouched('source');
+                    setSourceOpen((prev) => !prev);
+                  }
+                }}
+                isExpanded={sourceOpen && !isDisabled}
+                isDisabled={isDisabled}
+                isFullWidth
+                status={sourceError ? 'danger' : undefined}
+                data-testid={`${testIdPrefix}-source-toggle`}
               >
-                {SOURCE_LABELS[source]}
-              </SelectOption>
-            ))}
-          </SelectList>
-        </Select>
-        <FormHelperText>
-          <HelperText>
-            {sourceError ? (
-              <HelperTextItem variant="error" data-testid={`${testIdPrefix}-source-error`}>
-                {sourceError}
-              </HelperTextItem>
-            ) : (
-              <HelperTextItem data-testid={`${testIdPrefix}-helper`}>
                 {value.source
-                  ? `${SOURCE_CONTEXT[value.source]} Data is made available at /test_data in the evaluation container.`
+                  ? SOURCE_LABELS[value.source]
                   : isRequired
-                    ? 'This benchmark has no bundled input data — select a source to supply the test data.'
-                    : 'Optional: provide external input data for benchmarks that require a dataset.'}
-              </HelperTextItem>
+                    ? 'Select a test data source'
+                    : SOURCE_LABELS['']}
+              </MenuToggle>
             )}
-          </HelperText>
-        </FormHelperText>
-      </FormGroup>
+            shouldFocusToggleOnSelect
+          >
+            <SelectList>
+              {sourceOptions.map((source) => (
+                <SelectOption
+                  key={source || 'none'}
+                  value={source}
+                  isSelected={value.source === source}
+                >
+                  {SOURCE_LABELS[source]}
+                </SelectOption>
+              ))}
+            </SelectList>
+          </Select>
+          <FormHelperText>
+            <HelperText>
+              {sourceError ? (
+                <HelperTextItem variant="error" data-testid={`${testIdPrefix}-source-error`}>
+                  {sourceError}
+                </HelperTextItem>
+              ) : (
+                <HelperTextItem data-testid={`${testIdPrefix}-helper`}>
+                  {value.source
+                    ? `${SOURCE_CONTEXT[value.source]} Data is made available at /test_data in the evaluation container.`
+                    : isRequired
+                      ? 'This benchmark has no bundled input data — select a source to supply the test data.'
+                      : 'Optional: provide external input data for benchmarks that require a dataset.'}
+                </HelperTextItem>
+              )}
+            </HelperText>
+          </FormHelperText>
+        </FormGroup>
+      </StackItem>
 
       {fields.length > 0 ? (
-        <div className="evalhub-benchmark-test-data-ref__children">
-          {fields.map(({ field, label, required, placeholder, helperText }) => {
-            const error = touched[field] ? errors?.[field] : undefined;
-            return (
-              <FormGroup
-                key={field}
-                label={label}
-                isRequired={required}
-                fieldId={`${idPrefix}-test-data-ref-${field}`}
-              >
-                <TextInput
-                  id={`${idPrefix}-test-data-ref-${field}`}
-                  data-testid={`${testIdPrefix}-${field}`}
-                  type="text"
-                  value={value[field]}
-                  placeholder={placeholder}
-                  isDisabled={isDisabled}
-                  validated={error ? 'error' : 'default'}
-                  onChange={(_event, fieldValue) => {
-                    // Clearing counts as an interaction so required errors surface without a blur.
-                    if (fieldValue.trim() === '') {
-                      markTouched(field);
-                    }
-                    onChange({ ...value, [field]: fieldValue });
-                  }}
-                  onBlur={() => markTouched(field)}
-                />
-                <FormHelperText>
-                  <HelperText>
-                    {error ? (
-                      <HelperTextItem
-                        variant="error"
-                        data-testid={`${testIdPrefix}-${field}-error`}
-                      >
-                        {error}
-                      </HelperTextItem>
-                    ) : helperText ? (
-                      <HelperTextItem>{helperText}</HelperTextItem>
-                    ) : null}
-                  </HelperText>
-                </FormHelperText>
-              </FormGroup>
-            );
-          })}
-        </div>
+        <StackItem>
+          <Stack hasGutter className="evalhub-benchmark-test-data-ref__children">
+            {fields.map(({ field, label, required, placeholder, helperText }) => {
+              const error = touched[field] ? errors?.[field] : undefined;
+              return (
+                <FormGroup
+                  key={field}
+                  label={label}
+                  isRequired={required}
+                  fieldId={`${idPrefix}-test-data-ref-${field}`}
+                >
+                  <TextInput
+                    id={`${idPrefix}-test-data-ref-${field}`}
+                    data-testid={`${testIdPrefix}-${field}`}
+                    type="text"
+                    value={value[field]}
+                    placeholder={placeholder}
+                    isDisabled={isDisabled}
+                    validated={error ? 'error' : 'default'}
+                    onChange={(_event, fieldValue) => {
+                      // Clearing counts as an interaction so required errors surface without a blur.
+                      if (fieldValue.trim() === '') {
+                        markTouched(field);
+                      }
+                      onChange({ ...value, [field]: fieldValue });
+                    }}
+                    onBlur={() => markTouched(field)}
+                  />
+                  <FormHelperText>
+                    <HelperText>
+                      {error ? (
+                        <HelperTextItem
+                          variant="error"
+                          data-testid={`${testIdPrefix}-${field}-error`}
+                        >
+                          {error}
+                        </HelperTextItem>
+                      ) : helperText ? (
+                        <HelperTextItem>{helperText}</HelperTextItem>
+                      ) : null}
+                    </HelperText>
+                  </FormHelperText>
+                </FormGroup>
+              );
+            })}
+          </Stack>
+        </StackItem>
       ) : null}
-    </div>
+    </Stack>
   );
 };
 

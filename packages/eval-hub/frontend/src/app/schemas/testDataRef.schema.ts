@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import type { TestDataRef } from '~/app/types';
+import type { TestDataRef, TestDataRefType } from '~/app/types';
 
 export const TEST_DATA_REF_SOURCES = ['s3', 'pvc', 'git', 'hf'] as const;
 export type TestDataRefSource = (typeof TEST_DATA_REF_SOURCES)[number];
@@ -16,21 +16,13 @@ export type TestDataRefFormField =
   | 'repoId'
   | 'revision';
 
-export type TestDataRefFormValues = {
-  source: '' | TestDataRefSource;
-  bucket: string;
-  key: string;
-  secretRef: string;
-  claimName: string;
-  subPath: string;
-  url: string;
-  ref: string;
-  repoId: string;
-  revision: string;
-};
+// `type` is a passthrough of the wire ref type so edit/copy flows keep pre_recorded_data;
+// '' means no value was parsed and serialization falls back to data_set.
+export type TestDataRefFormValues = z.infer<typeof testDataRefFormSchema>;
 
 export const testDataRefFormSchema = z.object({
   source: z.enum(['', ...TEST_DATA_REF_SOURCES]),
+  type: z.enum(['', 'data_set', 'pre_recorded_data']),
   bucket: z.string(),
   key: z.string(),
   secretRef: z.string(),
@@ -44,6 +36,7 @@ export const testDataRefFormSchema = z.object({
 
 export const testDataRefDefaultValues: TestDataRefFormValues = {
   source: '',
+  type: '',
   bucket: '',
   key: '',
   secretRef: '',
@@ -126,6 +119,9 @@ const HF_REPO_ID_PATTERN = /^[\w.-]+\/[\w.-]+$/;
 
 const isBlank = (value: string | undefined): boolean => !value || value.trim() === '';
 
+const hasPathTraversal = (value: string): boolean =>
+  value.split(/[\\/]/).some((segment) => segment.trim() === '..');
+
 /**
  * Minimal structural context refineTestDataRef needs from zod's superRefine —
  * keeps the function testable with a plain object.
@@ -168,8 +164,8 @@ export const refineTestDataRef = (
       }
       if (isBlank(values.key)) {
         addIssue('key', 'Key is required.');
-      } else if (values.key.trim().startsWith('/')) {
-        addIssue('key', 'Key must not start with a slash.');
+      } else if (values.key.trim().startsWith('/') || hasPathTraversal(values.key)) {
+        addIssue('key', 'Key must be relative and must not contain "..".');
       }
       if (isBlank(values.secretRef)) {
         addIssue('secretRef', 'Secret is required.');
@@ -179,7 +175,7 @@ export const refineTestDataRef = (
       if (isBlank(values.claimName)) {
         addIssue('claimName', 'Claim name is required.');
       } else if (
-        values.claimName.length > 63 ||
+        values.claimName.trim().length > 63 ||
         !RFC_1123_LABEL_PATTERN.test(values.claimName.trim())
       ) {
         addIssue(
@@ -187,8 +183,11 @@ export const refineTestDataRef = (
           'Claim name must be a DNS label (lowercase alphanumeric or hyphens, max 63 characters).',
         );
       }
-      if (!isBlank(values.subPath) && values.subPath.trim().startsWith('/')) {
-        addIssue('subPath', 'Sub path must not start with a slash.');
+      if (!isBlank(values.subPath)) {
+        const subPath = values.subPath.trim();
+        if (subPath.startsWith('/') || hasPathTraversal(subPath)) {
+          addIssue('subPath', 'Sub path must be relative and must not contain "..".');
+        }
       }
       break;
     case 'git':
@@ -196,14 +195,26 @@ export const refineTestDataRef = (
         addIssue('url', 'Repository URL is required.');
       } else if (!/^https?:\/\//i.test(values.url.trim())) {
         addIssue('url', 'Repository URL must use HTTP or HTTPS (SSH URLs are not supported).');
+      } else if (/^https?:\/\/[^/@]*@/i.test(values.url.trim())) {
+        addIssue(
+          'url',
+          'Repository URL must not contain embedded credentials (username or password).',
+        );
       }
       if (isBlank(values.ref)) {
         addIssue('ref', 'Ref is required.');
       }
-      if (!isBlank(values.subPath) && values.subPath.trim().startsWith('/')) {
-        addIssue('subPath', 'Sub path must not start with a slash.');
+      if (!isBlank(values.subPath)) {
+        const subPath = values.subPath.trim();
+        if (subPath.startsWith('/') || hasPathTraversal(subPath)) {
+          addIssue('subPath', 'Sub path must be relative and must not contain "..".');
+        }
       }
-      if (!isBlank(values.secretRef) && !values.url.trim().startsWith('https://')) {
+      if (
+        !isBlank(values.secretRef) &&
+        !isBlank(values.url) &&
+        !/^https:\/\//i.test(values.url.trim())
+      ) {
         addIssue('secretRef', 'Secret requires an HTTPS repository URL.');
       }
       break;
@@ -213,8 +224,11 @@ export const refineTestDataRef = (
       } else if (!HF_REPO_ID_PATTERN.test(values.repoId.trim())) {
         addIssue('repoId', 'Repository ID must be in the format owner/repo.');
       }
-      if (!isBlank(values.subPath) && values.subPath.trim().startsWith('/')) {
-        addIssue('subPath', 'Sub path must not start with a slash.');
+      if (!isBlank(values.subPath)) {
+        const subPath = values.subPath.trim();
+        if (subPath.startsWith('/') || hasPathTraversal(subPath)) {
+          addIssue('subPath', 'Sub path must be relative and must not contain "..".');
+        }
       }
       break;
     case '':
@@ -225,13 +239,14 @@ export const refineTestDataRef = (
 
 /* eslint-disable camelcase */
 /**
- * Maps the flat form shape to the wire format. Every emitted variant hardcodes
- * type: 'data_set' so the UI's intent is unambiguous; pre_recorded_data is not
- * produced by the UI today.
+ * Maps the flat form shape to the wire format. The reference type parsed from
+ * the original wire ref is preserved (edit/copy flows keep pre_recorded_data);
+ * when absent — refs created fresh in the UI — it falls back to data_set.
  */
 export const serializeTestDataRef = (form: TestDataRefFormValues): TestDataRef | undefined => {
   const subPath = form.subPath.trim();
   const secretRef = form.secretRef.trim();
+  const refType = form.type || 'data_set';
   switch (form.source) {
     case 's3':
       return {
@@ -239,7 +254,7 @@ export const serializeTestDataRef = (form: TestDataRefFormValues): TestDataRef |
           bucket: form.bucket.trim(),
           key: form.key.trim(),
           secret_ref: form.secretRef.trim(),
-          type: 'data_set',
+          type: refType,
         },
       };
     case 'pvc':
@@ -247,7 +262,7 @@ export const serializeTestDataRef = (form: TestDataRefFormValues): TestDataRef |
         pvc: {
           claim_name: form.claimName.trim(),
           ...(subPath ? { sub_path: subPath } : {}),
-          type: 'data_set',
+          type: refType,
         },
       };
     case 'git':
@@ -257,7 +272,7 @@ export const serializeTestDataRef = (form: TestDataRefFormValues): TestDataRef |
           ref: form.ref.trim(),
           ...(subPath ? { sub_path: subPath } : {}),
           ...(secretRef ? { secret_ref: secretRef } : {}),
-          type: 'data_set',
+          type: refType,
         },
       };
     case 'hf':
@@ -267,7 +282,7 @@ export const serializeTestDataRef = (form: TestDataRefFormValues): TestDataRef |
           ...(form.revision.trim() ? { revision: form.revision.trim() } : {}),
           ...(subPath ? { sub_path: subPath } : {}),
           ...(secretRef ? { secret_ref: secretRef } : {}),
-          type: 'data_set',
+          type: refType,
         },
       };
     case '':
@@ -276,6 +291,11 @@ export const serializeTestDataRef = (form: TestDataRefFormValues): TestDataRef |
   }
 };
 /* eslint-enable camelcase */
+
+// The BFF passes the wire type through as a free-form string; only known
+// values are carried into the form so serialization never emits junk.
+const toFormRefType = (value: TestDataRefType | undefined): '' | TestDataRefType =>
+  value === 'data_set' || value === 'pre_recorded_data' ? value : '';
 
 export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefFormValues => {
   const values = { ...testDataRefDefaultValues };
@@ -286,6 +306,7 @@ export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefForm
     return {
       ...values,
       source: 's3',
+      type: toFormRefType(wire.s3.type),
       bucket: wire.s3.bucket ?? '',
       key: wire.s3.key ?? '',
       secretRef: wire.s3.secret_ref ?? '',
@@ -295,6 +316,7 @@ export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefForm
     return {
       ...values,
       source: 'pvc',
+      type: toFormRefType(wire.pvc.type),
       claimName: wire.pvc.claim_name ?? '',
       subPath: wire.pvc.sub_path ?? '',
     };
@@ -303,6 +325,7 @@ export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefForm
     return {
       ...values,
       source: 'git',
+      type: toFormRefType(wire.git.type),
       url: wire.git.url ?? '',
       ref: wire.git.ref ?? '',
       subPath: wire.git.sub_path ?? '',
@@ -313,6 +336,7 @@ export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefForm
     return {
       ...values,
       source: 'hf',
+      type: toFormRefType(wire.hf.type),
       repoId: wire.hf.repo_id ?? '',
       revision: wire.hf.revision ?? '',
       subPath: wire.hf.sub_path ?? '',

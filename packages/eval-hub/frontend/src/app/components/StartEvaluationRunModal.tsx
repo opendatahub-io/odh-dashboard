@@ -436,6 +436,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                   accessToken={form.accessToken}
                   onAccessTokenChange={form.setAccessToken}
                   datasetUrlError={form.datasetUrlError}
+                  accessTokenError={form.accessTokenError}
                   touched={form.touched}
                   markTouched={form.markTouched}
                 />

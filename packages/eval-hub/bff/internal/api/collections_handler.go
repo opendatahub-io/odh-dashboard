@@ -260,6 +260,10 @@ func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, 
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
 			return
 		}
+		if err := benchmark.TestDataRef.Validate(); err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark %s: %w", benchmark.ID, err))
+			return
+		}
 	}
 	// TODO: Remove this temporary mapping once the EvalHub API is deployed.
 	input.Category = strings.TrimSpace(input.Category)
@@ -332,6 +336,10 @@ func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, p
 		}
 		if benchmark.Weight < 0 {
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
+			return
+		}
+		if err := benchmark.TestDataRef.Validate(); err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark %s: %w", benchmark.ID, err))
 			return
 		}
 	}

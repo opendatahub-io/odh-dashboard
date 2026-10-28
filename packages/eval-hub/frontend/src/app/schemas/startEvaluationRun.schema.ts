@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
+import { parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 import {
   refineTestDataRef,
   testDataRefDefaultValues,
@@ -113,6 +114,20 @@ export const startEvaluationRunSchema = z
         code: 'custom',
         message: 'Dataset URL is required.',
         path: ['datasetUrl'],
+      });
+    } else if (!parseS3DatasetUrl(data.datasetUrl)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Dataset URL must be an S3 URL in the format s3://bucket-name/path.',
+        path: ['datasetUrl'],
+      });
+    }
+
+    if (data.accessToken.trim() === '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Access token is required.',
+        path: ['accessToken'],
       });
     }
   });

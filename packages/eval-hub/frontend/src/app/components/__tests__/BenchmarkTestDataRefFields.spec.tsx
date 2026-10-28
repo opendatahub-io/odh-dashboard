@@ -145,6 +145,50 @@ describe('BenchmarkTestDataRefFields', () => {
     expect(onChange).toHaveBeenCalledWith({ ...testDataRefDefaultValues, source: 'hf' });
   });
 
+  it('should preserve the reference type when the source changes', () => {
+    const onChange = jest.fn();
+    renderFields({
+      onChange,
+      value: {
+        ...testDataRefDefaultValues,
+        source: 's3',
+        type: 'pre_recorded_data',
+        bucket: 'b',
+        key: 'k',
+        secretRef: 's',
+      },
+    });
+
+    fireEvent.click(screen.getByTestId('test-test-data-ref-source-toggle'));
+    fireEvent.click(screen.getByRole('option', { name: 'Hugging Face dataset' }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      ...testDataRefDefaultValues,
+      source: 'hf',
+      type: 'pre_recorded_data',
+    });
+  });
+
+  it('should not clear values when the same source is reselected', () => {
+    const onChange = jest.fn();
+    renderFields({
+      onChange,
+      value: {
+        ...testDataRefDefaultValues,
+        source: 's3',
+        bucket: 'b',
+        key: 'k',
+        secretRef: 's',
+      },
+    });
+
+    fireEvent.click(screen.getByTestId('test-test-data-ref-source-toggle'));
+    fireEvent.click(screen.getByRole('option', { name: 'S3 — object storage' }));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId('test-test-data-ref-bucket')).toHaveValue('b');
+  });
+
   it('should update a field value without clearing the others', () => {
     const onChange = jest.fn();
     renderFields({

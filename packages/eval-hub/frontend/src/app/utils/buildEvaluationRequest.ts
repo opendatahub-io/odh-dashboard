@@ -7,6 +7,7 @@ import {
   SourceMode,
 } from '~/app/types';
 import { serializeTestDataRef, type TestDataRefFormValues } from '~/app/schemas/testDataRef.schema';
+import { parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
@@ -66,15 +67,20 @@ const buildEvaluationRequest = ({
 
   const trimmedDatasetUrl = datasetUrl.trim();
   const trimmedAccessToken = accessToken.trim();
+  const prerecordedS3Location =
+    sourceMode === 'prerecorded' ? parseS3DatasetUrl(trimmedDatasetUrl) : undefined;
+  // The S3DataRef contract requires bucket, key, and secret_ref; a prerecorded
+  // request is only emitted when all three can be populated.
   const prerecordedDataRef =
-    sourceMode === 'prerecorded' && trimmedDatasetUrl
+    sourceMode === 'prerecorded' && prerecordedS3Location && trimmedAccessToken
       ? {
           // eslint-disable-next-line camelcase
           test_data_ref: {
             s3: {
-              key: trimmedDatasetUrl,
+              bucket: prerecordedS3Location.bucket,
+              key: prerecordedS3Location.key,
               // eslint-disable-next-line camelcase
-              ...(trimmedAccessToken ? { secret_ref: trimmedAccessToken } : {}),
+              secret_ref: trimmedAccessToken,
               type: 'pre_recorded_data' as const,
             },
           },

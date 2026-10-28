@@ -18,6 +18,7 @@ import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import type { EvalHubTrackingContext } from '~/app/tracking/evalhubTracking';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
+import { parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
 import {
@@ -503,8 +504,21 @@ export function useStartEvaluationRunForm({
     if (datasetUrl.trim() === '') {
       return 'Dataset URL is required.';
     }
+    if (!parseS3DatasetUrl(datasetUrl)) {
+      return 'Dataset URL must be an S3 URL in the format s3://bucket-name/path.';
+    }
     return undefined;
   }, [sourceMode, datasetUrl]);
+
+  const accessTokenError = React.useMemo((): string | undefined => {
+    if (sourceMode !== 'prerecorded') {
+      return undefined;
+    }
+    if (accessToken.trim() === '') {
+      return 'Access token is required.';
+    }
+    return undefined;
+  }, [sourceMode, accessToken]);
 
   // Computed from values (not formState.errors): the onChange resolver only applies
   // the error for the field that changed, so nested superRefine issues never land
@@ -513,12 +527,15 @@ export function useStartEvaluationRunForm({
     () => benchmarkRequiresTestData(benchmark?.providerId, benchmark?.id),
     [benchmark?.providerId, benchmark?.id],
   );
+  // Collection flows hide the test-data fields and keep each benchmark's wire
+  // reference, so a hydrated ref that fails single-benchmark validation must
+  // not block submission with no visible field to correct.
   const testDataRefErrors = React.useMemo(
     (): Partial<Record<TestDataRefFormField, string>> | undefined =>
-      sourceMode === 'model'
+      sourceMode === 'model' && !isCollectionFlow
         ? getTestDataRefFieldErrors(testDataRef, testDataRefRequired)
         : undefined,
-    [sourceMode, testDataRef, testDataRefRequired],
+    [sourceMode, isCollectionFlow, testDataRef, testDataRefRequired],
   );
   const hasTestDataRefErrors = !!testDataRefErrors && Object.keys(testDataRefErrors).length > 0;
 
@@ -568,7 +585,7 @@ export function useStartEvaluationRunForm({
       return agentName.trim() !== '' && !endpointUrlError;
     }
 
-    return sourceName.trim() !== '' && !datasetUrlError;
+    return sourceName.trim() !== '' && !datasetUrlError && !accessTokenError;
   }, [
     evaluationName,
     hasBenchmarks,
@@ -579,6 +596,7 @@ export function useStartEvaluationRunForm({
     agentName,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     hasTestDataRefErrors,
     sourceName,
     selectedInferenceServiceName,
@@ -1068,6 +1086,7 @@ export function useStartEvaluationRunForm({
     markTouched,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     connectionValidation,
     handleVerifyConnection,
     canVerifyConnection,

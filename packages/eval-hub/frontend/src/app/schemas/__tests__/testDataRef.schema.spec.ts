@@ -1,5 +1,6 @@
 /* eslint-disable camelcase -- wire-format field names */
 import type { z } from 'zod';
+import type { TestDataRefType } from '~/app/types';
 import {
   parseTestDataRef,
   refineTestDataRef,
@@ -95,7 +96,12 @@ describe('refineTestDataRef', () => {
 
     it('should reject keys with a leading slash', () => {
       const errors = fieldErrors({ ...s3Values, key: '/leading/slash' });
-      expect(errors.key).toBe('Key must not start with a slash.');
+      expect(errors.key).toBe('Key must be relative and must not contain "..".');
+    });
+
+    it('should reject keys with path traversal segments', () => {
+      const errors = fieldErrors({ ...s3Values, key: 'a/../../etc' });
+      expect(errors.key).toBe('Key must be relative and must not contain "..".');
     });
   });
 
@@ -128,7 +134,12 @@ describe('refineTestDataRef', () => {
 
     it('should reject sub paths with a leading slash', () => {
       const errors = fieldErrors({ ...pvcValues, subPath: '/abs' });
-      expect(errors.subPath).toBe('Sub path must not start with a slash.');
+      expect(errors.subPath).toBe('Sub path must be relative and must not contain "..".');
+    });
+
+    it('should reject sub paths with path traversal segments', () => {
+      const errors = fieldErrors({ ...pvcValues, subPath: 'a/../../b' });
+      expect(errors.subPath).toBe('Sub path must be relative and must not contain "..".');
     });
   });
 
@@ -157,6 +168,32 @@ describe('refineTestDataRef', () => {
       );
     });
 
+    it('should reject urls with embedded credentials', () => {
+      const errors = fieldErrors({
+        ...gitValues,
+        url: 'https://user:token@github.com/org/datasets.git',
+      });
+      expect(errors.url).toBe(
+        'Repository URL must not contain embedded credentials (username or password).',
+      );
+    });
+
+    it('should reject http urls with embedded credentials and no secret', () => {
+      const errors = fieldErrors({
+        ...gitValues,
+        url: 'http://user:token@git.example.com/repo.git',
+      });
+      expect(errors.url).toBe(
+        'Repository URL must not contain embedded credentials (username or password).',
+      );
+    });
+
+    it('should allow urls with an @ after the host', () => {
+      expect(collectIssues({ ...gitValues, url: 'https://github.com/org/repo@main.git' })).toEqual(
+        [],
+      );
+    });
+
     it('should require https when a secret is set', () => {
       const errors = fieldErrors({
         ...gitValues,
@@ -166,8 +203,34 @@ describe('refineTestDataRef', () => {
       expect(errors.secretRef).toBe('Secret requires an HTTPS repository URL.');
     });
 
+    it('should not raise the secret https issue when the url is blank', () => {
+      const errors = fieldErrors({
+        ...testDataRefDefaultValues,
+        source: 'git',
+        ref: 'main',
+        secretRef: 'git-auth',
+      });
+      expect(errors.url).toBe('Repository URL is required.');
+      expect(errors.secretRef).toBeUndefined();
+    });
+
+    it('should allow an uppercase HTTPS scheme with a secret', () => {
+      expect(
+        collectIssues({
+          ...gitValues,
+          url: 'HTTPS://github.com/org/datasets.git',
+          secretRef: 'git-auth',
+        }),
+      ).toEqual([]);
+    });
+
     it('should allow https with a secret', () => {
       expect(collectIssues({ ...gitValues, secretRef: 'git-auth' })).toEqual([]);
+    });
+
+    it('should reject sub paths with path traversal segments', () => {
+      const errors = fieldErrors({ ...gitValues, subPath: '../../etc' });
+      expect(errors.subPath).toBe('Sub path must be relative and must not contain "..".');
     });
   });
 
@@ -191,6 +254,11 @@ describe('refineTestDataRef', () => {
     it('should reject repo ids without an owner', () => {
       const errors = fieldErrors({ ...hfValues, repoId: 'just-a-repo' });
       expect(errors.repoId).toBe('Repository ID must be in the format owner/repo.');
+    });
+
+    it('should reject sub paths with path traversal segments', () => {
+      const errors = fieldErrors({ ...hfValues, subPath: 'a/../..\\b' });
+      expect(errors.subPath).toBe('Sub path must be relative and must not contain "..".');
     });
   });
 });
@@ -261,6 +329,20 @@ describe('serializeTestDataRef', () => {
       }),
     ).toEqual({ hf: { repo_id: 'cais/mmlu', type: 'data_set' } });
   });
+
+  it('should preserve a parsed pre_recorded_data type', () => {
+    expect(
+      serializeTestDataRef({
+        ...testDataRefDefaultValues,
+        source: 'git',
+        url: 'https://github.com/org/repo.git',
+        ref: 'v1.0.0',
+        type: 'pre_recorded_data',
+      }),
+    ).toEqual({
+      git: { url: 'https://github.com/org/repo.git', ref: 'v1.0.0', type: 'pre_recorded_data' },
+    });
+  });
 });
 
 describe('parseTestDataRef', () => {
@@ -305,6 +387,35 @@ describe('parseTestDataRef', () => {
       revision: 'v',
       subPath: 'p',
       secretRef: 's',
+    });
+  });
+
+  it('should preserve the reference type of each variant', () => {
+    expect(
+      parseTestDataRef({
+        s3: { bucket: 'b', key: 'k', secret_ref: 's', type: 'pre_recorded_data' },
+      }),
+    ).toEqual({
+      ...testDataRefDefaultValues,
+      source: 's3',
+      type: 'pre_recorded_data',
+      bucket: 'b',
+      key: 'k',
+      secretRef: 's',
+    });
+    expect(parseTestDataRef({ pvc: { claim_name: 'c', type: 'data_set' } })).toEqual({
+      ...testDataRefDefaultValues,
+      source: 'pvc',
+      type: 'data_set',
+      claimName: 'c',
+    });
+  });
+
+  it('should ignore an unrecognized reference type', () => {
+    expect(parseTestDataRef({ hf: { repo_id: 'o/r', type: 'bogus' as TestDataRefType } })).toEqual({
+      ...testDataRefDefaultValues,
+      source: 'hf',
+      repoId: 'o/r',
     });
   });
 });

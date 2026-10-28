@@ -264,6 +264,22 @@ describe('EvalHub API Contract Tests', () => {
               },
             },
           },
+          {
+            id: 'helm',
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            provider_id: 'lm_evaluation_harness',
+            weight: 0.2,
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            test_data_ref: {
+              pvc: {
+                // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                claim_name: 'eval-datasets-pvc',
+                // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                sub_path: 'datasets/helm',
+                type: 'data_set',
+              },
+            },
+          },
         ],
       };
       const result = await apiClient.post(

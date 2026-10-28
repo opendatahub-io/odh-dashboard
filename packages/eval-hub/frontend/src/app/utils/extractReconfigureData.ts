@@ -5,8 +5,10 @@ import type {
   InferenceServiceItem,
   ModelSelection,
   SourceMode,
+  TestDataRef,
 } from '~/app/types';
 import { getEvaluationName, getThresholdInputValue } from '~/app/utilities/evaluationUtils';
+import { buildS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 import {
   parseTestDataRef,
   testDataRefDefaultValues,
@@ -36,6 +38,9 @@ export type ReconfigureFormData = {
   queue: string | undefined;
 };
 
+// The run form only supports S3-hosted prerecorded responses, so only the s3
+// variant participates in prerecorded detection. Non-S3 prerecorded references
+// are unsupported and scrubbed below (see isUnsupportedPrerecordedRef).
 const isPrerecordedTestDataRef = (
   benchmarks: NonNullable<EvaluationJob['benchmarks']> | null | undefined,
 ): boolean =>
@@ -48,6 +53,12 @@ const isPrerecordedTestDataRef = (
     // before the UI emitted an explicit type (those were prerecorded runs).
     return s3.type ? s3.type === 'pre_recorded_data' : true;
   }) ?? false;
+
+// Non-S3 references typed pre_recorded_data. The UI has no flow to create or
+// edit these — prerecorded responses are S3-only — so reconfiguration drops
+// them instead of carrying a reference the form cannot represent.
+const isUnsupportedPrerecordedRef = (ref: TestDataRef | undefined): boolean =>
+  !!ref && !ref.s3 && (ref.pvc?.type ?? ref.git?.type ?? ref.hf?.type) === 'pre_recorded_data';
 
 export const inferSourceMode = (
   job: EvaluationJob,
@@ -114,7 +125,9 @@ const extractReconfigureData = (
       primary_score: b.primary_score,
       pass_criteria: b.pass_criteria,
       parameters: b.parameters,
-      test_data_ref: b.test_data_ref,
+      // Unsupported non-S3 prerecorded references are scrubbed rather than
+      // passed through (see isUnsupportedPrerecordedRef).
+      test_data_ref: isUnsupportedPrerecordedRef(b.test_data_ref) ? undefined : b.test_data_ref,
     }));
     collection = {
       resource: { id: job.collection.id },
@@ -143,16 +156,23 @@ const extractReconfigureData = (
   if (sourceMode === 'prerecorded') {
     const refBenchmark = effectiveBenchmarks?.find((b) => b.test_data_ref?.s3);
     if (refBenchmark?.test_data_ref?.s3) {
-      datasetUrl = refBenchmark.test_data_ref.s3.key ?? '';
-      accessToken = refBenchmark.test_data_ref.s3.secret_ref ?? '';
+      const { s3 } = refBenchmark.test_data_ref;
+      // Jobs created after the S3DataRef contract split store bucket and key
+      // separately; legacy jobs stored the full s3:// URL in key.
+      datasetUrl = s3.bucket ? buildS3DatasetUrl(s3.bucket, s3.key ?? '') : (s3.key ?? '');
+      // eslint-disable-next-line camelcase
+      accessToken = s3.secret_ref ?? '';
     }
   }
 
   // Model-mode reconfigures hydrate the test data section; prerecorded jobs keep
   // their dataset fields instead — both edit the same test_data_ref object.
+  // Unsupported non-S3 prerecorded references are skipped so they stay scrubbed.
   let testDataRef: TestDataRefFormValues = { ...testDataRefDefaultValues };
   if (sourceMode === 'model') {
-    const refBenchmark = effectiveBenchmarks?.find((b) => b.test_data_ref);
+    const refBenchmark = effectiveBenchmarks?.find(
+      (b) => b.test_data_ref && !isUnsupportedPrerecordedRef(b.test_data_ref),
+    );
     testDataRef = parseTestDataRef(refBenchmark?.test_data_ref);
   }
 

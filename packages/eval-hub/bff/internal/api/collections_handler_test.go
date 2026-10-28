@@ -389,6 +389,41 @@ func TestCreateCollectionHandlerRequiresNameAndBenchmark(t *testing.T) {
 		{name: "missing benchmark", body: evalhub.CreateCollectionRequest{Name: "Suite"}},
 		{name: "blank benchmark id", body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{ID: " \t"}}}},
 		{name: "negative benchmark weight", body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: -0.1}}}},
+		{
+			name: "test data ref with no variant",
+			body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{
+				ID:          "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{},
+			}}},
+		},
+		{
+			name: "test data ref with multiple variants",
+			body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{
+				ID: "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{
+					S3: &evalhub.S3DataRef{Bucket: "bucket"},
+					HF: &evalhub.TestDataRefHF{RepoID: "org/repo"},
+				},
+			}}},
+		},
+		{
+			name: "git test data ref with embedded credentials",
+			body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{
+				ID: "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{
+					Git: &evalhub.TestDataRefGit{URL: "https://user:pass@example.com/repo.git"},
+				},
+			}}},
+		},
+		{
+			name: "git test data ref with secret over http",
+			body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{
+				ID: "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{
+					Git: &evalhub.TestDataRefGit{URL: "http://example.com/repo.git", SecretRef: "my-secret"},
+				},
+			}}},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, response, err := setupApiTestWithEvalHub[HTTPError](
@@ -605,6 +640,22 @@ func TestCloneCollectionHandlerInvalidBenchmark(t *testing.T) {
 		{name: "whitespace-only", benchmarks: []evalhub.CollectionBenchmark{{ID: " \t"}}},
 		{name: "invalid ID after valid ID", benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}, {ID: " "}}},
 		{name: "negative weight", benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: -0.1}}},
+		{
+			name: "test data ref with no variant",
+			benchmarks: []evalhub.CollectionBenchmark{{
+				ID:          "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{},
+			}},
+		},
+		{
+			name: "git test data ref with non-http scheme",
+			benchmarks: []evalhub.CollectionBenchmark{{
+				ID: "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{
+					Git: &evalhub.TestDataRefGit{URL: "ssh://git@example.com/repo.git"},
+				},
+			}},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, response, err := setupApiTestWithEvalHub[HTTPError](

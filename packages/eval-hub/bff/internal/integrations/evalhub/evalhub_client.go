@@ -219,9 +219,9 @@ type JobPassCriteria struct {
 }
 
 type S3DataRef struct {
-	Bucket    string `json:"bucket,omitempty"`
-	Key       string `json:"key,omitempty"`
-	SecretRef string `json:"secret_ref,omitempty"`
+	Bucket    string `json:"bucket"`
+	Key       string `json:"key"`
+	SecretRef string `json:"secret_ref"`
 	Type      string `json:"type,omitempty"`
 }
 
