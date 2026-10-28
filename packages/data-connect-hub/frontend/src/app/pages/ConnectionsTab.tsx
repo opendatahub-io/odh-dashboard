@@ -103,7 +103,6 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     },
     [],
   );
-  const typeNames = new Map(connectionTypes.map((type) => [type.metadata.id, type.resource.name]));
   const connectionTypesMap = new Map(connectionTypes.map((type) => [type.metadata.id, type]));
   const typeIds = React.useMemo(
     () =>
@@ -175,7 +174,6 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     );
   }
 
-  const getTypeName = (id: string) => typeNames.get(id) ?? id;
   const getType = (id: string) => connectionTypesMap.get(id);
 
   const filtered = connections.filter(
@@ -189,13 +187,15 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       sortColumn === 'name'
         ? left.resource.name
         : sortColumn === 'type'
-          ? getTypeName(left.resource.data_connection_type_id)
+          ? (getType(left.resource.data_connection_type_id)?.resource.name ??
+            left.resource.data_connection_type_id)
           : left.status.state;
     const rightValue =
       sortColumn === 'name'
         ? right.resource.name
         : sortColumn === 'type'
-          ? getTypeName(right.resource.data_connection_type_id)
+          ? (getType(right.resource.data_connection_type_id)?.resource.name ??
+            right.resource.data_connection_type_id)
           : right.status.state;
     const result = leftValue.localeCompare(rightValue);
     return sortDirection === 'asc' ? result : -result;
@@ -350,7 +350,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                               toggleType(id);
                             }}
                           >
-                            {getTypeName(id)}
+                            {getType(id)?.resource.name ?? id}
                           </DropdownItem>
                         ))}
                       </DropdownList>
@@ -383,7 +383,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
               <LabelGroup categoryName="Type">
                 {activeTypes.map((id) => (
                   <Label key={id} variant="outline" onClose={() => toggleType(id)}>
-                    {getTypeName(id)}
+                    {getType(id)?.resource.name ?? id}
                   </Label>
                 ))}
               </LabelGroup>
@@ -455,7 +455,8 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
               </Tr>
             ) : (
               sorted.map((connection) => {
-                const connectionType = getType(connection.resource.data_connection_type_id);
+                const connectionTypeId = connection.resource.data_connection_type_id;
+                const connectionType = getType(connectionTypeId);
 
                 return (
                   <Tr key={connection.metadata.id}>
@@ -468,7 +469,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                       </Link>
                     </Td>
                     <Td dataLabel="Type">
-                      {getTypeName(connection.resource.data_connection_type_id)}
+                      {connectionType?.resource.name ?? connectionTypeId}
                       {connectionType && connectionType?.status?.flight_ready && (
                         <ConnectionTypeLabel
                           className="pf-v6-u-ml-sm"
