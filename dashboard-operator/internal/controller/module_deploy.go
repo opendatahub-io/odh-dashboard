@@ -260,8 +260,10 @@ func (r *DashboardReconciler) deleteModuleResources(
 			}
 		}
 
-		var serviceAccounts corev1.ServiceAccountList
-		if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
+		// ServiceAccounts are cached as metadata-only; list them via the metadata
+		// informer to avoid starting a second full-object informer.
+		serviceAccounts := newMetadataList(serviceAccountListGVK)
+		if err := r.List(ctx, serviceAccounts, matchLabels, inNamespace); err != nil {
 			errs = append(errs, fmt.Errorf("listing serviceaccounts for module %s: %w", name, err))
 		} else {
 			for i := range serviceAccounts.Items {

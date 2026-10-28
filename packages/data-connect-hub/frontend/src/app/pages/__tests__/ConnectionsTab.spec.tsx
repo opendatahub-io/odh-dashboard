@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
+import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
@@ -12,6 +13,19 @@ import { deleteConnection, verifyConnection } from '~/app/api/dch';
 jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
+jest.mock('~/app/utilities/tracking', () => ({
+  DATA_CONNECT_HUB_EVENT_NAMES: {
+    addStarted: 'Connections Add Started',
+    typeSelected: 'Connections Type Selected',
+    connectionCreated: 'Connections Connection Created',
+    createCanceled: 'Connections Create Canceled',
+    deleteInitiated: 'Connections Connection Delete Initiated',
+    listFilterApplied: 'Connections List Filter Applied',
+  },
+  getConnectionTypeProvider: (connectionType?: { resource: { provider: string } }) =>
+    connectionType?.resource.provider,
+  fireDataConnectHubTrackEvent: jest.fn(),
+}));
 const mockNotificationSuccess = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({ success: mockNotificationSuccess, error: jest.fn() }),
@@ -51,6 +65,7 @@ const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
+const mockTrackEvent = jest.fn();
 
 const renderConnectionsTab = (props: React.ComponentProps<typeof ConnectionsTab>) =>
   render(
@@ -133,6 +148,7 @@ const newConnectionType = {
 describe('ConnectionsTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
     mockVerifyConnection.mockImplementation(() => () => Promise.resolve());
     mockDeleteConnection.mockImplementation(() => () => Promise.resolve());
     mockUseConnections.mockReturnValue([connections, true, undefined, jest.fn()]);
@@ -304,6 +320,31 @@ describe('ConnectionsTab', () => {
     expect(screen.getAllByText('Review').length).toBeGreaterThan(0);
   });
 
+  it('tracks starting the create connection flow from the toolbar', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Add Started',
+      properties: { project: 'test-project', source: 'connections_tab' },
+    });
+  });
+
+  it('tracks starting the create connection flow from the empty state', async () => {
+    const user = userEvent.setup();
+    mockUseConnections.mockReturnValue([[], true, undefined, jest.fn()]);
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Add Started',
+      properties: { project: 'test-project', source: 'empty_state' },
+    });
+  });
+
   it('disables connection polling while the Connections tab is inactive', () => {
     renderConnectionsTab({ namespace: 'test-project', isActive: false });
 
@@ -319,6 +360,85 @@ describe('ConnectionsTab', () => {
 
     expect(screen.queryByText('warehouse')).toBeNull();
     expect(screen.getByText('object-store')).toBeTruthy();
+  });
+
+  it('tracks a name filter after typing stops', async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderConnectionsTab({ namespace: 'test-project' });
+
+      await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
+      expect(mockTrackEvent).not.toHaveBeenCalledWith({
+        eventName: 'Connections List Filter Applied',
+        properties: { filterType: 'name', project: 'test-project' },
+      });
+
+      jest.advanceTimersByTime(750);
+
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Connections List Filter Applied',
+        properties: { filterType: 'name', project: 'test-project' },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('tracks clearing a name filter once when cleared before the debounce fires', async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderConnectionsTab({ namespace: 'test-project' });
+
+      await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
+      await user.click(screen.getByRole('button', { name: 'Reset' }));
+      jest.advanceTimersByTime(750);
+
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Connections List Filter Applied',
+        properties: { filterType: 'name', project: 'test-project' },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('cancels name-filter tracking when clearing all filters before the debounce fires', async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderConnectionsTab({ namespace: 'test-project' });
+
+      await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'no-match');
+      await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+      jest.advanceTimersByTime(750);
+
+      expect(mockTrackEvent).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('tracks a type filter when a type is deselected and reselected', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByTestId('connection-type-filter-toggle'));
+    const postgresqlFilter = screen.getByRole('menuitem', { name: 'PostgreSQL' });
+    fireEvent.click(within(postgresqlFilter).getByRole('checkbox'));
+
+    expect(screen.queryByText('warehouse')).toBeNull();
+    expect(screen.getByText('object-store')).toBeTruthy();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections List Filter Applied',
+      properties: { filterType: 'type', project: 'test-project' },
+    });
+
+    fireEvent.click(within(postgresqlFilter).getByRole('checkbox'));
+
+    expect(screen.getByText('warehouse')).toBeTruthy();
   });
 
   it('refreshes the list when verification fails', async () => {
@@ -349,6 +469,19 @@ describe('ConnectionsTab', () => {
 
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(screen.queryByTestId('delete-modal')).toBeNull();
+  });
+
+  it('tracks delete initiation without the connection name', async () => {
+    const user = userEvent.setup();
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Connection Delete Initiated',
+      properties: { project: 'test-project', connectionTypeProvider: 'postgresql' },
+    });
   });
 
   it('ignores a stale delete completion after the modal is replaced', async () => {

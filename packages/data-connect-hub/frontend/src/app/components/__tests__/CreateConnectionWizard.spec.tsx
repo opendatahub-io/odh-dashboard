@@ -1,8 +1,9 @@
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import CreateConnectionWizard, { getPropertyErrors } from '~/app/components/CreateConnectionWizard';
+import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { testCredentials } from '~/app/api/dch';
@@ -10,6 +11,10 @@ import type { CreateConnectionRequest } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
+jest.mock('~/app/utilities/tracking', () => ({
+  ...jest.requireActual<typeof import('~/app/utilities/tracking')>('~/app/utilities/tracking'),
+  fireDataConnectHubTrackEvent: jest.fn(),
+}));
 const mockNotificationSuccess = jest.fn();
 const mockNotificationError = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -22,6 +27,7 @@ jest.mock('~/app/api/dch', () => ({
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockTestCredentials = jest.mocked(testCredentials);
+const mockTrackEvent = jest.fn();
 const postgresqlConnectionTypeId = '550e8400-e29b-41d4-a716-446655440003';
 const ociConnectionTypeId = '550e8400-e29b-41d4-a716-446655440005';
 const unknownConnectionTypeId = '550e8400-e29b-41d4-a716-446655440009';
@@ -57,6 +63,7 @@ describe('CreateConnectionWizard', () => {
     mockTestCredentials.mockImplementation(() => () => Promise.resolve());
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
     mockUseNamespaces.mockReturnValue([[{ name: 'test-project' }], true, undefined]);
+    jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
   });
 
   it('rejects duplicate normalized and whitespace-only property keys', () => {
@@ -94,6 +101,21 @@ describe('CreateConnectionWizard', () => {
     expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect(screen.getByTestId('connection-project-select').textContent).toContain('test-project');
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
+  });
+
+  it('tracks connection type selection in the wizard', async () => {
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
+
+    fireEvent.click(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard-select`));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Type Selected',
+      properties: {
+        connectionTypeProvider: 'postgresql',
+        isGlobalType: true,
+        project: 'test-project',
+      },
+    });
   });
 
   it('should remain on connection type when a prefilled connection type fails to load', async () => {
@@ -288,6 +310,82 @@ describe('CreateConnectionWizard', () => {
         },
         'test-project',
       ),
+    );
+  });
+
+  it('tracks successful connection creation', async () => {
+    const user = userEvent.setup();
+    const onCreate = jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => void>();
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        onCreate={onCreate}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: { URI: 'postgres://example' },
+          },
+          properties: { region: 'east' },
+        }}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Create connection' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Connection Created',
+      properties: {
+        outcome: 'submit',
+        success: true,
+        connectionTypeProvider: 'postgresql',
+        hasTags: true,
+        tagCount: 1,
+        project: 'test-project',
+      },
+    });
+  });
+
+  it('tracks failed connection creation without exposing the error message', async () => {
+    const user = userEvent.setup();
+    const onCreate = jest
+      .fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<void>>()
+      .mockRejectedValue(new Error('status code 409: connection exists'));
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        onCreate={onCreate}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: { URI: 'postgres://example' },
+          },
+        }}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Create connection' }));
+
+    await waitFor(() =>
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Connections Connection Created',
+        properties: {
+          outcome: 'submit',
+          success: false,
+          error: 'http_409',
+          connectionTypeProvider: 'postgresql',
+          hasTags: false,
+          tagCount: 0,
+          project: 'test-project',
+        },
+      }),
     );
   });
 
@@ -674,6 +772,45 @@ describe('CreateConnectionWizard', () => {
 
     expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
+  });
+
+  it('tracks cancellation from the close button', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        initialFormData={{
+          data_connection_type_id: postgresqlConnectionTypeId,
+          properties: { region: 'east' },
+        }}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Close wizard' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Create Canceled',
+      properties: {
+        cancelMethod: 'close_x',
+        abandonStep: 'connection_details',
+        project: 'test-project',
+        connectionTypeProvider: 'postgresql',
+      },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Connection Created',
+      properties: {
+        outcome: 'cancel',
+        connectionTypeProvider: 'postgresql',
+        hasTags: true,
+        tagCount: 1,
+        project: 'test-project',
+      },
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('should apply the latest initial data on open without overwriting session edits', async () => {

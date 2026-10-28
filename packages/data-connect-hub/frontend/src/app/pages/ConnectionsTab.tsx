@@ -37,6 +37,11 @@ import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
 import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+  getConnectionTypeProvider,
+} from '~/app/utilities/tracking';
+import {
   hasVerificationOutcome,
   isValidTimestamp,
   statusVariant,
@@ -75,8 +80,26 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   >(new Map());
   const [deleteTarget, setDeleteTarget] = React.useState<Connection>();
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const nameFilterTrackingTimerRef = React.useRef<number>();
   const [sortColumn, setSortColumn] = React.useState<'name' | 'type' | 'status'>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const trackListFilterApplied = React.useCallback(
+    (filterType: 'type' | 'name') => {
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.listFilterApplied,
+        properties: { filterType, project: namespace },
+      });
+    },
+    [namespace],
+  );
+  React.useEffect(
+    () => () => {
+      if (nameFilterTrackingTimerRef.current !== undefined) {
+        clearTimeout(nameFilterTrackingTimerRef.current);
+      }
+    },
+    [],
+  );
   const typeNames = new Map(connectionTypes.map((type) => [type.metadata.id, type.resource.name]));
   const typeIds = React.useMemo(
     () =>
@@ -180,11 +203,40 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     columnIndex: index,
   });
   const hasFilters = nameFilter !== '' || hasTypeFilter;
-  const toggleType = (id: string) =>
+  const toggleType = (id: string) => {
+    trackListFilterApplied('type');
     setSelectedTypes((current) => {
       const values = current ?? [];
       return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
     });
+  };
+  const handleCreateConnection = (source: 'connections_tab' | 'empty_state') => {
+    fireDataConnectHubTrackEvent({
+      eventName: DATA_CONNECT_HUB_EVENT_NAMES.addStarted,
+      properties: { project: namespace, source },
+    });
+    setIsCreateModalOpen(true);
+  };
+  const handleNameFilterChange = (value: string) => {
+    setNameFilter(value);
+    if (nameFilterTrackingTimerRef.current !== undefined) {
+      clearTimeout(nameFilterTrackingTimerRef.current);
+    }
+    nameFilterTrackingTimerRef.current = window.setTimeout(() => {
+      nameFilterTrackingTimerRef.current = undefined;
+      trackListFilterApplied('name');
+    }, 750);
+  };
+  const handleNameFilterClear = () => {
+    if (nameFilterTrackingTimerRef.current !== undefined) {
+      clearTimeout(nameFilterTrackingTimerRef.current);
+      nameFilterTrackingTimerRef.current = undefined;
+    }
+    if (nameFilter !== '') {
+      setNameFilter('');
+      trackListFilterApplied('name');
+    }
+  };
 
   const handleVerify = async (id: string) => {
     if (verifyingIdsRef.current.has(id)) {
@@ -277,6 +329,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                               </Badge>
                             ) : undefined
                           }
+                          data-testid="connection-type-filter-toggle"
                         >
                           Type
                         </MenuToggle>
@@ -307,15 +360,15 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                   aria-label="Filter by name"
                   placeholder="Filter by name..."
                   value={nameFilter}
-                  onChange={(_event, value) => setNameFilter(value)}
-                  onClear={() => setNameFilter('')}
+                  onChange={(_event, value) => handleNameFilterChange(value)}
+                  onClear={handleNameFilterClear}
                 />
               </ToolbarItem>
             </>
           )}
           {connections.length > 0 ? (
             <ToolbarItem>
-              <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>
+              <Button variant="primary" onClick={() => handleCreateConnection('connections_tab')}>
                 Create connection
               </Button>
             </ToolbarItem>
@@ -347,7 +400,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           </EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>
+              <Button variant="primary" onClick={() => handleCreateConnection('empty_state')}>
                 Create connection
               </Button>
             </EmptyStateActions>
@@ -382,6 +435,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                         <Button
                           variant="link"
                           onClick={() => {
+                            if (nameFilterTrackingTimerRef.current !== undefined) {
+                              clearTimeout(nameFilterTrackingTimerRef.current);
+                              nameFilterTrackingTimerRef.current = undefined;
+                            }
                             setNameFilter('');
                             setSelectedTypes(null);
                           }}
@@ -476,6 +533,20 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                         <DropdownItem
                           onClick={() => {
                             setActionsFor(undefined);
+                            fireDataConnectHubTrackEvent({
+                              eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
+                              properties: {
+                                project: namespace,
+                                connectionTypeProvider:
+                                  getConnectionTypeProvider(
+                                    connectionTypes.find(
+                                      (type) =>
+                                        type.metadata.id ===
+                                        connection.resource.data_connection_type_id,
+                                    ),
+                                  ) ?? 'unknown',
+                              },
+                            });
                             setDeleteTarget(connection);
                           }}
                         >
