@@ -45,12 +45,12 @@ type WorkloadFilterSelectProps = {
 };
 
 const FILTER_LABELS: Record<InfrastructureWorkloadsFilterType, string> = {
-  status: 'Status',
   type: 'Type',
+  status: 'Status',
   hardwareProfile: 'Hardware profile',
 };
 
-const FILTER_TYPES: InfrastructureWorkloadsFilterType[] = ['status', 'type', 'hardwareProfile'];
+const FILTER_TYPES: InfrastructureWorkloadsFilterType[] = ['type', 'status', 'hardwareProfile'];
 
 const WorkloadFilterSelect: React.FC<WorkloadFilterSelectProps> = ({
   type,

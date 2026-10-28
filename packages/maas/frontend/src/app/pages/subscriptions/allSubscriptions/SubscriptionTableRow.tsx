@@ -33,7 +33,12 @@ import {
   MaaSSettingsListRowExpandedProperties,
   MaaSGovernanceStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
-import { subscriptionsColumns } from './columns';
+import {
+  subscriptionsColumns,
+  getSubscriptionsColumns,
+  GROUP_COLUMN_FIELD,
+  MODEL_COLUMN_FIELD,
+} from './columns';
 
 type ExpandedPanel = 'groups' | 'models' | null;
 
@@ -42,6 +47,10 @@ type SubscriptionTableRowProps = {
   rowIndex: number;
   setDeleteSubscription: (subscription: MaaSSubscription) => void;
   returnTo?: string;
+  /** Read-only viewers omit the Status column. Defaults to true. */
+  showStatus?: boolean;
+  /** Read-only viewers omit the kebab (row actions) column. Defaults to true. */
+  showActions?: boolean;
 };
 
 const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
@@ -49,7 +58,13 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   rowIndex,
   setDeleteSubscription,
   returnTo,
+  showStatus = true,
+  showActions = true,
 }) => {
+  const columns = getSubscriptionsColumns({ showStatus });
+  const groupsColumnIndex = columns.findIndex((col) => col.field === GROUP_COLUMN_FIELD);
+  const modelsColumnIndex = columns.findIndex((col) => col.field === MODEL_COLUMN_FIELD);
+  const columnSpan = columns.length + (showActions ? 1 : 0);
   const navigate = useNavigate();
   const navState = {
     state: {
@@ -95,7 +110,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   const groups = Array.isArray(subscription.owner.groups) ? subscription.owner.groups : [];
 
   const nameCell = (
-    <Td dataLabel={subscriptionsColumns[0].label}>
+    <Td dataLabel={columns[0].label}>
       <TableRowTitleDescription
         title={
           subscription.deletionTimestamp ? (
@@ -187,9 +202,9 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         data-testid="subscription-row"
       >
         {nameCell}
-        {phaseCell}
+        {showStatus && phaseCell}
         <Td
-          dataLabel={subscriptionsColumns[2].label}
+          dataLabel={columns[groupsColumnIndex].label}
           compoundExpand={{
             isExpanded: expandedPanel === 'groups',
             onToggle: () => {
@@ -207,14 +222,14 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
             },
             expandId: `expand-${subscription.name}-groups`,
             rowIndex,
-            columnIndex: 2,
+            columnIndex: groupsColumnIndex,
           }}
           data-testid="subscription-groups-expand-btn"
         >
           <CompoundExpandCountCell count={groupsCount} />
         </Td>
         <Td
-          dataLabel={subscriptionsColumns[3].label}
+          dataLabel={columns[modelsColumnIndex].label}
           compoundExpand={{
             isExpanded: expandedPanel === 'models',
             onToggle: () => {
@@ -232,23 +247,23 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
             },
             expandId: `expand-${subscription.name}-models`,
             rowIndex,
-            columnIndex: 3,
+            columnIndex: modelsColumnIndex,
           }}
           data-testid="subscription-models-expand-btn"
         >
           <CompoundExpandCountCell count={modelsCount} />
         </Td>
-        {actionsCell}
+        {showActions && actionsCell}
       </ResourceTr>
       <Tr isExpanded={expandedPanel === 'groups'}>
-        <Td colSpan={subscriptionsColumns.length + 1}>
+        <Td colSpan={columnSpan}>
           <ExpandableRowContent>
             <ExpandedGroupsPanel groups={groups} />
           </ExpandableRowContent>
         </Td>
       </Tr>
       <Tr isExpanded={expandedPanel === 'models'}>
-        <Td colSpan={subscriptionsColumns.length + 1}>
+        <Td colSpan={columnSpan}>
           <ExpandableRowContent>
             <ExpandedModelsPanel
               models={subscription.modelRefs}
