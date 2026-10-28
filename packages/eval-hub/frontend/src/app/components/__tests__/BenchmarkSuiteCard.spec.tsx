@@ -637,7 +637,136 @@ describe('BenchmarkSuiteCard', () => {
 
     fireEvent.click(suiteName);
 
+    expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith(collection);
+  });
+
+  it('should mark the card content clickable only when a selection callback is provided', () => {
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({ id: 'static-suite' })}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+      />,
+    );
+
+    expect(screen.getByTestId('benchmark-suite-card-static-suite')).not.toHaveClass(
+      'evalhub-benchmark-suite-card--clickable',
+    );
+
+    render(
+      <BenchmarkSuiteCard
+        collection={mockCollection({ id: 'selectable-suite' })}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('benchmark-suite-card-selectable-suite')).toHaveClass(
+      'evalhub-benchmark-suite-card--clickable',
+    );
+  });
+
+  it('should invoke the suite selection callback when the title region is clicked', () => {
+    const collection = mockCollection({ id: 'model-suite' });
+    const onSelect = jest.fn();
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-title-region-model-suite'));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(collection);
+  });
+
+  it('should invoke the suite selection callback when the card body is clicked', () => {
+    const collection = mockCollection({ id: 'model-suite' });
+    const onSelect = jest.fn();
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-body-region-model-suite'));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(collection);
+  });
+
+  it('should track drawer opens when a body region click opens the drawer', () => {
+    const collection = mockCollection({ id: 'body-tracked-suite' });
+    const onSelect = jest.fn().mockReturnValue(true);
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        trackingSurface="my_benchmark_suites"
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-body-region-body-tracked-suite'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
+      expect.objectContaining({
+        collectionName: collection.name,
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({ collectionType: 'custom' }),
+    );
+  });
+
+  it('should not invoke the suite selection callback from the contextual actions menu', () => {
+    const collection = mockCollection({ id: 'model-suite' });
+    const onSelect = jest.fn();
+    const onDelete = jest.fn();
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        contextualActions={[{ id: 'delete', label: 'Delete', onSelect: onDelete, isDanger: true }]}
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite'));
+    expect(onSelect).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(onDelete).toHaveBeenCalledWith(collection);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('should not invoke the suite selection callback when metadata buttons are clicked', () => {
+    const collection = mockCollection({ id: 'metadata-suite' });
+    collection.evaluation_targets = ['model', 'agent'];
+    const onSelect = jest.fn();
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run', onClick: jest.fn() }}
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-benchmarks-metadata-suite'));
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-evaluation-targets-metadata-suite'));
+
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it('should track drawer opens only when the tile click opens the drawer', () => {
