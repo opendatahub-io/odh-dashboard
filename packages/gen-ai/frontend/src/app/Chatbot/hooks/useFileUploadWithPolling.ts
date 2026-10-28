@@ -5,6 +5,22 @@ import { ChatbotSourceSettings } from '~/app/types';
 
 export type UploadStatus = 'idle' | 'uploading' | 'uploaded' | 'failed';
 
+/** The BFF applies chunk sizes only when chunking_type is set. Zero overlap is valid. */
+export const appendChunkingFields = (
+  formData: FormData,
+  settings: ChatbotSourceSettings,
+): void => {
+  if (settings.maxChunkLength !== undefined || settings.chunkOverlap !== undefined) {
+    formData.append('chunking_type', 'static');
+  }
+  if (settings.chunkOverlap !== undefined) {
+    formData.append('chunk_overlap_tokens', String(settings.chunkOverlap));
+  }
+  if (settings.maxChunkLength !== undefined) {
+    formData.append('max_chunk_size_tokens', String(settings.maxChunkLength));
+  }
+};
+
 export interface FileUploadState {
   fileName: string;
   status: UploadStatus;
@@ -150,16 +166,7 @@ const useFileUploadWithPolling = (
         // Create FormData for multipart/form-data upload
         const formData = new FormData();
         formData.append('file', file);
-        // The BFF applies chunk sizes only when chunking_type is set.
-        if (settings.maxChunkLength || settings.chunkOverlap) {
-          formData.append('chunking_type', 'static');
-        }
-        if (settings.chunkOverlap) {
-          formData.append('chunk_overlap_tokens', String(settings.chunkOverlap));
-        }
-        if (settings.maxChunkLength) {
-          formData.append('max_chunk_size_tokens', String(settings.maxChunkLength));
-        }
+        appendChunkingFields(formData, settings);
         formData.append('vector_store_id', settings.vectorStore);
 
         // Upload file - returns 202 with job_id

@@ -64,8 +64,18 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
   );
 
   // Upload into the same auto-provisioned store the chat searches.
+  // isOpen is a dependency so Cancel, which clears the field, restores it on reopen.
   React.useEffect(() => {
-    if (!vectorStoresLoaded || !inlineVectorStore) {
+    if (!isOpen || !vectorStoresLoaded) {
+      return;
+    }
+    if (!inlineVectorStore) {
+      setFields((prev) => {
+        const selected = vectorStores.find((store) => store.id === prev.vectorStore);
+        return selected?.metadata.created_by === 'auto-provisioning'
+          ? { ...prev, vectorStore: '' }
+          : prev;
+      });
       return;
     }
     setFields((prev) =>
@@ -76,7 +86,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
             vectorStore: inlineVectorStore.id,
           },
     );
-  }, [vectorStoresLoaded, inlineVectorStore]);
+  }, [isOpen, vectorStoresLoaded, inlineVectorStore, vectorStores]);
 
   // Vector store creation state
   const [vectorStoreForm, setVectorStoreForm] = React.useState(DEFAULT_VECTOR_STORE_FORM);

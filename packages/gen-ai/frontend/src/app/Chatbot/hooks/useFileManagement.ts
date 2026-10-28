@@ -51,21 +51,26 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
   const [error, setError] = React.useState<string | null>(null);
   const [currentVectorStoreId, setCurrentVectorStoreId] = React.useState<string | null>(null);
   const { api, apiAvailable } = useGenAiAPI();
+  const refreshGeneration = React.useRef(0);
 
   const refreshFiles = React.useCallback(async () => {
-    if (!apiAvailable) {
+    if (!apiAvailable || !username) {
       return;
     }
 
+    const generation = refreshGeneration.current + 1;
+    refreshGeneration.current = generation;
     setIsLoading(true);
     setError(null);
 
     try {
       // First, get the list of vector stores
       const vectorStores = await api.listVectorStores();
+      if (generation !== refreshGeneration.current) {
+        return;
+      }
 
-      // Find the auto-provisioned file-upload store for this user.
-      // The list includes every store, so match username when it is present.
+      // Exact username match, then an unlabeled legacy store.
       const userStore = findInlineVectorStore(vectorStores, username);
       if (!userStore) {
         setFiles([]);
@@ -84,16 +89,24 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         order: 'desc',
         filter: 'completed',
       });
+      if (generation !== refreshGeneration.current) {
+        return;
+      }
 
       // Convert vector store files to FileModel format
       const convertedFiles = vectorStoreFiles.map(convertVectorStoreFileToFileModel);
       setFiles(convertedFiles);
     } catch (err) {
+      if (generation !== refreshGeneration.current) {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch files';
       setError(errorMessage);
       onShowErrorAlert?.(errorMessage, 'File Fetch Error');
     } finally {
-      setIsLoading(false);
+      if (generation === refreshGeneration.current) {
+        setIsLoading(false);
+      }
     }
   }, [onShowErrorAlert, api, apiAvailable, username]);
 
