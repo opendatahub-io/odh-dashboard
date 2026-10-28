@@ -807,11 +807,7 @@ const expectHeaderActions = (conditionalAction?: 'stop' | 'retry') => {
   ].filter((id): id is string => id !== undefined);
 
   const actions = actionIds.map((id) => screen.getByTestId(id));
-  actions.forEach((action) =>
-    expect(action).toHaveClass(
-      action.dataset.testid === 'run-details-button' ? 'pf-m-link' : 'pf-m-secondary',
-    ),
-  );
+  actions.forEach((action) => expect(action).toHaveClass('pf-m-link'));
   actions.slice(0, -1).forEach((action, index) => {
     expect(action.compareDocumentPosition(actions[index + 1])).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
@@ -1842,7 +1838,7 @@ describe('AutoragResultsPage', () => {
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
       expect(mockNotification.warning).toHaveBeenCalledWith(
         '2 of 4 patterns could not be loaded',
-        'The following patterns failed to load: BrokenPattern1, BrokenPattern2',
+        'The following patterns failed to load: BrokenPattern\u00a01, BrokenPattern\u00a02',
       );
     });
 

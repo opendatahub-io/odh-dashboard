@@ -11,6 +11,9 @@ const NAMESPACE = 'my-project';
 // Real fake secrets: a "maas" secret and a "data-connection" storage secret with a bucket set
 const MAAS_SECRET = 'maas';
 const STORAGE_SECRET = 'data-connection';
+// Matches the ready foundation model in packages/autorag/bff/internal/fake/maas.go.
+const FOUNDATION_MODEL_ID = 'granite-3-8b-instruct';
+const FOUNDATION_TOOLTIP = 'This model is already selected as a foundation model.';
 
 // Real seed data under the fake S3 bucket (packages/autorag/bff/internal/fake/s3-bucket/):
 // autorag input data/pdf/bank_policies_pdf/documents/ contains two PDFs.
@@ -85,6 +88,34 @@ const addQAPair = (question: string, answer: string) => {
 describe('EvaluationFileCreator', () => {
   beforeEach(() => {
     initIntercepts();
+  });
+
+  it('should render the disabled model tooltip outside the table clipping region', () => {
+    navigateToConfigure();
+    advanceToStep2();
+
+    autoragConfigurePage.findSelectModelsButton().click();
+    autoragConfigurePage.findModelSelectionModal().should('be.visible');
+    autoragConfigurePage.findModelCheckbox('llm', FOUNDATION_MODEL_ID).check();
+    autoragConfigurePage.findModelTab('embedding').click();
+
+    autoragConfigurePage
+      .findDisabledModelTooltip('embedding', FOUNDATION_MODEL_ID)
+      .trigger('mouseover');
+    autoragConfigurePage
+      .findDisabledModelTooltipContent('embedding', FOUNDATION_MODEL_ID)
+      .should('be.visible')
+      .and('contain.text', FOUNDATION_TOOLTIP);
+    autoragConfigurePage
+      .findTooltip()
+      .should('be.visible')
+      .then(($tooltip) => {
+        const bounds = $tooltip[0].getBoundingClientRect();
+        expect(bounds.width).to.be.greaterThan(150);
+        expect(bounds.height).to.be.lessThan(100);
+        expect($tooltip.closest('.autorag-model-selection__table-container')).to.have.length(0);
+        expect($tooltip.closest('[data-testid="embedding-models-table"]')).to.have.length(0);
+      });
   });
 
   it('should open the modal, add a Q&A pair, and verify form state', () => {
