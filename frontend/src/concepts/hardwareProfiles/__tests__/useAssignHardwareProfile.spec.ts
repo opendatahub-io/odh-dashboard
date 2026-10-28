@@ -15,12 +15,12 @@ import { useResourceClaimTemplateNames } from '@odh-dashboard/hardware-profiles/
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import * as useHardwareProfilesModule from '@odh-dashboard/hardware-profiles/pages/useHardwareProfilesByFeatureVisibility';
 import { mockNotebookK8sResource } from '#~/__mocks__';
 import * as appContext from '#~/app/AppContext';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '#~/concepts/hardwareProfiles/const';
-import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -34,7 +34,7 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
 jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
-jest.mock('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
+jest.mock('@odh-dashboard/hardware-profiles/pages/useHardwareProfilesByFeatureVisibility');
 jest.mock('@odh-dashboard/hardware-profiles/shared/useResourceClaimTemplateNames', () => ({
   useResourceClaimTemplateNames: jest.fn(),
 }));
