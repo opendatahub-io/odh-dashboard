@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import CreateConnectionWizard, { getPropertyErrors } from '~/app/components/CreateConnectionWizard';
+import { ConnectionTypeInstance } from '~/app/components/ConnectionType.tsx';
 import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
@@ -33,7 +34,7 @@ const ociConnectionTypeId = '550e8400-e29b-41d4-a716-446655440005';
 const unknownConnectionTypeId = '550e8400-e29b-41d4-a716-446655440009';
 
 const connectionTypes = [
-  {
+  new ConnectionTypeInstance({
     metadata: {
       id: postgresqlConnectionTypeId,
       created_at: '2026-09-08T16:00:00Z',
@@ -45,8 +46,8 @@ const connectionTypes = [
       credentials_fields: [{ name: 'URI', label: 'URI', required: true, type: 'string' }],
     },
     status: { flight_ready: true },
-  },
-  {
+  }),
+  new ConnectionTypeInstance({
     metadata: {
       id: ociConnectionTypeId,
       created_at: '2026-09-08T16:00:00Z',
@@ -54,7 +55,7 @@ const connectionTypes = [
     },
     resource: { name: 'OCI', provider: 'oci', credentials_fields: [] },
     status: { flight_ready: false },
-  },
+  }),
 ];
 
 describe('CreateConnectionWizard', () => {
@@ -161,7 +162,7 @@ describe('CreateConnectionWizard', () => {
 
       mockUseConnectionTypes.mockReturnValue([
         [
-          {
+          new ConnectionTypeInstance({
             ...connectionTypes[0],
             resource: {
               ...connectionTypes[0].resource,
@@ -182,7 +183,7 @@ describe('CreateConnectionWizard', () => {
                 },
               ],
             },
-          },
+          }),
         ],
         true,
         undefined,
@@ -393,7 +394,7 @@ describe('CreateConnectionWizard', () => {
     const user = userEvent.setup();
     mockUseConnectionTypes.mockReturnValue([
       [
-        {
+        new ConnectionTypeInstance({
           ...connectionTypes[0],
           resource: {
             ...connectionTypes[0].resource,
@@ -401,7 +402,7 @@ describe('CreateConnectionWizard', () => {
               { name: 'API_TOKEN', label: 'API token', required: true, type: 'string' },
             ],
           },
-        },
+        }),
       ],
       true,
       undefined,
@@ -460,7 +461,7 @@ describe('CreateConnectionWizard', () => {
     };
     mockUseConnectionTypes.mockReturnValue([
       [
-        {
+        new ConnectionTypeInstance({
           ...connectionTypes[0],
           resource: {
             ...connectionTypes[0].resource,
@@ -471,7 +472,7 @@ describe('CreateConnectionWizard', () => {
               { name: 'SSL_MODE', label: 'SSL mode', required: true, type: 'string' },
             ],
           },
-        },
+        }),
       ],
       true,
       undefined,
@@ -523,7 +524,7 @@ describe('CreateConnectionWizard', () => {
     };
     mockUseConnectionTypes.mockReturnValue([
       [
-        {
+        new ConnectionTypeInstance({
           ...connectionTypes[0],
           resource: {
             ...connectionTypes[0].resource,
@@ -536,7 +537,7 @@ describe('CreateConnectionWizard', () => {
               { name: 'privatekey', label: 'privatekey', required: true, type: 'string' },
             ],
           },
-        },
+        }),
       ],
       true,
       undefined,
@@ -591,7 +592,7 @@ describe('CreateConnectionWizard', () => {
     };
     mockUseConnectionTypes.mockReturnValue([
       [
-        {
+        new ConnectionTypeInstance({
           ...connectionTypes[0],
           resource: {
             ...connectionTypes[0].resource,
@@ -602,7 +603,7 @@ describe('CreateConnectionWizard', () => {
               type: 'string',
             })),
           },
-        },
+        }),
       ],
       true,
       undefined,
@@ -650,7 +651,7 @@ describe('CreateConnectionWizard', () => {
     };
     mockUseConnectionTypes.mockReturnValue([
       [
-        {
+        new ConnectionTypeInstance({
           ...connectionTypes[0],
           resource: {
             ...connectionTypes[0].resource,
@@ -667,7 +668,7 @@ describe('CreateConnectionWizard', () => {
               { name: 'DSN', label: 'Data source name', required: true, type: 'string' },
             ],
           },
-        },
+        }),
       ],
       true,
       undefined,
@@ -719,7 +720,7 @@ describe('CreateConnectionWizard', () => {
   it('should resolve the initial step after merging required credential defaults', async () => {
     mockUseConnectionTypes.mockReturnValue([
       [
-        {
+        new ConnectionTypeInstance({
           ...connectionTypes[0],
           resource: {
             ...connectionTypes[0].resource,
@@ -730,7 +731,7 @@ describe('CreateConnectionWizard', () => {
               },
             ],
           },
-        },
+        }),
       ],
       true,
       undefined,

@@ -79,7 +79,7 @@ const defaults = {
 // Components ----------------------------------------------------------------->
 
 type ConnectionTypesGalleryProps = {
-  connectionTypes: ConnectionType[];
+  connectionTypes: ConnectionTypeInstance[];
   onConnectionTypeClick: (connectionType: ConnectionType) => void;
   isSelectable?: boolean;
   selectedConnectionTypeId?: string;
@@ -143,15 +143,13 @@ const ConnectionTypesGallery: React.FC<ConnectionTypesGalleryProps> = ({
       credentials: [],
     };
 
-    connectionTypes
-      .map((connectionType) => new ConnectionTypeInstance(connectionType))
-      .forEach((connectionType) => {
-        if (connectionType.isFullIntegration()) {
-          groupedConnectionTypes.full_integration.push(connectionType);
-        } else {
-          groupedConnectionTypes.credentials.push(connectionType);
-        }
-      });
+    connectionTypes.forEach((connectionType) => {
+      if (connectionType.isFullIntegration()) {
+        groupedConnectionTypes.full_integration.push(connectionType);
+      } else {
+        groupedConnectionTypes.credentials.push(connectionType);
+      }
+    });
 
     return groupedConnectionTypes;
   }, [connectionTypes]);

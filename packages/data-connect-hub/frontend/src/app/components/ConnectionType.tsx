@@ -260,13 +260,19 @@ const ConnectionTypeIcon: React.FC<ConnectionTypeIconProps> = ({ connectionType,
   );
 };
 
-type ConnectionTypeLabelProps = BaseConnectionTypeProps;
-const ConnectionTypeLabel: React.FC<ConnectionTypeLabelProps> = ({ connectionType }) => {
+type ConnectionTypeLabelProps = BaseConnectionTypeProps & {
+  className?: string;
+};
+const ConnectionTypeLabel: React.FC<ConnectionTypeLabelProps> = ({ connectionType, className }) => {
   if (connectionType.isCredentialsOnly()) {
     return null;
   }
   const capability = ConnectionTypeCapabilities.full_integration;
-  return <Label color={capability.color}>{capability.label}</Label>;
+  return (
+    <Label className={className} color={capability.color}>
+      {capability.label}
+    </Label>
+  );
 };
 
 const ConnectionTypeCardIdentifier = (id: string) => `${id}--ConnectionTypeCard`;

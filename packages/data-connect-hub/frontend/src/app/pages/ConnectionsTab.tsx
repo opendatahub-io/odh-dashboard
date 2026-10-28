@@ -12,7 +12,6 @@ import {
   HelperText,
   HelperTextItem,
   Label,
-  LabelColor,
   LabelGroup,
   MenuToggle,
   PageSection,
@@ -32,6 +31,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { createConnection, verifyConnection } from '~/app/api/dch';
 import ConnectionDeleteModal from '~/app/components/ConnectionDeleteModal';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
+import { ConnectionTypeLabel } from '~/app/components/ConnectionType';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
@@ -454,116 +454,123 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                 </Td>
               </Tr>
             ) : (
-              sorted.map((connection) => (
-                <Tr key={connection.metadata.id}>
-                  <Td dataLabel="Name">
-                    <Link
-                      className="pf-v6-u-font-weight-bold"
-                      to={{ pathname: encodeURIComponent(connection.metadata.id), search }}
-                    >
-                      {connection.resource.name}
-                    </Link>
-                  </Td>
-                  <Td dataLabel="Type">
-                    {getTypeName(connection.resource.data_connection_type_id)}
-                    {getType(connection.resource.data_connection_type_id)?.status?.flight_ready && (
-                      <Label color={LabelColor.teal} className="pf-v6-u-ml-sm">
-                        Ingestion supported
-                      </Label>
-                    )}
-                  </Td>
-                  <Td dataLabel="Status">
-                    {verifying.has(connection.metadata.id) ? (
-                      <Label
-                        color="blue"
-                        variant="outline"
-                        icon={<InProgressIcon color={InfoIconColor.var} className="ai-u-spin" />}
+              sorted.map((connection) => {
+                const connectionType = getType(connection.resource.data_connection_type_id);
+
+                return (
+                  <Tr key={connection.metadata.id}>
+                    <Td dataLabel="Name">
+                      <Link
+                        className="pf-v6-u-font-weight-bold"
+                        to={{ pathname: encodeURIComponent(connection.metadata.id), search }}
                       >
-                        Verifying
-                      </Label>
-                    ) : isValidTimestamp(connection.status.updated_at) &&
-                      hasVerificationOutcome(connection) ? (
-                      <>
-                        <Label variant="outline" status={statusVariant[connection.status.state]}>
-                          {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}
+                        {connection.resource.name}
+                      </Link>
+                    </Td>
+                    <Td dataLabel="Type">
+                      {getTypeName(connection.resource.data_connection_type_id)}
+                      {connectionType && connectionType?.status?.flight_ready && (
+                        <ConnectionTypeLabel
+                          className="pf-v6-u-ml-sm"
+                          connectionType={connectionType}
+                        />
+                      )}
+                    </Td>
+                    <Td dataLabel="Status">
+                      {verifying.has(connection.metadata.id) ? (
+                        <Label
+                          color="blue"
+                          variant="outline"
+                          icon={<InProgressIcon color={InfoIconColor.var} className="ai-u-spin" />}
+                        >
+                          Verifying
                         </Label>
+                      ) : isValidTimestamp(connection.status.updated_at) &&
+                        hasVerificationOutcome(connection) ? (
+                        <>
+                          <Label variant="outline" status={statusVariant[connection.status.state]}>
+                            {connection.status.state === 'ready'
+                              ? 'Verified'
+                              : 'Verification failed'}
+                          </Label>
+                          <HelperText>
+                            <HelperTextItem>
+                              Last tested {new Date(connection.status.updated_at).toLocaleString()}
+                            </HelperTextItem>
+                          </HelperText>
+                        </>
+                      ) : (
+                        <Label variant="outline" color="grey">
+                          Unverified
+                        </Label>
+                      )}
+                      {verificationErrors.has(connection.metadata.id) && (
                         <HelperText>
-                          <HelperTextItem>
-                            Last tested {new Date(connection.status.updated_at).toLocaleString()}
+                          <HelperTextItem variant="error">
+                            {verificationErrors.get(connection.metadata.id)?.message}
                           </HelperTextItem>
                         </HelperText>
-                      </>
-                    ) : (
-                      <Label variant="outline" color="grey">
-                        Unverified
-                      </Label>
-                    )}
-                    {verificationErrors.has(connection.metadata.id) && (
-                      <HelperText>
-                        <HelperTextItem variant="error">
-                          {verificationErrors.get(connection.metadata.id)?.message}
-                        </HelperTextItem>
-                      </HelperText>
-                    )}
-                  </Td>
-                  <Td isActionCell>
-                    <Dropdown
-                      isOpen={actionsFor === connection.metadata.id}
-                      onOpenChange={(open) =>
-                        setActionsFor(open ? connection.metadata.id : undefined)
-                      }
-                      popperProps={{ placement: 'bottom-end' }}
-                      toggle={(ref) => (
-                        <MenuToggle
-                          ref={ref}
-                          variant="plain"
-                          aria-label={`Actions for ${connection.resource.name}`}
-                          onClick={() =>
-                            setActionsFor(
-                              actionsFor === connection.metadata.id
-                                ? undefined
-                                : connection.metadata.id,
-                            )
-                          }
-                        >
-                          <EllipsisVIcon />
-                        </MenuToggle>
                       )}
-                    >
-                      <DropdownList>
-                        <DropdownItem
-                          isDisabled={verifying.has(connection.metadata.id)}
-                          onClick={() => void handleVerify(connection.metadata.id)}
-                        >
-                          Verify connection
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => {
-                            setActionsFor(undefined);
-                            fireDataConnectHubTrackEvent({
-                              eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
-                              properties: {
-                                project: namespace,
-                                connectionTypeProvider:
-                                  getConnectionTypeProvider(
-                                    connectionTypes.find(
-                                      (type) =>
-                                        type.metadata.id ===
-                                        connection.resource.data_connection_type_id,
-                                    ),
-                                  ) ?? 'unknown',
-                              },
-                            });
-                            setDeleteTarget(connection);
-                          }}
-                        >
-                          Delete
-                        </DropdownItem>
-                      </DropdownList>
-                    </Dropdown>
-                  </Td>
-                </Tr>
-              ))
+                    </Td>
+                    <Td isActionCell>
+                      <Dropdown
+                        isOpen={actionsFor === connection.metadata.id}
+                        onOpenChange={(open) =>
+                          setActionsFor(open ? connection.metadata.id : undefined)
+                        }
+                        popperProps={{ placement: 'bottom-end' }}
+                        toggle={(ref) => (
+                          <MenuToggle
+                            ref={ref}
+                            variant="plain"
+                            aria-label={`Actions for ${connection.resource.name}`}
+                            onClick={() =>
+                              setActionsFor(
+                                actionsFor === connection.metadata.id
+                                  ? undefined
+                                  : connection.metadata.id,
+                              )
+                            }
+                          >
+                            <EllipsisVIcon />
+                          </MenuToggle>
+                        )}
+                      >
+                        <DropdownList>
+                          <DropdownItem
+                            isDisabled={verifying.has(connection.metadata.id)}
+                            onClick={() => void handleVerify(connection.metadata.id)}
+                          >
+                            Verify connection
+                          </DropdownItem>
+                          <DropdownItem
+                            onClick={() => {
+                              setActionsFor(undefined);
+                              fireDataConnectHubTrackEvent({
+                                eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
+                                properties: {
+                                  project: namespace,
+                                  connectionTypeProvider:
+                                    getConnectionTypeProvider(
+                                      connectionTypes.find(
+                                        (type) =>
+                                          type.metadata.id ===
+                                          connection.resource.data_connection_type_id,
+                                      ),
+                                    ) ?? 'unknown',
+                                },
+                              });
+                              setDeleteTarget(connection);
+                            }}
+                          >
+                            Delete
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </Td>
+                  </Tr>
+                );
+              })
             )}
           </Tbody>
         </Table>

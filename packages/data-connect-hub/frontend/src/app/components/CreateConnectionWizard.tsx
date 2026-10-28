@@ -41,6 +41,7 @@ import { Tearsheet } from '@patternfly/react-component-groups';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { testCredentials } from '~/app/api/dch';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
+import { ConnectionTypeInstance } from '~/app/components/ConnectionType';
 import PasswordInput from '~/app/components/PasswordInput';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
@@ -107,7 +108,7 @@ const isValidConnectionName = (name: string): boolean =>
 const hasCredentialValue = (value?: string): boolean => Boolean(value?.trim());
 
 type ConnectionTypeStepProps = {
-  connectionTypes: ConnectionType[];
+  connectionTypes: ConnectionTypeInstance[];
   selectedConnectionTypeId: string;
   connectionTypesLoaded: boolean;
   connectionTypesError?: Error;
