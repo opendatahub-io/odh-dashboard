@@ -12,7 +12,6 @@ import {
 import NotFound from './NotFound';
 import TabRoutePage from './TabRoutePage';
 import { ErrorBoundary } from './ErrorBoundary';
-import { useAccessReviewExtensions } from './AccessReviewProvider';
 
 const fallback = (
   <Bullseye>
@@ -32,11 +31,9 @@ const ShellRoutes: React.FC = () => {
       ),
     [tabRoutePageExtensions, tabRouteTabExtensions],
   );
-  const [allowedRouteExtensions, isAccessReviewLoaded] = useAccessReviewExtensions(routeExtensions);
-
   const dynamicRoutes = React.useMemo(
     () =>
-      allowedRouteExtensions.map((routeExtension) => (
+      routeExtensions.map((routeExtension) => (
         <Route
           key={routeExtension.uid}
           path={routeExtension.properties.path}
@@ -51,7 +48,7 @@ const ShellRoutes: React.FC = () => {
           }
         />
       )),
-    [allowedRouteExtensions],
+    [routeExtensions],
   );
 
   const tabRoutePages = React.useMemo(
@@ -75,7 +72,7 @@ const ShellRoutes: React.FC = () => {
   return (
     <React.Suspense fallback={fallback}>
       <Routes>
-        {isAccessReviewLoaded && dynamicRoutes}
+        {dynamicRoutes}
         {tabRoutePages}
         <Route path="*" element={<NotFound hasRoutes={hasRoutes} />} />
       </Routes>

@@ -89,10 +89,10 @@ const extensions: Extension[] = [
   } satisfies HrefNavItemExtension,
   {
     type: 'app.route',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
     properties: {
       path: '/model-access',
       component: () => import('./pages/ModelAccessPage'),
-      accessReview: { group: 'maas.custom', resource: 'maas-admin', verb: 'get' },
     },
   } satisfies RouteExtension,
 
@@ -135,12 +135,12 @@ const extensions: Extension[] = [
   },
   {
     type: 'app.navigation/href',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
     properties: {
       id: 'maas-model-access',
       title: 'Model Access',
       href: '/model-access',
       path: '/model-access/*',
-      accessReview: { group: 'maas.custom', resource: 'maas-admin', verb: 'get' },
     },
   } satisfies HrefNavItemExtension,
   {

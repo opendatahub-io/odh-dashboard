@@ -1,5 +1,4 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import type { ComponentCodeRef } from '../core/types';
 
 /**
@@ -12,8 +11,6 @@ export type RouteExtension = Extension<
     component: ComponentCodeRef;
     /** The react-router path pattern to match against the current location. */
     path: string;
-    /** Optional access review required to enter this route. */
-    accessReview?: AccessReviewResourceAttributes;
   }
 >;
 
