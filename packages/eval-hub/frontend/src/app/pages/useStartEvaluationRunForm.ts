@@ -515,7 +515,7 @@ export function useStartEvaluationRunForm({
       return undefined;
     }
     if (accessToken.trim() === '') {
-      return 'Access token is required.';
+      return 'Secret name is required.';
     }
     return undefined;
   }, [sourceMode, accessToken]);

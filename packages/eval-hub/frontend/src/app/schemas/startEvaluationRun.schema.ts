@@ -126,7 +126,7 @@ export const startEvaluationRunSchema = z
     if (data.accessToken.trim() === '') {
       ctx.addIssue({
         code: 'custom',
-        message: 'Access token is required.',
+        message: 'Secret name is required.',
         path: ['accessToken'],
       });
     }

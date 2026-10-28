@@ -107,7 +107,7 @@ describe('startEvaluationRunSchema', () => {
         expect.arrayContaining([
           expect.objectContaining({ path: ['sourceName'], message: 'Source name is required' }),
           expect.objectContaining({ path: ['datasetUrl'], message: 'Dataset URL is required.' }),
-          expect.objectContaining({ path: ['accessToken'], message: 'Access token is required.' }),
+          expect.objectContaining({ path: ['accessToken'], message: 'Secret name is required.' }),
         ]),
       );
     }
