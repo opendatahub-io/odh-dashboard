@@ -52,6 +52,8 @@ import {
 type FilterValues = InfrastructureWorkloadsFilterValues;
 type LocalFilterValues = Omit<FilterValues, 'status'>;
 
+const filterTypes: InfrastructureWorkloadsFilterType[] = ['type', 'status', 'hardwareProfile'];
+
 const getNextFilterValues = (
   current: LocalFilterValues,
   type: Exclude<InfrastructureWorkloadsFilterType, 'status'>,
@@ -208,7 +210,7 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [searchValue, setSearchValue] = React.useState('');
   const searchTrackingTimeoutRef = React.useRef<number>();
-  const [filterType, setFilterType] = React.useState<InfrastructureWorkloadsFilterType>('status');
+  const [filterType, setFilterType] = React.useState<InfrastructureWorkloadsFilterType>('type');
   const [filterValues, setFilterValues] = React.useState<LocalFilterValues>({
     type: [],
     hardwareProfile: [],
@@ -285,13 +287,12 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
       ...filterValues,
     };
 
-    return filterInfrastructureWorkloads(
+    return filterTypes.reduce(
+      (rows, type) =>
+        filterInfrastructureWorkloads(rows, searchValue, type, selectedFilterValues[type]),
       workloadsWithWorkbenchStatus,
-      searchValue,
-      filterType,
-      selectedFilterValues[filterType],
     );
-  }, [filterType, filterValues, overviewStatusFilters, searchValue, workloadsWithWorkbenchStatus]);
+  }, [filterValues, overviewStatusFilters, searchValue, workloadsWithWorkbenchStatus]);
 
   const availableFilterValues = React.useMemo<FilterValues>(
     () => ({
