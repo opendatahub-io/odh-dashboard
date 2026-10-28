@@ -14,16 +14,13 @@ jest.mock('@odh-dashboard/ui-core/context/HardwareProfilesContext', () => ({
   HardwareProfilesContext: {
     _currentValue: null,
   },
+  useWatchHardwareProfiles: jest.fn(() => [[], true, undefined]),
 }));
 
 jest.mock('@odh-dashboard/ui-core/context/ProjectHardwareProfilesContext', () => ({
   ProjectHardwareProfilesContext: {
     _currentValue: null,
   },
-}));
-
-jest.mock('@odh-dashboard/internal/utilities/useWatchHardwareProfiles', () => ({
-  useWatchHardwareProfiles: jest.fn(() => [[], true, undefined]),
 }));
 
 jest.mock('@odh-dashboard/plugin-core', () => ({
