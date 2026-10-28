@@ -67,18 +67,18 @@ describe('InfrastructureWorkloadsTable filter tracking', () => {
     async ({ removal, initialFilters, remainingCount }) => {
       const user = userEvent.setup();
       render(<TableWithFilters initialFilters={initialFilters} />);
-      await user.click(screen.getByTestId('infrastructure-workloads-status-filter'));
+      await user.click(screen.getByTestId('infrastructure-workloads-type-filter'));
       await user.click(screen.getByRole('option', { name: 'Running' }));
 
       expect(mockTracking).toHaveBeenCalledTimes(1);
       expect(mockTracking).toHaveBeenCalledWith(
         GPUAAS_EVENTS.WORKLOADS_TAB_ATTRIBUTE_FILTER_APPLIED,
-        { filterType: 'status', filterValue: 'Running' },
+        { filterType: 'type', filterValue: 'Running' },
       );
       mockTracking.mockClear();
 
       if (removal === 'dropdown') {
-        await user.click(screen.getByTestId('infrastructure-workloads-status-filter'));
+        await user.click(screen.getByTestId('infrastructure-workloads-type-filter'));
         await user.click(screen.getByRole('option', { name: 'Running' }));
       } else if (removal === 'chip') {
         await user.click(screen.getByRole('button', { name: /close Running/i }));
@@ -92,7 +92,7 @@ describe('InfrastructureWorkloadsTable filter tracking', () => {
         filterCount: remainingCount,
       });
       expect(
-        screen.queryByTestId('infrastructure-workloads-status-chip-Running'),
+        screen.queryByTestId('infrastructure-workloads-type-chip-Running'),
       ).not.toBeInTheDocument();
     },
   );

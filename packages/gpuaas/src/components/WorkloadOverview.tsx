@@ -6,6 +6,7 @@ import {
   CardBody,
   Content,
   ExpandableSection,
+  ExpandableSectionToggle,
   EmptyState,
   EmptyStateBody,
   Flex,
@@ -144,10 +145,10 @@ type WorkloadStatusTabProps = {
 };
 
 const labels: Record<OverviewBucket, string> = {
-  completed: 'Completed',
+  completed: 'Complete',
   active: 'Active',
   waiting: 'Waiting',
-  blockers: 'Blockers',
+  blockers: 'Blocked',
   failed: 'Failed',
 };
 
@@ -488,22 +489,56 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   return (
     <Card data-testid="workload-overview">
       <CardBody>
-        <ExpandableSection
-          className="gpuaas-workload-overview"
-          isExpanded={expanded}
-          onToggle={(_event, nextExpanded) => {
-            setExpanded(nextExpanded);
-            fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
-              sectionName: 'workload-overview',
-              action: nextExpanded ? 'expand' : 'collapse',
-            });
-          }}
-          toggleContent={
+        <Flex
+          className="gpuaas-workload-overview__header"
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        >
+          <ExpandableSectionToggle
+            isDetached
+            isExpanded={expanded}
+            onToggle={(nextExpanded) => {
+              setExpanded(nextExpanded);
+              fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
+                sectionName: 'workload-overview',
+                action: nextExpanded ? 'expand' : 'collapse',
+              });
+            }}
+            toggleId="workload-overview-toggle"
+            contentId="workload-overview-content"
+            className="gpuaas-workload-overview__detached-toggle"
+            data-testid="workload-overview-toggle"
+            toggleWrapper="h4"
+          >
             <Title headingLevel="h4" size="md">
               Workload overview
             </Title>
-          }
-          toggleWrapper="h4"
+          </ExpandableSectionToggle>
+          {expanded && activeTab === WorkloadOverviewTab.Admissions && (
+            <SimpleSelect
+              options={ADMISSION_TIME_WINDOW_OPTIONS}
+              value={timeWindow}
+              onChange={(timeRange) => {
+                setTimeWindow(timeRange);
+                fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_ADMISSION_TIME_RANGE_CHANGED, {
+                  timeRange,
+                });
+              }}
+              ariaLabel="Admission time window"
+              dataTestId="admission-time-window"
+              toggleProps={{
+                className: 'gpuaas-workload-overview__admission-time-window-toggle',
+              }}
+              popperProps={{ maxWidth: undefined }}
+            />
+          )}
+        </Flex>
+        <ExpandableSection
+          className="gpuaas-workload-overview"
+          isDetached
+          isExpanded={expanded}
+          contentId="workload-overview-content"
+          toggleId="workload-overview-toggle"
         >
           {dataUnavailable ? (
             <EmptyState titleText="Workload data not connected" headingLevel="h3">
@@ -561,27 +596,6 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                       )}
                     </Tabs>
                   </FlexItem>
-                  {activeTab === WorkloadOverviewTab.Admissions && (
-                    <FlexItem>
-                      <SimpleSelect
-                        options={ADMISSION_TIME_WINDOW_OPTIONS}
-                        value={timeWindow}
-                        onChange={(timeRange) => {
-                          setTimeWindow(timeRange);
-                          fireMiscTrackingEvent(
-                            GPUAAS_EVENTS.WORKLOADS_TAB_ADMISSION_TIME_RANGE_CHANGED,
-                            { timeRange },
-                          );
-                        }}
-                        ariaLabel="Admission time window"
-                        dataTestId="admission-time-window"
-                        toggleProps={{
-                          className: 'gpuaas-workload-overview__admission-time-window-toggle',
-                        }}
-                        popperProps={{ maxWidth: undefined }}
-                      />
-                    </FlexItem>
-                  )}
                 </Flex>
                 <TabContent
                   id="workload-status-panel"
