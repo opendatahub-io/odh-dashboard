@@ -89,6 +89,7 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
 
     modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
     modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
+    modelServingWizard.findModelServerManualSelectRadio().check();
   };
 
   it(
