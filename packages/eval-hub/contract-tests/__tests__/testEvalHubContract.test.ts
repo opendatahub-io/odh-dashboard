@@ -312,6 +312,50 @@ describe('EvalHub API Contract Tests', () => {
       }
     });
 
+    it('should return a BadRequest error when a benchmark sets both s3 and pvc in test_data_ref', async () => {
+      const result = await apiClient.post(
+        '/eval-hub/api/v1/evaluations/collections/collection-001/clones?namespace=default',
+        {
+          name: 'Invalid Cloned Collection',
+          benchmarks: [
+            {
+              id: 'arc_challenge',
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              provider_id: 'lm_evaluation_harness',
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              test_data_ref: {
+                s3: {
+                  bucket: 'evalhub-test',
+                  key: 'datasets/arc-challenge',
+                  // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                  secret_ref: 's3-credentials',
+                  type: 'data_set',
+                },
+                pvc: {
+                  // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                  claim_name: 'eval-datasets-pvc',
+                  // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                  sub_path: 'datasets/arc-challenge',
+                  type: 'data_set',
+                },
+              },
+            },
+          ],
+        },
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          },
+        );
+      }
+    });
+
     it('should return the documented not-found response for an unknown collection', async () => {
       const result = await apiClient.post(
         '/eval-hub/api/v1/evaluations/collections/unknown/clones?namespace=default',

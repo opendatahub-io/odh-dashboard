@@ -174,7 +174,21 @@ describe('refineTestDataRef', () => {
     it('should reject SSH urls', () => {
       const errors = fieldErrors({ ...gitValues, url: 'git@github.com:org/repo.git' });
       expect(errors.url).toBe(
-        'Repository URL must use HTTP or HTTPS (SSH URLs are not supported).',
+        'Repository URL must be a valid HTTP or HTTPS URL (SSH URLs are not supported).',
+      );
+    });
+
+    it('should reject urls with a scheme but no host', () => {
+      const errors = fieldErrors({ ...gitValues, url: 'https://' });
+      expect(errors.url).toBe(
+        'Repository URL must be a valid HTTP or HTTPS URL (SSH URLs are not supported).',
+      );
+    });
+
+    it('should reject malformed hosts', () => {
+      const errors = fieldErrors({ ...gitValues, url: 'https://git hub.com/org/repo.git' });
+      expect(errors.url).toBe(
+        'Repository URL must be a valid HTTP or HTTPS URL (SSH URLs are not supported).',
       );
     });
 

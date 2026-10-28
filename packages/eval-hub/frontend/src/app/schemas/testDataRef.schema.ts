@@ -122,6 +122,22 @@ const HF_REPO_ID_PATTERN = /^[\w.-]+(\/[\w.-]+)?$/;
 
 const isBlank = (value: string | undefined): boolean => !value || value.trim() === '';
 
+/**
+ * Parses a git repository URL, mirroring the BFF validator: HTTP(S) scheme with
+ * a non-empty host. Returns undefined for SSH URLs and malformed values like
+ * 'https://' that carry no host — the BFF would reject those with a 400.
+ */
+const parseGitHttpUrl = (value: string): URL | undefined => {
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.hostname !== ''
+      ? parsed
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const hasPathTraversal = (value: string): boolean =>
   value.split(/[\\/]/).some((segment) => segment.trim() === '..');
 
@@ -193,12 +209,17 @@ export const refineTestDataRef = (
         }
       }
       break;
-    case 'git':
+    case 'git': {
+      const url = values.url.trim();
+      const parsedUrl = parseGitHttpUrl(url);
       if (isBlank(values.url)) {
         addIssue('url', 'Repository URL is required.');
-      } else if (!/^https?:\/\//i.test(values.url.trim())) {
-        addIssue('url', 'Repository URL must use HTTP or HTTPS (SSH URLs are not supported).');
-      } else if (/^https?:\/\/[^/@]*@/i.test(values.url.trim())) {
+      } else if (!parsedUrl) {
+        addIssue(
+          'url',
+          'Repository URL must be a valid HTTP or HTTPS URL (SSH URLs are not supported).',
+        );
+      } else if (/^https?:\/\/[^/@]*@/i.test(url)) {
         addIssue(
           'url',
           'Repository URL must not contain embedded credentials (username or password).',
@@ -213,14 +234,11 @@ export const refineTestDataRef = (
           addIssue('subPath', 'Sub path must be relative and must not contain "..".');
         }
       }
-      if (
-        !isBlank(values.secretRef) &&
-        !isBlank(values.url) &&
-        !/^https:\/\//i.test(values.url.trim())
-      ) {
+      if (!isBlank(values.secretRef) && !isBlank(values.url) && parsedUrl?.protocol !== 'https:') {
         addIssue('secretRef', 'Secret requires an HTTPS repository URL.');
       }
       break;
+    }
     case 'hf':
       if (isBlank(values.repoId)) {
         addIssue('repoId', 'Repository ID is required.');
