@@ -405,7 +405,8 @@ func (r *DashboardReconciler) deleteLabeledMaaSPortalNamespacedResources(ctx con
 	for _, list := range []client.ObjectList{
 		&appsv1.DeploymentList{},
 		&corev1.ServiceList{},
-		&corev1.ServiceAccountList{},
+		// ServiceAccounts are cached as metadata-only; use the metadata informer.
+		newMetadataList(serviceAccountListGVK),
 		&networkingv1.NetworkPolicyList{},
 	} {
 		errs = append(errs, r.deleteLabeledMaaSPortalResourceList(ctx, r, list, client.InNamespace(r.ApplicationsNamespace)))
