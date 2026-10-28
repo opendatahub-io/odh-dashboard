@@ -1,6 +1,6 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
 import { createDataConnection } from './dataConnection';
-import { ensureAdminOcSession, getClusterArchitecture } from './baseCommands';
+import { ensureAdminOcSession } from './baseCommands';
 import { AWS_BUCKETS } from '../s3Buckets';
 import type { CommandLineResult, DataConnectionReplacements } from '../../types';
 import { createCleanProject } from '../projectChecker';
@@ -163,7 +163,7 @@ export const checkInferenceServiceState = (
   const maxAttempts = 24; // 24 attempts × 10 s wait = ~4 minutes maximum OR ~8 minutes if LLM
   let attempts = 0;
 
-  let waitTime = options.isLargeModel ? 20_000 : 10_000; // 20 seconds or 10 seconds
+  const waitTime = options.isLargeModel ? 20_000 : 10_000; // 20 seconds or 10 seconds
 
   const checkState = (): Cypress.Chainable<Cypress.Exec> =>
     cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
@@ -415,17 +415,7 @@ export const checkInferenceServiceState = (
       }
     });
 
-  return getClusterArchitecture().then((clusterArchitectureResult) => {
-    if (clusterArchitectureResult === 's390x') {
-      waitTime = 40_000; // 40 seconds = 16 minutes total
-      cy.log(
-        `Arch "${clusterArchitectureResult}" detected — waiting ${
-          waitTime / 1_000
-        }s before next poll`,
-      );
-    }
-    return checkState();
-  });
+  return checkState();
 };
 
 /**

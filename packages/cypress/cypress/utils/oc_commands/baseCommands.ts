@@ -84,9 +84,8 @@ export const getClusterAppsDomain = (): Cypress.Chainable<string> => {
 };
 
 /**
- * Gets the CPU architecture of cluster nodes by querying node labels.
- * Returns 's390x' when at least one node carries the s390x architecture label,
- * otherwise returns 'x86_64'.
+ * Detect the cluster CPU architecture by querying node info.
+ * Returns 's390x', 'ppc64le', 'aarch64', or 'x86_64'.
  *
  * @returns A Cypress chainable resolving to the architecture string.
  */
@@ -97,9 +96,10 @@ export const getClusterArchitecture = (): Cypress.Chainable<string> => {
     })
     .then((result: CommandLineResult) => {
       const archOutput = result.stdout.trim().replace(/^'|'$/g, '');
-      const isS390x = archOutput.split(/\s+/).some((a) => a === 's390x');
-      const arch = isS390x ? 's390x' : 'x86_64';
-      cy.log(`Detected cluster architecture: ${arch} (raw: ${archOutput})`);
+      const architectures = archOutput.split(/\s+/);
+      const arch =
+        architectures.find((a) => a === 's390x' || a === 'ppc64le' || a === 'aarch64') || 'x86_64';
+      cy.log(`Detected cluster architecture: ${arch}`);
       return cy.wrap(arch);
     });
 };

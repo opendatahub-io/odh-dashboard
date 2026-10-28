@@ -1,4 +1,5 @@
 import yaml from 'js-yaml';
+import { getClusterArchitecture } from './oc_commands/baseCommands';
 import type {
   DataScienceProjectData,
   PVCReplacements,
@@ -36,34 +37,6 @@ import type {
   RuntimeLibraryTemplateTestData,
   RuntimeLibraryAcceleratorTestData,
 } from '../types';
-
-export const resolveFixture = (fixturePath: string): Cypress.Chainable<string> => {
-  const fileMapping = Cypress.env('FILEMAPPING') as FileMapping | undefined;
-  const resolvedPath = fileMapping?.[fixturePath] ?? fixturePath;
-
-  if (resolvedPath !== fixturePath) {
-    cy.log(`Resolved fixture: ${fixturePath} → ${resolvedPath}`);
-  }
-
-  return cy.wrap(resolvedPath);
-};
-
-export const loadYamlFixture = (fixturePath: string): Cypress.Chainable<string> =>
-  resolveFixture(fixturePath).then((resolvedPath) => cy.fixture(resolvedPath, 'utf8'));
-
-export const resolveFixture = (fixturePath: string): Cypress.Chainable<string> => {
-  const fileMapping = Cypress.env('FILEMAPPING') as FileMapping | undefined;
-  const resolvedPath = fileMapping?.[fixturePath] ?? fixturePath;
-
-  if (resolvedPath !== fixturePath) {
-    cy.log(`Resolved fixture: ${fixturePath} → ${resolvedPath}`);
-  }
-
-  return cy.wrap(resolvedPath);
-};
-
-export const loadYamlFixture = (fixturePath: string): Cypress.Chainable<string> =>
-  resolveFixture(fixturePath).then((resolvedPath) => cy.fixture(resolvedPath, 'utf8'));
 
 export const loadRuntimeLibraryTemplateFixture = (
   fixturePath: string,
@@ -344,3 +317,28 @@ export const loadMlflowPipelineIntegrationFixture = (
 
     return data;
   });
+
+export const resolveFixture = (fixturePath: string): Cypress.Chainable<string> => {
+  const fileMapping = Cypress.env('FILEMAPPING') as FileMapping | undefined;
+  const mappedPath = fileMapping?.[fixturePath];
+
+  cy.log(`Original fixture=${fixturePath}`);
+
+  // Nothing to remap, so skip the cluster architecture lookup
+  if (!mappedPath) {
+    return cy.wrap(fixturePath);
+  }
+
+  // FILEMAPPING only applies on s390x clusters; any other architecture uses the base fixtures
+  return getClusterArchitecture().then((archType) => {
+    cy.log(`Using ARCH=${archType}`);
+    const resolvedPath = archType === 's390x' ? mappedPath : fixturePath;
+
+    cy.log(`Resolved fixture=${resolvedPath}`);
+
+    return cy.wrap(resolvedPath);
+  });
+};
+
+export const loadYamlFixture = (fixturePath: string): Cypress.Chainable<string> =>
+  resolveFixture(fixturePath).then((resolvedPath) => cy.fixture(resolvedPath, 'utf8'));

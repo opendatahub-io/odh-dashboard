@@ -112,8 +112,6 @@ const HF_API_KEY = testConfig?.HF_API_KEY;
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
 
-const { FILEMAPPING } = testConfig ?? {};
-
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
   LDAP_CONTRIBUTOR_USER,
@@ -139,7 +137,6 @@ export const cypressEnv = {
   MAAS_GENERATION_MODEL_ID,
   MAAS_EMBEDDING_MODEL_ID,
   CLUSTER_AUTH,
-  FILEMAPPING,
 };
 
 // re-export the updated process env

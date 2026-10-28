@@ -344,8 +344,6 @@ export type TestConfig = {
   FILEMAPPING?: FileMapping;
 };
 
-export type FileMapping = Record<string, string>;
-
 export type DataScienceProjectData = {
   projectDisplayName: string;
   projectDescription: string;

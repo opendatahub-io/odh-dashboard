@@ -36,11 +36,7 @@ const uuid = generateTestUUID();
 describe('A model can be deployed with token auth', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    const fixturePath =
-      (Cypress.env('OC_PLATFORM_ARCH') as string | undefined) === 's390x'
-        ? 'e2e/dataScienceProjects/testModelTokenAuth.s390x.yaml'
-        : 'e2e/dataScienceProjects/testModelTokenAuth.yaml';
-    return loadDSPFixture(fixturePath).then((fixtureData: DataScienceProjectData) => {
+    return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then((fixtureData) => {
       testData = fixtureData;
       projectName = `${testData.projectResourceName}-${uuid}`;
       modelName = testData.singleModelName;
