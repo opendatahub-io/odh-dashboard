@@ -1121,6 +1121,10 @@ components:
 
     S3DataRef:
       type: object
+      required:
+        - bucket
+        - key
+        - secret_ref
       properties:
         bucket:
           type: string
@@ -1131,12 +1135,90 @@ components:
         secret_ref:
           type: string
           description: Reference to a secret for S3 access credentials
+        type:
+          $ref: '#/components/schemas/TestDataRefType'
+
+    TestDataRefPVC:
+      type: object
+      required:
+        - claim_name
+      properties:
+        claim_name:
+          type: string
+          maxLength: 63
+          description: Name of the PersistentVolumeClaim to mount; must exist in the job's namespace
+        sub_path:
+          type: string
+          description: Directory within the PVC to mount at /test_data
+        type:
+          $ref: '#/components/schemas/TestDataRefType'
+
+    TestDataRefGit:
+      type: object
+      required:
+        - url
+        - ref
+      properties:
+        url:
+          type: string
+          description: Git repository URL (HTTP(S) only; SSH URLs are unsupported)
+        ref:
+          type: string
+          description: Git branch, tag, or commit SHA
+        sub_path:
+          type: string
+          description: Directory within the repository to mount at /test_data
+        secret_ref:
+          type: string
+          description: Basic-auth secret for private repositories (URL must be https when set)
+        type:
+          $ref: '#/components/schemas/TestDataRefType'
+
+    TestDataRefHF:
+      type: object
+      required:
+        - repo_id
+      properties:
+        repo_id:
+          type: string
+          description: Hugging Face repository ID (e.g. cais/mmlu)
+        revision:
+          type: string
+          description: Hugging Face revision (branch, tag, or commit SHA)
+        sub_path:
+          type: string
+          description: Directory within the repository to mount at /test_data
+        secret_ref:
+          type: string
+          description: Opaque secret containing a token key, for gated repositories
+        type:
+          $ref: '#/components/schemas/TestDataRefType'
+
+    TestDataRefType:
+      type: string
+      enum:
+        - data_set
+        - pre_recorded_data
+      default: data_set
+      description: Whether the data is an input dataset (data_set) or pre-recorded model responses (pre_recorded_data)
 
     TestDataRef:
       type: object
+      description: Reference to benchmark input data mounted read-only at /test_data; exactly one source must be set
       properties:
         s3:
           $ref: '#/components/schemas/S3DataRef'
+        pvc:
+          $ref: '#/components/schemas/TestDataRefPVC'
+        git:
+          $ref: '#/components/schemas/TestDataRefGit'
+        hf:
+          $ref: '#/components/schemas/TestDataRefHF'
+      oneOf:
+        - required: [s3]
+        - required: [pvc]
+        - required: [git]
+        - required: [hf]
 
     JobPrimaryScore:
       type: object
@@ -1843,6 +1925,8 @@ components:
           type: object
           additionalProperties: true
           nullable: true
+        test_data_ref:
+          $ref: '#/components/schemas/TestDataRef'
 
     CollectionStatus:
       type: object

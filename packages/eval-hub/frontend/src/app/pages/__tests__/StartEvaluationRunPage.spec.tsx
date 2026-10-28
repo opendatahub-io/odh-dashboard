@@ -7,6 +7,7 @@ import StartEvaluationRunPage from '~/app/pages/StartEvaluationRunPage';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, FlatBenchmark } from '~/app/types';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 
 type SelectionResult = {
   benchmark: FlatBenchmark | undefined;
@@ -116,6 +117,7 @@ const reconfigureValues: ReconfigureFormData = {
   sourceName: '',
   datasetUrl: '',
   accessToken: '',
+  testDataRef: { ...testDataRefDefaultValues },
   benchmark,
   collection: undefined,
   isCollectionFlow: false,

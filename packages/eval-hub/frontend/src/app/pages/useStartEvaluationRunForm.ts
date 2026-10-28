@@ -35,7 +35,14 @@ import {
   startEvaluationRunSchema,
   type StartEvaluationRunFormValues,
 } from '~/app/schemas/startEvaluationRun.schema';
+import {
+  getTestDataRefFieldErrors,
+  testDataRefDefaultValues,
+  type TestDataRefFormField,
+  type TestDataRefFormValues,
+} from '~/app/schemas/testDataRef.schema';
 import type { Collection, FlatBenchmark, InferenceServiceItem, SourceMode } from '~/app/types';
+import { benchmarkRequiresTestData } from '~/app/utilities/testDataRefRequirements';
 
 type ExperimentMode = StartEvaluationRunFormValues['experimentMode'];
 
@@ -131,6 +138,7 @@ const buildInitialFormValues = ({
   sourceName: initialValues?.sourceName ?? '',
   datasetUrl: initialValues?.datasetUrl ?? '',
   accessToken: initialValues?.accessToken ?? '',
+  testDataRef: initialValues?.testDataRef ?? { ...testDataRefDefaultValues },
   experimentMode: 'existing',
   selectedExperimentName: initialValues?.experimentName,
   newExperimentName: '',
@@ -236,6 +244,7 @@ export function useStartEvaluationRunForm({
     sourceName,
     datasetUrl,
     accessToken,
+    testDataRef,
     experimentMode,
     selectedExperimentName,
     newExperimentName,
@@ -258,6 +267,7 @@ export function useStartEvaluationRunForm({
       'sourceName',
       'datasetUrl',
       'accessToken',
+      'testDataRef',
       'experimentMode',
       'selectedExperimentName',
       'newExperimentName',
@@ -496,6 +506,22 @@ export function useStartEvaluationRunForm({
     return undefined;
   }, [sourceMode, datasetUrl]);
 
+  // Computed from values (not formState.errors): the onChange resolver only applies
+  // the error for the field that changed, so nested superRefine issues never land
+  // in formState for this form.
+  const testDataRefRequired = React.useMemo(
+    () => benchmarkRequiresTestData(benchmark?.providerId, benchmark?.id),
+    [benchmark?.providerId, benchmark?.id],
+  );
+  const testDataRefErrors = React.useMemo(
+    (): Partial<Record<TestDataRefFormField, string>> | undefined =>
+      sourceMode === 'model'
+        ? getTestDataRefFieldErrors(testDataRef, testDataRefRequired)
+        : undefined,
+    [sourceMode, testDataRef, testDataRefRequired],
+  );
+  const hasTestDataRefErrors = !!testDataRefErrors && Object.keys(testDataRefErrors).length > 0;
+
   const hasExperiment =
     (experimentMode === 'existing' && !!selectedExperimentName?.trim()) ||
     (experimentMode === 'new' && newExperimentName.trim() !== '');
@@ -529,6 +555,9 @@ export function useStartEvaluationRunForm({
     }
 
     if (sourceMode === 'model') {
+      if (hasTestDataRefErrors) {
+        return false;
+      }
       if (modelSelection === 'cluster') {
         return !!selectedInferenceServiceName?.trim();
       }
@@ -550,6 +579,7 @@ export function useStartEvaluationRunForm({
     agentName,
     endpointUrlError,
     datasetUrlError,
+    hasTestDataRefErrors,
     sourceName,
     selectedInferenceServiceName,
     hardwareProfilesLoaded,
@@ -594,6 +624,10 @@ export function useStartEvaluationRunForm({
   );
   const setAccessToken = React.useCallback(
     (value: string) => form.setValue('accessToken', value, { shouldValidate: true }),
+    [form],
+  );
+  const setTestDataRef = React.useCallback(
+    (value: TestDataRefFormValues) => form.setValue('testDataRef', value, { shouldValidate: true }),
     [form],
   );
   const setExperimentMode = React.useCallback(
@@ -829,6 +863,7 @@ export function useStartEvaluationRunForm({
       sourceName: values.sourceName.trim(),
       datasetUrl: values.datasetUrl.trim(),
       accessToken: values.accessToken.trim(),
+      testDataRef: values.testDataRef,
       additionalArgs: parsedArgs,
       experimentName: experimentName || undefined,
       experimentTags: undefined,
@@ -1000,6 +1035,10 @@ export function useStartEvaluationRunForm({
     setDatasetUrl,
     accessToken,
     setAccessToken,
+    testDataRef,
+    setTestDataRef,
+    testDataRefRequired,
+    testDataRefErrors,
     experimentMode,
     setExperimentMode,
     selectedExperiment,

@@ -762,4 +762,62 @@ describe('Start Evaluation Run - Connection Validation', () => {
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
   });
 });
+describe('Start Evaluation Run - Benchmark Test Data', () => {
+  beforeEach(() => {
+    initBaseIntercepts();
+    mockMlflowExperiments([]);
+  });
+
+  it('should render the test data section for single benchmark runs but not collection flows', () => {
+    navigateToBenchmarkStart();
+    startEvaluationRunPage.findTestDataRefSourceToggle().should('exist');
+
+    navigateToCollectionStart();
+    startEvaluationRunPage.findTestDataRefSourceToggle().should('not.exist');
+  });
+
+  it('should submit a test data ref with the job request', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-eval-test-data',
+      name: 'test-data-eval',
+      state: 'running',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createJobWithTestData',
+    );
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findTestDataRefSourceToggle().click();
+    startEvaluationRunPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
+    startEvaluationRunPage.findTestDataRefField('claimName').type('eval-datasets-pvc');
+    startEvaluationRunPage.findTestDataRefField('subPath').type('benchmark-a');
+
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().should('be.enabled');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createJobWithTestData').then((interception) => {
+      expect(interception.request.body.benchmarks[0].test_data_ref).to.deep.equal({
+        pvc: { claim_name: 'eval-datasets-pvc', sub_path: 'benchmark-a', type: 'data_set' },
+      });
+    });
+  });
+
+  it('should block submission when required test data fields are empty', () => {
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findTestDataRefSourceToggle().click();
+    startEvaluationRunPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
+    startEvaluationRunPage.findTestDataRefField('claimName').type('eval-datasets-pvc').clear();
+
+    startEvaluationRunPage
+      .findTestDataRefFieldError('claimName')
+      .should('contain.text', 'Claim name is required.');
+
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().should('be.disabled');
+  });
+});
 /* eslint-enable camelcase */

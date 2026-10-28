@@ -15,6 +15,7 @@ import {
   updateBenchmarkParameter,
   useCopySuiteForm,
 } from '~/app/pages/useCopySuiteForm';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, Provider } from '~/app/types';
 
@@ -226,6 +227,60 @@ describe('createBenchmarkFromKey', () => {
     );
   });
 
+  it('serializes test_data_ref from the benchmark form values', () => {
+    const benchmark = createBenchmarkFromKey('provider-one:benchmark-one', providers)!;
+
+    expect(
+      buildPendingCollection({
+        suiteName: 'New suite',
+        suiteDescription: '',
+        suiteDomains: [],
+        suiteTasks: [],
+        suiteModalities: [],
+        suiteIndustries: [],
+        suiteEvaluates: ['model'],
+        suiteThreshold: 70,
+        benchmarks: [
+          {
+            ...benchmark,
+            testDataRef: {
+              ...testDataRefDefaultValues,
+              source: 's3',
+              bucket: 'eval-data',
+              key: 'ragas/dataset.jsonl',
+              secretRef: 'my-s3-secret',
+            },
+          },
+        ],
+      }).benchmarks?.[0].test_data_ref,
+    ).toEqual({
+      s3: {
+        bucket: 'eval-data',
+        key: 'ragas/dataset.jsonl',
+        secret_ref: 'my-s3-secret',
+        type: 'data_set',
+      },
+    });
+  });
+
+  it('omits test_data_ref when the source is none', () => {
+    const benchmark = createBenchmarkFromKey('provider-one:benchmark-one', providers)!;
+
+    expect(
+      buildPendingCollection({
+        suiteName: 'New suite',
+        suiteDescription: '',
+        suiteDomains: [],
+        suiteTasks: [],
+        suiteModalities: [],
+        suiteIndustries: [],
+        suiteEvaluates: ['model'],
+        suiteThreshold: 70,
+        benchmarks: [benchmark],
+      }).benchmarks?.[0].test_data_ref,
+    ).toBeUndefined();
+  });
+
   it('should preserve raw metric thresholds from provider benchmarks', () => {
     const benchmark = createBenchmarkFromKey('provider-raw:benchmark-throughput', [
       rawMetricProvider,
@@ -288,6 +343,55 @@ describe('useCopySuiteForm', () => {
       }),
     ]);
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
+  });
+
+  it('should hydrate test data refs from the source collection benchmarks', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        benchmarks: [
+          {
+            ...sourceCollection.benchmarks![0],
+            test_data_ref: {
+              s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+            },
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks[0].id).toBe('benchmark-one'));
+    expect(result.result.current.benchmarks[0].testDataRef).toEqual({
+      ...testDataRefDefaultValues,
+      source: 's3',
+      bucket: 'eval-data',
+      key: 'ragas',
+      secretRef: 's3-secret',
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
+      s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+    });
+  });
+
+  it('should update a benchmark test data ref through updateBenchmark', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.benchmarks[0].id).toBe('benchmark-one'));
+
+    act(() => {
+      result.result.current.updateBenchmark(0, 'testDataRef', {
+        ...testDataRefDefaultValues,
+        source: 'pvc',
+        claimName: 'eval-datasets-pvc',
+        subPath: 'benchmark-a',
+      });
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
+      pvc: { claim_name: 'eval-datasets-pvc', sub_path: 'benchmark-a', type: 'data_set' },
+    });
   });
 
   it('should reuse the suite editor to update an unrun source collection', async () => {
@@ -585,6 +689,7 @@ describe('useCopySuiteForm', () => {
           additionalParameters: '{"seed":42,"labels":["nightly"]}',
           threshold: 70,
           availableMetrics: ['accuracy'],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -673,6 +778,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -719,6 +825,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -780,6 +887,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -1741,6 +1849,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });

@@ -253,6 +253,16 @@ describe('EvalHub API Contract Tests', () => {
             weight: 0.8,
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
             parameters: { num_few_shot: 5 },
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            test_data_ref: {
+              s3: {
+                bucket: 'evalhub-test',
+                key: 'datasets/arc-challenge',
+                // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+                secret_ref: 's3-credentials',
+                type: 'data_set',
+              },
+            },
           },
         ],
       };

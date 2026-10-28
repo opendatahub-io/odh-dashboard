@@ -138,6 +138,94 @@ describe('Suite editor benchmark selection', () => {
   });
 });
 
+describe('Suite editor benchmark test data', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should configure an s3 test data ref on a benchmark and send it in the clone request', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/evaluations/collections/:collectionId',
+      { path: { ...API_VERSION, collectionId: 'source-suite' } },
+      {
+        ...sourceCollection,
+        benchmarks: [{ id: 'bench-alpha', provider_id: 'test-provider' }],
+      },
+    );
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: '/eval-hub/api/v1/evaluations/collections/source-suite/clones',
+      },
+      {
+        statusCode: 201,
+        body: mockModArchResponse({
+          ...sourceCollection,
+          resource: { ...sourceCollection.resource, id: 'source-suite-copy' },
+        }),
+      },
+    ).as('cloneSuite');
+
+    copySuitePage.visitCopy(NAMESPACE, 'source-suite');
+    copySuitePage.findSettingsNextButton().click();
+    copySuitePage.findSelectBenchmarksNextButton().click();
+    copySuitePage.findConfigurationStep().should('be.visible');
+
+    copySuitePage
+      .findBenchmarkTestDataRefSourceToggle(0)
+      .should('contain.text', 'None (use benchmark default data)');
+    copySuitePage.findSaveOnlyButton().should('be.enabled');
+
+    copySuitePage.findBenchmarkTestDataRefSourceToggle(0).click();
+    copySuitePage.findBenchmarkTestDataRefOption('S3 — object storage').click();
+
+    copySuitePage.findBenchmarkTestDataRefField(0, 'bucket').type('eval-data');
+    copySuitePage.findBenchmarkTestDataRefField(0, 'key').type('ragas/dataset.jsonl');
+    copySuitePage.findBenchmarkTestDataRefField(0, 'secretRef').type('my-s3-secret');
+
+    copySuitePage.findSaveOnlyButton().should('be.enabled').click();
+
+    cy.wait('@cloneSuite').then((interception) => {
+      expect(interception.request.body.benchmarks[0].test_data_ref).to.deep.equal({
+        s3: {
+          bucket: 'eval-data',
+          key: 'ragas/dataset.jsonl',
+          secret_ref: 'my-s3-secret',
+          type: 'data_set',
+        },
+      });
+    });
+  });
+
+  it('should block submission when required test data fields are empty', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/evaluations/collections/:collectionId',
+      { path: { ...API_VERSION, collectionId: 'source-suite' } },
+      {
+        ...sourceCollection,
+        benchmarks: [{ id: 'bench-alpha', provider_id: 'test-provider' }],
+      },
+    );
+
+    copySuitePage.visitCopy(NAMESPACE, 'source-suite');
+    copySuitePage.findSettingsNextButton().click();
+    copySuitePage.findSelectBenchmarksNextButton().click();
+    copySuitePage.findConfigurationStep().should('be.visible');
+
+    copySuitePage.findBenchmarkTestDataRefSourceToggle(0).click();
+    copySuitePage.findBenchmarkTestDataRefOption('S3 — object storage').click();
+
+    copySuitePage.findBenchmarkTestDataRefField(0, 'bucket').type('eval-data');
+    copySuitePage.findBenchmarkTestDataRefField(0, 'key').type('ragas/dataset.jsonl').clear();
+    copySuitePage.findBenchmarkTestDataRefField(0, 'secretRef').type('my-secret').clear();
+
+    copySuitePage
+      .findBenchmarkTestDataRefFieldError(0, 'key')
+      .should('contain.text', 'Key is required.');
+    copySuitePage.findSaveOnlyButton().should('be.disabled');
+  });
+});
+
 describe('Suite editor curated collection prerequisites', () => {
   beforeEach(() => {
     initIntercepts();

@@ -20,6 +20,10 @@ import BenchmarkWeightsModal from '~/app/components/BenchmarkWeightsModal';
 import type { WeightSegment } from '~/app/components/WeightDistributionBar';
 import { getBenchmarkKey, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
 import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
+import {
+  toTestDataRefFieldErrors,
+  type TestDataRefFormField,
+} from '~/app/schemas/testDataRef.schema';
 import type { Provider } from '~/app/types';
 import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
 import { getEvalHubScrollContainer } from '~/app/utilities/scrollContainer';
@@ -106,6 +110,11 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
     });
     return Object.keys(result).length > 0 ? result : undefined;
   };
+
+  const getTestDataRefErrors = (
+    index: number,
+  ): Partial<Record<TestDataRefFormField, string>> | undefined =>
+    toTestDataRefFieldErrors(errors.benchmarks?.[index]?.testDataRef);
 
   const detailsBenchmark = detailsBenchmarkKey
     ? flatBenchmarkByKey.get(detailsBenchmarkKey)
@@ -211,6 +220,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
                     }
                     parameterErrors={getParameterErrors(index)}
                     parameterConfig={parameterConfig}
+                    testDataRefErrors={getTestDataRefErrors(index)}
                     isInteractionDisabled={isInteractionDisabled}
                     onUpdate={(updatedIndex, field, value) => {
                       if (!isInteractionDisabled) {

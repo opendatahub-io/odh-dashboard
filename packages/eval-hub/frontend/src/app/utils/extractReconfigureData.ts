@@ -7,6 +7,11 @@ import type {
   SourceMode,
 } from '~/app/types';
 import { getEvaluationName, getThresholdInputValue } from '~/app/utilities/evaluationUtils';
+import {
+  parseTestDataRef,
+  testDataRefDefaultValues,
+  type TestDataRefFormValues,
+} from '~/app/schemas/testDataRef.schema';
 
 export type ReconfigureFormData = {
   evaluationName: string;
@@ -19,6 +24,7 @@ export type ReconfigureFormData = {
   sourceName: string;
   datasetUrl: string;
   accessToken: string;
+  testDataRef: TestDataRefFormValues;
   benchmark: FlatBenchmark | undefined;
   collection: Collection | undefined;
   isCollectionFlow: boolean;
@@ -30,16 +36,25 @@ export type ReconfigureFormData = {
   queue: string | undefined;
 };
 
-const hasTestDataRef = (
+const isPrerecordedTestDataRef = (
   benchmarks: NonNullable<EvaluationJob['benchmarks']> | null | undefined,
-): boolean => benchmarks?.some((b) => b.test_data_ref?.s3) ?? false;
+): boolean =>
+  benchmarks?.some((b) => {
+    const s3 = b.test_data_ref?.s3;
+    if (!s3) {
+      return false;
+    }
+    // An explicit type wins; fall back to s3 presence for legacy jobs created
+    // before the UI emitted an explicit type (those were prerecorded runs).
+    return s3.type ? s3.type === 'pre_recorded_data' : true;
+  }) ?? false;
 
 export const inferSourceMode = (
   job: EvaluationJob,
   inferenceServices: InferenceServiceItem[],
   benchmarks?: NonNullable<EvaluationJob['benchmarks']> | null,
 ): { sourceMode: SourceMode; modelSelection: ModelSelection } => {
-  if (hasTestDataRef(benchmarks ?? job.collection?.benchmarks ?? job.benchmarks)) {
+  if (isPrerecordedTestDataRef(benchmarks ?? job.collection?.benchmarks ?? job.benchmarks)) {
     return { sourceMode: 'prerecorded', modelSelection: 'external' };
   }
 
@@ -99,6 +114,7 @@ const extractReconfigureData = (
       primary_score: b.primary_score,
       pass_criteria: b.pass_criteria,
       parameters: b.parameters,
+      test_data_ref: b.test_data_ref,
     }));
     collection = {
       resource: { id: job.collection.id },
@@ -132,6 +148,14 @@ const extractReconfigureData = (
     }
   }
 
+  // Model-mode reconfigures hydrate the test data section; prerecorded jobs keep
+  // their dataset fields instead — both edit the same test_data_ref object.
+  let testDataRef: TestDataRefFormValues = { ...testDataRefDefaultValues };
+  if (sourceMode === 'model') {
+    const refBenchmark = effectiveBenchmarks?.find((b) => b.test_data_ref);
+    testDataRef = parseTestDataRef(refBenchmark?.test_data_ref);
+  }
+
   return {
     evaluationName: getEvaluationName(job),
     sourceMode,
@@ -143,6 +167,7 @@ const extractReconfigureData = (
     sourceName: sourceMode === 'prerecorded' ? job.model.name : '',
     datasetUrl,
     accessToken,
+    testDataRef,
     benchmark,
     collection,
     isCollectionFlow,

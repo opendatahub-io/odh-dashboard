@@ -1,5 +1,10 @@
 import * as z from 'zod';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
+import {
+  refineTestDataRef,
+  testDataRefDefaultValues,
+  testDataRefFormSchema,
+} from '~/app/schemas/testDataRef.schema';
 
 export const SOURCE_MODES = ['model', 'agent', 'prerecorded'] as const;
 export const MODEL_SELECTIONS = ['cluster', 'external'] as const;
@@ -18,6 +23,7 @@ export const startEvaluationRunSchema = z
     sourceName: z.string(),
     datasetUrl: z.string(),
     accessToken: z.string(),
+    testDataRef: testDataRefFormSchema,
     experimentMode: z.enum(EXPERIMENT_MODES),
     selectedExperimentName: z.string().optional(),
     newExperimentName: z.string(),
@@ -42,6 +48,8 @@ export const startEvaluationRunSchema = z
     }
 
     if (data.sourceMode === 'model') {
+      refineTestDataRef(data.testDataRef, ctx, ['testDataRef']);
+
       if (data.modelSelection === 'cluster') {
         if (!data.selectedInferenceServiceName?.trim()) {
           ctx.addIssue({
@@ -123,6 +131,7 @@ export const startEvaluationRunDefaultValues: StartEvaluationRunFormValues = {
   sourceName: '',
   datasetUrl: '',
   accessToken: '',
+  testDataRef: { ...testDataRefDefaultValues },
   experimentMode: 'existing',
   selectedExperimentName: undefined,
   newExperimentName: '',

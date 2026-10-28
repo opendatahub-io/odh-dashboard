@@ -1,6 +1,7 @@
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import type { Collection, EvaluationJob, InferenceServiceItem } from '~/app/types';
 import extractReconfigureData, { inferSourceMode } from '~/app/utils/extractReconfigureData';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 
 const mockInferenceService = (name: string, url?: string): InferenceServiceItem => ({
   name,
@@ -307,6 +308,88 @@ describe('extractReconfigureData', () => {
 
     expect(result.datasetUrl).toBe('');
     expect(result.accessToken).toBe('');
+  });
+
+  it('should infer prerecorded from an explicit pre_recorded_data type', () => {
+    const job = mockEvaluationJob({ modelName: 'dataset-source' });
+    job.benchmarks = [
+      {
+        id: 'b1',
+        test_data_ref: {
+          s3: { key: 's3://bucket/data.jsonl', secret_ref: 'tok', type: 'pre_recorded_data' },
+        },
+      },
+    ];
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.sourceMode).toBe('prerecorded');
+    expect(result.datasetUrl).toBe('s3://bucket/data.jsonl');
+    expect(result.accessToken).toBe('tok');
+  });
+
+  it('should not infer prerecorded from a data_set s3 ref on a model run', () => {
+    const job = mockEvaluationJob({ modelName: 'model-a' });
+    job.benchmarks = [
+      {
+        id: 'b1',
+        test_data_ref: {
+          s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+        },
+      },
+    ];
+    job.model.url = 'https://ext.example.com/v1';
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.sourceMode).toBe('model');
+    expect(result.datasetUrl).toBe('');
+  });
+
+  it('should hydrate testDataRef for model-mode reconfigures from any variant', () => {
+    const job = mockEvaluationJob({ modelName: 'model-a' });
+    job.benchmarks = [
+      {
+        id: 'b1',
+        test_data_ref: {
+          git: {
+            url: 'https://github.com/org/datasets.git',
+            ref: 'main',
+            sub_path: 'benchmark-a',
+            type: 'data_set',
+          },
+        },
+      },
+    ];
+    job.model.url = 'https://ext.example.com/v1';
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.sourceMode).toBe('model');
+    expect(result.testDataRef).toEqual({
+      ...testDataRefDefaultValues,
+      source: 'git',
+      url: 'https://github.com/org/datasets.git',
+      ref: 'main',
+      subPath: 'benchmark-a',
+    });
+  });
+
+  it('should not hydrate testDataRef for prerecorded reconfigures', () => {
+    const job = mockEvaluationJob({ modelName: 'dataset-source' });
+    job.benchmarks = [
+      {
+        id: 'b1',
+        test_data_ref: {
+          s3: { key: 's3://bucket/data.jsonl', secret_ref: 'tok', type: 'pre_recorded_data' },
+        },
+      },
+    ];
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.sourceMode).toBe('prerecorded');
+    expect(result.testDataRef).toEqual(testDataRefDefaultValues);
   });
 
   it('should fall back to resource id for evaluation name when name is not set', () => {

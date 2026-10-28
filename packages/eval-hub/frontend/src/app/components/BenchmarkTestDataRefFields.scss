@@ -1,0 +1,15 @@
+.evalhub-benchmark-test-data-ref {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--gap--group-to-group--vertical--default);
+
+  // Indent source-specific fields so they read as children of the selected source.
+  &__children {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pf-t--global--spacer--gap--group-to-group--vertical--default);
+    padding-inline-start: var(--pf-t--global--spacer--md);
+    border-inline-start: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
+  }
+}

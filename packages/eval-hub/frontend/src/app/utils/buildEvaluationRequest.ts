@@ -6,6 +6,7 @@ import {
   JobPrimaryScore,
   SourceMode,
 } from '~/app/types';
+import { serializeTestDataRef, type TestDataRefFormValues } from '~/app/schemas/testDataRef.schema';
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
@@ -18,6 +19,7 @@ type BuildEvaluationRequestParams = {
   sourceName: string;
   datasetUrl: string;
   accessToken: string;
+  testDataRef: TestDataRefFormValues;
   additionalArgs: Record<string, unknown>;
   experimentName?: string;
   experimentTags?: { key: string; value: string }[];
@@ -40,6 +42,7 @@ const buildEvaluationRequest = ({
   sourceName,
   datasetUrl,
   accessToken,
+  testDataRef,
   additionalArgs,
   experimentName,
   experimentTags,
@@ -72,8 +75,18 @@ const buildEvaluationRequest = ({
               key: trimmedDatasetUrl,
               // eslint-disable-next-line camelcase
               ...(trimmedAccessToken ? { secret_ref: trimmedAccessToken } : {}),
+              type: 'pre_recorded_data' as const,
             },
           },
+        }
+      : {};
+
+  const testDataRefEntry = serializeTestDataRef(testDataRef);
+  const modelModeDataRef =
+    sourceMode === 'model' && testDataRefEntry
+      ? {
+          // eslint-disable-next-line camelcase
+          test_data_ref: testDataRefEntry,
         }
       : {};
 
@@ -90,6 +103,7 @@ const buildEvaluationRequest = ({
       pass_criteria: passCriteriaOverride ?? benchmark.pass_criteria,
       ...(hasParams ? { parameters: benchmarkParams } : {}),
       ...prerecordedDataRef,
+      ...modelModeDataRef,
     });
   }
 
@@ -150,6 +164,8 @@ const buildEvaluationRequest = ({
               ...(hasParams || b.parameters
                 ? { parameters: { ...b.parameters, ...benchmarkParams } }
                 : {}),
+              // eslint-disable-next-line camelcase
+              ...(b.test_data_ref ? { test_data_ref: b.test_data_ref } : {}),
             })),
           },
         }

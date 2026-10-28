@@ -31,6 +31,7 @@ import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
+import BenchmarkTestDataRefFields from '~/app/components/BenchmarkTestDataRefFields';
 import HardwareProfileField from '~/app/components/HardwareProfileField';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import {
@@ -437,6 +438,18 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                   datasetUrlError={form.datasetUrlError}
                   touched={form.touched}
                   markTouched={form.markTouched}
+                />
+              ) : null}
+
+              {!isCollectionFlow && form.sourceMode === 'model' ? (
+                <BenchmarkTestDataRefFields
+                  value={form.testDataRef}
+                  idPrefix="start-evaluation-run-modal"
+                  testIdPrefix="start-evaluation-run-modal-test-data-ref"
+                  isDisabled={isCloning}
+                  isRequired={form.testDataRefRequired}
+                  errors={form.testDataRefErrors}
+                  onChange={form.setTestDataRef}
                 />
               ) : null}
 

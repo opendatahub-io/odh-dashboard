@@ -7,6 +7,7 @@ import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import type {
   FlatBenchmark,
   Collection,
@@ -131,6 +132,7 @@ const reconfigureValues: ReconfigureFormData = {
   sourceName: '',
   datasetUrl: '',
   accessToken: '',
+  testDataRef: { ...testDataRefDefaultValues },
   benchmark: mockBenchmark,
   collection: undefined,
   isCollectionFlow: false,

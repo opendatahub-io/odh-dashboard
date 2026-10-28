@@ -222,10 +222,36 @@ type S3DataRef struct {
 	Bucket    string `json:"bucket,omitempty"`
 	Key       string `json:"key,omitempty"`
 	SecretRef string `json:"secret_ref,omitempty"`
+	Type      string `json:"type,omitempty"`
+}
+
+type TestDataRefPVC struct {
+	ClaimName string `json:"claim_name"`
+	SubPath   string `json:"sub_path,omitempty"`
+	Type      string `json:"type,omitempty"`
+}
+
+type TestDataRefGit struct {
+	URL       string `json:"url"`
+	Ref       string `json:"ref"`
+	SubPath   string `json:"sub_path,omitempty"`
+	SecretRef string `json:"secret_ref,omitempty"`
+	Type      string `json:"type,omitempty"`
+}
+
+type TestDataRefHF struct {
+	RepoID    string `json:"repo_id"`
+	Revision  string `json:"revision,omitempty"`
+	SubPath   string `json:"sub_path,omitempty"`
+	SecretRef string `json:"secret_ref,omitempty"`
+	Type      string `json:"type,omitempty"`
 }
 
 type TestDataRef struct {
-	S3 *S3DataRef `json:"s3,omitempty"`
+	S3  *S3DataRef      `json:"s3,omitempty"`
+	PVC *TestDataRefPVC `json:"pvc,omitempty"`
+	Git *TestDataRefGit `json:"git,omitempty"`
+	HF  *TestDataRefHF  `json:"hf,omitempty"`
 }
 
 // HardwareConfig describes the resource and scheduling configuration for an evaluation job.
@@ -472,6 +498,7 @@ type CollectionBenchmark struct {
 	PrimaryScore *CollectionPrimaryScore `json:"primary_score,omitempty"`
 	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
 	Parameters   map[string]any          `json:"parameters,omitempty"`
+	TestDataRef  *TestDataRef            `json:"test_data_ref,omitempty"`
 }
 
 // CollectionPrimaryScore defines the primary scoring metric for a benchmark.
