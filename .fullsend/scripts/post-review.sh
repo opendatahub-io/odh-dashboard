@@ -1392,8 +1392,11 @@ def _pa_key_label(key):
 class PaIssueKeyResolver:
     """Map untrusted issues[] entries onto keys from the host Jira snapshot.
 
-    Match a well-formed key, then its URL, then a lone remaining snapshot key.
-    A key outside ``JIRA_KEY_RE`` is never returned.
+    Match a well-formed key, then its URL. Fall back to a lone unclaimed
+    snapshot key only when the reported key is unusable, so masked or
+    truncated metadata still renders. A well-formed key that contradicts the
+    snapshot is never swapped for a different issue, and a key outside
+    ``JIRA_KEY_RE`` is never returned.
     """
 
     def __init__(self):
@@ -1424,7 +1427,7 @@ class PaIssueKeyResolver:
                 if trusted_jira_issue_url(candidate) == url:
                     return self._claim(candidate)
         remaining = [key for key in self.keys if key not in self.claimed]
-        if len(remaining) == 1:
+        if len(remaining) == 1 and not well_formed:
             return self._claim(remaining[0])
         # With no snapshot, a well-formed key is still safe to display.
         return raw if well_formed and not self.keys else ""
@@ -2085,6 +2088,24 @@ JSON
     fail=1
   else
     echo "PASS pa-masked: snapshot key replaces a masked key"
+  fi
+
+  # A well-formed key that contradicts the snapshot must not borrow the
+  # snapshot key. Only masked or truncated metadata may use the fallback.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-conflict.json"
+  render_jira_fixture pa-conflict
+  body=$(jq -r .body "${tmp}/pa-conflict-out.json")
+  if grep -qF 'RHOAIENG-100828' <<<"${body}"; then
+    echo "FAIL pa-conflict: conflicting key was relabeled as the snapshot key" >&2
+    fail=1
+  elif grep -qF 'RHOAIENG-999999' <<<"${body}"; then
+    echo "FAIL pa-conflict: unknown well-formed key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-conflict: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-conflict: well-formed key never borrows the snapshot key"
   fi
 
   # Restore the shared jira fixture for later tests that reuse render_jira_fixture.
