@@ -565,9 +565,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
 
   return (
     <Card
-      className={`evalhub-benchmark-suite-card${
-        onSelect ? ' evalhub-benchmark-suite-card--clickable' : ''
-      }`}
+      className={`evalhub-benchmark-suite-card${onSelect ? ' m-clickable' : ''}`}
       isFullHeight
       data-testid={`benchmark-suite-card-${collection.resource.id}`}
     >

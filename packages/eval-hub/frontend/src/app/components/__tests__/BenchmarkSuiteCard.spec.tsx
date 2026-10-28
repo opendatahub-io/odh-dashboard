@@ -649,9 +649,7 @@ describe('BenchmarkSuiteCard', () => {
       />,
     );
 
-    expect(screen.getByTestId('benchmark-suite-card-static-suite')).not.toHaveClass(
-      'evalhub-benchmark-suite-card--clickable',
-    );
+    expect(screen.getByTestId('benchmark-suite-card-static-suite')).not.toHaveClass('m-clickable');
 
     render(
       <BenchmarkSuiteCard
@@ -661,9 +659,7 @@ describe('BenchmarkSuiteCard', () => {
       />,
     );
 
-    expect(screen.getByTestId('benchmark-suite-card-selectable-suite')).toHaveClass(
-      'evalhub-benchmark-suite-card--clickable',
-    );
+    expect(screen.getByTestId('benchmark-suite-card-selectable-suite')).toHaveClass('m-clickable');
   });
 
   it('should invoke the suite selection callback when the title region is clicked', () => {

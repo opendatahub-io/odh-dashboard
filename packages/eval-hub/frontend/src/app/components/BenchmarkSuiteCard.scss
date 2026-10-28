@@ -305,7 +305,7 @@
 
 // Details drawer click region: the title and body open the drawer while the kebab,
 // metadata tooltips, and footer actions keep their own behavior.
-.evalhub-benchmark-suite-card--clickable {
+.evalhub-benchmark-suite-card.m-clickable {
   .evalhub-benchmark-suite-card__title,
   .evalhub-benchmark-suite-card__body {
     cursor: pointer;
