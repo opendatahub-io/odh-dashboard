@@ -185,10 +185,6 @@ const fetchSubscriptions =
 export const listSubscriptions = (hostPath = ''): SubscriptionFetcher =>
   fetchSubscriptions('all-subscriptions', hostPath);
 
-/** GET /api/v1/admin-subscriptions - List subscriptions from maas-api /v1/subscriptions (same payload shape) */
-export const listAdminSubscriptions = (hostPath = ''): SubscriptionFetcher =>
-  fetchSubscriptions('admin-subscriptions', hostPath);
-
 /** List subscriptions from the requested endpoint. Defaults to all-subscriptions. */
 export const listSubscriptionsFrom = (
   endpoint: SubscriptionsEndpoint = 'all-subscriptions',

@@ -6,7 +6,6 @@ import {
   UserSubscription,
 } from '~/app/types/subscriptions';
 import {
-  listAdminSubscriptions,
   getSubscriptionInfo,
   listSubscriptions,
   listSubscriptionsFrom,
@@ -193,45 +192,6 @@ describe('listSubscriptions', () => {
     const result = await listSubscriptions()({} as never);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('test-sub');
-  });
-});
-
-describe('listAdminSubscriptions', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockHandleRestFailures.mockImplementation((p: Promise<unknown>) => p);
-  });
-
-  it('should request the admin-subscriptions endpoint', async () => {
-    mockRestGET.mockResolvedValue({ data: [validSubscriptionInfoResponse.subscription] });
-
-    await listAdminSubscriptions()({} as never);
-
-    expect(mockRestGET).toHaveBeenCalledWith(
-      '',
-      expect.stringContaining('/admin-subscriptions'),
-      {},
-      expect.anything(),
-    );
-  });
-
-  it('should resolve with the same payload shape as listSubscriptions', async () => {
-    const { subscription } = validSubscriptionInfoResponse;
-    mockRestGET.mockResolvedValue({ data: [subscription] });
-
-    const subscriptions = await listSubscriptions()({} as never);
-    const adminSubscriptions = await listAdminSubscriptions()({} as never);
-
-    expect(adminSubscriptions).toHaveLength(1);
-    const [adminSubscription] = adminSubscriptions;
-    expect(adminSubscription.name).toBe('test-sub');
-    expect(adminSubscriptions).toEqual(subscriptions);
-  });
-
-  it('should throw for an unwrapped (non-data) response', async () => {
-    mockRestGET.mockResolvedValue([validSubscriptionInfoResponse.subscription]);
-
-    await expect(listAdminSubscriptions()({} as never)).rejects.toThrow('Invalid response format');
   });
 });
 
