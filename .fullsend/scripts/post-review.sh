@@ -1393,10 +1393,10 @@ class PaIssueKeyResolver:
     """Map untrusted issues[] entries onto keys from the host Jira snapshot.
 
     Match a well-formed key, then its URL. Fall back to a lone unclaimed
-    snapshot key only when the reported key is unusable, so masked or
-    truncated metadata still renders. A well-formed key that contradicts the
-    snapshot is never swapped for a different issue, and a key outside
-    ``JIRA_KEY_RE`` is never returned.
+    snapshot key only when the snapshot holds a single key and the reported
+    key is unusable, so masked or truncated metadata still renders. A
+    well-formed key that contradicts the snapshot is never swapped for a
+    different issue, and a key outside ``JIRA_KEY_RE`` is never returned.
     """
 
     def __init__(self):
@@ -1419,6 +1419,10 @@ class PaIssueKeyResolver:
         well_formed = bool(JIRA_KEY_RE.fullmatch(raw))
         if well_formed and self._claim(raw):
             return raw
+        if well_formed and self.keys:
+            # A well-formed key that cannot be claimed contradicts the
+            # snapshot; never borrow a different issue via URL recovery.
+            return ""
         url = str(issue.get("url") or "").strip()
         if url:
             for candidate in self.keys:
@@ -1426,9 +1430,8 @@ class PaIssueKeyResolver:
                     continue
                 if trusted_jira_issue_url(candidate) == url:
                     return self._claim(candidate)
-        remaining = [key for key in self.keys if key not in self.claimed]
-        if len(remaining) == 1 and not well_formed:
-            return self._claim(remaining[0])
+        if not well_formed and len(self.keys) == 1:
+            return self._claim(self.keys[0])
         # With no snapshot, a well-formed key is still safe to display.
         return raw if well_formed and not self.keys else ""
 
@@ -2106,6 +2109,51 @@ JSON
     fail=1
   else
     echo "PASS pa-conflict: well-formed key never borrows the snapshot key"
+  fi
+
+  # The same conflict carrying the snapshot issue's URL must not be recovered
+  # through URL matching: a well-formed key that cannot be claimed is final.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-conflict-url.json"
+  render_jira_fixture pa-conflict-url
+  body=$(jq -r .body "${tmp}/pa-conflict-url-out.json")
+  if grep -qF 'RHOAIENG-100828' <<<"${body}"; then
+    echo "FAIL pa-conflict-url: conflicting key was relabeled via URL recovery" >&2
+    fail=1
+  elif grep -qF 'RHOAIENG-999999' <<<"${body}"; then
+    echo "FAIL pa-conflict-url: unknown well-formed key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-conflict-url: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-conflict-url: URL recovery cannot relabel a claimed-key conflict"
+  fi
+
+  # In a multi-issue snapshot, an exact match claims one key; a later
+  # malformed entry without a matching URL must stay unlabeled rather than
+  # inherit the snapshot's remaining key.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "issues": [
+    {"key": "RHOAIENG-100828", "url": "https://issues.redhat.com/browse/RHOAIENG-100828", "summary": "First"},
+    {"key": "RHOAIENG-100829", "url": "https://issues.redhat.com/browse/RHOAIENG-100829", "summary": "Second"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100828\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"First matches.\"]},{\"key\":\"***\",\"status\":\"aligned\",\"aligned\":[\"Second matches.\"]}]}}" > "${tmp}/pa-multi-orphan.json"
+  render_jira_fixture pa-multi-orphan
+  body=$(jq -r .body "${tmp}/pa-multi-orphan-out.json")
+  if ! grep -qF '[RHOAIENG-100828](https://issues.redhat.com/browse/RHOAIENG-100828)' <<<"${body}"; then
+    echo "FAIL pa-multi-orphan: exact-match key lost its link" >&2
+    fail=1
+  elif grep -qF 'RHOAIENG-100829' <<<"${body}"; then
+    echo "FAIL pa-multi-orphan: malformed entry inherited the remaining snapshot key" >&2
+    fail=1
+  elif ! grep -qF '### Linked Jira issue' <<<"${body}"; then
+    echo "FAIL pa-multi-orphan: unresolved heading missing" >&2
+    fail=1
+  else
+    echo "PASS pa-multi-orphan: multi-issue snapshot does not exhaust into a malformed entry"
   fi
 
   # Restore the shared jira fixture for later tests that reuse render_jira_fixture.
