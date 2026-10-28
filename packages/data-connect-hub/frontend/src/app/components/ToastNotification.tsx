@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Alert,
   AlertActionCloseButton,
@@ -11,9 +11,14 @@ import { useNotification } from '~/app/hooks/useNotification';
 
 const TOAST_TIMEOUT = 8 * 1000;
 
+type ToastActionLinkProps = React.HTMLAttributes<HTMLAnchorElement> & { href: string };
+
+const ToastActionLink: React.FC<ToastActionLinkProps> = ({ href, ...props }) => (
+  <Link {...props} to={href} />
+);
+
 const ToastNotification: React.FC<{ notification: Notification }> = ({ notification }) => {
   const notifications = useNotification();
-  const navigate = useNavigate();
   const { linkUrl, linkLabel } = notification;
   const [mouseOver, setMouseOver] = React.useState(false);
   const remainingRef = React.useRef(TOAST_TIMEOUT);
@@ -48,7 +53,9 @@ const ToastNotification: React.FC<{ notification: Notification }> = ({ notificat
       actionClose={<AlertActionCloseButton onClose={() => notifications.remove(notification.id)} />}
       actionLinks={
         linkUrl && linkLabel ? (
-          <AlertActionLink onClick={() => navigate(linkUrl)}>{linkLabel}</AlertActionLink>
+          <AlertActionLink component={ToastActionLink} href={linkUrl}>
+            {linkLabel}
+          </AlertActionLink>
         ) : undefined
       }
       onMouseEnter={() => setMouseOver(true)}

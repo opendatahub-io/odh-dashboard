@@ -54,7 +54,11 @@ describe('ToastNotification', () => {
     expect(screen.getByTestId('toast-notification-alert').textContent).toContain(
       'Connection created',
     );
-    await user.click(screen.getByRole('button', { name: 'View connection details' }));
+    const action = screen.getByRole('link', { name: 'View connection details' });
+    expect(action.getAttribute('href')).toBe(
+      '/ai-hub/connections/connections/connection-id?project=test-project',
+    );
+    await user.click(action);
     expect(screen.getByTestId('toast-test-location').textContent).toBe(
       '/ai-hub/connections/connections/connection-id?project=test-project',
     );
