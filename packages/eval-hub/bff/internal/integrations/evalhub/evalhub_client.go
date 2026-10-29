@@ -81,7 +81,7 @@ type EvalHubClientInterface interface {
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
 	CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error)
-	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
+	GetCollection(ctx context.Context, id string, namespace string) (*Collection, json.RawMessage, error)
 	PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error)
 	DeleteCollection(ctx context.Context, id string, namespace string) error
 	CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error)
@@ -902,21 +902,23 @@ func (c *EvalHubClient) CreateCollection(ctx context.Context, namespace string, 
 	return resp, nil
 }
 
-// GetCollection retrieves a single benchmark collection by ID.
+// GetCollection retrieves a single benchmark collection by ID, returning both
+// the decoded collection and the raw upstream JSON. The raw JSON preserves
+// nullable and unknown fields so JSON Patch operations replay faithfully.
 // The namespace is sent as the X-Tenant header to scope the request to the caller's tenant.
-func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace string) (*Collection, error) {
+func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace string) (*Collection, json.RawMessage, error) {
 	path := fmt.Sprintf("/evaluations/collections/%s", url.PathEscape(id))
 
 	headers, err := tenantHeaders(namespace)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	resp, err := get[Collection](c, ctx, path, headers)
+	resp, raw, err := getWithRaw[Collection](c, ctx, path, headers)
 	if err != nil {
-		return nil, wrapClientError(err, "GetCollection")
+		return nil, nil, wrapClientError(err, "GetCollection")
 	}
-	return resp, nil
+	return resp, raw, nil
 }
 
 // PatchCollection partially updates a tenant-owned collection using JSON Patch
@@ -1081,9 +1083,17 @@ func readResponseBody(body io.Reader, maxSize int) ([]byte, error) {
 }
 
 func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
+	result, _, err := getWithRaw[T](c, ctx, path, extraHeaders)
+	return result, err
+}
+
+// getWithRaw performs a typed GET request and also returns the raw response
+// body, so callers can replay patches against the upstream JSON instead of a
+// lossy re-marshal of the decoded struct.
+func getWithRaw[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, json.RawMessage, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	if c.authToken != "" {
@@ -1095,17 +1105,17 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
 	body, err := readResponseBody(resp.Body, maxGetResponseSize)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, &httpError{
+		return nil, nil, &httpError{
 			StatusCode: resp.StatusCode,
 			Body:       string(body),
 		}
@@ -1113,9 +1123,9 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 
 	var result T
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &result, nil
+	return &result, json.RawMessage(body), nil
 }
 
 // post performs a typed POST request against the EvalHub API.

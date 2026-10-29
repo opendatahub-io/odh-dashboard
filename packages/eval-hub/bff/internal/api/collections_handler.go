@@ -153,13 +153,16 @@ func (t *benchmarkWriteTracker) apply(op, path string) {
 }
 
 // validatePatchedBenchmarks applies the patch operations to the current
-// collection and validates the test data references of benchmarks the patch
-// added or changed, so a patch cannot bypass the checks that create and clone
-// enforce (e.g. embedded Git credentials or non-HTTPS URLs with a secret
-// reference) while edits that leave other stored references untouched are not
-// blocked by them. Patches that do not touch the benchmarks are passed through
-// without applying them.
-func validatePatchedBenchmarks(current *evalhub.Collection, operations []evalhub.CollectionPatchOperation) error {
+// collection's original upstream JSON and validates the test data references
+// of benchmarks the patch added or changed, so a patch cannot bypass the
+// checks that create and clone enforce (e.g. embedded Git credentials or
+// non-HTTPS URLs with a secret reference) while edits that leave other stored
+// references untouched are not blocked by them. The original JSON is used
+// rather than a re-marshal of the decoded collection because re-marshaling
+// drops nullable and unknown fields, which can make valid patches fail to
+// apply. Patches that do not touch the benchmarks are passed through without
+// applying them.
+func validatePatchedBenchmarks(currentJSON json.RawMessage, current *evalhub.Collection, operations []evalhub.CollectionPatchOperation) error {
 	tracker := newBenchmarkWriteTracker(len(current.Benchmarks))
 	touchesBenchmarks := false
 	for _, operation := range operations {
@@ -172,10 +175,6 @@ func validatePatchedBenchmarks(current *evalhub.Collection, operations []evalhub
 		return nil
 	}
 
-	currentJSON, err := json.Marshal(current)
-	if err != nil {
-		return fmt.Errorf("failed to encode current collection: %w", err)
-	}
 	operationsJSON, err := json.Marshal(operations)
 	if err != nil {
 		return fmt.Errorf("failed to encode patch operations: %w", err)
@@ -234,7 +233,7 @@ func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, p
 	}
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	currentCollection, err := client.GetCollection(ctx, id, namespace)
+	currentCollection, currentJSON, err := client.GetCollection(ctx, id, namespace)
 	if err != nil {
 		app.evalHubErrorResponse(w, r, err, "failed to check collection before patch")
 		return
@@ -247,7 +246,7 @@ func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, p
 		app.conflictResponse(w, r, fmt.Errorf("collection cannot be edited after it has been run"))
 		return
 	}
-	if err := validatePatchedBenchmarks(currentCollection, operations); err != nil {
+	if err := validatePatchedBenchmarks(currentJSON, currentCollection, operations); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -314,7 +313,7 @@ func (app *App) GetCollectionHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
-	collection, err := client.GetCollection(ctx, id, namespace)
+	collection, _, err := client.GetCollection(ctx, id, namespace)
 	if err != nil {
 		app.evalHubErrorResponse(w, r, err, "failed to get collection")
 		return

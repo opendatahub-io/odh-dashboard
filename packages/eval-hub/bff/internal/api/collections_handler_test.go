@@ -396,6 +396,63 @@ func TestPatchCollectionHandlerAllowsValidBenchmarkTestDataRef(t *testing.T) {
 	assert.Equal(t, "v2", result.Data.Benchmarks[0].TestDataRef.Git.Ref)
 }
 
+func TestValidatePatchedBenchmarksReplaysAgainstOriginalJSON(t *testing.T) {
+	// Raw upstream JSON as a live EvalHub instance returns it: an explicit
+	// zero weight (dropped by omitempty when re-marshaling the decoded
+	// struct) and an unknown field inside a benchmark.
+	currentJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"provider_id": "lm_evaluation_harness",
+			"weight": 0,
+			"extra_upstream_field": "value",
+			"test_data_ref": {"git": {"url": "https://github.com/example/data.git", "ref": "main"}}
+		}]
+	}`)
+	current := &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID:         "mmlu",
+			ProviderID: "lm_evaluation_harness",
+			TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+				URL: "https://github.com/example/data.git",
+				Ref: "main",
+			}},
+		}},
+	}
+
+	tests := []struct {
+		name       string
+		operations []evalhub.CollectionPatchOperation
+	}{
+		{
+			name: "replacing a zero-value field present in the upstream JSON",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/weight",
+				Value: json.RawMessage(`2`),
+			}},
+		},
+		{
+			name: "replacing an unknown field inside a benchmark",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/extra_upstream_field",
+				Value: json.RawMessage(`"updated"`),
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePatchedBenchmarks(currentJSON, current, tt.operations)
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 	newCollection := func(firstURL, secondURL string) *evalhub.Collection {
 		return &evalhub.Collection{
