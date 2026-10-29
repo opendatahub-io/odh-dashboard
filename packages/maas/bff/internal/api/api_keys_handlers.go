@@ -11,6 +11,7 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
 // attachAPIKeyHandlers registers API key and maas-api subscription routes.
@@ -46,10 +47,11 @@ func ListSubscriptionsPassthroughHandler(app *App, w http.ResponseWriter, r *htt
 		return
 	}
 
+	subscriptions = repositories.FilterSubscriptionsForMyView(subscriptions)
 	enrichSubscriptionsWithKeyCount(app, r, subscriptions)
 
-	response := Envelope[[]models.SubscriptionListItem, None]{
-		Data: subscriptions,
+	response := Envelope[[]models.MySubscriptionListItem, None]{
+		Data: repositories.ConvertSubscriptionListItemsToMySubscriptions(subscriptions),
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -90,14 +92,13 @@ func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	if item == nil {
+	if item == nil || item.Owner != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 
-	response := Envelope[*models.SubscriptionListItem, None]{
-		Data: item,
-	}
+	myItem := repositories.ConvertSubscriptionListItemsToMySubscriptions([]models.SubscriptionListItem{*item})[0]
+	response := Envelope[*models.MySubscriptionListItem, None]{Data: &myItem}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -189,6 +190,8 @@ func SearchAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ ht
 }
 
 // SearchTenantAPIKeysHandler handles POST /api/v1/api-keys/search/tenant.
+// The upstream MaaS authorization determines whether the caller receives current-user
+// keys or organization-wide keys.
 func SearchTenantAPIKeysHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var request Envelope[*models.APIKeySearchRequest, None]
 
