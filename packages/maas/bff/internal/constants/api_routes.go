@@ -14,8 +14,9 @@ const (
 	APIKeyConfigPath = ApiPathPrefix + "/api-keys-config"
 
 	// Access review
-	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
-	WhoAmIPath      = ApiPathPrefix + "/whoami"
+	IsMaasAdminPath     = ApiPathPrefix + "/is-maas-admin"
+	WhoAmIPath          = ApiPathPrefix + "/whoami"
+	UsageDashboardsPath = ApiPathPrefix + "/usage-dashboards"
 
 	// Gateway discovery
 	MaaSGatewayURLPath = ApiPathPrefix + "/gateway-url"

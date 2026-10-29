@@ -1,12 +1,10 @@
 import * as React from 'react';
+import type { DashboardResource } from '@perses-dev/core';
 import type { K8sAPIOptions, NamespaceKind } from '@odh-dashboard/k8s-core';
 import { getAPIResource } from '@odh-dashboard/k8s-core/api/apiResource';
 import useFetch from '@odh-dashboard/ui-core/hooks/useFetch';
-import {
-  type DashboardViewProps,
-  usePersesDashboards,
-} from '@odh-dashboard/observability/dashboard';
-import { MAAS_NAMESPACES_PATH, PERSES_PROXY_BASE_PATH } from './paths';
+import type { DashboardViewProps } from '@odh-dashboard/observability/dashboard';
+import { MAAS_NAMESPACES_PATH, MAAS_USAGE_DASHBOARDS_PATH } from './paths';
 import { PORTAL_BASE_PATH } from '../portalPaths';
 
 export type ObservabilityDashboardData = Pick<
@@ -29,7 +27,30 @@ const isNamespaceList = (value: unknown): value is NamespaceKind[] =>
       (namespace.displayName === undefined || typeof namespace.displayName === 'string'),
   );
 
+const isDashboardList = (value: unknown): value is DashboardResource[] =>
+  Array.isArray(value) &&
+  value.every(
+    (dashboard) =>
+      typeof dashboard === 'object' &&
+      dashboard !== null &&
+      dashboard.kind === 'Dashboard' &&
+      typeof dashboard.metadata?.name === 'string' &&
+      typeof dashboard.metadata?.project === 'string' &&
+      typeof dashboard.spec === 'object' &&
+      dashboard.spec !== null,
+  );
+
 export const useObservabilityDashboardData = (): ObservabilityDashboardData => {
+  const fetchDashboards = React.useCallback(
+    (options: K8sAPIOptions) =>
+      getAPIResource<DashboardResource[]>(
+        PORTAL_BASE_PATH,
+        MAAS_USAGE_DASHBOARDS_PATH,
+        isDashboardList,
+        { signal: options.signal },
+      ),
+    [],
+  );
   const fetchProjects = React.useCallback(
     (options: K8sAPIOptions) =>
       getAPIResource<NamespaceKind[]>(PORTAL_BASE_PATH, MAAS_NAMESPACES_PATH, isNamespaceList, {
@@ -39,12 +60,10 @@ export const useObservabilityDashboardData = (): ObservabilityDashboardData => {
   );
 
   const {
-    dashboards,
+    data: dashboards,
     loaded: dashboardsLoaded,
     error: dashboardsError,
-  } = usePersesDashboards({
-    persesProxyBasePath: PERSES_PROXY_BASE_PATH,
-  });
+  } = useFetch(fetchDashboards, [], { initialPromisePurity: true });
 
   const {
     data: namespaces,
