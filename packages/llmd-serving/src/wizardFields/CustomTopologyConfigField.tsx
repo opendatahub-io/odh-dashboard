@@ -20,12 +20,15 @@ import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   useTopologyTypeData,
   resolveTopologyConfigsDependencies,
-  isTopologyTypeFieldData,
-  type TopologyTypeFieldData,
   type TopologyTypeExternalData,
   type TopologyConfigsDependencies,
 } from './TopologyTypeField';
-import { TopologyType, type LLMInferenceServiceConfigKind } from '../types';
+import {
+  TopologyType,
+  isTopologyTypeFieldData,
+  type TopologyTypeFieldData,
+  type LLMInferenceServiceConfigKind,
+} from '../types';
 import { isLLMInferenceServiceActive } from '../formUtils';
 import {
   CUSTOM_TOPOLOGY_CONFIG_FIELD_ID,

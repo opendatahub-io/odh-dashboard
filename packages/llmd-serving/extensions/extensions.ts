@@ -25,12 +25,13 @@ import type {
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
-import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../src/types';
-import type { LLMConfigOptionsFieldType } from '../src/wizardFields/LlmConfigOptionsField';
 import type {
+  LLMdDeployment,
+  LLMInferenceServiceConfigKind,
   TopologyTypeFieldData,
-  TopologyTypeFieldType,
-} from '../src/wizardFields/TopologyTypeField';
+} from '../src/types';
+import type { LLMConfigOptionsFieldType } from '../src/wizardFields/LlmConfigOptionsField';
+import type { TopologyTypeFieldType } from '../src/wizardFields/TopologyTypeField';
 import type {
   CustomTopologyConfigFieldData,
   CustomTopologyConfigFieldType,

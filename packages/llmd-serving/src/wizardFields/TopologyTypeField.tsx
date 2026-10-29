@@ -24,7 +24,6 @@ import {
   TopologyTypeDescriptions,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
-  isTopologyTypeFieldData,
   type TopologyTypeFieldData,
 } from '../types';
 import { isConfigEnabled } from '../utils';
@@ -33,7 +32,7 @@ import {
   useFetchLLMInferenceServiceConfig,
 } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
-import { fireTopologyTypeSelected } from '../tracking/llmdTrackingConstants';
+import { useTopologySelectionTracking } from '../tracking/useTopologySelectionTracking';
 import { CUSTOM_TOPOLOGY_CONFIG_FIELD_ID, TOPOLOGY_TYPE_FIELD_ID } from '../const';
 
 // --- Dependencies ---
@@ -152,8 +151,6 @@ export const useTopologyTypeData = (
 
 // --- Field value ---
 
-export { isTopologyTypeFieldData, type TopologyTypeFieldData };
-
 export type TopologyTypeFieldType = WizardField<
   TopologyTypeFieldData,
   TopologyTypeExternalData,
@@ -169,52 +166,11 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
   dependencies,
 }) => {
   const configsByTopology = externalData?.data.configsByTopology;
-  const pendingTracking = React.useRef<
-    { topologyType: TopologyType; previousPattern?: TopologyType } | undefined
-  >(undefined);
-
-  React.useEffect(() => {
-    const pending = pendingTracking.current;
-    if (
-      !pending ||
-      value?.topologyType !== pending.topologyType ||
-      !externalData?.loaded ||
-      externalData.loadError
-    ) {
-      return;
-    }
-
-    const configData = dependencies?.customTopologyConfig;
-    if (!isRecord(configData)) {
-      return;
-    }
-    const { selectedConfig } = configData;
-    let topologyConfigurationId: string | undefined;
-    if (selectedConfig === 'default' && pending.topologyType === TopologyType.SINGLE_NODE) {
-      topologyConfigurationId = 'default';
-    } else if (isRecord(selectedConfig) && isRecord(selectedConfig.metadata)) {
-      const { name } = selectedConfig.metadata;
-      const configForTopology = configsByTopology?.[pending.topologyType]?.find(
-        (config) => config.metadata.name === name,
-      );
-      if (typeof name === 'string' && configForTopology) {
-        topologyConfigurationId = name;
-      }
-    }
-
-    // Accept the effective compatible selection, including restored edit configurations.
-    // List ordering is not a resolution signal and must not suppress non-first selections.
-    if (!topologyConfigurationId) {
-      return;
-    }
-
-    pendingTracking.current = undefined;
-    fireTopologyTypeSelected({
-      llmdComposablePattern: pending.topologyType,
-      topologyConfigurationId,
-      previousPattern: pending.previousPattern,
-    });
-  }, [value?.topologyType, dependencies?.customTopologyConfig, externalData, configsByTopology]);
+  const trackTopologySelection = useTopologySelectionTracking({
+    topologyType: value?.topologyType,
+    configurationData: dependencies?.customTopologyConfig,
+    externalData,
+  });
 
   const options: SimpleSelectOption[] = React.useMemo(
     () =>
@@ -250,10 +206,8 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
               if (matched && matched !== value?.topologyType) {
-                pendingTracking.current = {
-                  topologyType: matched,
-                  previousPattern: value?.topologyType,
-                };
+                // Queue tracking before updating the wizard; the hook waits for configuration resolution.
+                trackTopologySelection(matched);
                 onChange({ topologyType: matched });
               }
             }}

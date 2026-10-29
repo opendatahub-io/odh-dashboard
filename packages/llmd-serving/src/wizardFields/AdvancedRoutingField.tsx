@@ -18,10 +18,10 @@ import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/compone
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
-import { isTopologyTypeFieldData } from './TopologyTypeField';
-import type { TopologyTypeFieldData } from './TopologyTypeField';
 import {
   TopologyType,
+  isTopologyTypeFieldData,
+  type TopologyTypeFieldData,
   RoutingTypeLabels,
   type LLMInferenceServiceConfigKind,
   getConfigRoutingType,

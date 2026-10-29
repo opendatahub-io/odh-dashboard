@@ -18,9 +18,10 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
-import { isTopologyTypeFieldData, type TopologyTypeFieldData } from './TopologyTypeField';
 import {
   TopologyType,
+  isTopologyTypeFieldData,
+  type TopologyTypeFieldData,
   type LLMInferenceServiceConfigKind,
   getConfigSupportedTopologies,
 } from '../types';

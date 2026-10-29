@@ -5,12 +5,16 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { LlmdTrackingEvent } from '../../tracking/llmdTrackingConstants';
-import { TopologyType, TopologyTypeLabels, type LLMInferenceServiceConfigKind } from '../../types';
+import {
+  TopologyType,
+  TopologyTypeLabels,
+  type LLMInferenceServiceConfigKind,
+  type TopologyTypeFieldData,
+} from '../../types';
 import {
   TopologyTypeFieldWizardField,
   useTopologyTypeData,
   type TopologyTypeExternalData,
-  type TopologyTypeFieldData,
 } from '../TopologyTypeField';
 import {
   useFetchTopologyConfigs,

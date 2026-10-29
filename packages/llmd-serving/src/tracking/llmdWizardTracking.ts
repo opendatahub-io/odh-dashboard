@@ -124,23 +124,28 @@ const extractGatewayTrackingProperties = (
 const extractTopologyTrackingProperties = (
   state: WizardFormData['state'],
 ): TopologyTrackingProperties => {
+  // Without a recognized topology, neither the pattern nor its configuration can be reported.
   const topology = state[TOPOLOGY_TYPE_FIELD_ID];
   if (!isTopologyTypeFieldData(topology)) {
     return {};
   }
 
+  // The analytics contract calls the topology type "llmdComposablePattern".
+  // Keep reporting it even when the configuration is missing or still resolving.
   const pattern = { llmdComposablePattern: topology.topologyType };
   const config = state[CUSTOM_TOPOLOGY_CONFIG_FIELD_ID];
   if (!isRecord(config)) {
     return pattern;
   }
 
+  // The built-in topology configuration is valid only for single-node serving.
   if (config.selectedConfig === TOPOLOGY_CONFIG_DEFAULT) {
     return topology.topologyType === TopologyType.SINGLE_NODE
       ? { ...pattern, topologyConfigurationId: TOPOLOGY_CONFIG_DEFAULT }
       : pattern;
   }
 
+  // Reject a known topology mismatch. Unlabelled edit configurations may still be valid.
   const { selectedConfig } = config;
   const labels =
     isRecord(selectedConfig) && isRecord(selectedConfig.metadata)
@@ -151,6 +156,7 @@ const extractTopologyTrackingProperties = (
     return pattern;
   }
 
+  // Prefer the selected resource name; use configRef only while selection is unresolved.
   const topologyConfigurationId = getSelectedConfigId(config);
   return {
     ...pattern,
@@ -162,10 +168,12 @@ const extractTopologyTrackingProperties = (
 const extractDeploymentConfigurationTrackingProperties = (
   state: WizardFormData['state'],
 ): LlmdDeploymentConfigurationTrackingProperties => {
+  // Preserve the method key used by the deployment-method selection event for funnel matching.
   const methodData: unknown = state.deploymentMethod;
   const deploymentMethod =
     isRecord(methodData) && isNonEmptyString(methodData.method) ? methodData.method : undefined;
 
+  // A retained profile selection is not applied when the user chooses existing resource settings.
   const hardwareData: unknown = state.hardwareProfileConfig;
   const hardwareProfile =
     isRecord(hardwareData) &&
@@ -184,18 +192,22 @@ const extractDeploymentConfigurationTrackingProperties = (
       ? replicas
       : undefined;
 
+  // Translate the built-in-image sentinel to the analytics default; otherwise resolve the config ID.
   const accelerator = state[ACCELERATOR_CONFIG_FIELD_ID];
   const acceleratorConfigurationId =
     isRecord(accelerator) && accelerator.selectedConfig === ACCELERATOR_CONFIG_DEFAULT
       ? 'default'
       : getSelectedConfigId(accelerator);
 
+  // An existing routing field with neither a selection nor an edit reference means default routing.
+  // An absent field does not imply a default and contributes no routing property.
   const routing = state[LLMD_ROUTING_FIELD_ID];
   const routingConfigurationId =
     isRecord(routing) && routing.selectedConfig === undefined && routing.configRef === undefined
       ? DEFAULT_ROUTING_KEY
       : getSelectedConfigId(routing);
 
+  // Include only available values so incomplete/cancelled forms do not fabricate configuration.
   return {
     ...extractTopologyTrackingProperties(state),
     ...(deploymentMethod !== undefined && { deploymentMethod }),
