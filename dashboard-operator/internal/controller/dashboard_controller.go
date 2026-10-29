@@ -967,6 +967,32 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 		}
 	}
 
+	var roles rbacv1.RoleList
+	if err := r.apiReader().List(ctx, &roles, opts...); err != nil {
+		return fmt.Errorf("listing observability roles: %w", err)
+	}
+	for i := range roles.Items {
+		if !shouldDelete(&roles.Items[i], "Role") {
+			continue
+		}
+		if err := r.Delete(ctx, &roles.Items[i]); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting observability Role %s/%s: %w", roles.Items[i].Namespace, roles.Items[i].Name, err)
+		}
+	}
+
+	var bindings rbacv1.RoleBindingList
+	if err := r.apiReader().List(ctx, &bindings, opts...); err != nil {
+		return fmt.Errorf("listing observability rolebindings: %w", err)
+	}
+	for i := range bindings.Items {
+		if !shouldDelete(&bindings.Items[i], "RoleBinding") {
+			continue
+		}
+		if err := r.Delete(ctx, &bindings.Items[i]); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting observability RoleBinding %s/%s: %w", bindings.Items[i].Namespace, bindings.Items[i].Name, err)
+		}
+	}
+
 	persesList := &unstructured.UnstructuredList{}
 	persesList.SetGroupVersionKind(persesdashboardGVK)
 	if err := r.apiReader().List(ctx, persesList, opts...); err != nil {

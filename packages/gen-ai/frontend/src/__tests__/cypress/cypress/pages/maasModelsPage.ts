@@ -14,7 +14,7 @@ class MaaSModelsPage {
   }
 
   findModelsNavigation() {
-    return cy.findByRole('link', { name: 'Models endpoints' });
+    return cy.findByRole('link', { name: 'Model endpoints' });
   }
 
   findAIAssetsNavigation() {

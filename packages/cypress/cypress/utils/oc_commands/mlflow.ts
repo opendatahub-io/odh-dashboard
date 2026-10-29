@@ -597,8 +597,13 @@ export const getMlflowTrackingUrl = (): Cypress.Chainable<string> =>
 /**
  * Get the name of a running MLflow tracking-server pod in the applications namespace.
  * Uses the tracking-server label to avoid matching operator, database, or minio pods.
+ * Retries with backoff because a transient oc failure (for example, an API server timeout
+ * on a busy cluster) returns empty stdout even while the pod is Running and Ready.
  */
-const getMlflowPodName = (): Cypress.Chainable<string> => {
+const MLFLOW_POD_LOOKUP_MAX_ATTEMPTS = 5;
+const MLFLOW_POD_LOOKUP_RETRY_INTERVAL_MS = 5000;
+
+const getMlflowPodName = (attempt = 1): Cypress.Chainable<string> => {
   const namespace = getApplicationsNamespace();
   return cy
     .exec(
@@ -607,12 +612,28 @@ const getMlflowPodName = (): Cypress.Chainable<string> => {
     )
     .then((result) => {
       const podName = result.stdout.replace(/"/g, '').trim();
-      if (!podName) {
-        throw new Error(
-          `No running MLflow tracking pod found (label app=mlflow) in namespace ${namespace}`,
-        );
+      if (podName) {
+        return cy.wrap(podName);
       }
-      return podName;
+
+      if (attempt < MLFLOW_POD_LOOKUP_MAX_ATTEMPTS) {
+        cy.log(
+          `MLflow tracking pod lookup attempt ${attempt}/${MLFLOW_POD_LOOKUP_MAX_ATTEMPTS} ` +
+            `returned no pod (oc exit code ${result.exitCode}); retrying`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting -- bounded pod lookup backoff
+        return cy
+          .wait(MLFLOW_POD_LOOKUP_RETRY_INTERVAL_MS)
+          .then(() => getMlflowPodName(attempt + 1));
+      }
+
+      throw new Error(
+        `No running MLflow tracking pod found (label app=mlflow) in namespace ${namespace} ` +
+          `after ${MLFLOW_POD_LOOKUP_MAX_ATTEMPTS} attempts. ` +
+          `Last oc exit code: ${result.exitCode}. stderr: ${maskSensitiveInfo(
+            result.stderr || '(empty)',
+          )}`,
+      );
     });
 };
 

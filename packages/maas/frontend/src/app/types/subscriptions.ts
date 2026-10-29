@@ -178,6 +178,8 @@ export type UserSubscription = {
   organization_id?: string;
   cost_center?: string;
   labels?: Record<string, string>;
+  /** Owner group references from the maas-api passthrough; populated for admins. */
+  owner?: OwnerSpec;
 };
 
 export type RateLimit = {
