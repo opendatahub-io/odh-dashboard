@@ -86,15 +86,17 @@ func TestWatchForReloadDetectsChange(t *testing.T) {
 
 func TestWatchForReloadIgnoresUnchangedAndTransientErrors(t *testing.T) {
 	current := intermediateDefaults()
-	tick := make(chan time.Time)
+	tick := make(chan time.Time, 2)
 	serveErrCh := make(chan error, 1)
 
 	var calls atomic.Int32
+	polledTwice := make(chan struct{})
 	resolve := func(context.Context) (*tls.Config, error) {
 		switch calls.Add(1) {
 		case 1:
 			return current.Clone(), nil // unchanged → no reload
 		case 2:
+			close(polledTwice)
 			return nil, fmt.Errorf("transient read error") // logged, kept
 		default:
 			return current.Clone(), nil
@@ -110,7 +112,15 @@ func TestWatchForReloadIgnoresUnchangedAndTransientErrors(t *testing.T) {
 
 	tick <- time.Now() // unchanged
 	tick <- time.Now() // transient error
-	// Neither should have triggered a reload; stop by signalling server stop.
+	// Wait until both ticks have been resolved before signalling stop, so the stop
+	// signal cannot race ahead of the second poll (watchForReload checks serveErrCh
+	// before resolving on each tick, so a pending stop would otherwise win).
+	select {
+	case <-polledTwice:
+	case <-time.After(2 * time.Second):
+		t.Fatal("resolver was not polled twice")
+	}
+	// Neither tick should have triggered a reload; stop by signalling server stop.
 	serveErrCh <- nil
 
 	select {

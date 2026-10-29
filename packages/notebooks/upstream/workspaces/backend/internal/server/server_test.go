@@ -89,9 +89,36 @@ func TestReloadTLSConfigSwapsConfigAndSignals(t *testing.T) {
 		t.Error("expected reload to be signalled")
 	}
 
-	// A second reload with no drain must not block (coalesces into one pending).
-	s.ReloadTLSConfig(updated)
-	s.ReloadTLSConfig(updated)
+	// Two further reloads to *different* policies with no drain must not block
+	// (they coalesce into the single pending slot).
+	s.ReloadTLSConfig(&tls.Config{MinVersion: tls.VersionTLS12})
+	s.ReloadTLSConfig(&tls.Config{MinVersion: tls.VersionTLS13})
+}
+
+// TestReloadTLSConfigSkipsEqualConfig verifies a reload to the same effective policy
+// is a no-op: the config is not re-stored and no restart is signalled, so the
+// listener is not bounced for a no-op cluster-profile change (e.g. a profile edit
+// under Legacy adherence that keeps the backend on TLS 1.3).
+func TestReloadTLSConfigSkipsEqualConfig(t *testing.T) {
+	initial := &tls.Config{MinVersion: tls.VersionTLS12, CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256}}
+	s := &Server{logger: slog.Default(), reloadCh: make(chan struct{}, 1)}
+	s.tlsConfig.Store(initial)
+
+	// An equal-but-distinct-pointer config must not signal a restart.
+	s.ReloadTLSConfig(initial.Clone())
+	select {
+	case <-s.reloadCh:
+		t.Fatal("equal config should not signal a reload")
+	default:
+	}
+
+	// A genuinely different policy still signals.
+	s.ReloadTLSConfig(&tls.Config{MinVersion: tls.VersionTLS13})
+	select {
+	case <-s.reloadCh:
+	default:
+		t.Error("changed config should signal a reload")
+	}
 }
 
 func TestTLSConfigPermitsHTTP2(t *testing.T) {

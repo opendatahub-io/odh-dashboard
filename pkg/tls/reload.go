@@ -182,6 +182,15 @@ func watchForReload(
 		case err := <-serveErrCh:
 			return nil, serverStopped, err
 		case <-tick:
+			// A serve error that arrived in the same window must win over a reload:
+			// select picks a ready case at random, so without this a genuine listener
+			// failure could be masked as a reload (the reloadRequested path drains
+			// serveErrCh and discards the error). Check it first, non-blocking.
+			select {
+			case err := <-serveErrCh:
+				return nil, serverStopped, err
+			default:
+			}
 			candidate, err := resolve(ctx)
 			if err != nil {
 				logger.Warn("failed to re-read cluster TLS profile; keeping current configuration", "error", err)

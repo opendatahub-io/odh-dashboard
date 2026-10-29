@@ -91,7 +91,17 @@ func (s *Server) SetupWithManager(mgr ctrl.Manager) error {
 // ReloadTLSConfig swaps the TLS configuration used by future listener
 // generations and triggers a graceful restart. Safe for concurrent use; a
 // no-op-coalescing channel ensures overlapping changes collapse into one restart.
+//
+// A reload that resolves to the same effective policy is skipped so the listener
+// is not torn down (dropping in-flight connections) for a no-op change. This
+// matters under Legacy/unset adherence, where effectiveServerTLSConfig returns the
+// backend's fixed TLS 1.3 config regardless of the cluster profile: a profile edit
+// then fires the watcher but must not bounce the listener. Mirrors the equality
+// guard in the shared pkg/tls reload loop.
 func (s *Server) ReloadTLSConfig(cfg *tls.Config) {
+	if tlsConfigEqual(s.tlsConfig.Load(), cfg) {
+		return
+	}
 	s.tlsConfig.Store(cfg)
 	select {
 	case s.reloadCh <- struct{}{}:
@@ -213,6 +223,18 @@ func disableHTTP2IfIncompatible(logger *slog.Logger, srv *http.Server) {
 		srv.TLSConfig.NextProtos = []string{"http/1.1"}
 	}
 	srv.TLSNextProto = map[string]func(*http.Server, *tls.Conn, http.Handler){}
+}
+
+// tlsConfigEqual reports whether two resolved TLS configs would serve the same
+// policy. Only the policy-bearing fields are compared; NextProtos/TLSNextProto are
+// derived at serve time from these and so need not be compared.
+func tlsConfigEqual(a, b *tls.Config) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.MinVersion == b.MinVersion &&
+		slices.Equal(a.CipherSuites, b.CipherSuites) &&
+		slices.Equal(a.CurvePreferences, b.CurvePreferences)
 }
 
 // tlsConfigPermitsHTTP2 reports whether cfg's cipher list is compatible with
