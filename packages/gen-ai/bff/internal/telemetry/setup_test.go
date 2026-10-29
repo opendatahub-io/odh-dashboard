@@ -3,27 +3,38 @@ package telemetry
 import (
 	"context"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"os/exec"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var testLogger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 
-func TestSetup_DisabledWhenEndpointUnset(t *testing.T) {
+func TestSetup_WaitsWhenEndpointUnset(t *testing.T) {
+	preserveOTelGlobals(t)
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+	initialProvider := otel.GetTracerProvider()
 
-	shutdown := Setup(testLogger)
+	shutdown := setup(testLogger, func(context.Context, *slog.Logger) string { return "" }, time.Hour)
 	require.NotNil(t, shutdown)
+	assert.Same(t, initialProvider, otel.GetTracerProvider(), "no provider should be installed until discovery succeeds")
 
 	assert.NoError(t, shutdown(context.Background()))
 }
 
 func TestSetup_EnabledWhenEndpointSet(t *testing.T) {
+	preserveOTelGlobals(t)
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://192.0.2.1:4318")
 	t.Setenv("OTEL_SERVICE_NAME", "test-bff")
 
@@ -77,12 +88,130 @@ func TestNormalizeOTLPEndpointURL(t *testing.T) {
 }
 
 func TestSetup_ShutdownIsIdempotent(t *testing.T) {
+	preserveOTelGlobals(t)
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 
-	shutdown := Setup(testLogger)
+	shutdown := setup(testLogger, func(context.Context, *slog.Logger) string { return "" }, time.Hour)
 
 	assert.NoError(t, shutdown(context.Background()))
 	assert.NoError(t, shutdown(context.Background()))
+}
+
+func preserveOTelGlobals(t *testing.T) {
+	t.Helper()
+	provider := otel.GetTracerProvider()
+	propagator := otel.GetTextMapPropagator()
+	t.Cleanup(func() {
+		otel.SetTracerProvider(provider)
+		otel.SetTextMapPropagator(propagator)
+	})
+}
+
+func TestSetup_EndpointOverrideSkipsDiscovery(t *testing.T) {
+	preserveOTelGlobals(t)
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4318")
+	shutdown := setup(testLogger, func(context.Context, *slog.Logger) string {
+		t.Fatal("discovery should not run with an explicit endpoint")
+		return ""
+	}, time.Millisecond)
+	require.IsType(t, &sdktrace.TracerProvider{}, otel.GetTracerProvider())
+	require.NoError(t, shutdown(context.Background()))
+	require.NoError(t, shutdown(context.Background()))
+}
+
+func TestSetup_ShutdownCancelsDiscovery(t *testing.T) {
+	preserveOTelGlobals(t)
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+	initialProvider := otel.GetTracerProvider()
+	var attempts atomic.Int32
+	discovering := make(chan struct{})
+	shutdown := setup(testLogger, func(ctx context.Context, _ *slog.Logger) string {
+		if attempts.Add(1) == 1 {
+			return ""
+		}
+		close(discovering)
+		<-ctx.Done()
+		return ""
+	}, time.Millisecond)
+	t.Cleanup(func() { assert.NoError(t, shutdown(context.Background())) })
+
+	select {
+	case <-discovering:
+	case <-time.After(5 * time.Second):
+		t.Fatal("discovery was not retried")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	require.NoError(t, shutdown(ctx))
+	assert.Equal(t, int32(2), attempts.Load(), "no discovery should run after shutdown")
+	assert.Same(t, initialProvider, otel.GetTracerProvider())
+}
+
+func TestSetup_EnablesTracingAfterCollectorAppears(t *testing.T) {
+	// Use a fresh process so the OTel default delegating provider has not
+	// already been replaced by another test. This reproduces real BFF startup.
+	const childEnv = "TEST_OTEL_LATE_DISCOVERY"
+	if os.Getenv(childEnv) != "1" {
+		cmd := exec.Command(os.Args[0], "-test.run=^TestSetup_EnablesTracingAfterCollectorAppears$", "-test.timeout=20s")
+		cmd.Env = append(os.Environ(), childEnv+"=1")
+		output, err := cmd.CombinedOutput()
+		require.NoError(t, err, "%s", output)
+		return
+	}
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+	exported := make(chan string, 1)
+	collector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		exported <- r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer collector.Close()
+
+	var available atomic.Bool
+	var attempts atomic.Int32
+	shutdown := setup(testLogger, func(context.Context, *slog.Logger) string {
+		attempts.Add(1)
+		if available.Load() {
+			return collector.URL
+		}
+		return ""
+	}, time.Millisecond)
+	t.Cleanup(func() { assert.NoError(t, shutdown(context.Background())) })
+
+	// Both a cached tracer and HTTP middleware exist before the collector.
+	tracer := otel.Tracer("late-discovery-test")
+	_, before := tracer.Start(context.Background(), "before-discovery")
+	assert.False(t, before.SpanContext().IsValid())
+	before.End()
+	var requestTraceID string
+	handler := otelhttp.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestTraceID = trace.SpanContextFromContext(r.Context()).TraceID().String()
+		w.WriteHeader(http.StatusOK)
+	}), "chat")
+
+	available.Store(true)
+	require.Eventually(t, func() bool {
+		_, ok := otel.GetTracerProvider().(*sdktrace.TracerProvider)
+		return ok
+	}, 5*time.Second, time.Millisecond)
+	assert.GreaterOrEqual(t, attempts.Load(), int32(2))
+	_, after := tracer.Start(context.Background(), "after-discovery")
+	assert.True(t, after.SpanContext().IsValid(), "previously cached tracers should start recording")
+	after.End()
+
+	request := httptest.NewRequest(http.MethodPost, "/responses", nil)
+	request.Header.Set("traceparent", "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01")
+	handler.ServeHTTP(httptest.NewRecorder(), request)
+	assert.Equal(t, "0123456789abcdef0123456789abcdef", requestTraceID, "middleware should record spans and propagate trace context after late discovery")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	require.NoError(t, shutdown(ctx)) // Flushes the spans to the newly discovered collector.
+	select {
+	case path := <-exported:
+		assert.Equal(t, "/v1/traces", path)
+	default:
+		t.Fatal("no spans exported after late discovery")
+	}
 }
 
 func TestBuildResource_DefaultServiceName(t *testing.T) {
