@@ -62,8 +62,13 @@ func isLoopbackGatewayHost(hostPort string) bool {
 	host := hostPort
 	if h, _, err := net.SplitHostPort(hostPort); err == nil {
 		host = h
+	} else if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		// Bracketed IPv6 literal without a port: url.Parse keeps the brackets
+		// and SplitHostPort rejects that form, so strip the pair here before
+		// the IP parse (mirroring what SplitHostPort does when a port exists).
+		host = host[1 : len(host)-1]
 	}
-	if strings.EqualFold(strings.Trim(host, "[]"), "localhost") {
+	if strings.EqualFold(host, "localhost") {
 		return true
 	}
 	return net.ParseIP(host).IsLoopback()

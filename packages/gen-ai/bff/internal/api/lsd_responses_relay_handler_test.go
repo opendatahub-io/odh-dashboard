@@ -220,6 +220,30 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		assert.JSONEq(t, upstreamBody, rr.Body.String())
 	})
 
+	It("should accept plain http gateway domains for every loopback host form", func() {
+		t := GinkgoT()
+
+		for _, tc := range []struct {
+			domain string
+			want   string
+		}{
+			{domain: "http://localhost", want: "http://localhost"},
+			{domain: "http://localhost:8080", want: "http://localhost:8080"},
+			{domain: "http://127.0.0.1", want: "http://127.0.0.1"},
+			{domain: "http://[::1]", want: "http://[::1]"},
+			{domain: "http://[::1]:8080", want: "http://[::1]:8080"},
+		} {
+			baseURL, err := relayBaseURL(tc.domain)
+			assert.NoError(t, err, tc.domain)
+			assert.Equal(t, tc.want, baseURL, tc.domain)
+		}
+
+		for _, domain := range []string{"http://[2001:db8::1]", "http://[2001:db8::1]:8080"} {
+			_, err := relayBaseURL(domain)
+			assert.Error(t, err, domain)
+		}
+	})
+
 	It("should return 503 when the gateway domain uses plain http for a non-loopback host", func() {
 		t := GinkgoT()
 

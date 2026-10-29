@@ -79,7 +79,8 @@ paths:
     description: >-
       Executes retrieval against a Milvus, pgvector, or Neo4j database and generates an answer
       through MaaS. Neo4j collections use graph retrieval; the vector index and knowledge graph
-      are read from the collection named by the file_search vector_store_id.
+      are read from the collection named by the file_search vector_store_id. Neo4j graph
+      retrieval uses variable-scope CALL subqueries and requires Neo4j 5.23 or newer.
     post:
       summary: Create an AutoRAG response
       tags:

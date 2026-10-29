@@ -192,7 +192,7 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 - `tools[].vector_store_ids[0]` — logical vector DB collection name. IDs may contain only letters, numbers, `_`, `-`, and `.`; `-` and `.` are canonicalized to `_` before adapter lookup. Logical names that canonicalize to the same ID cannot coexist (for example, `my-store` and `my.store`).
 - `tools[].ranking_options` — omit for dense search. `ranker: "rrf"` selects hybrid RRF on Milvus or pgvector. Milvus hybrid retrieval requires Milvus 2.5 or newer and a collection with `content` text, `vector` dense, and `sparse` BM25 fields, a BM25 function, indexes on both vector fields, and a loaded collection. It accepts optional `ranker_k` (default 60, strictly between 0 and 16384), but not `alpha` with RRF. Pgvector accepts optional `alpha` (default 0.5) to weight the dense and full-text RRF ranks; its RRF constant is fixed at 60. Milvus also supports `ranker: "weighted"` with `alpha` (default 0.5) as the dense weight. Weighted ranking is unsupported by pgvector. Neo4j always uses the collection-scoped graph retrieval query (vector index plus entity/relationship expansion) and rejects `ranking_options`. `search_mode`, `ranker_strategy`, and other ranking fields are rejected rather than ignored.
 
-Neo4j connections are auto-detected from `NEO4J_URI` and `NEO4J_PASSWORD`. Optional keys are `NEO4J_USERNAME` (default `neo4j`), `NEO4J_DATABASE` (default `neo4j`), and `NEO4J_CA_CERT` (PEM). A `neo4j+s://`/`bolt+s://` URI enables TLS; a plain `neo4j://`/`bolt://` URI is promoted to TLS when `NEO4J_CA_CERT` is present, which is how the RAG DB tooling writes external secrets. External Neo4j endpoints without a CA bundle must use a TLS scheme.
+Neo4j connections are auto-detected from `NEO4J_URI` and `NEO4J_PASSWORD`. Optional keys are `NEO4J_USERNAME` (default `neo4j`), `NEO4J_DATABASE` (default `neo4j`), and `NEO4J_CA_CERT` (PEM). A `neo4j+s://`/`bolt+s://` URI enables TLS; a plain `neo4j://`/`bolt://` URI is promoted to TLS when `NEO4J_CA_CERT` is present, which is how the RAG DB tooling writes external secrets. External Neo4j endpoints without a CA bundle must use a TLS scheme. Graph retrieval uses the variable-scope `CALL (node) { ... }` subquery syntax, which requires Neo4j 5.23 or newer; older servers reject the retrieval query.
 
 > Automated tests validate hybrid request construction and parameter validation, but they do not replace a live smoke test against a pipeline-created Milvus hybrid collection. Before release, verify the collection schema, BM25 function, indexes, load state, and both RRF and weighted retrieval against the deployed Milvus version.
 - `metadata.embedding_model` — required; model used for query embedding
@@ -230,8 +230,13 @@ Vector database destinations are restricted to either a cluster-local DNS name e
 `.cluster.local` (plaintext is allowed for the in-cluster adapter contract; resolved loopback,
 link-local, multicast, unspecified, and NAT64-translated addresses are still rejected) or a
 public DNS name using TLS. Userinfo, queries, fragments, unsafe paths, and literal
-IP addresses are rejected. External DNS results are checked again at connection time and private,
-loopback, link-local, multicast, unspecified, and metadata-style addresses are not dialed.
+IP addresses are rejected. External DNS results are re-validated before the driver is created:
+private, loopback, link-local, multicast, unspecified, and metadata-style addresses are rejected.
+Plaintext endpoints are then pinned to the validated literal IPs on every dial, so later DNS
+changes cannot redirect the connection. TLS endpoints keep the hostname in the driver URI — the
+Neo4j driver derives the TLS server name from the dialed address, so pinning would break
+certificate hostname validation — leaving a narrow DNS-rebinding window between validation and
+the driver's own resolution, which `VerifyConnectivity` triggers immediately.
 
 **Sample call (streaming):**
 

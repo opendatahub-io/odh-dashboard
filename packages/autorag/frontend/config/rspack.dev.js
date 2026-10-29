@@ -49,8 +49,19 @@ const getCLIToken = () => {
       if (!token) {
         continue;
       }
-      const username = execSync(usernameCommand).toString().trim();
-      console.info('Logged in as user:', username);
+      // The username lookup is best-effort: a CLI can yield a token while
+      // failing the whoami lookup (e.g. RBAC blocks self-subject review), so
+      // its failure must not discard a valid token. stderr is suppressed for
+      // this optional lookup only.
+      let username = '';
+      try {
+        username = execSync(usernameCommand, { stdio: ['pipe', 'pipe', 'ignore'] })
+          .toString()
+          .trim();
+      } catch {
+        // Keep the token; the relay only needs it, not the username.
+      }
+      console.info('Logged in as user:', username || '(unknown)');
       return token;
     } catch {
       // Try the next CLI, then fall through to an empty token.
