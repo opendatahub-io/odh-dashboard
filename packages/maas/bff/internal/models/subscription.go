@@ -38,7 +38,6 @@ type SubscriptionListItem struct {
 	OrganizationID          string            `json:"organization_id,omitempty"`
 	CostCenter              string            `json:"cost_center,omitempty"`
 	Labels                  map[string]string `json:"labels,omitempty"`
-	Owner                   *OwnerSpec        `json:"owner,omitempty"`
 	// InferencePriority uses snake_case to match the maas-api passthrough payload.
 	InferencePriority *int32 `json:"inference_priority,omitempty"`
 	// Owner contains group references supplied by maas-api, including full group names.

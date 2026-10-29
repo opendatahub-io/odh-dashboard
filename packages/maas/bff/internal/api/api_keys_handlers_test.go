@@ -459,7 +459,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 	})
 
 	var _ = Describe("ListSubscriptionsPassthroughHandler", Ordered, func() {
-		It("returns 200 and a list of subscriptions from the maas-api passthrough", func() {
+		It("filters owned subscriptions from the maas-api passthrough", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 			actual, rs, err := setupApiTest[Envelope[[]models.MySubscriptionListItem, None]](
 				http.MethodGet,
@@ -472,17 +472,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 			Expect(actual.Data).NotTo(BeNil())
-			Expect(len(actual.Data)).Should(BeNumerically(">", 0))
-
-			first := actual.Data[0]
-			Expect(first.SubscriptionIDHeader).NotTo(BeEmpty())
-			Expect(first.SubscriptionDescription).NotTo(BeEmpty())
-			Expect(first.ModelRefs).NotTo(BeEmpty())
-			Expect(first.ModelRefs[0].DisplayName).To(Equal("Granite 3 8B Instruct"))
-			Expect(first.ModelRefs[0].Description).To(Equal("Granite 3 8B Instruct is a large language model that is used for advanced tasks."))
-			// The fake server returns all 75 keys regardless of the per-subscription filter,
-			// so the BFF clamps the count to subscriptionKeyCountCap.
-			Expect(first.KeyCount).To(Equal(int32(subscriptionKeyCountCap)))
+			Expect(actual.Data).To(BeEmpty())
 		})
 
 		It("returns 400 when no identity is provided", func() {
