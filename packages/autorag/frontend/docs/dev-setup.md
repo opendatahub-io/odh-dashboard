@@ -75,7 +75,7 @@ AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token \
 
 # AutoRAG frontend (forwards the oc/kubectl token, or KUBE_TOKEN, to /gen-ai/api)
 cd packages/autorag/frontend
-AUTH_METHOD=user_token pnpm run start:dev
+DEPLOYMENT_MODE=standalone AUTH_METHOD=user_token pnpm run start:dev
 ```
 
 Pointing `GATEWAY_DOMAIN` at `http://localhost:4001` sends the playground's relayed

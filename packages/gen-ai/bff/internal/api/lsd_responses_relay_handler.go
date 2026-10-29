@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -167,6 +168,13 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 	proxyReq, err := http.NewRequestWithContext(requestCtx, http.MethodPost, upstreamURL, bytes.NewReader(body))
 	if err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid relay target: %w", err))
+		return
+	}
+	host := proxyReq.URL.Hostname()
+	ip := net.ParseIP(host)
+	isLoopback := strings.EqualFold(host, "localhost") || (ip != nil && ip.IsLoopback())
+	if proxyReq.URL.Scheme != "https" && (proxyReq.URL.Scheme != "http" || !isLoopback) {
+		app.badRequestResponse(w, r, errors.New("relay target must use HTTPS unless its host is localhost or a loopback IP address"))
 		return
 	}
 	proxyReq.Header.Set("Authorization", "Bearer "+identity.Token)
