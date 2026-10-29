@@ -36,6 +36,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
 
   return (
     <Card
+      className="evalhub-benchmark-card m-clickable"
       isSelected={isSelected}
       data-testid={`benchmark-card-${benchmark.providerId}-${benchmark.id}`}
     >
@@ -46,24 +47,31 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
           </Label>
         </CardHeader>
       )}
-      <CardTitle>
+      <CardTitle
+        onClick={onSelect}
+        data-testid={`benchmark-card-title-region-${benchmark.providerId}-${benchmark.id}`}
+      >
         <Button
           variant="link"
           isInline
-          style={{
-            textDecoration: 'none',
-            fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+          className="evalhub-benchmark-card__title-button"
+          onClick={(e) => {
+            // The title region also opens the drawer; keep this click from double-firing.
+            e.stopPropagation();
+            onSelect();
           }}
-          onClick={onSelect}
         >
-          {benchmark.name}
+          <span className="evalhub-benchmark-card__title-name">{benchmark.name}</span>
         </Button>
         <Content component="p" className="evalhub-benchmark-card__subtitle">
           {benchmark.id} · {benchmark.providerName}
         </Content>
       </CardTitle>
 
-      <CardBody>
+      <CardBody
+        onClick={onSelect}
+        data-testid={`benchmark-card-body-region-${benchmark.providerId}-${benchmark.id}`}
+      >
         {benchmark.description && (
           <Content
             component="p"

@@ -134,6 +134,24 @@ describe('Choose Benchmark Page', () => {
     chooseBenchmarkPage.findBenchmarkDrawerPanel().should('not.exist');
   });
 
+  it('should open the benchmark details drawer when clicking the card title or body', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+
+    chooseBenchmarkPage.findBenchmarkCardTitleRegion('test-provider', 'bench-alpha').click();
+    chooseBenchmarkPage.findBenchmarkDrawerPanel().should('exist');
+    chooseBenchmarkPage.findBenchmarkDrawerPanel().should('contain.text', 'Alpha Bench');
+
+    chooseBenchmarkPage
+      .findBenchmarkDrawerPanel()
+      .findByRole('button', { name: 'Close drawer panel' })
+      .click();
+    chooseBenchmarkPage.findBenchmarkDrawerPanel().should('not.exist');
+
+    chooseBenchmarkPage.findBenchmarkCardBodyRegion('test-provider', 'bench-alpha').click();
+    chooseBenchmarkPage.findBenchmarkDrawerPanel().should('exist');
+    chooseBenchmarkPage.findBenchmarkDrawerPanel().should('contain.text', 'Alpha Bench');
+  });
+
   it('should navigate to start page when clicking "Select benchmark"', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
 
@@ -158,34 +176,18 @@ describe('Choose Benchmark Page - Sort', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
     chooseBenchmarkPage.selectSortOption('name');
 
-    chooseBenchmarkPage
-      .findBenchmarksGallery()
-      .findAllByTestId(/^benchmark-card-/)
-      .first()
-      .should('contain.text', 'Alpha Bench');
+    chooseBenchmarkPage.findBenchmarkCards().first().should('contain.text', 'Alpha Bench');
 
-    chooseBenchmarkPage
-      .findBenchmarksGallery()
-      .findAllByTestId(/^benchmark-card-/)
-      .last()
-      .should('contain.text', 'Gamma Bench');
+    chooseBenchmarkPage.findBenchmarkCards().last().should('contain.text', 'Gamma Bench');
   });
 
   it('should sort benchmarks by category', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
     chooseBenchmarkPage.selectSortOption('category');
 
-    chooseBenchmarkPage
-      .findBenchmarksGallery()
-      .findAllByTestId(/^benchmark-card-/)
-      .first()
-      .should('contain.text', 'Alpha Bench');
+    chooseBenchmarkPage.findBenchmarkCards().first().should('contain.text', 'Alpha Bench');
 
-    chooseBenchmarkPage
-      .findBenchmarksGallery()
-      .findAllByTestId(/^benchmark-card-/)
-      .last()
-      .should('contain.text', 'Beta Bench');
+    chooseBenchmarkPage.findBenchmarkCards().last().should('contain.text', 'Beta Bench');
   });
 });
 
