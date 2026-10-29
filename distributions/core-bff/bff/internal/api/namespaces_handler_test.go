@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"syscall"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -22,6 +26,7 @@ import (
 type namespaceStubClient struct {
 	stubDynClient
 	ns                         *corev1.Namespace
+	namespaces                 []corev1.Namespace
 	listErr, accessErr, getErr error
 	allowed                    bool
 	getCalled                  bool
@@ -37,7 +42,7 @@ func (s *namespacePreflightClient) GetUser(context.Context, *k8s.RequestIdentity
 }
 
 func (s *namespaceStubClient) GetNamespaces(context.Context, *k8s.RequestIdentity) ([]corev1.Namespace, error) {
-	return nil, s.listErr
+	return s.namespaces, s.listErr
 }
 func (s *namespaceStubClient) CanGetNamespace(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
 	return s.allowed, s.accessErr
@@ -86,13 +91,43 @@ func TestNamespacesHandler_ReturnsNamespaces(t *testing.T) {
 	first := data[0].(map[string]any)
 	assert.NotEmpty(t, first["name"])
 	assert.Equal(t, first["name"], first["displayName"])
-	assert.NotContains(t, first, "phase")
+	assert.NotEmpty(t, first["phase"])
 	for _, item := range data {
 		ns := item.(map[string]any)
-		if value, present := ns["isAiProject"]; present {
-			assert.IsType(t, true, value)
-		}
+		assert.IsType(t, true, ns["isAiProject"])
+		assert.IsType(t, "", ns["phase"])
 	}
+}
+
+func TestNamespaceHandlers_ReturnSameAnnotatedSelectorItem(t *testing.T) {
+	ns := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "project", Annotations: map[string]string{"openshift.io/display-name": "My Project"},
+			Labels: map[string]string{"opendatahub.io/dashboard": "true"},
+		},
+		Status: corev1.NamespaceStatus{Phase: corev1.NamespaceTerminating},
+	}
+	client := &namespaceStubClient{namespaces: []corev1.Namespace{ns}, ns: &ns, allowed: true}
+	app := newTestApp(func(a *App) { a.kubernetesClientFactory = namespaceStubFactory{client: client} })
+	list := httptest.NewRecorder()
+	app.GetNamespacesHandler(list, namespaceTestRequest(NamespacePath), nil)
+	lookup := httptest.NewRecorder()
+	app.GetNamespaceHandler(lookup, namespaceTestRequest(NamespacePath+"/project"), httprouter.Params{{Key: "name", Value: "project"}})
+	require.Equal(t, http.StatusOK, list.Code)
+	require.Equal(t, http.StatusOK, lookup.Code)
+	var listBody struct {
+		Data []map[string]any `json:"data"`
+	}
+	var lookupBody struct {
+		Data map[string]any `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(list.Body.Bytes(), &listBody))
+	require.NoError(t, json.Unmarshal(lookup.Body.Bytes(), &lookupBody))
+	require.Len(t, listBody.Data, 1)
+	assert.Equal(t, listBody.Data[0], lookupBody.Data)
+	assert.Equal(t, map[string]any{
+		"name": "project", "displayName": "My Project", "phase": "Terminating", "isAiProject": true,
+	}, lookupBody.Data)
 }
 
 func TestNamespacesHandler_NonAdminUserForbidden(t *testing.T) {
@@ -141,6 +176,8 @@ func TestNamespacesHandler_EmptyAndErrors(t *testing.T) {
 		{"empty", nil, 200, ""},
 		{"upstream", errors.New("connection reset"), 500, "INTERNAL_SERVER_ERROR"},
 		{"timeout", context.DeadlineExceeded, 504, "GATEWAY_TIMEOUT"},
+		{"network timeout", fmt.Errorf("list: %w", &url.Error{Op: "Get", URL: "https://k8s.example", Err: &net.DNSError{IsTimeout: true}}), 504, "GATEWAY_TIMEOUT"},
+		{"connection refused", fmt.Errorf("list: %w", &url.Error{Op: "Get", URL: "https://k8s.example", Err: &net.OpError{Op: "dial", Net: "tcp", Err: syscall.ECONNREFUSED}}), 503, "SERVICE_UNAVAILABLE"},
 		{"unavailable", k8serrors.NewServiceUnavailable("offline"), 503, "SERVICE_UNAVAILABLE"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -150,7 +187,7 @@ func TestNamespacesHandler_EmptyAndErrors(t *testing.T) {
 			app.GetNamespacesHandler(rr, namespaceTestRequest(NamespacePath), nil)
 			assert.Equal(t, tc.status, rr.Code)
 			if tc.err == nil {
-				assert.JSONEq(t, `{"data":null}`, rr.Body.String())
+				assert.JSONEq(t, `{"data":[]}`, rr.Body.String())
 			} else {
 				assert.Contains(t, rr.Body.String(), tc.code)
 			}
@@ -224,6 +261,8 @@ func TestNamespaceHandler_ValidationAndFailures(t *testing.T) {
 		{"unauthorized", true, k8serrors.NewUnauthorized("expired token"), nil, 401, false},
 		{"forbidden", true, nil, k8serrors.NewForbidden(schema.GroupResource{Resource: "namespaces"}, "valid", errors.New("denied")), 403, true},
 		{"timeout", true, context.DeadlineExceeded, nil, 504, false},
+		{"network-timeout", true, fmt.Errorf("review: %w", &url.Error{Op: "Post", URL: "https://k8s.example", Err: &net.DNSError{IsTimeout: true}}), nil, 504, false},
+		{"connection-refused", true, nil, fmt.Errorf("get: %w", &url.Error{Op: "Get", URL: "https://k8s.example", Err: &net.OpError{Op: "dial", Net: "tcp", Err: syscall.ECONNREFUSED}}), 503, true},
 		{"unavailable", true, nil, k8serrors.NewServiceUnavailable("offline"), 503, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -250,6 +289,9 @@ func TestNamespaceRoute_GetUserError(t *testing.T) {
 		{"deadline", context.DeadlineExceeded, http.StatusGatewayTimeout, "GATEWAY_TIMEOUT"},
 		{"timeout", k8serrors.NewTimeoutError("timeout", 1), http.StatusGatewayTimeout, "GATEWAY_TIMEOUT"},
 		{"unavailable", k8serrors.NewServiceUnavailable("offline"), http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"},
+		{"connection refused", fmt.Errorf("failed to get user identity: %w", &url.Error{Op: "Post", URL: "https://k8s.example", Err: &net.OpError{Op: "dial", Net: "tcp", Err: syscall.ECONNREFUSED}}), http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"},
+		{"dns failure", fmt.Errorf("failed to get user identity: %w", &url.Error{Op: "Post", URL: "https://k8s.example", Err: &net.DNSError{Err: "no such host", Name: "k8s.example"}}), http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"},
+		{"network timeout", fmt.Errorf("failed to get user identity: %w", &url.Error{Op: "Post", URL: "https://k8s.example", Err: &net.DNSError{IsTimeout: true}}), http.StatusGatewayTimeout, "GATEWAY_TIMEOUT"},
 		{"unauthorized", k8serrors.NewUnauthorized("expired"), http.StatusUnauthorized, "UNAUTHORIZED"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

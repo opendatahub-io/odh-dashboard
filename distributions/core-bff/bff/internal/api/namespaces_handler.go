@@ -16,7 +16,7 @@ import (
 )
 
 type NamespacesEnvelope Envelope[[]models.NamespaceModel, None]
-type NamespaceEnvelope Envelope[models.NamespaceLookupModel, None]
+type NamespaceEnvelope Envelope[models.NamespaceModel, None]
 
 func (app *App) namespaceErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
@@ -26,10 +26,10 @@ func (app *App) namespaceErrorResponse(w http.ResponseWriter, r *http.Request, e
 		app.unauthorizedResponse(w, r, err)
 	case k8serrors.IsNotFound(err):
 		app.notFoundResponse(w, r)
-	case errors.Is(err, context.DeadlineExceeded) || k8serrors.IsTimeout(err) || k8serrors.IsServerTimeout(err):
+	case errors.Is(err, context.DeadlineExceeded) || k8serrors.IsTimeout(err) || k8serrors.IsServerTimeout(err) || isKubernetesTransportTimeout(err):
 		app.LogError(r, err)
 		app.errorResponse(w, r, &HTTPError{StatusCode: http.StatusGatewayTimeout, Error: ErrorPayload{Code: "GATEWAY_TIMEOUT", Message: "the Kubernetes request timed out"}})
-	case k8serrors.IsServiceUnavailable(err):
+	case k8serrors.IsServiceUnavailable(err) || isKubernetesTransportError(err):
 		app.LogError(r, err)
 		app.errorResponse(w, r, &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: "SERVICE_UNAVAILABLE", Message: "the Kubernetes API is temporarily unavailable"}})
 	default:
