@@ -242,6 +242,7 @@ if [ -z "$WORKSPACE_LOCATION" ] || [ "$WORKSPACE_LOCATION" = "null" ]; then
 fi
 
 PACKAGE_JSON="$MONOREPO_ROOT/$WORKSPACE_LOCATION/package.json"
+node "$SCRIPT_DIR/package-subtree-files.cjs" validate "$PACKAGE_JSON"
 
 cd "$MONOREPO_ROOT"
 
@@ -454,7 +455,7 @@ if [ ! -d "$TARGET_DIR" ] && { [ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" =
           --arg branch "$LOCAL_BRANCH" \
           --arg commit "$TARGET_COMMIT" \
           '.subtree = (
-            { DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
+            .subtree + { DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
                 { branch: $branch }
                 + if $origin_url != "" then { origin_url: $origin_url } else { source: "local repository" } end
               ) }
@@ -505,7 +506,7 @@ if [ "$needs_sync_work" = true ]; then
   temp_file="$PACKAGE_JSON.tmp"
   if ! jq --arg origin_url "$LOCAL_REPO_ORIGIN" \
           --arg branch "$LOCAL_BRANCH" \
-          '.subtree = {
+          '.subtree = (.subtree + {
             DO_NOT_MERGE_SYNCED_FROM_LOCAL: (
               { branch: $branch }
               + if $origin_url != "" then { origin_url: $origin_url } else { source: "local repository" } end
@@ -515,7 +516,7 @@ if [ "$needs_sync_work" = true ]; then
             src: .subtree.src,
             target: .subtree.target,
             commit: .subtree.commit
-          } |
+          }) |
           if .subtree.src == null then del(.subtree.src) else . end |
           if .subtree.repo == null then del(.subtree.repo) else . end' \
           "$PACKAGE_JSON" > "$temp_file"; then

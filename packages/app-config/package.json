@@ -18,8 +18,8 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test-unit": "jest --silent",
-    "test-unit-coverage": "jest --silent --coverage",
+    "test-unit": "jest --silent && node --test scripts/package-subtree-files.integration.cjs",
+    "test-unit-coverage": "jest --silent --coverage && node --test scripts/package-subtree-files.integration.cjs",
     "type-check": "tsc --noEmit"
   },
   "peerDependencies": {

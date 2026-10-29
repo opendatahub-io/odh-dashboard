@@ -29,6 +29,9 @@
     "branch": "main",
     "src": "",
     "target": "upstream",
+    "exclude": [
+      "workspaces/frontend/src/odh/"
+    ],
     "commit": "118240a70c81c7727a2462ad5732f61c2e737bbc"
   },
   "module-federation": {

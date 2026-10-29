@@ -89,17 +89,7 @@ copy_upstream_files() {
     source_dir="$source_base/$upstream_subdir"
   fi
 
-  if command -v rsync >/dev/null 2>&1; then
-    if ! rsync -a --delete --exclude='.git' "$source_dir"/ "$target_dir"/; then
-      error_msg "Failed to rsync files from $source_dir to $target_dir"
-      return 1
-    fi
-  else
-    if ! ( cd "$source_dir" && tar --exclude='.git' -cf - . ) | ( cd "$target_dir" && tar -xpf - ); then
-      error_msg "Failed to copy files from $source_dir to $target_dir using tar"
-      return 1
-    fi
-  fi
+  node "$SCRIPT_DIR/package-subtree-files.cjs" copy "$PACKAGE_JSON" "$source_dir" "$target_dir" || return 1
 
   return 0
 }
@@ -151,76 +141,8 @@ filter_and_transform_patch() {
   local upstream_subdir="$2"
   local output_patch="$3"
 
-  if [ -z "$upstream_subdir" ]; then
-    cp "$input_patch" "$output_patch"
-    return 0
-  fi
-
-  awk -v subdir="$upstream_subdir" '
-    BEGIN {
-      in_relevant_file = 0
-      skip_file = 0
-      subdir_prefix = subdir "/"
-    }
-
-    /^diff --git/ {
-      split($0, parts, " ")
-      old_path_full = parts[3]
-      new_path_full = parts[4]
-
-      gsub(/^a\//, "", old_path_full)
-      gsub(/^b\//, "", new_path_full)
-      old_path = old_path_full
-      new_path = new_path_full
-
-      if (old_path ~ "^" subdir_prefix || new_path ~ "^" subdir_prefix) {
-        in_relevant_file = 1
-        skip_file = 0
-
-        gsub("a/" subdir_prefix, "a/", $0)
-        gsub("b/" subdir_prefix, "b/", $0)
-        print $0
-      } else {
-        in_relevant_file = 0
-        skip_file = 1
-      }
-      next
-    }
-
-    /^index / {
-      if (in_relevant_file && !skip_file) print $0
-      next
-    }
-
-    /^(new|deleted) file mode/ {
-      if (in_relevant_file && !skip_file) print $0
-      next
-    }
-
-    /^(rename|copy) (from|to)/ {
-      if (in_relevant_file && !skip_file) {
-        gsub(subdir_prefix, "", $0)
-        print $0
-      }
-      next
-    }
-
-    /^(---|[+][+][+])/ {
-      if (in_relevant_file && !skip_file) {
-        if ($0 ~ "^---.*/" subdir_prefix) {
-          gsub("/" subdir_prefix, "/", $0)
-        } else if ($0 ~ "^[+][+][+].*/" subdir_prefix) {
-          gsub("/" subdir_prefix, "/", $0)
-        }
-        print $0
-      }
-      next
-    }
-
-    {
-      if (in_relevant_file && !skip_file) print $0
-    }
-  ' "$input_patch" > "$output_patch"
+  node "$SCRIPT_DIR/package-subtree-files.cjs" filter "$PACKAGE_JSON" \
+    "$input_patch" "$upstream_subdir" "$output_patch"
 }
 
 extract_single_file_patch() {
@@ -465,7 +387,7 @@ apply_patch_based_update() {
     commit_msg=$(_git_upstream_cmd log -1 --format="%s" "$commit")
 
     local patch_file="$TMP_DIR/patch_${commit}.patch"
-    _git_upstream_cmd format-patch -1 "$commit" --stdout > "$patch_file"
+    _git_upstream_cmd format-patch --no-renames -1 "$commit" --stdout > "$patch_file"
 
     local filtered_patch="$TMP_DIR/filtered_${commit}.patch"
     filter_and_transform_patch "$patch_file" "$upstream_subdir" "$filtered_patch"
