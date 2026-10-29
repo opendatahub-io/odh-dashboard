@@ -188,14 +188,13 @@ describe('extractReconfigureData', () => {
     expect(result.queue).toBe('gpu-default');
   });
 
-  it('should preserve the legacy queue when hardware_config is absent', () => {
+  it('should return an undefined queue when hardware_config is absent', () => {
     const job = mockEvaluationJob();
-    job.status.queue = 'legacy-queue';
 
     const result = extractReconfigureData(job, []);
 
     expect(result.hardwareProfile).toBeUndefined();
-    expect(result.queue).toBe('legacy-queue');
+    expect(result.queue).toBeUndefined();
   });
 
   it('should preserve raw metric thresholds when reconfiguring a benchmark', () => {

@@ -127,15 +127,13 @@ type EvaluationJob struct {
 }
 
 type JobResource struct {
-	ID                 string     `json:"id"`
-	Tenant             string     `json:"tenant,omitempty"`
-	CreatedAt          string     `json:"created_at,omitempty"`
-	UpdatedAt          string     `json:"updated_at,omitempty"`
-	ReadOnly           bool       `json:"read_only,omitempty"`
-	Owner              string     `json:"owner,omitempty"`
-	MlflowExperimentID string     `json:"mlflow_experiment_id,omitempty"`
-	Message            JobMessage `json:"message,omitempty"`
-	Queue              string     `json:"queue,omitempty"`
+	ID                 string `json:"id"`
+	Tenant             string `json:"tenant,omitempty"`
+	CreatedAt          string `json:"created_at,omitempty"`
+	UpdatedAt          string `json:"updated_at,omitempty"`
+	ReadOnly           bool   `json:"read_only,omitempty"`
+	Owner              string `json:"owner,omitempty"`
+	MlflowExperimentID string `json:"mlflow_experiment_id,omitempty"`
 }
 
 type JobMessage struct {
@@ -146,9 +144,8 @@ type JobMessage struct {
 
 type JobStatus struct {
 	State      string           `json:"state"`
-	Message    JobMessage       `json:"message,omitempty"`
+	Message    *JobMessage      `json:"message,omitempty"`
 	Benchmarks []BenchmarkState `json:"benchmarks,omitempty"`
-	Queue      string           `json:"queue,omitempty"`
 }
 
 type BenchmarkState struct {
@@ -163,7 +160,6 @@ type BenchmarkState struct {
 }
 
 type JobResults struct {
-	TotalEvaluations    int               `json:"total_evaluations"`
 	Benchmarks          []BenchmarkResult `json:"benchmarks,omitempty"`
 	MlflowExperimentURL string            `json:"mlflow_experiment_url,omitempty"`
 	Test                *ResultTest       `json:"test,omitempty"`
@@ -185,17 +181,11 @@ type BenchmarkResult struct {
 	ID             string               `json:"id"`
 	ProviderID     string               `json:"provider_id,omitempty"`
 	BenchmarkIndex *int                 `json:"benchmark_index,omitempty"`
-	Metrics        map[string]float64   `json:"metrics,omitempty"`
-	Artifacts      *BenchmarkArtifact   `json:"artifacts,omitempty"`
+	Metrics        map[string]any       `json:"metrics,omitempty"`
+	Artifacts      map[string]any       `json:"artifacts,omitempty"`
 	MlflowRunID    string               `json:"mlflow_run_id,omitempty"`
 	LogsPath       string               `json:"logs_path,omitempty"`
 	Test           *BenchmarkResultTest `json:"test,omitempty"`
-}
-
-type BenchmarkArtifact struct {
-	OCIDigest    string `json:"oci_digest,omitempty"`
-	OCIReference string `json:"oci_reference,omitempty"`
-	SizeBytes    int64  `json:"size_bytes,omitempty"`
 }
 
 type JobModel struct {

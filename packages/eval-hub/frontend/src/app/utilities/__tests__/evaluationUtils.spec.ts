@@ -1042,6 +1042,12 @@ describe('getEvaluationQueue', () => {
 
     expect(getEvaluationQueue(job)).toBe('gpu-default');
   });
+
+  it('should return undefined when no hardware configuration is present', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+
+    expect(getEvaluationQueue(job)).toBeUndefined();
+  });
 });
 
 describe('getLatestEvaluationJob', () => {

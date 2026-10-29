@@ -163,6 +163,62 @@ func TestEvalHubClient_ListEvaluationJobs(t *testing.T) {
 	assert.Equal(t, "test-model", result.Items[0].Model.Name)
 }
 
+func TestEvalHubClient_GetEvaluationJob_DecodesNonNumericMetricsAndArtifacts(t *testing.T) {
+	// Real EvalHub API shape per the published spec: metric values may be a
+	// scalar, list, or object, and artifacts is a map of artifact name to
+	// location/info (live keys are evalhub.eval_card and evalhub.env_card).
+	jobJSON := `{
+		"resource": {"id": "job-1", "created_at": "2026-02-20T10:00:00Z"},
+		"status": {"state": "completed"},
+		"results": {
+			"benchmarks": [
+				{
+					"id": "harmful_request_refusal",
+					"provider_id": "safety_eval_suite",
+					"metrics": {
+						"refusal_rate": 0.95,
+						"verdicts": ["safe", "unsafe", "safe"],
+						"latency_ms": {"p50": 120, "p99": 340}
+					},
+					"artifacts": {
+						"evalhub.eval_card": "evalcards/job-1-card",
+						"evalhub.env_card": "envcards/job-1-env"
+					}
+				}
+			]
+		},
+		"model": {"name": "test-model"}
+	}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/jobs/job-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(jobJSON))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "test-token", false, nil, "/api/v1")
+	job, err := client.GetEvaluationJob(context.Background(), "job-1", "my-ns")
+
+	require.NoError(t, err)
+	require.Len(t, job.Results.Benchmarks, 1)
+
+	benchmark := job.Results.Benchmarks[0]
+	assert.InDelta(t, 0.95, benchmark.Metrics["refusal_rate"], 0.0001)
+	assert.Equal(t, []any{"safe", "unsafe", "safe"}, benchmark.Metrics["verdicts"])
+	assert.Equal(t, map[string]any{"p50": float64(120), "p99": float64(340)}, benchmark.Metrics["latency_ms"])
+	assert.Equal(t, map[string]any{
+		"evalhub.eval_card": "evalcards/job-1-card",
+		"evalhub.env_card":  "envcards/job-1-env",
+	}, benchmark.Artifacts)
+
+	// The BFF serves the decoded job to the frontend unmodified, so the values
+	// must survive a JSON round-trip.
+	encoded, err := json.Marshal(job)
+	require.NoError(t, err)
+	assert.JSONEq(t, jobJSON, string(encoded))
+}
+
 func TestEvalHubClient_ListEvaluationJobs_FetchesAllPages(t *testing.T) {
 	firstPage := EvaluationJobsResponse{
 		TotalCount: 3,
