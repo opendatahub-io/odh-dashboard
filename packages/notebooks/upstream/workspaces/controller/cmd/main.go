@@ -162,6 +162,14 @@ func main() {
 		setupLog.Error(err, "unable to resolve TLS configuration")
 		os.Exit(1)
 	}
+	// The controller applies the cluster profile unconditionally to its webhook and
+	// metrics servers, so a Custom profile that resolves to no usable ciphers/groups
+	// cannot be honored — reject it rather than silently serve hardened defaults.
+	// (Denied/transient reads are handled fail-open with watcher self-heal above.)
+	if tlsResult.ProfileUnusable {
+		setupLog.Error(nil, "cluster TLS profile resolved to no usable ciphers/groups; refusing to start with an unenforceable profile")
+		os.Exit(1)
+	}
 	tlsOpts := tlsResult.TLSOpts
 	if !enableHTTP2 {
 		tlsOpts = append(tlsOpts, func(c *tls.Config) {

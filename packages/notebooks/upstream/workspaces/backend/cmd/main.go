@@ -323,8 +323,19 @@ func run() (status int) {
 		}
 		serverTLSConfig, err = effectiveServerTLSConfig(initialTLSResult)
 		if err != nil {
-			logger.Error("failed to determine HTTPS listener TLS configuration", "error", err)
-			return 1
+			// Startup is lenient on a transient read (consistent with the BFF/operator
+			// resolvers): serve our own strong TLS 1.3 default and let the watcher apply
+			// the real policy once the API recovers, rather than crash-looping during a
+			// brownout. A persistent failure (denied RBAC, malformed adherence, or an
+			// invalid profile under Strict) still fails closed. Reload, by contrast,
+			// retains the last-known-good policy (handled in the watcher callback).
+			if initialTLSResult.Transient {
+				logger.Warn("transient error resolving cluster TLS profile at startup; serving TLS 1.3 and relying on the watcher to apply the cluster policy once the API recovers", "error", err)
+				serverTLSConfig = legacyTLSConfig()
+			} else {
+				logger.Error("failed to determine HTTPS listener TLS configuration", "error", err)
+				return 1
+			}
 		}
 	}
 

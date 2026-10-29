@@ -111,6 +111,13 @@ func TestEffectiveServerTLSConfig(t *testing.T) {
 			result:  tlsprofile.Result{Adherence: tlsprofile.AdherenceStrict, Degraded: true, PolicyUnreadable: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
 			wantErr: true,
 		},
+		{
+			// On reload this error makes the watcher retain the last-known-good config
+			// and retry; startup leniency on Transient is handled separately in run().
+			name:    "transient unreadable policy errors (reload retains, startup lenient elsewhere)",
+			result:  tlsprofile.Result{Adherence: tlsprofile.AdherenceStrict, Degraded: true, PolicyUnreadable: true, Transient: true, TLSOpts: []func(*tls.Config){intermediateOpt}},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -166,6 +166,19 @@ type Result struct {
 	// PolicyUnreadable regardless of adherence, but may keep their own configuration
 	// for a Degraded-but-readable profile under Legacy/unset adherence.
 	PolicyUnreadable bool
+	// Transient is true when PolicyUnreadable was caused by a retryable read failure
+	// (service-unavailable/timeout/throttling), as opposed to a persistent one
+	// (denied RBAC or malformed adherence). It lets a consumer be lenient at startup
+	// (serve its own strong default and let the watcher self-heal) while staying
+	// strict on reload (retain the last-known-good config and retry).
+	Transient bool
+	// ProfileUnusable is true when the APIServer was read cleanly but the Custom
+	// profile resolved to no usable cipher suites (or an all-unusable group set) — a
+	// policy the component cannot honor. Consumers that apply the profile
+	// unconditionally (the controller's webhook/metrics servers) must reject it
+	// rather than silently serve hardened defaults; adherence-aware consumers (the
+	// backend) keep their own config under Legacy/unset and fail closed under Strict.
+	ProfileUnusable bool
 }
 
 // tlsGroupMap maps OpenShift TLS group (key-exchange curve) names to Go
@@ -232,14 +245,16 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 			apierrors.IsServerTimeout(err),
 			apierrors.IsTooManyRequests(err),
 			errors.Is(err, context.DeadlineExceeded):
-			// Transient failures are treated leniently (consistent with the shared
-			// BFF and operator resolvers): the watcher re-resolves and self-heals, so
-			// a brownout at startup should not crash-loop the pod. Degraded (not
-			// PolicyUnreadable) lets a Legacy/unset consumer keep its own config
-			// (e.g. the backend's TLS 1.3) rather than fail closed on a flaky read.
+			// A transient read is unreadable (adherence can't be trusted) but
+			// retryable: PolicyUnreadable so reload keeps the last-known-good config
+			// and retries (never downgrades a running policy on a flaky poll), plus
+			// Transient so startup can be lenient (serve its own strong default and
+			// let the watcher self-heal) rather than crash-loop during a brownout.
 			log.Info("Transient error reading APIServer TLS profile, using hardened defaults", "error", err)
 			result.APIAvailable = true
 			result.Degraded = true
+			result.PolicyUnreadable = true
+			result.Transient = true
 			result.Profile = intermediateProfileMap()
 		case apierrors.IsForbidden(err), apierrors.IsUnauthorized(err):
 			// Denied reads are a persistent misconfiguration (missing RBAC), not a
@@ -285,8 +300,13 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 	inapplicable := (minVersion < tls.VersionTLS13 && ciphers != nil && len(ciphers) == 0) ||
 		(curves != nil && len(curves) == 0)
 	if inapplicable {
-		log.Info("Custom TLS profile resolved to no usable ciphers/groups, using hardened defaults (degraded)")
+		// Clean read, but the Custom profile resolved to nothing usable. Mark it
+		// ProfileUnusable so a consumer that applies the profile unconditionally (the
+		// controller) rejects it, and Degraded so an adherence-aware consumer (the
+		// backend) fails closed under Strict but keeps its own config under Legacy.
+		log.Info("Custom TLS profile resolved to no usable ciphers/groups, using hardened defaults (unusable)")
 		result.Degraded = true
+		result.ProfileUnusable = true
 		result.TLSOpts = append(result.TLSOpts, intermediateWithALPN)
 		return result, nil
 	}

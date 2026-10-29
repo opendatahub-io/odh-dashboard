@@ -65,11 +65,14 @@ func (w *ProfileWatcher) Reconcile(
 		apiServer.Object, fieldSpec, fieldTLSSecurityProfile,
 	)
 	current = normalizeProfileMap(current)
-	currentAdherence, _, _ := unstructured.NestedString(
+	currentAdherence, _, adhErr := unstructured.NestedString(
 		apiServer.Object, fieldSpec, fieldTLSAdherence,
 	)
+	// A malformed adherence field coerces to "" and would compare equal to a previous
+	// unset value, silently hiding the change. Treat a decode error as a change so the
+	// callback re-resolves (which flags it PolicyUnreadable and retains/retries).
 	if w.OnProfileChange != nil &&
-		(!reflect.DeepEqual(w.lastProfile, current) || w.lastAdherence != currentAdherence) {
+		(adhErr != nil || !reflect.DeepEqual(w.lastProfile, current) || w.lastAdherence != currentAdherence) {
 		if err := w.OnProfileChange(ctx); err != nil {
 			// Leave the last-seen values unchanged so the change is retried on requeue.
 			return reconcile.Result{}, err

@@ -237,14 +237,16 @@ func TestResolve_TransientError_SetsAPIAvailable(t *testing.T) {
 	if !result.APIAvailable {
 		t.Error("expected APIAvailable = true on transient error")
 	}
-	// Transient is lenient (consistent with the BFF/operator resolvers): Degraded
-	// but NOT PolicyUnreadable, so a Legacy consumer self-heals rather than
-	// crash-looping on a brownout.
+	// A transient read is unreadable (so reload retains the running config and
+	// retries) AND transient (so startup can be lenient and self-heal).
 	if !result.Degraded {
 		t.Error("expected Degraded = true on transient error")
 	}
-	if result.PolicyUnreadable {
-		t.Error("expected PolicyUnreadable = false on transient error (lenient, self-heals)")
+	if !result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = true on transient error (reload must retain/retry)")
+	}
+	if !result.Transient {
+		t.Error("expected Transient = true on transient error (startup may be lenient)")
 	}
 }
 
@@ -314,6 +316,9 @@ func TestResolve_UnsupportedCiphers_MarksDegradedReadable(t *testing.T) {
 	}
 	if result.PolicyUnreadable {
 		t.Error("expected PolicyUnreadable = false (the policy was read cleanly)")
+	}
+	if !result.ProfileUnusable {
+		t.Error("expected ProfileUnusable = true so the controller rejects the profile")
 	}
 }
 
@@ -436,6 +441,9 @@ func TestResolve_ForbiddenMarksDegraded(t *testing.T) {
 	if !result.PolicyUnreadable {
 		t.Error("expected PolicyUnreadable = true on Forbidden read (denied, not transient)")
 	}
+	if result.Transient {
+		t.Error("expected Transient = false on Forbidden read (persistent misconfiguration, fail closed at startup)")
+	}
 }
 
 func TestResolve_UnknownTypeMarksDegraded(t *testing.T) {
@@ -539,6 +547,9 @@ func TestResolve_CustomAllUnsupportedGroupsMarksDegradedReadable(t *testing.T) {
 	}
 	if result.PolicyUnreadable {
 		t.Error("expected PolicyUnreadable = false (policy read cleanly)")
+	}
+	if !result.ProfileUnusable {
+		t.Error("expected ProfileUnusable = true so the controller rejects the profile")
 	}
 }
 
@@ -706,6 +717,36 @@ func TestProfileWatcher_DetectsAdherenceChange(t *testing.T) {
 	}
 	if !fired {
 		t.Error("expected OnProfileChange to fire on adherence change")
+	}
+}
+
+func TestProfileWatcher_FiresOnMalformedAdherence(t *testing.T) {
+	// A non-string adherence coerces to "" and would compare equal to the previous
+	// unset value; the watcher must still fire so the callback re-resolves (and flags
+	// it PolicyUnreadable) rather than silently ignoring the malformed update.
+	apiServer := newAPIServerWithAdherence(map[string]any{fieldType: profileTypeIntermediate}, "")
+	spec, _, _ := unstructured.NestedMap(apiServer.Object, fieldSpec)
+	spec[fieldTLSAdherence] = int64(7) // non-string
+	apiServer.Object[fieldSpec] = spec
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+
+	fired := false
+	w := &ProfileWatcher{
+		Client:           fc,
+		InitialProfile:   map[string]any{fieldType: profileTypeIntermediate},
+		InitialAdherence: "",
+		OnProfileChange:  func(_ context.Context) error { fired = true; return nil },
+	}
+	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
+	w.lastAdherence = ""
+
+	if _, err := w.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: client.ObjectKey{Name: apiServerName},
+	}); err != nil {
+		t.Fatalf("Reconcile() error = %v", err)
+	}
+	if !fired {
+		t.Error("expected OnProfileChange to fire on malformed adherence (not silently ignored)")
 	}
 }
 
