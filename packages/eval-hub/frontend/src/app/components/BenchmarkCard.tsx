@@ -71,7 +71,13 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
 
       <CardBody
         className="evalhub-benchmark-card__body"
-        onClick={onSelect}
+        onClick={(e) => {
+          // Nested interactive controls (e.g. the metrics "N more" overflow
+          // toggle) keep their own behavior; only plain body clicks open the drawer.
+          if (!(e.target instanceof Element && e.target.closest('button'))) {
+            onSelect();
+          }
+        }}
         data-testid={`benchmark-card-body-region-${benchmark.providerId}-${benchmark.id}`}
       >
         {benchmark.description && (

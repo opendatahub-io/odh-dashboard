@@ -77,4 +77,17 @@ describe('BenchmarkCard', () => {
     expect(mockOnRunBenchmark).toHaveBeenCalledTimes(1);
     expect(mockOnSelect).not.toHaveBeenCalled();
   });
+
+  it('should expand the metrics overflow without opening the drawer', () => {
+    renderCard({
+      id: 'overflow-bench',
+      metrics: ['metric-a', 'metric-b', 'metric-c', 'metric-d'],
+    });
+    // The fourth metric sits behind the overflow control while collapsed.
+    expect(screen.queryByText('Metric-d')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '1 more' }));
+    expect(screen.getByText('Metric-d')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show Less' })).toBeInTheDocument();
+    expect(mockOnSelect).not.toHaveBeenCalled();
+  });
 });
