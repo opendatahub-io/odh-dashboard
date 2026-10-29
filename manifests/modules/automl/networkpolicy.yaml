@@ -51,8 +51,8 @@ spec:
         - port: 6443
           protocol: TCP
     # User-provided in-cluster DSPA and S3-compatible services may expose arbitrary ports in
-    # any namespace. Keep this documented reduced-posture exception (RHAI-17051) unscoped by
-    # port so supported endpoints remain reachable.
+    # any namespace. Keep this documented reduced-posture exception per operand contract R5
+    # (RHOAIENG-90747; RHAI-17051) unscoped by port so supported endpoints remain reachable.
     - to:
         - namespaceSelector: {}
     # External / off-cluster HTTP(S) to user-configurable, hostname-based endpoints

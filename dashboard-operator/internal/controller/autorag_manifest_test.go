@@ -1,120 +1,34 @@
 package controller
 
 import (
-	"path/filepath"
 	"testing"
 
-	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestAutoRAGManifestConnectivity(t *testing.T) {
-	source := filepath.Join("..", "..", "..", "manifests", "modules", "autorag")
-	rendered, err := kustomize.NewEngine().Render(source, kustomize.WithNamespace("redhat-ods-applications"))
-	require.NoError(t, err)
+	policy := renderModuleNetworkPolicy(t, "autorag", "autorag-allow-ports")
 
-	var policy *unstructured.Unstructured
-	for i := range rendered {
-		resource := &rendered[i]
-		if resource.GetKind() == "NetworkPolicy" && resource.GetName() == "autorag-allow-ports" {
-			policy = resource
-			break
-		}
-	}
-	require.NotNil(t, policy)
+	assert.Equal(t, "autorag-ui", policy.Spec.PodSelector.MatchLabels["deployment"])
+	assert.Contains(t, policy.Spec.PolicyTypes, networkingv1.PolicyTypeIngress)
+	assert.Contains(t, policy.Spec.PolicyTypes, networkingv1.PolicyTypeEgress)
+	assert.True(t, moduleAllowsIngressPort(policy, 8743, moduleDashboardIngressPeer),
+		"AutoRAG must allow dashboard ingress on TCP 8743")
 
-	var networkPolicy networkingv1.NetworkPolicy
-	require.NoError(t, runtime.DefaultUnstructuredConverter.FromUnstructured(policy.Object, &networkPolicy))
-	assert.Equal(t, "autorag-ui", networkPolicy.Spec.PodSelector.MatchLabels["deployment"])
-	assert.Contains(t, networkPolicy.Spec.PolicyTypes, networkingv1.PolicyTypeIngress)
-	assert.Contains(t, networkPolicy.Spec.PolicyTypes, networkingv1.PolicyTypeEgress)
-
-	allowsIngress := func(port int32, peerMatches func(networkingv1.NetworkPolicyPeer) bool) bool {
-		for _, rule := range networkPolicy.Spec.Ingress {
-			for _, policyPort := range rule.Ports {
-				if policyPort.Port == nil || policyPort.Port.IntVal != port {
-					continue
-				}
-				for _, peer := range rule.From {
-					if peerMatches(peer) {
-						return true
-					}
-				}
-			}
-		}
-		return false
-	}
-
-	allowsEgress := func(port int32, protocol corev1.Protocol, peerMatches func(networkingv1.NetworkPolicyPeer) bool) bool {
-		for _, rule := range networkPolicy.Spec.Egress {
-			for _, policyPort := range rule.Ports {
-				if policyPort.Port == nil || policyPort.Port.IntVal != port {
-					continue
-				}
-				if policyPort.Protocol == nil && protocol != corev1.ProtocolTCP {
-					continue
-				}
-				if policyPort.Protocol != nil && *policyPort.Protocol != protocol {
-					continue
-				}
-				for _, peer := range rule.To {
-					if peerMatches(peer) {
-						return true
-					}
-				}
-			}
-		}
-		return false
-	}
-
-	dashboardPeer := func(peer networkingv1.NetworkPolicyPeer) bool {
-		if peer.IPBlock != nil || peer.NamespaceSelector != nil || peer.PodSelector == nil {
-			return false
-		}
-		values := map[string]bool{"odh-dashboard": false, "rhods-dashboard": false}
-		for _, expression := range peer.PodSelector.MatchExpressions {
-			if expression.Key != "deployment" || expression.Operator != metav1.LabelSelectorOpIn {
-				continue
-			}
-			for _, value := range expression.Values {
-				if _, ok := values[value]; ok {
-					values[value] = true
-				}
-			}
-		}
-		return values["odh-dashboard"] && values["rhods-dashboard"]
-	}
-	ipBlockPeer := func(peer networkingv1.NetworkPolicyPeer) bool {
-		return peer.IPBlock != nil &&
-			peer.IPBlock.CIDR == "0.0.0.0/0" &&
-			peer.PodSelector == nil &&
-			peer.NamespaceSelector == nil
-	}
-
-	assert.True(t, allowsIngress(8743, dashboardPeer), "AutoRAG must allow dashboard ingress on TCP 8743")
 	dns := namespacePeer("openshift-dns")
-	assert.True(t, allowsEgress(5353, corev1.ProtocolUDP, dns), "AutoRAG must allow UDP DNS egress")
-	assert.True(t, allowsEgress(5353, corev1.ProtocolTCP, dns), "AutoRAG must allow TCP DNS egress")
-	assert.True(t, allowsEgress(6443, corev1.ProtocolTCP, ipBlockPeer), "AutoRAG must allow Kubernetes API egress")
-	assert.True(t, allowsEgress(80, corev1.ProtocolTCP, ipBlockPeer), "AutoRAG must allow external HTTP egress")
-	assert.True(t, allowsEgress(443, corev1.ProtocolTCP, ipBlockPeer), "AutoRAG must allow external HTTPS egress")
+	apiServer := ipBlockPeer("0.0.0.0/0")
+	assert.True(t, egressAllowsProtocolPort(policy, 5353, corev1.ProtocolUDP, dns),
+		"AutoRAG must allow UDP DNS egress")
+	assert.True(t, egressAllowsPort(policy, 5353, dns),
+		"AutoRAG must allow TCP DNS egress")
+	assert.True(t, egressAllowsPort(policy, 6443, apiServer),
+		"AutoRAG must allow Kubernetes API egress")
+	assert.True(t, egressAllowsPort(policy, 80, apiServer),
+		"AutoRAG must allow external HTTP egress")
+	assert.True(t, egressAllowsPort(policy, 443, apiServer),
+		"AutoRAG must allow external HTTPS egress")
 
-	unrestricted := false
-	for _, rule := range networkPolicy.Spec.Egress {
-		if len(rule.Ports) != 0 {
-			continue
-		}
-		for _, peer := range rule.To {
-			if crossNamespacePeer(peer) {
-				unrestricted = true
-			}
-		}
-	}
-	assert.True(t, unrestricted, "AutoRAG must allow arbitrary ports to in-cluster pods")
+	assertUnrestrictedInClusterEgress(t, policy, "AutoRAG")
 }
