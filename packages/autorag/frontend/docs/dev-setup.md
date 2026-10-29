@@ -57,7 +57,16 @@ server with `user_token` auth. A Gen AI BFF started with `AUTH_METHOD=disabled` 
 `internal`) skips identity injection and every playground question fails with
 `[unknown] missing authentication identity`.
 
+Log in to the target cluster with `oc login`, then run each command below in a
+separate terminal, starting from the repository root:
+
 ```bash
+# AutoRAG BFF (uses the current kubeconfig to connect to the real cluster)
+cd packages/autorag/bff
+DEV_MODE=true MOCK_K8S_CLIENT=false DEPLOYMENT_MODE=standalone \
+  AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " \
+  make run PORT=4001
+
 # Gen AI BFF (GATEWAY_DOMAIN accepts a full URL for a fully local stack;
 # a bare host defaults to https://<host>)
 cd packages/gen-ai/bff
