@@ -48,6 +48,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
         </CardHeader>
       )}
       <CardTitle
+        className="evalhub-benchmark-card__title"
         onClick={onSelect}
         data-testid={`benchmark-card-title-region-${benchmark.providerId}-${benchmark.id}`}
       >
@@ -69,6 +70,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
       </CardTitle>
 
       <CardBody
+        className="evalhub-benchmark-card__body"
         onClick={onSelect}
         data-testid={`benchmark-card-body-region-${benchmark.providerId}-${benchmark.id}`}
       >

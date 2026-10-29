@@ -137,6 +137,15 @@ describe('Choose Benchmark Page', () => {
   it('should open the benchmark details drawer when clicking the card title or body', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
 
+    // The m-clickable affordance must surface a pointer cursor on the click regions,
+    // and clicking must not drag-highlight the description text.
+    chooseBenchmarkPage
+      .findBenchmarkCardTitleRegion('test-provider', 'bench-alpha')
+      .should('have.css', 'cursor', 'pointer');
+    chooseBenchmarkPage
+      .findBenchmarkCardBodyRegion('test-provider', 'bench-alpha')
+      .should('have.css', 'cursor', 'pointer');
+
     chooseBenchmarkPage.findBenchmarkCardTitleRegion('test-provider', 'bench-alpha').click();
     chooseBenchmarkPage.findBenchmarkDrawerPanel().should('exist');
     chooseBenchmarkPage.findBenchmarkDrawerPanel().should('contain.text', 'Alpha Bench');

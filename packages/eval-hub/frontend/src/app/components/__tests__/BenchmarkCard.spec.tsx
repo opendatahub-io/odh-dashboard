@@ -46,17 +46,22 @@ describe('BenchmarkCard', () => {
 
   it('should invoke the selection callback when the title region is clicked', () => {
     renderCard({ id: 'title-bench' });
-    fireEvent.click(
-      screen.getByTestId('benchmark-card-title-region-lm_evaluation_harness-title-bench'),
+    const titleRegion = screen.getByTestId(
+      'benchmark-card-title-region-lm_evaluation_harness-title-bench',
     );
+    // The m-clickable SCSS targets these classes; they must stay on the click regions.
+    expect(titleRegion).toHaveClass('evalhub-benchmark-card__title');
+    fireEvent.click(titleRegion);
     expect(mockOnSelect).toHaveBeenCalledTimes(1);
   });
 
   it('should invoke the selection callback when the card body is clicked', () => {
     renderCard({ id: 'body-bench' });
-    fireEvent.click(
-      screen.getByTestId('benchmark-card-body-region-lm_evaluation_harness-body-bench'),
+    const bodyRegion = screen.getByTestId(
+      'benchmark-card-body-region-lm_evaluation_harness-body-bench',
     );
+    expect(bodyRegion).toHaveClass('evalhub-benchmark-card__body');
+    fireEvent.click(bodyRegion);
     expect(mockOnSelect).toHaveBeenCalledTimes(1);
   });
 
