@@ -259,6 +259,7 @@ func resolveTrustedHost(
 	identity *integrations.RequestIdentity,
 	baseURL string,
 	namespace string,
+	logger *slog.Logger,
 ) (bool, []string) {
 	if !isInternalHost(baseURL, namespace) {
 		return false, nil
@@ -269,7 +270,11 @@ func resolveTrustedHost(
 		return true, nil
 	}
 	svc, err := client.GetService(ctx, identity, svcNamespace, svcName)
-	if err != nil || svc.Spec.Type == corev1.ServiceTypeExternalName {
+	if err != nil {
+		logger.Warn("service lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
+		return false, nil
+	}
+	if svc.Spec.Type == corev1.ServiceTypeExternalName {
 		return false, nil
 	}
 	headless := svc.Spec.ClusterIP == "None"
@@ -278,7 +283,11 @@ func resolveTrustedHost(
 		return false, nil
 	}
 	backends, err := client.GetServiceBackendAddresses(ctx, identity, svcNamespace, svcName)
-	if err != nil || len(backends) == 0 {
+	if err != nil {
+		logger.Warn("service backend address lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
+		return false, nil
+	}
+	if len(backends) == 0 {
 		return false, nil
 	}
 	return true, backends
@@ -310,7 +319,7 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	rootCAs *x509.CertPool,
 	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
-	trusted, trustedDestinationIPs := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace)
+	trusted, trustedDestinationIPs := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace, logger)
 	modelsClient, err := externalmodels.NewExternalModelsClient(
 		logger,
 		req.BaseURL,

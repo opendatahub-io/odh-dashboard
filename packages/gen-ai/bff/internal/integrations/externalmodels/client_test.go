@@ -318,3 +318,26 @@ func TestVerifyModel_UntrustedDialTimeDNSChangeIsBlocked(t *testing.T) {
 	assert.Contains(t, err.Error(), "SSRF protection")
 	assert.Greater(t, calls, 1, "expected the dial-time lookup to run after pre-request validation")
 }
+
+func TestVerifyModel_TrustedDestinationInvalidEntryFailsClosed(t *testing.T) {
+	// A trusted host whose configured destinations contain no valid IP must fail
+	// closed instead of falling back to DNS dialing.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": "1", "choices": []any{}})
+	}))
+	defer server.Close()
+
+	client, err := NewExternalModelsClient(
+		slog.Default(),
+		server.URL,
+		"test-api-key",
+		models.ModelTypeLLM,
+		&ClientOptions{SkipSSRFValidation: true, AllowHTTP: true, TrustedDestinationIPs: []string{"not-an-ip"}},
+	)
+	require.NoError(t, err)
+
+	_, err = client.VerifyModel(context.Background(), "test-model", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "contain no valid IP addresses")
+}

@@ -203,6 +203,13 @@ func destinationGuardDialContext(
 			pinned = append(pinned, parsed)
 		}
 	}
+	// Configured trusted destinations that parse to no IPs must fail closed:
+	// falling through to DNS dialing would bypass the pinning guarantee.
+	if len(trustedDestination) > 0 && len(pinned) == 0 {
+		return func(_ context.Context, _, _ string) (net.Conn, error) {
+			return nil, fmt.Errorf("trusted destinations for %s contain no valid IP addresses: %v", hostname, trustedDestination)
+		}
+	}
 	// Trusted host without pinned destinations (e.g. localhost): dial normally.
 	if skipSSRFValidation && len(pinned) == 0 {
 		return nil

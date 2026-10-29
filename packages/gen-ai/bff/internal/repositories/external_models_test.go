@@ -270,7 +270,7 @@ func TestResolveTrustedHost(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := &stubK8sClient{service: tt.service, err: tt.getServiceErr, backendAddrs: tt.backendAddrs, backendAddrsErr: tt.backendAddrsErr}
-			trusted, ips := resolveTrustedHost(context.Background(), client, nil, tt.baseURL, tt.namespace)
+			trusted, ips := resolveTrustedHost(context.Background(), client, nil, tt.baseURL, tt.namespace, slog.Default())
 			if trusted != tt.wantTrusted {
 				t.Errorf("resolveTrustedHost(%q, %q) trusted = %v, want %v", tt.baseURL, tt.namespace, trusted, tt.wantTrusted)
 			}

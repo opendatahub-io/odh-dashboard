@@ -3440,3 +3440,32 @@ func TestGetServiceBackendAddressesNoMatchingPods(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, addrs, "a Service whose endpoints are all cross-namespace must yield no trusted addresses")
 }
+
+func TestServiceBackendAddressesRejectsHostNetworkAndTerminalPods(t *testing.T) {
+	// An EndpointSlice whose addresses are HostNetwork or terminal (Succeeded/
+	// Failed) Pod IPs must not be returned as trusted backends, even though the
+	// Pods run in the Service's namespace.
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, discoveryv1.AddToScheme(scheme))
+
+	pods := []runtime.Object{
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "hostnet", Namespace: "test-ns"}, Spec: corev1.PodSpec{HostNetwork: true}, Status: corev1.PodStatus{Phase: corev1.PodRunning, PodIP: "192.168.1.10"}},
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "succeeded", Namespace: "test-ns"}, Status: corev1.PodStatus{Phase: corev1.PodSucceeded, PodIP: "10.244.0.11"}},
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "failed", Namespace: "test-ns"}, Status: corev1.PodStatus{Phase: corev1.PodFailed, PodIP: "10.244.0.12"}},
+		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "running", Namespace: "test-ns"}, Status: corev1.PodStatus{Phase: corev1.PodRunning, PodIP: "10.244.0.13"}},
+	}
+	slices := []runtime.Object{
+		&discoveryv1.EndpointSlice{
+			ObjectMeta: metav1.ObjectMeta{Name: "my-model-1", Namespace: "test-ns", Labels: map[string]string{discoveryv1.LabelServiceName: "my-model"}},
+			Endpoints: []discoveryv1.Endpoint{
+				{Addresses: []string{"192.168.1.10", "10.244.0.11", "10.244.0.12", "10.244.0.13"}},
+			},
+		},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(append(pods, slices...)...).Build()
+
+	addrs, err := serviceBackendAddresses(context.Background(), fakeClient, "test-ns", "my-model")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"10.244.0.13"}, addrs)
+}

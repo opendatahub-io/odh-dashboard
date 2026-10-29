@@ -837,6 +837,13 @@ func serviceBackendAddresses(ctx context.Context, reader client.Client, namespac
 	}
 	podIPs := make(map[string]struct{}, len(podList.Items))
 	for _, pod := range podList.Items {
+		// HostNetwork Pods use the node's IP, not an in-namespace backend address,
+		// and terminal Pods (Succeeded/Failed) no longer receive traffic — neither
+		// is an attributable backend, so an EndpointSlice listing their IPs is
+		// rejected rather than trusted.
+		if pod.Spec.HostNetwork || pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+			continue
+		}
 		if pod.Status.PodIP != "" {
 			podIPs[pod.Status.PodIP] = struct{}{}
 		}
