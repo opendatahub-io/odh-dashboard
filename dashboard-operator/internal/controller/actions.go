@@ -362,6 +362,9 @@ func deployObservabilityManifests(
 	}
 
 	logger.Info("Deploying observability manifests", "namespace", obsNamespace, "resources", len(rendered))
+	if err := revertServicePortDrift(ctx, reader, cli, rendered); err != nil {
+		return fmt.Errorf("repairing observability Service port drift: %w", err)
+	}
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),

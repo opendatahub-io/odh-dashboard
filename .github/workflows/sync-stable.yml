@@ -111,3 +111,20 @@ jobs:
           echo "stable after:  $(git rev-parse HEAD)"
           git push origin stable
           echo "Fast-forwarded stable to $TARGET_COMMIT"
+
+      - name: Notify Slack
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_DASHBOARD_BUILD_NOTIFICATIONS }}
+          TARGET_COMMIT: ${{ github.event.inputs.target_commit }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          if [[ -z "$SLACK_WEBHOOK_URL" ]]; then
+            echo "SLACK_WEBHOOK_URL not set — skipping notification"
+            exit 0
+          fi
+          SHORT_SHA="${TARGET_COMMIT:0:7}"
+          MSG=":arrows_counterclockwise: *Stable sync complete* — ODH \`main\` synced to \`stable\`\nHEAD: <https://github.com/${REPO}/commit/${TARGET_COMMIT}|${SHORT_SHA}> | <${RUN_URL}|Action run> | Triggered by: ${ACTOR}"
+          curl -s -X POST -H 'Content-type: application/json' --data "{\"text\": \"${MSG}\"}" "$SLACK_WEBHOOK_URL"

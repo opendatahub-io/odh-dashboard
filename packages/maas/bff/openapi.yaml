@@ -398,13 +398,13 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/SubscriptionListItem'
+                      $ref: '#/components/schemas/MySubscriptionListItem'
               example:
                 data:
                   - subscription_id_header: premium-team-sub
                     subscription_description: Premium Team Subscription
                     display_name: Premium Team
-                    inference_priority: 10
+                    priority: 10
                     cost_center: engineering
                     organization_id: org-123
                     key_count: 10
@@ -428,7 +428,7 @@ paths:
                   - subscription_id_header: basic-team-sub
                     subscription_description: Basic Team Subscription
                     display_name: Basic Team
-                    inference_priority: 1
+                    priority: 1
                     key_count: 5
                     model_refs:
                       - name: flan-t5-small
@@ -471,13 +471,13 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/SubscriptionListItem'
+                    $ref: '#/components/schemas/MySubscriptionListItem'
               example:
                 data:
                   subscription_id_header: premium-team-sub
                   subscription_description: Premium Team Subscription
                   display_name: Premium Team
-                  inference_priority: 10
+                  priority: 10
                   cost_center: engineering
                   organization_id: org-123
                   key_count: 10
@@ -995,6 +995,71 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden. Insufficient permissions to list subscriptions.
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin-subscriptions:
+    get:
+      tags:
+        - subscriptions
+      summary: List subscriptions (admin view)
+      operationId: listAdminSubscriptions
+      description: >
+        Read-only listing of subscriptions for the MaaS Portal model access page.
+        The response format is identical to `/api/v1/all-subscriptions`, and it is
+        exposed as a separate endpoint so consumer-facing views can be scoped,
+        RBAC-gated, or migrated independently of the all-subscriptions contract.
+
+        Source: the maas-api `/v1/subscriptions` passthrough (the same source used
+        for API key creation). Only subscriptions whose `roles` list contains the
+        exact value `admin` are returned. Missing, empty, or non-admin roles are
+        excluded; no matches returns an empty `data` array. Because that payload is
+        sanitised, `phase`/status conditions and `resourceVersion` are not populated.
+        Group references are copied from upstream `owner.groups`, preserving their
+        full names. Missing groups are returned as an empty list.
+
+        Returns 503 while maas-api is not reachable.
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MaaSSubscription'
+              example:
+                data:
+                  - name: premium-team-sub
+                    displayName: Premium Team
+                    description: Premium Team Subscription
+                    namespace: maas-system
+                    inferencePriority: 10
+                    owner:
+                      groups: []
+                    modelRefs:
+                      - name: llama-2-7b-chat
+                        namespace: maas-models
+                        tokenRateLimits:
+                          - limit: 100000
+                            window: 24h
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden. Insufficient permissions to list subscriptions.
+        '503':
+          description: maas-api is not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
           content:
@@ -2641,6 +2706,10 @@ components:
           items:
             $ref: '#/components/schemas/GroupReference'
           description: Kubernetes group names that own this subscription
+        users:
+          type: array
+          items:
+            type: string
       example:
         groups:
           - name: premium-users
@@ -2769,8 +2838,10 @@ components:
 
     SubscriptionListItem:
       type: object
-      description: Sanitised subscription view returned by the maas-api passthrough endpoint, safe to expose to basic users
+      description: Raw subscription shape returned by maas-api /v1/subscriptions.
       properties:
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
         subscription_id_header:
           type: string
           description: Subscription name to use in the X-MaaS-Subscription header
@@ -2786,6 +2857,8 @@ components:
             type: string
           example:
             - admin
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
         display_name:
           type: string
           description: Display name from the openshift.io/display-name annotation
@@ -2797,6 +2870,11 @@ components:
             Subscription inference priority (higher = higher priority).
             Omitted when unset; the scheduler applies default 0.
           example: 10
+        priority:
+          type: integer
+          format: int32
+          description: Priority returned by the maas-api subscriptions endpoint.
+          example: 1
         model_refs:
           type: array
           description: Model references with rate limits
@@ -2826,6 +2904,73 @@ components:
         - subscription_id_header
         - subscription_description
         - model_refs
+
+    MySubscriptionListItem:
+      type: object
+      description: Sanitized subscription shape returned to the MaaS portal. Backend roles, owner, and model subjects are omitted.
+      properties:
+        subscription_id_header:
+          type: string
+        subscription_description:
+          type: string
+        display_name:
+          type: string
+        priority:
+          type: integer
+          format: int32
+        key_count:
+          type: integer
+          format: int32
+        model_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyModelRefInfo'
+        organization_id:
+          type: string
+        cost_center:
+          type: string
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - subscription_id_header
+        - subscription_description
+        - model_refs
+
+    MyModelRefInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        model_name:
+          type: string
+        display_name:
+          type: string
+        source:
+          type: string
+        description:
+          type: string
+        namespace:
+          type: string
+        token_rate_limits:
+          type: array
+          items:
+            type: object
+            properties:
+              limit:
+                type: integer
+                format: int64
+              window:
+                type: string
+            required:
+              - limit
+              - window
+        billing_rate:
+          type: object
+          properties:
+            per_token:
+              type: string
 
     ModelRefInfo:
       type: object
@@ -2881,6 +3026,8 @@ components:
               type: string
               description: Cost per token
               example: '0.001'
+        subjects:
+          $ref: '#/components/schemas/SubjectSpec'
       required:
         - name
 
@@ -2982,6 +3129,10 @@ components:
           items:
             $ref: '#/components/schemas/GroupReference'
           description: Kubernetes group names
+        users:
+          type: array
+          items:
+            type: string
 
     ModelRef:
       type: object

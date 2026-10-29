@@ -307,6 +307,8 @@ When transitioning from the legacy ODH Operator to the Dashboard Module Controll
 
 This behavior is built into the `odh-platform-utilities/pkg/deploy` package, which uses `ForceOwnership` in both `ModePatch` and `ModeSSA` modes. No custom adoption code is required in the controller.
 
+Before applying rendered resources, the controller also repairs externally drifted Service port lists that SSA cannot safely reconcile when an associative-list key changes. The repair preserves an API-allocated `nodePort` when the corresponding desired port does not specify one. A Service is left untouched when either the live or rendered resource has the `opendatahub.io/managed: "false"` annotation.
+
 ### Cross-Namespace Cleanup
 
 The cluster-scoped Dashboard CR can own resources in any namespace. Explicit cleanup also handles soft removal, where the CR remains present and owner-reference garbage collection does not run. Perses resources may be deployed to a separate observability namespace (`spec.observability.persesService.namespace`).

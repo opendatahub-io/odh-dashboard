@@ -3,6 +3,7 @@ package maas
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -44,6 +45,10 @@ func CreateMaasFakeServer() *httptest.Server {
 				return
 			}
 			if strings.HasPrefix(r.URL.Path, "/v1/api-keys/") {
+				if !isMockAPIKeyIDAllowed(strings.TrimPrefix(r.URL.Path, "/v1/api-keys/")) {
+					writeJSONError(w, http.StatusForbidden, "API key is outside the caller's scope")
+					return
+				}
 				sendFakeResponse("get-api-key-response.json", http.StatusOK, w)
 				return
 			}
@@ -69,12 +74,15 @@ func CreateMaasFakeServer() *httptest.Server {
 				return
 			}
 			if r.URL.Path == "/v1/api-keys/bulk-revoke" {
-				sendFakeResponse("bulk-revoke-response.json", http.StatusOK, w)
+				handleFakeBulkRevokeAPIKeys(w, r)
 				return
 			}
-
 		case http.MethodDelete:
 			if strings.HasPrefix(r.URL.Path, "/v1/api-keys/") {
+				if !isMockAPIKeyIDAllowed(strings.TrimPrefix(r.URL.Path, "/v1/api-keys/")) {
+					writeJSONError(w, http.StatusForbidden, "API key is outside the caller's scope")
+					return
+				}
 				sendFakeResponse("revoke-api-key-response.json", http.StatusOK, w)
 				return
 			}
@@ -91,18 +99,16 @@ func CreateMaasFakeServer() *httptest.Server {
 }
 
 func handleFakeSearchAPIKeys(w http.ResponseWriter, r *http.Request) {
-	// Load all keys from the testdata file
-	fileBytes, err := testdataFs.ReadFile(filepath.Join("testdata", "api-keys-search-response.json"))
+	keys, err := loadFakeAPIKeys()
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to read testdata: "+err.Error())
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	var fullList models.APIKeyListResponse
-	if err := json.Unmarshal(fileBytes, &fullList); err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to parse testdata: "+err.Error())
-		return
-	}
+	// Apply the same authorization boundary as the real MaaS API before applying
+	// request filters, sorting, or pagination. This keeps mock mode from teaching
+	// the UI that a non-admin can inspect another user's keys.
+	keys = applyMockAPIKeyScope(keys)
 
 	var req models.APIKeySearchRequest
 	if r.Body != nil {
@@ -110,8 +116,8 @@ func handleFakeSearchAPIKeys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Apply filters
-	filtered := make([]models.APIKey, 0, len(fullList.Data))
-	for _, key := range fullList.Data {
+	filtered := make([]models.APIKey, 0, len(keys))
+	for _, key := range keys {
 		if req.Filters != nil {
 			if req.Filters.Username != "" && !strings.Contains(strings.ToLower(key.Username), strings.ToLower(req.Filters.Username)) {
 				continue
@@ -204,6 +210,111 @@ func handleFakeSearchAPIKeys(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func loadFakeAPIKeys() ([]models.APIKey, error) {
+	fileBytes, err := testdataFs.ReadFile(filepath.Join("testdata", "api-keys-search-response.json"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read testdata: %w", err)
+	}
+
+	var response models.APIKeyListResponse
+	if err := json.Unmarshal(fileBytes, &response); err != nil {
+		return nil, fmt.Errorf("failed to parse testdata: %w", err)
+	}
+	return response.Data, nil
+}
+
+func handleFakeBulkRevokeAPIKeys(w http.ResponseWriter, r *http.Request) {
+	var request models.APIKeyBulkRevokeRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "invalid request")
+		return
+	}
+
+	if mockAPIKeyScopeEnabled() {
+		keys, err := loadFakeAPIKeys()
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		allowedKeys := applyMockAPIKeyScope(keys)
+		allowed := false
+		for _, key := range allowedKeys {
+			if key.Username == request.Username {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			writeJSONError(w, http.StatusForbidden, "user is outside the caller's scope")
+			return
+		}
+	}
+
+	sendFakeResponse("bulk-revoke-response.json", http.StatusOK, w)
+}
+
+func isMockAPIKeyIDAllowed(id string) bool {
+	if !mockAPIKeyScopeEnabled() {
+		return true
+	}
+	keys, err := loadFakeAPIKeys()
+	if err != nil {
+		return false
+	}
+	for _, key := range applyMockAPIKeyScope(keys) {
+		if key.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func mockAPIKeyScopeEnabled() bool {
+	scope := strings.ToLower(strings.TrimSpace(os.Getenv("MAAS_MOCK_API_KEYS_SCOPE")))
+	return scope != "" && scope != "all"
+}
+
+func applyMockAPIKeyScope(keys []models.APIKey) []models.APIKey {
+	scope := strings.ToLower(strings.TrimSpace(os.Getenv("MAAS_MOCK_API_KEYS_SCOPE")))
+	if scope == "" || scope == "all" {
+		return keys
+	}
+	if scope == "admin" {
+		subscriptions := os.Getenv("MAAS_MOCK_API_KEYS_ADMIN_SUBSCRIPTIONS")
+		if subscriptions == "" {
+			subscriptions = "premium-team-sub"
+		}
+
+		allowedSubscriptions := make(map[string]struct{})
+		for _, subscription := range strings.Split(subscriptions, ",") {
+			if subscription = strings.TrimSpace(subscription); subscription != "" {
+				allowedSubscriptions[subscription] = struct{}{}
+			}
+		}
+
+		filtered := make([]models.APIKey, 0, len(keys))
+		for _, key := range keys {
+			if _, allowed := allowedSubscriptions[key.SubscriptionName]; allowed {
+				filtered = append(filtered, key)
+			}
+		}
+		return filtered
+	}
+
+	username := strings.TrimSpace(os.Getenv("MAAS_MOCK_API_KEYS_USER"))
+	if username == "" {
+		username = "alice"
+	}
+
+	filtered := make([]models.APIKey, 0, len(keys))
+	for _, key := range keys {
+		if key.Username == username {
+			filtered = append(filtered, key)
+		}
+	}
+	return filtered
 }
 
 func writeJSONError(w http.ResponseWriter, status int, msg string) {

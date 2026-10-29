@@ -16,7 +16,7 @@ export const DATA_CONNECT_HUB_EVENT_NAMES = {
 
 export type DataConnectHubConnectionSource =
   'connections_tab' | 'empty_state' | 'connection_type_catalog';
-export type DataConnectHubCancelMethod = 'cancel_button' | 'close_x';
+export type DataConnectHubCancelMethod = 'cancel_button' | 'close_x' | 'esc';
 export type DataConnectHubAbandonStep =
   'type_selection' | 'connection_details' | 'configuration' | 'review';
 export type DataConnectHubListFilterType = 'type' | 'name';

@@ -171,6 +171,9 @@ func (r *DashboardReconciler) deployModuleManifests(
 				return err
 			}
 		}
+		if err := revertServicePortDrift(ctx, r.apiReader(), r.Client, rendered); err != nil {
+			return fmt.Errorf("repairing Service port drift for module %s: %w", name, err)
+		}
 
 		deployer := deploy.NewDeployer(
 			deploy.WithFieldOwner("dashboard-operator"),
