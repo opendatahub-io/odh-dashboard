@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
+	corekubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	"golang.org/x/sync/singleflight"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -185,8 +185,9 @@ func NewPortForwardManager(restConfig *rest.Config, clientset kubernetes.Interfa
 	}
 }
 
-// ForwardURL rewrites an in-cluster service URL to a localhost port-forward.
-// If the URL is not a *.svc.cluster.local address, it is returned unchanged.
+// ForwardURL rewrites a suffix-qualified in-cluster service URL to a localhost
+// port-forward. Both service.namespace.svc and the full service.namespace.svc.cluster.local
+// forms are supported. Other URLs are returned unchanged.
 // On the first call for a given service, a port-forward is established.
 // Subsequent calls return the cached local port.
 func (m *PortForwardManager) ForwardURL(ctx context.Context, rawURL string) (string, error) {
@@ -195,16 +196,12 @@ func (m *PortForwardManager) ForwardURL(ctx context.Context, rawURL string) (str
 		return rawURL, nil
 	}
 
-	hostname := parsed.Hostname()
-
-	// Require exact Kubernetes service FQDN: <service>.<namespace>.svc.cluster.local
-	labels := strings.Split(hostname, ".")
-	if len(labels) != 5 || labels[0] == "" || labels[1] == "" ||
-		labels[2] != "svc" || labels[3] != "cluster" || labels[4] != "local" {
+	serviceHostname, ok := corekubernetes.ParseServiceHostname(parsed.Hostname())
+	if !ok {
 		return rawURL, nil
 	}
-	serviceName := labels[0]
-	namespace := labels[1]
+	serviceName := serviceHostname.Service
+	namespace := serviceHostname.Namespace
 
 	portStr := parsed.Port()
 	if portStr == "" {

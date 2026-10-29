@@ -141,6 +141,8 @@ This fail-closed approach ensures that DNS resolution failures do not bypass SSR
 - S3 response headers are limited to 30 seconds
 - Metadata operations are limited to 15 seconds
 - Streaming uploads and downloads have no blanket client deadline; request context cancellation still applies
+- Suffix-qualified private-only HTTP endpoints bypass inherited `HTTP_PROXY`/`HTTPS_PROXY` routing and connect directly; external endpoints retain environment proxy support
+- DevMode port-forwarding may rewrite trusted cluster-local endpoints to `localhost`; arbitrary loopback endpoints remain blocked
 
 ### Mock S3 Client Production Guard
 

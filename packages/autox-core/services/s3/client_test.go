@@ -12,7 +12,9 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -22,6 +24,7 @@ import (
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
+	corekubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 // --- Mock implementations ---
@@ -951,6 +954,74 @@ func TestBuildHTTPClient_TransportTimeouts(t *testing.T) {
 	}
 	if hc.Timeout != 0 {
 		t.Errorf("client Timeout = %v, want 0 — a blanket deadline truncates large transfers; bound the transport phases instead (see buildHTTPClient)", hc.Timeout)
+	}
+}
+
+func TestBuildHTTPClient_DisablesProxyForPrivateEndpoint(t *testing.T) {
+	privateHTTPClient := (&awsClientProvider{cfg: ClientConfig{}}).buildHTTPClient(true)
+	privateTransport, ok := privateHTTPClient.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("Transport is %T, want *http.Transport", privateHTTPClient.Transport)
+	}
+	if privateTransport.Proxy != nil {
+		t.Fatal("private-only transport must not inherit environment proxy routing")
+	}
+
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer target.Close()
+	targetAddress := strings.TrimPrefix(target.URL, "http://")
+	var dialAddress string
+	privateTransport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+		dialAddress = address
+		return (&net.Dialer{}).DialContext(ctx, network, targetAddress)
+	}
+
+	request, err := http.NewRequest(http.MethodGet, "http://minio.namespace.svc:9000/results", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := privateTransport.RoundTrip(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+
+	if dialAddress != "minio.namespace.svc:9000" {
+		t.Fatalf("dial address = %q, want the S3 endpoint rather than a proxy", dialAddress)
+	}
+}
+
+func TestBuildHTTPClient_AllowsConfiguredPortForwardLoopback(t *testing.T) {
+	client := (&awsClientProvider{cfg: ClientConfig{}}).buildHTTPClient(true)
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("Transport is %T, want *http.Transport", client.Transport)
+	}
+
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer target.Close()
+	targetAddress := strings.TrimPrefix(target.URL, "http://")
+	_, targetPort, err := net.SplitHostPort(targetAddress)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequest(http.MethodGet, "http://localhost:"+targetPort+"/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request = request.WithContext(corekubernetes.WithTrustedPortForwardEndpoint(request.Context(), "localhost:"+targetPort))
+
+	response, err := transport.RoundTrip(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusNoContent)
 	}
 }
 

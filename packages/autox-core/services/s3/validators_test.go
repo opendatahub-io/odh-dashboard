@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	corekubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 func TestValidateKey(t *testing.T) {
@@ -141,6 +143,24 @@ func TestValidateResolvedIPs(t *testing.T) {
 			wantErr:        true,
 		},
 		{
+			name: "public address after private address rejected for private-only endpoint",
+			ips: []net.IPAddr{
+				{IP: net.ParseIP("10.0.0.1")},
+				{IP: net.ParseIP("8.8.8.8")},
+			},
+			requirePrivate: true,
+			wantErr:        true,
+		},
+		{
+			name: "blocked address after private address rejected for general endpoint",
+			ips: []net.IPAddr{
+				{IP: net.ParseIP("10.0.0.1")},
+				{IP: net.ParseIP("127.0.0.1")},
+			},
+			requirePrivate: false,
+			wantErr:        true,
+		},
+		{
 			name:           "blocked address rejected for general endpoint",
 			ips:            []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}},
 			requirePrivate: false,
@@ -155,7 +175,7 @@ func TestValidateResolvedIPs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateResolvedIPs("minio.ns.svc", tt.ips, tt.requirePrivate)
+			err := validateResolvedIPs("minio.ns.svc", tt.ips, tt.requirePrivate, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validateResolvedIPs() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -355,7 +375,7 @@ func TestSSRFSafeDialContext(t *testing.T) {
 			t.Error("expected dial error for unreachable IP")
 		}
 		if strings.Contains(err.Error(), "blocked") {
-			t.Errorf("IP literal should not be re-validated at dial time: %v", err)
+			t.Errorf("permitted IP literal should reach the base dialer: %v", err)
 		}
 	})
 }
@@ -365,6 +385,31 @@ type blockingIPResolver struct{}
 func (blockingIPResolver) LookupIPAddr(ctx context.Context, _ string) ([]net.IPAddr, error) {
 	<-ctx.Done()
 	return nil, ctx.Err()
+}
+
+type loopbackIPResolver struct{}
+
+func (loopbackIPResolver) LookupIPAddr(context.Context, string) ([]net.IPAddr, error) {
+	return []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}}, nil
+}
+
+type delayedPrivateIPResolver struct {
+	delay    time.Duration
+	deadline *time.Time
+}
+
+func (r delayedPrivateIPResolver) LookupIPAddr(ctx context.Context, _ string) ([]net.IPAddr, error) {
+	if deadline, ok := ctx.Deadline(); ok && r.deadline != nil {
+		*r.deadline = deadline
+	}
+	timer := time.NewTimer(r.delay)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return []net.IPAddr{{IP: net.ParseIP("10.0.0.1")}}, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func TestSSRFSafeDialContextBoundsDNSAndDialTime(t *testing.T) {
@@ -379,5 +424,63 @@ func TestSSRFSafeDialContextBoundsDNSAndDialTime(t *testing.T) {
 	_, err := dial(context.Background(), "tcp", "service.namespace.svc:9000")
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("error = %v, want context deadline exceeded", err)
+	}
+}
+
+func TestSSRFSafeDialContextPreservesRemainingBudgetAfterDNS(t *testing.T) {
+	var resolverDeadline, dialDeadline time.Time
+	dialStarted := false
+	dial := ssrfSafeDialContextWithResolverAndDialer(
+		false,
+		true,
+		delayedPrivateIPResolver{delay: 5 * time.Millisecond, deadline: &resolverDeadline},
+		func(ctx context.Context, _, _ string) (net.Conn, error) {
+			dialStarted = true
+			dialDeadline, _ = ctx.Deadline()
+			<-ctx.Done()
+			return nil, ctx.Err()
+		},
+		20*time.Millisecond,
+	)
+
+	_, err := dial(context.Background(), "tcp", "service.namespace.svc:9000")
+	if !dialStarted {
+		t.Fatal("dialer was not reached after DNS resolution")
+	}
+	if resolverDeadline.IsZero() || !dialDeadline.Equal(resolverDeadline) {
+		t.Fatalf("dial deadline = %v, resolver deadline = %v; timeout was reset after DNS", dialDeadline, resolverDeadline)
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("error = %v, want context deadline exceeded", err)
+	}
+}
+
+func TestSSRFSafeDialContextAllowsTrustedPortForwardLoopback(t *testing.T) {
+	dialStarted := false
+	dial := ssrfSafeDialContextWithResolverAndDialer(
+		false,
+		true,
+		loopbackIPResolver{},
+		func(context.Context, string, string) (net.Conn, error) {
+			dialStarted = true
+			return nil, errors.New("port-forward dial attempted")
+		},
+		10*time.Millisecond,
+	)
+
+	ctx := corekubernetes.WithTrustedPortForwardEndpoint(context.Background(), "localhost:9000")
+	_, err := dial(ctx, "tcp", "localhost:9000")
+	if !dialStarted {
+		t.Fatal("trusted port-forward loopback did not reach the base dialer")
+	}
+	if err == nil || !strings.Contains(err.Error(), "port-forward dial attempted") {
+		t.Fatalf("error = %v, want the base dialer error", err)
+	}
+}
+
+func TestValidateResolvedIPsRejectsNonLoopbackTrustedPortForwardTarget(t *testing.T) {
+	err := validateResolvedIPs("localhost", []net.IPAddr{{IP: net.ParseIP("8.8.8.8")}}, false, true)
+	if err == nil || !strings.Contains(err.Error(), "non-loopback") {
+		t.Fatalf("error = %v, want non-loopback trusted localhost rejection", err)
 	}
 }

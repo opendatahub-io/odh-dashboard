@@ -94,7 +94,8 @@ type ClientConfig struct {
 	AllowUnresolvableEndpoint bool
 
 	// WrapTransport optionally wraps the HTTP transport chain after TLS is configured.
-	// Use for port-forwarding, request tracing, or other transport-level concerns.
+	// Use for port-forwarding, request tracing, or other trusted transport-level concerns.
+	// Wrappers must preserve the proxy and endpoint-security policy for private endpoints.
 	WrapTransport func(http.RoundTripper) http.RoundTripper
 }
 
@@ -374,6 +375,11 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 // caller's request context.
 func (p *awsClientProvider) buildHTTPClient(requirePrivateEndpoint bool) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if requirePrivateEndpoint {
+		// A proxy would receive the request destination and make the dialer validate
+		// the proxy address instead of the private-only S3 endpoint.
+		transport.Proxy = nil
+	}
 	transport.DialContext = ssrfSafeDialContext(
 		&net.Dialer{Timeout: s3ConnectTimeout},
 		p.cfg.AllowUnresolvableEndpoint,

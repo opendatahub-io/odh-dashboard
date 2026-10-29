@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	corekubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 // validateKey rejects S3 object keys that contain null bytes, path traversal
@@ -113,6 +115,21 @@ func ssrfSafeDialContextWithResolver(
 	resolver ipResolver,
 	resolveAndDialTimeout time.Duration,
 ) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return ssrfSafeDialContextWithResolverAndDialer(
+		allowUnresolvable,
+		requirePrivateEndpoint,
+		resolver,
+		base.DialContext,
+		resolveAndDialTimeout,
+	)
+}
+
+func ssrfSafeDialContextWithResolverAndDialer(
+	allowUnresolvable, requirePrivateEndpoint bool,
+	resolver ipResolver,
+	dialContext func(context.Context, string, string) (net.Conn, error),
+	resolveAndDialTimeout time.Duration,
+) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(addr)
 		if err != nil {
@@ -121,31 +138,33 @@ func ssrfSafeDialContextWithResolver(
 
 		dialCtx, cancel := context.WithTimeout(ctx, resolveAndDialTimeout)
 		defer cancel()
+		trustedForwardedHost, hasTrustedForward := corekubernetes.TrustedPortForwardEndpoint(dialCtx)
+		allowLoopback := hasTrustedForward && strings.EqualFold(host, "localhost") && trustedForwardedHost == net.JoinHostPort(host, port)
 
 		// Validate IP literals here as well because a redirect can change the request
 		// host after the original endpoint has been validated.
 		if ip := net.ParseIP(host); ip != nil {
-			if err := validateResolvedIPs(host, []net.IPAddr{{IP: ip}}, requirePrivateEndpoint); err != nil {
+			if err := validateResolvedIPs(host, []net.IPAddr{{IP: ip}}, requirePrivateEndpoint, allowLoopback); err != nil {
 				return nil, err
 			}
-			return base.DialContext(dialCtx, network, addr)
+			return dialContext(dialCtx, network, addr)
 		}
 
 		ips, err := resolver.LookupIPAddr(dialCtx, host)
 		if err != nil {
 			if allowUnresolvable && !requirePrivateEndpoint {
-				return base.DialContext(dialCtx, network, addr)
+				return dialContext(dialCtx, network, addr)
 			}
 			return nil, fmt.Errorf("endpoint hostname %q cannot be resolved: %w", host, err)
 		}
-		if err := validateResolvedIPs(host, ips, requirePrivateEndpoint); err != nil {
+		if err := validateResolvedIPs(host, ips, requirePrivateEndpoint, allowLoopback); err != nil {
 			return nil, err
 		}
 
 		// Connect using the validated IPs directly — no second resolution.
 		var lastErr error
 		for _, ipAddr := range ips {
-			conn, err := base.DialContext(dialCtx, network, net.JoinHostPort(ipAddr.IP.String(), port))
+			conn, err := dialContext(dialCtx, network, net.JoinHostPort(ipAddr.IP.String(), port))
 			if err == nil {
 				return conn, nil
 			}
@@ -158,12 +177,18 @@ func ssrfSafeDialContextWithResolver(
 // validateResolvedIPs validates every address returned for a hostname before any
 // connection is attempted. A private-only endpoint rejects public destinations even
 // when the hostname itself has a Kubernetes service suffix.
-func validateResolvedIPs(host string, ips []net.IPAddr, requirePrivate bool) error {
+func validateResolvedIPs(host string, ips []net.IPAddr, requirePrivate, allowLoopbackForPortForward bool) error {
 	if len(ips) == 0 {
 		return fmt.Errorf("endpoint hostname %q resolved to no IP addresses", host)
 	}
 
 	for _, ipAddr := range ips {
+		if allowLoopbackForPortForward && strings.EqualFold(host, "localhost") {
+			if !ipAddr.IP.IsLoopback() {
+				return fmt.Errorf("trusted port-forward localhost resolved to non-loopback IP %s", ipAddr.IP)
+			}
+			continue
+		}
 		if err := validateIPAddress(ipAddr.IP); err != nil {
 			return fmt.Errorf("endpoint hostname %q resolves to blocked IP %s: %w", host, ipAddr.IP, err)
 		}
@@ -194,22 +219,14 @@ const (
 )
 
 func classifyInternalHost(hostname string) internalHostKind {
-	hostname = strings.ToLower(strings.TrimSuffix(hostname, "."))
-	parts := strings.Split(hostname, ".")
-	if len(parts) != 3 && len(parts) != 5 {
+	serviceHostname, ok := corekubernetes.ParseServiceHostname(hostname)
+	if !ok {
 		return internalHostExternal
 	}
-	if parts[0] == "" || parts[1] == "" || parts[2] != "svc" {
-		return internalHostExternal
-	}
-
-	if len(parts) == 3 {
-		return internalHostShort
-	}
-	if parts[3] == "cluster" && parts[4] == "local" {
+	if serviceHostname.Full {
 		return internalHostFull
 	}
-	return internalHostExternal
+	return internalHostShort
 }
 
 // isInternalHost reports whether hostname is a suffix-qualified Kubernetes in-cluster
