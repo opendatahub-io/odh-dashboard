@@ -459,9 +459,9 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 	})
 
 	var _ = Describe("ListSubscriptionsPassthroughHandler", Ordered, func() {
-		It("returns 200 and a list of subscriptions from the maas-api passthrough", func() {
+		It("filters owned subscriptions from the maas-api passthrough", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
-			actual, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+			actual, rs, err := setupApiTest[Envelope[[]models.MySubscriptionListItem, None]](
 				http.MethodGet,
 				"/api/v1/subscriptions",
 				nil,
@@ -472,21 +472,15 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 			Expect(actual.Data).NotTo(BeNil())
-			Expect(len(actual.Data)).Should(BeNumerically(">", 0))
-
-			first := actual.Data[0]
-			Expect(first.SubscriptionIDHeader).NotTo(BeEmpty())
-			Expect(first.SubscriptionDescription).NotTo(BeEmpty())
-			Expect(first.ModelRefs).NotTo(BeEmpty())
-			Expect(first.ModelRefs[0].DisplayName).To(Equal("Granite 3 8B Instruct"))
-			Expect(first.ModelRefs[0].Description).To(Equal("Granite 3 8B Instruct is a large language model that is used for advanced tasks."))
-			// The fake server returns all 75 keys regardless of the per-subscription filter,
-			// so the BFF clamps the count to subscriptionKeyCountCap.
-			Expect(first.KeyCount).To(Equal(int32(subscriptionKeyCountCap)))
+			Expect(actual.Data).To(HaveLen(1))
+			Expect(actual.Data[0].SubscriptionIDHeader).To(Equal("basic-team-sub"))
+			Expect(actual.Data[0].ModelRefs).To(HaveLen(1))
+			Expect(actual.Data[0].ModelRefs[0].DisplayName).To(Equal("Flan T5 Small"))
+			Expect(actual.Data[0].KeyCount).To(Equal(int32(subscriptionKeyCountCap)))
 		})
 
 		It("returns 400 when no identity is provided", func() {
-			_, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+			_, rs, err := setupApiTest[Envelope[[]models.MySubscriptionListItem, None]](
 				http.MethodGet,
 				"/api/v1/subscriptions",
 				nil,
@@ -554,7 +548,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(res.StatusCode).To(Equal(http.StatusOK))
 			body, err := io.ReadAll(res.Body)
 			Expect(err).NotTo(HaveOccurred())
-			var actual Envelope[[]models.SubscriptionListItem, None]
+			var actual Envelope[[]models.MySubscriptionListItem, None]
 			Expect(json.Unmarshal(body, &actual)).To(Succeed())
 			Expect(actual.Data).NotTo(BeNil())
 			Expect(len(actual.Data)).Should(BeNumerically(">", 0))

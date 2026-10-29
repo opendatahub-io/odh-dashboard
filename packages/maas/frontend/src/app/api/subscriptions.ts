@@ -145,6 +145,7 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
   isRecord(v) &&
   typeof v.subscription_id_header === 'string' &&
   typeof v.subscription_description === 'string' &&
+  (v.priority === undefined || typeof v.priority === 'number') &&
   (v.inference_priority === undefined || typeof v.inference_priority === 'number') &&
   Array.isArray(v.model_refs) &&
   v.model_refs.every(isModelRefInfo);
