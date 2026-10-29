@@ -274,23 +274,40 @@ func (r *PipelinesRepository) CreateIndexingRun(ctx context.Context, namespace s
 	}
 
 	filteredParameters := make(map[string]any, len(req.Parameters))
+	var droppedNames []string
 	for name, value := range req.Parameters {
 		if _, allowed := allowedParameters[name]; allowed {
 			filteredParameters[name] = value
+			continue
 		}
+		// The persisted pattern setting name (graph_extraction) passes
+		// validation but is not a declared pipeline input; forward it under
+		// the canonical input name when the pipeline declares only that.
+		if name == graphExtractionSettingName {
+			if _, allowed := allowedParameters[graphExtractionConfigParam]; allowed {
+				filteredParameters[graphExtractionConfigParam] = value
+				continue
+			}
+		}
+		droppedNames = append(droppedNames, name)
 	}
 
 	if len(filteredParameters) == 0 {
 		return nil, NewValidationError("no supported indexing pipeline parameters were provided")
 	}
 
-	r.logger.Info(
-		"filtered indexing pipeline parameters",
+	logAttrs := []any{
 		"pipeline_id", dp.PipelineID,
 		"pipeline_version_id", dp.PipelineVersionID,
 		"provided_count", len(req.Parameters),
 		"accepted_count", len(filteredParameters),
-	)
+	}
+	if len(droppedNames) > 0 {
+		// Parameter names only — values may hold secret references.
+		sort.Strings(droppedNames)
+		logAttrs = append(logAttrs, "dropped_names", strings.Join(droppedNames, ", "))
+	}
+	r.logger.Info("filtered indexing pipeline parameters", logAttrs...)
 	req.Parameters = filteredParameters
 
 	input := BuildIndexingPipelineRunInput(req, dp.PipelineID, dp.PipelineVersionID)
@@ -504,6 +521,11 @@ func ValidateCreateIndexingPipelineRunRequest(req models.CreateIndexingPipelineR
 	if err := ValidateGraphExtractionConfig(req.Parameters); err != nil {
 		return err
 	}
+	// Both keys accepted at validation name the same setting; supplying both
+	// would otherwise be resolved by map order at normalization time.
+	if req.Parameters[graphExtractionSettingName] != nil && req.Parameters[graphExtractionConfigParam] != nil {
+		return NewValidationError(fmt.Sprintf("provide either %s or %s, not both", graphExtractionSettingName, graphExtractionConfigParam))
+	}
 
 	return nil
 }
@@ -511,6 +533,15 @@ func ValidateCreateIndexingPipelineRunRequest(req models.CreateIndexingPipelineR
 const (
 	graphExtractionConstrained = "constrained"
 	graphExtractionFree        = "free"
+)
+
+const (
+	// graphExtractionConfigParam is the canonical indexing pipeline input name.
+	graphExtractionConfigParam = "graph_extraction_config"
+	// graphExtractionSettingName is the persisted pattern setting name; it is
+	// accepted at validation and normalized to graphExtractionConfigParam when
+	// the discovered pipeline declares the canonical input.
+	graphExtractionSettingName = "graph_extraction"
 )
 
 // ValidateGraphExtractionConfig validates the graph_extraction.mode setting used
@@ -521,7 +552,7 @@ const (
 // (graph_extraction_config) and the persisted pattern setting name
 // (graph_extraction) are accepted.
 func ValidateGraphExtractionConfig(parameters map[string]any) error {
-	for _, key := range []string{"graph_extraction_config", "graph_extraction"} {
+	for _, key := range []string{graphExtractionConfigParam, graphExtractionSettingName} {
 		raw, found := parameters[key]
 		if !found || raw == nil {
 			continue

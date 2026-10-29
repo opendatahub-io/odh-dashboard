@@ -529,7 +529,7 @@ Creates a run of the managed documents-indexing pipeline (Neo4j GraphRAG). Param
 
 #### Graph-Extraction Validation
 
-When supplied and non-`null`, the `graph_extraction_config` parameter (or `graph_extraction`, the persisted pattern setting name — both keys are accepted) must be an object or a JSON string encoding an object. It is validated before the run is created; invalid values produce `400 Bad Request`:
+When supplied and non-`null`, the `graph_extraction_config` parameter (or `graph_extraction`, the persisted pattern setting name — both keys are accepted, but not both in one request) must be an object or a JSON string encoding an object. It is validated before the run is created; invalid values produce `400 Bad Request`. A `graph_extraction` setting is forwarded to the pipeline under the canonical `graph_extraction_config` input name:
 
 - **`mode`** (optional string, default `constrained`): must be `constrained` or `free`
 - **Constrained mode** (the default) takes no extra settings: any key other than `mode` is rejected with `graph_extraction_config.<key> is not allowed in constrained mode`

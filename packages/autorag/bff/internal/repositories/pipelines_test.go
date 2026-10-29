@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -955,6 +956,37 @@ func TestValidateCreateIndexingPipelineRunRequest(t *testing.T) {
 			t.Errorf("error should mention description: %v", err)
 		}
 	})
+
+	t.Run("graph_extraction alias alongside canonical key", func(t *testing.T) {
+		req := valid
+		req.Parameters = map[string]any{
+			"embedding_model_id":      "embed-model",
+			"graph_extraction":        map[string]any{"mode": "constrained"},
+			"graph_extraction_config": map[string]any{"mode": "constrained"},
+		}
+		err := ValidateCreateIndexingPipelineRunRequest(req)
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+		if !strings.Contains(err.Error(), "not both") {
+			t.Errorf("error should mention the mutually exclusive keys: %v", err)
+		}
+		if !errors.Is(err, ErrValidation) {
+			t.Fatalf("error should unwrap to ErrValidation: %v", err)
+		}
+	})
+
+	t.Run("null graph_extraction alias alongside canonical key", func(t *testing.T) {
+		req := valid
+		req.Parameters = map[string]any{
+			"embedding_model_id":      "embed-model",
+			"graph_extraction":        nil,
+			"graph_extraction_config": map[string]any{"mode": "constrained"},
+		}
+		if err := ValidateCreateIndexingPipelineRunRequest(req); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
 }
 
 func TestValidateGraphExtractionConfig(t *testing.T) {
@@ -1074,6 +1106,85 @@ func TestCreateIndexingRun(t *testing.T) {
 		}
 		if disabled := gotInput.PluginsInput["mlflow"]["disabled"]; disabled != true {
 			t.Errorf("mlflow plugin disabled = %v, want true", disabled)
+		}
+	})
+
+	t.Run("forwards the graph_extraction setting under the canonical input name", func(t *testing.T) {
+		var gotInput *pipelines.CreatePipelineRunInput
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {
+						PipelineID: "idx-pid", PipelineVersionID: "idx-vid", PipelineName: "documents-indexing-pipeline",
+					},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return []string{"embedding_model_id", "graph_extraction_config"}, nil
+			},
+			createPipelineRunFn: func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+				gotInput = input
+				return &pipelines.PipelineRun{RunID: "idx-run", DisplayName: input.DisplayName, State: "PENDING"}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		setting := map[string]any{"mode": "constrained"}
+		run, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters: map[string]any{
+				"embedding_model_id": "embed-model",
+				"graph_extraction":   setting,
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if run.PipelineType != constants.PipelineTypeIndexing {
+			t.Errorf("pipeline type = %q", run.PipelineType)
+		}
+		if gotInput == nil || gotInput.RuntimeConfig == nil {
+			t.Fatal("expected runtime config")
+		}
+		if got, ok := gotInput.RuntimeConfig.Parameters["graph_extraction_config"].(map[string]any); !ok || !reflect.DeepEqual(got, setting) {
+			t.Errorf("graph_extraction_config = %v, want the alias value forwarded under the canonical name", gotInput.RuntimeConfig.Parameters["graph_extraction_config"])
+		}
+		if _, found := gotInput.RuntimeConfig.Parameters["graph_extraction"]; found {
+			t.Error("graph_extraction should not be submitted to Pipeline Server under the setting name")
+		}
+	})
+
+	t.Run("drops the graph_extraction setting when the pipeline declares neither name", func(t *testing.T) {
+		created := false
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return []string{"chunk_size"}, nil
+			},
+			createPipelineRunFn: func(context.Context, string, *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+				created = true
+				return nil, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		_, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters:  map[string]any{"graph_extraction": map[string]any{"mode": "constrained"}},
+		})
+		if !errors.Is(err, ErrValidation) {
+			t.Fatalf("expected validation error, got %v", err)
+		}
+		if created {
+			t.Error("CreatePipelineRun should not be called")
 		}
 	})
 

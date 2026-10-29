@@ -2060,8 +2060,13 @@ paths:
     summary: Relay a request to a same-origin responses endpoint via the gateway
     description: >-
       Forwards the request body verbatim to the same-origin path given by the required
-      target query parameter, resolved against the externally accessed gateway route
-      (https://{GATEWAY_DOMAIN}{target}). Serves embedder-controlled targets for the
+      target query parameter, resolved against the relay destination: the externally
+      accessed gateway route (https://{GATEWAY_DOMAIN}{target}), or — when
+      RELAY_TARGET_URL is set — that URL instead (a local-development override that
+      takes precedence over GATEWAY_DOMAIN, e.g. to point the relay at a locally
+      running BFF). RELAY_TARGET_URL must be scheme-qualified (http:// or https://),
+      and a plain http:// target is accepted only for loopback hosts. GATEWAY_DOMAIN,
+      when used, must be a bare host. Serves embedder-controlled targets for the
       embedded playground (e.g. AutoRAG's responsesEndpointUrl): the user's bearer
       token is attached and the target's response — including SSE streams and non-200
       error envelopes — is piped back transparently with no synthetic events.
@@ -2087,7 +2092,8 @@ paths:
             protocol-relative URLs are rejected, as are dot segments, backslashes,
             and control characters. Only paths under the allowed relay prefixes
             (currently /autorag/) are accepted. The host is always taken from the
-            configured gateway domain, never from this parameter.
+            configured relay destination (GATEWAY_DOMAIN, or RELAY_TARGET_URL when
+            set), never from this parameter.
           schema:
             type: string
           example: '%2Fautorag%2Fapi%2Fv1%2Fresponses%3Fnamespace%3Dmy-project%26dbSecretName%3Ddb-secret%26maasSecretName%3Dmaas-secret'
@@ -2161,18 +2167,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '503':
-          description: The relay target gateway is not configured (GATEWAY_DOMAIN is empty)
+          description: >-
+            The relay destination is not configured or was rejected — neither
+            GATEWAY_DOMAIN nor RELAY_TARGET_URL is set, GATEWAY_DOMAIN is not a
+            bare host, or RELAY_TARGET_URL is not a scheme-qualified http(s) URL
+            (plain http is loopback-only).
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
               examples:
                 gateway_not_configured:
-                  summary: Gateway domain not configured
+                  summary: Relay destination not configured
                   value:
                     error:
                       code: 'service_unavailable'
-                      message: 'relay target gateway is not configured (GATEWAY_DOMAIN)'
+                      message: 'relay target gateway is not configured (GATEWAY_DOMAIN or RELAY_TARGET_URL)'
+                relay_configuration_rejected:
+                  summary: Relay destination configuration rejected
+                  value:
+                    error:
+                      code: 'service_unavailable'
+                      message: 'relay target configuration is not allowed (GATEWAY_DOMAIN / RELAY_TARGET_URL)'
       operationId: relayResponse
       summary: Relay AI Response (Streaming)
       description: >-
