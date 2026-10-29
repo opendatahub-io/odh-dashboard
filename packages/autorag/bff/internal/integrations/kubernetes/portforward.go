@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -284,16 +283,6 @@ func (m *PortForwardManager) ForwardURL(ctx context.Context, _ string, rawURL st
 	serviceHostname, ok := corekubernetes.ParseServiceHostname(parsed.Hostname())
 	if !ok {
 		return rawURL, nil
-	}
-	for _, label := range []string{serviceHostname.Service, serviceHostname.Namespace} {
-		if len(label) > 63 || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
-			return rawURL, nil
-		}
-		for _, r := range label {
-			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
-				return rawURL, nil
-			}
-		}
 	}
 	if parsed.User != nil {
 		return "", errors.New("service URL userinfo is not supported")

@@ -243,9 +243,10 @@ func isInternalHost(hostname string) bool {
 // to prevent SSRF targeting the node or cloud metadata services (e.g. 169.254.169.254).
 //
 // RFC-1918 private ranges (10/8, 172.16/12, 192.168/16), Carrier-Grade NAT
-// (100.64/10, RFC 6598), and IPv6 unique local addresses (fc00::/7) are permitted
-// because MinIO and other S3-compatible stores commonly run on the same cluster
-// using service or pod IPs in these ranges.
+// (100.64/10, RFC 6598), and IPv6 unique local addresses (fc00::/7) are generally
+// permitted because MinIO and other S3-compatible stores commonly run on the same
+// cluster using service or pod IPs in these ranges. Known cloud metadata addresses
+// within those ranges are explicitly blocked below.
 func validateIPAddress(ip net.IP) error {
 	if ip.IsUnspecified() {
 		return fmt.Errorf("endpoint IP %s is unspecified", ip)
@@ -264,6 +265,8 @@ func validateIPAddress(ip net.IP) error {
 		{"240.0.0.0/4", "reserved for future use (RFC 1112)"},
 		{"::1/128", "IPv6 loopback"},
 		{"fe80::/10", "IPv6 link-local"},
+		{"100.100.100.200/32", "Alibaba Cloud metadata service"},
+		{"fd00:ec2::254/128", "AWS IMDS IPv6 endpoint"},
 	}
 
 	for _, b := range blocked {

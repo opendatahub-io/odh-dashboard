@@ -101,6 +101,8 @@ func TestValidateIPAddress(t *testing.T) {
 		{"ipv4 multicast", "224.0.0.1", true},
 		{"ipv6 multicast", "ff02::1", true},
 		{"ipv6 unspecified", "::", true},
+		{"Alibaba Cloud metadata", "100.100.100.200", true},
+		{"AWS IMDS IPv6 endpoint", "fd00:ec2::254", true},
 		{"ipv6 public", "2001:db8::1", false},
 	}
 	for _, tt := range tests {
@@ -120,6 +122,7 @@ func TestValidateResolvedIPs(t *testing.T) {
 		ips            []net.IPAddr
 		requirePrivate bool
 		wantErr        bool
+		wantErrContain string
 	}{
 		{
 			name:           "private address accepted for private-only endpoint",
@@ -130,6 +133,20 @@ func TestValidateResolvedIPs(t *testing.T) {
 			name:           "shared address accepted for private-only endpoint",
 			ips:            []net.IPAddr{{IP: net.ParseIP("100.64.0.1")}},
 			requirePrivate: true,
+		},
+		{
+			name:           "Alibaba Cloud metadata address rejected",
+			ips:            []net.IPAddr{{IP: net.ParseIP("100.100.100.200")}},
+			requirePrivate: false,
+			wantErr:        true,
+			wantErrContain: "Alibaba Cloud metadata service",
+		},
+		{
+			name:           "AWS IMDS IPv6 endpoint rejected",
+			ips:            []net.IPAddr{{IP: net.ParseIP("fd00:ec2::254")}},
+			requirePrivate: false,
+			wantErr:        true,
+			wantErrContain: "AWS IMDS IPv6 endpoint",
 		},
 		{
 			name:           "public address accepted for general endpoint",
@@ -178,6 +195,9 @@ func TestValidateResolvedIPs(t *testing.T) {
 			err := validateResolvedIPs("minio.ns.svc", tt.ips, tt.requirePrivate, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validateResolvedIPs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErrContain != "" && (err == nil || !strings.Contains(err.Error(), tt.wantErrContain)) {
+				t.Errorf("validateResolvedIPs() error = %v, want substring %q", err, tt.wantErrContain)
 			}
 		})
 	}

@@ -17,11 +17,23 @@ func ParseServiceHostname(hostname string) (ServiceHostname, bool) {
 	if len(labels) != 3 && len(labels) != 5 {
 		return ServiceHostname{}, false
 	}
-	if labels[0] == "" || labels[1] == "" || labels[2] != "svc" {
+	if !validDNS1123Label(labels[0]) || !validDNS1123Label(labels[1]) || labels[2] != "svc" {
 		return ServiceHostname{}, false
 	}
 	if len(labels) == 5 && (labels[3] != "cluster" || labels[4] != "local") {
 		return ServiceHostname{}, false
 	}
 	return ServiceHostname{Service: labels[0], Namespace: labels[1], Full: len(labels) == 5}, true
+}
+
+func validDNS1123Label(label string) bool {
+	if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
+		return false
+	}
+	for _, r := range label {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+			return false
+		}
+	}
+	return true
 }

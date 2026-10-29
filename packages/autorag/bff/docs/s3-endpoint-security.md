@@ -44,6 +44,10 @@ is attempted. Public results are rejected.
 Unsafe ranges are rejected for all endpoints, including loopback, link-local,
 multicast, unspecified, and reserved addresses.
 
+The metadata addresses `100.100.100.200` (Alibaba Cloud) and `fd00:ec2::254`
+(AWS IMDS over IPv6) are also blocked explicitly, even though their containing
+shared or IPv6 unique-local ranges are otherwise allowed.
+
 **Error Message**: `endpoint IP <ip> is in blocked <range>`
 
 ### 3. Loopback Address Blocking
