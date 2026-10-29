@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The MaaS Portal provides MaaS API key management and AI asset endpoints on RHOAI. The Dashboard Module Controller manages it as an independent operand of the [Dashboard CR](dashboard-operator.md#crd-design).
+The MaaS Portal provides MaaS API key management and AI asset endpoints on RHOAI. The Dashboard Module Controller manages it as an independent operand of the [Dashboard CR](dashboard-operator.md#dashboard-contract).
 
 This guide covers production lifecycle, routing, federation, RBAC, migration, and rollout. For local development, see the [distribution README](../distributions/maas-portal/README.md).
 
@@ -21,13 +21,13 @@ Consequently, core `managementState: Removed` with `maasPortal.managementState: 
 
 When `spec.maasPortal.managementState` is `Managed` on RHOAI and `spec.gateway.domain` is set, the controller deploys `manifests/distributions/maas-portal/`: Deployment, Service, ServiceAccount, ClusterRole, ClusterRoleBinding, NetworkPolicy, and HTTPRoute.
 
-Configure `spec.maasPortal.managementState` independently of the core `spec.managementState`, and set `spec.gateway.domain` for the shared Gateway URL. See the operator's [spec fields](dashboard-operator.md#spec-fields) and [status fields](dashboard-operator.md#status-fields) for the shared CR contract.
+Configure `spec.maasPortal.managementState` independently of the core `spec.managementState`, and set `spec.gateway.domain` for the shared Gateway URL. See the operator's [Dashboard contract](dashboard-operator.md#dashboard-contract) for the shared CR contract.
 
 The pre-DSC-v3 `maasConsumerPortal` spec and status URL fields remain accepted for compatibility with existing Dashboard resources. When both spellings are present, the DSC-v3 `maasPortal` field takes precedence.
 
 `MaaSPortalAvailable` requires the MaaS and GenAI dependencies, federation ConfigMap reconciliation, an available Deployment, and an accepted/resolved HTTPRoute.
 
-The URL is published only after the Deployment is Available and the HTTPRoute is accepted with resolved references. The last known good URL is retained across transient failures and cleared after successful removal. Portal health contributes to the operator's [aggregate status](dashboard-operator.md#status-aggregation).
+The URL is published only after the Deployment is Available and the HTTPRoute is accepted with resolved references. The last known good URL is retained across transient failures and cleared after successful removal. Portal health contributes to the operator's [status and readiness](dashboard-operator.md#status-and-readiness).
 
 The controller requeues while a managed MaaS Portal is awaiting readiness or retrying a transient failure. If the portal is managed, `spec.observability` is unset, and Perses remains undetected, it schedules a five-minute retry when no other retry is pending. Successful detection does not schedule this periodic retry, even though `spec.observability` remains unset in the stored CR.
 

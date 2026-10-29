@@ -26,7 +26,8 @@ COPY --chown=65532:0 manifests/ /opt/manifests/dashboard/
 RUN chmod -R g+w /opt/manifests/dashboard/modules/ \
     && chmod g+w /opt/manifests/dashboard/odh/params.env \
     && chmod g+w /opt/manifests/dashboard/rhoai/params.env \
-    && chmod g+w /opt/manifests/dashboard/distributions/maas-portal/params.env
+    && chmod g+w /opt/manifests/dashboard/distributions/maas-portal/params.env \
+    && chmod g+w /opt/manifests/dashboard/distributions/rhaii/params.env
 
 USER 65532:65532
 

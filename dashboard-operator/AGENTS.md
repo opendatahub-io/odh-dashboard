@@ -148,7 +148,6 @@ The controller detects three platforms via `cluster.DetectPlatform()`:
 |---|---|---|
 | `OpenDataHub` | `/odh` | OpenShift Open Data Hub |
 | `SelfManagedRhoai` | `/rhoai` | OpenShift Self Managed Services |
-| `ManagedRhoai` | `/not-supported` | OpenShift Managed Services |
 
 Platform is determined at startup and injected into the reconciler.
 

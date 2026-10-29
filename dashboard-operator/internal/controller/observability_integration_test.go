@@ -257,7 +257,7 @@ func TestIntegration_Observability_Deployed(t *testing.T) {
 
 // writeObservabilityOverlay writes a minimal observability kustomize overlay at
 // <base>/observability/odh producing a perses-dashboard-config ConfigMap — the
-// path observabilityManifestInfo resolves for the OpenDataHub platform.
+// path openShiftObservabilityManifestInfo resolves for the OpenDataHub platform.
 func writeObservabilityOverlay(t *testing.T, base string) {
 	t.Helper()
 

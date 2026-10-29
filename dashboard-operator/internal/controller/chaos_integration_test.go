@@ -82,6 +82,7 @@ func setupChaosDashboard(t *testing.T, faults *sdk.FaultConfig, enabledModules .
 	// First reconcile adds the finalizer; the second runs the deploy pipeline.
 	reconcile(t, real)
 	reconcile(t, real)
+	establishDashboardAvailability(t, real, odhDashboardName)
 	require.Equal(t, metav1.ConditionTrue,
 		conditionStatus(getDashboard(t), string(common.ConditionTypeProvisioningSucceeded)),
 		"baseline should be provisioned before injecting faults")

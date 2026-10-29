@@ -6,10 +6,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -38,7 +42,8 @@ func TestReconcileRHOAIDashboardConfigDefaultsInitializesMissingValue(t *testing
 		ApplicationsNamespace: dashboardConfigTestNamespace,
 	}
 
-	require.NoError(t, r.reconcileRHOAIDashboardConfigDefaults(context.Background()))
+	_, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
+	require.NoError(t, err)
 
 	updated := newOdhDashboardConfig()
 	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{
@@ -71,7 +76,8 @@ func TestReconcileRHOAIDashboardConfigDefaultsPreservesExplicitValues(t *testing
 				ApplicationsNamespace: dashboardConfigTestNamespace,
 			}
 
-			require.NoError(t, r.reconcileRHOAIDashboardConfigDefaults(context.Background()))
+			_, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
+			require.NoError(t, err)
 
 			updated := newOdhDashboardConfig()
 			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{
@@ -87,26 +93,6 @@ func TestReconcileRHOAIDashboardConfigDefaultsPreservesExplicitValues(t *testing
 	}
 }
 
-func TestReconcileRHOAIDashboardConfigDefaultsSkipsOpenDataHub(t *testing.T) {
-	config := dashboardConfigWithSpec(dashboardConfigTestNamespace, map[string]interface{}{})
-	cli := fake.NewClientBuilder().WithRuntimeObjects(config).Build()
-	r := &DashboardReconciler{
-		Client:                cli,
-		Platform:              cluster.OpenDataHub,
-		ApplicationsNamespace: dashboardConfigTestNamespace,
-	}
-
-	require.NoError(t, r.reconcileRHOAIDashboardConfigDefaults(context.Background()))
-
-	updated := newOdhDashboardConfig()
-	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{
-		Name: odhDashboardConfigName, Namespace: dashboardConfigTestNamespace,
-	}, updated))
-	_, found, err := unstructured.NestedBool(updated.Object, "spec", "dashboardConfig", "disableTracking")
-	require.NoError(t, err)
-	assert.False(t, found)
-}
-
 func TestReconcileRHOAIDashboardConfigDefaultsRejectsMalformedValue(t *testing.T) {
 	config := dashboardConfigWithSpec(dashboardConfigTestNamespace, map[string]interface{}{
 		"dashboardConfig": map[string]interface{}{"disableTracking": "false"},
@@ -118,9 +104,23 @@ func TestReconcileRHOAIDashboardConfigDefaultsRejectsMalformedValue(t *testing.T
 		ApplicationsNamespace: dashboardConfigTestNamespace,
 	}
 
-	err := r.reconcileRHOAIDashboardConfigDefaults(context.Background())
+	_, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "disableTracking")
+}
+
+func TestReconcileSelfManagedRHOAIDashboardConfigDefaultsRequeuesWhenAPIIsUnavailable(t *testing.T) {
+	cli := fake.NewClientBuilder().WithInterceptorFuncs(interceptor.Funcs{
+		Get: func(context.Context, client.WithWatch, client.ObjectKey, client.Object, ...client.GetOption) error {
+			return &meta.NoKindMatchError{GroupKind: schema.GroupKind{Group: odhDashboardConfigGVK.Group, Kind: odhDashboardConfigGVK.Kind}}
+		},
+	}).Build()
+	r := &DashboardReconciler{Client: cli, ApplicationsNamespace: dashboardConfigTestNamespace}
+
+	retryAfter, err := r.reconcileSelfManagedRHOAIDashboardConfigDefaults(context.Background())
+
+	require.NoError(t, err)
+	assert.Equal(t, odhDashboardConfigDiscoveryInterval, retryAfter)
 }
 
 func TestOdhDashboardConfigWatchFiltersAndMaps(t *testing.T) {
