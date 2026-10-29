@@ -10,6 +10,7 @@ import type {
 import { getEvaluationName, getThresholdInputValue } from '~/app/utilities/evaluationUtils';
 import { buildS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 import {
+  isPrerecordedS3TestDataRef,
   parseTestDataRef,
   testDataRefDefaultValues,
   type TestDataRefFormValues,
@@ -43,21 +44,7 @@ export type ReconfigureFormData = {
 // are unsupported and scrubbed below (see isUnsupportedPrerecordedRef).
 const isPrerecordedTestDataRef = (
   benchmarks: NonNullable<EvaluationJob['benchmarks']> | null | undefined,
-): boolean =>
-  benchmarks?.some((b) => {
-    const s3 = b.test_data_ref?.s3;
-    if (!s3) {
-      return false;
-    }
-    // An explicit type wins. The contract defaults an omitted type to
-    // data_set, so the fallback matches only the legacy prerecorded
-    // representation the old UI emitted: no bucket, with the full s3:// URL
-    // stored in key.
-    if (s3.type) {
-      return s3.type === 'pre_recorded_data';
-    }
-    return !s3.bucket && (s3.key ?? '').startsWith('s3://');
-  }) ?? false;
+): boolean => benchmarks?.some((b) => isPrerecordedS3TestDataRef(b.test_data_ref)) ?? false;
 
 // Non-S3 references typed pre_recorded_data. The UI has no flow to create or
 // edit these — prerecorded responses are S3-only — so reconfiguration drops

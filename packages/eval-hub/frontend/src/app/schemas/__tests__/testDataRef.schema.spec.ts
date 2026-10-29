@@ -2,6 +2,7 @@
 import type { z } from 'zod';
 import type { TestDataRefType } from '~/app/types';
 import {
+  isPrerecordedS3TestDataRef,
   parseTestDataRef,
   refineTestDataRef,
   serializeTestDataRef,
@@ -218,6 +219,20 @@ describe('refineTestDataRef', () => {
       );
     });
 
+    it('should allow urls with an @ in the query string', () => {
+      expect(collectIssues({ ...gitValues, url: 'https://git.example.com?ref=a@b' })).toEqual([]);
+    });
+
+    it('should reject credential-bearing urls the URL parser normalizes', () => {
+      const errors = fieldErrors({
+        ...gitValues,
+        url: 'https:\\user:pass@git.example.com/repo.git',
+      });
+      expect(errors.url).toBe(
+        'Repository URL must not contain embedded credentials (username or password).',
+      );
+    });
+
     it('should require https when a secret is set', () => {
       const errors = fieldErrors({
         ...gitValues,
@@ -370,6 +385,44 @@ describe('serializeTestDataRef', () => {
     ).toEqual({
       git: { url: 'https://github.com/org/repo.git', ref: 'v1.0.0', type: 'pre_recorded_data' },
     });
+  });
+});
+
+describe('isPrerecordedS3TestDataRef', () => {
+  it('should return false for undefined and variant-less refs', () => {
+    expect(isPrerecordedS3TestDataRef(undefined)).toBe(false);
+    expect(isPrerecordedS3TestDataRef({})).toBe(false);
+  });
+
+  it('should return true for an s3 ref with an explicit pre_recorded_data type', () => {
+    expect(
+      isPrerecordedS3TestDataRef({
+        s3: { bucket: 'b', key: 'k', secret_ref: 's', type: 'pre_recorded_data' },
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false for an s3 ref with an explicit data_set type', () => {
+    expect(
+      isPrerecordedS3TestDataRef({
+        s3: { bucket: 'b', key: 'k', secret_ref: 's', type: 'data_set' },
+      }),
+    ).toBe(false);
+  });
+
+  it('should match the legacy representation: no bucket, full s3:// URL in key', () => {
+    expect(isPrerecordedS3TestDataRef({ s3: { key: 's3://bucket/data.jsonl' } })).toBe(true);
+    expect(isPrerecordedS3TestDataRef({ s3: { bucket: 'b', key: 'k' } })).toBe(false);
+    expect(isPrerecordedS3TestDataRef({ s3: { key: 'data.jsonl' } })).toBe(false);
+  });
+
+  it('should return false for non-s3 variants', () => {
+    expect(
+      isPrerecordedS3TestDataRef({ pvc: { claim_name: 'c', type: 'pre_recorded_data' } }),
+    ).toBe(false);
+    expect(
+      isPrerecordedS3TestDataRef({ git: { url: 'u', ref: 'r', type: 'pre_recorded_data' } }),
+    ).toBe(false);
   });
 });
 

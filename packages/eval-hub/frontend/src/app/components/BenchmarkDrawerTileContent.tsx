@@ -157,15 +157,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
     ? { fontSize: 'var(--pf-t--global--font--size--sm)' }
     : undefined;
 
-  const testDataDetailFontStyle: React.CSSProperties = {
-    fontSize: isCompact
-      ? 'var(--pf-t--global--font--size--xs)'
-      : 'var(--pf-t--global--font--size--sm)',
-  };
-
-  const testDataListStyle: React.CSSProperties = {
-    paddingInlineStart: 'var(--pf-t--global--spacer--sm)',
-  };
+  const testDataDetailClassName = `pf-v6-u-font-size-${isCompact ? 'xs' : 'sm'}`;
 
   const subtleStyle: React.CSSProperties = {
     color: 'var(--pf-t--global--text--color--subtle)',
@@ -313,32 +305,32 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
                     <DescriptionList
                       isCompact={isCompact}
                       isAutoFit={isCompact}
-                      style={testDataListStyle}
+                      className="pf-v6-u-pl-sm"
                     >
                       <DescriptionListGroup>
-                        <DescriptionListTerm style={testDataDetailFontStyle}>
+                        <DescriptionListTerm className={testDataDetailClassName}>
                           Source
                         </DescriptionListTerm>
-                        <DescriptionListDescription style={testDataDetailFontStyle}>
+                        <DescriptionListDescription className={testDataDetailClassName}>
                           {testDataRefSummary.source}
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                       {testDataRefSummary.typeLabel && (
                         <DescriptionListGroup>
-                          <DescriptionListTerm style={testDataDetailFontStyle}>
+                          <DescriptionListTerm className={testDataDetailClassName}>
                             Data type
                           </DescriptionListTerm>
-                          <DescriptionListDescription style={testDataDetailFontStyle}>
+                          <DescriptionListDescription className={testDataDetailClassName}>
                             {testDataRefSummary.typeLabel}
                           </DescriptionListDescription>
                         </DescriptionListGroup>
                       )}
                       {testDataRefSummary.details.map((detail) => (
                         <DescriptionListGroup key={detail.label}>
-                          <DescriptionListTerm style={testDataDetailFontStyle}>
+                          <DescriptionListTerm className={testDataDetailClassName}>
                             {detail.label}
                           </DescriptionListTerm>
-                          <DescriptionListDescription style={testDataDetailFontStyle}>
+                          <DescriptionListDescription className={testDataDetailClassName}>
                             {detail.value}
                           </DescriptionListDescription>
                         </DescriptionListGroup>

@@ -219,7 +219,7 @@ export const refineTestDataRef = (
           'url',
           'Repository URL must be a valid HTTP or HTTPS URL (SSH URLs are not supported).',
         );
-      } else if (/^https?:\/\/[^/@]*@/i.test(url)) {
+      } else if (parsedUrl.username !== '' || parsedUrl.password !== '') {
         addIssue(
           'url',
           'Repository URL must not contain embedded credentials (username or password).',
@@ -312,6 +312,23 @@ export const serializeTestDataRef = (form: TestDataRefFormValues): TestDataRef |
   }
 };
 /* eslint-enable camelcase */
+
+/**
+ * True when the wire reference is an S3 prerecorded-data reference — either the
+ * current form (explicit type) or the legacy representation the old UI emitted
+ * (no bucket, full s3:// URL in key). The run form's prerecorded flow is S3-only,
+ * so non-S3 variants are never prerecorded-S3.
+ */
+export const isPrerecordedS3TestDataRef = (ref: TestDataRef | undefined): boolean => {
+  const s3 = ref?.s3;
+  if (!s3) {
+    return false;
+  }
+  if (s3.type) {
+    return s3.type === 'pre_recorded_data';
+  }
+  return !s3.bucket && (s3.key ?? '').startsWith('s3://');
+};
 
 // The BFF passes the wire type through as a free-form string; only known
 // values are carried into the form so serialization never emits junk.

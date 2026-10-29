@@ -6,7 +6,11 @@ import {
   JobPrimaryScore,
   SourceMode,
 } from '~/app/types';
-import { serializeTestDataRef, type TestDataRefFormValues } from '~/app/schemas/testDataRef.schema';
+import {
+  isPrerecordedS3TestDataRef,
+  serializeTestDataRef,
+  type TestDataRefFormValues,
+} from '~/app/schemas/testDataRef.schema';
 import { parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 
 type BuildEvaluationRequestParams = {
@@ -136,6 +140,12 @@ const buildEvaluationRequest = ({
   );
 
   const isCollectionFlow = !!collection;
+  // Collection reconfigures expose one editable dataset URL and secret for the
+  // whole prerecorded run; that edited reference replaces the stored reference
+  // on benchmarks that ran with a prerecorded S3 ref. Other per-benchmark
+  // references (e.g. data_set) are preserved untouched.
+  // eslint-disable-next-line camelcase
+  const editedPrerecordedRef = prerecordedDataRef.test_data_ref;
   const hardwareConfig = hardwareProfile
     ? {
         // eslint-disable-next-line camelcase
@@ -159,20 +169,26 @@ const buildEvaluationRequest = ({
       ? {
           collection: {
             id: collection.resource.id,
-            benchmarks: collection.benchmarks?.map((b) => ({
-              id: b.id,
-              // eslint-disable-next-line camelcase
-              provider_id: b.provider_id,
-              // eslint-disable-next-line camelcase
-              primary_score: b.primary_score,
-              // eslint-disable-next-line camelcase
-              pass_criteria: b.pass_criteria,
-              ...(hasParams || b.parameters
-                ? { parameters: { ...b.parameters, ...benchmarkParams } }
-                : {}),
-              // eslint-disable-next-line camelcase
-              ...(b.test_data_ref ? { test_data_ref: b.test_data_ref } : {}),
-            })),
+            benchmarks: collection.benchmarks?.map((b) => {
+              const effectiveTestDataRef =
+                editedPrerecordedRef && isPrerecordedS3TestDataRef(b.test_data_ref)
+                  ? editedPrerecordedRef
+                  : b.test_data_ref;
+              return {
+                id: b.id,
+                // eslint-disable-next-line camelcase
+                provider_id: b.provider_id,
+                // eslint-disable-next-line camelcase
+                primary_score: b.primary_score,
+                // eslint-disable-next-line camelcase
+                pass_criteria: b.pass_criteria,
+                ...(hasParams || b.parameters
+                  ? { parameters: { ...b.parameters, ...benchmarkParams } }
+                  : {}),
+                // eslint-disable-next-line camelcase
+                ...(effectiveTestDataRef ? { test_data_ref: effectiveTestDataRef } : {}),
+              };
+            }),
           },
         }
       : { benchmarks: benchmarkEntries }),

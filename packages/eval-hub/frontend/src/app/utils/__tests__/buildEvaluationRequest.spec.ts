@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { FlatBenchmark, Collection } from '~/app/types';
+import type { FlatBenchmark, Collection, TestDataRef } from '~/app/types';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 
@@ -252,6 +252,119 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
+    });
+  });
+
+  describe('prerecorded collection flow', () => {
+    it('should apply the edited reference to benchmarks that ran with a prerecorded s3 ref', () => {
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              s3: {
+                bucket: 'old-bucket',
+                key: 'old-data.jsonl',
+                secret_ref: 'old-secret',
+                type: 'pre_recorded_data',
+              },
+            },
+          },
+          {
+            id: 'hellaswag',
+            provider_id: 'lm_harness',
+            // Legacy representation: no bucket, full s3:// URL in key
+            test_data_ref: {
+              s3: { key: 's3://old-bucket/legacy.jsonl', type: 'pre_recorded_data' },
+            },
+          },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://new-bucket/new-data.jsonl',
+        accessToken: 'new-secret',
+        collection: col,
+      });
+
+      const expectedRef = {
+        s3: {
+          bucket: 'new-bucket',
+          key: 'new-data.jsonl',
+          secret_ref: 'new-secret',
+          type: 'pre_recorded_data',
+        },
+      };
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(expectedRef);
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(expectedRef);
+    });
+
+    it('should preserve per-benchmark references that are not prerecorded s3 refs', () => {
+      const dataSetRef: TestDataRef = {
+        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              s3: {
+                bucket: 'old-bucket',
+                key: 'old-data.jsonl',
+                secret_ref: 'old-secret',
+                type: 'pre_recorded_data',
+              },
+            },
+          },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: dataSetRef },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://new-bucket/new-data.jsonl',
+        accessToken: 'new-secret',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        s3: {
+          bucket: 'new-bucket',
+          key: 'new-data.jsonl',
+          secret_ref: 'new-secret',
+          type: 'pre_recorded_data',
+        },
+      });
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(dataSetRef);
+    });
+
+    it('should keep stored prerecorded references when the edited fields are incomplete', () => {
+      const storedRef: TestDataRef = {
+        s3: {
+          bucket: 'old-bucket',
+          key: 'old-data.jsonl',
+          secret_ref: 'old-secret',
+          type: 'pre_recorded_data',
+        },
+      };
+      const col = makeCollection({
+        benchmarks: [{ id: 'mmlu', provider_id: 'lm_harness', test_data_ref: storedRef }],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://new-bucket/new-data.jsonl',
+        accessToken: '',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(storedRef);
     });
   });
 
