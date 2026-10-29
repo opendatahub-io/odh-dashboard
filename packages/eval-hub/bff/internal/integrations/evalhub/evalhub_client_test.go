@@ -178,7 +178,8 @@ func TestEvalHubClient_GetEvaluationJob_DecodesNonNumericMetricsAndArtifacts(t *
 					"metrics": {
 						"refusal_rate": 0.95,
 						"verdicts": ["safe", "unsafe", "safe"],
-						"latency_ms": {"p50": 120, "p99": 340}
+						"latency_ms": {"p50": 120, "p99": 340},
+						"total_tokens": 9007199254740993
 					},
 					"artifacts": {
 						"evalhub.eval_card": "evalcards/job-1-card",
@@ -204,19 +205,24 @@ func TestEvalHubClient_GetEvaluationJob_DecodesNonNumericMetricsAndArtifacts(t *
 	require.Len(t, job.Results.Benchmarks, 1)
 
 	benchmark := job.Results.Benchmarks[0]
-	assert.InDelta(t, 0.95, benchmark.Metrics["refusal_rate"], 0.0001)
+	refusalRate, err := benchmark.Metrics["refusal_rate"].(json.Number).Float64()
+	require.NoError(t, err)
+	assert.InDelta(t, 0.95, refusalRate, 0.0001)
 	assert.Equal(t, []any{"safe", "unsafe", "safe"}, benchmark.Metrics["verdicts"])
-	assert.Equal(t, map[string]any{"p50": float64(120), "p99": float64(340)}, benchmark.Metrics["latency_ms"])
+	assert.Equal(t, map[string]any{"p50": json.Number("120"), "p99": json.Number("340")}, benchmark.Metrics["latency_ms"])
 	assert.Equal(t, map[string]any{
 		"evalhub.eval_card": "evalcards/job-1-card",
 		"evalhub.env_card":  "envcards/job-1-env",
 	}, benchmark.Artifacts)
 
 	// The BFF serves the decoded job to the frontend unmodified, so the values
-	// must survive a JSON round-trip.
+	// must survive a JSON round-trip. JSONEq alone cannot catch precision loss
+	// (both sides parse to float64), so assert the exact literal for the
+	// large integer beyond float64 precision.
 	encoded, err := json.Marshal(job)
 	require.NoError(t, err)
 	assert.JSONEq(t, jobJSON, string(encoded))
+	assert.Contains(t, string(encoded), `"total_tokens":9007199254740993`)
 }
 
 func TestEvalHubClient_ListEvaluationJobs_FetchesAllPages(t *testing.T) {

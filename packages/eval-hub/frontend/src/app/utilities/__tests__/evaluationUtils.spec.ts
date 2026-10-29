@@ -1048,6 +1048,16 @@ describe('getEvaluationQueue', () => {
 
     expect(getEvaluationQueue(job)).toBeUndefined();
   });
+
+  it('should ignore removed legacy queue fields on status and resource', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // The queue fields were removed from the API contract; simulate a legacy
+    // payload that still carries them to guard against fallback reintroduction.
+    Object.assign(job.status, { queue: 'legacy-status-queue' });
+    Object.assign(job.resource, { queue: 'legacy-resource-queue' });
+
+    expect(getEvaluationQueue(job)).toBeUndefined();
+  });
 });
 
 describe('getLatestEvaluationJob', () => {

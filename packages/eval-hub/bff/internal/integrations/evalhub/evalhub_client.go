@@ -1043,6 +1043,19 @@ func readResponseBody(body io.Reader, maxSize int) ([]byte, error) {
 	return responseBody, nil
 }
 
+// decodeJSON decodes with UseNumber so numbers inside pass-through `any`
+// fields (metrics, artifacts, custom) keep their exact JSON literal rather
+// than losing precision to float64 when re-serialized to the frontend.
+func decodeJSON[T any](body []byte) (*T, error) {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.UseNumber()
+	var result T
+	if err := decoder.Decode(&result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
@@ -1074,11 +1087,7 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](body)
 }
 
 // post performs a typed POST request against the EvalHub API.
@@ -1120,11 +1129,7 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](respBody)
 }
 
 // patch performs a typed PATCH request against the EvalHub API.
@@ -1166,11 +1171,7 @@ func patch[T any](c *EvalHubClient, ctx context.Context, path string, body any, 
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](respBody)
 }
 
 // doRequest performs an HTTP request that does not return a typed body (e.g. DELETE).

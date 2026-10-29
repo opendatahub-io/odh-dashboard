@@ -197,6 +197,18 @@ describe('extractReconfigureData', () => {
     expect(result.queue).toBeUndefined();
   });
 
+  it('should ignore removed legacy queue fields on status and resource', () => {
+    const job = mockEvaluationJob();
+    // The queue fields were removed from the API contract; simulate a legacy
+    // payload that still carries them to guard against fallback reintroduction.
+    Object.assign(job.status, { queue: 'legacy-status-queue' });
+    Object.assign(job.resource, { queue: 'legacy-resource-queue' });
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.queue).toBeUndefined();
+  });
+
   it('should preserve raw metric thresholds when reconfiguring a benchmark', () => {
     const job = mockEvaluationJob({ benchmarkId: 'constant', providerId: 'guidellm' });
     job.benchmarks = [
