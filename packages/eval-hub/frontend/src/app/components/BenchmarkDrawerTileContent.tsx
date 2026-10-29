@@ -27,6 +27,7 @@ import InlineTooltip from '~/app/components/InlineTooltip';
 import { formatThresholdValue } from '~/app/utilities/evaluationUtils';
 import { capitalizeFirst, getMetricDisplayName, toSafeExternalUrl } from './benchmarkUtils';
 import { SOURCE_LABELS } from './BenchmarkTestDataRefFields';
+import './BenchmarkDrawerTileContent.scss';
 
 type BenchmarkDrawerTileContentProps = {
   name: string;
@@ -186,13 +187,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
                     isInline
                     icon={isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
                   >
-                    <span
-                      style={{
-                        fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
-                      }}
-                    >
-                      {name}
-                    </span>
+                    <span className="evalhub-benchmark-tile__name">{name}</span>
                   </Button>
                 ) : (
                   <Content
@@ -300,7 +295,9 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
                   </DescriptionListGroup>
                 )}
                 <DescriptionListGroup>
-                  <DescriptionListTerm style={compactFontStyle}>Test data</DescriptionListTerm>
+                  <DescriptionListTerm className={isCompact ? 'pf-v6-u-font-size-sm' : undefined}>
+                    Test data
+                  </DescriptionListTerm>
                   <DescriptionListDescription data-testid="benchmark-test-data-ref">
                     <DescriptionList
                       isCompact={isCompact}

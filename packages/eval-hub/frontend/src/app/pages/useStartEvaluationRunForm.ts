@@ -853,22 +853,15 @@ export function useStartEvaluationRunForm({
       return values.sourceName.trim();
     })();
 
-    const resolvedEndpointUrl = (() => {
-      if (values.sourceMode === 'model' && values.modelSelection === 'cluster') {
-        return selectedInferenceServiceRef.current?.url ?? '';
-      }
-      if (values.sourceMode === 'model' || values.sourceMode === 'agent') {
-        return values.endpointUrl.trim();
-      }
-      return '';
-    })();
+    // Endpoint and auth pass through in every mode: prerecorded-mode clearing
+    // is owned by buildEvaluationRequest, which preserves them for mixed
+    // collections whose non-prerecorded benchmarks still need inference.
+    const resolvedEndpointUrl =
+      values.sourceMode === 'model' && values.modelSelection === 'cluster'
+        ? (selectedInferenceServiceRef.current?.url ?? '')
+        : values.endpointUrl.trim();
 
-    const resolvedAuth = (() => {
-      if (values.sourceMode === 'model' || values.sourceMode === 'agent') {
-        return values.apiKeySecretRef.trim();
-      }
-      return '';
-    })();
+    const resolvedAuth = values.apiKeySecretRef.trim();
 
     const request = buildEvaluationRequest({
       evaluationName: values.evaluationName,

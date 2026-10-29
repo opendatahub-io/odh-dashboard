@@ -453,6 +453,56 @@ func TestValidatePatchedBenchmarksReplaysAgainstOriginalJSON(t *testing.T) {
 	}
 }
 
+func TestValidatePatchedBenchmarksHandlesExplicitNullFields(t *testing.T) {
+	// A null weight decodes to the zero value and is dropped by omitempty on
+	// re-marshal, so the raw JSON is the only representation where the path
+	// exists for replace and remove operations.
+	currentJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"provider_id": "lm_evaluation_harness",
+			"weight": null
+		}]
+	}`)
+	current := &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID:         "mmlu",
+			ProviderID: "lm_evaluation_harness",
+		}},
+	}
+
+	tests := []struct {
+		name       string
+		operations []evalhub.CollectionPatchOperation
+	}{
+		{
+			name: "replacing an explicitly null field",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/weight",
+				Value: json.RawMessage(`2`),
+			}},
+		},
+		{
+			name: "removing an explicitly null field",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:   "remove",
+				Path: "/benchmarks/0/weight",
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePatchedBenchmarks(currentJSON, current, tt.operations)
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 	newCollection := func(firstURL, secondURL string) *evalhub.Collection {
 		return &evalhub.Collection{

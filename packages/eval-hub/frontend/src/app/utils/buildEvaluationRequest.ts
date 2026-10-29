@@ -11,7 +11,7 @@ import {
   serializeTestDataRef,
   type TestDataRefFormValues,
 } from '~/app/schemas/testDataRef.schema';
-import { parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
+import { buildS3DatasetUrl, parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
@@ -117,9 +117,20 @@ const buildEvaluationRequest = ({
     });
   }
 
+  // Mixed collections — creatable only by API clients, since the UI offers no
+  // prerecorded selector in collection flows — retain benchmarks that need
+  // inference, so the hydrated endpoint and auth are preserved instead of
+  // being cleared by prerecorded mode.
+  const hasInferenceBenchmark = !!collection?.benchmarks?.some(
+    (b) => !isPrerecordedS3TestDataRef(b.test_data_ref),
+  );
   const resolvedModelName = (sourceMode === 'prerecorded' ? sourceName : modelName).trim();
-  const resolvedUrl = (sourceMode === 'prerecorded' ? '' : endpointUrl).trim();
-  const resolvedAuth = (sourceMode === 'prerecorded' ? '' : apiKeySecretRef).trim();
+  const resolvedUrl = (
+    sourceMode === 'prerecorded' && !hasInferenceBenchmark ? '' : endpointUrl
+  ).trim();
+  const resolvedAuth = (
+    sourceMode === 'prerecorded' && !hasInferenceBenchmark ? '' : apiKeySecretRef
+  ).trim();
 
   const rawExperiment = topLevelOverrides.experiment;
   const experimentOverride: Record<string, unknown> | undefined =
@@ -140,12 +151,27 @@ const buildEvaluationRequest = ({
   );
 
   const isCollectionFlow = !!collection;
-  // Collection reconfigures expose one editable dataset URL and secret for the
-  // whole prerecorded run; that edited reference replaces the stored reference
-  // on benchmarks that ran with a prerecorded S3 ref. Other per-benchmark
-  // references (e.g. data_set) are preserved untouched.
+  // The reconfigure form exposes one editable dataset URL and secret for the
+  // whole prerecorded run, hydrated from the first stored prerecorded
+  // reference (see extractReconfigureData). While the user leaves those fields
+  // unchanged, each benchmark keeps its own stored reference; editing either
+  // field is the explicit collection-wide replacement the shared fields express.
+  // Other per-benchmark references (e.g. data_set) are preserved untouched.
   // eslint-disable-next-line camelcase
   const editedPrerecordedRef = prerecordedDataRef.test_data_ref;
+  const hydrationSource = collection?.benchmarks?.find((b) =>
+    isPrerecordedS3TestDataRef(b.test_data_ref),
+  )?.test_data_ref?.s3;
+  const hydratedDatasetUrl = hydrationSource
+    ? hydrationSource.bucket
+      ? buildS3DatasetUrl(hydrationSource.bucket, hydrationSource.key ?? '')
+      : (hydrationSource.key ?? '')
+    : undefined;
+  const prerecordedFieldsEdited =
+    !!editedPrerecordedRef &&
+    (hydratedDatasetUrl === undefined ||
+      trimmedDatasetUrl !== hydratedDatasetUrl ||
+      trimmedAccessToken !== (hydrationSource?.secret_ref ?? ''));
   const hardwareConfig = hardwareProfile
     ? {
         // eslint-disable-next-line camelcase
@@ -171,7 +197,7 @@ const buildEvaluationRequest = ({
             id: collection.resource.id,
             benchmarks: collection.benchmarks?.map((b) => {
               const effectiveTestDataRef =
-                editedPrerecordedRef && isPrerecordedS3TestDataRef(b.test_data_ref)
+                prerecordedFieldsEdited && isPrerecordedS3TestDataRef(b.test_data_ref)
                   ? editedPrerecordedRef
                   : b.test_data_ref;
               return {

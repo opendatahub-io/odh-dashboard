@@ -366,6 +366,159 @@ describe('buildEvaluationRequest', () => {
 
       expect(result.collection!.benchmarks![0].test_data_ref).toEqual(storedRef);
     });
+
+    it('should keep each stored reference on an unchanged reconfiguration with distinct prerecorded refs', () => {
+      const refA: TestDataRef = {
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-a',
+          secret_ref: 'shared-secret',
+          type: 'pre_recorded_data',
+        },
+      };
+      const refB: TestDataRef = {
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-b',
+          secret_ref: 'shared-secret',
+          type: 'pre_recorded_data',
+        },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          { id: 'mmlu', provider_id: 'lm_harness', test_data_ref: refA },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: refB },
+        ],
+      });
+      // Hydrated from the first stored reference and left untouched by the user.
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/benchmark-a',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(refA);
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(refB);
+    });
+
+    it('should replace every prerecorded reference when only the secret is edited', () => {
+      const refA: TestDataRef = {
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-a',
+          secret_ref: 'old-secret',
+          type: 'pre_recorded_data',
+        },
+      };
+      const refB: TestDataRef = {
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-b',
+          secret_ref: 'old-secret',
+          type: 'pre_recorded_data',
+        },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          { id: 'mmlu', provider_id: 'lm_harness', test_data_ref: refA },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: refB },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/benchmark-a',
+        accessToken: 'new-secret',
+        collection: col,
+      });
+
+      const expectedRef = {
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-a',
+          secret_ref: 'new-secret',
+          type: 'pre_recorded_data',
+        },
+      };
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(expectedRef);
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(expectedRef);
+    });
+
+    it('should preserve the model endpoint and auth for a mixed collection in prerecorded mode', () => {
+      const dataSetRef: TestDataRef = {
+        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              s3: {
+                bucket: 'results',
+                key: 'benchmark-a',
+                secret_ref: 'shared-secret',
+                type: 'pre_recorded_data',
+              },
+            },
+          },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: dataSetRef },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        endpointUrl: 'https://ext.example.com/v1',
+        apiKeySecretRef: 'endpoint-secret',
+        datasetUrl: 's3://results/benchmark-a',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.model.url).toBe('https://ext.example.com/v1');
+      expect(result.model.auth).toEqual({ secret_ref: 'endpoint-secret' });
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(
+        col.benchmarks![0].test_data_ref,
+      );
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(dataSetRef);
+    });
+
+    it('should clear the model endpoint and auth for a purely prerecorded collection', () => {
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              s3: {
+                bucket: 'results',
+                key: 'benchmark-a',
+                secret_ref: 'shared-secret',
+                type: 'pre_recorded_data',
+              },
+            },
+          },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        endpointUrl: 'https://ext.example.com/v1',
+        apiKeySecretRef: 'endpoint-secret',
+        datasetUrl: 's3://results/benchmark-a',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.model.url).toBe('');
+      expect(result.model).not.toHaveProperty('auth');
+    });
   });
 
   describe('model mode test data', () => {
