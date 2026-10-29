@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
@@ -26,18 +27,21 @@ func (l odhDashboardLifecycle) Reconcile(ctx context.Context, dashboard *v1alpha
 	l.reportUnsupportedMaaSPortalRequest(dashboard, cm)
 	coreManifest := openShiftManifestInfo(r.ManifestsBasePath, r.Platform)
 	observabilityManifest := openShiftObservabilityManifestInfo(r.ManifestsBasePath, r.Platform)
-	if err := r.reconcileOpenShiftCore(ctx, dashboard, cm, coreManifest); err != nil {
-		return ctrl.Result{}, err
-	}
-	features, err := r.reconcileOpenShiftFeatures(ctx, dashboard, cm, observabilityConfigResolved, observabilityManifest)
+	deferredResources, err := r.reconcileOpenShiftCore(ctx, dashboard, cm, coreManifest)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, 0, l.availabilityTarget())
+	uploadConfigErr := r.reconcileModelRegistryUploadConfig(ctx, dashboard, deferredResources.modelRegistryUploadConfigResources, cm)
+	features, err := r.reconcileOpenShiftFeatures(ctx, dashboard, cm, observabilityConfigResolved, observabilityManifest)
+	if err != nil {
+		return ctrl.Result{}, errors.Join(err, uploadConfigErr)
+	}
+	return r.completeOpenShiftReconcile(ctx, dashboard, cm, cfg, features, uploadConfigErr, 0, l.availabilityTarget())
 }
 
 func (l odhDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.Dashboard, previousStatus *v1alpha1.DashboardStatus, cm *conditions.Manager) (ctrl.Result, error) {
 	r := l.reconciler
+	cm.ClearCondition(conditionModelRegistryConfigValid)
 	l.reportUnsupportedMaaSPortalRequest(dashboard, cm)
 	// Preserve the resolved module statuses during soft removal. Consumers use
 	// them to distinguish operands that were intentionally removed from ones

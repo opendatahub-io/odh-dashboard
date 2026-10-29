@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -177,6 +179,36 @@ func TestReconcileModuleResources_ReturnsCleanupError(t *testing.T) {
 	statuses, err := reconciler.ReconcileModuleResources(context.Background(), dashboard)
 	assert.Nil(t, statuses)
 	require.ErrorContains(t, err, "deleting deployment for module maas: simulated delete failure")
+}
+
+func TestReconcileModuleResources_RenderFailureStopsDisabledModuleCleanup(t *testing.T) {
+	scheme := testScheme(t)
+	disabledModuleDeployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{
+		Name:      "model-registry-ui",
+		Namespace: testNamespace,
+		Labels: map[string]string{
+			labels.PlatformPartOf:         "dashboard",
+			"app.kubernetes.io/component": "model-registry",
+		},
+	}}
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(disabledModuleDeployment).Build()
+	manifests := t.TempDir()
+	modulePath := filepath.Join(manifests, "modules", "maas")
+	require.NoError(t, os.MkdirAll(modulePath, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(modulePath, "kustomization.yaml"), []byte("invalid: ["), 0644))
+	r := &ctrlpkg.DashboardReconciler{
+		Client: cli, Scheme: scheme, ManifestsBasePath: manifests,
+		Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace,
+	}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		Modules: map[string]v1alpha1.ModuleOverride{"modelRegistry": {State: v1alpha1.ModuleDisabled}},
+	}}
+
+	statuses, err := r.ReconcileModuleResources(context.Background(), dashboard)
+	require.ErrorContains(t, err, "failed to render manifests for module maas")
+	assert.Nil(t, statuses, "failed reconciliation must not expose statuses for federation updates")
+	assert.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(disabledModuleDeployment), &appsv1.Deployment{}),
+		"disabled module must remain until required modules deploy successfully")
 }
 
 func TestReconcileModuleResources_OverlaysStandaloneReadiness(t *testing.T) {

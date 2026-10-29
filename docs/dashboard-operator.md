@@ -288,6 +288,8 @@ dashboard-operator/
 ## Development Workflow
 
 ```bash
+cd dashboard-operator
+
 make build
 make test
 make lint

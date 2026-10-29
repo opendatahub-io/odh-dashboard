@@ -249,6 +249,7 @@ func filterAndRemapDataConnectHubGatewayRBAC(resources []unstructured.Unstructur
 
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
 	computed := computeKustomizeVariables(dashboard, platform)
+	renderParams := maps.Clone(computed)
 	maps.Copy(computed, resolveImageParams())
 	// The operator applies the upload ConfigMap separately after validating the
 	// CR value. Render a safe placeholder, including after a previous reconcile.
@@ -257,12 +258,27 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 	for _, m := range manifests {
 		manifestPath := m.String()
 		params := readExistingParams(filepath.Join(manifestPath, "params.env"))
+		// OpenShift bundles consume computed Kustomize replacement sources even
+		// when their params.env does not declare every key. The standalone XKS
+		// bundle is deliberately scoped to its declared params, apart from its
+		// caller-supplied certificate issuer overrides.
+		if platform == cluster.XKS {
+			maps.Copy(params, overrides)
+		} else {
+			maps.Copy(params, renderParams)
+		}
 		// A bundle's params.env defines the parameters it consumes. Do not add
 		// every resolved operator image to every generated params ConfigMap.
 		for key := range params {
 			if value, found := computed[key]; found {
 				params[key] = value
 			}
+		}
+		// OpenShift overlays use this key as the source of a Kustomize
+		// replacement for model-registry-ui-config. Keep the value empty here:
+		// the validated CR value is applied separately after rendering.
+		if platform != cluster.XKS {
+			params[ociBaseImageParam] = computed[ociBaseImageParam]
 		}
 		if err := writeParamsEnv(manifestPath, params); err != nil {
 			return fmt.Errorf("failed to write params.env to %s: %w", manifestPath, err)

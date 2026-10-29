@@ -25,13 +25,18 @@ func TestApplyKustomizeParamsOverridesRHAIIImage(t *testing.T) {
 	t.Setenv("RELATED_IMAGE_ODH_DASHBOARD_IMAGE", "quay.io/example/odh-dashboard@sha256:def456")
 
 	manifests := []render.ManifestInfo{rhaiiManifestInfo(dir)}
-	require.NoError(t, applyKustomizeParams(&v1alpha1.Dashboard{}, manifests, cluster.XKS))
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		Gateway: &v1alpha1.GatewaySpec{Domain: "dashboard.example.com"},
+	}}
+	require.NoError(t, applyKustomizeParams(dashboard, manifests, cluster.XKS))
 
 	data, err := os.ReadFile(filepath.Join(bundle, "params.env"))
 	require.NoError(t, err)
 	assert.Contains(t, string(data), "rhaii-dashboard-image=quay.io/example/rhaii-dashboard@sha256:abc123")
 	assert.Contains(t, string(data), "gateway-name=rh-ai-gateway")
 	assert.NotContains(t, string(data), "odh-dashboard-image=quay.io/example/odh-dashboard@sha256:def456")
+	assert.NotContains(t, string(data), "gateway-domain=dashboard.example.com")
+	assert.NotContains(t, string(data), "dashboard-url=https://dashboard.example.com/")
 }
 
 func TestRenderRHAIIDashboardManifestBundle(t *testing.T) {

@@ -355,7 +355,7 @@ func (r *DashboardReconciler) persistRemovedFailureStatus(
 }
 
 func (r *DashboardReconciler) supportsLegacyRedirects() bool {
-	return r.Platform == cluster.OpenDataHub || r.Platform == cluster.SelfManagedRhoai
+	return r.Platform != cluster.XKS
 }
 
 // reconcileLegacyRedirectsForOpenShift retains the legacy redirect handoff for

@@ -101,7 +101,7 @@ func TestApplyKustomizeParamsKeepsOCIBaseImageOutOfSharedParams(t *testing.T) {
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
 		ModelRegistryOCIBaseImage: "mirror.example.com/base:1",
 	}}
-	manifests := manifestSets(dir, cluster.SelfManagedRhoai)
+	manifests := []render.ManifestInfo{openShiftManifestInfo(dir, cluster.SelfManagedRhoai)}
 	require.NoError(t, applyKustomizeParams(dashboard, manifests, cluster.SelfManagedRhoai))
 	assert.Equal(t, "", readExistingParams(paramsPath)["images-oci-base-image"])
 
@@ -126,6 +126,7 @@ func TestExtractDashboardURL(t *testing.T) {
 	tests := []struct {
 		name      string
 		dashboard *v1alpha1.Dashboard
+		platform  cluster.Platform
 		routes    []routev1.Route
 		wantURL   string
 		wantErr   error
@@ -290,9 +291,11 @@ func TestExtractDashboardURL(t *testing.T) {
 				WithRuntimeObjects(objs...).
 				Build()
 
-			url, err := extractDashboardURL(
-				context.Background(), cli, tt.dashboard, namespace, cluster.OpenDataHub,
-			)
+			platform := tt.platform
+			if platform == "" {
+				platform = cluster.OpenDataHub
+			}
+			url, err := extractDashboardURL(context.Background(), cli, tt.dashboard, namespace, platform)
 			if tt.wantErrIs {
 				assert.ErrorIs(t, err, tt.wantErr)
 				assert.Empty(t, url)

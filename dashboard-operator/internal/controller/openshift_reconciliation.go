@@ -68,44 +68,57 @@ func (r *DashboardReconciler) cleanupLegacyResources(ctx context.Context) error 
 	return errors.Join(errs...)
 }
 
+// deferredCoreApplyResources contains rendered resources intentionally excluded
+// from the ordinary core apply because specialized reconcilers own their
+// lifecycle after the core manifests have been applied.
+type deferredCoreApplyResources struct {
+	modelRegistryUploadConfigResources []unstructured.Unstructured
+}
+
 // reconcileOpenShiftCore applies only the dashboard's core manifest overlay.
 // Feature operands are composed by the ODH and RHOAI lifecycles afterwards.
-func (r *DashboardReconciler) reconcileOpenShiftCore(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, manifest render.ManifestInfo) error {
+func (r *DashboardReconciler) reconcileOpenShiftCore(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, manifest render.ManifestInfo) (*deferredCoreApplyResources, error) {
 	if err := r.cleanupLegacyResources(ctx); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("LegacyCleanupFailed"), conditions.WithError(err))
-		return fmt.Errorf("failed to clean up legacy resources: %w", err)
+		return nil, fmt.Errorf("failed to clean up legacy resources: %w", err)
 	}
 
 	manifests := []render.ManifestInfo{manifest}
 	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("KustomizeParamsFailed"), conditions.WithError(err))
-		return fmt.Errorf("failed to apply kustomize params: %w", err)
+		return nil, fmt.Errorf("failed to apply kustomize params: %w", err)
 	}
 
 	engine := kustomize.NewEngine()
-	var allResources []unstructured.Unstructured
+	var allResources, uploadConfigResources []unstructured.Unstructured
 	for _, m := range manifests {
 		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.ApplicationsNamespace))
 		if err != nil {
 			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("RenderFailed"), conditions.WithError(err))
-			return fmt.Errorf("failed to render manifests from %s: %w", m, err)
+			return nil, fmt.Errorf("failed to render manifests from %s: %w", m, err)
 		}
-		allResources = append(allResources, rendered...)
+		for _, resource := range rendered {
+			if resource.GetKind() == "ConfigMap" && resource.GetName() == modelRegistryConfigMapName {
+				uploadConfigResources = append(uploadConfigResources, resource)
+			} else {
+				allResources = append(allResources, resource)
+			}
+		}
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
 	remapDataConnectHubGatewayRBAC(allResources, r.ApplicationsNamespace)
 	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("ProbeSanitizeFailed"), conditions.WithError(err))
-		return fmt.Errorf("failed to sanitize deployment probes: %w", err)
+		return nil, fmt.Errorf("failed to sanitize deployment probes: %w", err)
 	}
 	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("StaleContainerRemovalFailed"), conditions.WithError(err))
-		return fmt.Errorf("failed to remove stale containers: %w", err)
+		return nil, fmt.Errorf("failed to remove stale containers: %w", err)
 	}
 	if err := revertServicePortDrift(ctx, r.apiReader(), r.Client, allResources); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("ServicePortDriftRepairFailed"), conditions.WithError(err))
-		return fmt.Errorf("failed to repair Service port drift: %w", err)
+		return nil, fmt.Errorf("failed to repair Service port drift: %w", err)
 	}
 
 	deployer := deploy.NewDeployer(
@@ -116,9 +129,9 @@ func (r *DashboardReconciler) reconcileOpenShiftCore(ctx context.Context, dashbo
 	)
 	if err := deployer.Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard, Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: allResources}); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("DeployFailed"), conditions.WithError(err))
-		return fmt.Errorf("failed to deploy resources: %w", err)
+		return nil, fmt.Errorf("failed to deploy resources: %w", err)
 	}
-	return nil
+	return &deferredCoreApplyResources{modelRegistryUploadConfigResources: uploadConfigResources}, nil
 }
 
 type openShiftFeatureState struct {
@@ -135,7 +148,7 @@ func (r *DashboardReconciler) reconcileOpenShiftFeatures(ctx context.Context, da
 	logger := log.FromContext(ctx)
 	statuses, err := r.reconcileModuleResources(ctx, dashboard)
 	if err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("ModuleDeployFailed"), conditions.WithError(err))
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithError(err), conditions.WithReason("ModuleDeployFailed"))
 		return openShiftFeatureState{}, fmt.Errorf("failed to deploy module manifests: %w", err)
 	}
 	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded), conditions.WithReason("ResourcesApplied"), conditions.WithMessage("Dashboard and module manifests applied successfully"))
@@ -153,6 +166,7 @@ func (r *DashboardReconciler) reconcileOpenShiftFeatures(ctx context.Context, da
 	}
 	state.federationData, err = r.deployFederationConfigMap(ctx, statuses, dashboard, observabilityConfigResolved)
 	if err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithError(err), conditions.WithReason("FederationConfigMapFailed"))
 		cm.MarkTrue(string(common.ConditionTypeDegraded), conditions.WithReason("FederationConfigMapFailed"), conditions.WithError(err))
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return openShiftFeatureState{}, fmt.Errorf("federation ConfigMap: %w", err)
@@ -160,9 +174,19 @@ func (r *DashboardReconciler) reconcileOpenShiftFeatures(ctx context.Context, da
 	return state, nil
 }
 
-func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig, state openShiftFeatureState, extraRetryAfter time.Duration, availabilityTarget dashboardAvailabilityTarget) (ctrl.Result, error) {
+func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, cfg OperatorConfig, state openShiftFeatureState, uploadConfigErr error, extraRetryAfter time.Duration, availabilityTarget dashboardAvailabilityTarget) (result ctrl.Result, reconcileErr error) {
+	defer func() {
+		if uploadConfigErr == nil {
+			return
+		}
+		if conditions.IsStatusConditionTrue(dashboard, string(common.ConditionTypeProvisioningSucceeded)) {
+			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithError(uploadConfigErr), conditions.WithReason("ModelRegistryConfigFailed"))
+		}
+		reconcileErr = errors.Join(reconcileErr, uploadConfigErr)
+	}()
 	logger := log.FromContext(ctx)
 	if err := r.patchDeploymentFederationHash(ctx, state.federationData); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded), conditions.WithError(err), conditions.WithReason("FederationHashPatchFailed"))
 		logger.Error(err, "Failed to patch federation hash on deployment")
 		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}

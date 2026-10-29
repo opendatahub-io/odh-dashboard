@@ -1,4 +1,4 @@
-# Dashboard Operator: ODH And Self-Managed RHOAI
+# Dashboard Operator: ODH and Self-Managed RHOAI
 
 This guide describes the OpenShift lifecycles of the Dashboard Module
 Controller. Read the [shared controller contract](dashboard-operator.md) first
