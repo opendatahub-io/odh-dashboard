@@ -126,11 +126,10 @@ func TestSetup_ShutdownCancelsDiscovery(t *testing.T) {
 	var attempts atomic.Int32
 	discovering := make(chan struct{})
 	shutdown := setup(testLogger, func(ctx context.Context, _ *slog.Logger) string {
-		if attempts.Add(1) == 1 {
-			return ""
+		if attempts.Add(1) == 2 {
+			close(discovering)
+			<-ctx.Done()
 		}
-		close(discovering)
-		<-ctx.Done()
 		return ""
 	}, time.Millisecond)
 	t.Cleanup(func() { assert.NoError(t, shutdown(context.Background())) })
@@ -140,6 +139,9 @@ func TestSetup_ShutdownCancelsDiscovery(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("discovery was not retried")
 	}
+	// Let another retry tick become ready while discovery is blocked, so the
+	// worker must handle both ticker.C and ctx.Done() being ready at shutdown.
+	time.Sleep(5 * time.Millisecond)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	require.NoError(t, shutdown(ctx))

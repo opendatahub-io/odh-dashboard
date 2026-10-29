@@ -112,6 +112,9 @@ func setup(logger *slog.Logger, discover func(context.Context, *slog.Logger) str
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
+					if ctx.Err() != nil {
+						return
+					}
 					if initialize() {
 						return
 					}
