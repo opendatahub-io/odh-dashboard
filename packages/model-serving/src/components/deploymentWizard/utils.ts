@@ -49,6 +49,10 @@ export const getDeploymentWizardRoute = (): string => {
   return '/ai-hub/models/deployments/deploy';
 };
 
+export const getConnectionSecret = (wizardFormState: WizardFormState): string | undefined =>
+  wizardFormState.modelLocationData.data?.connection ??
+  wizardFormState.createConnectionData.data.nameDesc?.k8sName.value;
+
 export const isExistingModelLocation = (data?: ModelLocationData): data is ModelLocationData => {
   return data?.type === ModelLocationType.EXISTING;
 };

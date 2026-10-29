@@ -68,7 +68,7 @@ export const useFormToResourcesTransformer = (
       formData,
       existingDeployment,
       undefined,
-      connectionSecretName,
+      getConnectionSecret(formData.state),
     );
     deployment = applyFieldData(deployment);
 
@@ -87,6 +87,5 @@ export const useFormToResourcesTransformer = (
     applyFieldData,
     loaded,
     errors,
-    connectionSecretName,
   ]);
 };

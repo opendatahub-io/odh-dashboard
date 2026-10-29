@@ -33,7 +33,6 @@ export const useModelDeploymentSubmit = (
   viewMode: ModelDeploymentWizardViewMode = 'form',
   initialWizardData?: InitialWizardFormData,
   existingDeployment?: Deployment,
-  connectionSecretName?: string, // We really need to remove this, kept for backwards compatibility
   yamlError?: Error,
 ): {
   onSave: (overwrite?: boolean) => Promise<void>;
@@ -124,7 +123,7 @@ export const useModelDeploymentSubmit = (
           formState,
           externalData,
           secretOps,
-          connectionSecretName,
+          getConnectionSecret(formState),
           deployMethod.properties,
           existingDeployment,
           resources.model,
@@ -165,7 +164,6 @@ export const useModelDeploymentSubmit = (
       formState,
       secretOps,
       resources,
-      connectionSecretName,
       existingDeployment,
       initialWizardData,
       applyAllFieldDataFn,
