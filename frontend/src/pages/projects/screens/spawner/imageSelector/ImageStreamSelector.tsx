@@ -8,6 +8,7 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { upperFirst } from 'lodash-es';
+import { isCompatibleWithIdentifier } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
@@ -25,7 +26,6 @@ import {
   checkImageStreamAvailability,
   getImageStreamDisplayName,
   getRelatedVersionDescription,
-  isCompatibleWithIdentifier,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '#~/k8sTypes';
 import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';

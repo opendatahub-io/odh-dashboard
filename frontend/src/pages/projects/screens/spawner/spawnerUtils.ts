@@ -1,10 +1,5 @@
 import compareVersions from 'compare-versions';
-import type {
-  ContainerResources,
-  Volume,
-  VolumeMount,
-  K8sDSGResource,
-} from '@odh-dashboard/k8s-core';
+import type { ContainerResources, Volume, VolumeMount } from '@odh-dashboard/k8s-core';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { ImageStreamAnnotation, type ImageStreamStatusTag } from '#~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
@@ -138,33 +133,6 @@ export const getImageStreamDescription = (imageStream: ImageStreamKind): string 
 
 export const getImageSteamOrder = (imageStream: ImageStreamKind): number =>
   parseInt(imageStream.metadata.annotations?.[IMAGE_ANNOTATIONS.IMAGE_ORDER] || '100');
-
-export const getCompatibleIdentifiers = (object: ImageStreamKind | K8sDSGResource): string[] => {
-  try {
-    const annotation = object.metadata.annotations?.['opendatahub.io/recommended-accelerators'];
-    // in the format of ["foo.com/gpu", "bar.com/gpu"]
-    if (annotation) {
-      const identifiers = JSON.parse(annotation);
-      if (Array.isArray(identifiers)) {
-        return identifiers;
-      }
-    }
-  } catch (error) {
-    // catch invalid json in metadata
-  }
-  return [];
-};
-
-export const isCompatibleWithIdentifier = (
-  identifier?: string,
-  obj?: ImageStreamKind | K8sDSGResource,
-): boolean => {
-  if (!obj || !identifier) {
-    return false;
-  }
-
-  return getCompatibleIdentifiers(obj).some((cr) => cr === identifier);
-};
 
 /**
  * Parse annotation software field or dependencies field from long string to array
