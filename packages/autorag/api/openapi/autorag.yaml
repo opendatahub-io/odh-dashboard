@@ -140,9 +140,10 @@ paths:
                   Retrieval results in the `file_search_call` item contain `text`, `score`, and
                   `file_id` when available. On an unrelated streaming failure, an `error` event with
                   `sequence_number` and the safe message `The response could not be completed.` is emitted.
-                  Milvus connection failures and operation timeouts use the same error event with
-                  `code` values `vector_database_unavailable` or `vector_database_timeout` and safe
-                  messages. The stream always terminates with `[DONE]`.
+                  Vector database connection failures and operation timeouts (Milvus, pgvector, or
+                  Neo4j) use the same error event with `code` values `vector_database_unavailable`
+                  or `vector_database_timeout` and safe messages. The stream always terminates with
+                  `[DONE]`.
                   The stream terminates with the literal `data: [DONE]` line, which has no
                   sequence number.
                 example: |

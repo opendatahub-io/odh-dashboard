@@ -73,7 +73,12 @@ const getCLIToken = () => {
   return '';
 };
 
-const fallbackToken = AUTH_METHOD === 'user_token' ? getCLIToken() : '';
+// Only capture the CLI token when the dev server binds a loopback host. On a
+// non-loopback bind (e.g. kubeflow mode's 0.0.0.0), anyone who can reach the
+// dev server would receive the cluster token on proxied requests.
+const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1'];
+const fallbackToken =
+  AUTH_METHOD === 'user_token' && LOOPBACK_HOSTS.includes(HOST) ? getCLIToken() : '';
 
 // Build static proxy headers for auth methods that don't need dynamic forwarding.
 const getProxyHeaders = () => {
