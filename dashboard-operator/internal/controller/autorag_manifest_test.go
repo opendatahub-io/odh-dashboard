@@ -16,6 +16,8 @@ func TestAutoRAGManifestConnectivity(t *testing.T) {
 	assert.Contains(t, policy.Spec.PolicyTypes, networkingv1.PolicyTypeEgress)
 	assert.True(t, moduleAllowsIngressPort(policy, 8743, moduleDashboardIngressPeer),
 		"AutoRAG must allow dashboard ingress on TCP 8743")
+	assertIngressPortIsSourceScoped(t, policy, 8743, "AutoRAG")
+	assertIngressPortAllowlist(t, policy, 8743, "AutoRAG")
 
 	dns := namespacePeer("openshift-dns")
 	apiServer := ipBlockPeer("0.0.0.0/0")
@@ -31,4 +33,5 @@ func TestAutoRAGManifestConnectivity(t *testing.T) {
 		"AutoRAG must allow external HTTPS egress")
 
 	assertUnrestrictedInClusterEgress(t, policy, "AutoRAG")
+	assertIPBlockEgressBoundary(t, policy, "AutoRAG")
 }

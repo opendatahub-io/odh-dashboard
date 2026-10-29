@@ -16,6 +16,8 @@ func TestAutoMLManifestConnectivity(t *testing.T) {
 	assert.Contains(t, policy.Spec.PolicyTypes, networkingv1.PolicyTypeEgress)
 	assert.True(t, moduleAllowsIngressPort(policy, 8643, moduleDashboardIngressPeer),
 		"AutoML must allow dashboard ingress on TCP 8643")
+	assertIngressPortIsSourceScoped(t, policy, 8643, "AutoML")
+	assertIngressPortAllowlist(t, policy, 8643, "AutoML")
 
 	dns := namespacePeer("openshift-dns")
 	apiServer := ipBlockPeer("0.0.0.0/0")
@@ -31,4 +33,5 @@ func TestAutoMLManifestConnectivity(t *testing.T) {
 		"AutoML must allow external HTTPS egress")
 
 	assertUnrestrictedInClusterEgress(t, policy, "AutoML")
+	assertIPBlockEgressBoundary(t, policy, "AutoML")
 }
