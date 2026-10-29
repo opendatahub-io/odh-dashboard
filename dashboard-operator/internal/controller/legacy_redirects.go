@@ -17,6 +17,8 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -142,7 +144,7 @@ func (r *DashboardReconciler) reconcileLegacyRedirects(ctx context.Context, dash
 		route := &routev1.Route{}
 		route.Name = legacyGatewayRouteName
 		route.Namespace = r.ApplicationsNamespace
-		if err := r.Delete(ctx, route); client.IgnoreNotFound(err) != nil {
+		if err := r.deleteOwnedLegacyRedirect(ctx, route); err != nil {
 			return fmt.Errorf("deleting redundant legacy gateway Route: %w", err)
 		}
 	}
@@ -186,10 +188,24 @@ func (r *DashboardReconciler) dashboardRedirectData(gatewayHostname string) (das
 	if err != nil {
 		return dashboardRedirectTemplateData{}, fmt.Errorf("rendering redirect ConfigMap for hash: %w", err)
 	}
-	hash := sha256.Sum256(config)
-	data.ConfigHash = hex.EncodeToString(hash[:])
+	configMap := &corev1.ConfigMap{}
+	if err := yaml.Unmarshal(config, configMap); err != nil {
+		return dashboardRedirectTemplateData{}, fmt.Errorf("decoding redirect ConfigMap for hash: %w", err)
+	}
+	data.ConfigHash = dashboardRedirectConfigHash(configMap.Data)
 
 	return data, nil
+}
+
+func dashboardRedirectConfigHash(data map[string]string) string {
+	hash := sha256.New()
+	for _, key := range []string{"nginx.conf", "redirect.conf", "deprecation.html"} {
+		_, _ = hash.Write([]byte(key))
+		_, _ = hash.Write([]byte{0})
+		_, _ = hash.Write([]byte(data[key]))
+		_, _ = hash.Write([]byte{0})
+	}
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 func legacyGatewayHostname(gatewayHostname string) (string, error) {
@@ -257,7 +273,7 @@ func (r *DashboardReconciler) cleanupLegacyRedirects(ctx context.Context) error 
 	for i, object := range namespaced {
 		object.SetName(names[i])
 		object.SetNamespace(r.ApplicationsNamespace)
-		if err := r.Delete(ctx, object); client.IgnoreNotFound(err) != nil {
+		if err := r.deleteOwnedLegacyRedirect(ctx, object); err != nil {
 			errs = append(errs, fmt.Errorf("deleting %T %s: %w", object, names[i], err))
 		}
 	}
@@ -267,7 +283,7 @@ func (r *DashboardReconciler) cleanupLegacyRedirects(ctx context.Context) error 
 			route := &routev1.Route{}
 			route.Name = name
 			route.Namespace = r.ApplicationsNamespace
-			if err := r.Delete(ctx, route); client.IgnoreNotFound(err) != nil {
+			if err := r.deleteOwnedLegacyRedirect(ctx, route); err != nil {
 				errs = append(errs, fmt.Errorf("deleting Route %s: %w", name, err))
 			}
 		}
@@ -277,4 +293,32 @@ func (r *DashboardReconciler) cleanupLegacyRedirects(ctx context.Context) error 
 		log.FromContext(ctx).Info("Reconciled legacy dashboard redirect cleanup")
 	}
 	return errors.Join(errs...)
+}
+
+func (r *DashboardReconciler) deleteOwnedLegacyRedirect(ctx context.Context, object client.Object) error {
+	if err := r.apiReader().Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	if !isOwnedLegacyRedirect(object) {
+		log.FromContext(ctx).Info("Preserving legacy dashboard redirect without recognized ownership",
+			"kind", object.GetObjectKind().GroupVersionKind().Kind,
+			"namespace", object.GetNamespace(),
+			"name", object.GetName())
+		return nil
+	}
+
+	return client.IgnoreNotFound(r.Delete(ctx, object))
+}
+
+func isOwnedLegacyRedirect(object client.Object) bool {
+	if owner := metav1.GetControllerOf(object); owner != nil &&
+		(owner.Kind == v1alpha1.DashboardKind || owner.Kind == gatewayConfigGVK.Kind) {
+		return true
+	}
+
+	return object.GetLabels()[labels.PlatformPartOf] == strings.ToLower(v1alpha1.DashboardKind)
 }
