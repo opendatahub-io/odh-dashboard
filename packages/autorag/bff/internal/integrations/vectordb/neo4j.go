@@ -229,14 +229,19 @@ func classifyNeo4jError(parentCtx, operationCtx context.Context, err error) erro
 // query or its configuration is distinguishable here — the driver surfaces it
 // as a *neo4j.Neo4jError with a Neo.ClientError.* code — and maps to
 // ErrDatabaseQueryFailed so callers can tell an invalid search apart from a
-// connectivity failure. Server-internal failures (Neo.DatabaseError.*) and
+// connectivity failure. Neo.ClientError.Security.* codes are excluded: an
+// authentication or authorization failure during search is an availability
+// concern — the same classification the connect/auth sites give it — not a
+// query rejection. Server-internal failures (Neo.DatabaseError.*) and
 // everything unrecognized stay ErrDatabaseUnavailable. Cancellation and
 // deadline handling are unchanged: they take precedence over the query
 // classification and are delegated to classifyNeo4jError.
 func classifyNeo4jSearchError(parentCtx, operationCtx context.Context, err error) error {
 	if parentCtx.Err() == nil && !errors.Is(err, context.DeadlineExceeded) && operationCtx.Err() != context.DeadlineExceeded {
 		var neo4jErr *neo4j.Neo4jError
-		if errors.As(err, &neo4jErr) && strings.HasPrefix(neo4jErr.Code, "Neo.ClientError.") {
+		if errors.As(err, &neo4jErr) &&
+			strings.HasPrefix(neo4jErr.Code, "Neo.ClientError.") &&
+			!strings.HasPrefix(neo4jErr.Code, "Neo.ClientError.Security.") {
 			return fmt.Errorf("%w: %w", ErrDatabaseQueryFailed, err)
 		}
 	}
@@ -281,11 +286,20 @@ func newNeo4jFromSecretWithDriver(
 		return nil, fmt.Errorf("neo4j: %w", err)
 	}
 
+	// The shared connection deadline starts before DNS resolution so a stalled
+	// resolver cannot hold the caller beyond one timeout, and resolution
+	// failures classify like other connection failures; endpoint-policy
+	// rejections (literal IP, blocked address) stay configuration errors.
 	// Resolve and validate the endpoint's addresses before anything is handed
 	// to the driver; see dialURIPinned for why this replaces the dial-time
 	// validation the other adapters perform.
-	ips, err := resolveVectorIPs(ctx, lookupIP, endpoint.host, endpoint.inCluster, endpoint.loopback)
+	connectCtx, cancelConnect := context.WithTimeout(ctx, timeout)
+	defer cancelConnect()
+	ips, err := resolveVectorIPs(connectCtx, lookupIP, endpoint.host, endpoint.inCluster, endpoint.loopback)
 	if err != nil {
+		if errors.Is(err, errVectorLookupFailed) {
+			return nil, fmt.Errorf("neo4j resolve: %w", classifyNeo4jError(ctx, connectCtx, err))
+		}
 		return nil, fmt.Errorf("neo4j: %w", err)
 	}
 
@@ -303,10 +317,8 @@ func newNeo4jFromSecretWithDriver(
 	}
 
 	// Try each pinned address in order; see dialURIsPinned for why there can
-	// be more than one. All attempts share a single deadline so N unresponsive
-	// addresses delay the caller by one timeout, not N.
-	connectCtx, cancelConnect := context.WithTimeout(ctx, timeout)
-	defer cancelConnect()
+	// be more than one. All attempts share the deadline created above, so
+	// DNS plus N unresponsive addresses delay the caller by one timeout.
 	var driver neo4jDriver
 	var lastErr error
 	for _, uri := range endpoint.dialURIsPinned(ips) {

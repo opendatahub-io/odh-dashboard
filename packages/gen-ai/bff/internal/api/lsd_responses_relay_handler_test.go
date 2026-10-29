@@ -257,13 +257,24 @@ var _ = Describe("ResponsesRelayHandler", func() {
 			{target: "http://[::1]:8080", want: "http://[::1]:8080"},
 			{target: "https://gateway.example.com", want: "https://gateway.example.com"},
 			{target: "https://gateway.example.com/", want: "https://gateway.example.com"},
+			// Scheme casing is normalized by url.Parse, so equivalent valid
+			// forms are accepted rather than rejected by a prefix check.
+			{target: "HTTP://localhost:8080", want: "HTTP://localhost:8080"},
+			{target: "HTTPS://gateway.example.com", want: "HTTPS://gateway.example.com"},
 		} {
 			baseURL, err := relayBaseURL("gateway.example.com", tc.target)
 			assert.NoError(t, err, tc.target)
 			assert.Equal(t, tc.want, baseURL, tc.target)
 		}
 
-		for _, target := range []string{"http://[2001:db8::1]", "http://[2001:db8::1]:8080", "gateway.example.com"} {
+		for _, target := range []string{
+			"http://[2001:db8::1]",
+			"http://[2001:db8::1]:8080",
+			"gateway.example.com",
+			// A scheme with no host is not a usable relay target.
+			"https://",
+			"http://",
+		} {
 			_, err := relayBaseURL("gateway.example.com", target)
 			assert.Error(t, err, target)
 		}
@@ -275,10 +286,37 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		assert.NoError(t, err)
 		assert.Equal(t, "https://gateway.example.com", baseURL)
 
-		for _, domain := range []string{"http://gateway.example.com", "https://gateway.example.com"} {
+		// Scheme-qualified GATEWAY_DOMAIN is rejected regardless of scheme
+		// casing, and whitespace-only values are treated as unconfigured
+		// rather than producing a malformed base URL.
+		for _, domain := range []string{
+			"http://gateway.example.com",
+			"https://gateway.example.com",
+			"HTTPS://gateway.example.com",
+			"  ",
+			"",
+		} {
 			_, err := relayBaseURL(domain, "")
 			assert.Error(t, err, domain)
 		}
+		_, err = relayBaseURL("  ", "  ")
+		assert.Error(t, err)
+	})
+
+	It("should return 503 when GATEWAY_DOMAIN is whitespace-only", func() {
+		t := GinkgoT()
+		// The configuration gate is trim-aware: a whitespace-only value must
+		// surface as not-configured, not slip through and build a malformed
+		// https:// base URL.
+		app.config.GatewayDomain = "   "
+
+		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses"), `{"model":"m"}`)
+		rr := httptest.NewRecorder()
+
+		app.ResponsesRelayHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+		assert.Contains(t, rr.Body.String(), "not configured")
 	})
 
 	It("should return 503 when the relay target uses plain http for a non-loopback host", func() {

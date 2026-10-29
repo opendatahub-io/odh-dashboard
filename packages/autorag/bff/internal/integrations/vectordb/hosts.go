@@ -2,6 +2,7 @@ package vectordb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -290,6 +291,13 @@ func defaultVectorLookupIP(ctx context.Context, host string) ([]net.IP, error) {
 	return net.DefaultResolver.LookupIP(ctx, "ip", host)
 }
 
+// errVectorLookupFailed marks hostname-resolution failures — a resolver
+// error or an empty answer — distinguishing them from endpoint-policy
+// rejections (literal IPs, blocked addresses): callers classify these as
+// database unavailability, while a policy rejection means the configured
+// endpoint itself is invalid. The underlying resolver error is preserved.
+var errVectorLookupFailed = errors.New("vector database host cannot be resolved")
+
 // resolveVectorIPs resolves an already syntax-validated vector database
 // hostname and checks every resolved IP with vectorIPAllowed. It is the
 // resolve-once counterpart to vectorSafeDialContext for clients that cannot
@@ -302,10 +310,10 @@ func resolveVectorIPs(ctx context.Context, lookupIP func(context.Context, string
 	clusterHost := allowClusterService && isClusterServiceHost(host)
 	ips, err := lookupIP(ctx, host)
 	if err != nil {
-		return nil, fmt.Errorf("vector database host cannot be resolved")
+		return nil, fmt.Errorf("%w: %w", errVectorLookupFailed, err)
 	}
 	if len(ips) == 0 {
-		return nil, fmt.Errorf("vector database host resolved to no addresses")
+		return nil, fmt.Errorf("%w: vector database host resolved to no addresses", errVectorLookupFailed)
 	}
 	for _, ip := range ips {
 		if !vectorIPAllowed(ip, clusterHost, allowLoopback) {

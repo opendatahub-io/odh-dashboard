@@ -44,21 +44,36 @@ var relayTargetPrefixes = []string{"/autorag/"}
 // themselves and would emit malformed URLs). A plain http:// scheme is accepted
 // only for loopback hosts: the relay forwards the user's bearer token, which
 // must never travel unencrypted to a remote endpoint.
+//
+// Both values are validated by parsing, not prefix matching: a scheme-qualified
+// RELAY_TARGET_URL must parse to an http/https URL with a host (url.Parse
+// normalizes the scheme, so casing does not matter), and a GATEWAY_DOMAIN that
+// carries a scheme (in any casing) is rejected outright.
 func relayBaseURL(gatewayDomain, relayTargetURL string) (string, error) {
 	if target := strings.TrimSpace(relayTargetURL); target != "" {
-		if !strings.HasPrefix(target, "http://") && !strings.HasPrefix(target, "https://") {
-			return "", errors.New("RELAY_TARGET_URL must be scheme-qualified (http:// or https://)")
+		parsed, err := url.Parse(target)
+		if err != nil {
+			return "", errors.New("RELAY_TARGET_URL must be a valid URL (http:// or https://)")
 		}
-		if strings.HasPrefix(target, "http://") {
-			parsed, err := url.Parse(target)
-			if err != nil || !isLoopbackGatewayHost(parsed.Host) {
+		switch strings.ToLower(parsed.Scheme) {
+		case "https":
+		case "http":
+			if !isLoopbackGatewayHost(parsed.Host) {
 				return "", errors.New("plain http RELAY_TARGET_URL is only allowed for loopback hosts")
 			}
+		default:
+			return "", errors.New("RELAY_TARGET_URL must be scheme-qualified (http:// or https://)")
+		}
+		if parsed.Hostname() == "" {
+			return "", errors.New("RELAY_TARGET_URL must include a host")
 		}
 		return strings.TrimRight(target, "/"), nil
 	}
 	domain := strings.TrimSpace(gatewayDomain)
-	if strings.HasPrefix(domain, "http://") || strings.HasPrefix(domain, "https://") {
+	if domain == "" {
+		return "", errors.New("neither GATEWAY_DOMAIN nor RELAY_TARGET_URL is configured")
+	}
+	if strings.Contains(domain, "://") {
 		return "", errors.New("GATEWAY_DOMAIN must be a bare host; use RELAY_TARGET_URL to override the relay target")
 	}
 	return "https://" + domain, nil
@@ -158,7 +173,9 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	if app.config.GatewayDomain == "" && app.config.RelayTargetURL == "" {
+	// Trim-aware so a whitespace-only value is treated as unconfigured rather
+	// than slipping past this gate and failing later with a malformed base URL.
+	if strings.TrimSpace(app.config.GatewayDomain) == "" && strings.TrimSpace(app.config.RelayTargetURL) == "" {
 		app.errorResponse(w, r, &integrations.HTTPError{
 			StatusCode: http.StatusServiceUnavailable,
 			ErrorResponse: integrations.ErrorResponse{

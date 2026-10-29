@@ -292,13 +292,42 @@ func TestNewNeo4jFromSecretAllowsClusterPrivateResolution(t *testing.T) {
 }
 
 func TestNewNeo4jFromSecretRejectsUnresolvableHost(t *testing.T) {
+	// A resolver failure is a connectivity problem: it classifies as database
+	// unavailability (with the resolver cause preserved) rather than surfacing
+	// as an unclassified configuration error.
 	_, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
 		return nil, errors.New("driver must not be created")
 	}, func(context.Context, string) ([]net.IP, error) {
 		return nil, errors.New("no such host")
 	})
 	require.Error(t, err)
+	require.ErrorIs(t, err, ErrDatabaseUnavailable)
 	assert.Contains(t, err.Error(), "cannot be resolved")
+	assert.Contains(t, err.Error(), "no such host")
+
+	// An empty resolver answer classifies the same way.
+	_, err = newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
+		return nil, errors.New("driver must not be created")
+	}, func(context.Context, string) ([]net.IP, error) {
+		return nil, nil
+	})
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrDatabaseUnavailable)
+}
+
+func TestNewNeo4jFromSecretBoundsStalledResolverByConnectionDeadline(t *testing.T) {
+	// DNS resolution shares the connection deadline: a resolver that never
+	// answers must fail with the timeout classification after one timeout,
+	// not hold the caller until the parent context dies.
+	start := time.Now()
+	_, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), 10*time.Millisecond, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
+		return nil, errors.New("driver must not be created")
+	}, func(ctx context.Context, _ string) ([]net.IP, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	})
+	require.ErrorIs(t, err, ErrDatabaseTimeout)
+	assert.Less(t, time.Since(start), 5*time.Second)
 }
 
 func TestNewNeo4jFromSecretPinsPlainDialAddress(t *testing.T) {
@@ -462,6 +491,11 @@ func TestNeo4jSearchClassifiesServerRejectionsAsQueryFailures(t *testing.T) {
 			name:    "statement syntax error maps to query failed",
 			err:     &neo4j.Neo4jError{Code: "Neo.ClientError.Statement.SyntaxError"},
 			wantErr: ErrDatabaseQueryFailed,
+		},
+		{
+			name:    "security error stays unavailable",
+			err:     &neo4j.Neo4jError{Code: "Neo.ClientError.Security.Unauthorized"},
+			wantErr: ErrDatabaseUnavailable,
 		},
 		{
 			name:    "server-internal error stays unavailable",

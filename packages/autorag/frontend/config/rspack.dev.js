@@ -29,6 +29,11 @@ const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/autorag/' : PUBLIC_PATH;
 const IS_CYPRESS_RUN = process.env.CYPRESS_RUN === 'true';
 
+// A stalled CLI (e.g. a credential helper waiting on a prompt) must not block
+// dev-server startup indefinitely; execSync throws on timeout, which falls
+// through to the next CLI.
+const CLI_COMMAND_TIMEOUT_MS = 5000;
+
 // Get the CLI token at startup as a fallback for standalone dev mode. Use the
 // same oc-first lookup as the Gen AI dev server so the playground's relay can
 // forward a bearer token when only oc is installed.
@@ -45,7 +50,7 @@ const getCLIToken = () => {
   ];
   for (const { token: tokenCommand, username: usernameCommand } of cliCommands) {
     try {
-      const token = execSync(tokenCommand).toString().trim();
+      const token = execSync(tokenCommand, { timeout: CLI_COMMAND_TIMEOUT_MS }).toString().trim();
       if (!token) {
         continue;
       }
@@ -55,7 +60,10 @@ const getCLIToken = () => {
       // this optional lookup only.
       let username = '';
       try {
-        username = execSync(usernameCommand, { stdio: ['pipe', 'pipe', 'ignore'] })
+        username = execSync(usernameCommand, {
+          stdio: ['pipe', 'pipe', 'ignore'],
+          timeout: CLI_COMMAND_TIMEOUT_MS,
+        })
           .toString()
           .trim();
       } catch {
