@@ -37,7 +37,7 @@ type ModelDeploymentWizardProps = {
   title: string;
   description?: string;
   primaryButtonText: string;
-  existingData?: InitialWizardFormData;
+  initialFormDataFromNav?: InitialWizardFormData;
   project?: ProjectKind;
   existingDeployment?: Deployment;
   returnRoute?: string;
@@ -48,7 +48,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   title,
   description,
   primaryButtonText,
-  existingData,
+  initialFormDataFromNav,
   project,
   existingDeployment,
   returnRoute,
@@ -62,11 +62,14 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
 
   const wizardFormData = useModelDeploymentWizard(
-    existingData,
+    initialFormDataFromNav,
     project?.metadata.name,
     externalData,
   );
-  const shouldShowPreconfigureStep = calcShouldShowPreconfigureStep(project, existingData);
+  const shouldShowPreconfigureStep = calcShouldShowPreconfigureStep(
+    project,
+    wizardFormData.initialData,
+  );
 
   const validation = useModelDeploymentWizardValidation(
     wizardFormData.state,
@@ -89,7 +92,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     existingDeployment?.model.kind !== 'InferenceService' &&
     wizardFormData.state.modelServer?.data?.selection?.template?.kind !== 'Template';
   const { isYAMLViewerEnabled, isAutoFallback, viewMode, switchToForm, switchToYaml } =
-    useYamlViewSession(existingData?.viewMode ?? 'form', canEnterYAMLEditMode);
+    useYamlViewSession(wizardFormData.initialData?.viewMode ?? 'form', canEnterYAMLEditMode);
 
   const {
     yaml,
