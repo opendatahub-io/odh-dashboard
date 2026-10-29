@@ -26,7 +26,6 @@ import (
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
-	discoveryv1 "k8s.io/api/discovery/v1"
 
 	"gopkg.in/yaml.v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -781,114 +780,6 @@ func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, name
 		return nil, fmt.Errorf("failed to get dashboard ConfigMap %s/%s: %w", namespace, name, err)
 	}
 	return configMap, nil
-}
-
-// callerClient returns a controller-runtime client authenticating as the requesting
-// user, so reads reflect exactly what the caller is authorized to see. It falls back
-// to the client's own credentials for local development when no identity is available.
-func (kc *TokenKubernetesClient) callerClient(identity *integrations.RequestIdentity) (client.Client, error) {
-	if identity == nil || identity.Token == "" {
-		return kc.Client, nil
-	}
-	userConfig := rest.AnonymousClientConfig(kc.Config)
-	userConfig.BearerToken = identity.Token
-	userConfig.BearerTokenFile = ""
-
-	userClient, err := client.New(userConfig, client.Options{Scheme: kc.Client.Scheme()})
-	if err != nil {
-		kc.Logger.Error("failed to create user client", "error", err)
-		return nil, fmt.Errorf("failed to create user client: %w", err)
-	}
-	return userClient, nil
-}
-
-// GetService reads a core Service through the caller's own credentials so callers
-// can verify what a service DNS name actually backs (e.g. reject ExternalName aliases).
-// Reading with the user's token keeps the trust decision independent of the dashboard
-// service account's narrow RBAC (which only covers the pgvector resource names) and
-// limits lookups to Services the caller is authorized to see. It falls back to the
-// request client for local development when no identity is available.
-func (kc *TokenKubernetesClient) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	reader, err := kc.callerClient(identity)
-	if err != nil {
-		return nil, err
-	}
-
-	service := &corev1.Service{}
-	if err := reader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, service); err != nil {
-		return nil, fmt.Errorf("failed to get Service %s/%s: %w", namespace, name, err)
-	}
-	return service, nil
-}
-
-// serviceBackendAddresses returns the endpoint addresses backing the named Service
-// that match Pod IPs in the same namespace, read through reader. A namespace user
-// can attach a manually managed EndpointSlice to a selector-backed Service with
-// arbitrary addresses (e.g. Pod IPs from another namespace); matching addresses
-// against the namespace's actual Pod IPs ensures only backends the namespace
-// already runs are returned.
-func serviceBackendAddresses(ctx context.Context, reader client.Client, namespace string, name string) ([]string, error) {
-	podList := &corev1.PodList{}
-	if err := reader.List(ctx, podList, client.InNamespace(namespace)); err != nil {
-		return nil, fmt.Errorf("failed to list Pods in %s: %w", namespace, err)
-	}
-	podIPs := make(map[string]struct{}, len(podList.Items))
-	for _, pod := range podList.Items {
-		// HostNetwork Pods use the node's IP, not an in-namespace backend address,
-		// and terminal Pods (Succeeded/Failed) no longer receive traffic — neither
-		// is an attributable backend, so an EndpointSlice listing their IPs is
-		// rejected rather than trusted.
-		if pod.Spec.HostNetwork || pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
-			continue
-		}
-		if pod.Status.PodIP != "" {
-			podIPs[pod.Status.PodIP] = struct{}{}
-		}
-		for _, podIP := range pod.Status.PodIPs {
-			if podIP.IP != "" {
-				podIPs[podIP.IP] = struct{}{}
-			}
-		}
-	}
-
-	sliceList := &discoveryv1.EndpointSliceList{}
-	if err := reader.List(ctx, sliceList, client.InNamespace(namespace), client.MatchingLabels{discoveryv1.LabelServiceName: name}); err != nil {
-		return nil, fmt.Errorf("failed to list EndpointSlices for Service %s/%s: %w", namespace, name, err)
-	}
-	seen := make(map[string]struct{})
-	var addresses []string
-	for _, slice := range sliceList.Items {
-		for _, endpoint := range slice.Endpoints {
-			for _, addr := range endpoint.Addresses {
-				if _, isPod := podIPs[addr]; !isPod {
-					continue
-				}
-				if _, dup := seen[addr]; dup {
-					continue
-				}
-				seen[addr] = struct{}{}
-				addresses = append(addresses, addr)
-			}
-		}
-	}
-	return addresses, nil
-}
-
-// GetServiceBackendAddresses reads the named Service's endpoint addresses through
-// the caller's own credentials and returns only those belonging to Pods in the
-// caller's namespace (see serviceBackendAddresses).
-func (kc *TokenKubernetesClient) GetServiceBackendAddresses(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	reader, err := kc.callerClient(identity)
-	if err != nil {
-		return nil, err
-	}
-	return serviceBackendAddresses(ctx, reader, namespace, name)
 }
 
 // ValidatedVectorStore pairs a VectorIOProvider with its associated RegisteredVectorStore

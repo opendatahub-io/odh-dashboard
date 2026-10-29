@@ -53,20 +53,6 @@ func (m *TokenKubernetesClientMock) BearerToken() (string, error) {
 	return "FAKE_BEARER_TOKEN", nil
 }
 
-// GetService reads a Service from the envtest cluster. The embedded
-// implementation would build a caller-credential client from the nil rest.Config
-// and panic when an identity token is present, so the identity is dropped and
-// the mock's own client is used.
-func (m *TokenKubernetesClientMock) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
-	return m.TokenKubernetesClient.GetService(ctx, nil, namespace, name)
-}
-
-// GetServiceBackendAddresses validates Service backends against Pods in the same
-// namespace through the mock's own client (see GetService).
-func (m *TokenKubernetesClientMock) GetServiceBackendAddresses(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) ([]string, error) {
-	return m.TokenKubernetesClient.GetServiceBackendAddresses(ctx, nil, namespace, name)
-}
-
 // GetNamespaces lists namespaces from the envtest cluster
 func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity *integrations.RequestIdentity) ([]corev1.Namespace, error) {
 	var nsList corev1.NamespaceList

@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
@@ -175,6 +174,11 @@ func (app *App) VerifyExternalModelHandler(
 ) {
 	ctx := r.Context()
 
+	// Authorized namespace from context (the route is wrapped with AttachNamespace +
+	// RequireAccessToService, so by the time we get here the caller is authorized for it).
+	// It scopes which in-cluster service hosts may skip SSRF validation (CWE-918).
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+
 	// 1. Parse request
 	var req models.VerifyExternalModelRequest
 	if err := app.ReadJSON(w, r, &req); err != nil {
@@ -219,31 +223,8 @@ func (app *App) VerifyExternalModelHandler(
 		}
 	}
 
-	// 3. Get the caller's authorized namespace (set by AttachNamespace middleware);
-	// it scopes which in-cluster service hosts may skip SSRF validation.
-	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-	if !ok || namespace == "" {
-		app.serverErrorResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-		return
-	}
-
-	// 4. Call repository; the k8s client reads Services through the caller's own
-	// credentials to verify that an in-namespace service DNS name is not backed by
-	// an ExternalName (cross-namespace alias), headless/selectorless Service, or
-	// endpoints outside the caller's namespace.
-	identity, _ := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	// With authentication disabled (local development), no identity is injected and
-	// Service lookups fall back to the client's own credentials.
-	if identity == nil && app.config.AuthMethod != config.AuthMethodDisabled {
-		app.unauthorizedResponse(w, r, fmt.Errorf("missing request identity"))
-		return
-	}
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, k8sClient, identity, req, namespace, app.rootCAs, app.config.InsecureSkipVerify)
+	// 3. Call repository
+	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, namespace, req, app.rootCAs, app.config.InsecureSkipVerify)
 	if err != nil {
 		// Handle custom error types
 		if extErr, ok := err.(*externalmodels.ExternalModelError); ok {
@@ -261,7 +242,7 @@ func (app *App) VerifyExternalModelHandler(
 		return
 	}
 
-	// 5. Return success
+	// 4. Return success
 	envelope := VerifyExternalModelEnvelope{
 		Data: *response,
 	}
