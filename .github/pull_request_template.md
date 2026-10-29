@@ -42,7 +42,9 @@ Hygiene
 
 ## Evidence (required)
 - What CI cannot show: commands, cluster or manual checks, suites outside required CI; steps, not only outcome.
-- What automation covers this (new or existing), or why new tests aren't appropriate.
+- Tests: what automation covers this (new or existing), or — when new tests aren't
+  appropriate — the constraint, why automation is inappropriate or impossible, and
+  the alternative verification.
 - Screenshots, GIFs, and/or video for UI or flow changes; logs when useful.
 - Redact tokens, passwords, and cluster credentials.
 - Cluster check with the PR image when permission/backend/hard-to-mock matters.

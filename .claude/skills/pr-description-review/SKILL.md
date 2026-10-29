@@ -1,12 +1,14 @@
 ---
 name: pr-description-review
-description: "Review a pull request description for substance readiness: Problem, Solution, and Evidence. Use when checking PR description completeness or merge readiness."
+description: "Review a pull request description for substance readiness: Problem, Solution, and Evidence. Scores author-supplied substance only — not CI execution or suite coverage. Use when checking PR description completeness or merge readiness."
 argument-hint: "[PR number]"
 ---
 
 # PR Description Review
 
 Review whether a PR body gives reviewers the information needed to understand, test, and approve the proposed change. This evaluates the PR description only; it does not judge implementation correctness or test quality.
+
+It scores what the author supplied, not the provenance of the change. It does not inspect CI status or establish which suites required checks run — the merge gate and other checks own execution and coverage. Do not fail, warn, or report a "could not verify" caveat because execution coverage is unknown.
 
 ## Invocation contract
 
@@ -35,7 +37,7 @@ Score these three aspects:
 
 2. **Solution** — What changed and why this approach. The body explains what the PR does and the reasoning behind the chosen approach. Missing or placeholder-only → ❌. Present but vague, or a file list with no rationale → ⚠️. When the diff touches security/RBAC, API/contract, migrations, or breaking changes and the body does not note the impact → ⚠️.
 
-3. **Evidence** — Proof the change works. Automated tests covering the change are presumed to run in required CI; do not enumerate or verify the required checks, and do not require the author to restate those runs, name the commands, or repeat their output — never score this aspect down for that absence alone. The one hard requirement is that Evidence is not blank: where required CI is the only applicable proof, a plain statement that automated coverage is the evidence satisfies the aspect, in any wording — do not prescribe a phrase. Author-supplied evidence is still required for what a CI run cannot show — visual proof for UI changes, cluster or manual checks, and test-quality judgments — so look for commands run, cluster checks, screenshots, or log snippets. For non-behavioral edits (localization strings, docs, formatting), a scope statement such as "localization only; no behavior change" is sufficient; do not ask for test runs or screenshots. When changed paths include `.tsx`, `.css`, or `.scss`, look for visual evidence (screenshot, GIF, or video/recording attachment, including `user-attachments` media links); missing visual evidence for UI changes is a ⚠️ (folded into this aspect, not a separate row). A blank or placeholder-only Evidence section → ❌ even when required CI covers the change, because a reviewer needs something to check the change against. Missing or placeholder-only author-supplied proof for what required CI cannot show → ❌. Present but thin (e.g., "tested locally" with no details) → ⚠️. Evidence that leaks tokens, passwords, or cluster credentials → ❌.
+3. **Evidence** — Proof the change works. Automated tests covering the change are presumed to run in required CI; do not enumerate or verify the required checks, and do not require the author to restate those runs, name the commands, or repeat their output — never score this aspect down for that absence alone. The one hard requirement is that Evidence is not blank: where required CI is the only applicable proof, a plain statement that automated coverage is the evidence satisfies the aspect, in any wording — do not prescribe a phrase. Author-supplied evidence is still required for what a CI run cannot show — visual proof for UI changes, cluster or manual checks, and test-quality judgments — so look for commands run, cluster checks, screenshots, or log snippets. For non-behavioral edits (localization strings, docs, formatting), a scope statement such as "localization only; no behavior change" is sufficient; do not ask for test runs or screenshots. When changed paths include `.tsx`, `.css`, or `.scss`, look for visual evidence (screenshot, GIF, or video/recording attachment, including `user-attachments` media links); missing visual evidence for UI changes is a ⚠️ (folded into this aspect, not a separate row). A blank or placeholder-only Evidence section → ❌ even when required CI covers the change, because a reviewer needs something to check the change against. Missing or placeholder-only author-supplied proof for what required CI cannot show → ❌, except missing visual evidence for UI changes, which stays a ⚠️ as noted above. Present but thin (e.g., "tested locally" with no details) → ⚠️. Evidence that leaks tokens, passwords, or cluster credentials → ❌.
 
 One classic `## Description` may satisfy **both** Problem and Solution when both substances are clearly present. Do not require separate headings.
 
