@@ -2,6 +2,7 @@ import React from 'react';
 import { isEqual } from 'lodash-es';
 import type { ExternalDataMap } from './ExternalDataLoader';
 import { getFieldDependencies, getStateKey, useActiveFields } from './dynamicFormUtils';
+import { debugFieldDataAction } from './yaml/debugUtilts';
 import type {
   InitialWizardFormData,
   WizardField,
@@ -42,6 +43,12 @@ export type WizardFormAction<Field extends WizardField<unknown> = WizardField<un
         externalData?: ReturnType<NonNullable<Field['externalDataHook']>>;
         dependencies?: Record<string, unknown>;
       };
+    }
+  | {
+      type: 'reInitForm';
+      payload: {
+        initialData: InitialWizardFormData;
+      };
     };
 
 /**
@@ -51,13 +58,22 @@ export type WizardFormAction<Field extends WizardField<unknown> = WizardField<un
  * - `setFieldData` — sets a field's UI state (marks it dirty vs its initial value)
  * - `clearFieldData` — removes a single field's state
  * - `initFieldData` — initializes a field's state (separately from `setFieldData` to avoid dirty detection)
+ * - `reInitForm` — clears field state before initializing active fields from new form data
  */
 export const wizardFormReducer = (
   state: WizardFieldReducerState,
   action: WizardFormAction,
 ): WizardFieldReducerState => {
   switch (action.type) {
+    case 'reInitForm':
+      debugFieldDataAction({ type: 'reInitForm' });
+      return { fieldValues: {}, initialValues: {} };
     case 'setFieldData':
+      debugFieldDataAction({
+        type: 'setFieldData',
+        id: action.payload.id,
+        value: action.payload.data,
+      });
       return {
         ...state,
         fieldValues: { ...state.fieldValues, [action.payload.id]: action.payload.data },
@@ -67,6 +83,8 @@ export const wizardFormReducer = (
       const newInitialValues = { ...state.initialValues };
       delete newFieldValues[action.payload.id];
       delete newInitialValues[action.payload.id];
+
+      debugFieldDataAction({ type: 'clearFieldData', id: action.payload.id });
       return { fieldValues: newFieldValues, initialValues: newInitialValues };
     }
     case 'initFieldData': {
@@ -77,6 +95,8 @@ export const wizardFormReducer = (
         externalData?.data,
         dependencies ?? {},
       );
+
+      debugFieldDataAction({ type: 'initFieldData', id: field.id, value: initialValue });
       return {
         ...state,
         initialValues: {
@@ -128,8 +148,12 @@ export const useDeploymentWizardReducer = (
   mergedStateRef.current = formState;
 
   const activeFields = useActiveFields(formState);
+  const activeFieldsRef = React.useRef(activeFields);
+  activeFieldsRef.current = activeFields;
+  const externalDataMapRef = React.useRef(externalDataMap);
+  externalDataMapRef.current = externalDataMap;
 
-  // Makes it easier for callers to use init dispatch without needing entire merged state
+  // Fill in current field context for init and re-initialization actions.
   const enhancedDispatch: React.Dispatch<WizardFormAction> = React.useCallback(
     (action) => {
       if (action.type === 'initFieldData') {
@@ -145,11 +169,29 @@ export const useDeploymentWizardReducer = (
               getFieldDependencies(field, mergedStateRef.current, initialData),
           },
         });
+      } else if (action.type === 'reInitForm') {
+        setInitialFormData(action.payload.initialData);
+        dispatch(action);
+        for (const field of activeFieldsRef.current) {
+          dispatch({
+            type: 'initFieldData',
+            payload: {
+              field,
+              existingFieldData: action.payload.initialData[getStateKey(field)],
+              externalData: externalDataMapRef.current[field.id],
+              dependencies: getFieldDependencies(
+                field,
+                mergedStateRef.current,
+                action.payload.initialData,
+              ),
+            },
+          });
+        }
       } else {
         dispatch(action);
       }
     },
-    [dispatch, initialData],
+    [dispatch, initialData, setInitialFormData],
   );
 
   const prevActiveFields = React.useRef<WizardField<unknown>[]>([]);

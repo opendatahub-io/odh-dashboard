@@ -6,7 +6,7 @@ import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
-import { deployModel } from '../utils';
+import { deployModel, getConnectionSecret } from '../utils';
 import { Deployment } from '../../../../extension-points';
 import {
   DeploymentAssemblyResources,

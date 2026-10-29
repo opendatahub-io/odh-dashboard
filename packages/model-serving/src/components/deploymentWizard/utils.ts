@@ -19,6 +19,7 @@ import { DeployExtension } from './deploying/useDeployMethod';
 import { ExternalDataMap } from './ExternalDataLoader';
 import { RunPreDeployFns } from './deploying/useWizardFieldPreDeploy';
 import { RunPostDeployFns } from './deploying/useWizardFieldPostDeploy';
+import { WizardFormState } from './useDeploymentWizardReducer';
 import {
   ModelLocationType,
   ModelLocationData,
