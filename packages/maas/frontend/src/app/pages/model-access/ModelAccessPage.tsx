@@ -12,6 +12,9 @@ import { getModelAccessSubscriptionViewUrl } from './utils';
  * Status column, the row kebab, the create button, and the delete modal. Its data
  * comes from the dedicated `admin-subscriptions` endpoint.
  *
+ * `attributeFilters` swaps the keyword search for Subscription / Group / Model
+ * typeahead filters whose options derive from the loaded subscriptions.
+ *
  * `subscriptionsOnly` keeps the page off Kubernetes: the provider does not fetch
  * auth policies, model refs, or groups, none of which this page renders.
  *
@@ -25,7 +28,7 @@ const ModelAccessPageContent: React.FC = () => (
     loaded
     empty={false}
   >
-    <SubscriptionsTab readOnly getSubscriptionDetailUrl={getModelAccessSubscriptionViewUrl} />
+    <SubscriptionsTab readOnly attributeFilters getSubscriptionDetailUrl={getModelAccessSubscriptionViewUrl} />
   </ApplicationsPage>
 );
 

@@ -18,8 +18,10 @@ import {
   initialSubscriptionsFilterData,
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
+  SubscriptionsFilterSelection,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 import DeleteSubscriptionModal from '~/app/pages/subscriptions/DeleteSubscriptionModal';
+import ModelAccessToolbar from '~/app/pages/model-access/ModelAccessToolbar';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
@@ -35,13 +37,26 @@ type SubscriptionsTabProps = {
    * and the delete confirmation modal. Defaults to false (admin governance page).
    */
   readOnly?: boolean;
+  /**
+   * Filter through Subscription / Group / Model typeahead selects (model access viewer)
+   * instead of the free-text keyword search. Filter options derive from the loaded
+   * subscriptions, so no additional fetches are required.
+   */
+  attributeFilters?: boolean;
+
   /** Overrides the subscription name link target. Defaults to the governance view page. */
   getSubscriptionDetailUrl?: (name: string) => string;
 };
 
+const asFilterSelection = (
+  value: string | SubscriptionsFilterSelection | undefined,
+): SubscriptionsFilterSelection | undefined =>
+  typeof value === 'string' ? (value ? { label: value, value } : undefined) : value;
+
 const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   returnTo,
   readOnly = false,
+  attributeFilters = false,
   getSubscriptionDetailUrl,
 }) => {
   const {
@@ -63,15 +78,41 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   const onClearFilters = React.useCallback(() => setFilterData(initialSubscriptionsFilterData), []);
 
   const filteredSubscriptions = React.useMemo(() => {
-    const keyword = filterData[SubscriptionsFilterOptions.keyword]?.toLowerCase();
-    return keyword
-      ? subscriptions.filter(
-          (sub) =>
-            sub.name.toLowerCase().includes(keyword) ||
-            sub.displayName?.toLowerCase().includes(keyword) ||
-            sub.description?.toLowerCase().includes(keyword),
-        )
-      : subscriptions;
+    const keyword = filterData[SubscriptionsFilterOptions.keyword];
+    const keywordText = typeof keyword === 'string' ? keyword.toLowerCase() : '';
+    const subscriptionFilter = asFilterSelection(
+      filterData[SubscriptionsFilterOptions.subscription],
+    );
+    const groupFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.group]);
+    const modelFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.model]);
+
+    if (!keywordText && !subscriptionFilter && !groupFilter && !modelFilter) {
+      return subscriptions;
+    }
+
+    return subscriptions.filter((subscription) => {
+      if (
+        keywordText &&
+        !subscription.name.toLowerCase().includes(keywordText) &&
+        !(subscription.displayName ?? '').toLowerCase().includes(keywordText) &&
+        !(subscription.description ?? '').toLowerCase().includes(keywordText)
+      ) {
+        return false;
+      }
+      if (subscriptionFilter && subscription.name !== subscriptionFilter.value) {
+        return false;
+      }
+      if (
+        groupFilter &&
+        !subscription.owner.groups.some((group) => group.name === groupFilter.value)
+      ) {
+        return false;
+      }
+      if (modelFilter && !subscription.modelRefs.some((ref) => ref.name === modelFilter.value)) {
+        return false;
+      }
+      return true;
+    });
   }, [subscriptions, filterData]);
 
   const [deleteSubscription, setDeleteSubscription] = React.useState<MaaSSubscription | undefined>(
@@ -124,12 +165,20 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
             subscriptions={filteredSubscriptions}
             onClearFilters={onClearFilters}
             toolbarContent={
-              <SubscriptionsToolbar
-                filterData={filterData}
-                onFilterUpdate={onFilterUpdate}
-                returnTo={returnTo}
-                showCreateButton={!readOnly}
-              />
+              attributeFilters ? (
+                <ModelAccessToolbar
+                  filterData={filterData}
+                  onFilterUpdate={onFilterUpdate}
+                  subscriptions={subscriptions}
+                />
+              ) : (
+                <SubscriptionsToolbar
+                  filterData={filterData}
+                  onFilterUpdate={onFilterUpdate}
+                  returnTo={returnTo}
+                  showCreateButton={!readOnly}
+                />
+              )
             }
             setDeleteSubscription={setDeleteSubscription}
             returnTo={returnTo}

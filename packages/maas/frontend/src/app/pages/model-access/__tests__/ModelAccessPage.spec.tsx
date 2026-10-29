@@ -72,12 +72,40 @@ const subscription = (): MaaSSubscription => ({
   ],
 });
 
+// Shares the data-science group and the flan-t5-small model with the premium team
+// subscription so each filter has a different matching subset.
+const basicSubscription = (): MaaSSubscription => ({
+  ...subscription(),
+  name: 'basic-team-sub',
+  displayName: 'Basic Team',
+  description: 'Basic Team Subscription',
+  owner: { groups: [{ name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/data-science' }] },
+  modelRefs: [subscription().modelRefs[1]],
+});
+
 const renderPage = () =>
   render(
     <MemoryRouter>
       <ModelAccessPage />
     </MemoryRouter>,
   );
+
+const renderTwoSubscriptions = () => {
+  mockRestGET.mockResolvedValue({ data: [subscription(), basicSubscription()] });
+  return renderPage();
+};
+
+const selectFilterType = async (user: ReturnType<typeof userEvent.setup>, optionTestId: string) => {
+  await user.click(screen.getByTestId('model-access-table-toolbar-dropdown'));
+  // The data-testid lands on the list item; the click handler is on its menu item button.
+  await user.click(within(screen.getByTestId(optionTestId)).getByRole('menuitem'));
+};
+
+const openTypeahead = async (user: ReturnType<typeof userEvent.setup>) => {
+  const combobox = within(screen.getByTestId('model-access-table-toolbar')).getByRole('combobox');
+  await user.click(combobox);
+  return combobox;
+};
 
 describe('ModelAccessPage', () => {
   beforeEach(() => {
@@ -140,5 +168,99 @@ describe('ModelAccessPage', () => {
       'Error communicating with server',
     );
     expect(screen.queryByTestId('subscription-row')).not.toBeInTheDocument();
+  });
+
+  it('should offer Subscription, Group, and Model filters instead of the keyword search', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+
+    expect(screen.queryByTestId('subscriptions-filter-input')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('model-access-table-toolbar-dropdown'));
+    expect(screen.getByTestId('model-access-table-toolbar-option-subscription')).toHaveTextContent(
+      'Subscription',
+    );
+    expect(screen.getByTestId('model-access-table-toolbar-option-group')).toHaveTextContent(
+      'Group',
+    );
+    expect(screen.getByTestId('model-access-table-toolbar-option-model')).toHaveTextContent(
+      'Model',
+    );
+  });
+
+  it('should filter the table by the selected subscription', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+
+    await openTypeahead(user);
+    await user.click(screen.getByRole('option', { name: 'Basic Team' }));
+
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Basic Team' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Premium Team' })).not.toBeInTheDocument();
+    // The active filter renders as a chip labeled with the display name
+    expect(screen.getByTestId('subscription-filter-chip')).toHaveTextContent('Basic Team');
+  });
+
+  it('should filter the table by the selected group', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+
+    await selectFilterType(user, 'model-access-table-toolbar-option-group');
+    await openTypeahead(user);
+    await user.click(
+      screen.getByRole('option', { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users' }),
+    );
+
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Basic Team' })).not.toBeInTheDocument();
+  });
+
+  it('should filter the table by a typed model selection', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+
+    await selectFilterType(user, 'model-access-table-toolbar-option-model');
+    const combobox = await openTypeahead(user);
+    await user.type(combobox, 'Granite');
+
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    await user.click(screen.getByRole('option', { name: 'Granite 3 8B Instruct' }));
+
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Basic Team' })).not.toBeInTheDocument();
+  });
+
+  it('should combine filters and restore the table when filters are cleared', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+
+    // Subscription: Basic Team
+    await openTypeahead(user);
+    await user.click(screen.getByRole('option', { name: 'Basic Team' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+
+    // Group: ai-grid-users belongs to Premium Team only, so no subscription matches both
+    await selectFilterType(user, 'model-access-table-toolbar-option-group');
+    await openTypeahead(user);
+    await user.click(
+      screen.getByRole('option', { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users' }),
+    );
+    expect(screen.queryByTestId('subscription-row')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Clear all filters' }).length).toBeGreaterThan(0);
+
+    // Both the toolbar and the filtered empty state expose a clear-filters button
+    await user.click(screen.getAllByRole('button', { name: 'Clear all filters' })[0]);
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Basic Team' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
   });
 });
