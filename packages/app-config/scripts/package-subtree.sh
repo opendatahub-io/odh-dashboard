@@ -94,6 +94,7 @@ if [ -z "$WORKSPACE_LOCATION" ] || [ "$WORKSPACE_LOCATION" = "null" ]; then
 fi
 
 PACKAGE_JSON="$MONOREPO_ROOT/$WORKSPACE_LOCATION/package.json"
+node "$SCRIPT_DIR/package-subtree-files.cjs" validate "$PACKAGE_JSON"
 
 cd "$MONOREPO_ROOT"
 
@@ -142,14 +143,14 @@ if [ -n "$PR_URL" ]; then
   if ! jq --arg repo "$PR_REPO_URL" \
           --arg branch "$PR_BRANCH" \
           --arg pr_url "$PR_URL" \
-          '.subtree = {
+          '.subtree = (.subtree + {
             DO_NOT_MERGE_OVERRIDDEN_FOR_PR: $pr_url,
             repo: $repo,
             branch: $branch,
             src: .subtree.src,
             target: .subtree.target,
             commit: .subtree.commit
-          } |
+          }) |
           if .subtree.src == null then del(.subtree.src) else . end' \
           "$PACKAGE_JSON" > "$temp_file"; then
     error_msg "Failed to update package.json with PR overrides"
