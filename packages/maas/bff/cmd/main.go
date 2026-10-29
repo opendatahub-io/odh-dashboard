@@ -56,6 +56,7 @@ func main() {
 	flag.StringVar(&cfg.MaasApiInternalUrl, "maas-api-internal-url", getEnvAsString("MAAS_API_INTERNAL_URL", ""), "Internal maas-api Service URL for /v1/tenants discovery (e.g. https://maas-api.odh-ai-gateway-infra.svc.cluster.local:8443)")
 	flag.StringVar(&cfg.MaasApiNamespace, "maas-api-namespace", getEnvAsString("MAAS_API_NAMESPACE", ""), "Namespace of the internal maas-api Service when MAAS_API_INTERNAL_URL is not set (overrides DSC-based detection)")
 	flag.StringVar(&cfg.MaaSSubscriptionNamespace, "maas-subscription-namespace", getEnvAsString("MAAS_SUBSCRIPTION_NAMESPACE", "models-as-a-service"), "Namespace for MaaSSubscription and MaaSAuthPolicy resources")
+	flag.StringVar(&cfg.PersesNamespace, "perses-namespace", getEnvAsString("PERSES_NAMESPACE", ""), "Namespace containing the MaaS usage PersesDashboards")
 
 	flag.Parse()
 

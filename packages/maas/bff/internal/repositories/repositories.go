@@ -60,6 +60,10 @@ type SecretsRepositoryInterface interface {
 	CreateSecret(ctx context.Context, request models.CreateSecretRequest) (*models.CreateSecretResponse, error)
 }
 
+type UsageDashboardsRepositoryInterface interface {
+	List(ctx context.Context, whoAmI *models.MaaSWhoAmI) ([]map[string]any, error)
+}
+
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
 	HealthCheck       *HealthCheckRepository
@@ -73,6 +77,7 @@ type Repositories struct {
 	ExternalModels    ExternalModelsRepositoryInterface
 	ExternalProviders ExternalProvidersRepositoryInterface
 	Secrets           SecretsRepositoryInterface
+	UsageDashboards   UsageDashboardsRepositoryInterface
 	Yaml              YamlRepositoryInterface
 }
 
@@ -110,6 +115,7 @@ func NewRepositories(
 		ExternalModels:    externalModels,
 		ExternalProviders: externalProviders,
 		Secrets:           secrets,
+		UsageDashboards:   NewUsageDashboardsRepository(config.PersesNamespace, config.MockK8Client),
 		Yaml:              yamlRepo,
 	}, nil
 }

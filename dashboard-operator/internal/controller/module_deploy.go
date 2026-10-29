@@ -151,6 +151,9 @@ func (r *DashboardReconciler) deployModuleManifests(
 		params := readExistingParams(filepath.Join(modulePath, "params.env"))
 		maps.Copy(params, computed)
 		addInterBFFParams(params, name, statuses, r.Platform)
+		if name == "maas" {
+			params["perses-namespace"] = r.maasPortalPersesNamespace(dashboard)
+		}
 		if err := writeParamsEnv(modulePath, params); err != nil {
 			return fmt.Errorf("failed to write params.env for module %s: %w", name, err)
 		}
