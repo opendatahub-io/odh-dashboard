@@ -38,10 +38,18 @@ func (l xksDashboardLifecycle) Remove(ctx context.Context, dashboard *v1alpha1.D
 	return l.removeRHAIIDashboard(ctx, dashboard, previousStatus, cm)
 }
 
-// Finalize relies on owner references for the namespace-scoped RHAII bundle.
-// Unlike the OpenShift lifecycles, it creates no MaaS, observability, module,
-// or cross-namespace RBAC resources to clean up.
-func (l xksDashboardLifecycle) Finalize(context.Context, *v1alpha1.Dashboard) (ctrl.Result, error) {
+// Finalize removes the XKS bundle in dependency order before releasing the
+// Dashboard finalizer. In particular, NetworkPolicies remain in place until
+// direct reads confirm that selected workload Pods have terminated. XKS has no
+// OpenShift cross-namespace resources to clean up.
+func (l xksDashboardLifecycle) Finalize(ctx context.Context, dashboard *v1alpha1.Dashboard) (ctrl.Result, error) {
+	teardown, err := l.reconciler.teardownManagedResources(ctx, dashboard, nil, false, false)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to finalize XKS dashboard resources: %w", err)
+	}
+	if teardown.Pending {
+		return ctrl.Result{RequeueAfter: teardownRetryInterval}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -81,6 +89,12 @@ func (l xksDashboardLifecycle) reconcileRHAIIDashboard(
 			conditions.WithReason("ProbeSanitizeFailed"),
 			conditions.WithError(err))
 		return ctrl.Result{}, fmt.Errorf("failed to sanitize XKS deployment probes: %w", err)
+	}
+	if err := revertServicePortDrift(ctx, r.apiReader(), r.Client, resources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ServicePortDriftRepairFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to repair XKS Service port drift: %w", err)
 	}
 
 	deployer := deploy.NewDeployer(

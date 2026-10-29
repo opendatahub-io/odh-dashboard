@@ -330,6 +330,26 @@ func TestXKSRemovalRequeuesWhileManagedPodsRemain(t *testing.T) {
 	assert.Equal(t, "RemovalInProgress", conditions.FindStatusCondition(persistedDashboard, string(common.ConditionTypeReady)).Reason)
 }
 
+func TestXKSFinalizeRetainsNetworkPolicyUntilManagedPodsAreGone(t *testing.T) {
+	managedLabels := map[string]string{labels.PlatformPartOf: "dashboard"}
+	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "managed-pod", Namespace: teardownTestNamespace, Labels: managedLabels}}
+	networkPolicy := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "managed-policy", Namespace: teardownTestNamespace, Labels: managedLabels}}
+	dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{Name: "default-dashboard"}}
+	cli := fake.NewClientBuilder().WithScheme(teardownTestScheme(t)).WithObjects(dashboard, pod, networkPolicy).Build()
+	lifecycle := xksDashboardLifecycle{reconciler: &DashboardReconciler{Client: cli, ApplicationsNamespace: teardownTestNamespace}}
+
+	result, err := lifecycle.Finalize(context.Background(), dashboard)
+	require.NoError(t, err)
+	assert.Equal(t, teardownRetryInterval, result.RequeueAfter)
+	assertTeardownResourcePresent(t, cli, networkPolicy)
+
+	require.NoError(t, cli.Delete(context.Background(), pod))
+	result, err = lifecycle.Finalize(context.Background(), dashboard)
+	require.NoError(t, err)
+	assert.Zero(t, result.RequeueAfter)
+	assertTeardownResourceAbsent(t, cli, networkPolicy)
+}
+
 func teardownTestScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 	scheme := runtime.NewScheme()

@@ -19,6 +19,7 @@ import (
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
@@ -158,7 +159,7 @@ func TestOCIBaseImageAppliedSeparatelyFromPlatformRender(t *testing.T) {
 			require.NoError(t, corev1.AddToScheme(scheme))
 			require.NoError(t, v1alpha1.AddToScheme(scheme))
 			r := &DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).Build(), Platform: tt.platform}
-			manifests := manifestSets(manifestRoot, tt.platform)
+			manifests := []render.ManifestInfo{openShiftManifestInfo(manifestRoot, tt.platform)}
 			for _, want := range []string{"mirror.example.com/library/busybox:1.0", ""} {
 				dashboard.Spec.ModelRegistryOCIBaseImage = want
 				require.NoError(t, applyKustomizeParams(dashboard, manifests, tt.platform))

@@ -31,6 +31,25 @@ func TestDashboardLifecycleSelection(t *testing.T) {
 	}
 }
 
+func TestSupportsLegacyRedirectsMatchesLifecycleFallback(t *testing.T) {
+	tests := []struct {
+		name     string
+		platform cluster.Platform
+		want     bool
+	}{
+		{name: "ODH", platform: cluster.OpenDataHub, want: true},
+		{name: "self-managed RHOAI", platform: cluster.SelfManagedRhoai, want: true},
+		{name: "XKS", platform: cluster.XKS, want: false},
+		{name: "unknown defaults to ODH", platform: cluster.Platform("unknown"), want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, (&DashboardReconciler{Platform: tt.platform}).supportsLegacyRedirects())
+		})
+	}
+}
+
 func TestDashboardLifecycleReadyDependents(t *testing.T) {
 	tests := []struct {
 		name      string
