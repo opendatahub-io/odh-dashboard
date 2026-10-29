@@ -10,7 +10,7 @@ export const getEvaluationName = (job: EvaluationJob): string =>
   job.name || job.resource.tenant || job.resource.id;
 
 export const getEvaluationQueue = (job: EvaluationJob): string | undefined =>
-  job.hardware_config?.queue?.name || job.status.queue || job.resource.queue;
+  job.hardware_config?.queue?.name;
 
 export const getLatestEvaluationJob = (
   currentJob: EvaluationJob,

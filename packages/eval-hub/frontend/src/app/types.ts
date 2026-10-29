@@ -151,15 +151,12 @@ type JobResource = {
   read_only?: boolean;
   owner?: string;
   mlflow_experiment_id?: string;
-  message?: JobMessage;
-  queue?: string;
 };
 
 type JobStatus = {
   state: EvaluationJobState;
   message?: JobMessage;
   benchmarks?: BenchmarkState[];
-  queue?: string;
 };
 
 export type BenchmarkState = {
@@ -197,7 +194,6 @@ type JobTestResult = {
 };
 
 type JobResults = {
-  total_evaluations?: number;
   benchmarks?: BenchmarkResult[];
   mlflow_experiment_url?: string;
   test?: JobTestResult;
