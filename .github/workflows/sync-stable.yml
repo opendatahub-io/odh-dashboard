@@ -115,7 +115,7 @@ jobs:
       - name: Notify Slack
         if: success()
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_DASHBOARD_BUILD_NOTIFICATIONS }}
           TARGET_COMMIT: ${{ github.event.inputs.target_commit }}
           REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
