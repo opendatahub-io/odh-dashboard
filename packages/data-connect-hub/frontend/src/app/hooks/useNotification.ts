@@ -1,20 +1,22 @@
 import React, { useContext } from 'react';
 import { AlertVariant } from '@patternfly/react-core';
-import { NotificationContext, NotificationActionTypes } from 'mod-arch-core';
+import { NotificationContext, NotificationActionTypes, type Notification } from 'mod-arch-core';
 
-enum NotificationTypes {
-  SUCCESS = 'success',
-  ERROR = 'error',
-  INFO = 'info',
-  WARNING = 'warning',
-}
+type NotificationLink = Pick<Notification, 'linkUrl' | 'linkLabel'>;
 
-type NotificationProps = (title: string, message?: React.ReactNode) => void;
+type NotificationProps = (
+  title: string,
+  message?: React.ReactNode,
+  link?: NotificationLink,
+) => void;
 
 type NotificationRemoveProps = (id: number | undefined) => void;
 
 type NotificationTypeFunc = {
-  [key in NotificationTypes]: NotificationProps;
+  success: NotificationProps;
+  error: NotificationProps;
+  info: NotificationProps;
+  warning: NotificationProps;
 };
 
 interface NotificationFunc extends NotificationTypeFunc {
@@ -25,7 +27,7 @@ export const useNotification = (): NotificationFunc => {
   const { notificationCount, updateNotificationCount, dispatch } = useContext(NotificationContext);
 
   const success: NotificationProps = React.useCallback(
-    (title, message?) => {
+    (title, message?, link?) => {
       updateNotificationCount(notificationCount + 1);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
@@ -34,6 +36,8 @@ export const useNotification = (): NotificationFunc => {
           title,
           timestamp: new Date(),
           message,
+          linkUrl: link?.linkUrl,
+          linkLabel: link?.linkLabel,
           id: notificationCount,
         },
       });
@@ -42,7 +46,7 @@ export const useNotification = (): NotificationFunc => {
   );
 
   const warning: NotificationProps = React.useCallback(
-    (title, message?) => {
+    (title, message?, link?) => {
       updateNotificationCount(notificationCount + 1);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
@@ -51,6 +55,8 @@ export const useNotification = (): NotificationFunc => {
           title,
           timestamp: new Date(),
           message,
+          linkUrl: link?.linkUrl,
+          linkLabel: link?.linkLabel,
           id: notificationCount,
         },
       });
@@ -59,7 +65,7 @@ export const useNotification = (): NotificationFunc => {
   );
 
   const error: NotificationProps = React.useCallback(
-    (title, message?) => {
+    (title, message?, link?) => {
       updateNotificationCount(notificationCount + 1);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
@@ -68,6 +74,8 @@ export const useNotification = (): NotificationFunc => {
           title,
           timestamp: new Date(),
           message,
+          linkUrl: link?.linkUrl,
+          linkLabel: link?.linkLabel,
           id: notificationCount,
         },
       });
@@ -76,7 +84,7 @@ export const useNotification = (): NotificationFunc => {
   );
 
   const info: NotificationProps = React.useCallback(
-    (title, message?) => {
+    (title, message?, link?) => {
       updateNotificationCount(notificationCount + 1);
       dispatch({
         type: NotificationActionTypes.ADD_NOTIFICATION,
@@ -85,6 +93,8 @@ export const useNotification = (): NotificationFunc => {
           title,
           timestamp: new Date(),
           message,
+          linkUrl: link?.linkUrl,
+          linkLabel: link?.linkLabel,
           id: notificationCount,
         },
       });
@@ -102,10 +112,8 @@ export const useNotification = (): NotificationFunc => {
     [dispatch],
   );
 
-  const notification = React.useMemo(
+  return React.useMemo(
     () => ({ success, error, info, warning, remove }),
-    [success, error, info, warning, remove],
+    [error, info, remove, success, warning],
   );
-
-  return notification;
 };

@@ -4,7 +4,7 @@ Backend-for-frontend providing core endpoints required by the dashboard UI.
 
 ## Dependencies
 
-- Go >= 1.25
+- Go >= 1.26
 
 ## Scope
 

@@ -70,6 +70,8 @@ type Props<DataType> = {
     | 'toggleTemplate'
     | 'onNextClick'
     | 'onPreviousClick'
+    | 'onFirstClick'
+    | 'onLastClick'
   >;
 
 export const MIN_PAGE_SIZE = 10;
@@ -112,6 +114,8 @@ const TableBase = <T,>({
   onSetPage,
   onNextClick,
   onPreviousClick,
+  onFirstClick,
+  onLastClick,
   onPerPageSelect,
   getColumnSort,
   itemCount = 0,
@@ -135,6 +139,8 @@ const TableBase = <T,>({
       onSetPage={onSetPage}
       onNextClick={onNextClick}
       onPreviousClick={onPreviousClick}
+      onFirstClick={onFirstClick}
+      onLastClick={onLastClick}
       onPerPageSelect={onPerPageSelect}
       toggleTemplate={toggleTemplate}
       variant={variant}

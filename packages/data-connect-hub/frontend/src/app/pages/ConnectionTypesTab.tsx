@@ -4,6 +4,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import type { ConnectionType } from '~/app/types';
+import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+  isGlobalConnectionType,
+} from '~/app/utilities/tracking';
 
 type ConnectionTypesTabProps = { namespace: string };
 
@@ -14,12 +19,20 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
 
   const handleConnectionTypeClick = React.useCallback(
     (connectionType: ConnectionType) => {
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.typeSelected,
+        properties: {
+          connectionTypeProvider: connectionType.resource.provider,
+          isGlobalType: isGlobalConnectionType(connectionType),
+          project: namespace,
+        },
+      });
       const detailsPath = `${pathname.replace(/\/$/, '')}/${encodeURIComponent(
         connectionType.metadata.id,
       )}${search}`;
       navigate(detailsPath);
     },
-    [navigate, pathname, search],
+    [navigate, namespace, pathname, search],
   );
 
   const hasError = Boolean(typesError);

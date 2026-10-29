@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
-import { MAAS_ORGS_CLAIM, type MaaSWhoAmI } from '~/app/types/whoami';
 
 declare global {
   interface Window {
@@ -12,6 +11,9 @@ const DEV_FEATURE_FLAGS_PARAM = 'devFeatureFlags';
 const DEV_FEATURE_FLAGS_SESSION_KEY = 'odh-maas-portal-feature-flags';
 // TODO: Remove this placeholder when mod-arch-core supports a namespace-free grid setup.
 export const GRID_MANDATORY_NAMESPACE = '__maas_grid__';
+
+export const isMaaSConsumerPortal = (): boolean =>
+  typeof window !== 'undefined' && window.__MAAS_CONSUMER_PORTAL_GRID__ === true;
 
 const parseGridFlagValue = (value: string): boolean => value === 'true';
 
@@ -35,14 +37,11 @@ const readGridFromQuery = (): boolean => {
 };
 
 export const isGridFeatureFlagEnabledFromDevStorage = (): boolean => {
-  if (typeof window !== 'undefined' && window.__MAAS_CONSUMER_PORTAL_GRID__ === true) {
+  if (isMaaSConsumerPortal()) {
     return true;
   }
   if (readGridFromQuery()) {
     return true;
-  }
-  if (typeof window === 'undefined') {
-    return false;
   }
   try {
     const rawFlags = window.sessionStorage.getItem(DEV_FEATURE_FLAGS_SESSION_KEY);
@@ -65,9 +64,3 @@ export const useGridFeatureFlag = (): boolean => {
     dashboardConfig === null ? false : dashboardConfig.dashboardConfig.grid === true;
   return isDashboardGridEnabled || isGridFeatureFlagEnabledFromDevStorage();
 };
-
-export const getMaaSWhoAmIDisplayName = (whoAmI: MaaSWhoAmI): string =>
-  whoAmI.name || whoAmI.email || whoAmI.sub;
-
-export const isOrgAdmin = (whoAmI: MaaSWhoAmI): boolean =>
-  whoAmI[MAAS_ORGS_CLAIM].some((org) => org.roles.includes('admins'));

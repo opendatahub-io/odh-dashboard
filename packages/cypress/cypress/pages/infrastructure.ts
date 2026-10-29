@@ -123,6 +123,12 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-workloads-status-filter');
   }
 
+  selectWorkloadsFilterType(filterType: string) {
+    cy.findByTestId('infrastructure-workloads-filter-type').click();
+    cy.findByTestId(`infrastructure-workloads-filter-option-${filterType}`).click();
+    return this;
+  }
+
   findWorkloadsStatusOption(status: string) {
     return cy.findByTestId(`infrastructure-workloads-status-option-${status}`);
   }

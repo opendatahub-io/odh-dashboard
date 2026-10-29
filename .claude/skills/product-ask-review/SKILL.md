@@ -38,6 +38,21 @@ immediately:
 
 Do not guess or infer the product ask from the PR body alone.
 
+## Multiple linked issues
+
+The snapshot may contain an `issues` array with one or more linked Jira
+issues. Evaluate **each** successful issue (those with a `summary` field)
+independently against the PR's stated purpose. Write one `issues[]`
+entry per evaluated issue in your output.
+
+When the snapshot has no `issues` array, fall back to the top-level
+`summary` and `description` fields (backward compatibility with older
+snapshots). In that case, write a single `issues[]` entry using the
+top-level `key` and `url`.
+
+Skip issues that have `"status": "error"` — they could not be fetched
+and have no summary/description to evaluate.
+
 ## Determining the current normative ask
 
 The normative ask is what the ticket requires, taken from the trusted
@@ -116,22 +131,48 @@ Compare the current normative ask with the PR's stated purpose
 
 ## Output
 
-Return only the closed `product_ask` JSON shape:
+Return only the closed `product_ask` JSON shape. Always include
+`issues[]` with one entry per evaluated Jira issue. The top-level
+`status` is a placeholder when there are multiple issues (the host
+overwrites it); set it to the single issue's status when there is one.
+Leave top-level `aligned` and `mismatched` empty when `issues` is
+present — those lists belong on each issue entry.
 
 ```json
 {
   "product_ask": {
-    "status": "none|aligned|mismatch-justified|mismatch-unjustified",
-    "aligned": ["<concise point>"],
-    "mismatched": ["<concise point>"],
-    "justified_in_description": false,
-    "needs_human": false
+    "status": "aligned",
+    "issues": [
+      {
+        "key": "RHOAIENG-100580",
+        "url": "https://issues.redhat.com/browse/RHOAIENG-100580",
+        "status": "aligned",
+        "aligned": ["<concise point>"],
+        "mismatched": [],
+        "justified_in_description": false,
+        "needs_human": false
+      },
+      {
+        "key": "RHOAIENG-100583",
+        "url": "https://issues.redhat.com/browse/RHOAIENG-100583",
+        "status": "mismatch-unjustified",
+        "aligned": [],
+        "mismatched": ["<concise point>"],
+        "justified_in_description": false,
+        "needs_human": true
+      }
+    ]
   }
 }
 ```
 
-- `aligned[]` — concise points where the PR fulfills the current ask.
-- `mismatched[]` — concise points where the PR diverges from the current ask.
+Per-issue fields:
+
+- `key` — the Jira issue key from the snapshot.
+- `url` — the Jira browse URL from the snapshot.
+- `status` — the model's judgment for this issue.
+- `aligned[]` — concise points where the PR fulfills this issue's ask.
+- `mismatched[]` — concise points where the PR diverges from this issue's ask.
 - `justified_in_description` — `true` when a mismatch is explained in the PR body.
 - `needs_human` — `true` for an unjustified mismatch, or a justified departure
   that involves a product-visible decision.

@@ -6,7 +6,7 @@ type AppContextProps = {
   user: AppUserSettings;
 };
 
-export type AppUserSettings = UserSettings & { orgAdmin?: boolean };
+export type AppUserSettings = UserSettings & { isAdmin?: boolean };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export const AppContext = React.createContext({} as AppContextProps);
