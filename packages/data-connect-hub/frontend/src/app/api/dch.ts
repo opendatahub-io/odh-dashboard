@@ -1,10 +1,4 @@
-import {
-  APIOptions,
-  handleRestFailures,
-  isModArchResponse,
-  restGET,
-  restCREATE,
-} from 'mod-arch-core';
+import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Connection,
@@ -32,6 +26,16 @@ const getResponseErrorMessage = (body: string, status: number): string => {
   }
   return body || `Request failed with status ${status}`;
 };
+
+class ConnectionApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ConnectionApiError';
+    this.status = status;
+  }
+}
 
 const requireNoContent = async (response: Response): Promise<void> => {
   if (response.status === 204) {
@@ -177,21 +181,41 @@ export const getConnectionTypes =
 
 export const createConnection =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string, request: CreateConnectionRequest): Promise<Connection> =>
-    handleRestFailures(
-      restCREATE(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections`,
-        request,
-        { namespace },
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<unknown>(response) && isConnection(response.data)) {
-        return response.data;
-      }
+  async (
+    opts: APIOptions,
+    namespace: string,
+    request: CreateConnectionRequest,
+  ): Promise<Connection> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections?${searchParams.toString()}`,
+      {
+        method: 'POST',
+        headers: {
+          ...opts.headers,
+          'Content-Type': 'application/json;charset=UTF-8',
+        },
+        body: JSON.stringify(request),
+        signal: opts.signal,
+      },
+    );
+    const body = await response.text();
+
+    if (!response.ok) {
+      throw new ConnectionApiError(getResponseErrorMessage(body, response.status), response.status);
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
       throw new Error('Invalid response format');
-    });
+    }
+    if (isModArchResponse<unknown>(parsed) && isConnection(parsed.data)) {
+      return parsed.data;
+    }
+    throw new Error('Invalid response format');
+  };
 
 export const getConnectionType =
   (hostPath: string) =>

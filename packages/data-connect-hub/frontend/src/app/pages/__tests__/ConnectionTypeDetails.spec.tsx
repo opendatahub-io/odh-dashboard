@@ -6,10 +6,17 @@ import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import { createConnection } from '~/app/api/dch';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
+import * as trackingUtilities from '~/app/utilities/tracking';
 import ConnectionTypeDetails from '~/app/pages/ConnectionTypeDetails';
 import type { CreateConnectionRequest } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionType');
+jest.mock('~/app/utilities/tracking', () => ({
+  DATA_CONNECT_HUB_EVENT_NAMES: {
+    addStarted: 'Connections Add Started',
+  },
+  fireDataConnectHubTrackEvent: jest.fn(),
+}));
 jest.mock('~/app/api/dch', () => ({
   createConnection: jest.fn(),
 }));
@@ -22,6 +29,7 @@ const mockUseConnectionType = jest.mocked(useConnectionType);
 const mockCreateConnection = jest.mocked(createConnection);
 const mockCreateConnectionWizard = jest.mocked(CreateConnectionWizard);
 const mockCreateRequest = jest.fn();
+const mockTrackEvent = jest.fn();
 
 const createRequest: CreateConnectionRequest = {
   name: 'warehouse',
@@ -46,6 +54,7 @@ const renderDetails = (
 describe('ConnectionTypeDetails', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
     mockCreateConnection.mockReturnValue(mockCreateRequest);
     mockCreateConnectionWizard.mockImplementation(({ isOpen, onClose, onCreate }) =>
       isOpen ? (
@@ -86,6 +95,11 @@ describe('ConnectionTypeDetails', () => {
 
     renderDetails();
     await user.click(screen.getByTestId('connection-type-details-create-connection'));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Add Started',
+      properties: { project: 'test-project', source: 'connection_type_catalog' },
+    });
 
     expect(screen.getByTestId('mock-create-connection-wizard')).toBeTruthy();
     const wizardCalls = mockCreateConnectionWizard.mock.calls;

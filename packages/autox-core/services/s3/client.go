@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -53,6 +54,12 @@ type ConnectionOptions struct {
 	SecretAccessKey string
 	Region          string
 	BaseEndpoint    string
+	// ChecksumAlgorithm is an optional upload checksum setting from the S3 connection.
+	// Leave empty to retain the SDK's default checksum behavior.
+	ChecksumAlgorithm ChecksumAlgorithm
+	// DisableUploadChecksumTrailers disables optional streaming checksum trailers.
+	// Checksums required by the S3 operation are still sent.
+	DisableUploadChecksumTrailers bool
 }
 
 // ClientConfig holds knobs for the default S3 client provider.
@@ -197,21 +204,29 @@ func (c *client) DownloadObject(ctx context.Context, opts ConnectionOptions, inp
 }
 
 func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input UploadObjectInput) error {
+	if opts.DisableUploadChecksumTrailers && opts.ChecksumAlgorithm != "" {
+		return fmt.Errorf("%w: %s cannot be combined with %s", ErrChecksumConfiguration, DisableUploadChecksumTrailersSecretKey, ChecksumAlgorithmSecretKey)
+	}
+
 	transferClient, err := c.Provider.CreateTransferClient(opts)
 	if err != nil {
 		return err
 	}
 
 	_, err = transferClient.UploadObject(ctx, &transfermanager.UploadObjectInput{
-		Bucket:      aws.String(input.Bucket),
-		Key:         aws.String(input.Key),
-		Body:        input.Body,
-		ContentType: aws.String(input.ContentType),
-		IfNoneMatch: aws.String("*"),
+		Bucket:            aws.String(input.Bucket),
+		Key:               aws.String(input.Key),
+		Body:              input.Body,
+		ContentType:       aws.String(input.ContentType),
+		IfNoneMatch:       aws.String("*"),
+		ChecksumAlgorithm: opts.ChecksumAlgorithm,
 	})
 	if err != nil {
 		if isS3ConditionalCreateConflict(err) {
 			return ErrObjectAlreadyExists
+		}
+		if !opts.DisableUploadChecksumTrailers && isS3StreamingChecksumTrailerRejection(err) {
+			return fmt.Errorf("%w: %w", ErrUploadChecksumRejected, err)
 		}
 		if translated := translateS3Error(err); translated != nil {
 			return translated
@@ -303,7 +318,17 @@ func (p *awsClientProvider) CreateTransferClient(opts ConnectionOptions) (Transf
 		o.GetObjectBufferSize = cfg.GetObjectBufSize
 		o.PartBodyMaxRetries = cfg.PartBodyMaxRetries
 		o.DisableChecksumValidation = false
+		// Keep the SDK default for existing connections. Connections that reject
+		// optional trailers can opt out explicitly.
+		o.RequestChecksumCalculation = requestChecksumCalculation(opts.DisableUploadChecksumTrailers)
 	}), nil
+}
+
+func requestChecksumCalculation(disableUploadChecksumTrailers bool) aws.RequestChecksumCalculation {
+	if disableUploadChecksumTrailers {
+		return aws.RequestChecksumCalculationWhenRequired
+	}
+	return aws.RequestChecksumCalculationWhenSupported
 }
 
 // buildAWSClient creates a real *awss3.Client with validated endpoint, credentials, and TLS.
@@ -327,8 +352,9 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 			opts.SecretAccessKey,
 			"",
 		),
-		RetryMaxAttempts: 1,
-		HTTPClient:       p.buildHTTPClient(requirePrivateEndpoint),
+		RetryMaxAttempts:           1,
+		HTTPClient:                 p.buildHTTPClient(requirePrivateEndpoint),
+		RequestChecksumCalculation: requestChecksumCalculation(opts.DisableUploadChecksumTrailers),
 	}
 
 	return awss3.NewFromConfig(awsCfg, func(o *awss3.Options) {
@@ -436,6 +462,22 @@ func isS3ConditionalCreateConflict(err error) bool {
 		}
 	}
 	return false
+}
+
+func isS3StreamingChecksumTrailerRejection(err error) bool {
+	var codedErr interface {
+		ErrorCode() string
+		ErrorMessage() string
+	}
+	var responseErr interface{ HTTPStatusCode() int }
+	if !errors.As(err, &codedErr) || codedErr.ErrorCode() != "InvalidArgument" ||
+		!errors.As(err, &responseErr) || responseErr.HTTPStatusCode() != http.StatusBadRequest {
+		return false
+	}
+
+	message := strings.ToLower(codedErr.ErrorMessage())
+	return strings.Contains(message, "x-amz-content-sha256") &&
+		strings.Contains(message, "streaming-aws4-hmac-sha256-payload")
 }
 
 // Compile-time interface checks.

@@ -43,9 +43,9 @@ describe('resolveStepLabel', () => {
 });
 
 describe('getPatternRowLabel', () => {
-  it('should number branches from Pattern 1', () => {
-    expect(getPatternRowLabel(0)).toBe('Pattern 1');
-    expect(getPatternRowLabel(8)).toBe('Pattern 9');
-    expect(getPatternRowLabel(25)).toBe('Pattern 26');
+  it('should label branches from Pattern A', () => {
+    expect(getPatternRowLabel(0)).toBe('Pattern\u00a0A');
+    expect(getPatternRowLabel(8)).toBe('Pattern\u00a0I');
+    expect(getPatternRowLabel(9)).toBe('Pattern\u00a0J');
   });
 });

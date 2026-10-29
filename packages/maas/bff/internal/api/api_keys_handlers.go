@@ -13,7 +13,7 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
-// attachAPIKeyHandlers registers the API key routes
+// attachAPIKeyHandlers registers API key and maas-api subscription routes.
 func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.POST(constants.APIKeyCreatePath, handlerWithMaasApi(app, CreateAPIKeyHandler))
 	apiRouter.POST(constants.APIKeySearchPath, handlerWithMaasApi(app, SearchAPIKeysHandler))
@@ -22,6 +22,7 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.APIKeyConfigPath, handlerWithMaasApi(app, GetAPIKeyConfigHandler))
 	apiRouter.GET(constants.APIKeyByIDPath, handlerWithMaasApi(app, GetAPIKeyHandler))
 	apiRouter.DELETE(constants.APIKeyByIDPath, handlerWithMaasApi(app, RevokeAPIKeyHandler))
+	apiRouter.GET(constants.AdminSubscriptionListPath, handlerWithMaasApi(app, ListAdminSubscriptionsHandler))
 	apiRouter.GET(constants.SubscriptionsPassthroughPath, handlerWithMaasApi(app, ListSubscriptionsPassthroughHandler))
 	apiRouter.GET(constants.SubscriptionByIDPassthroughPath, handlerWithMaasApi(app, GetSubscriptionPassthroughHandler))
 }

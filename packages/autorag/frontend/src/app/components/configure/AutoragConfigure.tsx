@@ -1161,12 +1161,12 @@ function AutoragConfigure({
                           <Alert
                             variant="warning"
                             isInline
-                            title="Selected models"
+                            title="No models selected"
                             data-testid="selected-models-warning"
                           >
                             <Content component="p">
-                              No models selected. Select chat and embedding models to run the
-                              experiment.
+                              To run the experiment, select a foundation model and an embedding
+                              model.
                             </Content>
                             <Button
                               variant="primary"
