@@ -6,6 +6,7 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
+  Form,
   JumpLinks,
   JumpLinksItem,
   Sidebar,
@@ -203,43 +204,45 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
               </JumpLinks>
             </SidebarPanel>
             <SidebarContent>
-              <div
-                className="evalhub-copy-suite-benchmarks-step__sections"
-                data-testid="copy-suite-benchmark-sections"
-              >
-                {benchmarks.map((benchmark, index) => (
-                  <CopySuiteBenchmarkSection
-                    key={`${benchmark.id}-${index}`}
-                    benchmark={benchmark}
-                    index={index}
-                    showWeightEdit={showWeightEdit}
-                    weightRatio={weightRatios[index] ?? 1}
-                    totalWeightRatio={totalWeightRatio}
-                    additionalParametersError={
-                      errors.benchmarks?.[index]?.additionalParameters?.message
-                    }
-                    parameterErrors={getParameterErrors(index)}
-                    parameterConfig={parameterConfig}
-                    testDataRefErrors={getTestDataRefErrors(index)}
-                    isInteractionDisabled={isInteractionDisabled}
-                    onUpdate={(updatedIndex, field, value) => {
-                      if (!isInteractionDisabled) {
-                        onUpdateBenchmark(updatedIndex, field, value);
+              <Form onSubmit={(event) => event.preventDefault()}>
+                <div
+                  className="evalhub-copy-suite-benchmarks-step__sections"
+                  data-testid="copy-suite-benchmark-sections"
+                >
+                  {benchmarks.map((benchmark, index) => (
+                    <CopySuiteBenchmarkSection
+                      key={`${benchmark.id}-${index}`}
+                      benchmark={benchmark}
+                      index={index}
+                      showWeightEdit={showWeightEdit}
+                      weightRatio={weightRatios[index] ?? 1}
+                      totalWeightRatio={totalWeightRatio}
+                      additionalParametersError={
+                        errors.benchmarks?.[index]?.additionalParameters?.message
                       }
-                    }}
-                    onEditWeights={() => {
-                      if (!isInteractionDisabled) {
-                        setIsWeightsModalOpen(true);
-                      }
-                    }}
-                    onOpenDetails={(benchmarkKey) => {
-                      if (!isInteractionDisabled) {
-                        setDetailsBenchmarkKey(benchmarkKey);
-                      }
-                    }}
-                  />
-                ))}
-              </div>
+                      parameterErrors={getParameterErrors(index)}
+                      parameterConfig={parameterConfig}
+                      testDataRefErrors={getTestDataRefErrors(index)}
+                      isInteractionDisabled={isInteractionDisabled}
+                      onUpdate={(updatedIndex, field, value) => {
+                        if (!isInteractionDisabled) {
+                          onUpdateBenchmark(updatedIndex, field, value);
+                        }
+                      }}
+                      onEditWeights={() => {
+                        if (!isInteractionDisabled) {
+                          setIsWeightsModalOpen(true);
+                        }
+                      }}
+                      onOpenDetails={(benchmarkKey) => {
+                        if (!isInteractionDisabled) {
+                          setDetailsBenchmarkKey(benchmarkKey);
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              </Form>
             </SidebarContent>
           </Sidebar>
         ) : (

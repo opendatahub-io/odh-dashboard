@@ -396,6 +396,142 @@ func TestPatchCollectionHandlerAllowsValidBenchmarkTestDataRef(t *testing.T) {
 	assert.Equal(t, "v2", result.Data.Benchmarks[0].TestDataRef.Git.Ref)
 }
 
+func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
+	newCollection := func(firstURL, secondURL string) *evalhub.Collection {
+		return &evalhub.Collection{
+			Resource: evalhub.CollectionResource{ID: "collection-001"},
+			Name:     "Suite with git test data",
+			Benchmarks: []evalhub.CollectionBenchmark{
+				{
+					ID:         "mmlu",
+					ProviderID: "lm_evaluation_harness",
+					Weight:     1,
+					TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+						URL: firstURL,
+						Ref: "main",
+					}},
+				},
+				{
+					ID:         "hellaswag",
+					ProviderID: "lm_evaluation_harness",
+					Weight:     1,
+					TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+						URL: secondURL,
+						Ref: "main",
+					}},
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name       string
+		collection *evalhub.Collection
+		operations []evalhub.CollectionPatchOperation
+		status     int
+		message    string
+		verify     func(t *testing.T, result CollectionEnvelope)
+	}{
+		{
+			name:       "editing one benchmark does not validate a legacy reference on another",
+			collection: newCollection("https://user:pass@example.com/legacy.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/1/weight",
+				Value: json.RawMessage(`2`),
+			}},
+			status: http.StatusOK,
+			verify: func(t *testing.T, result CollectionEnvelope) {
+				assert.Len(t, result.Data.Benchmarks, 2)
+				assert.Equal(t, float64(2), result.Data.Benchmarks[1].Weight)
+			},
+		},
+		{
+			name:       "writing a valid reference after a removal succeeds",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/1/test_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://github.com/example/data-v2.git","ref":"v2"}}`),
+			}, {
+				Op:   "remove",
+				Path: "/benchmarks/0",
+			}},
+			status: http.StatusOK,
+			verify: func(t *testing.T, result CollectionEnvelope) {
+				assert.Len(t, result.Data.Benchmarks, 1)
+				assert.Equal(t, "hellaswag", result.Data.Benchmarks[0].ID)
+				assert.Equal(t, "https://github.com/example/data-v2.git", result.Data.Benchmarks[0].TestDataRef.Git.URL)
+			},
+		},
+		{
+			name:       "removing a benchmark shifts validation onto the written position",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/1/test_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}, {
+				Op:   "remove",
+				Path: "/benchmarks/0",
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+		{
+			name:       "inserting a benchmark validates the inserted position",
+			collection: newCollection("https://user:pass@example.com/legacy.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/0",
+				Value: json.RawMessage(`{"id":"arc","weight":1,"test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			mockClient := ehmocks.NewMockEvalHubClient()
+			mockClient.SetCollection("collection-001", tt.collection)
+
+			if tt.status == http.StatusOK {
+				result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
+					http.MethodPatch,
+					ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+					tt.operations, nil, identity, mockClient,
+				)
+
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusOK, response.StatusCode)
+				tt.verify(t, result)
+			} else {
+				result, response, err := setupApiTestWithEvalHub[HTTPError](
+					http.MethodPatch,
+					ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+					tt.operations, nil, identity, mockClient,
+				)
+
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+				assert.Contains(t, result.Error.Message, tt.message)
+
+				getResult, getResponse, err := setupApiTestWithEvalHub[CollectionEnvelope](
+					http.MethodGet,
+					ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+					nil, nil, identity, mockClient,
+				)
+
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusOK, getResponse.StatusCode)
+				assert.Equal(t, tt.collection.Benchmarks[0].TestDataRef.Git.URL, getResult.Data.Benchmarks[0].TestDataRef.Git.URL)
+			}
+		})
+	}
+}
+
 func TestPatchCollectionHandlerServerError(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	operations := []evalhub.CollectionPatchOperation{{

@@ -40,17 +40,132 @@ func validateCollectionPatchOperations(operations []evalhub.CollectionPatchOpera
 	return nil
 }
 
+// benchmarkWriteTracker tracks which benchmark positions in the patched
+// collection were written by the patch operations. Positions shift as add and
+// remove operations change the array, so operations are replayed in order.
+// Whole-array writes conservatively mark every resulting benchmark as written.
+type benchmarkWriteTracker struct {
+	all     bool
+	indices map[int]struct{}
+	length  int
+}
+
+func newBenchmarkWriteTracker(length int) *benchmarkWriteTracker {
+	return &benchmarkWriteTracker{indices: make(map[int]struct{}), length: length}
+}
+
+// written reports whether the benchmark at the given patched index must be
+// validated.
+func (t *benchmarkWriteTracker) written(index int) bool {
+	if t.all {
+		return true
+	}
+	_, ok := t.indices[index]
+	return ok
+}
+
+func (t *benchmarkWriteTracker) markAll() {
+	t.all = true
+}
+
+func (t *benchmarkWriteTracker) mark(index int) {
+	if !t.all {
+		t.indices[index] = struct{}{}
+	}
+}
+
+// insert records an add at index, shifting existing marks at or past index up.
+func (t *benchmarkWriteTracker) insert(index int) {
+	t.length++
+	if t.all {
+		return
+	}
+	shifted := make(map[int]struct{}, len(t.indices)+1)
+	for i := range t.indices {
+		if i >= index {
+			i++
+		}
+		shifted[i] = struct{}{}
+	}
+	shifted[index] = struct{}{}
+	t.indices = shifted
+}
+
+// removeAt records a remove at index, dropping its mark and shifting marks past
+// index down.
+func (t *benchmarkWriteTracker) removeAt(index int) {
+	t.length--
+	if t.all {
+		return
+	}
+	shifted := make(map[int]struct{}, len(t.indices))
+	for i := range t.indices {
+		switch {
+		case i == index:
+		case i > index:
+			shifted[i-1] = struct{}{}
+		default:
+			shifted[i] = struct{}{}
+		}
+	}
+	t.indices = shifted
+}
+
+// apply replays a single patch operation against the tracker.
+func (t *benchmarkWriteTracker) apply(op, path string) {
+	if path == "/benchmarks" {
+		// Whole-array operations rewrite every benchmark.
+		t.markAll()
+		return
+	}
+	rest, ok := strings.CutPrefix(path, "/benchmarks/")
+	if !ok {
+		return // the operation does not touch the benchmarks array
+	}
+	token, _, deeper := strings.Cut(rest, "/")
+	if token == "-" {
+		if op == "add" {
+			t.insert(t.length)
+		} else {
+			// '-' is only valid for add; anything else fails to apply.
+			t.markAll()
+		}
+		return
+	}
+	index, err := strconv.Atoi(token)
+	if err != nil || index < 0 {
+		t.markAll()
+		return
+	}
+	if deeper {
+		// A write inside an existing benchmark object; the array is unchanged.
+		t.mark(index)
+		return
+	}
+	switch op {
+	case "add":
+		t.insert(index)
+	case "remove":
+		t.removeAt(index)
+	default:
+		t.mark(index)
+	}
+}
+
 // validatePatchedBenchmarks applies the patch operations to the current
-// collection and validates the resulting benchmark test data references, so a
-// patch cannot bypass the checks that create and clone enforce (e.g. embedded
-// Git credentials or non-HTTPS URLs with a secret reference). Patches that do
-// not touch the benchmarks are passed through without applying them.
+// collection and validates the test data references of benchmarks the patch
+// added or changed, so a patch cannot bypass the checks that create and clone
+// enforce (e.g. embedded Git credentials or non-HTTPS URLs with a secret
+// reference) while edits that leave other stored references untouched are not
+// blocked by them. Patches that do not touch the benchmarks are passed through
+// without applying them.
 func validatePatchedBenchmarks(current *evalhub.Collection, operations []evalhub.CollectionPatchOperation) error {
+	tracker := newBenchmarkWriteTracker(len(current.Benchmarks))
 	touchesBenchmarks := false
 	for _, operation := range operations {
 		if operation.Path == "/benchmarks" || strings.HasPrefix(operation.Path, "/benchmarks/") {
 			touchesBenchmarks = true
-			break
+			tracker.apply(operation.Op, operation.Path)
 		}
 	}
 	if !touchesBenchmarks {
@@ -79,6 +194,9 @@ func validatePatchedBenchmarks(current *evalhub.Collection, operations []evalhub
 		return fmt.Errorf("failed to decode patched collection: %w", err)
 	}
 	for index, benchmark := range patched.Benchmarks {
+		if !tracker.written(index) {
+			continue
+		}
 		if err := benchmark.TestDataRef.Validate(); err != nil {
 			id := benchmark.ID
 			if id == "" {

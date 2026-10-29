@@ -30,6 +30,24 @@ describe('parseS3DatasetUrl', () => {
     expect(parseS3DatasetUrl('s3://bucket-only/')).toBeUndefined();
     expect(parseS3DatasetUrl('s3:///data.jsonl')).toBeUndefined();
   });
+
+  it('should return undefined when the key is absolute', () => {
+    expect(parseS3DatasetUrl('s3://bucket//data.jsonl')).toBeUndefined();
+    expect(parseS3DatasetUrl('s3://bucket/ /data.jsonl')).toBeUndefined();
+  });
+
+  it('should return undefined when the key contains ".." path segments', () => {
+    expect(parseS3DatasetUrl('s3://bucket/a/../data.jsonl')).toBeUndefined();
+    expect(parseS3DatasetUrl('s3://bucket/path/..')).toBeUndefined();
+    expect(parseS3DatasetUrl('s3://bucket/path\\..\\data.jsonl')).toBeUndefined();
+  });
+
+  it('should parse keys containing ".." as part of a larger segment', () => {
+    expect(parseS3DatasetUrl('s3://bucket/a/..b/data.jsonl')).toEqual({
+      bucket: 'bucket',
+      key: 'a/..b/data.jsonl',
+    });
+  });
 });
 
 describe('buildS3DatasetUrl', () => {

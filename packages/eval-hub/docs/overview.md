@@ -40,3 +40,4 @@
 - Default `STYLE_THEME` is `mui-theme` in standalone/kubeflow; federated Makefile flow sets PatternFly.
 - Port 4002 is shared conventionally with other packages — avoid two BFFs on the same port.
 - Contract tests expect `GET /healthcheck` on the BFF.
+- Reconfiguring a run supports S3 prerecorded references only: stored PVC, Git, and Hugging Face references marked `pre_recorded_data` are dropped when a run is reconfigured through the UI (the collection's test-data fields are hidden, so the user cannot see or restore them). Runs created through the API with non-S3 prerecorded references lose those references on reconfigure.
