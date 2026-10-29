@@ -60,6 +60,22 @@ func (f *fakeNeo4jDriver) Close(context.Context) error {
 	return nil
 }
 
+// blockingNeo4jDriver embeds fakeNeo4jDriver but lets verification block
+// until the context deadline so a single attempt consumes the whole shared
+// connection timeout.
+type blockingNeo4jDriver struct {
+	fakeNeo4jDriver
+}
+
+func (b *blockingNeo4jDriver) VerifyConnectivity(ctx context.Context) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+func (b *blockingNeo4jDriver) VerifyAuthentication(ctx context.Context, _ *neo4j.AuthToken) error {
+	return ctx.Err()
+}
+
 type fakeNeo4jSession struct {
 	result   neo4jResult
 	err      error
@@ -357,6 +373,25 @@ func TestNewNeo4jFromSecretFailsWhenAllPinnedAddressesFail(t *testing.T) {
 	assert.True(t, created[0].closed)
 	assert.True(t, created[1].closed)
 	assert.ErrorIs(t, err, ErrDatabaseUnavailable)
+}
+
+func TestNewNeo4jFromSecretSharesOneDeadlineAcrossPinnedAddresses(t *testing.T) {
+	// All connection attempts share a single deadline: when the first
+	// address consumes the whole timeout, the remaining addresses must not
+	// each get a fresh timeout (which would delay the caller by N timeouts).
+	secret := validNeo4jSecret()
+	secret["NEO4J_URI"] = []byte("neo4j://neo4j.team-a.svc.cluster.local:7687")
+	var created []*fakeNeo4jDriver
+
+	_, err := newNeo4jFromSecretWithDriver(context.Background(), secret, 10*time.Millisecond, func(_ context.Context, uri string, _ neo4j.AuthToken, _ func(*config.Config)) (neo4jDriver, error) {
+		driver := &blockingNeo4jDriver{fakeNeo4jDriver{uri: uri}}
+		created = append(created, &driver.fakeNeo4jDriver)
+		return driver, nil
+	}, fakeNeo4jLookup("10.1.2.3", "10.1.2.4"))
+	require.Error(t, err)
+	assert.Len(t, created, 1, "expired shared deadline must stop the fallback loop after the first address")
+	assert.True(t, created[0].closed)
+	assert.ErrorIs(t, err, ErrDatabaseTimeout)
 }
 
 func TestNeo4jSearchUsesCollectionVectorIndex(t *testing.T) {

@@ -284,12 +284,18 @@ func newNeo4jFromSecretWithDriver(
 	}
 
 	// Try each pinned address in order; see dialURIsPinned for why there can
-	// be more than one.
+	// be more than one. All attempts share a single deadline so N unresponsive
+	// addresses delay the caller by one timeout, not N.
+	connectCtx, cancelConnect := context.WithTimeout(ctx, timeout)
+	defer cancelConnect()
 	var driver neo4jDriver
 	var lastErr error
 	for _, uri := range endpoint.dialURIsPinned(ips) {
-		driver, lastErr = connectNeo4jDriver(ctx, uri, username, password, tlsConfig, timeout, newDriver)
+		driver, lastErr = connectNeo4jDriver(ctx, connectCtx, uri, username, password, tlsConfig, newDriver)
 		if lastErr == nil {
+			break
+		}
+		if connectCtx.Err() != nil {
 			break
 		}
 	}
@@ -302,15 +308,17 @@ func newNeo4jFromSecretWithDriver(
 
 // connectNeo4jDriver creates a driver for a single dial URI and verifies it,
 // closing it on failure so a failed attempt does not leak the connection
-// pool while the next pinned address is tried.
+// pool while the next pinned address is tried. connectCtx carries the
+// deadline shared by all connection attempts; parentCtx is the caller's
+// context without that deadline, used to distinguish caller cancellation
+// from the shared connection timeout when classifying errors.
 func connectNeo4jDriver(
-	ctx context.Context,
+	parentCtx, connectCtx context.Context,
 	uri, username, password string,
 	tlsConfig *tls.Config,
-	timeout time.Duration,
 	newDriver neo4jDriverFactory,
 ) (neo4jDriver, error) {
-	driver, err := newDriver(ctx, uri, neo4j.BasicAuth(username, password, ""), func(config *config.Config) {
+	driver, err := newDriver(connectCtx, uri, neo4j.BasicAuth(username, password, ""), func(config *config.Config) {
 		if tlsConfig != nil {
 			config.TlsConfig = tlsConfig
 		}
@@ -319,15 +327,13 @@ func connectNeo4jDriver(
 		return nil, fmt.Errorf("neo4j create driver: %w", err)
 	}
 
-	operationCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	if err := driver.VerifyConnectivity(operationCtx); err != nil {
-		_ = driver.Close(context.WithoutCancel(operationCtx))
-		return nil, fmt.Errorf("neo4j connect: %w", classifyNeo4jError(ctx, operationCtx, err))
+	if err := driver.VerifyConnectivity(connectCtx); err != nil {
+		_ = driver.Close(context.WithoutCancel(connectCtx))
+		return nil, fmt.Errorf("neo4j connect: %w", classifyNeo4jError(parentCtx, connectCtx, err))
 	}
-	if err := driver.VerifyAuthentication(operationCtx, nil); err != nil {
-		_ = driver.Close(context.WithoutCancel(operationCtx))
-		return nil, fmt.Errorf("neo4j authenticate: %w", classifyNeo4jError(ctx, operationCtx, err))
+	if err := driver.VerifyAuthentication(connectCtx, nil); err != nil {
+		_ = driver.Close(context.WithoutCancel(connectCtx))
+		return nil, fmt.Errorf("neo4j authenticate: %w", classifyNeo4jError(parentCtx, connectCtx, err))
 	}
 	return driver, nil
 }
