@@ -52,10 +52,14 @@ The Gen AI BFF must also be running on port `8080` (or configured with
 `GATEWAY_DOMAIN` so its relay can reach the AutoRAG Responses endpoint. The drawer does
 not require an OGX playground connection.
 
-The relay requires a bearer user token, so start both the Gen AI BFF and the AutoRAG dev
-server with `user_token` auth. A Gen AI BFF started with `AUTH_METHOD=disabled` (or
+The relay requires a bearer user token, so start the Gen AI BFF, the AutoRAG
+BFF, and the AutoRAG dev server with `user_token` auth. A Gen AI BFF started
+with `AUTH_METHOD=disabled` (or
 `internal`) skips identity injection and every playground question fails with
 `[unknown] missing authentication identity`.
+
+Start each of the three processes below in its own terminal, from the
+repository root:
 
 ```bash
 # Gen AI BFF (GATEWAY_DOMAIN accepts a full URL for a fully local stack;
@@ -63,7 +67,16 @@ server with `user_token` auth. A Gen AI BFF started with `AUTH_METHOD=disabled` 
 cd packages/gen-ai/bff
 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token \
   GATEWAY_DOMAIN=http://localhost:4001 make run PORT=8080
+```
 
+```bash
+# AutoRAG BFF — the relay target. The AutoRAG dev server proxies its API
+# requests to this port (PROXY_PORT, default 4001).
+cd packages/autorag/bff
+AUTH_METHOD=user_token make run PORT=4001
+```
+
+```bash
 # AutoRAG frontend (forwards the oc/kubectl token, or KUBE_TOKEN, to /gen-ai/api)
 cd packages/autorag/frontend
 AUTH_METHOD=user_token pnpm run start:dev

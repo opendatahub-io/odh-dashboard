@@ -560,7 +560,9 @@ func graphExtractionConfigMap(raw any) (map[string]any, bool) {
 	}
 	if text, ok := raw.(string); ok {
 		var config map[string]any
-		if err := json.Unmarshal([]byte(text), &config); err != nil {
+		// json.Unmarshal accepts the literal string "null" and leaves the map
+		// nil; both a malformed object and a null must be rejected.
+		if err := json.Unmarshal([]byte(text), &config); err != nil || config == nil {
 			return nil, false
 		}
 		return config, true

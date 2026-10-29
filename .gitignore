@@ -12,7 +12,6 @@ Thumbs.db
 .mcp.json
 
 node_modules
-.pnpm-store/
 logs
 
 .docs

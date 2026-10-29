@@ -270,6 +270,51 @@ func isNAT64Address(ip net.IP) bool {
 	return false
 }
 
+// vectorIPAllowed reports whether a resolved IP may be used for a vector
+// database endpoint. clusterHost permits cluster-internal ranges; a loopback
+// address is permitted only when loopback is explicitly allowed (development
+// mode).
+func vectorIPAllowed(ip net.IP, clusterHost, allowLoopback bool) bool {
+	loopbackAllowed := allowLoopback && ip.IsLoopback()
+	alwaysBlocked := ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
+		ip.IsMulticast() || ip.IsUnspecified() || isNAT64Address(ip)
+	if alwaysBlocked && !loopbackAllowed {
+		return false
+	}
+	return clusterHost || !isBlockedVectorIP(ip) || loopbackAllowed
+}
+
+// defaultVectorLookupIP resolves vector database hostnames with the process
+// resolver; tests substitute their own lookup function.
+func defaultVectorLookupIP(ctx context.Context, host string) ([]net.IP, error) {
+	return net.DefaultResolver.LookupIP(ctx, "ip", host)
+}
+
+// resolveVectorIPs resolves an already syntax-validated vector database
+// hostname and checks every resolved IP with vectorIPAllowed. It is the
+// resolve-once counterpart to vectorSafeDialContext for clients that cannot
+// install a custom dialer (the Neo4j driver dials internally) and must
+// therefore validate the addresses before handing them to the client library.
+func resolveVectorIPs(ctx context.Context, lookupIP func(context.Context, string) ([]net.IP, error), host string, allowClusterService, allowLoopback bool) ([]net.IP, error) {
+	if net.ParseIP(host) != nil {
+		return nil, fmt.Errorf("vector database literal IP addresses are not allowed")
+	}
+	clusterHost := allowClusterService && isClusterServiceHost(host)
+	ips, err := lookupIP(ctx, host)
+	if err != nil {
+		return nil, fmt.Errorf("vector database host cannot be resolved")
+	}
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("vector database host resolved to no addresses")
+	}
+	for _, ip := range ips {
+		if !vectorIPAllowed(ip, clusterHost, allowLoopback) {
+			return nil, fmt.Errorf("vector database host resolved to a blocked address")
+		}
+	}
+	return ips, nil
+}
+
 // vectorSafeDialContext resolves once and dials only the validated addresses,
 // preventing DNS rebinding between validation and connection establishment.
 func vectorSafeDialContext(baseDialContext func(context.Context, string, string) (net.Conn, error), lookupIP func(context.Context, string) ([]net.IP, error), allowClusterService, allowLoopback bool) func(context.Context, string, string) (net.Conn, error) {
@@ -291,13 +336,7 @@ func vectorSafeDialContext(baseDialContext func(context.Context, string, string)
 		}
 		var lastErr error
 		for _, ip := range ips {
-			loopbackAllowed := allowLoopback && ip.IsLoopback()
-			alwaysBlocked := ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
-				ip.IsMulticast() || ip.IsUnspecified() || isNAT64Address(ip)
-			if alwaysBlocked && !loopbackAllowed {
-				return nil, fmt.Errorf("vector database host resolved to a blocked address")
-			}
-			if !clusterHost && isBlockedVectorIP(ip) && !loopbackAllowed {
+			if !vectorIPAllowed(ip, clusterHost, allowLoopback) {
 				return nil, fmt.Errorf("vector database host resolved to a blocked address")
 			}
 			conn, dialErr := baseDialContext(ctx, network, net.JoinHostPort(ip.String(), port))

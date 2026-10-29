@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -36,13 +37,36 @@ var relayTargetPrefixes = []string{"/autorag/"}
 
 // relayBaseURL returns the scheme and host the relay forwards to. GATEWAY_DOMAIN
 // is a bare host in production (the operator injects it), but accepting an
-// explicit scheme lets local development point the relay at a local BFF.
-func relayBaseURL(gatewayDomain string) string {
+// explicit scheme lets local development point the relay at a local BFF. A
+// plain http:// scheme is accepted only for loopback hosts: the relay
+// forwards the user's bearer token, which must never travel unencrypted to a
+// remote endpoint.
+func relayBaseURL(gatewayDomain string) (string, error) {
 	domain := strings.TrimSpace(gatewayDomain)
-	if strings.HasPrefix(domain, "http://") || strings.HasPrefix(domain, "https://") {
-		return strings.TrimRight(domain, "/")
+	if strings.HasPrefix(domain, "http://") {
+		parsed, err := url.Parse(domain)
+		if err != nil || !isLoopbackGatewayHost(parsed.Host) {
+			return "", errors.New("plain http GATEWAY_DOMAIN is only allowed for loopback hosts")
+		}
+		return strings.TrimRight(domain, "/"), nil
 	}
-	return "https://" + domain
+	if strings.HasPrefix(domain, "https://") {
+		return strings.TrimRight(domain, "/"), nil
+	}
+	return "https://" + domain, nil
+}
+
+// isLoopbackGatewayHost reports whether a host (with optional port) from a
+// scheme-qualified GATEWAY_DOMAIN names a loopback endpoint.
+func isLoopbackGatewayHost(hostPort string) bool {
+	host := hostPort
+	if h, _, err := net.SplitHostPort(hostPort); err == nil {
+		host = h
+	}
+	if strings.EqualFold(strings.Trim(host, "[]"), "localhost") {
+		return true
+	}
+	return net.ParseIP(host).IsLoopback()
 }
 
 // ResponsesRelayHandler handles POST /api/v1/lsd/responses/relay.
@@ -131,6 +155,18 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 		})
 		return
 	}
+	baseURL, err := relayBaseURL(app.config.GatewayDomain)
+	if err != nil {
+		app.logger.Error("Relay gateway scheme rejected", "error", err)
+		app.errorResponse(w, r, &integrations.HTTPError{
+			StatusCode: http.StatusServiceUnavailable,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "service_unavailable",
+				Message: "relay target gateway scheme is not allowed (GATEWAY_DOMAIN)",
+			},
+		})
+		return
+	}
 
 	// Read the body verbatim — no parsing and no mutation. The target endpoint
 	// enforces its own request contract (unknown properties, required fields,
@@ -160,7 +196,7 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 	// Build from the validated parsed components rather than the raw target,
 	// so the wire request carries exactly the validated path (EscapedPath
 	// re-encodes anything url.Parse decoded); fragments never reach the wire.
-	upstreamURL := relayBaseURL(app.config.GatewayDomain) + parsedTarget.EscapedPath()
+	upstreamURL := baseURL + parsedTarget.EscapedPath()
 	if parsedTarget.RawQuery != "" {
 		upstreamURL += "?" + parsedTarget.RawQuery
 	}
@@ -180,7 +216,27 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 	// Dedicated client with no Timeout: a client timeout bounds the entire body
 	// read and would truncate a long stream after WriteHeader has committed.
 	// Reuse the app-level TLS transport for connection pooling and cert trust.
-	proxyClient := &http.Client{Transport: app.httpClient.Transport}
+	// Redirects are restricted to the original host: the relayed request
+	// carries the user's token in the x-forwarded-access-token header, which
+	// (unlike Authorization) Go's http.Client does not strip when a redirect
+	// crosses hosts, so a cross-host redirect would forward the token to an
+	// arbitrary origin named by the upstream response.
+	proxyClient := &http.Client{
+		Transport: app.httpClient.Transport,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// A custom CheckRedirect replaces the standard client's
+			// defaultCheckRedirect, so its 10-redirect cap must be
+			// reproduced: an upstream redirect loop must fail fast instead
+			// of hanging until the relay timeout.
+			if len(via) >= 10 {
+				return errors.New("relay stopped after 10 redirects")
+			}
+			if len(via) != 0 && !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+				return fmt.Errorf("relay refused cross-host redirect to %q", req.URL.Host)
+			}
+			return nil
+		},
+	}
 
 	resp, err := proxyClient.Do(proxyReq)
 	if err != nil {

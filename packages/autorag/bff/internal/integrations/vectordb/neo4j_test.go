@@ -11,21 +11,35 @@ import (
 	"encoding/pem"
 	"errors"
 	"math/big"
+	"net"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// fakeNeo4jLookup returns a lookup function that resolves every host to the
+// given IPs, standing in for DNS in driver-construction tests.
+func fakeNeo4jLookup(ips ...string) func(context.Context, string) ([]net.IP, error) {
+	return func(context.Context, string) ([]net.IP, error) {
+		resolved := make([]net.IP, 0, len(ips))
+		for _, ip := range ips {
+			resolved = append(resolved, net.ParseIP(ip))
+		}
+		return resolved, nil
+	}
+}
 
 type fakeNeo4jDriver struct {
 	verifyErr  error
 	session    neo4jSession
 	uri        string
 	auth       neo4j.AuthToken
-	config     *neo4j.Config
+	config     *config.Config
 	sessionCfg neo4j.SessionConfig
 	closed     bool
 }
@@ -149,7 +163,7 @@ func TestParseNeo4jEndpoint(t *testing.T) {
 			hasCA: true,
 			check: func(t *testing.T, endpoint neo4jEndpoint) {
 				assert.True(t, endpoint.tls)
-				assert.Equal(t, "neo4j+s://neo4j.team-a.svc.cluster.local:7687", endpoint.uri())
+				assert.Equal(t, "bolt+s://neo4j.team-a.svc.cluster.local:7687", endpoint.uri())
 			},
 		},
 		{
@@ -158,7 +172,7 @@ func TestParseNeo4jEndpoint(t *testing.T) {
 			hasCA: true,
 			check: func(t *testing.T, endpoint neo4jEndpoint) {
 				assert.True(t, endpoint.tls)
-				assert.Equal(t, "neo4j+s://neo4j.example.com:7687", endpoint.uri())
+				assert.Equal(t, "bolt+s://neo4j.example.com:7687", endpoint.uri())
 			},
 		},
 	}
@@ -194,15 +208,15 @@ func TestNewNeo4jFromSecretConfiguresDriver(t *testing.T) {
 	secret["NEO4J_DATABASE"] = nil
 	var captured *fakeNeo4jDriver
 
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(_ context.Context, uri string, auth neo4j.AuthToken, configure func(*neo4j.Config)) (neo4jDriver, error) {
-		config := &neo4j.Config{}
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(_ context.Context, uri string, auth neo4j.AuthToken, configure func(*config.Config)) (neo4jDriver, error) {
+		config := &config.Config{}
 		configure(config)
 		captured = &fakeNeo4jDriver{uri: uri, auth: auth, config: config, session: &fakeNeo4jSession{result: &fakeNeo4jResult{}}}
 		return captured, nil
-	})
+	}, fakeNeo4jLookup("93.184.216.34"))
 	require.NoError(t, err)
 	require.NotNil(t, captured)
-	assert.Equal(t, "neo4j+s://neo4j.example.com:7687", captured.uri)
+	assert.Equal(t, "bolt+s://neo4j.example.com:7687", captured.uri)
 	assert.Equal(t, "neo4j", captured.auth.Tokens["principal"])
 	require.NotNil(t, captured.config.TlsConfig)
 	assert.NotNil(t, captured.config.TlsConfig.RootCAs)
@@ -214,21 +228,92 @@ func TestNewNeo4jFromSecretConfiguresDriver(t *testing.T) {
 func TestNewNeo4jFromSecretRejectsMalformedCA(t *testing.T) {
 	secret := validNeo4jSecret()
 	secret["NEO4J_CA_CERT"] = []byte("not a certificate")
-	_, err := newNeo4jFromSecret(context.Background(), secret)
+	_, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, newNeo4jDriver, fakeNeo4jLookup("93.184.216.34"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "NEO4J_CA_CERT")
 }
 
 func TestNewNeo4jFromSecretClassifiesConnectivityErrors(t *testing.T) {
-	_, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Nanosecond, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	_, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Nanosecond, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
 		return &fakeNeo4jDriver{verifyErr: context.DeadlineExceeded}, nil
-	})
+	}, fakeNeo4jLookup("93.184.216.34"))
 	require.ErrorIs(t, err, ErrDatabaseTimeout)
 
-	_, err = newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	_, err = newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
 		return &fakeNeo4jDriver{verifyErr: errors.New("connection refused")}, nil
-	})
+	}, fakeNeo4jLookup("93.184.216.34"))
 	require.ErrorIs(t, err, ErrDatabaseUnavailable)
+}
+
+func TestNewNeo4jFromSecretRejectsBlockedResolution(t *testing.T) {
+	// An external host resolving to the link-local metadata range must be
+	// rejected before any driver is created.
+	_, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
+		return nil, errors.New("driver must not be created")
+	}, fakeNeo4jLookup("169.254.169.254"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "blocked address")
+
+	// One blocked address among several rejects the whole host, mirroring the
+	// dial-time behavior of the Milvus and pgvector adapters.
+	_, err = newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
+		return nil, errors.New("driver must not be created")
+	}, fakeNeo4jLookup("93.184.216.34", "192.0.2.1"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "blocked address")
+}
+
+func TestNewNeo4jFromSecretAllowsClusterPrivateResolution(t *testing.T) {
+	// Cluster-local hostnames may resolve to the private ranges that are
+	// blocked for external hosts.
+	secret := validNeo4jSecret()
+	secret["NEO4J_URI"] = []byte("neo4j://neo4j.team-a.svc.cluster.local:7687")
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
+		return &fakeNeo4jDriver{session: &fakeNeo4jSession{result: &fakeNeo4jResult{}}}, nil
+	}, fakeNeo4jLookup("10.1.2.3"))
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+}
+
+func TestNewNeo4jFromSecretRejectsUnresolvableHost(t *testing.T) {
+	_, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
+		return nil, errors.New("driver must not be created")
+	}, func(context.Context, string) ([]net.IP, error) {
+		return nil, errors.New("no such host")
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot be resolved")
+}
+
+func TestNewNeo4jFromSecretPinsPlainDialAddress(t *testing.T) {
+	// Plain in-cluster endpoints dial the validated literal IP, not the
+	// hostname, so the connection cannot be re-resolved to another address.
+	secret := validNeo4jSecret()
+	secret["NEO4J_URI"] = []byte("neo4j://neo4j.team-a.svc.cluster.local:7687")
+	var captured *fakeNeo4jDriver
+
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(_ context.Context, uri string, _ neo4j.AuthToken, _ func(*config.Config)) (neo4jDriver, error) {
+		captured = &fakeNeo4jDriver{uri: uri, session: &fakeNeo4jSession{result: &fakeNeo4jResult{}}}
+		return captured, nil
+	}, fakeNeo4jLookup("10.1.2.3"))
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "bolt://10.1.2.3:7687", captured.uri)
+	require.NoError(t, db.Close())
+
+	// TLS endpoints keep the hostname: the driver derives the TLS server name
+	// from the dialed address, so a pinned IP would fail certificate
+	// validation.
+	secret = validNeo4jSecret()
+	captured = nil
+	db, err = newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(_ context.Context, uri string, _ neo4j.AuthToken, _ func(*config.Config)) (neo4jDriver, error) {
+		captured = &fakeNeo4jDriver{uri: uri, session: &fakeNeo4jSession{result: &fakeNeo4jResult{}}}
+		return captured, nil
+	}, fakeNeo4jLookup("93.184.216.34"))
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "bolt+s://neo4j.example.com:7687", captured.uri)
+	require.NoError(t, db.Close())
 }
 
 func TestNeo4jSearchUsesCollectionVectorIndex(t *testing.T) {
@@ -238,9 +323,9 @@ func TestNeo4jSearchUsesCollectionVectorIndex(t *testing.T) {
 		neo4jRecord("second chunk", 0.42, "chunk-2"),
 	}}}
 	driver.session = session
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
 		return driver, nil
-	})
+	}, fakeNeo4jLookup("93.184.216.34"))
 	require.NoError(t, err)
 
 	results, err := db.Search(context.Background(), "ai4rag_20261026195239_muw95df4", []float32{0.1, 0.2}, "query", SearchOptions{TopK: 3})
@@ -264,9 +349,9 @@ func TestNeo4jSearchUsesCollectionVectorIndex(t *testing.T) {
 
 func TestNeo4jSearchRejectsHybridRanking(t *testing.T) {
 	driver := &fakeNeo4jDriver{session: &fakeNeo4jSession{result: &fakeNeo4jResult{}}}
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
 		return driver, nil
-	})
+	}, fakeNeo4jLookup("93.184.216.34"))
 	require.NoError(t, err)
 
 	_, err = db.Search(context.Background(), "collection", nil, "", SearchOptions{TopK: 3, Ranker: "rrf", RankerK: 60})
@@ -275,9 +360,9 @@ func TestNeo4jSearchRejectsHybridRanking(t *testing.T) {
 
 func TestNeo4jSearchClassifiesQueryErrors(t *testing.T) {
 	driver := &fakeNeo4jDriver{session: &fakeNeo4jSession{err: errors.New("index not found")}}
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
 		return driver, nil
-	})
+	}, fakeNeo4jLookup("93.184.216.34"))
 	require.NoError(t, err)
 
 	_, err = db.Search(context.Background(), "collection", []float32{1}, "", SearchOptions{TopK: 1})
@@ -302,9 +387,9 @@ func TestNeo4jSearchResultContentLimit(t *testing.T) {
 	driver := &fakeNeo4jDriver{session: &fakeNeo4jSession{result: &fakeNeo4jResult{records: []*neo4j.Record{
 		neo4jRecord(strings.Repeat("x", MaxVectorResultBytes+1), 0.5, "chunk-1"),
 	}}}}
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
 		return driver, nil
-	})
+	}, fakeNeo4jLookup("93.184.216.34"))
 	require.NoError(t, err)
 
 	_, err = db.Search(context.Background(), "collection", []float32{1}, "", SearchOptions{TopK: 1})

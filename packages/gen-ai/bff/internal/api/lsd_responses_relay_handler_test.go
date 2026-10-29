@@ -219,6 +219,88 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		assert.JSONEq(t, upstreamBody, rr.Body.String())
 	})
 
+	It("should return 503 when the gateway domain uses plain http for a non-loopback host", func() {
+		t := GinkgoT()
+
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Error("relay must not forward requests to a remote plain http gateway")
+		}))
+		defer upstream.Close()
+
+		app.config.GatewayDomain = strings.Replace(upstream.URL, "127.0.0.1", "gateway.example.com", 1)
+		app.httpClient = upstream.Client()
+
+		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses"), `{"model":"m"}`)
+		rr := httptest.NewRecorder()
+
+		app.ResponsesRelayHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+		assert.Contains(t, rr.Body.String(), "not allowed")
+	})
+
+	It("should refuse cross-host redirects without forwarding the token", func() {
+		t := GinkgoT()
+
+		redirectTargetHit := false
+		redirectTarget := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			redirectTargetHit = true
+		}))
+		defer redirectTarget.Close()
+
+		upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Redirect off the gateway host; the relay must not follow and
+			// must not forward the user's token to the redirect target.
+			http.Redirect(w, r, redirectTarget.URL+"/autorag/api/v1/responses", http.StatusFound)
+		}))
+		defer upstream.Close()
+
+		app.config.GatewayDomain = strings.TrimPrefix(upstream.URL, "https://")
+		app.httpClient = upstream.Client()
+
+		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses"), `{"model":"m"}`)
+		rr := httptest.NewRecorder()
+
+		app.ResponsesRelayHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadGateway, rr.Code)
+		assert.False(t, redirectTargetHit, "relay must not follow a cross-host redirect")
+	})
+
+	It("should follow same-host redirects", func() {
+		t := GinkgoT()
+
+		var receivedAuth, receivedForwardedToken, receivedPath string
+		upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Query().Get("stage") == "" {
+				// Redirect within the same host; the relay must follow it and
+				// keep forwarding the user's token.
+				http.Redirect(w, r, "/autorag/api/v1/responses?stage=done", http.StatusFound)
+				return
+			}
+			receivedAuth = r.Header.Get("Authorization")
+			receivedForwardedToken = r.Header.Get("x-forwarded-access-token")
+			receivedPath = r.URL.Path
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"ok":true}`)
+		}))
+		defer upstream.Close()
+
+		app.config.GatewayDomain = strings.TrimPrefix(upstream.URL, "https://")
+		app.httpClient = upstream.Client()
+
+		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses"), `{"model":"m"}`)
+		rr := httptest.NewRecorder()
+
+		app.ResponsesRelayHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "/autorag/api/v1/responses", receivedPath)
+		assert.Equal(t, "Bearer test-token", receivedAuth)
+		assert.Equal(t, "test-token", receivedForwardedToken)
+		assert.JSONEq(t, `{"ok":true}`, rr.Body.String())
+	})
+
 	It("should return 502 when the relay target is unreachable", func() {
 		t := GinkgoT()
 

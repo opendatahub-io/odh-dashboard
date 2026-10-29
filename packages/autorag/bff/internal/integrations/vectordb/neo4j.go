@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/certificates"
 )
 
@@ -50,7 +51,7 @@ type neo4jDriver interface {
 	Close(context.Context) error
 }
 
-type neo4jDriverFactory func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error)
+type neo4jDriverFactory func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error)
 
 type neo4jSession interface {
 	Run(context.Context, string, map[string]any, ...func(*neo4j.TransactionConfig)) (neo4jResult, error)
@@ -96,7 +97,7 @@ func (w neo4jSessionWrapper) Close(ctx context.Context) error {
 	return w.inner.Close(ctx)
 }
 
-func newNeo4jDriver(_ context.Context, uri string, auth neo4j.AuthToken, configure func(*neo4j.Config)) (neo4jDriver, error) {
+func newNeo4jDriver(_ context.Context, uri string, auth neo4j.AuthToken, configure func(*config.Config)) (neo4jDriver, error) {
 	driver, err := neo4j.NewDriverWithContext(uri, auth, configure)
 	if err != nil {
 		return nil, err
@@ -168,12 +169,40 @@ func parseNeo4jEndpointWithLoopback(raw string, allowLoopback bool, hasCA bool) 
 	return neo4jEndpoint{host: host, port: port, inCluster: inCluster, loopback: loopback, tls: useTLS}, nil
 }
 
+// uri returns the driver URI for the endpoint. The direct (bolt) scheme is
+// used instead of the routing (neo4j) scheme: the driver consults a server
+// routing table for the routing scheme and dials whatever addresses the
+// server advertises, while the direct scheme dials exactly this URI on every
+// connection — which is what lets dialURIPinned guarantee the dialed address.
 func (e neo4jEndpoint) uri() string {
-	scheme := "neo4j"
+	scheme := "bolt"
 	if e.tls {
-		scheme = "neo4j+s"
+		scheme = "bolt+s"
 	}
 	return scheme + "://" + net.JoinHostPort(e.host, e.port)
+}
+
+// dialURIPinned returns the driver URI with non-TLS endpoints pinned to a
+// validated literal IP.
+//
+// The Neo4j driver offers no dial-time hook: its connector resolves and dials
+// through net.Dialer internally, so the rebinding defense used by the Milvus
+// and pgvector adapters — re-validating the address inside the dialer —
+// cannot be installed. Pinning is the equivalent guarantee for plain
+// endpoints: the address resolved and validated by resolveVectorIPs is the
+// address dialed, on every connection the driver makes.
+//
+// TLS endpoints cannot pin: the driver derives the TLS server name from the
+// dialed address, so a pinned IP would fail certificate hostname validation.
+// Those endpoints keep the hostname in the URI, validated immediately before
+// driver creation, leaving only a DNS-rebinding window between that
+// resolution and the driver's own — which VerifyConnectivity triggers within
+// the same operation.
+func (e neo4jEndpoint) dialURIPinned(ips []net.IP) string {
+	if e.tls || len(ips) == 0 {
+		return e.uri()
+	}
+	return "bolt://" + net.JoinHostPort(ips[0].String(), e.port)
 }
 
 func classifyNeo4jError(parentCtx, operationCtx context.Context, err error) error {
@@ -187,7 +216,7 @@ func classifyNeo4jError(parentCtx, operationCtx context.Context, err error) erro
 }
 
 func newNeo4jFromSecret(ctx context.Context, data map[string][]byte) (VectorDB, error) {
-	return newNeo4jFromSecretWithDriver(ctx, data, 0, newNeo4jDriver)
+	return newNeo4jFromSecretWithDriver(ctx, data, 0, newNeo4jDriver, defaultVectorLookupIP)
 }
 
 func newNeo4jFromSecretWithDriver(
@@ -195,6 +224,7 @@ func newNeo4jFromSecretWithDriver(
 	data map[string][]byte,
 	timeout time.Duration,
 	newDriver neo4jDriverFactory,
+	lookupIP func(context.Context, string) ([]net.IP, error),
 ) (VectorDB, error) {
 	uri := strings.TrimSpace(string(data["NEO4J_URI"]))
 	password := string(data["NEO4J_PASSWORD"])
@@ -223,6 +253,14 @@ func newNeo4jFromSecretWithDriver(
 		return nil, fmt.Errorf("neo4j: %w", err)
 	}
 
+	// Resolve and validate the endpoint's addresses before anything is handed
+	// to the driver; see dialURIPinned for why this replaces the dial-time
+	// validation the other adapters perform.
+	ips, err := resolveVectorIPs(ctx, lookupIP, endpoint.host, endpoint.inCluster, endpoint.loopback)
+	if err != nil {
+		return nil, fmt.Errorf("neo4j: %w", err)
+	}
+
 	var tlsConfig *tls.Config
 	if len(certPEM) > 0 {
 		pool, poolErr := certificates.SystemCertPoolWithPEM(certPEM, neo4jCACertKey)
@@ -236,7 +274,7 @@ func newNeo4jFromSecretWithDriver(
 		newDriver = newNeo4jDriver
 	}
 
-	driver, err := newDriver(ctx, endpoint.uri(), neo4j.BasicAuth(username, password, ""), func(config *neo4j.Config) {
+	driver, err := newDriver(ctx, endpoint.dialURIPinned(ips), neo4j.BasicAuth(username, password, ""), func(config *config.Config) {
 		if tlsConfig != nil {
 			config.TlsConfig = tlsConfig
 		}

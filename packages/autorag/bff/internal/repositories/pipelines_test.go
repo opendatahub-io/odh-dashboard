@@ -979,6 +979,8 @@ func TestValidateGraphExtractionConfig(t *testing.T) {
 		{name: "unknown mode", params: map[string]any{"graph_extraction_config": map[string]any{"mode": "auto"}}, wantErr: "must be 'constrained' or 'free'"},
 		{name: "mode not a string", params: map[string]any{"graph_extraction_config": map[string]any{"mode": 1}}, wantErr: "mode must be a string"},
 		{name: "config not an object", params: map[string]any{"graph_extraction_config": []any{"constrained"}}, wantErr: "must be an object"},
+		{name: "config is the JSON null string", params: map[string]any{"graph_extraction_config": "null"}, wantErr: "must be an object"},
+		{name: "config is a JSON string", params: map[string]any{"graph_extraction_config": `"constrained"`}, wantErr: "must be an object"},
 		{name: "free missing entity limit", params: map[string]any{"graph_extraction_config": map[string]any{
 			"mode": "free", "max_relationships_per_chunk": 4,
 		}}, wantErr: "max_entities_per_chunk must be a positive integer"},
