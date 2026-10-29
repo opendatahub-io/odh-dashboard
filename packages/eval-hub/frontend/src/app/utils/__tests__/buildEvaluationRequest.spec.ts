@@ -404,7 +404,7 @@ describe('buildEvaluationRequest', () => {
       expect(result.collection!.benchmarks![1].test_data_ref).toEqual(refB);
     });
 
-    it('should replace every prerecorded reference when only the secret is edited', () => {
+    it('should rotate only the secret on a secret-only edit', () => {
       const refA: TestDataRef = {
         s3: {
           bucket: 'results',
@@ -436,16 +436,74 @@ describe('buildEvaluationRequest', () => {
         collection: col,
       });
 
-      const expectedRef = {
+      // Each benchmark keeps its own dataset location; only the secret rotates.
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
         s3: {
           bucket: 'results',
           key: 'benchmark-a',
           secret_ref: 'new-secret',
           type: 'pre_recorded_data',
         },
+      });
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual({
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-b',
+          secret_ref: 'new-secret',
+          type: 'pre_recorded_data',
+        },
+      });
+    });
+
+    it('should replace only the location on a location-only edit', () => {
+      const refA: TestDataRef = {
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-a',
+          secret_ref: 'secret-a',
+          type: 'pre_recorded_data',
+        },
       };
-      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(expectedRef);
-      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(expectedRef);
+      const refB: TestDataRef = {
+        s3: {
+          bucket: 'results',
+          key: 'benchmark-b',
+          secret_ref: 'secret-b',
+          type: 'pre_recorded_data',
+        },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          { id: 'mmlu', provider_id: 'lm_harness', test_data_ref: refA },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: refB },
+        ],
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/new-location',
+        accessToken: 'secret-a',
+        collection: col,
+      });
+
+      // The location is replaced everywhere; each benchmark keeps its own secret.
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        s3: {
+          bucket: 'results',
+          key: 'new-location',
+          secret_ref: 'secret-a',
+          type: 'pre_recorded_data',
+        },
+      });
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual({
+        s3: {
+          bucket: 'results',
+          key: 'new-location',
+          secret_ref: 'secret-b',
+          type: 'pre_recorded_data',
+        },
+      });
     });
 
     it('should preserve the model endpoint and auth for a mixed collection in prerecorded mode', () => {

@@ -5,6 +5,7 @@ import {
   JobPassCriteria,
   JobPrimaryScore,
   SourceMode,
+  TestDataRef,
 } from '~/app/types';
 import {
   isPrerecordedS3TestDataRef,
@@ -35,6 +36,32 @@ type BuildEvaluationRequestParams = {
 };
 
 const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass_criteria']);
+
+/* eslint-disable camelcase */
+/**
+ * Merges a collection-wide prerecorded edit into a benchmark's stored S3
+ * reference. Each dimension applies independently: a location edit replaces
+ * the bucket and key everywhere, a secret edit rotates the secret everywhere,
+ * and untouched dimensions keep each benchmark's own stored value.
+ */
+const mergePrerecordedRef = (
+  stored: TestDataRef,
+  edited: { s3: { bucket: string; key: string; secret_ref: string } },
+  locationEdited: boolean,
+  secretEdited: boolean,
+): TestDataRef => {
+  if (!locationEdited && !secretEdited) {
+    return stored;
+  }
+  return {
+    s3: {
+      ...stored.s3,
+      ...(locationEdited ? { bucket: edited.s3.bucket, key: edited.s3.key } : {}),
+      ...(secretEdited ? { secret_ref: edited.s3.secret_ref } : {}),
+    },
+  };
+};
+/* eslint-enable camelcase */
 
 const buildEvaluationRequest = ({
   evaluationName,
@@ -154,9 +181,11 @@ const buildEvaluationRequest = ({
   // The reconfigure form exposes one editable dataset URL and secret for the
   // whole prerecorded run, hydrated from the first stored prerecorded
   // reference (see extractReconfigureData). While the user leaves those fields
-  // unchanged, each benchmark keeps its own stored reference; editing either
-  // field is the explicit collection-wide replacement the shared fields express.
-  // Other per-benchmark references (e.g. data_set) are preserved untouched.
+  // unchanged, each benchmark keeps its own stored reference. When edited, the
+  // dimensions apply independently: a location edit replaces the bucket and
+  // key everywhere, and a secret edit rotates the secret everywhere — each
+  // preserves the other dimension's per-benchmark stored value. Other
+  // per-benchmark references (e.g. data_set) are untouched.
   // eslint-disable-next-line camelcase
   const editedPrerecordedRef = prerecordedDataRef.test_data_ref;
   const hydrationSource = collection?.benchmarks?.find((b) =>
@@ -167,11 +196,12 @@ const buildEvaluationRequest = ({
       ? buildS3DatasetUrl(hydrationSource.bucket, hydrationSource.key ?? '')
       : (hydrationSource.key ?? '')
     : undefined;
-  const prerecordedFieldsEdited =
+  const noHydrationSource = hydratedDatasetUrl === undefined;
+  const locationEdited =
+    !!editedPrerecordedRef && (noHydrationSource || trimmedDatasetUrl !== hydratedDatasetUrl);
+  const secretEdited =
     !!editedPrerecordedRef &&
-    (hydratedDatasetUrl === undefined ||
-      trimmedDatasetUrl !== hydratedDatasetUrl ||
-      trimmedAccessToken !== (hydrationSource?.secret_ref ?? ''));
+    (noHydrationSource || trimmedAccessToken !== (hydrationSource?.secret_ref ?? ''));
   const hardwareConfig = hardwareProfile
     ? {
         // eslint-disable-next-line camelcase
@@ -196,10 +226,16 @@ const buildEvaluationRequest = ({
           collection: {
             id: collection.resource.id,
             benchmarks: collection.benchmarks?.map((b) => {
+              const storedRef = b.test_data_ref;
               const effectiveTestDataRef =
-                prerecordedFieldsEdited && isPrerecordedS3TestDataRef(b.test_data_ref)
-                  ? editedPrerecordedRef
-                  : b.test_data_ref;
+                editedPrerecordedRef && storedRef && isPrerecordedS3TestDataRef(storedRef)
+                  ? mergePrerecordedRef(
+                      storedRef,
+                      editedPrerecordedRef,
+                      locationEdited,
+                      secretEdited,
+                    )
+                  : storedRef;
               return {
                 id: b.id,
                 // eslint-disable-next-line camelcase

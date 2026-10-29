@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import type { TestDataRef, TestDataRefType } from '~/app/types';
+import { S3_BUCKET_PATTERN } from '~/app/utils/validationUtils';
 
 export const TEST_DATA_REF_SOURCES = ['s3', 'pvc', 'git', 'hf'] as const;
 export type TestDataRefSource = (typeof TEST_DATA_REF_SOURCES)[number];
@@ -113,7 +114,6 @@ export const getTestDataRefFieldErrors = (
   return Object.keys(result).length > 0 ? result : undefined;
 };
 
-const S3_BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 // K8s object names (e.g. PersistentVolumeClaim) follow DNS subdomain rules — dot-separated labels
 const RFC_1123_SUBDOMAIN_PATTERN =
   /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;

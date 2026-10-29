@@ -31,6 +31,14 @@ describe('parseS3DatasetUrl', () => {
     expect(parseS3DatasetUrl('s3:///data.jsonl')).toBeUndefined();
   });
 
+  it('should return undefined for bucket names failing S3 naming rules', () => {
+    expect(parseS3DatasetUrl('s3://Invalid_Bucket/data.jsonl')).toBeUndefined();
+    expect(parseS3DatasetUrl('s3://BUCKET/data.jsonl')).toBeUndefined();
+    expect(parseS3DatasetUrl('s3://ab/data.jsonl')).toBeUndefined();
+    const longBucket = 'a'.repeat(64);
+    expect(parseS3DatasetUrl(`s3://${longBucket}/data.jsonl`)).toBeUndefined();
+  });
+
   it('should return undefined when the key is absolute', () => {
     expect(parseS3DatasetUrl('s3://bucket//data.jsonl')).toBeUndefined();
     expect(parseS3DatasetUrl('s3://bucket/ /data.jsonl')).toBeUndefined();
