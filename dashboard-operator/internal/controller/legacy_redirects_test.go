@@ -17,6 +17,7 @@ import (
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
@@ -82,6 +83,7 @@ func TestDashboardRedirectResourcesPreserveCurrentBehavior(t *testing.T) {
 	assert.Contains(t, dataMap["redirect.conf"], "return 301 https://rh-ai.apps.example.com$request_uri")
 	assert.Contains(t, dataMap["deprecation.html"], "You will be redirected in 10 seconds")
 	assert.Contains(t, dataMap["deprecation.html"], "window.location.replace(destination.href)")
+	assert.Equal(t, dashboardRedirectConfigHash(dataMap), data.ConfigHash)
 
 	legacyRoute := byKindName["Route/"+legacyGatewayRouteName]
 	host, found, err := unstructuredNestedString(legacyRoute, "spec", "host")
@@ -138,12 +140,12 @@ func TestLegacyRedirectClientReadsThroughAPIReader(t *testing.T) {
 func TestLegacyRedirectRemovedCleansAllResources(t *testing.T) {
 	scheme := legacyRedirectTestScheme(t)
 	objects := []client.Object{
-		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: dashboardRedirectName, Namespace: "applications"}},
-		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: dashboardRedirectName, Namespace: "applications"}},
-		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: dashboardRedirectConfigMapName, Namespace: "applications"}},
-		&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: dashboardRouteNameODH, Namespace: "applications"}},
-		&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: dashboardRouteNameRHOAI, Namespace: "applications"}},
-		&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: legacyGatewayRouteName, Namespace: "applications"}},
+		&appsv1.Deployment{ObjectMeta: legacyRedirectOwnedMetadata(dashboardRedirectName)},
+		&corev1.Service{ObjectMeta: legacyRedirectOwnedMetadata(dashboardRedirectName)},
+		&corev1.ConfigMap{ObjectMeta: legacyRedirectOwnedMetadata(dashboardRedirectConfigMapName)},
+		&routev1.Route{ObjectMeta: legacyRedirectOwnedMetadata(dashboardRouteNameODH)},
+		&routev1.Route{ObjectMeta: legacyRedirectOwnedMetadata(dashboardRouteNameRHOAI)},
+		&routev1.Route{ObjectMeta: legacyRedirectOwnedMetadata(legacyGatewayRouteName)},
 	}
 	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
 	r := &DashboardReconciler{Client: cli, ApplicationsNamespace: "applications", RouteAPIAvailable: true}
@@ -155,6 +157,45 @@ func TestLegacyRedirectRemovedCleansAllResources(t *testing.T) {
 	for _, object := range objects {
 		err := cli.Get(context.Background(), client.ObjectKeyFromObject(object), object)
 		assert.Error(t, err)
+	}
+}
+
+func TestLegacyRedirectCleanupPreservesUnownedResources(t *testing.T) {
+	scheme := legacyRedirectTestScheme(t)
+	objects := []client.Object{
+		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: dashboardRedirectName, Namespace: "applications"}},
+		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: dashboardRedirectName, Namespace: "applications"}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: dashboardRedirectConfigMapName, Namespace: "applications"}},
+		&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: dashboardRouteNameODH, Namespace: "applications"}},
+		&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: dashboardRouteNameRHOAI, Namespace: "applications"}},
+		&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: legacyGatewayRouteName, Namespace: "applications"}},
+	}
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+	r := &DashboardReconciler{Client: cli, ApplicationsNamespace: "applications", RouteAPIAvailable: true}
+
+	require.NoError(t, r.cleanupLegacyRedirects(context.Background()))
+	for _, object := range objects {
+		require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(object), object), "%T should be preserved", object)
+	}
+}
+
+func TestLegacyRedirectOwnershipRecognizesHandoffOwners(t *testing.T) {
+	controller := true
+	for _, kind := range []string{v1alpha1.DashboardKind, gatewayConfigGVK.Kind} {
+		object := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{OwnerReferences: []metav1.OwnerReference{{
+			Kind: kind, Controller: &controller,
+		}}}}
+		assert.True(t, isOwnedLegacyRedirect(object), "%s controller ownership should be recognized", kind)
+	}
+	assert.True(t, isOwnedLegacyRedirect(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard"},
+	}}))
+}
+
+func legacyRedirectOwnedMetadata(name string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name: name, Namespace: "applications",
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard"},
 	}
 }
 

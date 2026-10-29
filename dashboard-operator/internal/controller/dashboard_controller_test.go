@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -987,6 +988,119 @@ func TestReconcile_StatusContract(t *testing.T) {
 			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
 		})
 	}
+}
+
+func TestReconcile_LegacyRedirectFailureDoesNotBlockCore(t *testing.T) {
+	s := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Generation: 1,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			Gateway: &v1alpha1.GatewaySpec{Domain: "invalid-hostname"},
+			LegacyRedirects: &v1alpha1.LegacyRedirectsSpec{
+				ManagementSpec: common.ManagementSpec{ManagementState: common.Managed},
+			},
+		},
+	}
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, admittedRoute(testNamespace)).
+		WithStatusSubresource(dashboard).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		APIReader:             cli,
+		Scheme:                s,
+		ManifestsBasePath:     createMinimalManifests(t),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+		RouteAPIAvailable:     true,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.ErrorContains(t, err, "failed to reconcile legacy dashboard redirects")
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: "test-config", Namespace: testNamespace}, &corev1.ConfigMap{}),
+		"core resources should still reconcile")
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	provisioning := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, provisioning)
+	assert.Equal(t, "LegacyRedirectReconcileFailed", provisioning.Reason)
+	degraded := conditions.FindStatusCondition(updated, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
+	assert.Equal(t, "LegacyRedirectReconcileFailed", degraded.Reason)
+}
+
+func TestReconcile_RemovedLegacyRedirectFailureDoesNotBlockTeardown(t *testing.T) {
+	s := testScheme(t)
+	controller := true
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			UID:        types.UID("dashboard-uid"),
+			Generation: 1,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec: common.ManagementSpec{ManagementState: common.Removed},
+			LegacyRedirects: &v1alpha1.LegacyRedirectsSpec{
+				ManagementSpec: common.ManagementSpec{ManagementState: common.Removed},
+			},
+		},
+	}
+	redirectConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-redirect-config", Namespace: testNamespace,
+		OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: v1alpha1.GroupVersion.String(), Kind: v1alpha1.DashboardKind,
+			Name: dashboard.Name, UID: dashboard.UID, Controller: &controller,
+		}},
+	}}
+	managedConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "managed-core", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard"},
+	}}
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, redirectConfig, managedConfig).
+		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(ctx context.Context, delegate client.WithWatch, object client.Object, opts ...client.DeleteOption) error {
+				if object.GetName() == redirectConfig.Name {
+					return errors.New("forced redirect cleanup failure")
+				}
+				return delegate.Delete(ctx, object, opts...)
+			},
+		}).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client: cli, APIReader: cli, Scheme: s,
+		ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub,
+		Namespace: testNamespace, ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.ErrorContains(t, err, "failed to clean up legacy dashboard redirects")
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(managedConfig), &corev1.ConfigMap{})),
+		"independent core teardown should continue")
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(redirectConfig), &corev1.ConfigMap{}))
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	provisioning := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, provisioning)
+	assert.Equal(t, "LegacyRedirectCleanupFailed", provisioning.Reason)
+	degraded := conditions.FindStatusCondition(updated, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
+	assert.Equal(t, "LegacyRedirectCleanupFailed", degraded.Reason)
 }
 
 func TestReconcileDegradedCondition(t *testing.T) {
