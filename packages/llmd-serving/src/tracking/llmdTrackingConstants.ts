@@ -8,11 +8,11 @@ export enum LlmdTrackingEvent {
 
 export type TopologyTypeSelectedProperties = {
   llmdComposablePattern: string;
+  isDefaultTopology: boolean;
   previousPattern?: string;
 };
 
 export type RoutingSelectedProperties = {
-  routingConfigurationId: string;
   isDefaultRouting: boolean;
 };
 

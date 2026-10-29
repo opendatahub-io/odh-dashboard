@@ -17,7 +17,6 @@ import type {
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
-import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   TopologyType,
@@ -25,6 +24,7 @@ import {
   TopologyTypeDescriptions,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
+  type TopologyTypeFieldData,
 } from '../types';
 import { isConfigEnabled } from '../utils';
 import {
@@ -32,13 +32,15 @@ import {
   useFetchLLMInferenceServiceConfig,
 } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
-import { fireTopologyTypeSelected } from '../tracking/llmdTrackingConstants';
+import { useTopologySelectionTracking } from '../tracking/useTopologySelectionTracking';
 import { CUSTOM_TOPOLOGY_CONFIG_FIELD_ID, TOPOLOGY_TYPE_FIELD_ID } from '../const';
 
 // --- Dependencies ---
 
 export type TopologyConfigsDependencies = {
   project?: WizardFormData['state']['project'];
+  /** Current topology configuration field value, used to track a completed topology change. */
+  customTopologyConfig?: unknown;
   /** The config this deployment already references, from the edit extractor. */
   configRef?: string;
   /** The topology type this deployment was deployed with, from the edit extractor. */
@@ -63,6 +65,14 @@ export const resolveTopologyConfigsDependencies = (
     initialTopologyType: Object.values(TopologyType).find((t) => t === initialTopologyType),
   };
 };
+
+const resolveTopologyTypeFieldDependencies = (
+  formData: WizardFormData['state'],
+  initialData?: InitialWizardFormData,
+): TopologyConfigsDependencies => ({
+  ...resolveTopologyConfigsDependencies(formData, initialData),
+  customTopologyConfig: formData[CUSTOM_TOPOLOGY_CONFIG_FIELD_ID],
+});
 
 // --- External data hook ---
 
@@ -141,21 +151,6 @@ export const useTopologyTypeData = (
 
 // --- Field value ---
 
-export type TopologyTypeFieldData = {
-  topologyType: TopologyType;
-};
-
-const topologyTypeValues: string[] = Object.values(TopologyType);
-export const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFieldData => {
-  if (data == null || typeof data !== 'object' || !('topologyType' in data)) {
-    return false;
-  }
-  const record: Record<string, unknown> = data;
-  return (
-    typeof record.topologyType === 'string' && topologyTypeValues.includes(record.topologyType)
-  );
-};
-
 export type TopologyTypeFieldType = WizardField<
   TopologyTypeFieldData,
   TopologyTypeExternalData,
@@ -168,9 +163,14 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
   value,
   onChange,
   externalData,
+  dependencies,
 }) => {
-  const trackEvent = useTrackEvent();
   const configsByTopology = externalData?.data.configsByTopology;
+  const trackTopologySelection = useTopologySelectionTracking({
+    topologyType: value?.topologyType,
+    configurationData: dependencies?.customTopologyConfig,
+    externalData,
+  });
 
   const options: SimpleSelectOption[] = React.useMemo(
     () =>
@@ -205,11 +205,9 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
             options={options}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
-              if (matched) {
-                fireTopologyTypeSelected(trackEvent, {
-                  llmdComposablePattern: matched,
-                  previousPattern: value?.topologyType,
-                });
+              if (matched && matched !== value?.topologyType) {
+                // Queue tracking before updating the wizard; the hook waits for configuration resolution.
+                trackTopologySelection(matched);
                 onChange({ topologyType: matched });
               }
             }}
@@ -264,7 +262,7 @@ export const TopologyTypeFieldWizardField: TopologyTypeFieldType = {
   type: 'addition',
   isActive,
   reducerFunctions: {
-    resolveDependencies: resolveTopologyConfigsDependencies,
+    resolveDependencies: resolveTopologyTypeFieldDependencies,
     setFieldData: (value: TopologyTypeFieldData) => value,
     getInitialFieldData: (existingFieldData?: TopologyTypeFieldData): TopologyTypeFieldData =>
       existingFieldData ?? { topologyType: TopologyType.SINGLE_NODE },

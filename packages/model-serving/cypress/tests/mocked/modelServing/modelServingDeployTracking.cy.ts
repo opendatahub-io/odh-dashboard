@@ -302,7 +302,11 @@ describe('Model Deployment Tracking Events', () => {
     cy.wait('@createInferenceService');
     cy.wait('@createInferenceService');
 
-    cy.get('@analyticsTrack').should('be.calledWithMatch', 'Model Deployed');
+    cy.get('@analyticsTrack').should(
+      'be.calledWithMatch',
+      'Model Deployed',
+      Cypress.sinon.match({ deploymentMethod: 'legacy', outcome: 'submit', success: true }),
+    );
   });
 
   it('should fire Model Deployed cancel event when user exits via ExitDeploymentModal', () => {

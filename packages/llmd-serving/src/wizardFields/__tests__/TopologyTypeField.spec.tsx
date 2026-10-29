@@ -3,19 +3,23 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 import { LlmdTrackingEvent } from '../../tracking/llmdTrackingConstants';
-import { TopologyType, TopologyTypeLabels, type LLMInferenceServiceConfigKind } from '../../types';
+import {
+  TopologyType,
+  TopologyTypeLabels,
+  type LLMInferenceServiceConfigKind,
+  type TopologyTypeFieldData,
+} from '../../types';
 import {
   TopologyTypeFieldWizardField,
   useTopologyTypeData,
   type TopologyTypeExternalData,
-  type TopologyTypeFieldData,
 } from '../TopologyTypeField';
 import {
   useFetchTopologyConfigs,
   useFetchLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
-import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 
 const { trackEvent: mockTrackEvent, wrapper } = createTestProviders();
 
@@ -71,9 +75,11 @@ describe('TopologyTypeField tracking', () => {
   const renderComponent = ({
     value,
     externalData,
+    customTopologyConfig,
   }: {
     value?: TopologyTypeFieldData;
     externalData?: { data: TopologyTypeExternalData; loaded: boolean; loadError?: Error };
+    customTopologyConfig?: unknown;
   } = {}) =>
     render(
       <TopologyTypeFieldComponent
@@ -81,6 +87,7 @@ describe('TopologyTypeField tracking', () => {
         value={value}
         onChange={mockOnChange}
         externalData={externalData}
+        dependencies={{ customTopologyConfig }}
       />,
       { wrapper },
     );
@@ -95,33 +102,21 @@ describe('TopologyTypeField tracking', () => {
   const getMultiNodeOption = () =>
     within(screen.getByTestId(`topology-type-${TopologyType.MULTI_NODE}`)).getByRole('option');
 
-  it('should allow topology selection when the host disables tracking', async () => {
-    render(<TopologyTypeFieldComponent id="llmd-serving/topology-type" onChange={mockOnChange} />, {
-      wrapper: createTestProviders({ trackEvent: () => undefined }).wrapper,
-    });
-
-    await openDropdown();
-    await act(async () => {
-      fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.SINGLE_NODE]));
-    });
-
-    expect(mockOnChange).toHaveBeenCalledWith({ topologyType: TopologyType.SINGLE_NODE });
-    expect(mockTrackEvent).not.toHaveBeenCalled();
-  });
-
-  it('should fire topology type selected tracking with undefined previousPattern on first selection', async () => {
-    renderComponent({
-      externalData: {
-        data: {
-          configsByTopology: {
-            [TopologyType.SINGLE_NODE]: [],
-            [TopologyType.MULTI_NODE]: [],
-            [TopologyType.SINGLE_NODE_DISAGGREGATED]: [],
-            [TopologyType.MULTI_NODE_DISAGGREGATED]: [],
-          },
+  it('should wait for the default topology configuration before tracking a first selection', async () => {
+    const externalData = {
+      data: {
+        configsByTopology: {
+          [TopologyType.SINGLE_NODE]: [],
+          [TopologyType.MULTI_NODE]: [],
+          [TopologyType.SINGLE_NODE_DISAGGREGATED]: [],
+          [TopologyType.MULTI_NODE_DISAGGREGATED]: [],
         },
-        loaded: true,
       },
+      loaded: true,
+    };
+    const component = renderComponent({
+      externalData,
+      customTopologyConfig: undefined,
     });
 
     await openDropdown();
@@ -130,26 +125,39 @@ describe('TopologyTypeField tracking', () => {
       fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.SINGLE_NODE]));
     });
 
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+    component.rerender(
+      <TopologyTypeFieldComponent
+        id="llmd-serving/topology-type"
+        value={{ topologyType: TopologyType.SINGLE_NODE }}
+        onChange={mockOnChange}
+        externalData={externalData}
+        dependencies={{ customTopologyConfig: { selectedConfig: 'default' } }}
+      />,
+    );
     expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED, {
       llmdComposablePattern: TopologyType.SINGLE_NODE,
+      isDefaultTopology: true,
       previousPattern: undefined,
     });
   });
 
-  it('should fire topology type selected tracking with previous pattern when switching', async () => {
-    renderComponent({
-      value: { topologyType: TopologyType.SINGLE_NODE },
-      externalData: {
-        data: {
-          configsByTopology: {
-            [TopologyType.SINGLE_NODE]: [],
-            [TopologyType.MULTI_NODE]: [{ metadata: { name: 'multi-config' } } as never],
-            [TopologyType.SINGLE_NODE_DISAGGREGATED]: [],
-            [TopologyType.MULTI_NODE_DISAGGREGATED]: [],
-          },
+  it('should wait for the selected topology configuration when switching patterns', async () => {
+    const externalData = {
+      data: {
+        configsByTopology: {
+          [TopologyType.SINGLE_NODE]: [],
+          [TopologyType.MULTI_NODE]: [{ metadata: { name: 'multi-config' } } as never],
+          [TopologyType.SINGLE_NODE_DISAGGREGATED]: [],
+          [TopologyType.MULTI_NODE_DISAGGREGATED]: [],
         },
-        loaded: true,
       },
+      loaded: true,
+    };
+    const component = renderComponent({
+      value: { topologyType: TopologyType.SINGLE_NODE },
+      externalData,
+      customTopologyConfig: { selectedConfig: 'default' },
     });
 
     await openDropdown();
@@ -158,10 +166,138 @@ describe('TopologyTypeField tracking', () => {
       fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.MULTI_NODE]));
     });
 
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+    component.rerender(
+      <TopologyTypeFieldComponent
+        id="llmd-serving/topology-type"
+        value={{ topologyType: TopologyType.MULTI_NODE }}
+        onChange={mockOnChange}
+        externalData={externalData}
+        dependencies={{
+          customTopologyConfig: { selectedConfig: { metadata: { name: 'multi-config' } } },
+        }}
+      />,
+    );
     expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED, {
       llmdComposablePattern: TopologyType.MULTI_NODE,
+      isDefaultTopology: false,
       previousPattern: TopologyType.SINGLE_NODE,
     });
+  });
+
+  it('should track a non-first compatible config once, ignoring stale, loading and failed resolutions', async () => {
+    const secondConfig = mockLLMInferenceServiceConfigK8sResource({
+      name: 'second-multi-config',
+      topologyType: TopologyType.MULTI_NODE,
+    });
+    const externalData = {
+      data: {
+        configsByTopology: {
+          [TopologyType.SINGLE_NODE]: [],
+          [TopologyType.MULTI_NODE]: [mockMultiNodeConfig, secondConfig],
+          [TopologyType.SINGLE_NODE_DISAGGREGATED]: [],
+          [TopologyType.MULTI_NODE_DISAGGREGATED]: [],
+        },
+      },
+      loaded: true,
+    };
+    const component = renderComponent({
+      value: { topologyType: TopologyType.SINGLE_NODE },
+      externalData,
+    });
+    component.rerender(
+      <TopologyTypeFieldComponent
+        id="llmd-serving/topology-type"
+        value={{ topologyType: TopologyType.SINGLE_NODE }}
+        onChange={mockOnChange}
+        externalData={externalData}
+      />,
+    );
+    await openDropdown();
+    await act(async () => {
+      fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.MULTI_NODE]));
+    });
+    const rerenderSelection = (selectedConfig: unknown, loaded = true, loadError?: Error) =>
+      component.rerender(
+        <TopologyTypeFieldComponent
+          id="llmd-serving/topology-type"
+          value={{ topologyType: TopologyType.MULTI_NODE }}
+          onChange={mockOnChange}
+          externalData={{ ...externalData, loaded, loadError }}
+          dependencies={{ customTopologyConfig: { selectedConfig } }}
+        />,
+      );
+    rerenderSelection('default');
+    rerenderSelection(secondConfig, false);
+    rerenderSelection(secondConfig, true, new Error('load failed'));
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+    rerenderSelection(secondConfig);
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED, {
+      llmdComposablePattern: TopologyType.MULTI_NODE,
+      isDefaultTopology: false,
+      previousPattern: TopologyType.SINGLE_NODE,
+    });
+    rerenderSelection(mockMultiNodeConfig);
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('should replace pending topology changes and ignore late resolutions under StrictMode', async () => {
+    const externalData = {
+      data: {
+        configsByTopology: {
+          [TopologyType.SINGLE_NODE]: [],
+          [TopologyType.MULTI_NODE]: [mockMultiNodeConfig],
+          [TopologyType.SINGLE_NODE_DISAGGREGATED]: [],
+          [TopologyType.MULTI_NODE_DISAGGREGATED]: [],
+        },
+      },
+      loaded: true,
+    };
+    const view = (topologyType: TopologyType, selectedConfig?: unknown) => (
+      <React.StrictMode>
+        <TopologyTypeFieldComponent
+          id="llmd-serving/topology-type"
+          value={{ topologyType }}
+          onChange={mockOnChange}
+          externalData={externalData}
+          dependencies={{ customTopologyConfig: { selectedConfig } }}
+        />
+      </React.StrictMode>
+    );
+    const component = render(view(TopologyType.SINGLE_NODE), { wrapper });
+    await openDropdown();
+    await act(async () => {
+      fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.MULTI_NODE]));
+    });
+    component.rerender(view(TopologyType.MULTI_NODE));
+    await openDropdown();
+    await act(async () => {
+      fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.SINGLE_NODE]));
+    });
+    component.rerender(view(TopologyType.SINGLE_NODE, mockMultiNodeConfig));
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+    component.rerender(view(TopologyType.SINGLE_NODE, 'default'));
+    component.rerender(view(TopologyType.SINGLE_NODE, 'default'));
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED, {
+      llmdComposablePattern: TopologyType.SINGLE_NODE,
+      previousPattern: TopologyType.MULTI_NODE,
+      isDefaultTopology: true,
+    });
+  });
+
+  it('should not track edit hydration or configuration-only changes', () => {
+    const component = renderComponent({ value: { topologyType: TopologyType.MULTI_NODE } });
+    component.rerender(
+      <TopologyTypeFieldComponent
+        id="llmd-serving/topology-type"
+        value={{ topologyType: TopologyType.MULTI_NODE }}
+        onChange={mockOnChange}
+        dependencies={{ customTopologyConfig: { selectedConfig: mockMultiNodeConfig } }}
+      />,
+    );
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should call onChange with the selected topology type', async () => {
