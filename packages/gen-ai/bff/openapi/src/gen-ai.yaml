@@ -597,6 +597,14 @@ paths:
         - ExternalModels
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace of the caller, scoping which in-cluster Services are trusted
+          required: true
+          schema:
+            type: string
+            example: 'llm'
       requestBody:
         required: true
         description: External model verification request

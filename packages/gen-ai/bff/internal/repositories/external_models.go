@@ -240,11 +240,15 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 // skip SSRF validation. A namespace user can create a ServiceTypeExternalName Service
 // whose in-namespace DNS name aliases an arbitrary target (e.g. in another namespace),
 // so the backing Service is read through the Kubernetes API and ExternalName services
-// are not trusted. Headless and selectorless Services are also rejected: their
+// are not trusted. Selectorless Services are also rejected: without a selector their
 // endpoint addresses are manually managed and can point at Pods in another namespace,
-// so a Service with no selector must not receive the SSRF exemption (fail closed on
-// lookup errors too). A Forbidden lookup returns an error so the caller learns the
-// missing permission instead of a misleading connectivity failure.
+// so they must not receive the SSRF exemption. Selector-backed Services are trusted
+// whether or not they are headless: the selector means a controller manages their
+// endpoints (headless KServe model endpoints are legitimate), and a manually attached
+// EndpointSlice on a selector-backed Service is the same residual risk for ClusterIP
+// and headless alike (fail closed on lookup errors too). A Forbidden lookup returns
+// an error so the caller learns the missing permission instead of a misleading
+// connectivity failure.
 //
 // Known residual risk, deliberately accepted: the connection is not pinned to the
 // validated Service's addresses, so a caller who can mutate Services in their own
@@ -286,7 +290,7 @@ func resolveTrustedHost(
 	if svc.Spec.Type == corev1.ServiceTypeExternalName {
 		return false, nil
 	}
-	if svc.Spec.ClusterIP == "None" || len(svc.Spec.Selector) == 0 {
+	if len(svc.Spec.Selector) == 0 {
 		return false, nil
 	}
 	return true, nil

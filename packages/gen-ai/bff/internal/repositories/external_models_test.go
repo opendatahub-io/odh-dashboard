@@ -67,9 +67,10 @@ func (r *recordingServiceClient) GetService(ctx context.Context, identity *integ
 
 // TestResolveTrustedHost verifies the Service-backed trust decision: an in-namespace
 // service DNS name is only trusted when the backing Service exists, is not an
-// ExternalName alias (which could point at another namespace), and is not headless
-// or selectorless (whose manually managed endpoints could point at another
-// namespace's Pods).
+// ExternalName alias (which could point at another namespace), and has a selector
+// (selectorless Services have manually managed endpoints that could point at
+// another namespace's Pods; headless Services with a selector are legitimate
+// controller-managed endpoints).
 func TestResolveTrustedHost(t *testing.T) {
 	logger := slog.Default()
 	identity := &integrations.RequestIdentity{Token: "user-token"}
@@ -110,7 +111,9 @@ func TestResolveTrustedHost(t *testing.T) {
 			},
 		},
 		{
-			name: "headless service is NOT trusted",
+			name:     "selector-backed headless service is trusted",
+			want:     true,
+			wantName: "my-model",
 			service: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
 				Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeClusterIP, ClusterIP: "None", Selector: map[string]string{"app": "my-model"}},
