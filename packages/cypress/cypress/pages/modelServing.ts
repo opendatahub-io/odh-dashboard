@@ -904,8 +904,8 @@ class ModelServingSection {
     return this.findDeploymentsTable();
   }
 
-  findModelServerDeployedName(name: string) {
-    return this.find().findByTestId('deployed-model-name').contains(name);
+  findModelServerDeployedName(name: string, options?: Partial<Cypress.Timeoutable>) {
+    return this.find().findByTestId('deployed-model-name').contains(name, options);
   }
 
   findModelMetricsLink(name: string) {

@@ -83,7 +83,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
           const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string;
           const runtimeYamlPath = testData.servingRuntimeYamlPath;
           cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
-          cleanupTemplates(servingRuntime).then(() => {
+          cleanupTemplates(testData.servingRuntimeName).then(() => {
             if (!applicationNamespace) {
               throw new Error('APPLICATIONS_NAMESPACE is not configured.');
             }
@@ -106,7 +106,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
     }
     if (isS390x && testData.servingRuntimeName) {
       cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
-      cleanupTemplates(servingRuntime);
+      cleanupTemplates(testData.servingRuntimeName);
     }
     cleanupTestProject(projectName);
   });
@@ -174,7 +174,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
 
       // Verify the pod completes successfully
       cy.step('Verify the pod completes successfully');
-      waitForPodCompletion(podName, isS390x ? '420s' : '300s', projectName, 30000);
+      waitForPodCompletion(podName, '300s', projectName, 30000);
 
       // Verify the S3 copy completed successfully
       cy.step('Verify S3 copy completed');

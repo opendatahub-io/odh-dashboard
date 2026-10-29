@@ -55,7 +55,7 @@ describe('A model can be deployed with token auth', () => {
         const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string | undefined;
         const runtimeYamlPath = testData.servingRuntimeYamlPath;
         cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
-        cleanupTemplates(servingRuntime).then(() => {
+        cleanupTemplates(testData.servingRuntimeName).then(() => {
           if (!applicationNamespace) {
             throw new Error('APPLICATIONS_NAMESPACE is not configured.');
           }
@@ -76,7 +76,7 @@ describe('A model can be deployed with token auth', () => {
   after(() => {
     if (isS390x && testData.servingRuntimeName) {
       cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
-      cleanupTemplates(servingRuntime);
+      cleanupTemplates(testData.servingRuntimeName);
     }
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
@@ -158,8 +158,8 @@ describe('A model can be deployed with token auth', () => {
           modelFilePath,
         );
         modelServingSection
-          .findModelServerDeployedName(testData.singleModelName)
-          .should('be.visible', { timeout: 120000 });
+          .findModelServerDeployedName(testData.singleModelName, { timeout: 120000 })
+          .should('be.visible');
       } else {
         modelServingSection.findModelServerDeployedName(testData.singleModelName);
       }
@@ -232,8 +232,8 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizardEdit.findSubmitButton().click();
       if (isS390x) {
         modelServingSection
-          .findModelServerDeployedName(testData.singleModelName)
-          .should('be.visible', { timeout: 120000 });
+          .findModelServerDeployedName(testData.singleModelName, { timeout: 120000 })
+          .should('be.visible');
       } else {
         modelServingSection.findModelServerDeployedName(testData.singleModelName);
       }

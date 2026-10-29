@@ -95,6 +95,13 @@ export const getClusterArchitecture = (): Cypress.Chainable<string> => {
       failOnNonZeroExit: false,
     })
     .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to detect cluster architecture: ${maskSensitiveInfo(
+            result.stderr || result.stdout,
+          )}`,
+        );
+      }
       const archOutput = result.stdout.trim().replace(/^'|'$/g, '');
       const architectures = archOutput.split(/\s+/);
       const arch =

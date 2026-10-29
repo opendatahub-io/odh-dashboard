@@ -90,7 +90,7 @@ describe(
           if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
             const runtimeYamlPath = testData.servingRuntimeYamlPath;
             cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
-            cleanupTemplates(testData.servingRuntime).then(() => {
+            cleanupTemplates(testData.servingRuntimeName).then(() => {
               if (!applicationNamespace) {
                 throw new Error('APPLICATIONS_NAMESPACE is not configured.');
               }
@@ -108,7 +108,7 @@ describe(
     after(() => {
       if (isS390x && testData.servingRuntimeName) {
         cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
-        cleanupTemplates(testData.servingRuntime);
+        cleanupTemplates(testData.servingRuntimeName);
       }
       // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
       // TODO: Review this timeout once RHOAIENG-19969 is resolved
