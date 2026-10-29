@@ -17,16 +17,30 @@ type UserContextProviderProps = {
   children: React.ReactNode;
 };
 
+const USER_LOOKUP_ATTEMPTS = 3;
+const USER_LOOKUP_RETRY_MS = 200;
+
 const UserContextProvider: React.FunctionComponent<UserContextProviderProps> = ({ children }) => {
   const [username, setUsername] = React.useState<string | undefined>(undefined);
 
   const refreshUser = React.useCallback(async () => {
-    try {
-      const res = await getCurrentUser({});
-      setUsername(res.userId);
-    } catch {
-      setUsername(undefined);
+    for (let attempt = 0; attempt < USER_LOOKUP_ATTEMPTS; attempt += 1) {
+      try {
+        const res = await getCurrentUser({});
+        if (res.userId) {
+          setUsername(res.userId);
+          return;
+        }
+      } catch {
+        // A timeout or empty id is retried before the session keeps uploads disabled.
+      }
+      if (attempt < USER_LOOKUP_ATTEMPTS - 1) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, USER_LOOKUP_RETRY_MS);
+        });
+      }
     }
+    setUsername(undefined);
   }, []);
 
   React.useEffect(() => {

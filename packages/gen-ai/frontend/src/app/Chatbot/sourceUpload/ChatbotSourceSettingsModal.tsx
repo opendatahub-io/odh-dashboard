@@ -346,7 +346,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         onChange={(e, value) =>
                           setFields((prev) => ({
                             ...prev,
-                            maxChunkLength: value ? Number(value) : undefined,
+                            maxChunkLength: value === '' ? undefined : Number(value),
                           }))
                         }
                       />
@@ -448,7 +448,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                         onChange={(e, value) =>
                           setFields((prev) => ({
                             ...prev,
-                            chunkOverlap: value ? Number(value) : undefined,
+                            chunkOverlap: value === '' ? undefined : Number(value),
                           }))
                         }
                       />
