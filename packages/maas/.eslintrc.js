@@ -14,7 +14,7 @@ module.exports = require('@odh-dashboard/eslint-config')
     ],
     overrides: [
       {
-        files: ['types/ModelAccessPage.d.ts'],
+        files: ['types/ModelAccessPage.d.ts', 'types/ModelAccessSubscriptionPage.d.ts'],
         rules: {
           // Hand-written declaration shim; no blank line is needed after the single import.
           'import/newline-after-import': 'off',

@@ -14,6 +14,8 @@ type SubscriptionTableProps = {
   showStatus?: boolean;
   /** Read-only viewers omit the kebab (row actions) column. Defaults to true. */
   showActions?: boolean;
+  /** Overrides the subscription name link target. Defaults to the governance view page. */
+  getSubscriptionDetailUrl?: (name: string) => string;
 };
 
 export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
@@ -24,6 +26,7 @@ export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
   returnTo,
   showStatus = true,
   showActions = true,
+  getSubscriptionDetailUrl,
 }): React.ReactNode => (
   <Table
     data-testid="subscriptions-table"
@@ -41,6 +44,7 @@ export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
         returnTo={returnTo}
         showStatus={showStatus}
         showActions={showActions}
+        getSubscriptionDetailUrl={getSubscriptionDetailUrl}
       />
     )}
     emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}

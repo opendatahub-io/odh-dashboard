@@ -35,9 +35,15 @@ type SubscriptionsTabProps = {
    * and the delete confirmation modal. Defaults to false (admin governance page).
    */
   readOnly?: boolean;
+  /** Overrides the subscription name link target. Defaults to the governance view page. */
+  getSubscriptionDetailUrl?: (name: string) => string;
 };
 
-const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo, readOnly = false }) => {
+const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
+  returnTo,
+  readOnly = false,
+  getSubscriptionDetailUrl,
+}) => {
   const {
     subscriptions,
     subscriptionsLoaded: loaded,
@@ -129,6 +135,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo, readOnly 
             returnTo={returnTo}
             showStatus={!readOnly}
             showActions={!readOnly}
+            getSubscriptionDetailUrl={getSubscriptionDetailUrl}
           />
         </PageSection>
       )}

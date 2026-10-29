@@ -161,6 +161,14 @@ const extensions: Extension[] = [
     type: 'app.route',
     flags: { required: ['grid'] },
     properties: {
+      path: `${PORTAL_MODEL_ACCESS_PATH}/view/:subscriptionName`,
+      component: () => import('@odh-dashboard/maas/ModelAccessSubscriptionPage'),
+    },
+  } satisfies RouteExtension,
+  {
+    type: 'app.route',
+    flags: { required: ['grid'] },
+    properties: {
       path: `${PORTAL_MODEL_ACCESS_PATH}/*`,
       component: () => import('@odh-dashboard/maas/ModelAccessPage'),
     },
