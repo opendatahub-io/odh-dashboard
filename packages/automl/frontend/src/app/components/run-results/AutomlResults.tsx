@@ -241,7 +241,7 @@ function AutomlResults(): React.JSX.Element {
 
   return (
     <>
-      <Stack hasGutter className="automl-results">
+      <Stack hasGutter className="automl-results pf-v6-u-h-auto">
         {downloadError && (
           <StackItem>
             <Alert

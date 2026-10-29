@@ -16,3 +16,15 @@ rules:
       - ingresses
     verbs:
       - get
+  # The bundled Core BFF serves HTTPS (--cert-file/--key-file) and resolves the
+  # cluster-wide TLS security profile from apiservers.config.openshift.io/cluster;
+  # without this grant the fail-closed resolver cannot start the HTTPS listener.
+  # The reload path polls the singleton with a named GET, so get is sufficient.
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get

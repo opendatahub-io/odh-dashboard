@@ -32,8 +32,10 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   primaryActionLabel = 'Select benchmark',
 }) => {
   if (!benchmark) {
-    // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work
-    return <DrawerPanelContent isResizable minSize="400px" />;
+    // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work.
+    // Keep focusTrap identical in both branches: it changes the panel's root element type,
+    // and a mismatch would remount the panel and skip the slide animation entirely.
+    return <DrawerPanelContent isResizable minSize="400px" focusTrap={{ enabled: true }} />;
   }
 
   const color = getCategoryColor(benchmark.category);
