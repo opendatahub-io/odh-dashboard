@@ -120,8 +120,9 @@ export type UseDeploymentWizardReducerResult = {
 export const useDeploymentWizardReducer = (
   formState: WizardFormState,
   dispatch: React.Dispatch<WizardFormAction>,
-  initialData?: InitialWizardFormData,
+  setInitialFormData: React.Dispatch<React.SetStateAction<InitialWizardFormData | undefined>>,
   externalDataMap: ExternalDataMap = {},
+  initialData?: InitialWizardFormData,
 ): UseDeploymentWizardReducerResult => {
   const mergedStateRef = React.useRef(formState);
   mergedStateRef.current = formState;
