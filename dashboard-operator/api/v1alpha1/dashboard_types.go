@@ -44,6 +44,19 @@ type GatewaySpec struct {
 
 // +kubebuilder:object:generate=true
 
+// LegacyRedirectsSpec configures redirects from the pre-Gateway dashboard URLs.
+// The field is optional on DashboardSpec so ownership can be handed over from the
+// platform Gateway controller without two controllers managing the same objects.
+type LegacyRedirectsSpec struct {
+	// ManagementSpec controls whether legacy redirect resources are deployed.
+	// Managed creates or adopts them; Removed deletes Dashboard-owned and legacy
+	// GatewayConfig-owned redirect resources.
+	// +optional
+	common.ManagementSpec `json:",inline"`
+}
+
+// +kubebuilder:object:generate=true
+
 // ComponentAvailability represents a DSC component's availability state
 // as projected by the orchestrator.
 type ComponentAvailability struct {
@@ -166,6 +179,13 @@ type DashboardSpec struct {
 	// Gateway configures the ingress point for the dashboard.
 	// +optional
 	Gateway *GatewaySpec `json:"gateway,omitempty"`
+
+	// LegacyRedirects configures redirects from the legacy dashboard and gateway
+	// Routes. When omitted, the Dashboard operator does not manage redirect
+	// resources; this is the compatibility state used before platform ownership
+	// is explicitly handed over.
+	// +optional
+	LegacyRedirects *LegacyRedirectsSpec `json:"legacyRedirects,omitempty"`
 
 	// Components is a snapshot of DSC component availability, projected by
 	// the ODH Operator onto this CR.

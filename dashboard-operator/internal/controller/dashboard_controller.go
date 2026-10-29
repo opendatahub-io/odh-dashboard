@@ -156,6 +156,7 @@ type DashboardReconciler struct {
 	Platform              cluster.Platform
 	Namespace             string
 	ApplicationsNamespace string
+	RouteAPIAvailable     bool
 }
 
 // apiReader makes direct-read semantics explicit while retaining a fake-client
@@ -184,6 +185,11 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
+			if dashboard.Spec.LegacyRedirects != nil {
+				if err := r.cleanupLegacyRedirects(ctx); err != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to cleanup legacy dashboard redirects: %w", err)
+				}
+			}
 			cleanup, err := r.deleteMaaSPortalResources(ctx)
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Portal resources: %w", err)
@@ -255,6 +261,10 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
+		if err := r.reconcileLegacyRedirects(ctx, dashboard); err != nil {
+			r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "LegacyRedirectCleanupFailed", err)
+			return ctrl.Result{}, fmt.Errorf("failed to clean up legacy dashboard redirects: %w", err)
+		}
 
 		// MaaS and GenAI are shared dependencies. Reconcile their aggregate
 		// demand before the core teardown so MaaS Portal-only operation retains them.
@@ -502,6 +512,13 @@ func (r *DashboardReconciler) reconcileDeployment(
 	observabilityKnown bool,
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
+	if err := r.reconcileLegacyRedirects(ctx, dashboard); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("LegacyRedirectReconcileFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to reconcile legacy dashboard redirects: %w", err)
+	}
 
 	if err := r.cleanupLegacyResources(ctx); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),

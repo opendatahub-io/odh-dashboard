@@ -70,7 +70,7 @@ rules:
       - update
       - patch
       - delete
-  # OpenShift Routes for URL extraction
+  # OpenShift Routes for URL extraction and legacy dashboard redirects
   - apiGroups:
       - route.openshift.io
     resources:
@@ -83,6 +83,13 @@ rules:
       - update
       - patch
       - delete
+  # Explicit legacy hostnames require the OpenShift custom-host virtual subresource
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routes/custom-host
+    verbs:
+      - create
   # RBAC resources
   - apiGroups:
       - rbac.authorization.k8s.io
