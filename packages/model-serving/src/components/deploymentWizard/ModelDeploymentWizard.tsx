@@ -78,15 +78,12 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   );
   const currentProjectName = wizardFormData.state.project.projectName ?? undefined;
 
-  const secretName =
-    wizardFormData.state.modelLocationData.data?.connection ??
-    wizardFormData.state.createConnectionData.data.nameDesc?.k8sName.value;
 
   const { resources: formResources } = useFormToResourcesTransformer(
     wizardFormData,
     existingDeployment,
-    secretName, // todo remove
   );
+
   // temp hack to limit yaml editor to LLMd only
   const canEnterYAMLEditMode =
     existingDeployment?.model.kind !== 'InferenceService' &&
@@ -112,7 +109,6 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       viewMode,
       wizardFormData.initialData,
       existingDeployment,
-      secretName,
       yamlError,
     );
 
