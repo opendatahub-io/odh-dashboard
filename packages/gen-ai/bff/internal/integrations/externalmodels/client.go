@@ -134,6 +134,13 @@ func validateBaseURL(baseURL string, allowHTTP bool) error {
 }
 
 // validateRequestSSRF performs SSRF protection at request time (prevents DNS rebinding attacks)
+// for hosts that were not trusted by the caller's repository-level trust decision
+// (see repositories.resolveTrustedHost). Trusted hosts skip this check entirely by
+// design; the residual risk that the transport's own DNS resolution could diverge
+// from the validated Service for a trusted host (time-of-check/time-of-use) is a
+// known, accepted defense-in-depth gap — closing it would require pinning the dial
+// to the Service's validated addresses, which is tracked as follow-up work rather
+// than handled here.
 func validateRequestSSRF(hostname string, logger *slog.Logger) error {
 	ips, err := net.LookupIP(hostname)
 	if err != nil {

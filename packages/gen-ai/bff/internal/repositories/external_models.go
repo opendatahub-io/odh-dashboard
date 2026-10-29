@@ -245,6 +245,15 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 // so a Service with no selector must not receive the SSRF exemption (fail closed on
 // lookup errors too). A Forbidden lookup returns an error so the caller learns the
 // missing permission instead of a misleading connectivity failure.
+//
+// Known residual risk, deliberately accepted: the connection is not pinned to the
+// validated Service's addresses, so a caller who can mutate Services in their own
+// namespace could race the lookup (e.g. flip an ExternalName Service to ClusterIP
+// and rely on cached DNS) to redirect one request. Every deterministic alias route
+// is rejected above; exploiting the race requires winning a narrow
+// lookup-versus-dial window with namespace Service-mutation privileges, which is
+// defense-in-depth (destination pinning) rather than the cross-namespace
+// authorization gap this function closes.
 func resolveTrustedHost(
 	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
