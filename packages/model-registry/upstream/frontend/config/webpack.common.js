@@ -53,7 +53,17 @@ module.exports = (env) => ({
                   },
                 },
               },
-        ],
+          // Loaders run right-to-left; instrument JSX before SWC in local federated development.
+          env === 'development' && DEPLOYMENT_MODE === 'federated'
+            ? {
+                loader: path.resolve(
+                  RELATIVE_DIRNAME,
+                  '../../../../frontend/config/locator-loader.js',
+                ),
+                options: { env: 'development' },
+              }
+            : false,
+        ].filter(Boolean),
       },
       {
         test: /\.(ttf|eot|woff|woff2)$|[/\\]pficon[/\\].*\.svg$/i,
