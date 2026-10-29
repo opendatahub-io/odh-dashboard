@@ -588,6 +588,9 @@ paths:
     description: >-
       Verifies that an external model endpoint is accessible, properly authenticated, and OpenAI-compatible.
       Tests the connection by sending a minimal request to the endpoint and validating the response format.
+      In-cluster base URLs only skip SSRF validation when the Service hostname belongs to the caller's
+      authorized namespace and its backing Service is a selector-backed, non-ExternalName Service readable
+      by the caller; other in-cluster hosts undergo normal SSRF validation.
       This is a stateless operation that does not create any resources.
     post:
       tags:
@@ -639,6 +642,22 @@ paths:
                       message:
                         type: string
                         example: 'API key is invalid or unauthorized'
+        '403':
+          description: Caller lacks permission to read the in-cluster Service backing an in-cluster base_url (required to verify in-cluster endpoints)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'FORBIDDEN'
+                      message:
+                        type: string
+                        example: 'verifying an in-cluster endpoint requires permission to get the Service my-ns/my-model, which the caller lacks'
         '408':
           description: Request timeout - endpoint did not respond in time
           content:
