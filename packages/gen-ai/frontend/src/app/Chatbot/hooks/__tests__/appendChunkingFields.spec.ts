@@ -12,6 +12,6 @@ describe('appendChunkingFields', () => {
 
     expect(formData.get('chunking_type')).toBe('static');
     expect(formData.get('chunk_overlap_tokens')).toBe('0');
-    expect(formData.get('max_chunk_size_tokens')).toBeNull();
+    expect(formData.get('max_chunk_size_tokens')).toBe('800');
   });
 });

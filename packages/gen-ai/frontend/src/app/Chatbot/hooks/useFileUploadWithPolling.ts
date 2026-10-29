@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
+import { DEFAULT_SOURCE_SETTINGS } from '~/app/Chatbot/sourceUpload/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotSourceSettings } from '~/app/types';
 
@@ -10,14 +11,17 @@ export const appendChunkingFields = (
   formData: FormData,
   settings: ChatbotSourceSettings,
 ): void => {
-  if (settings.maxChunkLength !== undefined || settings.chunkOverlap !== undefined) {
+  const maxChunkLength =
+    settings.maxChunkLength ??
+    (settings.chunkOverlap !== undefined ? DEFAULT_SOURCE_SETTINGS.maxChunkLength : undefined);
+  if (maxChunkLength !== undefined || settings.chunkOverlap !== undefined) {
     formData.append('chunking_type', 'static');
   }
   if (settings.chunkOverlap !== undefined) {
     formData.append('chunk_overlap_tokens', String(settings.chunkOverlap));
   }
-  if (settings.maxChunkLength !== undefined) {
-    formData.append('max_chunk_size_tokens', String(settings.maxChunkLength));
+  if (maxChunkLength !== undefined) {
+    formData.append('max_chunk_size_tokens', String(maxChunkLength));
   }
 };
 

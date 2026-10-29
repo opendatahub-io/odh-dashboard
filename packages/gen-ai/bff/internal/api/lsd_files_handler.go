@@ -163,6 +163,21 @@ func (app *App) LlamaStackDocumentUploadHandler(w http.ResponseWriter, r *http.R
 	keepUploadedFile = true
 }
 
+const defaultMaxChunkSizeTokens = 800
+
+// ensureStaticChunkMax fills the default maximum when static chunking is requested without one.
+func ensureStaticChunkMax(strategy *llamastack.ChunkingStrategy) {
+	if strategy == nil || strategy.Type != "static" {
+		return
+	}
+	if strategy.Static == nil {
+		strategy.Static = &llamastack.StaticChunkingConfig{}
+	}
+	if strategy.Static.MaxChunkSizeTokens <= 0 {
+		strategy.Static.MaxChunkSizeTokens = defaultMaxChunkSizeTokens
+	}
+}
+
 // LlamaStackUploadFileHandler handles POST /gen-ai/api/v1/files/upload.
 // Returns 202 Accepted with a job ID, then processes the upload asynchronously.
 func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -226,6 +241,7 @@ func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Reque
 					chunkingStrategy.Static.ChunkOverlapTokens = overlap
 				}
 			}
+			ensureStaticChunkMax(chunkingStrategy)
 		}
 	}
 
