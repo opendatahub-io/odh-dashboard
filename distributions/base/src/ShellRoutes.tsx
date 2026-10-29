@@ -31,7 +31,6 @@ const ShellRoutes: React.FC = () => {
       ),
     [tabRoutePageExtensions, tabRouteTabExtensions],
   );
-
   const dynamicRoutes = React.useMemo(
     () =>
       routeExtensions.map((routeExtension) => (
