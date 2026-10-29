@@ -104,7 +104,9 @@ Central index of key documentation in the ODH Dashboard monorepo.
 
 | Doc | Description |
 |-----|-------------|
-| [Operator Architecture](docs/dashboard-operator.md) | CRD design, reconciliation pipeline, module registry, dependency resolution, manifest management, local development, cluster deployment, troubleshooting |
+| [Operator Architecture](docs/dashboard-operator.md) | Shared CRD, reconciliation, condition, removal, manifest, and development contract |
+| [Operator: ODH and Self-Managed RHOAI](docs/dashboard-operator-openshift.md) | OpenShift overlays, modules, observability, MaaS Portal, and RHOAI configuration behavior |
+| [Operator: RHAII/XKS](docs/dashboard-operator-xks.md) | RHAII bundle, Gateway prerequisites, readiness, removal, and troubleshooting |
 | [MaaS Portal](docs/maas-portal.md) | Independent portal lifecycle, routing, federation, subscription RBAC, resource migration, and rollout |
 | [Controller AGENTS.md](dashboard-operator/AGENTS.md) | Go operator conventions, controller-runtime patterns, CRD types, Makefile targets, reconciliation pipeline |
 

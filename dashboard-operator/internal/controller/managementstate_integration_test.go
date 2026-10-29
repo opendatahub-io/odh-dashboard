@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,6 +23,7 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
 // TestIntegration_ManagementStateRemoved_TeardownResources verifies that switching a
@@ -52,6 +54,7 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	reconcile(t, r)
 	require.Len(t, listDeployments(t, "model-registry"), 1, "module Deployment should exist before removal")
 	coreRoute := createManagedHTTPRoute(t, dashboard)
+	corePDB := createManagedPodDisruptionBudget(t, dashboard)
 	// dashboard-core-config is a managed (non-operator-owned) ConfigMap the operator deploys; it
 	// carries the same part-of=dashboard label as operator-owned resources. Confirm it exists now
 	// so the post-teardown assertion below proves teardown actually deletes managed ConfigMaps
@@ -72,6 +75,7 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	// The managed core ConfigMap is deleted — teardown discriminates by name, not just by label.
 	assertGone(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "dashboard-core-config", Namespace: integrationNamespace})
 	assertGone(t, &gatewayv1.HTTPRoute{}, client.ObjectKeyFromObject(coreRoute))
+	assertGone(t, &policyv1.PodDisruptionBudget{}, client.ObjectKeyFromObject(corePDB))
 
 	// Operator-owned resources are preserved (skipped by name during teardown). The webhook
 	// serving-cert Secret is intentionally not asserted: cert-manager issues it without the
@@ -94,7 +98,12 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	cond := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeProvisioningSucceeded))
 	require.NotNil(t, cond, "ProvisioningSucceeded condition should be present")
 	assert.Equal(t, metav1.ConditionFalse, cond.Status)
-	assert.Equal(t, "Removed", cond.Reason)
+	assert.Equal(t, ctrlpkg.RemovedConditionReason, cond.Reason)
+
+	observability := conditions.FindStatusCondition(dashboard, "ObservabilityAvailable")
+	require.NotNil(t, observability, "ObservabilityAvailable condition should be present")
+	assert.Equal(t, metav1.ConditionFalse, observability.Status)
+	assert.Equal(t, ctrlpkg.RemovedConditionReason, observability.Reason)
 }
 
 // TestIntegration_ManagementStateRemoved_IdempotentRereconcile verifies that repeated
@@ -166,6 +175,24 @@ func createManagedHTTPRoute(t *testing.T, dashboard *v1alpha1.Dashboard) *gatewa
 	t.Cleanup(func() { deleteIgnoreNotFound(t, route) })
 
 	return route
+}
+
+func createManagedPodDisruptionBudget(t *testing.T, dashboard *v1alpha1.Dashboard) *policyv1.PodDisruptionBudget {
+	t.Helper()
+
+	pdb := &policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{
+		Name:      "rhods-dashboard",
+		Namespace: integrationNamespace,
+		Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(
+			dashboard,
+			v1alpha1.GroupVersion.WithKind(v1alpha1.DashboardKind),
+		)},
+	}}
+	require.NoError(t, k8sClient.Create(context.Background(), pdb))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, pdb) })
+
+	return pdb
 }
 
 // seedOperatorOwnedResources creates the operator's own resources — Deployment,
