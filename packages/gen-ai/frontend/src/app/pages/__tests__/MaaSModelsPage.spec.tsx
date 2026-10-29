@@ -35,7 +35,7 @@ describe('MaaSModelsPage', () => {
     });
   });
 
-  it('should show the Model Endpoints title and description without tabs or a namespace selector', () => {
+  it('should show the Model endpoints title and description without tabs or a namespace selector', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: 'Model endpoints' })).toBeInTheDocument();
     expect(

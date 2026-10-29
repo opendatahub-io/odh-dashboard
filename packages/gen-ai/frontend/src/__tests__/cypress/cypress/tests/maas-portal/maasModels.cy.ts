@@ -46,7 +46,7 @@ describe('MaaS Portal models', () => {
 
     maasModelsPage.visit();
     cy.wait('@models');
-    maasModelsPage.findTitle().should('have.text', 'Model Endpoints');
+    maasModelsPage.findTitle().should('have.text', 'Model endpoints');
     maasModelsPage.findModelsNavigation().should('have.attr', 'href', '/maas-portal/maas/models');
     maasModelsPage.findAIAssetsNavigation().should('not.exist');
     maasModelsPage.findTable().should('contain.text', 'Llama 3').and('contain.text', 'Granite');
