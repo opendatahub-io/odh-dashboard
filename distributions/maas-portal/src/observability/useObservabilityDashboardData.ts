@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import type { DashboardResource } from '@perses-dev/core';
 import type { K8sAPIOptions, NamespaceKind } from '@odh-dashboard/k8s-core';
 import { getAPIResource } from '@odh-dashboard/k8s-core/api/apiResource';
@@ -6,6 +7,7 @@ import useFetch from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { DashboardViewProps } from '@odh-dashboard/observability/dashboard';
 import { MAAS_NAMESPACES_PATH, MAAS_USAGE_DASHBOARDS_PATH } from './paths';
 import { PORTAL_BASE_PATH } from '../portalPaths';
+import { GRID } from '../featureFlags';
 
 export type ObservabilityDashboardData = Pick<
   DashboardViewProps,
@@ -15,6 +17,7 @@ export type ObservabilityDashboardData = Pick<
   | 'projects'
   | 'projectsLoaded'
   | 'projectsLoadError'
+  | 'requireProjectsForNamespaceDashboards'
 >;
 
 const isNamespaceList = (value: unknown): value is NamespaceKind[] =>
@@ -41,6 +44,7 @@ const isDashboardList = (value: unknown): value is DashboardResource[] =>
   );
 
 export const useObservabilityDashboardData = (): ObservabilityDashboardData => {
+  const [gridEnabled] = useFeatureFlag(GRID);
   const fetchDashboards = React.useCallback(
     (options: K8sAPIOptions) =>
       getAPIResource<DashboardResource[]>(
@@ -53,10 +57,12 @@ export const useObservabilityDashboardData = (): ObservabilityDashboardData => {
   );
   const fetchProjects = React.useCallback(
     (options: K8sAPIOptions) =>
-      getAPIResource<NamespaceKind[]>(PORTAL_BASE_PATH, MAAS_NAMESPACES_PATH, isNamespaceList, {
-        signal: options.signal,
-      }),
-    [],
+      gridEnabled
+        ? Promise.resolve([])
+        : getAPIResource<NamespaceKind[]>(PORTAL_BASE_PATH, MAAS_NAMESPACES_PATH, isNamespaceList, {
+            signal: options.signal,
+          }),
+    [gridEnabled],
   );
 
   const {
@@ -67,17 +73,19 @@ export const useObservabilityDashboardData = (): ObservabilityDashboardData => {
 
   const {
     data: namespaces,
-    loaded: projectsLoaded,
-    error: projectsLoadError,
+    loaded: fetchedProjectsLoaded,
+    error: fetchedProjectsLoadError,
   } = useFetch(fetchProjects, [], { initialPromisePurity: true });
 
   const projects = React.useMemo(
     () =>
-      namespaces.map(({ name, displayName }) => ({
-        name,
-        label: displayName || name,
-      })),
-    [namespaces],
+      gridEnabled
+        ? []
+        : namespaces.map(({ name, displayName }) => ({
+            name,
+            label: displayName || name,
+          })),
+    [gridEnabled, namespaces],
   );
 
   return {
@@ -85,7 +93,8 @@ export const useObservabilityDashboardData = (): ObservabilityDashboardData => {
     dashboardsLoaded,
     dashboardsError,
     projects,
-    projectsLoaded,
-    projectsLoadError,
+    projectsLoaded: gridEnabled || fetchedProjectsLoaded,
+    projectsLoadError: gridEnabled ? undefined : fetchedProjectsLoadError,
+    requireProjectsForNamespaceDashboards: !gridEnabled,
   };
 };

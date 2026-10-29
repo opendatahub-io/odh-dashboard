@@ -10,7 +10,72 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 )
+
+func newFakeUsageDashboardClient(t *testing.T) dynamic.Interface {
+	t.Helper()
+	client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{
+		persesDashboardGVR: "PersesDashboardList",
+	})
+	for _, name := range []string{userUsageDashboardName, adminUsageDashboardName} {
+		resource := &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "perses.dev/v1alpha2",
+			"kind":       "PersesDashboard",
+			"metadata":   map[string]any{"name": name, "namespace": "custom-monitoring"},
+			"spec":       map[string]any{"config": map[string]any{"display": map[string]any{"name": name}}},
+		}}
+		if _, err := client.Resource(persesDashboardGVR).Namespace("custom-monitoring").Create(context.Background(), resource, metav1.CreateOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return client
+}
+
+func TestUsageDashboardClientReuse(t *testing.T) {
+	repo := NewUsageDashboardsRepository("custom-monitoring", false)
+	client := newFakeUsageDashboardClient(t)
+	creations := 0
+	repo.clientFactory = func() (dynamic.Interface, error) {
+		creations++
+		return client, nil
+	}
+	for _, user := range []*models.MaaSWhoAmI{{Sub: "admin", IsAdmin: true}, {Sub: "user"}} {
+		if _, err := repo.List(context.Background(), user); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if creations != 1 {
+		t.Fatalf("client created %d times, want 1", creations)
+	}
+}
+
+func TestUsageDashboardClientInitializationRetry(t *testing.T) {
+	repo := NewUsageDashboardsRepository("custom-monitoring", false)
+	client := newFakeUsageDashboardClient(t)
+	setupErr := errors.New("temporary credentials failure")
+	creations := 0
+	repo.clientFactory = func() (dynamic.Interface, error) {
+		creations++
+		if creations == 1 {
+			return nil, setupErr
+		}
+		return client, nil
+	}
+	user := &models.MaaSWhoAmI{Sub: "user"}
+	if _, err := repo.List(context.Background(), user); !errors.Is(err, setupErr) {
+		t.Fatalf("first read error = %v, want %v", err, setupErr)
+	}
+	if _, err := repo.List(context.Background(), user); err != nil {
+		t.Fatal(err)
+	}
+	if creations != 2 {
+		t.Fatalf("client created %d times, want 2", creations)
+	}
+}
 
 func TestUsageDashboardsRepositoryList(t *testing.T) {
 	tests := []struct {

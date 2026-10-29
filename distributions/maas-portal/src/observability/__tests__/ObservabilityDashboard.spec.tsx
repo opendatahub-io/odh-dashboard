@@ -143,6 +143,19 @@ describe('ObservabilityDashboard', () => {
     expect(screen.queryByTestId('observability-dashboard-tabs')).not.toBeInTheDocument();
   });
 
+  it('should display a namespace dashboard without projects in grid mode', () => {
+    dataMock.mockReturnValue({
+      dashboards: [dashboard('dashboard-models', 'Models', true)],
+      dashboardsLoaded: true,
+      projects: [],
+      projectsLoaded: true,
+      requireProjectsForNamespaceDashboards: false,
+    });
+    renderDashboard();
+    expect(screen.getByRole('tab', { name: 'Models' })).toBeInTheDocument();
+    expect(screen.queryByTestId('portal-no-projects')).not.toBeInTheDocument();
+  });
+
   it('should wait for projects before rendering dashboards', () => {
     dataMock.mockReturnValue({
       dashboards: [dashboard('dashboard-models', 'Models', true)],

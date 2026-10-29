@@ -72,6 +72,11 @@ func TestGetUsageDashboardsHandler(t *testing.T) {
 			persesNS: "redhat-ods-monitoring", wantStatus: http.StatusForbidden,
 		},
 		{
+			name: "invalid token is rejected before dashboard reads", identity: &kubernetes.RequestIdentity{Token: "invalid-token"},
+			upstreamCode: http.StatusUnauthorized, upstreamBody: `{"error":{"code":"UNAUTHORIZED","message":"invalid token"}}`,
+			persesNS: "redhat-ods-monitoring", wantStatus: http.StatusUnauthorized,
+		},
+		{
 			name: "missing subject", identity: &kubernetes.RequestIdentity{Token: "user-token"},
 			upstreamBody: `{"https://redhat.com/maas/orgs":[{"roles":[]}]}`,
 			persesNS:     "redhat-ods-monitoring", wantStatus: http.StatusForbidden,
