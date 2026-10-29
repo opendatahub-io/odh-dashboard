@@ -37,7 +37,12 @@ import (
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
-const integrationNamespace = "integration-test"
+const (
+	integrationNamespace               = "integration-test"
+	odhDashboardName                   = "odh-dashboard"
+	rhoaiDashboardName                 = "rhods-dashboard"
+	dashboardAvailabilityTestGatewayID = "gateway"
+)
 
 var (
 	testEnv   *envtest.Environment
@@ -209,6 +214,57 @@ func newDashboard(spec v1alpha1.DashboardSpec) *v1alpha1.Dashboard {
 		},
 		Spec: spec,
 	}
+}
+
+// establishDashboardAvailability supplies the two externally-managed status
+// signals required for an integration test that intentionally asserts the
+// aggregate Ready contract. envtest has neither a workload nor a Gateway
+// controller, so it cannot produce these statuses itself.
+func establishDashboardAvailability(t *testing.T, r *ctrlpkg.DashboardReconciler, dashboardName string) {
+	t.Helper()
+
+	deployment := newMainDashboardDeployment(dashboardName)
+	require.NoError(t, k8sClient.Create(context.Background(), deployment))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, deployment) })
+
+	route := &gatewayv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{Name: dashboardName, Namespace: integrationNamespace},
+		Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
+			ParentRefs: []gatewayv1.ParentReference{{Name: dashboardAvailabilityTestGatewayID}},
+		}},
+	}
+	require.NoError(t, k8sClient.Create(context.Background(), route))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, route) })
+
+	// The reconciler may add the federation hash to the Deployment template,
+	// which increments its generation before we report the simulated workload
+	// status below.
+	reconcile(t, r)
+
+	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKeyFromObject(deployment), deployment))
+	require.NotNil(t, deployment.Spec.Replicas)
+	desiredReplicas := *deployment.Spec.Replicas
+	deployment.Status.ObservedGeneration = deployment.Generation
+	deployment.Status.Replicas = desiredReplicas
+	deployment.Status.UpdatedReplicas = desiredReplicas
+	deployment.Status.ReadyReplicas = desiredReplicas
+	deployment.Status.AvailableReplicas = desiredReplicas
+	deployment.Status.Conditions = []appsv1.DeploymentCondition{{
+		Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue,
+	}}
+	require.NoError(t, k8sClient.Status().Update(context.Background(), deployment))
+
+	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKeyFromObject(route), route))
+	route.Status.Parents = []gatewayv1.RouteParentStatus{{
+		ParentRef: route.Spec.ParentRefs[0],
+		Conditions: []metav1.Condition{
+			{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+			{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+		},
+	}}
+	require.NoError(t, k8sClient.Status().Update(context.Background(), route))
+
+	reconcile(t, r)
 }
 
 func TestIntegration_MaaSPortalAPICompatibility(t *testing.T) {
@@ -651,6 +707,7 @@ func TestIntegration_PlatformContractConformance(t *testing.T) {
 	// The first reconcile adds the finalizer and the second deploys the module.
 	reconcile(t, r)
 	reconcile(t, r)
+	establishDashboardAvailability(t, r, odhDashboardName)
 
 	// envtest has no kubelet to update Deployment status. Report the operand as
 	// available so the next reconcile can exercise the successful Ready contract.

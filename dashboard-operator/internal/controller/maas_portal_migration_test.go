@@ -326,7 +326,7 @@ func TestMaaSPortalTeardownRetriesServiceAccountDeletion(t *testing.T) {
 					return delegate.Delete(ctx, obj, opts...)
 				},
 			}).Build()
-			r := &DashboardReconciler{Client: cli, ApplicationsNamespace: maasPortalTestNamespace}
+			r := &DashboardReconciler{Client: cli, ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
 			cm := maasPortalTestManager(t, dashboard)
 			cleanup := func() (time.Duration, error) {
 				switch lifecycle {
@@ -423,7 +423,7 @@ func TestMaaSPortalTeardownHandlesBothResourceIdentities(t *testing.T) {
 				shared := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: maasPortalTestNamespace}}
 				objects := append([]client.Object{dashboard, shared}, operands...)
 				cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(objects...).Build()
-				r := &DashboardReconciler{Client: cli, Namespace: "configured-operator", ApplicationsNamespace: maasPortalTestNamespace}
+				r := &DashboardReconciler{Client: cli, Namespace: "configured-operator", ApplicationsNamespace: maasPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
 				if lifecycle == "finalizer" {
 					_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
 					require.NoError(t, err)
