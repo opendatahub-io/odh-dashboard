@@ -472,7 +472,11 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 			Expect(actual.Data).NotTo(BeNil())
-			Expect(actual.Data).To(BeEmpty())
+			Expect(actual.Data).To(HaveLen(1))
+			Expect(actual.Data[0].SubscriptionIDHeader).To(Equal("basic-team-sub"))
+			Expect(actual.Data[0].ModelRefs).To(HaveLen(1))
+			Expect(actual.Data[0].ModelRefs[0].DisplayName).To(Equal("Flan T5 Small"))
+			Expect(actual.Data[0].KeyCount).To(Equal(int32(subscriptionKeyCountCap)))
 		})
 
 		It("returns 400 when no identity is provided", func() {
