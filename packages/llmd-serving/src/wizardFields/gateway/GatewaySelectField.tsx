@@ -18,6 +18,7 @@ import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/compone
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { isLLMInferenceServiceActive } from '../../formUtils';
+import { LLMD_GATEWAY_FIELD_ID } from '../../const';
 import { GatewayOption, useGetGatewayOptions } from '../../api/services/gatewayDiscovery';
 
 export type GatewaySelectDependencies = {
@@ -298,7 +299,7 @@ const getGatewayReviewSection = (value: GatewaySelectFieldData): WizardReviewSec
   ];
 };
 export const GatewaySelectField: GatewaySelectFieldType = {
-  id: 'llmd-serving/gateway',
+  id: LLMD_GATEWAY_FIELD_ID,
   parentId: 'networking',
   step: 'advancedOptions',
   type: 'addition',

@@ -7,8 +7,8 @@ import {
   ROUTING_CONFIG_REF_ANNOTATION,
   TopologyType,
   type LLMdDeployment,
+  type TopologyTypeFieldData,
 } from '../types';
-import type { TopologyTypeFieldData } from '../wizardFields/TopologyTypeField';
 import {
   TOPOLOGY_CONFIG_DEFAULT,
   type CustomTopologyConfigFieldData,

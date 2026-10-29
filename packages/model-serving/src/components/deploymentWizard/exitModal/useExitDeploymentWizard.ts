@@ -8,6 +8,7 @@ type UseExitWizardOptions = {
   returnRoute?: string;
   cancelReturnRoute?: string;
   isEdit?: boolean;
+  deploymentMethod?: string;
 };
 
 type UseExitWizardReturn = {
@@ -22,6 +23,7 @@ export const useExitDeploymentWizard = ({
   returnRoute,
   cancelReturnRoute,
   isEdit,
+  deploymentMethod,
 }: UseExitWizardOptions): UseExitWizardReturn => {
   const navigate = useNavigate();
   const trackEvent = useTrackEvent();
@@ -45,10 +47,17 @@ export const useExitDeploymentWizard = ({
   }, [navigate, returnRoute]);
 
   const handleExitConfirm = React.useCallback(() => {
-    fireModelDeployed(trackEvent, { outcome: TrackingOutcome.cancel }, isEdit);
+    fireModelDeployed(
+      trackEvent,
+      {
+        outcome: TrackingOutcome.cancel,
+        ...(deploymentMethod && { deploymentMethod }),
+      },
+      isEdit,
+    );
     setIsExitModalOpen(false);
     exitWizardOnCancel();
-  }, [trackEvent, exitWizardOnCancel, isEdit]);
+  }, [trackEvent, exitWizardOnCancel, isEdit, deploymentMethod]);
 
   return {
     isExitModalOpen,
