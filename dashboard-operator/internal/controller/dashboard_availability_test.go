@@ -183,7 +183,7 @@ func availabilityRoute(parentName string, accepted, resolved metav1.ConditionSta
 	}
 }
 
-func TestRouteParentReferencesEqual(t *testing.T) {
+func TestRouteParentReferenceMatches(t *testing.T) {
 	group := gatewayv1.Group(gatewayv1.GroupName)
 	kind := gatewayv1.Kind("Gateway")
 	namespace := gatewayv1.Namespace(availabilityTestNamespace)
@@ -191,34 +191,50 @@ func TestRouteParentReferencesEqual(t *testing.T) {
 	port := gatewayv1.PortNumber(443)
 
 	tests := []struct {
-		name  string
-		left  gatewayv1.ParentReference
-		right gatewayv1.ParentReference
-		want  bool
+		name     string
+		declared gatewayv1.ParentReference
+		reported gatewayv1.ParentReference
+		want     bool
 	}{
 		{
-			name:  "implicit defaults equal explicit defaults",
-			left:  gatewayv1.ParentReference{Name: "gateway"},
-			right: gatewayv1.ParentReference{Name: "gateway", Group: &group, Kind: &kind, Namespace: &namespace},
-			want:  true,
+			name:     "implicit defaults match explicit defaults",
+			declared: gatewayv1.ParentReference{Name: "gateway"},
+			reported: gatewayv1.ParentReference{Name: "gateway", Group: &group, Kind: &kind, Namespace: &namespace},
+			want:     true,
 		},
 		{
-			name:  "different listener section is not equal",
-			left:  gatewayv1.ParentReference{Name: "gateway", SectionName: &sectionName},
-			right: gatewayv1.ParentReference{Name: "gateway"},
-			want:  false,
+			name:     "broad parent matches reported listener section and port",
+			declared: gatewayv1.ParentReference{Name: "gateway"},
+			reported: gatewayv1.ParentReference{Name: "gateway", SectionName: &sectionName, Port: &port},
+			want:     true,
 		},
 		{
-			name:  "different listener port is not equal",
-			left:  gatewayv1.ParentReference{Name: "gateway", Port: &port},
-			right: gatewayv1.ParentReference{Name: "gateway"},
-			want:  false,
+			name:     "explicit listener section does not match a different reported section",
+			declared: gatewayv1.ParentReference{Name: "gateway", SectionName: &sectionName},
+			reported: gatewayv1.ParentReference{Name: "gateway"},
+			want:     false,
+		},
+		{
+			name:     "explicit listener port does not match a different reported port",
+			declared: gatewayv1.ParentReference{Name: "gateway", Port: &port},
+			reported: gatewayv1.ParentReference{Name: "gateway"},
+			want:     false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, routeParentReferencesEqual(availabilityTestNamespace, tt.left, tt.right))
+			assert.Equal(t, tt.want, routeParentReferenceMatches(availabilityTestNamespace, tt.declared, tt.reported))
 		})
 	}
+}
+
+func TestHTTPRouteAvailableWithConcreteReportedListener(t *testing.T) {
+	sectionName := gatewayv1.SectionName("https")
+	port := gatewayv1.PortNumber(443)
+	route := availabilityRoute("gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)
+	route.Status.Parents[0].ParentRef.SectionName = &sectionName
+	route.Status.Parents[0].ParentRef.Port = &port
+
+	assert.True(t, httpRouteAvailable(route))
 }

@@ -39,10 +39,8 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 	cm *conditions.Manager,
 	target dashboardAvailabilityTarget,
 ) (time.Duration, error) {
-	key := client.ObjectKey{Namespace: r.ApplicationsNamespace}
-
 	deployment := &appsv1.Deployment{}
-	if err := r.Get(ctx, client.ObjectKey{Name: target.deploymentName, Namespace: key.Namespace}, deployment); err != nil {
+	if err := r.Get(ctx, client.ObjectKey{Name: target.deploymentName, Namespace: r.ApplicationsNamespace}, deployment); err != nil {
 		if k8serrors.IsNotFound(err) {
 			cm.MarkFalse(conditionDashboardAvailable,
 				conditions.WithReason("DeploymentNotFound"),
@@ -62,7 +60,7 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 	}
 
 	route := &gatewayv1.HTTPRoute{}
-	if err := r.Get(ctx, client.ObjectKey{Name: target.httpRouteName, Namespace: key.Namespace}, route); err != nil {
+	if err := r.Get(ctx, client.ObjectKey{Name: target.httpRouteName, Namespace: r.ApplicationsNamespace}, route); err != nil {
 		if k8serrors.IsNotFound(err) {
 			cm.MarkFalse(conditionDashboardAvailable,
 				conditions.WithReason("HTTPRouteNotFound"),
@@ -133,15 +131,27 @@ func httpRouteAvailable(route *gatewayv1.HTTPRoute) bool {
 
 func declaresRouteParent(route *gatewayv1.HTTPRoute, statusParent gatewayv1.ParentReference) bool {
 	for _, declaredParent := range route.Spec.ParentRefs {
-		if routeParentReferencesEqual(route.Namespace, declaredParent, statusParent) {
+		if routeParentReferenceMatches(route.Namespace, declaredParent, statusParent) {
 			return true
 		}
 	}
 	return false
 }
 
-func routeParentReferencesEqual(routeNamespace string, left, right gatewayv1.ParentReference) bool {
-	return normalizedRouteParentReference(routeNamespace, left) == normalizedRouteParentReference(routeNamespace, right)
+// routeParentReferenceMatches reports whether a status parent corresponds to a
+// declared parent. A declared section or port constrains the attachment and
+// must match exactly. When omitted, a Gateway implementation may report the
+// concrete listener it selected for the broad parent reference.
+func routeParentReferenceMatches(routeNamespace string, declared, reported gatewayv1.ParentReference) bool {
+	want := normalizedRouteParentReference(routeNamespace, declared)
+	got := normalizedRouteParentReference(routeNamespace, reported)
+	if want.group != got.group || want.kind != got.kind || want.namespace != got.namespace || want.name != got.name {
+		return false
+	}
+	if declared.SectionName != nil && want.sectionName != got.sectionName {
+		return false
+	}
+	return declared.Port == nil || want.port == got.port
 }
 
 type routeParentIdentity struct {
