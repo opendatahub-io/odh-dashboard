@@ -141,10 +141,12 @@ describe('Choose Benchmark Page', () => {
     // and clicking must not drag-highlight the description text.
     chooseBenchmarkPage
       .findBenchmarkCardTitleRegion('test-provider', 'bench-alpha')
-      .should('have.css', 'cursor', 'pointer');
+      .should('have.css', 'cursor', 'pointer')
+      .and('have.css', 'user-select', 'none');
     chooseBenchmarkPage
       .findBenchmarkCardBodyRegion('test-provider', 'bench-alpha')
-      .should('have.css', 'cursor', 'pointer');
+      .should('have.css', 'cursor', 'pointer')
+      .and('have.css', 'user-select', 'none');
 
     chooseBenchmarkPage.findBenchmarkCardTitleRegion('test-provider', 'bench-alpha').click();
     chooseBenchmarkPage.findBenchmarkDrawerPanel().should('exist');
