@@ -22,7 +22,7 @@ const (
 
 var (
 	ErrInvalidMaaSUser              = errors.New("MaaS user has no subject")
-	ErrPersesNamespaceNotConfigured = errors.New("Perses dashboard namespace is not configured")
+	ErrPersesNamespaceNotConfigured = errors.New("perses dashboard namespace is not configured")
 	persesDashboardGVR              = schema.GroupVersionResource{Group: "perses.dev", Version: "v1alpha2", Resource: "persesdashboards"}
 )
 
