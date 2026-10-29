@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -3382,4 +3383,60 @@ func TestGetServiceCallerForbiddenReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, svc)
 	assert.Contains(t, err.Error(), "forbidden")
+}
+
+func TestGetServiceBackendAddressesExcludesCrossNamespaceEndpoints(t *testing.T) {
+	ns := "test-namespace"
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "my-model-abc"},
+		Status:     corev1.PodStatus{PodIP: "10.244.0.5", PodIPs: []corev1.PodIP{{IP: "10.244.0.5"}}},
+	}
+	// A manually managed EndpointSlice attached to the selector-backed Service,
+	// mixing an in-namespace Pod IP with a Pod IP from another namespace.
+	slice := &discoveryv1.EndpointSlice{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Name:      "my-model-x",
+			Labels:    map[string]string{discoveryv1.LabelServiceName: "my-model"},
+		},
+		AddressType: discoveryv1.AddressTypeIPv4,
+		Endpoints: []discoveryv1.Endpoint{
+			{Addresses: []string{"10.244.0.5", "10.244.9.9"}},
+		},
+	}
+
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().WithObjects(pod, slice).Build(),
+		Logger: slog.Default(),
+	}
+
+	addrs, err := kc.GetServiceBackendAddresses(context.Background(), nil, ns, "my-model")
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"10.244.0.5"}, addrs, "only the in-namespace Pod address must be returned")
+}
+
+func TestGetServiceBackendAddressesNoMatchingPods(t *testing.T) {
+	ns := "test-namespace"
+	slice := &discoveryv1.EndpointSlice{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Name:      "my-model-x",
+			Labels:    map[string]string{discoveryv1.LabelServiceName: "my-model"},
+		},
+		AddressType: discoveryv1.AddressTypeIPv4,
+		Endpoints: []discoveryv1.Endpoint{
+			{Addresses: []string{"10.244.9.9"}},
+		},
+	}
+
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().WithObjects(slice).Build(),
+		Logger: slog.Default(),
+	}
+
+	addrs, err := kc.GetServiceBackendAddresses(context.Background(), nil, ns, "my-model")
+
+	require.NoError(t, err)
+	assert.Empty(t, addrs, "a Service whose endpoints are all cross-namespace must yield no trusted addresses")
 }

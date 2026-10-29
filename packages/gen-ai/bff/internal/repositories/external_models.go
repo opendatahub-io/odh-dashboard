@@ -237,8 +237,8 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 	return labels[len(labels)-5], labels[len(labels)-4], true
 }
 
-// resolveTrustedHost decides whether a base URL may skip SSRF validation, and returns the
-// destination IPs the host must resolve to at request time (DNS rebinding guard).
+// resolveTrustedHost decides whether a base URL may skip SSRF validation, and returns
+// the validated backend addresses a trusted connection must be pinned to.
 //
 // An in-namespace service DNS name is only trusted after resolving the backing Service
 // through the Kubernetes API: a namespace user can create a ServiceTypeExternalName
@@ -247,8 +247,12 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 // and selectorless Services are also rejected: a namespace user can create them with
 // manually managed Endpoints pointing at arbitrary destinations (including other
 // namespaces' Pod IPs), and their DNS answers are not attributable to a validated
-// ClusterIP. ClusterIPs of regular selector-backed services are returned as the expected
-// dial-time destination.
+// ClusterIP. A selector-backed Service is not trusted on its selector and ClusterIP
+// alone either: a namespace user with EndpointSlice permissions can attach a manually
+// managed EndpointSlice with cross-namespace Pod IPs, and Service forwarding would
+// still deliver the request to those backends. Only the Service's endpoint addresses
+// that are verified to belong to Pods in the caller's namespace are returned as dial
+// destinations, and a Service with no such backends is not trusted (fail closed).
 func resolveTrustedHost(
 	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
@@ -273,13 +277,11 @@ func resolveTrustedHost(
 	if headless || selectorless {
 		return false, nil
 	}
-	var clusterIPs []string
-	for _, ip := range svc.Spec.ClusterIPs {
-		if ip != "" && ip != "None" {
-			clusterIPs = append(clusterIPs, ip)
-		}
+	backends, err := client.GetServiceBackendAddresses(ctx, identity, svcNamespace, svcName)
+	if err != nil || len(backends) == 0 {
+		return false, nil
 	}
-	return true, clusterIPs
+	return true, backends
 }
 
 // internalHostRootCAs returns the provided CA pool only when the URL targets an internal

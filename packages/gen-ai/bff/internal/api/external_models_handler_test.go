@@ -1450,3 +1450,81 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 		}
 	})
 })
+
+var _ = Describe("VerifyExternalModelHandler authentication", func() {
+	It("should return 401 when identity is missing and authentication is enabled", func() {
+		t := GinkgoT()
+		app := NewK8sLSTestApp()
+
+		requestBody := models.VerifyExternalModelRequest{
+			ModelID:   "gpt-4o",
+			BaseURL:   "https://api.openai.com/v1",
+			ModelType: models.ModelTypeLLM,
+		}
+		bodyBytes, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify", bytes.NewReader(bodyBytes))
+		require.NoError(t, err)
+		ctx := context.WithValue(context.Background(), constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.VerifyExternalModelHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+
+	It("should verify without an identity when authentication is disabled", func() {
+		t := GinkgoT()
+		// Mirror the dev-bff-mock wiring: with authentication disabled the
+		// disabled-auth client factory serves clients without a request identity.
+		k8sFactory, err := k8smocks.NewDisabledAuthClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(t, err)
+		app := App{
+			config:                  config.EnvConfig{Port: 4000, AuthMethod: config.AuthMethodDisabled},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		// Loopback base URL is trusted for local development, so verification
+		// runs without any Kubernetes Service lookup or caller identity.
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":      "chatcmpl-123",
+				"choices": []map[string]any{{"index": 0, "message": map[string]any{"role": "assistant", "content": "test"}, "finish_reason": "stop"}},
+			})
+		}))
+		defer server.Close()
+
+		requestBody := models.VerifyExternalModelRequest{
+			ModelID:     "gpt-4o",
+			BaseURL:     server.URL,
+			SecretValue: "sk-test-key",
+			ModelType:   models.ModelTypeLLM,
+		}
+		bodyBytes, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		// Route-level request without authentication headers: the identity
+		// middleware and the handler must both allow disabled-auth mode.
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external/verify?namespace=mock-test-namespace-1", bytes.NewReader(bodyBytes))
+		require.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		router := app.Routes()
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code, "body: %s", rr.Body.String())
+
+		var response struct {
+			Data models.VerifyExternalModelResponse `json:"data"`
+		}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.True(t, response.Data.Success)
+	})
+})

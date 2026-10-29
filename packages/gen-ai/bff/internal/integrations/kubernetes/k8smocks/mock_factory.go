@@ -16,6 +16,7 @@ import (
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -241,6 +242,12 @@ type ConfigurableMockTokenClientFactory struct {
 	GetClientError    error
 	SecretValues      map[string]map[string]string // secretName → key → value
 	SecretError       error
+	Service           *corev1.Service
+	ServiceError      error
+	// ServiceBackendAddresses returned by GetServiceBackendAddresses
+	ServiceBackendAddresses []string
+	// ServiceBackendAddressesError returned by GetServiceBackendAddresses
+	ServiceBackendAddressesError error
 }
 
 func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
@@ -248,10 +255,14 @@ func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s
 		return nil, f.GetClientError
 	}
 	return &ConfigurableMockKubernetesClient{
-		CanListLSDAllowed: f.CanListLSDAllowed,
-		CanListLSDError:   f.CanListLSDError,
-		SecretValues:      f.SecretValues,
-		SecretError:       f.SecretError,
+		CanListLSDAllowed:            f.CanListLSDAllowed,
+		CanListLSDError:              f.CanListLSDError,
+		SecretValues:                 f.SecretValues,
+		SecretError:                  f.SecretError,
+		Service:                      f.Service,
+		ServiceError:                 f.ServiceError,
+		ServiceBackendAddresses:      f.ServiceBackendAddresses,
+		ServiceBackendAddressesError: f.ServiceBackendAddressesError,
 	}, nil
 }
 
@@ -273,10 +284,33 @@ type ConfigurableMockKubernetesClient struct {
 	CanListLSDError   error
 	SecretValues      map[string]map[string]string // secretName → key → value
 	SecretError       error
+	Service           *corev1.Service
+	ServiceError      error
+	// ServiceBackendAddresses returned by GetServiceBackendAddresses
+	ServiceBackendAddresses []string
+	// ServiceBackendAddressesError returned by GetServiceBackendAddresses
+	ServiceBackendAddressesError error
 }
 
 func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
 	return "mockUser", nil
+}
+
+func (c *ConfigurableMockKubernetesClient) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
+	if c.ServiceError != nil {
+		return nil, c.ServiceError
+	}
+	if c.Service != nil {
+		return c.Service, nil
+	}
+	return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "services"}, name)
+}
+
+func (c *ConfigurableMockKubernetesClient) GetServiceBackendAddresses(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) ([]string, error) {
+	if c.ServiceBackendAddressesError != nil {
+		return nil, c.ServiceBackendAddressesError
+	}
+	return c.ServiceBackendAddresses, nil
 }
 
 func (c *ConfigurableMockKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {

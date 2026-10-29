@@ -49,6 +49,13 @@ type KubernetesClientInterface interface {
 	// own credentials, so callers can verify what a service DNS name actually backs.
 	GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error)
 
+	// GetServiceBackendAddresses returns the endpoint addresses backing the named
+	// Service that belong to Pods running in the same namespace, read through the
+	// caller's own credentials. Addresses on manually managed EndpointSlices that
+	// do not correspond to in-namespace Pods are excluded, so callers can pin
+	// trusted connections to backends the namespace is authorized to run.
+	GetServiceBackendAddresses(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) ([]string, error)
+
 	// External Models operations
 	GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
 	CreateExternalModelSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretValue string) error

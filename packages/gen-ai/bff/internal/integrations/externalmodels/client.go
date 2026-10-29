@@ -61,9 +61,11 @@ type ClientOptions struct {
 	SkipTLSVerification bool
 	// RootCAs for TLS verification (defaults to system pool if not provided)
 	RootCAs *x509.CertPool
-	// TrustedDestinationIPs, when non-empty, requires the hostname to resolve to one of
-	// these IPs at request time even though SSRF validation is skipped. Used for trusted
-	// in-cluster services (matched to their ClusterIPs) to guard against DNS rebinding.
+	// TrustedDestinationIPs, when non-empty, pins connections for trusted hosts to
+	// these pre-validated addresses (e.g. verified Service backend Pod IPs) instead
+	// of resolving the hostname. Used for trusted in-cluster services so neither a
+	// DNS rebinding nor Service forwarding can redirect the request to an
+	// unvalidated destination.
 	TrustedDestinationIPs []string
 }
 
@@ -75,7 +77,7 @@ type ExternalModelsClient struct {
 	apiKey             string
 	modelType          models.ModelTypeEnum
 	skipSSRFValidation bool     // For testing only - allows localhost/private IPs
-	trustedDestination []string // Expected resolved IPs for trusted hosts (DNS rebinding guard)
+	trustedDestination []string // Pinned destinations dialed directly for trusted hosts
 }
 
 // isPrivateIP checks if an IP is a loopback, RFC1918, or unique-local address
@@ -162,74 +164,71 @@ func validateRequestSSRF(hostname string, logger *slog.Logger) error {
 	return nil
 }
 
-// validateTrustedDestination ensures a trusted hostname (SSRF validation skipped) still
-// resolves to the expected destination IPs at request time, guarding against DNS rebinding.
-func validateTrustedDestination(hostname string, expectedIPs []string, logger *slog.Logger) error {
-	ips, err := lookupIP(hostname)
-	if err != nil {
-		return fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
-	}
-
-	if len(ips) == 0 {
-		return fmt.Errorf("hostname %s resolved to no IP addresses", hostname)
-	}
-
-	// Compare parsed addresses, not text: equivalent IPv6 spellings must match.
-	allowed := make([]net.IP, 0, len(expectedIPs))
-	for _, ip := range expectedIPs {
-		if parsed := net.ParseIP(ip); parsed != nil {
-			allowed = append(allowed, parsed)
+// dialValidatedAddresses tries the validated destination addresses in order and
+// returns the first successful connection, preserving the multi-address retry and
+// address-family fallback that dialing a hostname directly would provide.
+// Swappable so tests can simulate per-address failures.
+var dialValidatedAddresses = func(ctx context.Context, dialer *net.Dialer, addrs []string) (net.Conn, error) {
+	var lastErr error
+	for _, addr := range addrs {
+		conn, err := dialer.DialContext(ctx, "tcp", addr)
+		if err == nil {
+			return conn, nil
 		}
+		lastErr = err
 	}
-	for _, ip := range ips {
-		if !containsIP(allowed, ip) {
-			return fmt.Errorf("request blocked: destination %s resolves to %s, expected one of %v (DNS rebinding guard)", hostname, ip.String(), expectedIPs)
-		}
-	}
-
-	logger.Debug("trusted destination validation passed", "hostname", hostname, "ips", ips)
-	return nil
+	return nil, lastErr
 }
 
-func containsIP(ips []net.IP, ip net.IP) bool {
-	for _, candidate := range ips {
-		if candidate.Equal(ip) {
-			return true
-		}
-	}
-	return false
-}
-
-// destinationGuardDialContext returns an http.Transport DialContext that resolves
-// the base URL hostname at dial time, validates the answer against the SSRF or
-// trusted-destination policy, and dials the validated IP directly. The HTTP client
-// otherwise resolves the hostname independently, so a changed DNS answer between
-// validation and connection could redirect the request to an unchecked destination
-// (time-of-check/time-of-use DNS rebinding). Dialing the IP while the transport
-// keeps the hostname preserves the HTTP Host header and TLS server name.
+// destinationGuardDialContext returns an http.Transport DialContext that enforces
+// the destination policy at connection time. For trusted hosts with pinned
+// destinations (validated Service backends) it dials those addresses directly:
+// neither a DNS answer nor Service forwarding can then redirect the request to an
+// unvalidated destination. For untrusted hosts it resolves the base URL hostname
+// at dial time, validates the complete answer against the SSRF policy, and dials
+// the validated IPs. The HTTP client otherwise resolves the hostname
+// independently, so a changed DNS answer between validation and connection could
+// redirect the request to an unchecked destination (time-of-check/time-of-use DNS
+// rebinding). Dialing an IP while the transport keeps the hostname preserves the
+// HTTP Host header and TLS server name.
 func destinationGuardDialContext(
 	hostname string,
 	trustedDestination []string,
 	skipSSRFValidation bool,
 	logger *slog.Logger,
 ) func(ctx context.Context, network, addr string) (net.Conn, error) {
-	var allowed []net.IP
+	var pinned []net.IP
 	for _, ip := range trustedDestination {
 		if parsed := net.ParseIP(ip); parsed != nil {
-			allowed = append(allowed, parsed)
+			pinned = append(pinned, parsed)
 		}
 	}
 	// Trusted host without pinned destinations (e.g. localhost): dial normally.
-	if skipSSRFValidation && len(allowed) == 0 {
+	if skipSSRFValidation && len(pinned) == 0 {
 		return nil
 	}
 
-	dialer := &net.Dialer{Timeout: 30 * time.Second}
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
 	return func(ctx context.Context, _, addr string) (net.Conn, error) {
 		_, port, err := net.SplitHostPort(addr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse dial address %s: %w", addr, err)
 		}
+		if len(pinned) > 0 {
+			// Trusted Service: dial the pre-validated backend addresses directly.
+			destinations := make([]string, 0, len(pinned))
+			for _, ip := range pinned {
+				destinations = append(destinations, net.JoinHostPort(ip.String(), port))
+			}
+			conn, err := dialValidatedAddresses(ctx, dialer, destinations)
+			if err != nil {
+				return nil, fmt.Errorf("failed to connect to any validated destination for %s (expected one of %v): %w", hostname, trustedDestination, err)
+			}
+			logger.Debug("dialed pinned trusted destination", "hostname", hostname)
+			return conn, nil
+		}
+		// Untrusted host: validate the complete DNS answer, then try each validated
+		// address so an unreachable first answer does not fail the request.
 		ips, err := lookupIP(hostname)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
@@ -237,21 +236,19 @@ func destinationGuardDialContext(
 		if len(ips) == 0 {
 			return nil, fmt.Errorf("hostname %s resolved to no IP addresses", hostname)
 		}
-		var dialIP net.IP
+		destinations := make([]string, 0, len(ips))
 		for _, ip := range ips {
-			if skipSSRFValidation {
-				if !containsIP(allowed, ip) {
-					return nil, fmt.Errorf("request blocked: destination %s resolves to %s, expected one of %v (DNS rebinding guard)", hostname, ip.String(), trustedDestination)
-				}
-			} else if isPrivateIP(ip) {
+			if isPrivateIP(ip) {
 				return nil, fmt.Errorf("request blocked: destination %s resolves to private IP %s (SSRF protection)", hostname, ip.String())
 			}
-			if dialIP == nil {
-				dialIP = ip
-			}
+			destinations = append(destinations, net.JoinHostPort(ip.String(), port))
 		}
-		logger.Debug("dialing validated destination", "hostname", hostname, "ip", dialIP.String())
-		return dialer.DialContext(ctx, "tcp", net.JoinHostPort(dialIP.String(), port))
+		conn, err := dialValidatedAddresses(ctx, dialer, destinations)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to %s: %w", hostname, err)
+		}
+		logger.Debug("dialed validated destination", "hostname", hostname)
+		return conn, nil
 	}
 }
 
@@ -405,17 +402,14 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	if !c.skipSSRFValidation || len(c.trustedDestination) > 0 {
+	// SSRF protection at request time; trusted hosts with pinned destinations are
+	// enforced by the dial guard dialing only those addresses.
+	if !c.skipSSRFValidation {
 		parsedURL, err := url.Parse(fullURL)
 		if err != nil {
 			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to parse request URL: %v", err))
 		}
-
-		if !c.skipSSRFValidation {
-			if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
-				return nil, NewConnectionError(c.baseURL, err.Error())
-			}
-		} else if err := validateTrustedDestination(parsedURL.Hostname(), c.trustedDestination, c.logger); err != nil {
+		if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
 			return nil, NewConnectionError(c.baseURL, err.Error())
 		}
 	}
@@ -486,17 +480,14 @@ func (c *ExternalModelsClient) verifyTranscriptionModel(ctx context.Context, mod
 	endpoint := "/audio/transcriptions"
 	fullURL := strings.TrimSuffix(c.baseURL, "/") + endpoint
 
-	// SSRF protection at request time (plus trusted-destination check for internal hosts)
-	if !c.skipSSRFValidation || len(c.trustedDestination) > 0 {
+	// SSRF protection at request time; trusted hosts with pinned destinations are
+	// enforced by the dial guard dialing only those addresses.
+	if !c.skipSSRFValidation {
 		parsedURL, err := url.Parse(fullURL)
 		if err != nil {
 			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to parse request URL: %v", err))
 		}
-		if !c.skipSSRFValidation {
-			if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
-				return nil, NewConnectionError(c.baseURL, err.Error())
-			}
-		} else if err := validateTrustedDestination(parsedURL.Hostname(), c.trustedDestination, c.logger); err != nil {
+		if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
 			return nil, NewConnectionError(c.baseURL, err.Error())
 		}
 	}

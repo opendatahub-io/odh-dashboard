@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
@@ -228,9 +229,12 @@ func (app *App) VerifyExternalModelHandler(
 
 	// 4. Call repository; the k8s client reads Services through the caller's own
 	// credentials to verify that an in-namespace service DNS name is not backed by
-	// an ExternalName (cross-namespace alias) or headless/selectorless Service.
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
+	// an ExternalName (cross-namespace alias), headless/selectorless Service, or
+	// endpoints outside the caller's namespace.
+	identity, _ := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	// With authentication disabled (local development), no identity is injected and
+	// Service lookups fall back to the client's own credentials.
+	if identity == nil && app.config.AuthMethod != config.AuthMethodDisabled {
 		app.unauthorizedResponse(w, r, fmt.Errorf("missing request identity"))
 		return
 	}
