@@ -40,6 +40,7 @@ export const useModelDeploymentSubmit = (
   onOverwrite?: () => Promise<void>;
   isLoading: boolean;
   isReady: boolean;
+  isReadinessLoading: boolean;
   submitError: Error | null;
   clearSubmitError: () => void;
 } => {
@@ -63,12 +64,12 @@ export const useModelDeploymentSubmit = (
   const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
   const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
 
-  const isReady =
-    deployMethodLoaded &&
-    !!deployMethod &&
-    applyExtensionsLoaded &&
-    preDeployExtensionsLoaded &&
-    postDeployExtensionsLoaded;
+  const isReadinessLoading =
+    !deployMethodLoaded ||
+    !applyExtensionsLoaded ||
+    !preDeployExtensionsLoaded ||
+    !postDeployExtensionsLoaded;
+  const isReady = !isReadinessLoading && !!deployMethod;
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -182,9 +183,17 @@ export const useModelDeploymentSubmit = (
       onOverwrite: deployMethod?.properties.supportsOverwrite ? () => onSave(true) : undefined,
       isLoading,
       isReady,
+      isReadinessLoading,
       submitError,
       clearSubmitError: () => setSubmitError(null),
     }),
-    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, isReady, submitError],
+    [
+      onSave,
+      deployMethod?.properties.supportsOverwrite,
+      isLoading,
+      isReady,
+      isReadinessLoading,
+      submitError,
+    ],
   );
 };

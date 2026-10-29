@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import { useDeployMethod } from '../useDeployMethod';
 import { useWizardFieldApply } from '../../useWizardFieldApply';
@@ -44,7 +44,13 @@ const renderSubmit = () =>
     useModelDeploymentSubmit(
       mockDeploymentWizardState().state,
       { modelLocationData: { data: undefined } },
-      {},
+      {
+        model: {
+          kind: 'LLMInferenceService',
+          apiVersion: 'serving.kserve.io/v1alpha2',
+          metadata: { name: 'test-model', namespace: 'test-project' },
+        },
+      },
       { isAllValid: true } as Parameters<typeof useModelDeploymentSubmit>[3],
       {},
       jest.fn(),
@@ -62,12 +68,33 @@ describe('useModelDeploymentSubmit readiness', () => {
     expect(renderSubmit().result.current.isReady).toBe(true);
   });
 
-  it('should not be ready without an inferred deployment method', () => {
+  it('should resolve readiness but remain not ready when no deployment method can be inferred', async () => {
     jest.mocked(useDeployMethod).mockReturnValue({
       deployMethodLoaded: true,
       deployMethodErrors: [],
     });
-    expect(renderSubmit().result.current.isReady).toBe(false);
+    const { result } = renderSubmit();
+    expect(result.current.isReadinessLoading).toBe(false);
+    expect(result.current.isReady).toBe(false);
+
+    await act(async () => result.current.onSave());
+    expect(result.current.submitError?.message).toBe(
+      'Deploy method or extensions not loaded or could not be inferred from resources',
+    );
+  });
+
+  it('should become ready if a deployment method is registered after extensions finish loading', () => {
+    jest.mocked(useDeployMethod).mockReturnValue({
+      deployMethodLoaded: true,
+      deployMethodErrors: [],
+    });
+    const { result, rerender } = renderSubmit();
+    expect(result.current.isReadinessLoading).toBe(false);
+    expect(result.current.isReady).toBe(false);
+
+    configureReadiness();
+    rerender();
+    expect(result.current.isReady).toBe(true);
   });
 
   it.each(['method', 'apply', 'preDeploy', 'postDeploy'])(
@@ -75,9 +102,11 @@ describe('useModelDeploymentSubmit readiness', () => {
     (pending) => {
       configureReadiness(pending);
       const { result, rerender } = renderSubmit();
+      expect(result.current.isReadinessLoading).toBe(true);
       expect(result.current.isReady).toBe(false);
       configureReadiness();
       rerender();
+      expect(result.current.isReadinessLoading).toBe(false);
       expect(result.current.isReady).toBe(true);
     },
   );
