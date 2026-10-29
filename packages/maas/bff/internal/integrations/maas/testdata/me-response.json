@@ -6,7 +6,7 @@
     {
       "organization_id": "42c3e46f-2477-44d7-a85b-d3b43f6b31fa",
       "organization_name": "coke",
-      "roles": []
+      "roles": ["admins"]
     }
   ]
 }
