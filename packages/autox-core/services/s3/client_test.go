@@ -15,8 +15,10 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
@@ -942,9 +944,13 @@ func TestClientConfigWithDefaults(t *testing.T) {
 func TestBuildHTTPClient_TransportTimeouts(t *testing.T) {
 	hc := (&awsClientProvider{cfg: ClientConfig{}}).buildHTTPClient(false)
 
-	transport, ok := hc.Transport.(*http.Transport)
+	proxyContextTransport, ok := hc.Transport.(*proxyContextRoundTripper)
 	if !ok {
-		t.Fatalf("Transport is %T, want *http.Transport", hc.Transport)
+		t.Fatalf("Transport is %T, want *proxyContextRoundTripper", hc.Transport)
+	}
+	transport, ok := proxyContextTransport.base.(*http.Transport)
+	if !ok {
+		t.Fatalf("base Transport is %T, want *http.Transport", proxyContextTransport.base)
 	}
 	if transport.TLSHandshakeTimeout != s3ConnectTimeout {
 		t.Errorf("TLSHandshakeTimeout = %v, want %v", transport.TLSHandshakeTimeout, s3ConnectTimeout)
@@ -954,6 +960,25 @@ func TestBuildHTTPClient_TransportTimeouts(t *testing.T) {
 	}
 	if hc.Timeout != 0 {
 		t.Errorf("client Timeout = %v, want 0 — a blanket deadline truncates large transfers; bound the transport phases instead (see buildHTTPClient)", hc.Timeout)
+	}
+}
+
+func TestBuildHTTPClient_PassesConcreteTransportToWrapper(t *testing.T) {
+	called := false
+	client := (&awsClientProvider{cfg: ClientConfig{
+		WrapTransport: func(base http.RoundTripper) http.RoundTripper {
+			called = true
+			if _, ok := base.(*http.Transport); !ok {
+				t.Errorf("wrapped transport is %T, want *http.Transport", base)
+			}
+			return base
+		},
+	}}).buildHTTPClient(false)
+	if !called {
+		t.Fatal("WrapTransport was not called")
+	}
+	if _, ok := client.Transport.(*proxyContextRoundTripper); !ok {
+		t.Fatalf("Transport is %T, want *proxyContextRoundTripper", client.Transport)
 	}
 }
 
@@ -1022,6 +1047,141 @@ func TestBuildHTTPClient_AllowsConfiguredPortForwardLoopback(t *testing.T) {
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusNoContent)
+	}
+}
+
+func TestBuildHTTPClient_PreservesLoopbackProxyForExternalHTTPS(t *testing.T) {
+	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer target.Close()
+	targetAddress := strings.TrimPrefix(target.URL, "https://")
+
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodConnect {
+			http.Error(w, "expected CONNECT", http.StatusMethodNotAllowed)
+			return
+		}
+		hijacker, ok := w.(http.Hijacker)
+		if !ok {
+			return
+		}
+		clientConn, buffered, err := hijacker.Hijack()
+		if err != nil {
+			return
+		}
+		targetConn, err := net.Dial("tcp", targetAddress)
+		if err != nil {
+			_ = clientConn.Close()
+			return
+		}
+		if _, err = buffered.WriteString("HTTP/1.1 200 Connection Established\r\n\r\n"); err != nil {
+			_ = clientConn.Close()
+			_ = targetConn.Close()
+			return
+		}
+		if err = buffered.Flush(); err != nil {
+			_ = clientConn.Close()
+			_ = targetConn.Close()
+			return
+		}
+		go func() {
+			_, _ = io.Copy(targetConn, clientConn)
+			_ = targetConn.Close()
+		}()
+		go func() {
+			_, _ = io.Copy(clientConn, targetConn)
+			_ = clientConn.Close()
+		}()
+	}))
+	defer proxy.Close()
+
+	t.Setenv("HTTPS_PROXY", proxy.URL)
+	t.Setenv("https_proxy", proxy.URL)
+	t.Setenv("HTTP_PROXY", "")
+	t.Setenv("http_proxy", "")
+	t.Setenv("ALL_PROXY", "")
+	t.Setenv("all_proxy", "")
+	t.Setenv("NO_PROXY", "")
+	t.Setenv("no_proxy", "")
+	client := (&awsClientProvider{cfg: ClientConfig{InsecureSkipVerify: true}}).buildHTTPClient(false)
+	proxyContextTransport, ok := client.Transport.(*proxyContextRoundTripper)
+	if !ok {
+		t.Fatalf("Transport is %T, want *proxyContextRoundTripper", client.Transport)
+	}
+	transport, ok := proxyContextTransport.base.(*http.Transport)
+	if !ok {
+		t.Fatalf("base Transport is %T, want *http.Transport", proxyContextTransport.base)
+	}
+	if transport.Proxy == nil {
+		t.Fatal("external transport must retain environment proxy selection")
+	}
+
+	request, err := http.NewRequest(http.MethodGet, "https://external.example.invalid/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := client.Transport.RoundTrip(request)
+	if err != nil {
+		t.Fatalf("external HTTPS request through loopback proxy failed: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusNoContent)
+	}
+}
+
+func TestProxyContextRoundTripperScopesProxySelectionPerRequest(t *testing.T) {
+	proxyURL, err := url.Parse("http://127.0.0.1:3128")
+	if err != nil {
+		t.Fatal(err)
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	proxyCalls := 0
+	transport.Proxy = func(req *http.Request) (*url.URL, error) {
+		proxyCalls++
+		var selected *url.URL
+		if proxyCalls == 1 {
+			selected = proxyURL
+		}
+		if selection, ok := proxySelectionFromContext(req.Context()); ok {
+			selection.set(selected)
+		}
+		return selected, nil
+	}
+	transport.DialContext = ssrfSafeDialContextWithResolverAndDialer(
+		false,
+		false,
+		staticIPResolver{},
+		func(context.Context, string, string) (net.Conn, error) {
+			return nil, errors.New("dial attempted")
+		},
+		time.Second,
+	)
+	client := &proxyContextRoundTripper{base: transport}
+
+	firstRequest, err := http.NewRequest(http.MethodGet, "http://external.example.invalid/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstResponse, firstErr := client.RoundTrip(firstRequest)
+	if firstResponse != nil {
+		firstResponse.Body.Close()
+	}
+	if firstErr == nil || strings.Contains(firstErr.Error(), "blocked") {
+		t.Fatalf("first proxied request error = %v, want the configured proxy hop to reach the dialer", firstErr)
+	}
+
+	secondRequest, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:3128/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondResponse, secondErr := client.RoundTrip(secondRequest)
+	if secondResponse != nil {
+		secondResponse.Body.Close()
+	}
+	if secondErr == nil || !strings.Contains(secondErr.Error(), "blocked") {
+		t.Fatalf("second direct loopback request error = %v, want loopback rejection", secondErr)
 	}
 }
 

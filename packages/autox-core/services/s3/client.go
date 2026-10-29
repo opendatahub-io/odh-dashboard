@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -403,15 +404,105 @@ func (p *awsClientProvider) buildHTTPClient(requirePrivateEndpoint bool) *http.C
 		}
 	}
 
+	var proxy func(*http.Request) (*url.URL, error)
+	if transport.Proxy != nil {
+		proxy = transport.Proxy
+		transport.Proxy = func(req *http.Request) (*url.URL, error) {
+			proxyURL, err := proxy(req)
+			if selection, ok := proxySelectionFromContext(req.Context()); ok {
+				selection.set(proxyURL)
+			}
+			return proxyURL, err
+		}
+	}
 	var rt http.RoundTripper = transport
 	if p.cfg.WrapTransport != nil {
 		rt = p.cfg.WrapTransport(rt)
+	}
+	if proxy != nil {
+		rt = &proxyContextRoundTripper{base: rt}
 	}
 
 	// A blanket client deadline would truncate large transfers mid-stream; the
 	// hang-prone phases are bounded on the transport above and payload streaming
 	// is bounded by the caller's request context.
 	return &http.Client{Transport: rt} //nosemgrep: go-http-client-no-timeout
+}
+
+type proxySelection struct {
+	mu       sync.RWMutex
+	hostPort string
+}
+
+func (s *proxySelection) set(proxyURL *url.URL) {
+	hostPort := ""
+	if proxyURL != nil {
+		if value, ok := proxyEndpointHostPort(proxyURL); ok {
+			hostPort = value
+		}
+	}
+	s.mu.Lock()
+	s.hostPort = hostPort
+	s.mu.Unlock()
+}
+
+func (s *proxySelection) get() (string, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.hostPort, s.hostPort != ""
+}
+
+type proxySelectionContextKey struct{}
+
+func withProxySelection(ctx context.Context, selection *proxySelection) context.Context {
+	return context.WithValue(ctx, proxySelectionContextKey{}, selection)
+}
+
+func proxySelectionFromContext(ctx context.Context) (*proxySelection, bool) {
+	selection, ok := ctx.Value(proxySelectionContextKey{}).(*proxySelection)
+	return selection, ok && selection != nil
+}
+
+func withTrustedProxyEndpoint(ctx context.Context, hostPort string) context.Context {
+	selection := &proxySelection{hostPort: hostPort}
+	return withProxySelection(ctx, selection)
+}
+
+func trustedProxyEndpoint(ctx context.Context) (string, bool) {
+	selection, ok := proxySelectionFromContext(ctx)
+	if !ok {
+		return "", false
+	}
+	return selection.get()
+}
+
+type proxyContextRoundTripper struct {
+	base http.RoundTripper
+}
+
+func (t *proxyContextRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return t.base.RoundTrip(req.WithContext(withProxySelection(req.Context(), &proxySelection{})))
+}
+
+func proxyEndpointHostPort(proxyURL *url.URL) (string, bool) {
+	host := proxyURL.Hostname()
+	if host == "" {
+		return "", false
+	}
+	port := proxyURL.Port()
+	if port == "" {
+		switch strings.ToLower(proxyURL.Scheme) {
+		case "http":
+			port = "80"
+		case "https":
+			port = "443"
+		case "socks5", "socks5h":
+			port = "1080"
+		default:
+			return "", false
+		}
+	}
+	return net.JoinHostPort(host, port), true
 }
 
 func (c ClientConfig) withDefaults() ClientConfig {

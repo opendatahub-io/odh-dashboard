@@ -192,7 +192,7 @@ func TestValidateResolvedIPs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateResolvedIPs("minio.ns.svc", tt.ips, tt.requirePrivate, false)
+			err := validateResolvedIPs("minio.ns.svc", tt.ips, tt.requirePrivate, false, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validateResolvedIPs() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -586,6 +586,52 @@ func TestSSRFSafeDialContextAllowsTrustedPortForwardLoopback(t *testing.T) {
 	}
 }
 
+func TestSSRFSafeDialContextAllowsConfiguredLoopbackProxy(t *testing.T) {
+	dialStarted := false
+	dial := ssrfSafeDialContextWithResolverAndDialer(
+		false,
+		false,
+		staticIPResolver{},
+		func(context.Context, string, string) (net.Conn, error) {
+			dialStarted = true
+			return nil, errors.New("proxy dial attempted")
+		},
+		10*time.Millisecond,
+	)
+
+	ctx := withTrustedProxyEndpoint(context.Background(), "127.0.0.1:3128")
+	_, err := dial(ctx, "tcp", "127.0.0.1:3128")
+	if !dialStarted {
+		t.Fatal("configured loopback proxy did not reach the base dialer")
+	}
+	if err == nil || !strings.Contains(err.Error(), "proxy dial attempted") {
+		t.Fatalf("error = %v, want the base dialer error", err)
+	}
+}
+
+func TestSSRFSafeDialContextRejectsMismatchedConfiguredProxyPort(t *testing.T) {
+	dialStarted := false
+	dial := ssrfSafeDialContextWithResolverAndDialer(
+		false,
+		false,
+		staticIPResolver{},
+		func(context.Context, string, string) (net.Conn, error) {
+			dialStarted = true
+			return nil, nil
+		},
+		10*time.Millisecond,
+	)
+
+	ctx := withTrustedProxyEndpoint(context.Background(), "127.0.0.1:3128")
+	_, err := dial(ctx, "tcp", "127.0.0.1:3129")
+	if dialStarted {
+		t.Fatal("mismatched configured proxy port reached the base dialer")
+	}
+	if err == nil || !strings.Contains(err.Error(), "blocked") {
+		t.Fatalf("error = %v, want loopback rejection", err)
+	}
+}
+
 func TestSSRFSafeDialContextRejectsMismatchedTrustedPortForward(t *testing.T) {
 	dialStarted := false
 	dial := ssrfSafeDialContextWithResolverAndDialer(
@@ -610,7 +656,7 @@ func TestSSRFSafeDialContextRejectsMismatchedTrustedPortForward(t *testing.T) {
 }
 
 func TestValidateResolvedIPsRejectsNonLoopbackTrustedPortForwardTarget(t *testing.T) {
-	err := validateResolvedIPs("localhost", []net.IPAddr{{IP: net.ParseIP("8.8.8.8")}}, false, true)
+	err := validateResolvedIPs("localhost", []net.IPAddr{{IP: net.ParseIP("8.8.8.8")}}, false, true, false)
 	if err == nil || !strings.Contains(err.Error(), "non-loopback") {
 		t.Fatalf("error = %v, want non-loopback trusted localhost rejection", err)
 	}

@@ -139,12 +139,14 @@ func ssrfSafeDialContextWithResolverAndDialer(
 		dialCtx, cancel := context.WithTimeout(ctx, resolveAndDialTimeout)
 		defer cancel()
 		trustedForwardedHost, hasTrustedForward := corekubernetes.TrustedPortForwardEndpoint(dialCtx)
-		allowLoopback := hasTrustedForward && strings.EqualFold(host, "localhost") && trustedForwardedHost == net.JoinHostPort(host, port)
+		allowLoopbackForPortForward := hasTrustedForward && strings.EqualFold(host, "localhost") && trustedForwardedHost == net.JoinHostPort(host, port)
+		trustedProxyHost, hasTrustedProxy := trustedProxyEndpoint(dialCtx)
+		allowLoopbackForProxy := hasTrustedProxy && trustedProxyHost == net.JoinHostPort(host, port)
 
 		// Validate IP literals here as well because a redirect can change the request
 		// host after the original endpoint has been validated.
 		if ip := net.ParseIP(host); ip != nil {
-			if err := validateResolvedIPs(host, []net.IPAddr{{IP: ip}}, requirePrivateEndpoint, allowLoopback); err != nil {
+			if err := validateResolvedIPs(host, []net.IPAddr{{IP: ip}}, requirePrivateEndpoint, allowLoopbackForPortForward, allowLoopbackForProxy); err != nil {
 				return nil, err
 			}
 			return dialContext(dialCtx, network, addr)
@@ -157,7 +159,7 @@ func ssrfSafeDialContextWithResolverAndDialer(
 			}
 			return nil, fmt.Errorf("endpoint hostname %q cannot be resolved: %w", host, err)
 		}
-		if err := validateResolvedIPs(host, ips, requirePrivateEndpoint, allowLoopback); err != nil {
+		if err := validateResolvedIPs(host, ips, requirePrivateEndpoint, allowLoopbackForPortForward, allowLoopbackForProxy); err != nil {
 			return nil, err
 		}
 
@@ -192,7 +194,7 @@ func ssrfSafeDialContextWithResolverAndDialer(
 // validateResolvedIPs validates every address returned for a hostname before any
 // connection is attempted. A private-only endpoint rejects public destinations even
 // when the hostname itself has a Kubernetes service suffix.
-func validateResolvedIPs(host string, ips []net.IPAddr, requirePrivate, allowLoopbackForPortForward bool) error {
+func validateResolvedIPs(host string, ips []net.IPAddr, requirePrivate, allowLoopbackForPortForward, allowLoopbackForProxy bool) error {
 	if len(ips) == 0 {
 		return fmt.Errorf("endpoint hostname %q resolved to no IP addresses", host)
 	}
@@ -202,6 +204,9 @@ func validateResolvedIPs(host string, ips []net.IPAddr, requirePrivate, allowLoo
 			if !ipAddr.IP.IsLoopback() {
 				return fmt.Errorf("trusted port-forward localhost resolved to non-loopback IP %s", ipAddr.IP)
 			}
+			continue
+		}
+		if allowLoopbackForProxy && ipAddr.IP.IsLoopback() {
 			continue
 		}
 		if err := validateIPAddress(ipAddr.IP); err != nil {

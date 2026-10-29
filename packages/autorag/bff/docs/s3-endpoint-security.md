@@ -37,9 +37,13 @@ for suffix-qualified Kubernetes service endpoints:
 ### 2. Address and Destination Validation
 
 RFC-1918 private ranges and RFC-6598 shared address space are allowed because
-cluster-local S3-compatible services commonly use them. For suffix-qualified HTTP
-service names, every DNS result must be private or RFC-6598 shared before a connection
-is attempted. Public results are rejected.
+cluster-local S3-compatible services commonly use them. For a suffix-qualified
+HTTP service name used as the configured endpoint, every DNS result must be
+private or RFC-6598 shared before a connection is attempted. Public results are
+rejected. Redirects from this HTTP mode retain the private-only check.
+HTTPS-origin redirects do not receive this private-only guarantee. When an
+HTTPS-origin request uses a proxy, the dialer validates the proxy address rather
+than the redirect destination.
 
 Unsafe ranges are rejected for all endpoints, including loopback, link-local,
 multicast, unspecified, and reserved addresses.
