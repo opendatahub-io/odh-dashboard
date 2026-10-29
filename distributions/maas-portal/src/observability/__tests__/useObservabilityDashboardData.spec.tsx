@@ -1,15 +1,27 @@
 import * as React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
+import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { PluginStore } from '@odh-dashboard/plugin-core';
+import HostApiProvider from '../../providers/HostApiProvider';
 import { PORTAL_BASE_PATH } from '../../portalPaths';
 import { GRID } from '../../featureFlags';
-import { MAAS_NAMESPACES_PATH, MAAS_USAGE_DASHBOARDS_PATH } from '../paths';
+import { MAAS_NAMESPACES_PATH, MAAS_USAGE_DASHBOARDS_PATH, PERSES_PROXY_BASE_PATH } from '../paths';
 import { useObservabilityDashboardData } from '../useObservabilityDashboardData';
+
+jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
+  k8sCreateResource: jest.fn(),
+}));
 
 const userDashboard = {
   kind: 'Dashboard',
   metadata: { name: 'dashboard-5-maas-usage-logs', project: 'redhat-ods-monitoring' },
+  spec: { panels: {}, layouts: [], variables: [] },
+};
+
+const adminDashboard = {
+  kind: 'Dashboard',
+  metadata: { name: 'dashboard-5-maas-usage-logs-admin', project: 'redhat-ods-monitoring' },
   spec: { panels: {}, layouts: [], variables: [] },
 };
 
@@ -27,27 +39,31 @@ describe('useObservabilityDashboardData', () => {
   const renderData = () =>
     renderHook(() => useObservabilityDashboardData(), {
       wrapper: ({ children }: { children: React.ReactNode }) => (
-        <PluginStoreProvider store={store}>{children}</PluginStoreProvider>
+        <PluginStoreProvider store={store}>
+          <HostApiProvider>{children}</HostApiProvider>
+        </PluginStoreProvider>
       ),
     });
 
   beforeEach(() => {
     originalFetch = global.fetch;
     store = new PluginStore({});
+    jest.clearAllMocks();
+    jest.mocked(k8sCreateResource).mockResolvedValue({ status: { allowed: false } });
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
   });
 
-  it('should load only the dashboard resources returned by MaaS and map projects', async () => {
+  it('should use the original Perses dashboard list and map projects when grid is off', async () => {
     global.fetch = jest
       .fn()
       .mockImplementation(async (url) =>
         response(
           url === `${PORTAL_BASE_PATH}${MAAS_NAMESPACES_PATH}`
             ? { data: [{ name: 'team-a', displayName: 'Team A' }, { name: 'team-b' }] }
-            : { data: [userDashboard] },
+            : [userDashboard, adminDashboard],
         ),
       );
 
@@ -60,7 +76,7 @@ describe('useObservabilityDashboardData', () => {
     ]);
     expect(result.current.requireProjectsForNamespaceDashboards).toBe(true);
     expect(global.fetch).toHaveBeenCalledWith(
-      `${PORTAL_BASE_PATH}${MAAS_USAGE_DASHBOARDS_PATH}`,
+      `${PERSES_PROXY_BASE_PATH}/api/v1/dashboards`,
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(global.fetch).toHaveBeenCalledWith(
@@ -68,9 +84,10 @@ describe('useObservabilityDashboardData', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(global.fetch).not.toHaveBeenCalledWith(
-      `${PORTAL_BASE_PATH}/perses/api/api/v1/dashboards`,
+      `${PORTAL_BASE_PATH}${MAAS_USAGE_DASHBOARDS_PATH}`,
       expect.anything(),
     );
+    expect(k8sCreateResource).toHaveBeenCalledTimes(1);
   });
 
   it('should skip the namespaces request and allow dashboards without projects in grid mode', async () => {
@@ -88,29 +105,22 @@ describe('useObservabilityDashboardData', () => {
       `${PORTAL_BASE_PATH}${MAAS_USAGE_DASHBOARDS_PATH}`,
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+    expect(k8sCreateResource).not.toHaveBeenCalled();
   });
 
   it.each([401, 403, 503])('should preserve dashboard request status %s', async (status) => {
-    global.fetch = jest
-      .fn()
-      .mockImplementation(async (url) =>
-        url === `${PORTAL_BASE_PATH}${MAAS_NAMESPACES_PATH}`
-          ? response({ data: [] })
-          : response({}, status),
-      );
+    store.setFeatureFlags({ [GRID]: true });
+    global.fetch = jest.fn().mockResolvedValue(response({}, status));
     const { result } = renderData();
     await waitFor(() => expect(result.current.dashboardsError).toMatchObject({ status }));
     expect(result.current.dashboards).toEqual([]);
   });
 
   it('should reject malformed dashboard definitions', async () => {
+    store.setFeatureFlags({ [GRID]: true });
     global.fetch = jest
       .fn()
-      .mockImplementation(async (url) =>
-        url === `${PORTAL_BASE_PATH}${MAAS_NAMESPACES_PATH}`
-          ? response({ data: [] })
-          : response({ data: [{ metadata: { name: 'unexpected' } }] }),
-      );
+      .mockResolvedValue(response({ data: [{ metadata: { name: 'unexpected' } }] }));
     const { result } = renderData();
     await waitFor(() =>
       expect(result.current.dashboardsError?.message).toBe('Invalid response format'),
