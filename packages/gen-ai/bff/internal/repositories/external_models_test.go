@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -177,4 +179,64 @@ func TestResolveTrustedHostForbiddenLookup(t *testing.T) {
 	if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
 		t.Errorf("resolveTrustedHost() error = %v, want ExternalModelError with status 403", err)
 	}
+}
+
+// TestVerifyExternalModelTrustDecision exercises the Service-backed trust decision
+// through VerifyExternalModel itself. The .svc.cluster.local hostname does not
+// resolve in the test environment, so the observable difference is which stage
+// fails: an untrusted host fails SSRF validation before any request ("failed to
+// resolve hostname"), while a trusted host skips that check and fails in the
+// transport's own dial instead.
+func TestVerifyExternalModelTrustDecision(t *testing.T) {
+	logger := slog.Default()
+	identity := &integrations.RequestIdentity{Token: "user-token"}
+	req := models.VerifyExternalModelRequest{
+		ModelID:   "my-model",
+		BaseURL:   "https://my-model.my-ns.svc.cluster.local:8443/v1",
+		ModelType: models.ModelTypeLLM,
+	}
+	repo := NewExternalModelsRepository()
+
+	t.Run("failed Service lookup does not enable the SSRF skip", func(t *testing.T) {
+		client := &k8smocks.ConfigurableMockKubernetesClient{
+			ServiceError: fmt.Errorf("connection refused"),
+		}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want SSRF validation failure")
+		}
+		if !strings.Contains(err.Error(), "failed to resolve hostname") {
+			t.Errorf("VerifyExternalModel() error = %v, want SSRF validation to run (failed to resolve hostname)", err)
+		}
+	})
+
+	t.Run("Forbidden Service lookup prevents the model request", func(t *testing.T) {
+		client := &k8smocks.ConfigurableMockKubernetesClient{
+			ServiceError: apierrors.NewForbidden(schema.GroupResource{Resource: "services"}, "my-model", fmt.Errorf("denied")),
+		}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want permission error")
+		}
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
+			t.Errorf("VerifyExternalModel() error = %v, want ExternalModelError with status 403", err)
+		}
+	})
+
+	t.Run("eligible Service is trusted and skips SSRF validation", func(t *testing.T) {
+		client := &k8smocks.ConfigurableMockKubernetesClient{
+			Service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
+				Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeClusterIP, Selector: map[string]string{"app": "my-model"}},
+			},
+		}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want transport dial failure for the unresolvable test hostname")
+		}
+		if strings.Contains(err.Error(), "failed to resolve hostname") {
+			t.Errorf("VerifyExternalModel() error = %v, SSRF validation must be skipped for a trusted Service", err)
+		}
+	})
 }
