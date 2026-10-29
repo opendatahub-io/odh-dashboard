@@ -7,27 +7,11 @@ import ObservabilityDashboard from '../ObservabilityDashboard';
 import { useObservabilityDashboardData } from '../useObservabilityDashboardData';
 import { PORTAL_BASE_PATH } from '../../portalPaths';
 
-// Keep the real shared dashboard, PatternFly tabs, and router. Only the chart
-// engine and its controls are replaced; they require a live Perses plugin server.
-jest.mock('../../../../../packages/observability/src/perses/embeddable/PersesProvider', () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-jest.mock('../../../../../packages/observability/src/perses/embeddable/PersesDashboard', () => ({
-  __esModule: true,
-  default: () => null,
-}));
-jest.mock('../../../../../packages/observability/src/perses/embeddable/PersesVariables', () => ({
-  __esModule: true,
-  default: () => null,
-}));
-jest.mock('../../../../../packages/observability/src/pages/HeaderTimeRangeControls', () => ({
-  __esModule: true,
-  default: () => null,
-}));
-jest.mock('../../../../../packages/observability/src/pages/NamespaceUrlSync', () => ({
-  __esModule: true,
-  default: () => null,
+jest.mock('@odh-dashboard/observability/embeddable', () => ({
+  PersesProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  PersesDashboard: () => null,
+  PersesTimeControls: () => null,
+  PersesVariables: () => null,
 }));
 jest.mock('@odh-dashboard/ui-core', () => ({
   ApplicationsPage: jest.requireActual(
@@ -37,18 +21,16 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 jest.mock('../useObservabilityDashboardData', () => ({ useObservabilityDashboardData: jest.fn() }));
 
 const dataMock = jest.mocked(useObservabilityDashboardData);
-const dashboard = (name: string, title: string, needsProjects = false): DashboardResource => ({
+const dashboard = (name: string, title: string): DashboardResource => ({
   kind: 'Dashboard',
-  metadata: { name, project: 'default', createdAt: '', updatedAt: '', version: 0 },
+  metadata: { name, project: 'redhat-ods-monitoring', createdAt: '', updatedAt: '', version: 0 },
   spec: {
     display: { name: title },
     datasources: {},
     panels: {},
     layouts: [],
     duration: '30m',
-    variables: needsProjects
-      ? [{ kind: 'TextVariable', spec: { name: 'namespace', value: 'team-a' } }]
-      : [],
+    variables: [],
   },
 });
 
@@ -80,23 +62,17 @@ const renderDashboard = () => {
 describe('ObservabilityDashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    dataMock.mockReturnValue({
-      dashboards: [],
-      dashboardsLoaded: true,
-      projects: [],
-      projectsLoaded: true,
-    });
+    dataMock.mockReturnValue({ dashboards: [], dashboardsLoaded: true });
   });
 
-  it('should navigate between dashboards and preserve portal paths and time range', async () => {
+  it('should navigate between BFF-approved dashboards and preserve the portal URL', async () => {
     dataMock.mockReturnValue({
-      dashboards: [dashboard('dashboard-a', 'Cluster'), dashboard('dashboard-b', 'Models')],
+      dashboards: [dashboard('dashboard-a', 'My Usage'), dashboard('dashboard-b', 'Usage')],
       dashboardsLoaded: true,
-      projects: [],
-      projectsLoaded: true,
     });
     renderDashboard();
-    const tab = screen.getByRole('tab', { name: 'Models' });
+
+    const tab = screen.getByRole('tab', { name: 'Usage' });
     expect(tab).toHaveAttribute(
       'href',
       `${PORTAL_BASE_PATH}/observe-and-monitor/dashboard?start=30m&end=now&dashboard=dashboard-b`,
@@ -107,65 +83,44 @@ describe('ObservabilityDashboard', () => {
         `${PORTAL_BASE_PATH}/observe-and-monitor/dashboard?start=30m&end=now&dashboard=dashboard-b`,
       ),
     );
-    expect(screen.getByRole('tab', { name: 'Models' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Usage' })).toHaveAttribute('aria-selected', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(screen.getByTestId('location')).toHaveTextContent(`${PORTAL_BASE_PATH}/landing`);
   });
 
+  it('should show one tab for a user dashboard', () => {
+    dataMock.mockReturnValue({
+      dashboards: [dashboard('dashboard-5-maas-usage-logs', 'My Usage')],
+      dashboardsLoaded: true,
+    });
+    renderDashboard();
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    expect(screen.getByRole('tab', { name: 'My Usage' })).toBeInTheDocument();
+  });
+
   it.each([
-    ['dashboardsError', 403, 'portal-observability-access-denied'],
-    ['projectsLoadError', 403, 'portal-observability-projects-access-denied'],
-    ['dashboardsError', 503, 'portal-observability-unavailable'],
-    ['projectsLoadError', 503, 'portal-observability-unavailable'],
-  ])('should display the correct error page for %s with status %s', (field, status, testId) => {
+    [401, 'portal-observability-access-denied'],
+    [403, 'portal-observability-access-denied'],
+    [503, 'portal-observability-unavailable'],
+  ])('should display the correct error page for status %s', (status, testId) => {
     dataMock.mockReturnValue({
       dashboards: [],
       dashboardsLoaded: true,
-      projects: [],
-      projectsLoaded: true,
-      [field]: Object.assign(new Error('request failed'), { status }),
+      dashboardsError: Object.assign(new Error('request failed'), { status }),
     });
     renderDashboard();
     expect(screen.getByTestId(testId)).toBeInTheDocument();
   });
 
-  it('should ask for project access when only project dashboards exist', () => {
-    dataMock.mockReturnValue({
-      dashboards: [dashboard('dashboard-models', 'Models', true)],
-      dashboardsLoaded: true,
-      projects: [],
-      projectsLoaded: true,
-    });
+  it('should show an empty state when MaaS returns no dashboards', () => {
     renderDashboard();
-    expect(screen.getByTestId('portal-no-projects')).toHaveTextContent(
-      'ask for access to a project',
-    );
-    expect(screen.queryByTestId('observability-dashboard-tabs')).not.toBeInTheDocument();
+    expect(screen.getByText('No usage dashboards were found.')).toBeInTheDocument();
   });
 
-  it('should display a namespace dashboard without projects in grid mode', () => {
-    dataMock.mockReturnValue({
-      dashboards: [dashboard('dashboard-models', 'Models', true)],
-      dashboardsLoaded: true,
-      projects: [],
-      projectsLoaded: true,
-      requireProjectsForNamespaceDashboards: false,
-    });
-    renderDashboard();
-    expect(screen.getByRole('tab', { name: 'Models' })).toBeInTheDocument();
-    expect(screen.queryByTestId('portal-no-projects')).not.toBeInTheDocument();
-  });
-
-  it('should wait for projects before rendering dashboards', () => {
-    dataMock.mockReturnValue({
-      dashboards: [dashboard('dashboard-models', 'Models', true)],
-      dashboardsLoaded: true,
-      projects: [],
-      projectsLoaded: false,
-    });
+  it('should wait for the BFF response before rendering tabs', () => {
+    dataMock.mockReturnValue({ dashboards: [], dashboardsLoaded: false });
     renderDashboard();
     expect(screen.queryByTestId('observability-dashboard-tabs')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('portal-no-projects')).not.toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 });

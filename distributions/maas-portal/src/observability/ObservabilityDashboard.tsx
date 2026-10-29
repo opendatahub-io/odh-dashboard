@@ -1,24 +1,33 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody, EmptyStateVariant, PageSection } from '@patternfly/react-core';
-import { ExclamationCircleIcon, WrenchIcon } from '@patternfly/react-icons';
-import { DashboardView } from '@odh-dashboard/observability/dashboard';
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  Flex,
+  FlexItem,
+  PageSection,
+  Tab,
+  Tabs,
+  TabTitleText,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import {
+  PersesDashboard,
+  PersesProvider,
+  PersesTimeControls,
+  PersesVariables,
+} from '@odh-dashboard/observability/embeddable';
 import { PERSES_PROXY_BASE_PATH } from './paths';
 import { useObservabilityDashboardData } from './useObservabilityDashboardData';
-import PortalClusterDetailsVariablesProvider from '../providers/PortalClusterDetailsVariablesProvider';
 import { PORTAL_BASE_PATH } from '../portalPaths';
 
-const NoProjects: React.FC = () => (
-  <EmptyState
-    headingLevel="h4"
-    icon={WrenchIcon}
-    titleText="No projects"
-    data-testid="portal-no-projects"
-  >
-    <EmptyStateBody>
-      To view project dashboards and metrics, ask for access to a project.
-    </EmptyStateBody>
-  </EmptyState>
-);
+const DASHBOARD_PATH = '/observe-and-monitor/dashboard';
+const DASHBOARD_TITLE = 'Observability metrics';
+const DASHBOARD_DESCRIPTION =
+  'Monitor the health, performance, and resource usage of your AI workloads, cluster, and models.';
 
 const ObservabilityUnavailable: React.FC = () => (
   <PageSection hasBodyWrapper={false} isFilled>
@@ -36,57 +45,141 @@ const ObservabilityUnavailable: React.FC = () => (
   </PageSection>
 );
 
-type AccessDeniedProps = {
-  title: string;
-  children: React.ReactNode;
-  testId: string;
-};
-
-const AccessDenied: React.FC<AccessDeniedProps> = ({ title, children, testId }) => (
+const AccessDenied: React.FC = () => (
   <PageSection hasBodyWrapper={false} isFilled>
     <EmptyState
       headingLevel="h1"
       icon={ExclamationCircleIcon}
-      titleText={title}
+      titleText="Access to observability dashboards is denied"
       variant={EmptyStateVariant.lg}
-      data-testid={testId}
+      data-testid="portal-observability-access-denied"
     >
-      <EmptyStateBody>{children}</EmptyStateBody>
+      <EmptyStateBody>
+        You do not have permission to view observability dashboards. Contact your administrator to
+        request access.
+      </EmptyStateBody>
     </EmptyState>
   </PageSection>
 );
 
+const TimeControls: React.FC = () => (
+  <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+    <FlexItem>Time period:</FlexItem>
+    <FlexItem>
+      <PersesTimeControls />
+    </FlexItem>
+  </Flex>
+);
+
 const ObservabilityDashboard: React.FC = () => {
-  const dashboardData = useObservabilityDashboardData();
+  const { dashboards, dashboardsLoaded, dashboardsError } = useObservabilityDashboardData();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  if (dashboardsError) {
+    const status =
+      'status' in dashboardsError && typeof dashboardsError.status === 'number'
+        ? dashboardsError.status
+        : getGenericErrorCode(dashboardsError);
+    return (
+      <ApplicationsPage
+        title={DASHBOARD_TITLE}
+        description={DASHBOARD_DESCRIPTION}
+        loaded
+        empty={false}
+        loadError={dashboardsError}
+        loadErrorPage={
+          status === 401 || status === 403 ? <AccessDenied /> : <ObservabilityUnavailable />
+        }
+      />
+    );
+  }
+
+  if (!dashboardsLoaded) {
+    return (
+      <ApplicationsPage
+        title={DASHBOARD_TITLE}
+        description={DASHBOARD_DESCRIPTION}
+        loaded={false}
+        empty={false}
+      />
+    );
+  }
+
+  if (dashboards.length === 0) {
+    return (
+      <ApplicationsPage
+        title={DASHBOARD_TITLE}
+        description={DASHBOARD_DESCRIPTION}
+        loaded
+        empty
+        emptyMessage="No usage dashboards were found."
+      />
+    );
+  }
+
+  const requestedDashboard = searchParams.get('dashboard');
+  const activeDashboard =
+    dashboards.find(({ metadata }) => metadata.name === requestedDashboard) ?? dashboards[0];
+  const activeDashboardName = activeDashboard.metadata.name;
+  const dashboardUrl = (name: string): string => {
+    const params = new URLSearchParams(searchParams);
+    params.set('dashboard', name);
+    return `${DASHBOARD_PATH}?${params.toString()}`;
+  };
+  const handleTabSelect = (
+    event: React.MouseEvent<HTMLElement>,
+    eventKey: string | number,
+  ): void => {
+    if (event.metaKey || event.ctrlKey) {
+      return;
+    }
+    event.preventDefault();
+    navigate(dashboardUrl(String(eventKey)), { replace: true });
+  };
 
   return (
-    <DashboardView
-      {...dashboardData}
-      dashboardsLoadErrorPage={<ObservabilityUnavailable />}
-      dashboardsForbiddenErrorPage={
-        <AccessDenied
-          title="Access to observability dashboards is denied"
-          testId="portal-observability-access-denied"
-        >
-          You do not have permission to view observability dashboards. Contact your administrator to
-          request access.
-        </AccessDenied>
-      }
-      projectsForbiddenErrorPage={
-        <AccessDenied
-          title="Access to projects is denied"
-          testId="portal-observability-projects-access-denied"
-        >
-          You do not have permission to list projects for observability dashboards. Contact your
-          administrator to request access.
-        </AccessDenied>
-      }
-      projectsLoadErrorPage={<ObservabilityUnavailable />}
+    <PersesProvider
+      key={activeDashboardName}
+      dashboardResource={activeDashboard}
+      syncToUrl
       persesProxyBasePath={PERSES_PROXY_BASE_PATH}
-      browserBasePath={PORTAL_BASE_PATH}
-      ClusterDetailsAdapter={PortalClusterDetailsVariablesProvider}
-      noProjectsEmptyState={<NoProjects />}
-    />
+    >
+      <ApplicationsPage
+        title={DASHBOARD_TITLE}
+        description={DASHBOARD_DESCRIPTION}
+        loaded
+        empty={false}
+        headerAction={<TimeControls />}
+      >
+        <Tabs
+          data-testid="observability-dashboard-tabs"
+          activeKey={activeDashboardName}
+          onSelect={handleTabSelect}
+          aria-label="Observability dashboard tabs"
+          mountOnEnter
+          unmountOnExit
+        >
+          {dashboards.map((dashboard) => (
+            <Tab
+              key={dashboard.metadata.name}
+              eventKey={dashboard.metadata.name}
+              title={
+                <TabTitleText>
+                  {dashboard.spec.display?.name || dashboard.metadata.name}
+                </TabTitleText>
+              }
+              href={`${PORTAL_BASE_PATH}${dashboardUrl(dashboard.metadata.name)}`}
+            >
+              <PageSection hasBodyWrapper={false} isFilled>
+                <PersesVariables />
+                <PersesDashboard />
+              </PageSection>
+            </Tab>
+          ))}
+        </Tabs>
+      </ApplicationsPage>
+    </PersesProvider>
   );
 };
 
