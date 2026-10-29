@@ -59,7 +59,7 @@ func ListSubscriptionsHandler(app *App, w http.ResponseWriter, r *http.Request, 
 	app.writeSubscriptionsResponse(w, r, subscriptions)
 }
 
-// ListAdminSubscriptionsHandler handles GET /api/v1/admin-subscriptions
+// ListAdminSubscriptionsHandler handles GET /api/v1/admin-subscriptions.
 // Serves maas-api subscriptions for which the caller has the admin role,
 // mapped onto the all-subscriptions shape. maas-api must be reachable
 // (503 otherwise).
