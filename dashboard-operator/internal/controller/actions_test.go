@@ -106,7 +106,7 @@ func TestApplyKustomizeParamsKeepsOCIBaseImageOutOfSharedParams(t *testing.T) {
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	paramsPath := filepath.Join(overlay, "params.env")
 	require.NoError(t, os.WriteFile(paramsPath, []byte("images-oci-base-image=stale.example.com/base:1\n"), 0644))
-	t.Setenv("RELATED_IMAGE_ODH_MODEL_REGISTRY_OCI_BASE_IMAGE", "legacy.example.com/base:1")
+	t.Setenv("RELATED_IMAGE_ODH_MODEL_REGISTRY_OCI_BASE_IMAGE", "unmapped.example.com/base:1")
 
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
 		ModelRegistryOCIBaseImage: "mirror.example.com/base:1",

@@ -507,6 +507,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	// Report upload ConfigMap reconciliation failures after reconciling other resources,
 	// while preserving any existing provisioning failure condition.
 	// OCI validation is informational and is recorded independently by the helper.
+	// Log completion only after the final error and requeue result are known.
 	defer func() {
 		if uploadConfigErr != nil {
 			if conditions.IsStatusConditionTrue(dashboard, string(common.ConditionTypeProvisioningSucceeded)) {
@@ -515,6 +516,14 @@ func (r *DashboardReconciler) reconcileDeployment(
 					conditions.WithReason("ModelRegistryConfigFailed"))
 			}
 			reconcileErr = errors.Join(reconcileErr, uploadConfigErr)
+		}
+		if reconcileErr != nil {
+			return
+		}
+		if result.RequeueAfter > 0 {
+			logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", result.RequeueAfter)
+		} else {
+			logger.Info("Dashboard reconciled successfully", "url", dashboard.Status.URL, "modules", len(dashboard.Status.ModuleStatuses))
 		}
 	}()
 
@@ -640,6 +649,9 @@ func (r *DashboardReconciler) reconcileDeployment(
 	}
 	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard, observabilityKnown)
 	if err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithError(err),
+			conditions.WithReason("FederationConfigMapFailed"))
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("FederationConfigMapFailed"),
 			conditions.WithError(err))
@@ -649,12 +661,15 @@ func (r *DashboardReconciler) reconcileDeployment(
 	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithError(err),
+			conditions.WithReason("FederationHashPatchFailed"))
 		logger.Error(err, "Failed to patch federation hash on deployment")
 		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
 	// URL extraction + degraded condition
-	url, requeueAfter, urlErr := r.reconcileURL(ctx, dashboard, cm)
+	_, requeueAfter, urlErr := r.reconcileURL(ctx, dashboard, cm)
 	if urlErr != nil {
 		return ctrl.Result{}, urlErr
 	}
@@ -668,12 +683,6 @@ func (r *DashboardReconciler) reconcileDeployment(
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("NamespacedRBACFailed"),
 			conditions.WithError(rbacErr))
-	}
-
-	if requeueAfter > 0 {
-		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
-	} else {
-		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
 	}
 
 	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {

@@ -285,7 +285,7 @@ func TestResolveImageParams(t *testing.T) {
 		got := resolveImageParams()
 		assert.Equal(t, "quay.io/dashboard:latest", got["odh-dashboard-image"])
 		assert.Equal(t, "quay.io/mr:v1", got["model-registry-ui-image"])
-		assert.NotContains(t, got, "images-oci-base-image", "the legacy env var must not override the CR")
+		assert.NotContains(t, got, "images-oci-base-image", "the OCI base image must not be mapped from a RELATED_IMAGE environment variable")
 		assert.Equal(t, "quay.io/automl-runtime:v2", got["automl-pipeline-runtime-image"])
 		assert.Equal(t, "quay.io/autorag-runtime:v3", got["autorag-pipeline-runtime-image"])
 		assert.Equal(t, "registry.redhat.io/rhoai/odh-ogx-core-rhel9@sha256:abc123", got["ogx-core-image"])

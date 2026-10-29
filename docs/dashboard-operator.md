@@ -31,7 +31,7 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | Field | Type | Purpose |
 |-------|------|---------|
 | `phase` | `Ready\|NotReady` | Overall controller health |
-| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSPortalAvailable` |
+| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSPortalAvailable`, and optional `ModelRegistryConfigValid` |
 | `observedGeneration` | `int64` | Last processed spec generation |
 | `url` | `string` | Externally-reachable dashboard URL |
 | `maasPortalUrl` | `string` | Last known good MaaS Portal URL; cleared when the operand is removed |
@@ -56,17 +56,17 @@ The controller follows a sequential pipeline on each reconcile:
 ```text
 1. Fetch CR            -> return nil for NotFound (deleted)
 2. Handle deletion     -> finalizer + cross-namespace cleanup
-3. Handle Removed      -> tear down core resources, retain portal dependencies
+3. Handle core Removed -> reconcile retained modules, then tear down core resources
 4. Deploy:
    -> Clean up legacy sidecar resources (upgrade path)
    -> Render overlay (odh or rhoai)
    -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
    -> Validate and apply Model Registry upload ConfigMap independently
-   -> GC disabled module resources
    -> For each enabled module:
    |   -> Render manifests/modules/<slug>/
    |   -> Deploy as independent Deployment via SSA
-   |   -> Record failure and continue with other modules
+   |   -> On failure, stop and retry (no module cleanup or federation update)
+   -> Clean up disabled module resources (garbage collection)
    -> Build dynamic federation-config ConfigMap
    -> Patch main Deployment with config hash annotation (rolling restart)
 5. Extract URL         -> Route admission check
@@ -75,7 +75,7 @@ The controller follows a sequential pipeline on each reconcile:
 
 ### ManagementState Handling
 
-The controller supports `managementState: Removed` on the Dashboard CR. When set:
+The controller supports `managementState: Removed` on the Dashboard CR. The Operator keeps running to reconcile removal of the core Dashboard application. When set:
 
 1. Resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (HTTPRoutes, Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings, except shared resources still needed by a managed MaaS Portal. HTTPRoute cleanup is skipped when the Gateway API mapping is unavailable.
 2. Enabled observability resources are retained while the portal is managed, including resources in a separate monitoring namespace; otherwise they are cleaned up
@@ -86,8 +86,8 @@ The controller supports `managementState: Removed` on the Dashboard CR. When set
 The portal lifecycle is independent of the core dashboard's `managementState`.
 A managed portal retains its shared module and observability dependencies during
 core removal. See [portal lifecycle and shared dependencies](maas-portal.md#lifecycle-and-shared-dependencies).
-Core teardown runs before updates to retained modules, using their desired demand
-to determine which resources to preserve. Invalid Model Registry OCI configuration
+Retained-module demand is reconciled before core teardown; if retained-module
+reconciliation fails, teardown is skipped and retried. Invalid Model Registry OCI configuration
 does not block removal or unrelated resource updates; see
 [Model Registry OCI Upload Base Image](model-registry-oci-base-image.md).
 
@@ -360,6 +360,7 @@ The Dashboard type provides five methods:
 | `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
 | [`MaaSPortalAvailable`](maas-portal.md#configuration-and-availability) | MaaS Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
+| [`ModelRegistryConfigValid`](model-registry-oci-base-image.md) | Not set to True; cleared when the OCI base-image value is valid or unset, or when the core Dashboard is `Removed` | A value passed admission but failed controller validation (`InvalidOCIBaseImage`, `severity: Info`); excluded from the `Ready` rollup |
 
 Portal-specific failure reasons use the `MaaSPortal` prefix. Reconciliation removes the legacy portal availability condition before calculating readiness.
 

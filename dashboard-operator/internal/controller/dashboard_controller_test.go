@@ -998,15 +998,19 @@ func TestReconcile_StatusContract(t *testing.T) {
 	}
 }
 
-func TestReconcile_UploadConfigFailureStatus(t *testing.T) {
+func TestReconcile_ProvisioningFailureStatus(t *testing.T) {
 	for _, tt := range []struct {
-		name         string
-		laterFailure string
-		wantReason   string
+		name          string
+		uploadFailure bool
+		laterFailure  string
+		wantReason    string
 	}{
-		{name: "upload config only", wantReason: "ModelRegistryConfigFailed"},
-		{name: "later federation hash error", laterFailure: "federation", wantReason: "ModelRegistryConfigFailed"},
-		{name: "preserve module failure", laterFailure: "module", wantReason: "ModuleDeployFailed"},
+		{name: "upload config only", uploadFailure: true, wantReason: "ModelRegistryConfigFailed"},
+		{name: "federation config only", laterFailure: "federation-config", wantReason: "FederationConfigMapFailed"},
+		{name: "federation hash only", laterFailure: "federation-hash", wantReason: "FederationHashPatchFailed"},
+		{name: "preserve federation config failure", uploadFailure: true, laterFailure: "federation-config", wantReason: "FederationConfigMapFailed"},
+		{name: "preserve federation hash failure", uploadFailure: true, laterFailure: "federation-hash", wantReason: "FederationHashPatchFailed"},
+		{name: "preserve module failure", uploadFailure: true, laterFailure: "module", wantReason: "ModuleDeployFailed"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			base := createMinimalManifests(t)
@@ -1039,23 +1043,38 @@ data:
 				},
 				Spec: v1alpha1.DashboardSpec{
 					Modules:                   modules,
-					ModelRegistryOCIBaseImage: "mirror.example.com/Busybox:1",
+					ModelRegistryOCIBaseImage: "mirror.example.com/base:1",
 				},
 			}
+			if tt.uploadFailure {
+				dashboard.Spec.ModelRegistryOCIBaseImage = "mirror.example.com/Busybox:1"
+			}
+			deployment := &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard", Namespace: testNamespace},
+			}
 			uploadErr := errors.New("upload ConfigMap read failed")
-			federationErr := errors.New("federation deployment lookup failed")
+			federationErr := errors.New("federation operation failed")
 			scheme := testScheme(t)
 			cli := fake.NewClientBuilder().WithScheme(scheme).
-				WithObjects(dashboard, admittedRoute(testNamespace)).WithStatusSubresource(dashboard).
+				WithObjects(dashboard, deployment, admittedRoute(testNamespace)).WithStatusSubresource(dashboard).
 				WithInterceptorFuncs(interceptor.Funcs{
 					Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-						if _, ok := obj.(*corev1.ConfigMap); ok && key.Name == "model-registry-ui-config" {
+						if _, ok := obj.(*corev1.ConfigMap); ok && key.Name == "model-registry-ui-config" && tt.uploadFailure {
 							return uploadErr
 						}
-						if _, ok := obj.(*appsv1.Deployment); ok && key.Name == "odh-dashboard" && tt.laterFailure == "federation" {
+						return delegate.Get(ctx, key, obj, opts...)
+					},
+					Apply: func(ctx context.Context, delegate client.WithWatch, configuration runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
+						if obj, ok := configuration.(metav1.Object); ok && obj.GetName() == "federation-config" && tt.laterFailure == "federation-config" {
 							return federationErr
 						}
-						return delegate.Get(ctx, key, obj, opts...)
+						return delegate.Apply(ctx, configuration, opts...)
+					},
+					Patch: func(ctx context.Context, delegate client.WithWatch, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+						if _, ok := obj.(*appsv1.Deployment); ok && obj.GetName() == "odh-dashboard" && tt.laterFailure == "federation-hash" {
+							return federationErr
+						}
+						return delegate.Patch(ctx, obj, patch, opts...)
 					},
 				}).Build()
 			r := &ctrlpkg.DashboardReconciler{
@@ -1065,9 +1084,13 @@ data:
 			ctx := context.Background()
 			req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)}
 			_, err := r.Reconcile(ctx, req)
-			require.ErrorIs(t, err, uploadErr)
+			if tt.uploadFailure {
+				require.ErrorIs(t, err, uploadErr)
+			} else {
+				require.NotErrorIs(t, err, uploadErr)
+			}
 			switch tt.laterFailure {
-			case "federation":
+			case "federation-config", "federation-hash":
 				require.ErrorIs(t, err, federationErr)
 			case "module":
 				require.ErrorContains(t, err, "failed to render manifests for module genAi")
@@ -1078,6 +1101,9 @@ data:
 			require.NotNil(t, provisioning)
 			assert.Equal(t, metav1.ConditionFalse, provisioning.Status)
 			assert.Equal(t, tt.wantReason, provisioning.Reason)
+			if tt.laterFailure == "federation-config" || tt.laterFailure == "federation-hash" {
+				assert.Contains(t, provisioning.Message, federationErr.Error())
+			}
 			assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
 			assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 		})
