@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -239,7 +240,11 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 // skip SSRF validation. A namespace user can create a ServiceTypeExternalName Service
 // whose in-namespace DNS name aliases an arbitrary target (e.g. in another namespace),
 // so the backing Service is read through the Kubernetes API and ExternalName services
-// are not trusted (fail closed on lookup errors too).
+// are not trusted. Headless and selectorless Services are also rejected: their
+// endpoint addresses are manually managed and can point at Pods in another namespace,
+// so a Service with no selector must not receive the SSRF exemption (fail closed on
+// lookup errors too). A Forbidden lookup returns an error so the caller learns the
+// missing permission instead of a misleading connectivity failure.
 func resolveTrustedHost(
 	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
@@ -247,24 +252,35 @@ func resolveTrustedHost(
 	baseURL string,
 	namespace string,
 	logger *slog.Logger,
-) bool {
+) (bool, error) {
 	if !isInternalHost(baseURL, namespace) {
-		return false
+		return false, nil
 	}
 	svcName, svcNamespace, ok := k8sServiceHost(baseURL)
 	if !ok {
 		// localhost/loopback for local development
-		return true
+		return true, nil
 	}
 	svc, err := client.GetService(ctx, identity, svcNamespace, svcName)
 	if err != nil {
+		if apierrors.IsForbidden(err) {
+			return false, &externalmodels.ExternalModelError{
+				Code:       "FORBIDDEN",
+				Message:    fmt.Sprintf("verifying an in-cluster endpoint requires permission to get the Service %s/%s, which the caller lacks", svcNamespace, svcName),
+				BaseURL:    baseURL,
+				StatusCode: http.StatusForbidden,
+			}
+		}
 		logger.Warn("service lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
-		return false
+		return false, nil
 	}
 	if svc.Spec.Type == corev1.ServiceTypeExternalName {
-		return false
+		return false, nil
 	}
-	return true
+	if svc.Spec.ClusterIP == "None" || len(svc.Spec.Selector) == 0 {
+		return false, nil
+	}
+	return true, nil
 }
 
 // internalHostRootCAs returns the provided CA pool only when the URL targets an internal
@@ -293,7 +309,10 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	rootCAs *x509.CertPool,
 	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
-	trusted := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace, logger)
+	trusted, err := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace, logger)
+	if err != nil {
+		return nil, err
+	}
 	modelsClient, err := externalmodels.NewExternalModelsClient(
 		logger,
 		req.BaseURL,
