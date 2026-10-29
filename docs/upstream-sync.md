@@ -262,6 +262,8 @@ Behavior:
 5. On a clean sync, run `test:lint`, `test:type-check`, and `test:unit` in `packages/model-registry/upstream/frontend`.
 6. **publish-branch** applies validated patches and pushes `automated/model-registry-upstream-sync`; **publish-pr** creates or updates a PR against `main` and assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro`.
 
+The sync step sets `SUBTREE_STRICT_EXIT=1` so shared subtree helpers preserve error exit codes under pnpm. Interactive callers retain the existing npm compatibility behavior. Sync logs live in `$RUNNER_TEMP/sync-output.txt` and are uploaded separately as `model-registry-sync-log`; they do not enter the checkout or published patches.
+
 ### Failure and conflict handling
 
 | Outcome | What happens |
