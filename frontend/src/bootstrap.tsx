@@ -13,6 +13,10 @@ import ErrorBoundary from './components/error/ErrorBoundary';
 import RouteErrorElement from './components/error/RouteErrorElement';
 import { ReduxContext } from './redux/context';
 
+if (process.env.NODE_ENV === 'development') {
+  import('@locator/runtime').then(({ default: setupLocatorUI }) => setupLocatorUI());
+}
+
 // Creates a data router using createBrowserRouter
 const router = createBrowserRouter([
   {

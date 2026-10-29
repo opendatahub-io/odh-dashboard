@@ -82,11 +82,17 @@ module.exports = (env) => ({
                 transform: {
                   react: {
                     runtime: 'classic',
+                    development: env === 'development',
                     refresh: env === 'development',
                   },
                 },
               },
             },
+          },
+          // Loaders run right-to-left, so Locator instruments JSX before SWC compiles it.
+          env === 'development' && {
+            loader: path.resolve(__dirname, 'locator-loader.js'),
+            options: { env: 'development' },
           },
         ].filter(Boolean),
       },

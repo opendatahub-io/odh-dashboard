@@ -125,6 +125,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@locator/babel-jsx": "^0.5.1",
+    "@locator/runtime": "^0.5.1",
     "@module-federation/enhanced": "^0.24.1",
     "@odh-dashboard/app-config": "workspace:*",
     "@odh-dashboard/eslint-config": "workspace:*",
