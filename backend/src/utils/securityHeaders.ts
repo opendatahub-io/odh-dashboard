@@ -4,9 +4,9 @@ import type { IncomingHttpHeaders } from 'http';
 import { getCacheControlForStaticFile, isStaticAsset } from './cacheHeaders';
 
 /**
- * Header values shared with OpenShift Console `WithSecurityHeaders`.
+ * Baseline browser security headers applied to every response.
  * Cache-Control is selective: no-store on API paths, filename policy for proxied
- * static assets. Console also sends `Pragma: no-cache` and no-store on every response.
+ * static assets.
  */
 export const REFERRER_POLICY = 'strict-origin-when-cross-origin';
 export const X_CONTENT_TYPE_OPTIONS = 'nosniff';
@@ -35,11 +35,10 @@ const COMMON_SECURITY_HEADERS: ReadonlyArray<[string, string]> = [
 export const SEGMENT_TELEMETRY_ORIGIN = 'https://console.redhat.com';
 
 /**
- * Enforcing `Content-Security-Policy` for HTML responses. Mirrors OpenShift
- * Console's `BuildCSPDirectives`, with two deltas documented in
- * `docs/content-security-policy.md`:
- * - `frame-src` allows `https:` for KFP artifact previews (Console uses `'none'`)
- * - `img-src` / `media-src` allow `blob:` for gen-ai attachment previews
+ * Enforcing `Content-Security-Policy` for HTML responses. Each directive and the
+ * allowances it makes are explained in `docs/content-security-policy.md`:
+ * `frame-src` allows `https:` for KFP artifact previews, and `img-src` / `media-src`
+ * allow `blob:` for gen-ai attachment previews.
  */
 export const CONTENT_SECURITY_POLICY_DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
   ['default-src', "'self'"],

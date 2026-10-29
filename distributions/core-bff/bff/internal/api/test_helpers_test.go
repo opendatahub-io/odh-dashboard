@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertConsoleSecurityHeaders(t *testing.T, h http.Header) {
+func assertBrowserSecurityHeaders(t *testing.T, h http.Header) {
 	t.Helper()
 	assert.Equal(t, constants.ReferrerPolicyStrictOriginWhenCrossOrigin, h.Get(constants.HeaderReferrerPolicy))
 	assert.Equal(t, constants.XContentTypeOptionsNoSniff, h.Get(constants.HeaderXContentTypeOptions))

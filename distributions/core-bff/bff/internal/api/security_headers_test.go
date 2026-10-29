@@ -28,7 +28,7 @@ func TestSetSecurityHeaders_APIGetsNoStore(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/v1/healthcheck", nil))
 
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 	assertNoStoreCache(t, rr.Header())
 }
 
@@ -44,7 +44,7 @@ func TestSetSecurityHeaders_NonAPIDoesNotForceNoStore(t *testing.T) {
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/app.abcdef0123456789.js", nil))
 
 	assert.Equal(t, "public, max-age=31536000, immutable", rr.Header().Get(constants.HeaderCacheControl))
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 }
 
 // A module document reached through the host proxy keeps the policy.
@@ -99,7 +99,7 @@ func TestSetSecurityHeaders_HTMLGetsCSP(t *testing.T) {
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/projects", nil))
 
 	assertContentSecurityPolicy(t, rr.Header())
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 }
 
 func TestSetSecurityHeaders_NonDocumentsOmitCSP(t *testing.T) {
@@ -127,7 +127,7 @@ func TestSetSecurityHeaders_NonDocumentsOmitCSP(t *testing.T) {
 			app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, tt.path, nil))
 
 			assertNoContentSecurityPolicy(t, rr.Header())
-			assertConsoleSecurityHeaders(t, rr.Header())
+			assertBrowserSecurityHeaders(t, rr.Header())
 		})
 	}
 }
@@ -202,7 +202,7 @@ func TestSetSecurityHeaders_FlushAppliesHeaders(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/v1/healthcheck", nil))
 
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 	assertNoStoreCache(t, rr.Header())
 }
 
@@ -217,7 +217,7 @@ func TestSetSecurityHeaders_UnwrittenResponseFinalized(t *testing.T) {
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/v1/healthcheck", nil))
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 	assertNoStoreCache(t, rr.Header())
 }
 
@@ -233,7 +233,7 @@ func TestSetSecurityHeaders_DuplicateWriteHeaderIgnored(t *testing.T) {
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/v1/healthcheck", nil))
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 }
 
 // statusCaptureWriter records every WriteHeader call so informational + final statuses can be asserted.
@@ -274,7 +274,7 @@ func TestSecurityHeadersWriter_InformationalThenFinalStatus(t *testing.T) {
 
 	require.Equal(t, []int{http.StatusEarlyHints, http.StatusNotFound}, rec.codes)
 	assert.Equal(t, "missing", string(rec.body))
-	assertConsoleSecurityHeaders(t, rec.header)
+	assertBrowserSecurityHeaders(t, rec.header)
 }
 
 func TestSetSecurityHeaders_InformationalThenFinalViaHTTPServer(t *testing.T) {
@@ -298,7 +298,7 @@ func TestSetSecurityHeaders_InformationalThenFinalViaHTTPServer(t *testing.T) {
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t, "upstream unavailable", string(body))
-	assertConsoleSecurityHeaders(t, resp.Header)
+	assertBrowserSecurityHeaders(t, resp.Header)
 }
 
 type hijackRecorder struct {
@@ -355,7 +355,7 @@ func TestSetSecurityHeaders_ResponseControllerDeadlines(t *testing.T) {
 	assert.True(t, deadline.Equal(wrapped.writeDeadline))
 	assert.True(t, deadline.Equal(wrapped.readDeadline))
 	assert.True(t, wrapped.fullDuplex)
-	assertConsoleSecurityHeaders(t, base.Header())
+	assertBrowserSecurityHeaders(t, base.Header())
 	assertNoStoreCache(t, base.Header())
 }
 

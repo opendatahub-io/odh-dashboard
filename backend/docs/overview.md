@@ -49,7 +49,7 @@ Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federa
 The CSP applies to documents only (responses with `Content-Type: text/html`). JSON APIs,
 static assets, and `/_mf` proxy responses carry no policy. It is always enforcing; there is
 no report-only mode. See [docs/content-security-policy.md](../../docs/content-security-policy.md)
-for the directive table, the telemetry origin note, and the deltas from OpenShift Console.
+for the directive table and the rationale behind each allowance.
 
 `Cache-Control` is selective (not blanket `no-store`):
 

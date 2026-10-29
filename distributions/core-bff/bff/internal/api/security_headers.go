@@ -12,8 +12,8 @@ import (
 
 // SetSecurityHeaders applies browser security headers on normal HTTP replies.
 // Common security headers are set on every response. Cache-Control is selective
-// (no-store on API paths). Console also sends Pragma: no-cache and no-store on every response.
-// Module proxy replies force no-store in ModifyResponse (see forceNoStoreCacheHeaders).
+// (no-store on API paths). Module proxy replies force no-store in ModifyResponse
+// (see forceNoStoreCacheHeaders).
 func (app *App) SetSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sw := &securityHeadersWriter{ResponseWriter: w, req: r}

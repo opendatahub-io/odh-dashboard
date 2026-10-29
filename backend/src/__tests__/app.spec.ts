@@ -99,7 +99,7 @@ describe('app static and view wiring', () => {
   });
 
   describe('security headers', () => {
-    const expectConsoleSecurityHeaders = (headers: Record<string, unknown>): void => {
+    const expectBrowserSecurityHeaders = (headers: Record<string, unknown>): void => {
       expect(headers['x-content-type-options']).toBe(X_CONTENT_TYPE_OPTIONS);
       expect(headers['cross-origin-opener-policy']).toBe(CROSS_ORIGIN_OPENER_POLICY);
       expect(headers['x-frame-options']).toBe(X_FRAME_OPTIONS);
@@ -115,11 +115,11 @@ describe('app static and view wiring', () => {
       expect(headers['content-security-policy']).toBeUndefined();
     };
 
-    it('should set Console-equivalent headers and no-store on HTML', async () => {
+    it('should set browser security headers and no-store on HTML', async () => {
       const response = await app.inject({ method: 'GET', url: '/projects' });
 
       expect(response.statusCode).toBe(200);
-      expectConsoleSecurityHeaders(response.headers);
+      expectBrowserSecurityHeaders(response.headers);
       expectEnforcingCsp(response.headers);
       expect(response.headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
     });
@@ -148,7 +148,7 @@ describe('app static and view wiring', () => {
       const unhashed = await app.inject({ method: 'GET', url: '/vendor.js' });
       const image = await app.inject({ method: 'GET', url: '/logo.png' });
 
-      expectConsoleSecurityHeaders(hashed.headers);
+      expectBrowserSecurityHeaders(hashed.headers);
       expect(hashed.headers['cache-control']).toBe('public, max-age=31536000, immutable');
       expect(unhashed.headers['cache-control']).toBe('no-cache');
       expect(image.headers['cache-control']).toBe('public, max-age=86400');
@@ -159,7 +159,7 @@ describe('app static and view wiring', () => {
       const status = await app.inject({ method: 'GET', url: '/api/status' });
 
       for (const response of [health, status]) {
-        expectConsoleSecurityHeaders(response.headers);
+        expectBrowserSecurityHeaders(response.headers);
         expect(response.headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
       }
       expect(health.json()).toEqual({ status: 'ok' });

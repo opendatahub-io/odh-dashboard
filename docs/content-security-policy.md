@@ -43,21 +43,19 @@ is served by this policy rather than by a separate server.
 
 No directive allows plain `http:`. A unit test in each codebase asserts that.
 
-## Deltas from OpenShift Console
+## Why these allowances exist
 
-The policy follows Console's `BuildCSPDirectives` (`pkg/utils/utils.go`), with two
-deliberate differences:
+Two directives are wider than the strictest possible value, and both are load-bearing:
 
-- `frame-src 'self' https:` instead of `'none'`. Artifact previews embed a URL returned by
+- `frame-src 'self' https:` rather than `'none'`. Artifact previews embed a URL returned by
   the KFP API (`getArtifact(..., 'RENDER')`). That URL is a presigned object-storage URL on
   another host (for example `https://<bucket>.s3.<region>.amazonaws.com/...`), so
   `'self'` alone would break every HTML/JSON artifact preview.
 - `blob:` in `img-src` and `media-src` for gen-ai attachment previews, which render
   `URL.createObjectURL` blobs.
 
-Console also puts `console.redhat.com` in `default-src`. We do not: the origin appears only
-in `script-src` and `connect-src`, so it cannot widen `frame-src`, `font-src`, or anything
-else.
+`console.redhat.com` is deliberately not in `default-src`. It appears only in `script-src`
+and `connect-src`, so it cannot widen `frame-src`, `font-src`, or anything else.
 
 ## Telemetry origin
 
@@ -85,8 +83,8 @@ Deliberately not in the first iteration:
 - `worker-src`. `monaco-editor-webpack-plugin` serves workers from the same origin
   (`publicPath` is `/`, `ODH_PUBLIC_PATH` is unset), so `default-src 'self'` covers them.
   Revisit if a deployment ever sets a cross-origin public path.
-- `form-action`, `upgrade-insecure-requests`, `report-uri`. Console does not send these
-  either. `report-uri` needs a collector endpoint that does not exist yet.
+- `form-action`, `upgrade-insecure-requests`, `report-uri`. `report-uri` needs a collector
+  endpoint that does not exist yet.
 
 ## Where the policy is not exercised
 

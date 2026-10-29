@@ -148,7 +148,7 @@ func TestRoutes_SPAFallback(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			assertConsoleSecurityHeaders(t, resp.Header)
+			assertBrowserSecurityHeaders(t, resp.Header)
 			assertNoStoreCache(t, resp.Header)
 
 			body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
@@ -180,7 +180,7 @@ func TestRoutes_SecurityHeadersOnRepresentativeRoutes(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			assertConsoleSecurityHeaders(t, resp.Header)
+			assertBrowserSecurityHeaders(t, resp.Header)
 			if tt.wantCSP {
 				assertContentSecurityPolicy(t, resp.Header)
 			} else {
@@ -247,7 +247,7 @@ func TestRoutes_StaticFileCachePolicies(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			assertConsoleSecurityHeaders(t, resp.Header)
+			assertBrowserSecurityHeaders(t, resp.Header)
 			assert.Equal(t, tt.wantCC, resp.Header.Get(constants.HeaderCacheControl))
 		})
 	}
