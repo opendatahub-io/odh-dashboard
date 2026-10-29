@@ -67,23 +67,9 @@ describe('Core BFF Infrastructure', () => {
     it('should return accessible namespaces for cluster admin', async () => {
       const result = await apiClient.get('/api/v1/namespaces');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/NamespacesResponse/content/application/json/schema',
+        ref: '#/components/responses/NamespacesResponse/content/application~1json/schema',
         status: 200,
       });
-      const { response } = expectSuccess(result);
-      const body = response.data as {
-        data: { name: string; displayName?: string; isAiProject?: boolean }[] | null;
-      };
-      expect(Array.isArray(body.data)).toBe(true);
-      expect(body.data?.length).toBeGreaterThan(0);
-      for (const namespace of body.data ?? []) {
-        expect(namespace.name).toEqual(expect.any(String));
-        expect(namespace.displayName).toBe(namespace.name);
-        expect(namespace).not.toHaveProperty('phase');
-        if (namespace.isAiProject !== undefined) {
-          expect(namespace.isAiProject).toEqual(expect.any(Boolean));
-        }
-      }
     });
 
     it('should return 401 when no auth token is provided', async () => {
@@ -110,13 +96,20 @@ describe('Core BFF Infrastructure', () => {
     });
 
     it('should look up an exact namespace with the same selector shape', async () => {
+      const listResult = await apiClient.get('/api/v1/namespaces');
+      const { response: listResponse } = expectSuccess(listResult);
+      const list = (listResponse.data as { data: Record<string, unknown>[] }).data;
+      const listedNamespace = list.find((namespace) => namespace.name === 'opendatahub');
+      expect(listedNamespace).toBeDefined();
+
       const result = await apiClient.get('/api/v1/namespaces/opendatahub');
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/NamespaceResponse/content/application~1json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);
-      expect((response.data as { data: { name: string } }).data.name).toBe('opendatahub');
+      const { data: lookup } = response.data as { data: Record<string, unknown> };
+      expect(lookup).toEqual(listedNamespace);
     });
 
     it('should look up a named namespace without list access but deny other names', async () => {

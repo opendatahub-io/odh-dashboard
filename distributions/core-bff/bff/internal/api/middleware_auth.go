@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 
@@ -84,10 +85,10 @@ func (app *App) resolveRequestAuth(w http.ResponseWriter, r *http.Request, needs
 	if err != nil {
 		app.emitAuditLog(auditUser(identity, app.logger), r, needsAdmin, false)
 		switch {
-		case errors.Is(err, context.DeadlineExceeded) || k8serrors.IsTimeout(err) || k8serrors.IsServerTimeout(err):
+		case errors.Is(err, context.DeadlineExceeded) || k8serrors.IsTimeout(err) || k8serrors.IsServerTimeout(err) || isKubernetesTransportTimeout(err):
 			app.LogError(r, err)
 			app.errorResponse(w, r, &HTTPError{StatusCode: http.StatusGatewayTimeout, Error: ErrorPayload{Code: "GATEWAY_TIMEOUT", Message: "the Kubernetes request timed out"}})
-		case k8serrors.IsServiceUnavailable(err):
+		case k8serrors.IsServiceUnavailable(err) || isKubernetesTransportError(err):
 			app.LogError(r, err)
 			app.errorResponse(w, r, &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: "SERVICE_UNAVAILABLE", Message: "the Kubernetes API is temporarily unavailable"}})
 		default:
@@ -97,6 +98,18 @@ func (app *App) resolveRequestAuth(w http.ResponseWriter, r *http.Request, needs
 	}
 
 	return username, client, identity, true
+}
+
+// isKubernetesTransportTimeout identifies timeouts wrapped by the Kubernetes HTTP client.
+func isKubernetesTransportTimeout(err error) bool {
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
+}
+
+// isKubernetesTransportError recognizes failures to reach the API server, not token failures.
+func isKubernetesTransportError(err error) bool {
+	var netErr net.Error
+	return errors.As(err, &netErr)
 }
 
 // secureRoute wraps a handler with token validation and audit logging.

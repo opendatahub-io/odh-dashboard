@@ -25,7 +25,7 @@ func (r *NamespaceRepository) GetNamespaces(ctx context.Context, client k8s.Kube
 		return nil, fmt.Errorf("error fetching namespaces: %w", err)
 	}
 
-	var namespaceModels []models.NamespaceModel
+	namespaceModels := make([]models.NamespaceModel, 0, len(namespaces))
 	for _, ns := range namespaces {
 		namespaceModels = append(namespaceModels, models.NewNamespaceModelFromNamespace(ns))
 	}
@@ -34,18 +34,18 @@ func (r *NamespaceRepository) GetNamespaces(ctx context.Context, client k8s.Kube
 }
 
 // GetNamespace checks named, cluster-scoped get access before reading with the caller's client.
-func (r *NamespaceRepository) GetNamespace(ctx context.Context, client k8s.KubernetesClientInterface, identity *k8s.RequestIdentity, name string) (models.NamespaceLookupModel, error) {
+func (r *NamespaceRepository) GetNamespace(ctx context.Context, client k8s.KubernetesClientInterface, identity *k8s.RequestIdentity, name string) (models.NamespaceModel, error) {
 	allowed, err := client.CanGetNamespace(ctx, identity, name)
 	if err != nil {
-		return models.NamespaceLookupModel{}, fmt.Errorf("error checking namespace access: %w", err)
+		return models.NamespaceModel{}, fmt.Errorf("error checking namespace access: %w", err)
 	}
 	if !allowed {
-		return models.NamespaceLookupModel{}, ErrNamespaceAccessDenied
+		return models.NamespaceModel{}, ErrNamespaceAccessDenied
 	}
 
 	ns, err := client.GetNamespace(ctx, identity, name)
 	if err != nil {
-		return models.NamespaceLookupModel{}, fmt.Errorf("error fetching namespace: %w", err)
+		return models.NamespaceModel{}, fmt.Errorf("error fetching namespace: %w", err)
 	}
-	return models.NewNamespaceLookupModelFromNamespace(*ns), nil
+	return models.NewNamespaceModelFromNamespace(*ns), nil
 }
