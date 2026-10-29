@@ -609,6 +609,14 @@ describe('Model Serving LLMD Topology & Routing', () => {
       );
       modelServingWizard.findNextButton().should('be.enabled').click();
 
+      cy.window().then((win) => {
+        Object.defineProperty(win, 'analytics', {
+          value: { track: cy.stub().as('analyticsTrack') },
+          writable: true,
+          configurable: true,
+        });
+      });
+
       completeWizard();
 
       // Dry run — no topology config ref is recorded on the deployment
@@ -638,6 +646,20 @@ describe('Model Serving LLMD Topology & Routing', () => {
       });
       // No local config copy is created for the default single node configuration
       cy.get('@createLLMInferenceServiceConfig.all').should('have.length', 0);
+      cy.get('@analyticsTrack').should(
+        'be.calledWithMatch',
+        'Model Deployed',
+        Cypress.sinon.match({
+          outcome: 'submit',
+          success: true,
+          deploymentMethod: 'llm-inference-service-llmd',
+          llmdComposablePattern: TopologyType.SINGLE_NODE,
+          topologyConfigurationId: 'default',
+          acceleratorConfigurationId: 'default',
+          routingConfigurationId: '__default-optimized-routing__',
+          replicaCount: 1,
+        }),
+      );
     });
 
     it('should create new resources when selecting custom topology', () => {
@@ -653,10 +675,27 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       modelServingWizard.findModelDeploymentNameInput().type(deploymentName);
 
+      cy.window().then((win) => {
+        Object.defineProperty(win, 'analytics', {
+          value: { track: cy.stub().as('analyticsTrack') },
+          writable: true,
+          configurable: true,
+        });
+      });
+
       cy.findByTestId('topology-type-select').click();
       cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
       cy.findByTestId('custom-topology-config-select').click();
       cy.findByTestId('topology-config-option-multi-node-config').click();
+      cy.get('@analyticsTrack').should(
+        'be.calledWithMatch',
+        'Model Serving LLM-D Topology Type Selected',
+        Cypress.sinon.match({
+          llmdComposablePattern: TopologyType.MULTI_NODE,
+          topologyConfigurationId: 'multi-node-config',
+          previousPattern: TopologyType.SINGLE_NODE,
+        }),
+      );
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       completeWizard();

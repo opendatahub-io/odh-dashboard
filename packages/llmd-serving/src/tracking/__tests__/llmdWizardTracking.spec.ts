@@ -1,6 +1,13 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { GatewayOption } from '../../api/services/gatewayDiscovery';
 import {
+  ACCELERATOR_CONFIG_DEFAULT,
+  ACCELERATOR_CONFIG_FIELD_ID,
+  CUSTOM_TOPOLOGY_CONFIG_FIELD_ID,
+  TOPOLOGY_TYPE_FIELD_ID,
+} from '../../const';
+import { TopologyType } from '../../types';
+import {
   getLlmdGatewayTrackingProperties,
   getLlmdWizardTrackingProperties,
   LLMD_GATEWAY_FIELD_ID,
@@ -110,10 +117,78 @@ describe('getLlmdWizardTrackingProperties', () => {
     ).toEqual({});
   });
 
-  it('should derive properties from gateway field selections', () => {
+  it('should derive composable properties without gateway data', () => {
     expect(
       getLlmdWizardTrackingProperties(
         wizardState({
+          deploymentMethod: { method: 'llm-inference-service-llmd' },
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.MULTI_NODE_DISAGGREGATED },
+          [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: {
+            selectedConfig: { metadata: { name: 'topology-config' } },
+          },
+          hardwareProfileConfig: {
+            formData: { selectedProfile: { metadata: { name: 'gpu-profile' } } },
+          },
+          numReplicas: { data: 3 },
+          [ACCELERATOR_CONFIG_FIELD_ID]: {
+            selectedConfig: { metadata: { name: 'accelerator-config' } },
+          },
+          'llmd-serving/advanced-routing': {
+            selectedConfig: { metadata: { name: 'routing-config' } },
+          },
+        }),
+      ),
+    ).toEqual({
+      deploymentMethod: 'llm-inference-service-llmd',
+      llmdComposablePattern: TopologyType.MULTI_NODE_DISAGGREGATED,
+      topologyConfigurationId: 'topology-config',
+      hardwareProfile: 'gpu-profile',
+      replicaCount: 3,
+      acceleratorConfigurationId: 'accelerator-config',
+      routingConfigurationId: 'routing-config',
+    });
+  });
+
+  it('should report explicit built-in defaults and preserve zero replicas', () => {
+    expect(
+      getLlmdWizardTrackingProperties(
+        wizardState({
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.SINGLE_NODE },
+          [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: { selectedConfig: 'default' },
+          [ACCELERATOR_CONFIG_FIELD_ID]: { selectedConfig: ACCELERATOR_CONFIG_DEFAULT },
+          'llmd-serving/advanced-routing': {},
+          numReplicas: { data: 0 },
+        }),
+      ),
+    ).toEqual({
+      llmdComposablePattern: TopologyType.SINGLE_NODE,
+      topologyConfigurationId: 'default',
+      acceleratorConfigurationId: 'default',
+      routingConfigurationId: '__default-optimized-routing__',
+      replicaCount: 0,
+    });
+  });
+
+  it('should omit malformed or unresolved property values', () => {
+    expect(
+      getLlmdWizardTrackingProperties(
+        wizardState({
+          deploymentMethod: { method: 2 },
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: 'invalid' },
+          hardwareProfileConfig: { formData: { selectedProfile: { metadata: { name: 5 } } } },
+          numReplicas: { data: Number.NaN },
+          [ACCELERATOR_CONFIG_FIELD_ID]: { selectedConfig: { metadata: { name: '' } } },
+          'llmd-serving/advanced-routing': { selectedConfig: null },
+        }),
+      ),
+    ).toEqual({});
+  });
+
+  it('should derive properties from gateway field selections alongside composable data', () => {
+    expect(
+      getLlmdWizardTrackingProperties(
+        wizardState({
+          deploymentMethod: { method: 'llm-inference-service-llmd' },
           [LLMD_GATEWAY_FIELD_ID]: {
             selections: [
               gateway('custom-gw', 'custom-ns'),
@@ -126,6 +201,7 @@ describe('getLlmdWizardTrackingProperties', () => {
         }),
       ),
     ).toEqual({
+      deploymentMethod: 'llm-inference-service-llmd',
       numberOfGateways: 2,
       usesMaasDefault: false,
       usesOpenShiftInference: true,

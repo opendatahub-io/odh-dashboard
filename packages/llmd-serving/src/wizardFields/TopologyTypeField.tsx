@@ -38,6 +38,8 @@ import { CUSTOM_TOPOLOGY_CONFIG_FIELD_ID, TOPOLOGY_TYPE_FIELD_ID } from '../cons
 
 export type TopologyConfigsDependencies = {
   project?: WizardFormData['state']['project'];
+  /** Current topology configuration field value, used to track a completed topology change. */
+  customTopologyConfig?: unknown;
   /** The config this deployment already references, from the edit extractor. */
   configRef?: string;
   /** The topology type this deployment was deployed with, from the edit extractor. */
@@ -62,6 +64,14 @@ export const resolveTopologyConfigsDependencies = (
     initialTopologyType: Object.values(TopologyType).find((t) => t === initialTopologyType),
   };
 };
+
+const resolveTopologyTypeFieldDependencies = (
+  formData: WizardFormData['state'],
+  initialData?: InitialWizardFormData,
+): TopologyConfigsDependencies => ({
+  ...resolveTopologyConfigsDependencies(formData, initialData),
+  customTopologyConfig: formData[CUSTOM_TOPOLOGY_CONFIG_FIELD_ID],
+});
 
 // --- External data hook ---
 
@@ -167,8 +177,60 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
   value,
   onChange,
   externalData,
+  dependencies,
 }) => {
   const configsByTopology = externalData?.data.configsByTopology;
+  const pendingTracking = React.useRef<
+    { topologyType: TopologyType; previousPattern?: TopologyType } | undefined
+  >(undefined);
+
+  React.useEffect(() => {
+    const pending = pendingTracking.current;
+    if (
+      !pending ||
+      value?.topologyType !== pending.topologyType ||
+      !externalData?.loaded ||
+      externalData.loadError
+    ) {
+      return;
+    }
+
+    const configData = dependencies?.customTopologyConfig;
+    if (!isRecord(configData)) {
+      return;
+    }
+    const { selectedConfig } = configData;
+    let topologyConfigurationId: string | undefined;
+    if (selectedConfig === 'default' && pending.topologyType === TopologyType.SINGLE_NODE) {
+      topologyConfigurationId = 'default';
+    } else if (isRecord(selectedConfig) && isRecord(selectedConfig.metadata)) {
+      const { name } = selectedConfig.metadata;
+      const configForTopology = configsByTopology?.[pending.topologyType]?.find(
+        (config) => config.metadata.name === name,
+      );
+      if (typeof name === 'string' && configForTopology) {
+        topologyConfigurationId = name;
+      }
+    }
+
+    // A topology change resets the configuration field: single-node uses its built-in default,
+    // while other topologies initialize to the first available compatible config. Waiting for
+    // that resolved value prevents tracking the previous topology's selection.
+    const expectedInitialConfig =
+      pending.topologyType === TopologyType.SINGLE_NODE
+        ? 'default'
+        : configsByTopology?.[pending.topologyType]?.[0]?.metadata.name;
+    if (!topologyConfigurationId || topologyConfigurationId !== expectedInitialConfig) {
+      return;
+    }
+
+    pendingTracking.current = undefined;
+    fireTopologyTypeSelected({
+      llmdComposablePattern: pending.topologyType,
+      topologyConfigurationId,
+      previousPattern: pending.previousPattern,
+    });
+  }, [value?.topologyType, dependencies?.customTopologyConfig, externalData, configsByTopology]);
 
   const options: SimpleSelectOption[] = React.useMemo(
     () =>
@@ -203,11 +265,11 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
             options={options}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
-              if (matched) {
-                fireTopologyTypeSelected({
-                  llmdComposablePattern: matched,
+              if (matched && matched !== value?.topologyType) {
+                pendingTracking.current = {
+                  topologyType: matched,
                   previousPattern: value?.topologyType,
-                });
+                };
                 onChange({ topologyType: matched });
               }
             }}
@@ -262,7 +324,7 @@ export const TopologyTypeFieldWizardField: TopologyTypeFieldType = {
   type: 'addition',
   isActive,
   reducerFunctions: {
-    resolveDependencies: resolveTopologyConfigsDependencies,
+    resolveDependencies: resolveTopologyTypeFieldDependencies,
     setFieldData: (value: TopologyTypeFieldData) => value,
     getInitialFieldData: (existingFieldData?: TopologyTypeFieldData): TopologyTypeFieldData =>
       existingFieldData ?? { topologyType: TopologyType.SINGLE_NODE },

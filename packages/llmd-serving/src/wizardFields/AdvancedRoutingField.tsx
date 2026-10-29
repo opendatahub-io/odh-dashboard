@@ -31,6 +31,7 @@ import { isConfigEnabled } from '../utils';
 import { useFetchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 import { fireRoutingSelected } from '../tracking/llmdTrackingConstants';
+import { DEFAULT_ROUTING_KEY } from '../const';
 
 // --- External data hook ---
 
@@ -92,7 +93,7 @@ const getCompatibleRouterConfigs = (
   });
 };
 
-const DEFAULT_ROUTING_KEY = '__default-optimized-routing__';
+export { DEFAULT_ROUTING_KEY } from '../const';
 
 const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
   value,
