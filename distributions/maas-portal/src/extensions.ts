@@ -186,7 +186,7 @@ const extensions: Extension[] = [
     flags: { required: ['grid'] },
     properties: {
       id: 'maas-models',
-      title: 'Models endpoints',
+      title: 'Model endpoints',
       href: '/maas/models',
       path: '/maas/models/*',
       group: '1_models',
