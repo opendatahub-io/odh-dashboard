@@ -213,7 +213,7 @@ describe('WhatsNewModal', () => {
     });
 
     it('should not show any unavailability message when all step features are enabled', () => {
-      useAppContextMock.mockReturnValue(buildAppContext({ automl: true, disableLMEval: false }));
+      useAppContextMock.mockReturnValue(buildAppContext({ disableLMEval: false }));
       useUserMock.mockReturnValue(adminUser);
 
       render(<WhatsNewModal />);
@@ -279,7 +279,7 @@ describe('WhatsNewModal', () => {
       openWelcomeModal();
       startTourAndWait("Tour what's new");
 
-      expect(screen.getByText('Skills')).toBeInTheDocument();
+      expect(screen.getByText('Agent skills')).toBeInTheDocument();
       expect(screen.getByText('mlflowoperator')).toBeInTheDocument();
       expect(screen.queryByText('skillRegistry')).not.toBeInTheDocument();
     });
@@ -320,7 +320,7 @@ describe('WhatsNewModal', () => {
       startTourAndWait("Tour what's new");
 
       expect(screen.getByText('AI hub')).toBeInTheDocument();
-      expect(screen.getByText('Skills')).toBeInTheDocument();
+      expect(screen.getByText('Agent skills')).toBeInTheDocument();
     });
 
     it('should number steps within the new-features path only', () => {

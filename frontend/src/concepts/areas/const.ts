@@ -128,6 +128,11 @@ const allFeatureFlagsConfig = {
 
 export const definedFeatureFlags: string[] = Object.keys(allFeatureFlagsConfig);
 
+// Defaults for dev-only area flags that are unset in flagState. Unlisted dev flags default to off.
+export const devFlagDefaults: Record<string, boolean> = {
+  guidedTour: true,
+};
+
 export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {
     featureFlags: ['disableBYONImageStream'],
@@ -343,7 +348,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['dataRegistry'],
     reliantAreas: [SupportedArea.DATA_REGISTRY],
   },
-  [SupportedArea.GUIDED_TOUR]: {},
+  [SupportedArea.GUIDED_TOUR]: {
+    // Dev-only flag — not in OdhDashboardConfig CRD. On by default via devFlagDefaults.
+    devFlags: ['guidedTour'],
+  },
   [SupportedArea.UNIFIED_PROJECT_SELECTOR]: {
     // Dev-only gate — not in OdhDashboardConfig CRD. Off by default.
     devFlags: ['unifiedProjectSelector'],

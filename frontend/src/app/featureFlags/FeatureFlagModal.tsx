@@ -5,6 +5,7 @@ import { FeatureFlagLauncherProps } from '#~/app/featureFlags/FeatureFlagLaunche
 import { useDevFlags } from '#~/app/featureFlags/useDevFeatureFlags';
 import {
   devTemporaryFeatureFlags,
+  devFlagDefaults,
   techPreviewFlags,
   coreDashboardFlags,
   projectManagementFlags,
@@ -91,9 +92,10 @@ const FeatureFlagModal: React.FC<Props> = ({
         <Tab eventKey={1} title={<TabTitleText>Dev Flags</TabTitleText>} data-testid="devFlagTab">
           <Content style={{ height: '400px', padding: '8px' }}>
             <Content component="p">
-              Dev flags default to inactive and can only be changed for the current session.
+              Dev flags default to inactive unless listed in devFlagDefaults, and can only be
+              changed for the current session.
             </Content>
-            {renderFlags(devFlags)}
+            {renderFlags(devFlags, devFlagDefaults)}
           </Content>
         </Tab>
       )}

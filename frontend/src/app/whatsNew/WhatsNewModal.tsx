@@ -33,22 +33,22 @@ import type { GuidedTourDismissMethod, GuidedTourEntryPoint } from './tracking/g
 import { useGuidedTourTracking } from './tracking/useGuidedTourTracking';
 import { useWhatsNewTourListener } from './whatsNewEvent';
 
-// TODO: Update the 3.5 doc URLs in this file to 3.6 once the 3.6 docs are published.
+// TODO: Verify these 3.6 doc URLs resolve once the 3.6 docs are published.
 const DEFAULT_DOC_URL =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6';
 
 type NewFeature = {
   title: string;
   description: string;
   available: boolean;
-  flag?: { name: string; enabled: boolean };
+  flags?: { name: string; enabled: boolean }[];
   component?: { name: DataScienceStackComponent; installed: boolean };
 };
 
 const withAvailability = (features: Omit<NewFeature, 'available'>[]): NewFeature[] =>
   features.map((f) => ({
     ...f,
-    available: (f.flag?.enabled ?? true) && (f.component?.installed ?? true),
+    available: (f.flags?.every((flag) => flag.enabled) ?? true) && (f.component?.installed ?? true),
   }));
 
 type TourStep = {
@@ -67,19 +67,20 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const config = dashboardConfig.spec.dashboardConfig;
 
   const genAiAvailable = config.genAiStudio ?? false;
-  const automlAvailable = config.automl ?? false;
-  const autoragEnabled = config.autorag ?? false;
   const mcpCatalogAvailable = config.mcpCatalog ?? false;
   const agentsCatalogAvailable = config.agentsCatalog ?? false;
   const agentOpsAvailable = config.agentOps ?? false;
-  const observabilityAvailable = config.observabilityDashboard ?? false;
   const lmEvalAvailable = !config.disableLMEval;
   const dataRegistryAvailable = config.dataRegistry ?? false;
-  const modelCapabilitiesAvailable = config.modelCapabilities ?? false;
   const nimWizardAvailable = config.nimWizard ?? false;
+  const llmGatewayFieldAvailable = config.llmGatewayField ?? false;
+  const featureStoreAdminAvailable = config.featureStoreAdmin ?? false;
   const dataConnectHubAvailable = config.dataConnectHub ?? false;
   const genAiMcpRegistryServersAvailable = config.genAiMcpRegistryServers ?? false;
   const genAiAgentDeploymentAvailable = config.genAiAgentDeployment ?? false;
+  const agentConfigManagementAvailable = config.agentConfigManagement ?? false;
+  const hardwareProfileDRAAvailable = config.hardwareProfileDRA ?? false;
+  const inferencePriorityFieldAvailable = config.inferencePriorityField ?? false;
   const modelCatalogAvailable = !config.disableModelCatalog;
   const modelRegistryAvailable = !config.disableModelRegistry;
   const modelServingAvailable = !config.disableModelServing;
@@ -102,7 +103,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
           'Organize workbenches, pipelines, model servers, and storage so your team can collaborate in one place.',
         navSelector: 'a[href="/projects"]',
         docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/getting_started_with_red_hat_openshift_ai_self-managed/index',
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/getting_started_with_red_hat_openshift_ai_self-managed/index',
         sectionAvailable: true,
         newFeatures: [],
       },
@@ -110,38 +111,37 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         id: 'ai-hub',
         title: 'AI hub',
         description:
-          'Discover, register, and deploy models. Browse agent templates to build agents, and connect to MCP servers.',
+          'Discover and deploy models, manage connections and data assets, and connect to MCP servers.',
         navSelector: 'button[id="ai-hub"]',
         docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_the_model_catalog/index',
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/working_with_the_model_catalog/index',
         sectionAvailable: aiHubAvailable,
         newFeatures: withAvailability([
           {
-            title: 'Skills',
-            description: 'Register and manage reusable skills for your agents.',
-            flag: { name: 'skillRegistry', enabled: skillRegistryEnabled },
+            title: 'Agent skills',
+            description: 'Create tools that agents can reuse across projects.',
+            flags: [{ name: 'skillRegistry', enabled: skillRegistryEnabled }],
             component: { name: DataScienceStackComponent.MLFLOW, installed: mlflowAvailable },
           },
           {
-            title: 'Data',
-            description: 'Register, browse, and discover data assets.',
-            flag: { name: 'dataRegistry', enabled: dataRegistryAvailable },
-          },
-          {
-            title: 'Model capabilities',
-            description: 'Tag and filter models by capabilities such as tool calling or vision.',
-            flag: { name: 'modelCapabilities', enabled: modelCapabilitiesAvailable },
+            title: 'Data assets',
+            description: 'Find datasets and get code to use them in workbenches and pipelines.',
+            flags: [{ name: 'dataRegistry', enabled: dataRegistryAvailable }],
           },
           {
             title: 'NIM deployments',
-            description:
-              'Deploy NVIDIA NIM models from the model deployment wizard, with an API key set per project.',
-            flag: { name: 'nimWizard', enabled: nimWizardAvailable },
+            description: 'Deploy NVIDIA NIM models using project-level API keys.',
+            flags: [{ name: 'nimWizard', enabled: nimWizardAvailable }],
           },
           {
-            title: 'Connections',
-            description: 'Add and manage data connections in one place.',
-            flag: { name: 'dataConnectHub', enabled: dataConnectHubAvailable },
+            title: 'Deployment gateways',
+            description: 'Choose which gateways serve your model deployments.',
+            flags: [{ name: 'llmGatewayField', enabled: llmGatewayFieldAvailable }],
+          },
+          {
+            title: 'Simplified connection management',
+            description: 'Manage connections and connection types on the same page.',
+            flags: [{ name: 'dataConnectHub', enabled: dataConnectHubAvailable }],
           },
         ]),
       },
@@ -152,24 +152,23 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
           'Test models and prompts, experiment with RAG, and prepare configurations before building them into applications.',
         navSelector: 'button[id="gen-ai-studio"]',
         docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/experimenting_with_models_in_the_gen_ai_playground/index',
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/experimenting_with_models_in_the_gen_ai_playground/index',
         sectionAvailable: genAiAvailable,
         sectionFlagName: 'genAiStudio',
         newFeatures: withAvailability([
           {
-            title: 'MCP servers from the registry',
-            description: 'Add registered MCP servers to the Playground.',
-            flag: { name: 'genAiMcpRegistryServers', enabled: genAiMcpRegistryServersAvailable },
+            title: 'MCP servers',
+            description: 'Use MCP servers when testing models in the playground.',
+            flags: [{ name: 'genAiMcpRegistryServers', enabled: genAiMcpRegistryServersAvailable }],
           },
           {
-            title: 'Deploy as API',
-            description: 'Deploy Playground configurations as callable API services.',
-            flag: { name: 'genAiAgentDeployment', enabled: genAiAgentDeploymentAvailable },
-          },
-          {
-            title: 'AutoRAG',
-            description: 'Now generally available. Build and deploy optimized RAG pipelines.',
-            flag: { name: 'autorag', enabled: autoragEnabled },
+            title: 'Agent endpoints',
+            description:
+              'Deploy playground configurations as API endpoints listed with your AI assets.',
+            flags: [
+              { name: 'genAiAgentDeployment', enabled: genAiAgentDeploymentAvailable },
+              { name: 'agentConfigManagement', enabled: agentConfigManagementAvailable },
+            ],
           },
         ]),
       },
@@ -179,19 +178,15 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description:
           'Build pipelines, run training jobs, track experiments, and evaluate model performance.',
         navSelector: 'button[id="develop-and-train"]',
-        docUrl: 'https://docs.redhat.com/en/documentation/red_hat_ai/3#Develop',
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/evaluating_ai_systems/index',
         sectionAvailable: true,
         newFeatures: withAvailability([
           {
-            title: 'AutoML',
-            description:
-              'Now generally available. Train models with automated model selection and tuning.',
-            flag: { name: 'automl', enabled: automlAvailable },
-          },
-          {
             title: 'Evaluation gallery',
-            description: 'Start from curated collections of evaluations.',
-            flag: { name: 'disableLMEval', enabled: lmEvalAvailable },
+            description:
+              'Browse Red Hat-curated sets of benchmarks that you can use to evaluate your models.',
+            flags: [{ name: 'disableLMEval', enabled: lmEvalAvailable }],
           },
         ]),
       },
@@ -201,14 +196,9 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description: 'Check resource usage and workload health across your projects.',
         navSelector: 'button[id="observe-and-monitor"]',
         docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/#Monitor',
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/monitoring_your_ai_systems/index',
         sectionAvailable: true,
         newFeatures: withAvailability([
-          {
-            title: 'Metrics',
-            description: 'View model serving metrics, costs, and workload status.',
-            flag: { name: 'observabilityDashboard', enabled: observabilityAvailable },
-          },
           {
             title: 'Agent traces',
             description:
@@ -225,13 +215,33 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
               description:
                 'Manage user access, environment setup, and model serving resources for your organization.',
               navSelector: 'button[id="settings"]',
-              docUrl: 'https://docs.redhat.com/en/documentation/red_hat_ai/3#Administer',
+              docUrl:
+                'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/managing_openshift_ai/index',
               sectionAvailable: true,
               newFeatures: withAvailability([
                 {
                   title: 'Runtime library',
-                  description: 'Discover and install serving runtimes.',
-                  flag: { name: 'disableModelServing', enabled: modelServingAvailable },
+                  description: 'Find and install runtimes for serving models.',
+                  flags: [{ name: 'disableModelServing', enabled: modelServingAvailable }],
+                },
+                {
+                  title: 'Feature stores',
+                  description: 'Set up feature stores to share ML features across projects.',
+                  flags: [{ name: 'featureStoreAdmin', enabled: featureStoreAdminAvailable }],
+                },
+                {
+                  title: 'New hardware profile type',
+                  description:
+                    'Use hardware profiles with dynamic resource allocation for workbenches and model deployments.',
+                  flags: [{ name: 'hardwareProfileDRA', enabled: hardwareProfileDRAAvailable }],
+                },
+                {
+                  title: 'Inference priority control',
+                  description:
+                    'Control which inference requests get processed first by assigning priorities to MaaS subscriptions.',
+                  flags: [
+                    { name: 'inferencePriorityField', enabled: inferencePriorityFieldAvailable },
+                  ],
                 },
               ]),
             },
@@ -240,20 +250,21 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
     ],
     [
       genAiAvailable,
-      autoragEnabled,
-      automlAvailable,
       lmEvalAvailable,
       skillRegistryEnabled,
       dataRegistryAvailable,
-      modelCapabilitiesAvailable,
       nimWizardAvailable,
+      llmGatewayFieldAvailable,
+      featureStoreAdminAvailable,
       dataConnectHubAvailable,
       genAiMcpRegistryServersAvailable,
       genAiAgentDeploymentAvailable,
+      agentConfigManagementAvailable,
+      hardwareProfileDRAAvailable,
+      inferencePriorityFieldAvailable,
       modelServingAvailable,
       aiHubAvailable,
       mlflowAvailable,
-      observabilityAvailable,
       isAdmin,
     ],
   );
@@ -606,7 +617,9 @@ const WhatsNewModalContent: React.FC = () => {
   const unavailableFeatures = currentStep.newFeatures.filter((f) => !f.available);
   const unavailableFlags = [
     ...new Set(
-      unavailableFeatures.flatMap((f) => (f.flag && !f.flag.enabled ? [f.flag.name] : [])),
+      unavailableFeatures.flatMap((f) =>
+        (f.flags ?? []).filter((flag) => !flag.enabled).map((flag) => flag.name),
+      ),
     ),
   ];
   const unavailableComponents = [
