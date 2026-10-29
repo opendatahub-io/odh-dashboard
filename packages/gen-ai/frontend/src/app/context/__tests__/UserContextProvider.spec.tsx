@@ -41,6 +41,23 @@ describe('UserContextProvider', () => {
     expect(userService.getCurrentUser).toHaveBeenCalledTimes(2);
   });
 
+  it('recovers the username after the first attempts fail', async () => {
+    (userService.getCurrentUser as jest.Mock)
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockResolvedValue({ userId: 'alice' });
+
+    const wrapper: React.FunctionComponent<{ children: React.ReactNode }> = ({ children }) => (
+      <UserContextProvider>{children}</UserContextProvider>
+    );
+
+    const { result } = renderHook(() => useUserContext(), { wrapper });
+
+    await waitFor(() => expect(result.current.username).toBe('alice'), { timeout: 5000 });
+    expect(userService.getCurrentUser).toHaveBeenCalledTimes(4);
+  });
+
   it('exposes safe defaults when used without provider', async () => {
     const { result } = renderHook(() => useUserContext());
     expect(result.current.username).toBeUndefined();
