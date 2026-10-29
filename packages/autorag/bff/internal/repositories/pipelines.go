@@ -540,7 +540,13 @@ func ValidateGraphExtractionConfig(parameters map[string]any) error {
 		}
 		switch mode {
 		case graphExtractionConstrained:
-			continue
+			// Constrained extraction takes no extra settings (mirroring
+			// ai4rag): reject known free-mode settings and unknown keys alike.
+			for name := range config {
+				if name != "mode" {
+					return NewValidationError(fmt.Sprintf("%s.%s is not allowed in constrained mode", key, name))
+				}
+			}
 		case graphExtractionFree:
 			for _, name := range []string{"max_entities_per_chunk", "max_relationships_per_chunk"} {
 				if err := validatePositiveInt(config[name], fmt.Sprintf("%s.%s", key, name)); err != nil {

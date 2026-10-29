@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -265,6 +266,36 @@ var _ = Describe("ResponsesRelayHandler", func() {
 
 		assert.Equal(t, http.StatusBadGateway, rr.Code)
 		assert.False(t, redirectTargetHit, "relay must not follow a cross-host redirect")
+	})
+
+	It("should refuse same-host HTTPS-to-HTTP redirects", func() {
+		t := GinkgoT()
+
+		// Capture server-side logs so the refusal can be attributed to the
+		// redirect policy rather than a plaintext dial failure against the
+		// TLS port (which would also surface as a 502).
+		var logBuf bytes.Buffer
+		app.logger = slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+		upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Downgrade redirect: same host, but plaintext http. Go keeps
+			// headers across a same-host scheme change, so following it would
+			// send the user's token without TLS.
+			http.Redirect(w, r, "http://"+r.Host+"/autorag/api/v1/responses", http.StatusFound)
+		}))
+		defer upstream.Close()
+
+		app.config.GatewayDomain = strings.TrimPrefix(upstream.URL, "https://")
+		app.httpClient = upstream.Client()
+
+		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses"), `{"model":"m"}`)
+		rr := httptest.NewRecorder()
+
+		app.ResponsesRelayHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadGateway, rr.Code)
+		assert.NotContains(t, rr.Body.String(), "test-token")
+		assert.Contains(t, logBuf.String(), "refused HTTPS-to-HTTP redirect")
 	})
 
 	It("should follow same-host redirects", func() {

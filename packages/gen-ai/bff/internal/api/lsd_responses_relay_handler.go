@@ -216,11 +216,14 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 	// Dedicated client with no Timeout: a client timeout bounds the entire body
 	// read and would truncate a long stream after WriteHeader has committed.
 	// Reuse the app-level TLS transport for connection pooling and cert trust.
-	// Redirects are restricted to the original host: the relayed request
-	// carries the user's token in the x-forwarded-access-token header, which
-	// (unlike Authorization) Go's http.Client does not strip when a redirect
-	// crosses hosts, so a cross-host redirect would forward the token to an
-	// arbitrary origin named by the upstream response.
+	// Redirects are restricted to the original host and scheme: the relayed
+	// request carries the user's token in the x-forwarded-access-token header,
+	// which (unlike Authorization) Go's http.Client does not strip when a
+	// redirect crosses hosts, so a cross-host redirect would forward the token
+	// to an arbitrary origin named by the upstream response. A same-host
+	// HTTPS-to-HTTP downgrade must be refused too: Go keeps headers (including
+	// Authorization) across a same-host scheme change, which would send the
+	// token in plaintext.
 	proxyClient := &http.Client{
 		Transport: app.httpClient.Transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -230,6 +233,9 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 			// of hanging until the relay timeout.
 			if len(via) >= 10 {
 				return errors.New("relay stopped after 10 redirects")
+			}
+			if len(via) != 0 && via[0].URL.Scheme == "https" && req.URL.Scheme != "https" {
+				return errors.New("relay refused HTTPS-to-HTTP redirect")
 			}
 			if len(via) != 0 && !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
 				return fmt.Errorf("relay refused cross-host redirect to %q", req.URL.Host)

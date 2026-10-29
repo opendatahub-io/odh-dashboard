@@ -316,6 +316,49 @@ func TestNewNeo4jFromSecretPinsPlainDialAddress(t *testing.T) {
 	require.NoError(t, db.Close())
 }
 
+func TestNewNeo4jFromSecretFallsBackToNextPinnedAddress(t *testing.T) {
+	// An in-cluster endpoint can resolve to several addresses (headless or
+	// dual-stack service); when the first has no listener, the next validated
+	// address must be tried instead of failing with ErrDatabaseUnavailable.
+	secret := validNeo4jSecret()
+	secret["NEO4J_URI"] = []byte("neo4j://neo4j.team-a.svc.cluster.local:7687")
+	var created []*fakeNeo4jDriver
+
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(_ context.Context, uri string, _ neo4j.AuthToken, _ func(*config.Config)) (neo4jDriver, error) {
+		driver := &fakeNeo4jDriver{uri: uri, session: &fakeNeo4jSession{result: &fakeNeo4jResult{}}}
+		if len(created) == 0 {
+			// First address accepts the driver but fails verification, as a
+			// dual-stack service with no listener on the first family would.
+			driver.verifyErr = errors.New("connection refused")
+		}
+		created = append(created, driver)
+		return driver, nil
+	}, fakeNeo4jLookup("10.1.2.3", "10.1.2.4"))
+	require.NoError(t, err)
+	require.Len(t, created, 2)
+	assert.Equal(t, "bolt://10.1.2.3:7687", created[0].uri)
+	assert.Equal(t, "bolt://10.1.2.4:7687", created[1].uri)
+	assert.True(t, created[0].closed, "failed attempt must close its driver before the next address is tried")
+	require.NoError(t, db.Close())
+}
+
+func TestNewNeo4jFromSecretFailsWhenAllPinnedAddressesFail(t *testing.T) {
+	secret := validNeo4jSecret()
+	secret["NEO4J_URI"] = []byte("neo4j://neo4j.team-a.svc.cluster.local:7687")
+	var created []*fakeNeo4jDriver
+
+	_, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(_ context.Context, uri string, _ neo4j.AuthToken, _ func(*config.Config)) (neo4jDriver, error) {
+		driver := &fakeNeo4jDriver{uri: uri, verifyErr: errors.New("connection refused")}
+		created = append(created, driver)
+		return driver, nil
+	}, fakeNeo4jLookup("10.1.2.3", "10.1.2.4"))
+	require.Error(t, err)
+	assert.Len(t, created, 2)
+	assert.True(t, created[0].closed)
+	assert.True(t, created[1].closed)
+	assert.ErrorIs(t, err, ErrDatabaseUnavailable)
+}
+
 func TestNeo4jSearchUsesCollectionVectorIndex(t *testing.T) {
 	driver := &fakeNeo4jDriver{verifyErr: nil}
 	session := &fakeNeo4jSession{result: &fakeNeo4jResult{records: []*neo4j.Record{

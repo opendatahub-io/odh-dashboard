@@ -182,8 +182,8 @@ func (e neo4jEndpoint) uri() string {
 	return scheme + "://" + net.JoinHostPort(e.host, e.port)
 }
 
-// dialURIPinned returns the driver URI with non-TLS endpoints pinned to a
-// validated literal IP.
+// dialURIsPinned returns the driver URIs to try, with non-TLS endpoints
+// pinned to validated literal IPs.
 //
 // The Neo4j driver offers no dial-time hook: its connector resolves and dials
 // through net.Dialer internally, so the rebinding defense used by the Milvus
@@ -192,17 +192,26 @@ func (e neo4jEndpoint) uri() string {
 // endpoints: the address resolved and validated by resolveVectorIPs is the
 // address dialed, on every connection the driver makes.
 //
+// One URI is returned per validated address so the caller can fall back when
+// an endpoint resolves to several addresses (headless service, dual-stack
+// service) and the first has no listener — the fallback the driver's own
+// hostname dialer would otherwise provide.
+//
 // TLS endpoints cannot pin: the driver derives the TLS server name from the
 // dialed address, so a pinned IP would fail certificate hostname validation.
 // Those endpoints keep the hostname in the URI, validated immediately before
 // driver creation, leaving only a DNS-rebinding window between that
 // resolution and the driver's own — which VerifyConnectivity triggers within
 // the same operation.
-func (e neo4jEndpoint) dialURIPinned(ips []net.IP) string {
+func (e neo4jEndpoint) dialURIsPinned(ips []net.IP) []string {
 	if e.tls || len(ips) == 0 {
-		return e.uri()
+		return []string{e.uri()}
 	}
-	return "bolt://" + net.JoinHostPort(ips[0].String(), e.port)
+	uris := make([]string, 0, len(ips))
+	for _, ip := range ips {
+		uris = append(uris, "bolt://"+net.JoinHostPort(ip.String(), e.port))
+	}
+	return uris
 }
 
 func classifyNeo4jError(parentCtx, operationCtx context.Context, err error) error {
@@ -274,7 +283,34 @@ func newNeo4jFromSecretWithDriver(
 		newDriver = newNeo4jDriver
 	}
 
-	driver, err := newDriver(ctx, endpoint.dialURIPinned(ips), neo4j.BasicAuth(username, password, ""), func(config *config.Config) {
+	// Try each pinned address in order; see dialURIsPinned for why there can
+	// be more than one.
+	var driver neo4jDriver
+	var lastErr error
+	for _, uri := range endpoint.dialURIsPinned(ips) {
+		driver, lastErr = connectNeo4jDriver(ctx, uri, username, password, tlsConfig, timeout, newDriver)
+		if lastErr == nil {
+			break
+		}
+	}
+	if lastErr != nil {
+		return nil, lastErr
+	}
+
+	return &neo4jDB{driver: driver, database: database, operationTimeout: timeout}, nil
+}
+
+// connectNeo4jDriver creates a driver for a single dial URI and verifies it,
+// closing it on failure so a failed attempt does not leak the connection
+// pool while the next pinned address is tried.
+func connectNeo4jDriver(
+	ctx context.Context,
+	uri, username, password string,
+	tlsConfig *tls.Config,
+	timeout time.Duration,
+	newDriver neo4jDriverFactory,
+) (neo4jDriver, error) {
+	driver, err := newDriver(ctx, uri, neo4j.BasicAuth(username, password, ""), func(config *config.Config) {
 		if tlsConfig != nil {
 			config.TlsConfig = tlsConfig
 		}
@@ -293,8 +329,7 @@ func newNeo4jFromSecretWithDriver(
 		_ = driver.Close(context.WithoutCancel(operationCtx))
 		return nil, fmt.Errorf("neo4j authenticate: %w", classifyNeo4jError(ctx, operationCtx, err))
 	}
-
-	return &neo4jDB{driver: driver, database: database, operationTimeout: timeout}, nil
+	return driver, nil
 }
 
 // neo4jGraphSearchQuery builds the Cypher query used by ai4rag's

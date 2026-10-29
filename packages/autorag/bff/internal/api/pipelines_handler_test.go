@@ -1002,6 +1002,15 @@ func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "single JSON object",
 		},
 		{
+			name: "handler-level graph extraction validation",
+			namespace: ns,
+			body: `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","db_secret_name":"vector-db",` +
+				`"graph_extraction_config":{"mode":"constrained","max_entities_per_chunk":2}}}`,
+			setupRepo:      false,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "not allowed in constrained mode",
+		},
+		{
 			name:           "repo validation error",
 			namespace:      ns,
 			body:           validBody,

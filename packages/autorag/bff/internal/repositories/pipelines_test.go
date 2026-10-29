@@ -966,9 +966,12 @@ func TestValidateGraphExtractionConfig(t *testing.T) {
 		{name: "absent"},
 		{name: "constrained", params: map[string]any{"graph_extraction_config": map[string]any{"mode": "constrained"}}},
 		{name: "mode defaults to constrained", params: map[string]any{"graph_extraction_config": map[string]any{}}},
-		{name: "constrained with extra settings is accepted", params: map[string]any{
+		{name: "constrained with free-mode setting", params: map[string]any{
 			"graph_extraction_config": map[string]any{"mode": "constrained", "max_entities_per_chunk": 2},
-		}},
+		}, wantErr: "max_entities_per_chunk is not allowed in constrained mode"},
+		{name: "constrained with unknown key", params: map[string]any{
+			"graph_extraction_config": map[string]any{"mode": "constrained", "other": true},
+		}, wantErr: "other is not allowed in constrained mode"},
 		{name: "free with limits", params: map[string]any{"graph_extraction_config": map[string]any{
 			"mode": "free", "max_entities_per_chunk": float64(8), "max_relationships_per_chunk": 4,
 		}}},
