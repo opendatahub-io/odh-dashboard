@@ -199,6 +199,41 @@ func TestResolveCiphersDHEDropped(t *testing.T) {
 	}
 }
 
+// TestResolveCiphersDropsRuntimeUnavailable exercises the filter that drops a
+// cipher which is mapped in openSSLToGo but that the running Go runtime can no
+// longer negotiate (e.g. a future Go release removing it). Such a suite must be
+// reported as dropped, not silently handed to crypto/tls where it would be ignored.
+func TestResolveCiphersDropsRuntimeUnavailable(t *testing.T) {
+	const name = "ECDHE-RSA-AES128-GCM-SHA256"
+	id, ok := openSSLToGo[name]
+	if !ok {
+		t.Fatalf("precondition: %s must be mapped in openSSLToGo", name)
+	}
+	// Baseline: the suite resolves normally on this runtime.
+	if codes, dropped := resolveCiphers([]string{name}); len(codes) != 1 || len(dropped) != 0 {
+		t.Fatalf("baseline: expected %s to resolve, got codes=%v dropped=%v", name, codes, dropped)
+	}
+
+	// Simulate a runtime that no longer negotiates this suite by removing it from
+	// the negotiable set for the duration of the test.
+	orig := goNegotiableCiphers
+	swapped := make(map[uint16]bool, len(orig))
+	for k, v := range orig {
+		swapped[k] = v
+	}
+	delete(swapped, id)
+	goNegotiableCiphers = swapped
+	t.Cleanup(func() { goNegotiableCiphers = orig })
+
+	codes, dropped := resolveCiphers([]string{name})
+	if len(codes) != 0 {
+		t.Errorf("expected no resolved codes when the suite is runtime-unavailable, got %v", codes)
+	}
+	if len(dropped) != 1 || dropped[0] != name {
+		t.Errorf("expected %s dropped as runtime-unavailable, got %v", name, dropped)
+	}
+}
+
 func TestResolveCiphersDeduplicate(t *testing.T) {
 	// Same cipher listed under both OpenSSL and IANA names should be deduplicated.
 	names := []string{

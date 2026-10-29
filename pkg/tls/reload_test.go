@@ -285,6 +285,260 @@ func TestServeTLSWithReloadEnforcesNewPolicy(t *testing.T) {
 	}
 }
 
+func TestTLSConfigPermitsHTTP2(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *tls.Config
+		want bool
+	}{
+		{"nil config", nil, true},
+		{"empty cipher list (Go defaults apply)", &tls.Config{MinVersion: tls.VersionTLS12}, true},
+		{"list includes ECDHE-RSA-AES128-GCM", &tls.Config{CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256}}, true},
+		{"list includes ECDHE-ECDSA-AES128-GCM", &tls.Config{CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256}}, true},
+		{"AES-256-only list (no required suite)", &tls.Config{CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384}}, false},
+		{"intermediate defaults", intermediateDefaults(), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tlsConfigPermitsHTTP2(tt.cfg); got != tt.want {
+				t.Errorf("tlsConfigPermitsHTTP2 = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// customAES256TLS12 mimics a valid Custom cluster profile that pins a single TLS 1.2
+// cipher with no HTTP/2-required AES-128-GCM suite. The self-signed test cert is
+// ECDSA, so the ECDHE-ECDSA variant is what a client can actually negotiate.
+func customAES256TLS12() *tls.Config {
+	return &tls.Config{
+		MinVersion:   tls.VersionTLS12,
+		MaxVersion:   tls.VersionTLS12,
+		CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+		NextProtos:   nextProtos, // ["h2","http/1.1"], exactly as the resolver sets it
+	}
+}
+
+// TestServeTLSWithReloadStartsWithHTTP2IncompatibleCipher reproduces the reported
+// regression: a valid Custom TLS 1.2 cipher profile that omits every HTTP/2-required
+// cipher must still serve (over HTTP/1.1), not fail the listener with
+// "http2: TLSConfig.CipherSuites is missing an HTTP/2-required AES_128_GCM_SHA256 cipher".
+func TestServeTLSWithReloadStartsWithHTTP2IncompatibleCipher(t *testing.T) {
+	certFile, keyFile := writeSelfSignedCert(t)
+	addr := freeAddr(t)
+
+	resolve := func(context.Context) (*tls.Config, error) { return customAES256TLS12(), nil }
+	factory := func(_ *tls.Config) *http.Server {
+		return &http.Server{Addr: addr, Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })}
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- serveTLSWithReload(ctx, testLogger(), factory, certFile, keyFile, time.Hour, resolve, resolve)
+	}()
+
+	// If the listener failed to start (pre-fix behavior), serveTLSWithReload returns
+	// the http2 configuration error instead of serving.
+	select {
+	case err := <-errCh:
+		t.Fatalf("serveTLSWithReload returned early (listener failed to start): %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	state := dialTLSState(t, addr, certFile, tls.VersionTLS12, tls.VersionTLS12)
+	if state.Version != tls.VersionTLS12 {
+		t.Errorf("expected TLS 1.2, got 0x%x", state.Version)
+	}
+	if state.CipherSuite != tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 {
+		t.Errorf("expected AES-256-GCM cipher, got 0x%x", state.CipherSuite)
+	}
+	if state.NegotiatedProtocol == "h2" {
+		t.Error("server negotiated h2 despite an HTTP/2-incompatible cipher list")
+	}
+
+	cancel()
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("expected nil error on cancel, got %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("serveTLSWithReload did not return after cancel")
+	}
+}
+
+// TestServeTLSWithReloadReloadsToHTTP2IncompatibleCipher proves the live-reload path
+// also survives a transition to an HTTP/2-incompatible Custom profile: it starts on
+// TLS 1.3 (where HTTP/2 is fine) and reloads onto the AES-256-only TLS 1.2 profile.
+func TestServeTLSWithReloadReloadsToHTTP2IncompatibleCipher(t *testing.T) {
+	certFile, keyFile := writeSelfSignedCert(t)
+	addr := freeAddr(t)
+	modern := &tls.Config{MinVersion: tls.VersionTLS13, NextProtos: nextProtos}
+
+	var customOn atomic.Bool
+	resolve := func(context.Context) (*tls.Config, error) {
+		if customOn.Load() {
+			return customAES256TLS12(), nil
+		}
+		return modern.Clone(), nil
+	}
+	var builds atomic.Int32
+	factory := func(_ *tls.Config) *http.Server {
+		builds.Add(1)
+		return &http.Server{Addr: addr, Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })}
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- serveTLSWithReload(ctx, testLogger(), factory, certFile, keyFile, 20*time.Millisecond, resolve, resolve)
+	}()
+
+	assertServesTLS(t, addr, certFile) // generation 1 (TLS 1.3) up
+	gen1 := builds.Load()
+	customOn.Store(true)
+
+	deadline := time.After(5 * time.Second)
+	for builds.Load() <= gen1 {
+		select {
+		case <-deadline:
+			t.Fatalf("listener did not restart onto the Custom profile (builds=%d)", builds.Load())
+		case e := <-errCh:
+			t.Fatalf("serve returned early during reload: %v", e)
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+
+	// Generation 2 must serve the AES-256-only TLS 1.2 policy.
+	okBy := time.Now().Add(3 * time.Second)
+	for {
+		if state, err := dialTLSStateErr(addr, certFile, tls.VersionTLS12, tls.VersionTLS12); err == nil {
+			if state.CipherSuite != tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 {
+				t.Errorf("expected AES-256-GCM cipher after reload, got 0x%x", state.CipherSuite)
+			}
+			break
+		}
+		if time.Now().After(okBy) {
+			t.Fatal("listener did not serve the Custom TLS 1.2 profile after reload")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	cancel()
+	select {
+	case <-errCh:
+	case <-time.After(5 * time.Second):
+		t.Fatal("serveTLSWithReload did not return after cancel")
+	}
+}
+
+// TestServeTLSWithReloadUsesInitialAtStartupAndPollOnReload guards the production
+// wiring that binds the (lenient) initial resolver to startup and the (strict) poll
+// resolver to reloads. The two resolvers return different policies, so swapping the
+// arguments would change which policy the first generation serves and fail this test
+// (defends against the CWE-757 downgrade of a swapped binding).
+func TestServeTLSWithReloadUsesInitialAtStartupAndPollOnReload(t *testing.T) {
+	certFile, keyFile := writeSelfSignedCert(t)
+	addr := freeAddr(t)
+
+	initial := func(context.Context) (*tls.Config, error) {
+		return &tls.Config{MinVersion: tls.VersionTLS13, NextProtos: nextProtos}, nil // startup → Modern
+	}
+	poll := func(context.Context) (*tls.Config, error) {
+		return intermediateDefaults(), nil // reload → Intermediate (TLS 1.2)
+	}
+	var builds atomic.Int32
+	factory := func(_ *tls.Config) *http.Server {
+		builds.Add(1)
+		return &http.Server{Addr: addr, Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })}
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- serveTLSWithReload(ctx, testLogger(), factory, certFile, keyFile, 20*time.Millisecond, initial, poll)
+	}()
+
+	// Generation 1 comes from the initial resolver: TLS 1.3, so TLS 1.2 is rejected.
+	assertServesTLS(t, addr, certFile)
+	if _, err := dialTLSStateErr(addr, certFile, tls.VersionTLS12, tls.VersionTLS12); err == nil {
+		t.Fatal("startup generation accepted TLS 1.2; initial (Modern) resolver was not used at startup")
+	}
+
+	// The poll resolver (Intermediate) differs, so a reload to TLS 1.2 is requested.
+	gen1 := builds.Load()
+	deadline := time.After(5 * time.Second)
+	for builds.Load() <= gen1 {
+		select {
+		case <-deadline:
+			t.Fatalf("listener did not reload onto the poll policy (builds=%d)", builds.Load())
+		case e := <-errCh:
+			t.Fatalf("serve returned early: %v", e)
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	okBy := time.Now().Add(3 * time.Second)
+	for {
+		if v, err := dialTLSMax(addr, certFile, tls.VersionTLS12); err == nil && v == tls.VersionTLS12 {
+			break // reload generation (poll → Intermediate) now accepts TLS 1.2
+		}
+		if time.Now().After(okBy) {
+			t.Fatal("reload generation did not accept TLS 1.2; poll resolver was not used on reload")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	cancel()
+	select {
+	case <-errCh:
+	case <-time.After(5 * time.Second):
+		t.Fatal("serveTLSWithReload did not return after cancel")
+	}
+}
+
+// dialTLSStateErr dials addr trusting certFile within [min,max] and returns the
+// negotiated connection state, offering both ALPN protocols so the server's choice
+// is observable.
+func dialTLSStateErr(addr, certFile string, min, max uint16) (tls.ConnectionState, error) {
+	pemBytes, err := os.ReadFile(certFile)
+	if err != nil {
+		return tls.ConnectionState{}, err
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pemBytes) {
+		return tls.ConnectionState{}, errAppendCert
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	d := &tls.Dialer{Config: &tls.Config{RootCAs: pool, ServerName: "127.0.0.1", MinVersion: min, MaxVersion: max, NextProtos: []string{"h2", "http/1.1"}}}
+	conn, err := d.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return tls.ConnectionState{}, err
+	}
+	defer func() { _ = conn.Close() }()
+	return conn.(*tls.Conn).ConnectionState(), nil
+}
+
+// dialTLSState is dialTLSStateErr for callers that treat a handshake failure as fatal.
+func dialTLSState(t *testing.T, addr, certFile string, min, max uint16) tls.ConnectionState {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		state, err := dialTLSStateErr(addr, certFile, min, max)
+		if err == nil {
+			return state
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("handshake with %s failed: %v", addr, err)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 // dialTLSMax dials addr trusting certFile, capping the client at maxVersion, and
 // returns the negotiated TLS version (or an error if the handshake is rejected).
 func dialTLSMax(addr, certFile string, maxVersion uint16) (uint16, error) {

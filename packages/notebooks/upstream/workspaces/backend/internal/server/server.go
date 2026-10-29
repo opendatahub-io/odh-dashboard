@@ -24,6 +24,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -139,6 +140,11 @@ func (s *Server) serveGeneration(ctx context.Context, tlsConfig *tls.Config) (re
 		var e error
 		if tlsConfig != nil {
 			svc.TLSConfig = tlsConfig.Clone()
+			// A cluster cipher profile may legitimately pin a TLS 1.2 cipher list
+			// that omits every suite HTTP/2 requires; serve HTTP/1.1 only in that
+			// case rather than letting ServeTLS fail to configure HTTP/2 and refuse
+			// to serve the listener at all.
+			disableHTTP2IfIncompatible(s.logger, svc)
 			e = svc.ServeTLS(listener, s.certFile, s.keyFile)
 		} else {
 			e = svc.Serve(listener)
@@ -178,6 +184,53 @@ func (s *Server) shutdown(svc *http.Server) {
 			s.logger.Error("force close of server failed", "error", closeErr)
 		}
 	}
+}
+
+// disableHTTP2IfIncompatible forces an http.Server to HTTP/1.1 only when its
+// resolved TLS cipher list cannot satisfy HTTP/2's required-cipher rule.
+//
+// RFC 7540 §9.2.2 requires an HTTP/2 server negotiating TLS <=1.2 to support an
+// ECDHE AES-128-GCM suite. golang.org/x/net/http2's ConfigureServer enforces this:
+// when TLSConfig.CipherSuites is non-empty and contains none of those suites it
+// returns "TLSConfig.CipherSuites is missing an HTTP/2-required AES_128_GCM_SHA256
+// cipher", which ServeTLS surfaces as a fatal serve error — the listener never
+// starts. A cluster TLS profile may legitimately pin a TLS 1.2 cipher list (for
+// example AES-256 only) that omits those suites, so we detect that and serve
+// HTTP/1.1 only instead of refusing to serve.
+//
+// Suppressing the automatic HTTP/2 wiring requires a non-nil TLSNextProto (clearing
+// "h2" from NextProtos alone does not: http.Server re-adds it while configuring
+// HTTP/2). We also drop "h2" from the advertised ALPN protocols so a client cannot
+// negotiate a protocol the server will not serve.
+func disableHTTP2IfIncompatible(logger *slog.Logger, srv *http.Server) {
+	if srv.TLSConfig == nil || tlsConfigPermitsHTTP2(srv.TLSConfig) {
+		return
+	}
+	logger.Warn("resolved cluster TLS cipher suites omit every HTTP/2-required cipher (ECDHE AES-128-GCM); serving HTTP/1.1 only on this listener")
+	srv.TLSConfig.NextProtos = slices.DeleteFunc(slices.Clone(srv.TLSConfig.NextProtos),
+		func(p string) bool { return p == "h2" })
+	if len(srv.TLSConfig.NextProtos) == 0 {
+		srv.TLSConfig.NextProtos = []string{"http/1.1"}
+	}
+	srv.TLSNextProto = map[string]func(*http.Server, *tls.Conn, http.Handler){}
+}
+
+// tlsConfigPermitsHTTP2 reports whether cfg's cipher list is compatible with
+// HTTP/2. An empty CipherSuites means Go's defaults apply (which include a required
+// suite), so HTTP/2 is fine; a non-empty list must contain one of the two ECDHE
+// AES-128-GCM suites http2.ConfigureServer demands. This mirrors Go's own check,
+// which inspects CipherSuites regardless of MinVersion.
+func tlsConfigPermitsHTTP2(cfg *tls.Config) bool {
+	if cfg == nil || len(cfg.CipherSuites) == 0 {
+		return true
+	}
+	for _, id := range cfg.CipherSuites {
+		if id == tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 ||
+			id == tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 {
+			return true
+		}
+	}
+	return false
 }
 
 // NeedLeaderElection returns false because this app does not need leader election from the manager

@@ -58,9 +58,13 @@ func adherenceIsStrict(adherence string) bool {
 // cluster result, honoring the cluster TLS adherence policy (RHOAIENG-96984).
 //
 //   - Policy unreadable (denied/transient read, or malformed adherence): the
-//     adherence decision itself cannot be trusted, so fail closed regardless of mode.
-//     At startup the caller exits; on reload the watcher callback propagates the error
-//     so it keeps the running configuration and retries.
+//     adherence decision itself cannot be trusted, so this returns an error
+//     regardless of mode. How the caller treats that error is phase-dependent: at
+//     startup run() exits for a persistent failure but is lenient on a *transient*
+//     one (serves the TLS 1.3 default and lets the watcher apply the real policy
+//     once the API recovers); on reload the watcher callback propagates the error so
+//     it keeps the running configuration and retries. This function does not itself
+//     distinguish those phases — it only reports that the policy is untrusted.
 //   - Strict adherence (clean read): adopt the resolved cluster profile; if that
 //     profile is invalid/inapplicable (degraded), fail closed since Strict requires it.
 //   - Legacy/unset adherence (clean read): preserve the backend's historical TLS 1.3
