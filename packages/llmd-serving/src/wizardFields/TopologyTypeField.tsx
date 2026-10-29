@@ -24,6 +24,8 @@ import {
   TopologyTypeDescriptions,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
+  isTopologyTypeFieldData,
+  type TopologyTypeFieldData,
 } from '../types';
 import { isConfigEnabled } from '../utils';
 import {
@@ -150,20 +152,7 @@ export const useTopologyTypeData = (
 
 // --- Field value ---
 
-export type TopologyTypeFieldData = {
-  topologyType: TopologyType;
-};
-
-const topologyTypeValues: string[] = Object.values(TopologyType);
-export const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFieldData => {
-  if (data == null || typeof data !== 'object' || !('topologyType' in data)) {
-    return false;
-  }
-  const record: Record<string, unknown> = data;
-  return (
-    typeof record.topologyType === 'string' && topologyTypeValues.includes(record.topologyType)
-  );
-};
+export { isTopologyTypeFieldData, type TopologyTypeFieldData };
 
 export type TopologyTypeFieldType = WizardField<
   TopologyTypeFieldData,
@@ -213,14 +202,9 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
       }
     }
 
-    // A topology change resets the configuration field: single-node uses its built-in default,
-    // while other topologies initialize to the first available compatible config. Waiting for
-    // that resolved value prevents tracking the previous topology's selection.
-    const expectedInitialConfig =
-      pending.topologyType === TopologyType.SINGLE_NODE
-        ? 'default'
-        : configsByTopology?.[pending.topologyType]?.[0]?.metadata.name;
-    if (!topologyConfigurationId || topologyConfigurationId !== expectedInitialConfig) {
+    // Accept the effective compatible selection, including restored edit configurations.
+    // List ordering is not a resolution signal and must not suppress non-first selections.
+    if (!topologyConfigurationId) {
       return;
     }
 

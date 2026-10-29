@@ -231,6 +231,27 @@ describe('Model Serving LLMD Topology & Routing', () => {
     });
   });
 
+  it('should track cancellation without inventing unresolved configuration values', () => {
+    initIntercepts();
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+    cy.window().then((win) => {
+      Object.defineProperty(win, 'analytics', {
+        value: { track: cy.stub().as('analyticsTrack') },
+        writable: true,
+        configurable: true,
+      });
+    });
+    cy.findByRole('button', { name: 'Cancel' }).click();
+    modelServingWizard.findDiscardButton().click();
+    cy.get('@analyticsTrack').should(
+      'be.calledWithMatch',
+      'Model Deployed',
+      Cypress.sinon.match({ outcome: 'cancel' }),
+    );
+  });
+
   describe('hardware profile visibility', () => {
     it('hardware profile visibility', () => {
       initIntercepts();
@@ -331,7 +352,9 @@ describe('Model Serving LLMD Topology & Routing', () => {
     });
 
     it('should disable routing dropdown when no router configs exist', () => {
-      initIntercepts({ topologyConfigs: [], routerConfigs: [] });
+      // The broad list mock does not apply Kubernetes label selectors; return no accelerator
+      // configs either so the router-only list request really receives an empty response.
+      initIntercepts({ topologyConfigs: [], routerConfigs: [], acceleratorConfigs: [] });
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
@@ -662,6 +685,46 @@ describe('Model Serving LLMD Topology & Routing', () => {
       );
     });
 
+    it('should track disaggregated decode replicas and selected routing on deployment', () => {
+      initIntercepts();
+      initDeployIntercepts('tracked-disaggregated');
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findModelDeploymentNameInput().type('tracked-disaggregated');
+      cy.window().then((win) => {
+        Object.defineProperty(win, 'analytics', {
+          value: { track: cy.stub().as('analyticsTrack') },
+          writable: true,
+          configurable: true,
+        });
+      });
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE_DISAGGREGATED}`).click();
+      cy.findByTestId('custom-topology-config-select').should('contain.text', 'Single Node P/D');
+      cy.findByTestId('routing-config-select').click();
+      cy.findByTestId('routing-config-option-managed-scheduler').click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      completeWizard();
+      cy.wait('@createLLMInferenceService');
+      cy.wait('@createLLMInferenceService').then(({ request }) => {
+        cy.get('@analyticsTrack').should(
+          'be.calledWithMatch',
+          'Model Deployed',
+          Cypress.sinon.match({
+            success: true,
+            outcome: 'submit',
+            deploymentMethod: 'llm-inference-service-llmd',
+            llmdComposablePattern: TopologyType.SINGLE_NODE_DISAGGREGATED,
+            topologyConfigurationId: 'single-node-pd-config',
+            routingConfigurationId: 'managed-scheduler',
+            replicaCount: request.body.spec.replicas,
+          }),
+        );
+      });
+    });
+
     it('should create new resources when selecting custom topology', () => {
       const deploymentName = 'test-custom-topology';
       const localConfigName = `${deploymentName}-multi-node-config`;
@@ -931,7 +994,25 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
       // Step 4: Summary
+      cy.window().then((win) => {
+        Object.defineProperty(win, 'analytics', {
+          value: { track: cy.stub().as('analyticsTrack') },
+          writable: true,
+          configurable: true,
+        });
+      });
       modelServingWizardEdit.findSubmitButton().should('be.enabled').click();
+
+      cy.get('@analyticsTrack').should(
+        'be.calledWithMatch',
+        'Model Updated',
+        Cypress.sinon.match({
+          success: true,
+          topologyConfigurationId: 'default',
+          llmdComposablePattern: TopologyType.SINGLE_NODE,
+        }),
+      );
+      cy.get('@analyticsTrack').should('not.be.calledWithMatch', 'Model Deployed');
 
       // Dry run — the previously referenced config is deleted, no new copy is created
       cy.wait('@deleteLLMInferenceServiceConfig').then((interception) => {

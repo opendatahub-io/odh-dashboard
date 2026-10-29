@@ -4,12 +4,12 @@ import {
   ACCELERATOR_CONFIG_DEFAULT,
   ACCELERATOR_CONFIG_FIELD_ID,
   CUSTOM_TOPOLOGY_CONFIG_FIELD_ID,
+  CONFIG_TYPE_LABEL,
   DEFAULT_ROUTING_KEY,
   TOPOLOGY_CONFIG_DEFAULT,
   TOPOLOGY_TYPE_FIELD_ID,
 } from '../const';
-import { TopologyType } from '../types';
-import { isTopologyTypeFieldData } from '../wizardFields/TopologyTypeField';
+import { TopologyType, isTopologyTypeFieldData } from '../types';
 
 export const LLMD_GATEWAY_FIELD_ID = 'llmd-serving/gateway';
 export const LLMD_ROUTING_FIELD_ID = 'llmd-serving/advanced-routing';
@@ -102,11 +102,20 @@ const getComposableTrackingProperties = (
     properties.llmdComposablePattern = topology.topologyType;
     const topologyConfig = getField(wizardState, CUSTOM_TOPOLOGY_CONFIG_FIELD_ID);
     if (isRecord(topologyConfig)) {
-      if (topologyConfig.selectedConfig === TOPOLOGY_CONFIG_DEFAULT) {
+      if (
+        topologyConfig.selectedConfig === TOPOLOGY_CONFIG_DEFAULT &&
+        topology.topologyType === TopologyType.SINGLE_NODE
+      ) {
         properties.topologyConfigurationId = TOPOLOGY_CONFIG_DEFAULT;
       } else {
         const configName = getConfigName(topologyConfig.selectedConfig);
-        if (configName) {
+        const { selectedConfig } = topologyConfig;
+        const labels =
+          isRecord(selectedConfig) && isRecord(selectedConfig.metadata)
+            ? selectedConfig.metadata.labels
+            : undefined;
+        const configTopology = isRecord(labels) ? labels[CONFIG_TYPE_LABEL] : undefined;
+        if (configName && (!configTopology || configTopology === topology.topologyType)) {
           properties.topologyConfigurationId = configName;
         } else if (
           typeof topologyConfig.configRef === 'string' &&
@@ -115,22 +124,22 @@ const getComposableTrackingProperties = (
           properties.topologyConfigurationId = topologyConfig.configRef;
         }
       }
-    } else if (topology.topologyType === TopologyType.SINGLE_NODE) {
-      // Single-node implicitly uses the built-in topology configuration.
-      properties.topologyConfigurationId = TOPOLOGY_CONFIG_DEFAULT;
     }
   }
 
   const hardwareProfileState = getField(wizardState, 'hardwareProfileConfig');
   if (isRecord(hardwareProfileState) && isRecord(hardwareProfileState.formData)) {
     const profileName = getConfigName(hardwareProfileState.formData.selectedProfile);
-    if (profileName) {
+    if (profileName && hardwareProfileState.formData.useExistingSettings !== true) {
       properties.hardwareProfile = profileName;
     }
   }
 
   const numReplicasState = getField(wizardState, 'numReplicas');
   if (isRecord(numReplicasState)) {
+    // KServe's top-level WorkloadSpec is the decode workload when prefill is configured:
+    // https://github.com/kserve/kserve/blob/master/pkg/apis/serving/v1alpha2/llm_inference_service_types.go
+    // Keep this aligned with applyReplicas, which writes the same wizard value to spec.replicas.
     const replicas = numReplicasState.data;
     if (typeof replicas === 'number' && Number.isFinite(replicas) && replicas >= 0) {
       properties.replicaCount = replicas;

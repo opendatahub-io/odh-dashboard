@@ -149,6 +149,88 @@ describe('getLlmdWizardTrackingProperties', () => {
     });
   });
 
+  it('should omit a retained hardware profile when using existing settings', () => {
+    expect(
+      getLlmdWizardTrackingProperties(
+        wizardState({
+          hardwareProfileConfig: {
+            formData: {
+              useExistingSettings: true,
+              selectedProfile: { metadata: { name: 'unused-profile' } },
+            },
+          },
+        }),
+      ),
+    ).toEqual({});
+  });
+
+  it.each([undefined, null, 'malformed', {}])(
+    'should not invent a default for unresolved topology data %p',
+    (config) => {
+      expect(
+        getLlmdWizardTrackingProperties(
+          wizardState({
+            [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.SINGLE_NODE },
+            [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: config,
+          }),
+        ),
+      ).toEqual({ llmdComposablePattern: TopologyType.SINGLE_NODE });
+    },
+  );
+
+  it('should omit defaults and selected configs incompatible with the topology', () => {
+    for (const selectedConfig of [
+      'default',
+      {
+        metadata: {
+          name: 'wrong-config',
+          labels: { 'opendatahub.io/config-type': TopologyType.SINGLE_NODE },
+        },
+      },
+    ]) {
+      expect(
+        getLlmdWizardTrackingProperties(
+          wizardState({
+            [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.MULTI_NODE },
+            [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: { selectedConfig },
+          }),
+        ),
+      ).toEqual({ llmdComposablePattern: TopologyType.MULTI_NODE });
+    }
+  });
+
+  it('should preserve extracted edit references without fetching resources', () => {
+    expect(
+      getLlmdWizardTrackingProperties(
+        wizardState({
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.MULTI_NODE },
+          [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: { configRef: 'existing-topology' },
+          [ACCELERATOR_CONFIG_FIELD_ID]: { configRef: 'existing-accelerator' },
+          'llmd-serving/advanced-routing': { configRef: 'existing-routing' },
+        }),
+      ),
+    ).toEqual({
+      llmdComposablePattern: TopologyType.MULTI_NODE,
+      topologyConfigurationId: 'existing-topology',
+      acceleratorConfigurationId: 'existing-accelerator',
+      routingConfigurationId: 'existing-routing',
+    });
+  });
+
+  it.each(Object.values(TopologyType))(
+    'should report the serving/decode replica count for %s',
+    (topologyType) => {
+      expect(
+        getLlmdWizardTrackingProperties(
+          wizardState({
+            [TOPOLOGY_TYPE_FIELD_ID]: { topologyType },
+            numReplicas: { data: 4 },
+          }),
+        ),
+      ).toEqual({ llmdComposablePattern: topologyType, replicaCount: 4 });
+    },
+  );
+
   it('should report explicit built-in defaults and preserve zero replicas', () => {
     expect(
       getLlmdWizardTrackingProperties(
