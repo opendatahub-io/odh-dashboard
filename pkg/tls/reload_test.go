@@ -15,10 +15,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+// isConnRefused reports whether err is a TCP connection-refused (the listener was
+// not accepting), as opposed to a completed-but-rejected TLS handshake.
+func isConnRefused(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "connection refused")
+}
 
 func TestTLSConfigEqual(t *testing.T) {
 	base := &tls.Config{
@@ -457,7 +464,15 @@ func TestServeTLSWithReloadUsesInitialAtStartupAndPollOnReload(t *testing.T) {
 	initial := func(context.Context) (*tls.Config, error) {
 		return &tls.Config{MinVersion: tls.VersionTLS13, NextProtos: nextProtos}, nil // startup → Modern
 	}
+	// poll stays equal to the startup policy until the startup assertions finish, so
+	// no reload can race ahead of them; the test then flips it to Intermediate to
+	// trigger the reload. (Without this gate the 20ms ticker could replace
+	// generation 1 mid-assertion.)
+	var pollSwitched atomic.Bool
 	poll := func(context.Context) (*tls.Config, error) {
+		if !pollSwitched.Load() {
+			return &tls.Config{MinVersion: tls.VersionTLS13, NextProtos: nextProtos}, nil // == startup
+		}
 		return intermediateDefaults(), nil // reload → Intermediate (TLS 1.2)
 	}
 	var builds atomic.Int32
@@ -473,13 +488,20 @@ func TestServeTLSWithReloadUsesInitialAtStartupAndPollOnReload(t *testing.T) {
 		errCh <- serveTLSWithReload(ctx, testLogger(), factory, certFile, keyFile, 20*time.Millisecond, initial, poll)
 	}()
 
-	// Generation 1 comes from the initial resolver: TLS 1.3, so TLS 1.2 is rejected.
+	// Generation 1 comes from the initial resolver: TLS 1.3. The listener is up
+	// (assertServesTLS completes a TLS 1.3 handshake), so a TLS-1.2-capped dial that
+	// now fails is a policy rejection by the Modern listener, not a connection-refused
+	// race.
 	assertServesTLS(t, addr, certFile)
 	if _, err := dialTLSStateErr(addr, certFile, tls.VersionTLS12, tls.VersionTLS12); err == nil {
 		t.Fatal("startup generation accepted TLS 1.2; initial (Modern) resolver was not used at startup")
+	} else if isConnRefused(err) {
+		t.Fatalf("startup TLS 1.2 dial was refused rather than rejected by policy: %v", err)
 	}
 
-	// The poll resolver (Intermediate) differs, so a reload to TLS 1.2 is requested.
+	// Flip the poll policy to Intermediate; it now differs, so a reload to TLS 1.2
+	// is requested.
+	pollSwitched.Store(true)
 	gen1 := builds.Load()
 	deadline := time.After(5 * time.Second)
 	for builds.Load() <= gen1 {
