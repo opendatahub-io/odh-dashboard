@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -1051,6 +1052,15 @@ func decodeJSON[T any](body []byte) (*T, error) {
 	decoder.UseNumber()
 	var result T
 	if err := decoder.Decode(&result); err != nil {
+		return nil, err
+	}
+	// A single Decode accepts the first JSON value and ignores trailing
+	// content; require a clean EOF so malformed bodies fail like Unmarshal.
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		if err == nil {
+			err = errors.New("unexpected trailing data after JSON value")
+		}
 		return nil, err
 	}
 	return &result, nil

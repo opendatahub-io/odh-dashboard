@@ -225,6 +225,32 @@ func TestEvalHubClient_GetEvaluationJob_DecodesNonNumericMetricsAndArtifacts(t *
 	assert.Contains(t, string(encoded), `"total_tokens":9007199254740993`)
 }
 
+func TestDecodeJSON_RejectsTrailingData(t *testing.T) {
+	tests := []struct {
+		name    string
+		body    string
+		wantErr bool
+	}{
+		{name: "valid body", body: `{"status":"healthy"}`},
+		{name: "valid trailing whitespace", body: "{\"status\":\"healthy\"}\n\t "},
+		{name: "trailing garbage", body: `{"status":"healthy"} garbage`, wantErr: true},
+		{name: "second JSON value", body: `{"status":"healthy"}{"status":"other"}`, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := decodeJSON[HealthResponse]([]byte(tt.body))
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, result)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.Equal(t, "healthy", result.Status)
+		})
+	}
+}
+
 func TestEvalHubClient_ListEvaluationJobs_FetchesAllPages(t *testing.T) {
 	firstPage := EvaluationJobsResponse{
 		TotalCount: 3,
