@@ -3306,3 +3306,80 @@ func TestIsTrustedOfficeMIMETypesConfigMap(t *testing.T) {
 	binaryData.BinaryData = map[string][]byte{"unexpected.py": []byte("import malicious_code")}
 	assert.False(t, isTrustedOfficeMIMETypesConfigMap(binaryData))
 }
+
+func TestGetServiceReadsThroughCallerIdentity(t *testing.T) {
+	service := &corev1.Service{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Service"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "test-namespace", Name: "my-model"},
+		Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeClusterIP, ClusterIP: "10.96.10.5"},
+	}
+	var gotAuth, gotPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api":
+			_ = json.NewEncoder(w).Encode(metav1.APIVersions{Versions: []string{"v1"}})
+		case "/api/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{
+				GroupVersion: "v1",
+				APIResources: []metav1.APIResource{{Name: "services", Kind: "Service", Namespaced: true}},
+			})
+		case "/apis":
+			_ = json.NewEncoder(w).Encode(metav1.APIGroupList{})
+		case "/api/v1/namespaces/test-namespace/services/my-model":
+			gotAuth = r.Header.Get("Authorization")
+			gotPath = r.URL.Path
+			_ = json.NewEncoder(w).Encode(service)
+		default:
+			http.Error(w, "unexpected request: "+r.URL.Path, http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().Build(),
+		Config: &rest.Config{Host: server.URL},
+		Logger: slog.Default(),
+	}
+
+	svc, err := kc.GetService(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, "test-namespace", "my-model")
+
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	assert.Equal(t, "10.96.10.5", svc.Spec.ClusterIP)
+	assert.Equal(t, "/api/v1/namespaces/test-namespace/services/my-model", gotPath)
+	assert.Equal(t, "Bearer user-token", gotAuth)
+}
+
+func TestGetServiceCallerForbiddenReturnsError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api":
+			_ = json.NewEncoder(w).Encode(metav1.APIVersions{Versions: []string{"v1"}})
+		case "/api/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{
+				GroupVersion: "v1",
+				APIResources: []metav1.APIResource{{Name: "services", Kind: "Service", Namespaced: true}},
+			})
+		case "/apis":
+			_ = json.NewEncoder(w).Encode(metav1.APIGroupList{})
+		default:
+			// The caller's token has no Service read permission for this name.
+			http.Error(w, "forbidden", http.StatusForbidden)
+		}
+	}))
+	defer server.Close()
+
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().Build(),
+		Config: &rest.Config{Host: server.URL},
+		Logger: slog.Default(),
+	}
+
+	svc, err := kc.GetService(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, "test-namespace", "my-model")
+
+	assert.Error(t, err)
+	assert.Nil(t, svc)
+	assert.Contains(t, err.Error(), "forbidden")
+}

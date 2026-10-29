@@ -231,7 +231,10 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 	if !strings.HasSuffix(h, ".svc.cluster.local") || len(labels) < 5 {
 		return "", "", false
 	}
-	return labels[0], labels[len(labels)-4], true
+	// Anchor against the fixed suffix: pod-specific DNS names
+	// (<pod>.<service>.<namespace>.svc.cluster.local) have extra labels before
+	// the Service label, so labels[0] would name the pod, not the Service.
+	return labels[len(labels)-5], labels[len(labels)-4], true
 }
 
 // resolveTrustedHost decides whether a base URL may skip SSRF validation, and returns the
@@ -240,12 +243,16 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 // An in-namespace service DNS name is only trusted after resolving the backing Service
 // through the Kubernetes API: a namespace user can create a ServiceTypeExternalName
 // Service whose in-namespace DNS name aliases an arbitrary target (e.g. in another
-// namespace), so ExternalName services and unresolvable names are not trusted. ClusterIPs
-// of regular services are returned as the expected dial-time destination; headless
-// services have none and get no destination pinning.
+// namespace), so ExternalName services and unresolvable names are not trusted. Headless
+// and selectorless Services are also rejected: a namespace user can create them with
+// manually managed Endpoints pointing at arbitrary destinations (including other
+// namespaces' Pod IPs), and their DNS answers are not attributable to a validated
+// ClusterIP. ClusterIPs of regular selector-backed services are returned as the expected
+// dial-time destination.
 func resolveTrustedHost(
 	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
+	identity *integrations.RequestIdentity,
 	baseURL string,
 	namespace string,
 ) (bool, []string) {
@@ -257,8 +264,13 @@ func resolveTrustedHost(
 		// localhost/loopback for local development
 		return true, nil
 	}
-	svc, err := client.GetService(ctx, svcNamespace, svcName)
+	svc, err := client.GetService(ctx, identity, svcNamespace, svcName)
 	if err != nil || svc.Spec.Type == corev1.ServiceTypeExternalName {
+		return false, nil
+	}
+	headless := svc.Spec.ClusterIP == "None"
+	selectorless := len(svc.Spec.Selector) == 0
+	if headless || selectorless {
 		return false, nil
 	}
 	var clusterIPs []string
@@ -290,12 +302,13 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	logger *slog.Logger,
 	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
+	identity *integrations.RequestIdentity,
 	req models.VerifyExternalModelRequest,
 	namespace string,
 	rootCAs *x509.CertPool,
 	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
-	trusted, trustedDestinationIPs := resolveTrustedHost(ctx, client, req.BaseURL, namespace)
+	trusted, trustedDestinationIPs := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace)
 	modelsClient, err := externalmodels.NewExternalModelsClient(
 		logger,
 		req.BaseURL,

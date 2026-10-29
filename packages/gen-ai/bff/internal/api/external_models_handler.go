@@ -226,14 +226,20 @@ func (app *App) VerifyExternalModelHandler(
 		return
 	}
 
-	// 4. Call repository; the k8s client is used to verify that an in-namespace service
-	// DNS name is not backed by an ExternalName (cross-namespace alias) Service.
+	// 4. Call repository; the k8s client reads Services through the caller's own
+	// credentials to verify that an in-namespace service DNS name is not backed by
+	// an ExternalName (cross-namespace alias) or headless/selectorless Service.
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		app.unauthorizedResponse(w, r, fmt.Errorf("missing request identity"))
+		return
+	}
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, k8sClient, req, namespace, app.rootCAs, app.config.InsecureSkipVerify)
+	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, k8sClient, identity, req, namespace, app.rootCAs, app.config.InsecureSkipVerify)
 	if err != nil {
 		// Handle custom error types
 		if extErr, ok := err.(*externalmodels.ExternalModelError); ok {

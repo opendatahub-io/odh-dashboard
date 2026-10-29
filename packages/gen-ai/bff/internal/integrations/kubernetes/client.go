@@ -45,9 +45,9 @@ type KubernetesClientInterface interface {
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
 	GetDashboardConfigMap(ctx context.Context, namespace string, name string) (*corev1.ConfigMap, error)
 
-	// GetService fetches a core Service by namespace and name through the dashboard
-	// service account, so callers can verify what a service DNS name actually backs.
-	GetService(ctx context.Context, namespace string, name string) (*corev1.Service, error)
+	// GetService fetches a core Service by namespace and name through the caller's
+	// own credentials, so callers can verify what a service DNS name actually backs.
+	GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error)
 
 	// External Models operations
 	GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)

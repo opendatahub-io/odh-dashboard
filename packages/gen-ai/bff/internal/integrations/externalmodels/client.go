@@ -138,9 +138,12 @@ func validateBaseURL(baseURL string, allowHTTP bool) error {
 	return nil
 }
 
+// lookupIP is swappable so tests can vary DNS answers between validation and dialing.
+var lookupIP = net.LookupIP
+
 // validateRequestSSRF performs SSRF protection at request time (prevents DNS rebinding attacks)
 func validateRequestSSRF(hostname string, logger *slog.Logger) error {
-	ips, err := net.LookupIP(hostname)
+	ips, err := lookupIP(hostname)
 	if err != nil {
 		return fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
 	}
@@ -162,23 +165,94 @@ func validateRequestSSRF(hostname string, logger *slog.Logger) error {
 // validateTrustedDestination ensures a trusted hostname (SSRF validation skipped) still
 // resolves to the expected destination IPs at request time, guarding against DNS rebinding.
 func validateTrustedDestination(hostname string, expectedIPs []string, logger *slog.Logger) error {
-	ips, err := net.LookupIP(hostname)
+	ips, err := lookupIP(hostname)
 	if err != nil {
 		return fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
 	}
 
-	allowed := make(map[string]bool, len(expectedIPs))
+	if len(ips) == 0 {
+		return fmt.Errorf("hostname %s resolved to no IP addresses", hostname)
+	}
+
+	// Compare parsed addresses, not text: equivalent IPv6 spellings must match.
+	allowed := make([]net.IP, 0, len(expectedIPs))
 	for _, ip := range expectedIPs {
-		allowed[ip] = true
+		if parsed := net.ParseIP(ip); parsed != nil {
+			allowed = append(allowed, parsed)
+		}
 	}
 	for _, ip := range ips {
-		if !allowed[ip.String()] {
+		if !containsIP(allowed, ip) {
 			return fmt.Errorf("request blocked: destination %s resolves to %s, expected one of %v (DNS rebinding guard)", hostname, ip.String(), expectedIPs)
 		}
 	}
 
 	logger.Debug("trusted destination validation passed", "hostname", hostname, "ips", ips)
 	return nil
+}
+
+func containsIP(ips []net.IP, ip net.IP) bool {
+	for _, candidate := range ips {
+		if candidate.Equal(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+// destinationGuardDialContext returns an http.Transport DialContext that resolves
+// the base URL hostname at dial time, validates the answer against the SSRF or
+// trusted-destination policy, and dials the validated IP directly. The HTTP client
+// otherwise resolves the hostname independently, so a changed DNS answer between
+// validation and connection could redirect the request to an unchecked destination
+// (time-of-check/time-of-use DNS rebinding). Dialing the IP while the transport
+// keeps the hostname preserves the HTTP Host header and TLS server name.
+func destinationGuardDialContext(
+	hostname string,
+	trustedDestination []string,
+	skipSSRFValidation bool,
+	logger *slog.Logger,
+) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	var allowed []net.IP
+	for _, ip := range trustedDestination {
+		if parsed := net.ParseIP(ip); parsed != nil {
+			allowed = append(allowed, parsed)
+		}
+	}
+	// Trusted host without pinned destinations (e.g. localhost): dial normally.
+	if skipSSRFValidation && len(allowed) == 0 {
+		return nil
+	}
+
+	dialer := &net.Dialer{Timeout: 30 * time.Second}
+	return func(ctx context.Context, _, addr string) (net.Conn, error) {
+		_, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse dial address %s: %w", addr, err)
+		}
+		ips, err := lookupIP(hostname)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
+		}
+		if len(ips) == 0 {
+			return nil, fmt.Errorf("hostname %s resolved to no IP addresses", hostname)
+		}
+		var dialIP net.IP
+		for _, ip := range ips {
+			if skipSSRFValidation {
+				if !containsIP(allowed, ip) {
+					return nil, fmt.Errorf("request blocked: destination %s resolves to %s, expected one of %v (DNS rebinding guard)", hostname, ip.String(), trustedDestination)
+				}
+			} else if isPrivateIP(ip) {
+				return nil, fmt.Errorf("request blocked: destination %s resolves to private IP %s (SSRF protection)", hostname, ip.String())
+			}
+			if dialIP == nil {
+				dialIP = ip
+			}
+		}
+		logger.Debug("dialing validated destination", "hostname", hostname, "ip", dialIP.String())
+		return dialer.DialContext(ctx, "tcp", net.JoinHostPort(dialIP.String(), port))
+	}
 }
 
 // NewExternalModelsClient creates a client for verifying external model endpoints
@@ -209,23 +283,24 @@ func NewExternalModelsClient(
 		}
 	}
 
-	// Configure HTTP transport
-	var transport http.RoundTripper
+	// Configure HTTP transport. The dial guard resolves and validates the
+	// destination inside DialContext so connection-time DNS cannot diverge from
+	// the validated answer (see destinationGuardDialContext).
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, NewInvalidConfigurationError(baseURL, "Base URL could not be parsed")
+	}
+	dialContext := destinationGuardDialContext(parsedURL.Hostname(), opts.TrustedDestinationIPs, opts.SkipSSRFValidation, logger)
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 	if opts.SkipTLSVerification {
 		// Skip TLS verification for cluster-local URLs
-		transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, //nolint:gosec // cluster-local services use self-signed certs not in the system CA pool
-				MinVersion:         tls.VersionTLS12,
-			},
-		}
+		tlsConfig.InsecureSkipVerify = true //nolint:gosec // cluster-local services use self-signed certs not in the system CA pool
 	} else if rootCAs != nil {
-		transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs:    rootCAs,
-				MinVersion: tls.VersionTLS12,
-			},
-		}
+		tlsConfig.RootCAs = rootCAs
+	}
+	var transport http.RoundTripper = &http.Transport{
+		TLSClientConfig: tlsConfig,
+		DialContext:     dialContext,
 	}
 
 	httpClient := &http.Client{

@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -98,9 +99,14 @@ type stubK8sClient struct {
 	kubernetes.KubernetesClientInterface
 	service *corev1.Service
 	err     error
+
+	gotNamespace string
+	gotName      string
 }
 
-func (s *stubK8sClient) GetService(ctx context.Context, namespace string, name string) (*corev1.Service, error) {
+func (s *stubK8sClient) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
+	s.gotNamespace = namespace
+	s.gotName = name
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -116,6 +122,7 @@ func TestResolveTrustedHost(t *testing.T) {
 		getServiceErr error
 		wantTrusted   bool
 		wantIPs       []string
+		wantService   string
 	}{
 		{
 			name:      "in-namespace ExternalName alias targeting another namespace is not trusted",
@@ -138,28 +145,61 @@ func TestResolveTrustedHost(t *testing.T) {
 					Type:       corev1.ServiceTypeClusterIP,
 					ClusterIP:  "10.96.10.5",
 					ClusterIPs: []string{"10.96.10.5"},
+					Selector:   map[string]string{"app": "my-model"},
 				},
 			},
 			wantTrusted: true,
 			wantIPs:     []string{"10.96.10.5"},
+			wantService: "my-model",
 		},
 		{
-			name:      "in-namespace headless service is trusted without pinned IPs",
+			name:      "pod DNS name resolves the backing service, not the pod label",
+			baseURL:   "https://model-0.model-headless.test-namespace.svc.cluster.local:8080/v1",
+			namespace: "test-namespace",
+			service: &corev1.Service{
+				Spec: corev1.ServiceSpec{
+					Type:       corev1.ServiceTypeClusterIP,
+					ClusterIP:  "10.96.10.6",
+					ClusterIPs: []string{"10.96.10.6"},
+					Selector:   map[string]string{"app": "model-headless"},
+				},
+			},
+			wantTrusted: true,
+			wantIPs:     []string{"10.96.10.6"},
+			wantService: "model-headless",
+		},
+		{
+			name:      "in-namespace headless service is not trusted",
 			baseURL:   "https://my-model.test-namespace.svc.cluster.local:8080/v1",
 			namespace: "test-namespace",
 			service: &corev1.Service{
 				Spec: corev1.ServiceSpec{
 					Type:      corev1.ServiceTypeClusterIP,
 					ClusterIP: "None",
+					Selector:  map[string]string{"app": "my-model"},
 				},
 			},
-			wantTrusted: true,
+			wantTrusted: false,
 		},
 		{
-			name:          "unresolvable service name is not trusted",
+			name:      "in-namespace selectorless service with manually managed endpoints is not trusted",
+			baseURL:   "https://my-model.test-namespace.svc.cluster.local:8080/v1",
+			namespace: "test-namespace",
+			service: &corev1.Service{
+				Spec: corev1.ServiceSpec{
+					Type:       corev1.ServiceTypeClusterIP,
+					ClusterIP:  "10.96.10.7",
+					ClusterIPs: []string{"10.96.10.7"},
+					Selector:   nil,
+				},
+			},
+			wantTrusted: false,
+		},
+		{
+			name:          "service lookup the caller is not authorized for is not trusted",
 			baseURL:       "https://gone.test-namespace.svc.cluster.local:8080/v1",
 			namespace:     "test-namespace",
-			getServiceErr: fmt.Errorf("not found"),
+			getServiceErr: fmt.Errorf("forbidden"),
 			wantTrusted:   false,
 		},
 		{
@@ -178,12 +218,18 @@ func TestResolveTrustedHost(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := &stubK8sClient{service: tt.service, err: tt.getServiceErr}
-			trusted, ips := resolveTrustedHost(context.Background(), client, tt.baseURL, tt.namespace)
+			trusted, ips := resolveTrustedHost(context.Background(), client, nil, tt.baseURL, tt.namespace)
 			if trusted != tt.wantTrusted {
 				t.Errorf("resolveTrustedHost(%q, %q) trusted = %v, want %v", tt.baseURL, tt.namespace, trusted, tt.wantTrusted)
 			}
 			if !reflect.DeepEqual(ips, tt.wantIPs) {
 				t.Errorf("resolveTrustedHost(%q, %q) ips = %v, want %v", tt.baseURL, tt.namespace, ips, tt.wantIPs)
+			}
+			if tt.wantService != "" && client.gotName != tt.wantService {
+				t.Errorf("resolveTrustedHost(%q, %q) looked up service %q, want %q", tt.baseURL, tt.namespace, client.gotName, tt.wantService)
+			}
+			if tt.wantService != "" && client.gotNamespace != tt.namespace {
+				t.Errorf("resolveTrustedHost(%q, %q) looked up namespace %q, want %q", tt.baseURL, tt.namespace, client.gotNamespace, tt.namespace)
 			}
 		})
 	}

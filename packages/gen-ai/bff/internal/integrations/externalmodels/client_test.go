@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -219,4 +220,53 @@ func TestVerifyModel_TrustedDestinationMatchAllowed(t *testing.T) {
 	resp, err := client.VerifyModel(context.Background(), "test-model", nil)
 	require.NoError(t, err)
 	assert.True(t, resp.Success)
+}
+
+func TestValidateTrustedDestination_IPv6EquivalentRepresentations(t *testing.T) {
+	original := lookupIP
+	defer func() { lookupIP = original }()
+	lookupIP = func(host string) ([]net.IP, error) {
+		return []net.IP{net.ParseIP("::1")}, nil
+	}
+
+	// Expanded and compressed spellings of the same address must both match.
+	err := validateTrustedDestination("my-model.test-namespace.svc.cluster.local", []string{"0:0:0:0:0:0:0:1"}, slog.Default())
+	require.NoError(t, err)
+}
+
+func TestVerifyModel_DialTimeDNSChangeIsBlocked(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": "1", "choices": []any{}})
+	}))
+	defer server.Close()
+
+	// The trusted Service's ClusterIP passes pre-request validation, then DNS is
+	// changed to point outside the allowlist before the connection is dialed.
+	allowed := []net.IP{net.ParseIP("10.96.10.5")}
+	attacker := []net.IP{net.ParseIP("10.0.0.99")}
+	calls := 0
+	original := lookupIP
+	defer func() { lookupIP = original }()
+	lookupIP = func(host string) ([]net.IP, error) {
+		calls++
+		if calls == 1 {
+			return allowed, nil
+		}
+		return attacker, nil
+	}
+
+	client, err := NewExternalModelsClient(
+		slog.Default(),
+		server.URL,
+		"test-api-key",
+		models.ModelTypeLLM,
+		&ClientOptions{SkipSSRFValidation: true, AllowHTTP: true, TrustedDestinationIPs: []string{"10.96.10.5"}},
+	)
+	require.NoError(t, err)
+
+	_, err = client.VerifyModel(context.Background(), "test-model", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DNS rebinding guard")
+	assert.Greater(t, calls, 1, "expected the dial-time lookup to run after pre-request validation")
 }

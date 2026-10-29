@@ -782,13 +782,28 @@ func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, name
 	return configMap, nil
 }
 
-// GetService reads a core Service through the dashboard service account so callers
+// GetService reads a core Service through the caller's own credentials so callers
 // can verify what a service DNS name actually backs (e.g. reject ExternalName aliases).
-// It falls back to the request client for local development.
-func (kc *TokenKubernetesClient) GetService(ctx context.Context, namespace string, name string) (*corev1.Service, error) {
-	reader := kc.SAClient
-	if reader == nil {
-		reader = kc.Client
+// Reading with the user's token keeps the trust decision independent of the dashboard
+// service account's narrow RBAC (which only covers the pgvector resource names) and
+// limits lookups to Services the caller is authorized to see. It falls back to the
+// request client for local development when no identity is available.
+func (kc *TokenKubernetesClient) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	reader := kc.Client
+	if identity != nil && identity.Token != "" {
+		userConfig := rest.AnonymousClientConfig(kc.Config)
+		userConfig.BearerToken = identity.Token
+		userConfig.BearerTokenFile = ""
+
+		userClient, err := client.New(userConfig, client.Options{Scheme: kc.Client.Scheme()})
+		if err != nil {
+			kc.Logger.Error("failed to create user client", "error", err)
+			return nil, fmt.Errorf("failed to create user client: %w", err)
+		}
+		reader = userClient
 	}
 
 	service := &corev1.Service{}
