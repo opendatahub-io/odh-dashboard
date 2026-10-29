@@ -170,7 +170,9 @@ const llmdTrackingPropertiesExtension: WizardTrackingPropertiesExtension<LLMdDep
   properties: {
     platform: LLMD_SERVING_ID,
     getProperties: () =>
-      import('../src/tracking/llmdWizardTracking').then((m) => m.getLlmdWizardTrackingProperties),
+      import('../src/tracking/llmdWizardTracking').then(
+        (m) => m.extractLlmdDeploymentTrackingProperties,
+      ),
   },
   flags: {
     required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],

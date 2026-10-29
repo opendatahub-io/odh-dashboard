@@ -6,13 +6,13 @@ import {
   CUSTOM_TOPOLOGY_CONFIG_FIELD_ID,
   CONFIG_TYPE_LABEL,
   DEFAULT_ROUTING_KEY,
+  LLMD_GATEWAY_FIELD_ID,
+  LLMD_ROUTING_FIELD_ID,
   TOPOLOGY_CONFIG_DEFAULT,
   TOPOLOGY_TYPE_FIELD_ID,
 } from '../const';
 import { TopologyType, isTopologyTypeFieldData } from '../types';
-
-export const LLMD_GATEWAY_FIELD_ID = 'llmd-serving/gateway';
-export const LLMD_ROUTING_FIELD_ID = 'llmd-serving/advanced-routing';
+import type { GatewaySelectFieldData } from '../wizardFields/gateway/GatewaySelectField';
 
 /** Platform default gateways used for Segment default-vs-custom flags. */
 export const MAAS_DEFAULT_GATEWAY_REF = {
@@ -25,6 +25,7 @@ export const OPENSHIFT_AI_INFERENCE_GATEWAY_REF = {
   namespace: 'openshift-ingress',
 } as const;
 
+/** Complete gateway summary: even an empty selection produces a count and all three flags. */
 export type LlmdGatewayTrackingProperties = {
   numberOfGateways: number;
   usesMaasDefault: boolean;
@@ -32,7 +33,8 @@ export type LlmdGatewayTrackingProperties = {
   usesCustomGateway: boolean;
 };
 
-export type LlmdComposableTrackingProperties = {
+/** Wizard configuration values. Unavailable values are omitted, e.g. when cancelling early. */
+export type LlmdDeploymentConfigurationTrackingProperties = {
   deploymentMethod?: string;
   llmdComposablePattern?: string;
   topologyConfigurationId?: string;
@@ -42,23 +44,44 @@ export type LlmdComposableTrackingProperties = {
   routingConfigurationId?: string;
 };
 
-type TrackingPropertyMap = Record<string, string | number | boolean | undefined>;
+/** Combined event properties. Gateway fields are optional because that wizard field may be absent. */
+export type LlmdDeploymentTrackingProperties = LlmdDeploymentConfigurationTrackingProperties &
+  Partial<LlmdGatewayTrackingProperties>;
+
+/** The topology extractor owns only these two configuration properties; retain their optionality. */
+type TopologyTrackingProperties = Pick<
+  LlmdDeploymentConfigurationTrackingProperties,
+  'llmdComposablePattern' | 'topologyConfigurationId'
+>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
-const getField = (state: WizardFormData['state'], fieldId: string): unknown => state[fieldId];
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0;
 
 const getConfigName = (value: unknown): string | undefined => {
   if (!isRecord(value) || !isRecord(value.metadata)) {
     return undefined;
   }
-  return typeof value.metadata.name === 'string' && value.metadata.name.length > 0
-    ? value.metadata.name
-    : undefined;
+  return isNonEmptyString(value.metadata.name) ? value.metadata.name : undefined;
 };
 
-const isGatewaySelectFieldData = (value: unknown): value is { selections: GatewayOption[] } =>
+/**
+ * Use the saved configRef while selectedConfig is undefined; omit the ID if a selection is present
+ * but invalid.
+ */
+const getSelectedConfigId = (fieldData: unknown): string | undefined => {
+  if (!isRecord(fieldData)) {
+    return undefined;
+  }
+  if (fieldData.selectedConfig !== undefined) {
+    return getConfigName(fieldData.selectedConfig);
+  }
+  return isNonEmptyString(fieldData.configRef) ? fieldData.configRef : undefined;
+};
+
+const isGatewaySelectFieldData = (value: unknown): value is GatewaySelectFieldData =>
   isRecord(value) && Array.isArray(value.selections) && value.selections.every(isGatewayOption);
 
 const isSameGatewayRef = (
@@ -70,6 +93,7 @@ const isPlatformDefaultGateway = (gateway: GatewayOption): boolean =>
   isSameGatewayRef(gateway, MAAS_DEFAULT_GATEWAY_REF) ||
   isSameGatewayRef(gateway, OPENSHIFT_AI_INFERENCE_GATEWAY_REF);
 
+/** Calculate gateway usage flags from already-validated selections. */
 export const getLlmdGatewayTrackingProperties = (
   selections: GatewayOption[],
 ): LlmdGatewayTrackingProperties => ({
@@ -83,110 +107,116 @@ export const getLlmdGatewayTrackingProperties = (
   usesCustomGateway: selections.some((gateway) => !isPlatformDefaultGateway(gateway)),
 });
 
-const getComposableTrackingProperties = (
-  wizardState: WizardFormData['state'],
-): LlmdComposableTrackingProperties => {
-  const properties: LlmdComposableTrackingProperties = {};
+/**
+ * Read the optional gateway wizard field. Return no gateway properties if it is absent (e.g. its
+ * feature flag is off) or malformed, rather than reporting zero gateways for a field never shown.
+ */
+const extractGatewayTrackingProperties = (
+  state: WizardFormData['state'],
+): Partial<LlmdGatewayTrackingProperties> => {
+  const fieldData = state[LLMD_GATEWAY_FIELD_ID];
+  return isGatewaySelectFieldData(fieldData)
+    ? getLlmdGatewayTrackingProperties(fieldData.selections)
+    : {};
+};
 
-  const deploymentMethod = getField(wizardState, 'deploymentMethod');
-  if (
-    isRecord(deploymentMethod) &&
-    typeof deploymentMethod.method === 'string' &&
-    deploymentMethod.method.length > 0
-  ) {
-    properties.deploymentMethod = deploymentMethod.method;
+/** Report a valid topology pattern and its compatible configuration, omitting unresolved values. */
+const extractTopologyTrackingProperties = (
+  state: WizardFormData['state'],
+): TopologyTrackingProperties => {
+  const topology = state[TOPOLOGY_TYPE_FIELD_ID];
+  if (!isTopologyTypeFieldData(topology)) {
+    return {};
   }
 
-  const topology = getField(wizardState, TOPOLOGY_TYPE_FIELD_ID);
-  if (isTopologyTypeFieldData(topology)) {
-    properties.llmdComposablePattern = topology.topologyType;
-    const topologyConfig = getField(wizardState, CUSTOM_TOPOLOGY_CONFIG_FIELD_ID);
-    if (isRecord(topologyConfig)) {
-      if (
-        topologyConfig.selectedConfig === TOPOLOGY_CONFIG_DEFAULT &&
-        topology.topologyType === TopologyType.SINGLE_NODE
-      ) {
-        properties.topologyConfigurationId = TOPOLOGY_CONFIG_DEFAULT;
-      } else {
-        const configName = getConfigName(topologyConfig.selectedConfig);
-        const { selectedConfig } = topologyConfig;
-        const labels =
-          isRecord(selectedConfig) && isRecord(selectedConfig.metadata)
-            ? selectedConfig.metadata.labels
-            : undefined;
-        const configTopology = isRecord(labels) ? labels[CONFIG_TYPE_LABEL] : undefined;
-        if (configName && (!configTopology || configTopology === topology.topologyType)) {
-          properties.topologyConfigurationId = configName;
-        } else if (
-          typeof topologyConfig.configRef === 'string' &&
-          topologyConfig.configRef.length > 0
-        ) {
-          properties.topologyConfigurationId = topologyConfig.configRef;
-        }
-      }
-    }
+  const pattern = { llmdComposablePattern: topology.topologyType };
+  const config = state[CUSTOM_TOPOLOGY_CONFIG_FIELD_ID];
+  if (!isRecord(config)) {
+    return pattern;
   }
 
-  const hardwareProfileState = getField(wizardState, 'hardwareProfileConfig');
-  if (isRecord(hardwareProfileState) && isRecord(hardwareProfileState.formData)) {
-    const profileName = getConfigName(hardwareProfileState.formData.selectedProfile);
-    if (profileName && hardwareProfileState.formData.useExistingSettings !== true) {
-      properties.hardwareProfile = profileName;
-    }
+  if (config.selectedConfig === TOPOLOGY_CONFIG_DEFAULT) {
+    return topology.topologyType === TopologyType.SINGLE_NODE
+      ? { ...pattern, topologyConfigurationId: TOPOLOGY_CONFIG_DEFAULT }
+      : pattern;
   }
 
-  const numReplicasState = getField(wizardState, 'numReplicas');
-  if (isRecord(numReplicasState)) {
-    // KServe's top-level WorkloadSpec is the decode workload when prefill is configured:
-    // https://github.com/kserve/kserve/blob/master/pkg/apis/serving/v1alpha2/llm_inference_service_types.go
-    // Keep this aligned with applyReplicas, which writes the same wizard value to spec.replicas.
-    const replicas = numReplicasState.data;
-    if (typeof replicas === 'number' && Number.isFinite(replicas) && replicas >= 0) {
-      properties.replicaCount = replicas;
-    }
+  const { selectedConfig } = config;
+  const labels =
+    isRecord(selectedConfig) && isRecord(selectedConfig.metadata)
+      ? selectedConfig.metadata.labels
+      : undefined;
+  const configTopology = isRecord(labels) ? labels[CONFIG_TYPE_LABEL] : undefined;
+  if (configTopology !== undefined && configTopology !== topology.topologyType) {
+    return pattern;
   }
 
-  const accelerator = getField(wizardState, ACCELERATOR_CONFIG_FIELD_ID);
-  if (isRecord(accelerator)) {
-    if (accelerator.selectedConfig === ACCELERATOR_CONFIG_DEFAULT) {
-      properties.acceleratorConfigurationId = 'default';
-    } else {
-      const configName = getConfigName(accelerator.selectedConfig);
-      if (configName) {
-        properties.acceleratorConfigurationId = configName;
-      } else if (typeof accelerator.configRef === 'string' && accelerator.configRef.length > 0) {
-        properties.acceleratorConfigurationId = accelerator.configRef;
-      }
-    }
-  }
+  const topologyConfigurationId = getSelectedConfigId(config);
+  return {
+    ...pattern,
+    ...(topologyConfigurationId !== undefined && { topologyConfigurationId }),
+  };
+};
 
-  const routing = getField(wizardState, LLMD_ROUTING_FIELD_ID);
-  if (isRecord(routing)) {
-    const configName = getConfigName(routing.selectedConfig);
-    if (configName) {
-      properties.routingConfigurationId = configName;
-    } else if (typeof routing.configRef === 'string' && routing.configRef.length > 0) {
-      properties.routingConfigurationId = routing.configRef;
-    } else if (routing.selectedConfig === undefined && routing.configRef === undefined) {
-      properties.routingConfigurationId = DEFAULT_ROUTING_KEY;
-    }
-  }
+/** Extract non-gateway deployment settings independently of the gateway field's availability. */
+const extractDeploymentConfigurationTrackingProperties = (
+  state: WizardFormData['state'],
+): LlmdDeploymentConfigurationTrackingProperties => {
+  const methodData: unknown = state.deploymentMethod;
+  const deploymentMethod =
+    isRecord(methodData) && isNonEmptyString(methodData.method) ? methodData.method : undefined;
 
-  return properties;
+  const hardwareData: unknown = state.hardwareProfileConfig;
+  const hardwareProfile =
+    isRecord(hardwareData) &&
+    isRecord(hardwareData.formData) &&
+    hardwareData.formData.useExistingSettings !== true
+      ? getConfigName(hardwareData.formData.selectedProfile)
+      : undefined;
+
+  // KServe's top-level WorkloadSpec is the decode workload when prefill is configured:
+  // https://github.com/kserve/kserve/blob/master/pkg/apis/serving/v1alpha2/llm_inference_service_types.go
+  // Keep this aligned with applyReplicas, which writes the same wizard value to spec.replicas.
+  const replicasData: unknown = state.numReplicas;
+  const replicas = isRecord(replicasData) ? replicasData.data : undefined;
+  const replicaCount =
+    typeof replicas === 'number' && Number.isFinite(replicas) && replicas >= 0
+      ? replicas
+      : undefined;
+
+  const accelerator = state[ACCELERATOR_CONFIG_FIELD_ID];
+  const acceleratorConfigurationId =
+    isRecord(accelerator) && accelerator.selectedConfig === ACCELERATOR_CONFIG_DEFAULT
+      ? 'default'
+      : getSelectedConfigId(accelerator);
+
+  const routing = state[LLMD_ROUTING_FIELD_ID];
+  const routingConfigurationId =
+    isRecord(routing) && routing.selectedConfig === undefined && routing.configRef === undefined
+      ? DEFAULT_ROUTING_KEY
+      : getSelectedConfigId(routing);
+
+  return {
+    ...extractTopologyTrackingProperties(state),
+    ...(deploymentMethod !== undefined && { deploymentMethod }),
+    ...(hardwareProfile !== undefined && { hardwareProfile }),
+    ...(replicaCount !== undefined && { replicaCount }),
+    ...(acceleratorConfigurationId !== undefined && { acceleratorConfigurationId }),
+    ...(routingConfigurationId !== undefined && { routingConfigurationId }),
+  };
 };
 
 /**
- * Platform-specific properties merged into Model Deployed / Model Updated for llm-d.
- * Each field is extracted independently so missing gateway data never suppresses composable
- * properties, and vice versa.
+ * Per-platform properties merged into Model Deployed / Model Updated for llm-d by the shared
+ * deployment tracking pipeline. This extractor does not fire an event itself.
+ *
+ * Configuration and gateway properties are independent: when the gateway field is absent (e.g.
+ * its feature flag is off), omit only gateway properties and retain available configuration.
+ * Return an empty object only when neither group has usable data, such as an incomplete cancel.
  */
-export const getLlmdWizardTrackingProperties = (
-  wizardState: WizardFormData['state'],
-): TrackingPropertyMap => {
-  const properties: TrackingPropertyMap = { ...getComposableTrackingProperties(wizardState) };
-  const gatewayFieldData = getField(wizardState, LLMD_GATEWAY_FIELD_ID);
-  if (isGatewaySelectFieldData(gatewayFieldData)) {
-    Object.assign(properties, getLlmdGatewayTrackingProperties(gatewayFieldData.selections));
-  }
-  return properties;
-};
+export const extractLlmdDeploymentTrackingProperties = (
+  state: WizardFormData['state'],
+): LlmdDeploymentTrackingProperties => ({
+  ...extractDeploymentConfigurationTrackingProperties(state),
+  ...extractGatewayTrackingProperties(state),
+});

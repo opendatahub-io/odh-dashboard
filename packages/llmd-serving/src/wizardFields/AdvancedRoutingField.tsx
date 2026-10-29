@@ -31,7 +31,7 @@ import { isConfigEnabled } from '../utils';
 import { useFetchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 import { fireRoutingSelected } from '../tracking/llmdTrackingConstants';
-import { DEFAULT_ROUTING_KEY } from '../const';
+import { DEFAULT_ROUTING_KEY, LLMD_ROUTING_FIELD_ID } from '../const';
 
 // --- External data hook ---
 
@@ -287,7 +287,7 @@ const isActive = (wizardState: RecursivePartial<WizardFormData['state']>): boole
 // --- Field definition ---
 
 export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
-  id: 'llmd-serving/advanced-routing',
+  id: LLMD_ROUTING_FIELD_ID,
   step: 'modelDeployment',
   type: 'addition',
   isActive,
