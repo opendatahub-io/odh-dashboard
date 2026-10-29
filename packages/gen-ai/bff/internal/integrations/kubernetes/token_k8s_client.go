@@ -789,6 +789,9 @@ func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, name
 // limits lookups to Services the caller is authorized to see. It falls back to the
 // client's own credentials for local development when no identity is available.
 func (kc *TokenKubernetesClient) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	reader := kc.Client
 	if identity != nil && identity.Token != "" {
 		userConfig := rest.AnonymousClientConfig(kc.Config)
