@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	neo4jconfig "github.com/neo4j/neo4j-go-driver/v5/neo4j/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/certificates"
 )
 
@@ -50,7 +51,7 @@ type neo4jDriver interface {
 	Close(context.Context) error
 }
 
-type neo4jDriverFactory func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error)
+type neo4jDriverFactory func(context.Context, string, neo4j.AuthToken, func(*neo4jconfig.Config)) (neo4jDriver, error)
 
 type neo4jSession interface {
 	Run(context.Context, string, map[string]any, ...func(*neo4j.TransactionConfig)) (neo4jResult, error)
@@ -96,7 +97,7 @@ func (w neo4jSessionWrapper) Close(ctx context.Context) error {
 	return w.inner.Close(ctx)
 }
 
-func newNeo4jDriver(_ context.Context, uri string, auth neo4j.AuthToken, configure func(*neo4j.Config)) (neo4jDriver, error) {
+func newNeo4jDriver(_ context.Context, uri string, auth neo4j.AuthToken, configure func(*neo4jconfig.Config)) (neo4jDriver, error) {
 	driver, err := neo4j.NewDriverWithContext(uri, auth, configure)
 	if err != nil {
 		return nil, err
@@ -236,7 +237,7 @@ func newNeo4jFromSecretWithDriver(
 		newDriver = newNeo4jDriver
 	}
 
-	driver, err := newDriver(ctx, endpoint.uri(), neo4j.BasicAuth(username, password, ""), func(config *neo4j.Config) {
+	driver, err := newDriver(ctx, endpoint.uri(), neo4j.BasicAuth(username, password, ""), func(config *neo4jconfig.Config) {
 		if tlsConfig != nil {
 			config.TlsConfig = tlsConfig
 		}

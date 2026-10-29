@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	neo4jconfig "github.com/neo4j/neo4j-go-driver/v5/neo4j/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +26,7 @@ type fakeNeo4jDriver struct {
 	session    neo4jSession
 	uri        string
 	auth       neo4j.AuthToken
-	config     *neo4j.Config
+	config     *neo4jconfig.Config
 	sessionCfg neo4j.SessionConfig
 	closed     bool
 }
@@ -194,8 +195,8 @@ func TestNewNeo4jFromSecretConfiguresDriver(t *testing.T) {
 	secret["NEO4J_DATABASE"] = nil
 	var captured *fakeNeo4jDriver
 
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(_ context.Context, uri string, auth neo4j.AuthToken, configure func(*neo4j.Config)) (neo4jDriver, error) {
-		config := &neo4j.Config{}
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(_ context.Context, uri string, auth neo4j.AuthToken, configure func(*neo4jconfig.Config)) (neo4jDriver, error) {
+		config := &neo4jconfig.Config{}
 		configure(config)
 		captured = &fakeNeo4jDriver{uri: uri, auth: auth, config: config, session: &fakeNeo4jSession{result: &fakeNeo4jResult{}}}
 		return captured, nil
@@ -220,12 +221,12 @@ func TestNewNeo4jFromSecretRejectsMalformedCA(t *testing.T) {
 }
 
 func TestNewNeo4jFromSecretClassifiesConnectivityErrors(t *testing.T) {
-	_, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Nanosecond, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	_, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Nanosecond, func(context.Context, string, neo4j.AuthToken, func(*neo4jconfig.Config)) (neo4jDriver, error) {
 		return &fakeNeo4jDriver{verifyErr: context.DeadlineExceeded}, nil
 	})
 	require.ErrorIs(t, err, ErrDatabaseTimeout)
 
-	_, err = newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	_, err = newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4jconfig.Config)) (neo4jDriver, error) {
 		return &fakeNeo4jDriver{verifyErr: errors.New("connection refused")}, nil
 	})
 	require.ErrorIs(t, err, ErrDatabaseUnavailable)
@@ -238,7 +239,7 @@ func TestNeo4jSearchUsesCollectionVectorIndex(t *testing.T) {
 		neo4jRecord("second chunk", 0.42, "chunk-2"),
 	}}}
 	driver.session = session
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4jconfig.Config)) (neo4jDriver, error) {
 		return driver, nil
 	})
 	require.NoError(t, err)
@@ -264,7 +265,7 @@ func TestNeo4jSearchUsesCollectionVectorIndex(t *testing.T) {
 
 func TestNeo4jSearchRejectsHybridRanking(t *testing.T) {
 	driver := &fakeNeo4jDriver{session: &fakeNeo4jSession{result: &fakeNeo4jResult{}}}
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4jconfig.Config)) (neo4jDriver, error) {
 		return driver, nil
 	})
 	require.NoError(t, err)
@@ -275,7 +276,7 @@ func TestNeo4jSearchRejectsHybridRanking(t *testing.T) {
 
 func TestNeo4jSearchClassifiesQueryErrors(t *testing.T) {
 	driver := &fakeNeo4jDriver{session: &fakeNeo4jSession{err: errors.New("index not found")}}
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4jconfig.Config)) (neo4jDriver, error) {
 		return driver, nil
 	})
 	require.NoError(t, err)
@@ -302,7 +303,7 @@ func TestNeo4jSearchResultContentLimit(t *testing.T) {
 	driver := &fakeNeo4jDriver{session: &fakeNeo4jSession{result: &fakeNeo4jResult{records: []*neo4j.Record{
 		neo4jRecord(strings.Repeat("x", MaxVectorResultBytes+1), 0.5, "chunk-1"),
 	}}}}
-	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4j.Config)) (neo4jDriver, error) {
+	db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*neo4jconfig.Config)) (neo4jDriver, error) {
 		return driver, nil
 	})
 	require.NoError(t, err)

@@ -188,7 +188,13 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 	// Dedicated client with no Timeout: a client timeout bounds the entire body
 	// read and would truncate a long stream after WriteHeader has committed.
 	// Reuse the app-level TLS transport for connection pooling and cert trust.
-	proxyClient := &http.Client{Transport: app.httpClient.Transport}
+	proxyClient := &http.Client{
+		Transport: app.httpClient.Transport,
+		// Never forward the user's credentials to a redirect destination.
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 
 	resp, err := proxyClient.Do(proxyReq)
 	if err != nil {

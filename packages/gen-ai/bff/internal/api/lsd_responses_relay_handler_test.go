@@ -310,3 +310,53 @@ func TestResponsesRelayGatewayScheme(t *testing.T) {
 		})
 	}
 }
+
+func TestResponsesRelayDoesNotFollowRedirects(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   int
+		location string
+	}{
+		{name: "301 cross-host", status: http.StatusMovedPermanently, location: "https://other.example/responses"},
+		{name: "302 cross-host", status: http.StatusFound, location: "https://other.example/responses"},
+		{name: "303 cross-host", status: http.StatusSeeOther, location: "https://other.example/responses"},
+		{name: "307 cross-host", status: http.StatusTemporaryRedirect, location: "https://other.example/responses"},
+		{name: "308 cross-host", status: http.StatusPermanentRedirect, location: "https://other.example/responses"},
+		{name: "HTTPS downgrade", status: http.StatusTemporaryRedirect, location: "http://gateway.example.com/responses"},
+		{name: "same-origin", status: http.StatusTemporaryRedirect, location: "/autorag/api/v1/redirected"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			requests := 0
+			app := App{
+				config: config.EnvConfig{GatewayDomain: "gateway.example.com"},
+				logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+				httpClient: &http.Client{Transport: relayTestTransport(func(r *http.Request) (*http.Response, error) {
+					requests++
+					if requests > 1 {
+						return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: http.NoBody}, nil
+					}
+					assert.Equal(t, "https://gateway.example.com/autorag/api/v1/responses", r.URL.String())
+					assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+					assert.Equal(t, "test-token", r.Header.Get("x-forwarded-access-token"))
+					return &http.Response{
+						StatusCode: tt.status,
+						Header:     http.Header{"Location": {tt.location}},
+						Body:       io.NopCloser(strings.NewReader("redirect response")),
+					}, nil
+				})},
+			}
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/lsd/responses/relay?target="+url.QueryEscape("/autorag/api/v1/responses"), strings.NewReader("{}"))
+			identity := &integrations.RequestIdentity{Token: "test-token"}
+			req = req.WithContext(context.WithValue(req.Context(), constants.RequestIdentityKey, identity))
+			rr := httptest.NewRecorder()
+
+			app.ResponsesRelayHandler(rr, req, nil)
+
+			assert.Equal(t, 1, requests, "redirect destination must not receive a request")
+			assert.Equal(t, tt.status, rr.Code)
+			assert.Equal(t, "redirect response", rr.Body.String())
+			assert.Empty(t, rr.Header().Get("Location"))
+		})
+	}
+}
