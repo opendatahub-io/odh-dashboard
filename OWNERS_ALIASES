@@ -258,13 +258,11 @@ aliases:
 
   # Eval Hub
   eval-hub-approvers:
-    - ederign
     - chrjones-rh
     - nickmazzi
     - jefho-rh
 
   eval-hub-reviewers:
-    - ederign
     - chrjones-rh
     - nickmazzi
     - jefho-rh
