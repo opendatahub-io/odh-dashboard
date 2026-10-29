@@ -82,7 +82,8 @@ class PipelineRunsGlobal {
   selectProjectByName(name: string) {
     this.findProjectSelect().click();
     cy.findByTestId('project-selector-search').find('input').fill(name);
-    cy.findByTestId('project-selector-menuList').contains('a', name).should('be.visible').click();
+    cy.findByTestId('project-selector-menuList').contains('a', name).should('be.visible');
+    cy.findByTestId('project-selector-menuList').contains('a', name).click();
   }
 }
 
