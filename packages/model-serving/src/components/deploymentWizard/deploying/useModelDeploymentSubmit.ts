@@ -39,6 +39,7 @@ export const useModelDeploymentSubmit = (
   onSave: (overwrite?: boolean) => Promise<void>;
   onOverwrite?: () => Promise<void>;
   isLoading: boolean;
+  isReady: boolean;
   submitError: Error | null;
   clearSubmitError: () => void;
 } => {
@@ -61,6 +62,13 @@ export const useModelDeploymentSubmit = (
   );
   const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
   const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
+
+  const isReady =
+    deployMethodLoaded &&
+    !!deployMethod &&
+    applyExtensionsLoaded &&
+    preDeployExtensionsLoaded &&
+    postDeployExtensionsLoaded;
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -90,13 +98,7 @@ export const useModelDeploymentSubmit = (
             'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha2',
           );
         }
-        if (
-          !deployMethodLoaded ||
-          !deployMethod ||
-          !applyExtensionsLoaded ||
-          !preDeployExtensionsLoaded ||
-          !postDeployExtensionsLoaded
-        ) {
+        if (!isReady) {
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
           );
@@ -157,11 +159,8 @@ export const useModelDeploymentSubmit = (
       viewMode,
       externalData,
       validation.isAllValid,
-      deployMethodLoaded,
+      isReady,
       deployMethod,
-      applyExtensionsLoaded,
-      preDeployExtensionsLoaded,
-      postDeployExtensionsLoaded,
       formState,
       secretOps,
       resources,
@@ -182,9 +181,10 @@ export const useModelDeploymentSubmit = (
       onSave,
       onOverwrite: deployMethod?.properties.supportsOverwrite ? () => onSave(true) : undefined,
       isLoading,
+      isReady,
       submitError,
       clearSubmitError: () => setSubmitError(null),
     }),
-    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, submitError],
+    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, isReady, submitError],
   );
 };
