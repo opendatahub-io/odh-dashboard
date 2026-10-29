@@ -782,6 +782,33 @@ func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, name
 	return configMap, nil
 }
 
+// GetService reads a core Service through the caller's own credentials so callers
+// can verify what a service DNS name actually backs (e.g. reject ExternalName
+// aliases pointing at another namespace). Reading with the user's token keeps the
+// trust decision independent of the dashboard service account's narrow RBAC and
+// limits lookups to Services the caller is authorized to see. It falls back to the
+// client's own credentials for local development when no identity is available.
+func (kc *TokenKubernetesClient) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
+	reader := kc.Client
+	if identity != nil && identity.Token != "" {
+		userConfig := rest.AnonymousClientConfig(kc.Config)
+		userConfig.BearerToken = identity.Token
+		userConfig.BearerTokenFile = ""
+		userClient, err := client.New(userConfig, client.Options{Scheme: kc.Client.Scheme()})
+		if err != nil {
+			kc.Logger.Error("failed to create user client", "error", err)
+			return nil, fmt.Errorf("failed to create user client: %w", err)
+		}
+		reader = userClient
+	}
+
+	service := &corev1.Service{}
+	if err := reader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, service); err != nil {
+		return nil, fmt.Errorf("failed to get Service %s/%s: %w", namespace, name, err)
+	}
+	return service, nil
+}
+
 // ValidatedVectorStore pairs a VectorIOProvider with its associated RegisteredVectorStore
 // after they have been correlated by provider_id from the gen-ai-aa-vector-stores ConfigMap.
 type ValidatedVectorStore struct {

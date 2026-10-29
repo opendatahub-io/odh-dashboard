@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -216,12 +217,62 @@ func isInternalHost(baseURL string, allowedNamespace string) bool {
 		labels[len(labels)-4] == allowedNamespace
 }
 
+// k8sServiceHost extracts the service and namespace labels from a fully-qualified
+// in-cluster service DNS name (<service>.<namespace>.svc.cluster.local).
+func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return "", "", false
+	}
+	h := u.Hostname()
+	labels := strings.Split(h, ".")
+	if !strings.HasSuffix(h, ".svc.cluster.local") || len(labels) < 5 {
+		return "", "", false
+	}
+	// Anchor against the fixed suffix: pod-specific DNS names
+	// (<pod>.<service>.<namespace>.svc.cluster.local) have extra labels before
+	// the Service label, so labels[0] would name the pod, not the Service.
+	return labels[len(labels)-5], labels[len(labels)-4], true
+}
+
+// resolveTrustedHost decides whether a base URL in the caller's own namespace may
+// skip SSRF validation. A namespace user can create a ServiceTypeExternalName Service
+// whose in-namespace DNS name aliases an arbitrary target (e.g. in another namespace),
+// so the backing Service is read through the Kubernetes API and ExternalName services
+// are not trusted (fail closed on lookup errors too).
+func resolveTrustedHost(
+	ctx context.Context,
+	client kubernetes.KubernetesClientInterface,
+	identity *integrations.RequestIdentity,
+	baseURL string,
+	namespace string,
+	logger *slog.Logger,
+) bool {
+	if !isInternalHost(baseURL, namespace) {
+		return false
+	}
+	svcName, svcNamespace, ok := k8sServiceHost(baseURL)
+	if !ok {
+		// localhost/loopback for local development
+		return true
+	}
+	svc, err := client.GetService(ctx, identity, svcNamespace, svcName)
+	if err != nil {
+		logger.Warn("service lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
+		return false
+	}
+	if svc.Spec.Type == corev1.ServiceTypeExternalName {
+		return false
+	}
+	return true
+}
+
 // internalHostRootCAs returns the provided CA pool only when the URL targets an internal
 // host. For external hosts it returns nil so the client falls back to the system CA pool,
 // which contains the public root CAs needed to verify certificates from services like
 // api.openai.com. Passing a cluster-only CA pool to an external host would break TLS.
-func internalHostRootCAs(baseURL string, allowedNamespace string, rootCAs *x509.CertPool) *x509.CertPool {
-	if isInternalHost(baseURL, allowedNamespace) {
+func internalHostRootCAs(trusted bool, rootCAs *x509.CertPool) *x509.CertPool {
+	if trusted {
 		return rootCAs
 	}
 	return nil
@@ -235,24 +286,26 @@ func internalHostRootCAs(baseURL string, allowedNamespace string, rootCAs *x509.
 func (r *ExternalModelsRepository) VerifyExternalModel(
 	logger *slog.Logger,
 	ctx context.Context,
+	client kubernetes.KubernetesClientInterface,
+	identity *integrations.RequestIdentity,
 	namespace string,
 	req models.VerifyExternalModelRequest,
 	rootCAs *x509.CertPool,
 	insecureSkipVerify bool,
 ) (*models.VerifyExternalModelResponse, error) {
-	internal := isInternalHost(req.BaseURL, namespace)
-	client, err := externalmodels.NewExternalModelsClient(
+	trusted := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace, logger)
+	modelsClient, err := externalmodels.NewExternalModelsClient(
 		logger,
 		req.BaseURL,
 		req.SecretValue,
 		req.ModelType,
 		&externalmodels.ClientOptions{
-			AllowHTTP:          internal,
-			SkipSSRFValidation: internal,
+			AllowHTTP:          trusted,
+			SkipSSRFValidation: trusted,
 			// Only supply the cluster CA pool for internal hosts; external hosts
 			// must use the system CA pool to verify public certificates.
-			SkipTLSVerification: insecureSkipVerify && internal,
-			RootCAs:             internalHostRootCAs(req.BaseURL, namespace, rootCAs),
+			SkipTLSVerification: insecureSkipVerify && trusted,
+			RootCAs:             internalHostRootCAs(trusted, rootCAs),
 		},
 	)
 	if err != nil {
@@ -260,5 +313,5 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	}
 
 	// Verify the model using the client (pass embedding dimension for embedding models)
-	return client.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
+	return modelsClient.VerifyModel(ctx, req.ModelID, req.EmbeddingDimension)
 }

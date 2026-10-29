@@ -178,6 +178,9 @@ func (app *App) VerifyExternalModelHandler(
 	// RequireAccessToService, so by the time we get here the caller is authorized for it).
 	// It scopes which in-cluster service hosts may skip SSRF validation (CWE-918).
 	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	// With authentication disabled (local development), no identity is injected and
+	// Service lookups fall back to the client's own credentials.
+	identity, _ := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 
 	// 1. Parse request
 	var req models.VerifyExternalModelRequest
@@ -223,8 +226,15 @@ func (app *App) VerifyExternalModelHandler(
 		}
 	}
 
-	// 3. Call repository
-	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, namespace, req, app.rootCAs, app.config.InsecureSkipVerify)
+	// 3. Call repository; the k8s client reads the backing Service through the
+	// caller's own credentials to reject ExternalName aliases of in-namespace
+	// hosts pointing at another namespace.
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, k8sClient, identity, namespace, req, app.rootCAs, app.config.InsecureSkipVerify)
 	if err != nil {
 		// Handle custom error types
 		if extErr, ok := err.(*externalmodels.ExternalModelError); ok {
