@@ -413,6 +413,18 @@ func (loopbackIPResolver) LookupIPAddr(context.Context, string) ([]net.IPAddr, e
 	return []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}}, nil
 }
 
+type staticIPResolver struct {
+	ips      []net.IPAddr
+	deadline *time.Time
+}
+
+func (r staticIPResolver) LookupIPAddr(ctx context.Context, _ string) ([]net.IPAddr, error) {
+	if deadline, ok := ctx.Deadline(); ok && r.deadline != nil {
+		*r.deadline = deadline
+	}
+	return r.ips, nil
+}
+
 type delayedPrivateIPResolver struct {
 	delay    time.Duration
 	deadline *time.Time
@@ -475,6 +487,82 @@ func TestSSRFSafeDialContextPreservesRemainingBudgetAfterDNS(t *testing.T) {
 	}
 }
 
+func TestSSRFSafeDialContextTriesLaterAddressWithinSharedBudget(t *testing.T) {
+	var attempts []string
+	var deadlines []time.Time
+	var overallDeadline time.Time
+	dial := ssrfSafeDialContextWithResolverAndDialer(
+		false,
+		true,
+		staticIPResolver{
+			ips: []net.IPAddr{
+				{IP: net.ParseIP("10.0.0.1")},
+				{IP: net.ParseIP("10.0.0.2")},
+			},
+			deadline: &overallDeadline,
+		},
+		func(ctx context.Context, _, address string) (net.Conn, error) {
+			attempts = append(attempts, address)
+			deadline, ok := ctx.Deadline()
+			if !ok {
+				t.Fatal("dial attempt did not receive a deadline")
+			}
+			deadlines = append(deadlines, deadline)
+			if len(attempts) == 1 {
+				<-ctx.Done()
+				return nil, ctx.Err()
+			}
+			return nil, nil
+		},
+		40*time.Millisecond,
+	)
+
+	_, err := dial(context.Background(), "tcp", "service.namespace.svc:9000")
+	if err != nil {
+		t.Fatalf("dial() error = %v, want later address to succeed", err)
+	}
+	if len(attempts) != 2 {
+		t.Fatalf("dial attempts = %d, want 2", len(attempts))
+	}
+	if attempts[0] != "10.0.0.1:9000" || attempts[1] != "10.0.0.2:9000" {
+		t.Fatalf("dial attempts = %v, want validated addresses in order", attempts)
+	}
+	if !deadlines[0].Before(deadlines[1]) {
+		t.Fatalf("first deadline = %v, final deadline = %v; first attempt consumed the full shared budget", deadlines[0], deadlines[1])
+	}
+	if overallDeadline.IsZero() || !deadlines[1].Equal(overallDeadline) {
+		t.Fatalf("final deadline = %v, overall deadline = %v; final attempt exceeded or reset the shared budget", deadlines[1], overallDeadline)
+	}
+}
+
+func TestSSRFSafeDialContextStopsAfterCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	attempts := 0
+	dial := ssrfSafeDialContextWithResolverAndDialer(
+		false,
+		true,
+		staticIPResolver{ips: []net.IPAddr{
+			{IP: net.ParseIP("10.0.0.1")},
+			{IP: net.ParseIP("10.0.0.2")},
+		}},
+		func(context.Context, string, string) (net.Conn, error) {
+			attempts++
+			cancel()
+			return nil, context.Canceled
+		},
+		40*time.Millisecond,
+	)
+
+	_, err := dial(ctx, "tcp", "service.namespace.svc:9000")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("dial() error = %v, want context canceled", err)
+	}
+	if attempts != 1 {
+		t.Fatalf("dial attempts = %d, want cancellation to stop fallback", attempts)
+	}
+}
+
 func TestSSRFSafeDialContextAllowsTrustedPortForwardLoopback(t *testing.T) {
 	dialStarted := false
 	dial := ssrfSafeDialContextWithResolverAndDialer(
@@ -495,6 +583,29 @@ func TestSSRFSafeDialContextAllowsTrustedPortForwardLoopback(t *testing.T) {
 	}
 	if err == nil || !strings.Contains(err.Error(), "port-forward dial attempted") {
 		t.Fatalf("error = %v, want the base dialer error", err)
+	}
+}
+
+func TestSSRFSafeDialContextRejectsMismatchedTrustedPortForward(t *testing.T) {
+	dialStarted := false
+	dial := ssrfSafeDialContextWithResolverAndDialer(
+		false,
+		true,
+		loopbackIPResolver{},
+		func(context.Context, string, string) (net.Conn, error) {
+			dialStarted = true
+			return nil, nil
+		},
+		10*time.Millisecond,
+	)
+
+	ctx := corekubernetes.WithTrustedPortForwardEndpoint(context.Background(), "localhost:9001")
+	_, err := dial(ctx, "tcp", "localhost:9000")
+	if dialStarted {
+		t.Fatal("mismatched trusted port-forward marker reached the base dialer")
+	}
+	if err == nil || !strings.Contains(err.Error(), "blocked") {
+		t.Fatalf("error = %v, want loopback rejection", err)
 	}
 }
 

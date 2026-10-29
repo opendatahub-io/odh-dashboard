@@ -163,12 +163,27 @@ func ssrfSafeDialContextWithResolverAndDialer(
 
 		// Connect using the validated IPs directly — no second resolution.
 		var lastErr error
-		for _, ipAddr := range ips {
-			conn, err := dialContext(dialCtx, network, net.JoinHostPort(ipAddr.IP.String(), port))
+		for i, ipAddr := range ips {
+			attemptCtx := dialCtx
+			cancelAttempt := func() {}
+			if i < len(ips)-1 {
+				// Give each non-final attempt a share of the remaining budget so a
+				// stalled address cannot prevent later validated addresses from being tried.
+				if deadline, ok := dialCtx.Deadline(); ok {
+					remaining := time.Until(deadline)
+					attemptBudget := remaining / time.Duration(len(ips)-i)
+					attemptCtx, cancelAttempt = context.WithTimeout(dialCtx, attemptBudget)
+				}
+			}
+			conn, err := dialContext(attemptCtx, network, net.JoinHostPort(ipAddr.IP.String(), port))
+			cancelAttempt()
 			if err == nil {
 				return conn, nil
 			}
 			lastErr = err
+			if err := dialCtx.Err(); err != nil {
+				return nil, err
+			}
 		}
 		return nil, lastErr
 	}

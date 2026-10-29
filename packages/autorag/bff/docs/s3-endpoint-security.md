@@ -318,8 +318,8 @@ The validation implements multiple layers of protection:
 SSRF rules are covered by unit tests on the validator and by API tests:
 
 ```bash
-cd packages/autox-core/services && go test -v ./s3 -run 'Test(IsInternalHost|ValidateAndNormalizeEndpoint|ValidateResolvedIPs|SSRFSafeDialContext)'
-cd packages/autorag/bff && go test -v ./internal/api -run 'S3|PostS3'
+(cd packages/autox-core/services && go test -v ./s3 -run 'Test(IsInternalHost|ValidateAndNormalizeEndpoint|ValidateResolvedIPs|SSRFSafeDialContext)')
+(cd packages/autorag/bff && go test -v ./internal/api -run 'S3|PostS3')
 ```
 
 ### Test Coverage
