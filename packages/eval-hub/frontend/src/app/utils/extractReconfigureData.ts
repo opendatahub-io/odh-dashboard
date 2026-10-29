@@ -146,7 +146,9 @@ const extractReconfigureData = (
   let datasetUrl = '';
   let accessToken = '';
   if (sourceMode === 'prerecorded') {
-    const refBenchmark = effectiveBenchmarks?.find((b) => b.test_data_ref?.s3);
+    const refBenchmark = effectiveBenchmarks?.find((b) =>
+      isPrerecordedS3TestDataRef(b.test_data_ref),
+    );
     if (refBenchmark?.test_data_ref?.s3) {
       const { s3 } = refBenchmark.test_data_ref;
       // Jobs created after the S3DataRef contract split store bucket and key

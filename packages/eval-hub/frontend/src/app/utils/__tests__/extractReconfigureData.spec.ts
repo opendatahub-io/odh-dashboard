@@ -361,6 +361,41 @@ describe('extractReconfigureData', () => {
     expect(result.accessToken).toBe('token-456');
   });
 
+  it('should hydrate from the first prerecorded s3 ref, skipping earlier data_set s3 refs', () => {
+    const job = mockEvaluationJob({ modelName: 'dataset-source', collectionId: 'col-mixed' });
+    job.collection = {
+      id: 'col-mixed',
+      benchmarks: [
+        {
+          id: 'b1',
+          provider_id: 'p1',
+          test_data_ref: {
+            s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 'data-secret', type: 'data_set' },
+          },
+        },
+        {
+          id: 'b2',
+          provider_id: 'p2',
+          test_data_ref: {
+            s3: {
+              bucket: 'responses',
+              key: 'data.jsonl',
+              secret_ref: 'prerecorded-token',
+              type: 'pre_recorded_data',
+            },
+          },
+        },
+      ],
+    };
+    job.benchmarks = null;
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.sourceMode).toBe('prerecorded');
+    expect(result.datasetUrl).toBe('s3://responses/data.jsonl');
+    expect(result.accessToken).toBe('prerecorded-token');
+  });
+
   it('should default prerecorded fields when no benchmark has test_data_ref', () => {
     const job = mockEvaluationJob({ modelName: 'dataset-source' });
     job.benchmarks = [{ id: 'b1' }];
