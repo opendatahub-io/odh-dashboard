@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // validateKey rejects S3 object keys that contain null bytes, path traversal
@@ -34,10 +35,12 @@ func validateKey(key string) error {
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
 //
 // HTTPS is required for external endpoints — plain HTTP is rejected because S3
-// credentials would be transmitted in cleartext. HTTP is permitted for in-cluster
-// endpoints (*.svc.cluster.local) since traffic stays within the cluster network.
-// All hostnames — including in-cluster — are resolved and checked against blocked
-// IP ranges to guard against ExternalName service CNAME bypasses.
+// credentials would be transmitted in cleartext. HTTP is permitted for suffix-qualified
+// in-cluster service endpoints (<service>.<namespace>.svc and
+// <service>.<namespace>.svc.cluster.local) since traffic stays within the cluster network.
+// Hostnames — including in-cluster — are resolved and checked at dial time by
+// ssrfSafeDialContext to guard against ExternalName service CNAME bypasses. The
+// development-only unresolved-host opt-out does not apply to suffix-qualified HTTP endpoints.
 // RFC-1918 private IPs are permitted (MinIO commonly runs on cluster service IPs).
 // Loopback, link-local, and reserved ranges are always blocked.
 func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (string, error) {
@@ -94,37 +97,55 @@ func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (strin
 // preventing DNS rebinding attacks. Every IP the system resolver returns is checked
 // against blocked ranges before the TCP connection is established — the same resolution
 // used for validation is the one used for the connection, eliminating the TOCTOU window
-// that exists when validation and dialing resolve DNS independently.
-func ssrfSafeDialContext(base *net.Dialer, allowUnresolvable bool) func(ctx context.Context, network, addr string) (net.Conn, error) {
+// that exists when validation and dialing resolve DNS independently. When
+// requirePrivateEndpoint is true, every resolved IP must also be private/shared.
+func ssrfSafeDialContext(base *net.Dialer, allowUnresolvable, requirePrivateEndpoint bool) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return ssrfSafeDialContextWithResolver(base, allowUnresolvable, requirePrivateEndpoint, net.DefaultResolver, s3ConnectTimeout)
+}
+
+type ipResolver interface {
+	LookupIPAddr(context.Context, string) ([]net.IPAddr, error)
+}
+
+func ssrfSafeDialContextWithResolver(
+	base *net.Dialer,
+	allowUnresolvable, requirePrivateEndpoint bool,
+	resolver ipResolver,
+	resolveAndDialTimeout time.Duration,
+) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(addr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid address %q: %w", addr, err)
 		}
 
-		// IP literals are already validated by validateAndNormalizeEndpoint.
+		dialCtx, cancel := context.WithTimeout(ctx, resolveAndDialTimeout)
+		defer cancel()
+
+		// Validate IP literals here as well because a redirect can change the request
+		// host after the original endpoint has been validated.
 		if ip := net.ParseIP(host); ip != nil {
-			return base.DialContext(ctx, network, addr)
+			if err := validateResolvedIPs(host, []net.IPAddr{{IP: ip}}, requirePrivateEndpoint); err != nil {
+				return nil, err
+			}
+			return base.DialContext(dialCtx, network, addr)
 		}
 
-		ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		ips, err := resolver.LookupIPAddr(dialCtx, host)
 		if err != nil {
-			if allowUnresolvable {
-				return base.DialContext(ctx, network, addr)
+			if allowUnresolvable && !requirePrivateEndpoint {
+				return base.DialContext(dialCtx, network, addr)
 			}
 			return nil, fmt.Errorf("endpoint hostname %q cannot be resolved: %w", host, err)
 		}
-
-		for _, ipAddr := range ips {
-			if err := validateIPAddress(ipAddr.IP); err != nil {
-				return nil, fmt.Errorf("endpoint hostname %q resolves to blocked IP %s: %w", host, ipAddr.IP, err)
-			}
+		if err := validateResolvedIPs(host, ips, requirePrivateEndpoint); err != nil {
+			return nil, err
 		}
 
 		// Connect using the validated IPs directly — no second resolution.
 		var lastErr error
 		for _, ipAddr := range ips {
-			conn, err := base.DialContext(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))
+			conn, err := base.DialContext(dialCtx, network, net.JoinHostPort(ipAddr.IP.String(), port))
 			if err == nil {
 				return conn, nil
 			}
@@ -134,20 +155,71 @@ func ssrfSafeDialContext(base *net.Dialer, allowUnresolvable bool) func(ctx cont
 	}
 }
 
-// isInternalHost reports whether hostname is a Kubernetes in-cluster service FQDN.
-// These legitimately use HTTP internally and resolve to private IPs, so HTTP scheme
-// and SSRF IP validation is relaxed for them.
-// Requires exactly <service>.<namespace>.svc.cluster.local (5 dot-separated labels),
-// preventing overly-broad matches like "evil.cluster.local".
-func isInternalHost(hostname string) bool {
+// validateResolvedIPs validates every address returned for a hostname before any
+// connection is attempted. A private-only endpoint rejects public destinations even
+// when the hostname itself has a Kubernetes service suffix.
+func validateResolvedIPs(host string, ips []net.IPAddr, requirePrivate bool) error {
+	if len(ips) == 0 {
+		return fmt.Errorf("endpoint hostname %q resolved to no IP addresses", host)
+	}
+
+	for _, ipAddr := range ips {
+		if err := validateIPAddress(ipAddr.IP); err != nil {
+			return fmt.Errorf("endpoint hostname %q resolves to blocked IP %s: %w", host, ipAddr.IP, err)
+		}
+		if requirePrivate && !isPrivateOrSharedIP(ipAddr.IP) {
+			return fmt.Errorf("endpoint hostname %q resolves to non-private IP %s for in-cluster HTTP endpoint", host, ipAddr.IP)
+		}
+	}
+	return nil
+}
+
+func isPrivateOrSharedIP(ip net.IP) bool {
+	if ip.IsPrivate() {
+		return true
+	}
+
+	// Preserve the existing allowance for RFC 6598 shared address space, which is
+	// sometimes used for cluster service or pod networking.
+	ipv4 := ip.To4()
+	return ipv4 != nil && ipv4[0] == 100 && ipv4[1] >= 64 && ipv4[1] <= 127
+}
+
+type internalHostKind uint8
+
+const (
+	internalHostExternal internalHostKind = iota
+	internalHostShort
+	internalHostFull
+)
+
+func classifyInternalHost(hostname string) internalHostKind {
+	hostname = strings.ToLower(strings.TrimSuffix(hostname, "."))
 	parts := strings.Split(hostname, ".")
-	if len(parts) != 5 {
-		return false
+	if len(parts) != 3 && len(parts) != 5 {
+		return internalHostExternal
 	}
-	if parts[2] != "svc" || parts[3] != "cluster" || parts[4] != "local" {
-		return false
+	if parts[0] == "" || parts[1] == "" || parts[2] != "svc" {
+		return internalHostExternal
 	}
-	return parts[0] != "" && parts[1] != ""
+
+	if len(parts) == 3 {
+		return internalHostShort
+	}
+	if parts[3] == "cluster" && parts[4] == "local" {
+		return internalHostFull
+	}
+	return internalHostExternal
+}
+
+// isInternalHost reports whether hostname is a suffix-qualified Kubernetes in-cluster
+// service name. These legitimately use HTTP internally, so the HTTPS requirement is
+// relaxed for them; all hostnames still undergo SSRF IP validation. Accept both the
+// short <service>.<namespace>.svc form and the full
+// <service>.<namespace>.svc.cluster.local form, while preventing overly-broad matches
+// like "evil.cluster.local".
+func isInternalHost(hostname string) bool {
+	return classifyInternalHost(hostname) != internalHostExternal
 }
 
 // validateIPAddress blocks loopback, link-local, multicast, unspecified, and reserved ranges

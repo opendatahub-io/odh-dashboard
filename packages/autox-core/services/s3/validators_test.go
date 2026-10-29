@@ -52,8 +52,17 @@ func TestIsInternalHost(t *testing.T) {
 		want     bool
 	}{
 		{"minio.my-ns.svc.cluster.local", true},
+		{"MINIO.MY-NS.SVC.CLUSTER.LOCAL", true},
+		{"minio.my-ns.svc.cluster.local.", true},
 		{"ds-pipeline.odh.svc.cluster.local", true},
-		{"svc.cluster.local", false},         // only 3 parts
+		{"minio.my-ns.svc", true},
+		{"MINIO.MY-NS.SVC", true},
+		{"minio.my-ns.svc.", true},
+		{"ds-pipeline.odh.svc", true},
+		{"svc.cluster.local", false},         // missing service.namespace.svc shape
+		{"minio.my-ns", false},               // bare service namespace name is ambiguous
+		{"minio.svc", false},                 // service without namespace
+		{"a.b.c.svc", false},                 // too many parts for the short form
 		{"a.b.c.d.svc.cluster.local", false}, // 7 parts
 		{".ns.svc.cluster.local", false},     // empty service
 		{"svc.ns.notcluster.local", false},
@@ -103,6 +112,57 @@ func TestValidateIPAddress(t *testing.T) {
 	}
 }
 
+func TestValidateResolvedIPs(t *testing.T) {
+	tests := []struct {
+		name           string
+		ips            []net.IPAddr
+		requirePrivate bool
+		wantErr        bool
+	}{
+		{
+			name:           "private address accepted for private-only endpoint",
+			ips:            []net.IPAddr{{IP: net.ParseIP("10.0.0.1")}},
+			requirePrivate: true,
+		},
+		{
+			name:           "shared address accepted for private-only endpoint",
+			ips:            []net.IPAddr{{IP: net.ParseIP("100.64.0.1")}},
+			requirePrivate: true,
+		},
+		{
+			name:           "public address accepted for general endpoint",
+			ips:            []net.IPAddr{{IP: net.ParseIP("8.8.8.8")}},
+			requirePrivate: false,
+		},
+		{
+			name:           "public address rejected for private-only endpoint",
+			ips:            []net.IPAddr{{IP: net.ParseIP("8.8.8.8")}},
+			requirePrivate: true,
+			wantErr:        true,
+		},
+		{
+			name:           "blocked address rejected for general endpoint",
+			ips:            []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}},
+			requirePrivate: false,
+			wantErr:        true,
+		},
+		{
+			name:           "empty resolution rejected",
+			requirePrivate: false,
+			wantErr:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateResolvedIPs("minio.ns.svc", tt.ips, tt.requirePrivate)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateResolvedIPs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestValidateAndNormalizeEndpoint(t *testing.T) {
 	provider := &awsClientProvider{cfg: ClientConfig{AllowUnresolvableEndpoint: true}}
 
@@ -126,10 +186,27 @@ func TestValidateAndNormalizeEndpoint(t *testing.T) {
 		}
 	})
 
+	t.Run("http allowed for short in-cluster service name", func(t *testing.T) {
+		got, err := provider.validateAndNormalizeEndpoint("http://minio.ns.svc:9000")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != "http://minio.ns.svc:9000" {
+			t.Errorf("got %q", got)
+		}
+	})
+
 	t.Run("http rejected for external", func(t *testing.T) {
 		_, err := provider.validateAndNormalizeEndpoint("http://s3.amazonaws.com")
 		if err == nil {
 			t.Error("expected error for external http")
+		}
+	})
+
+	t.Run("http rejected for ambiguous bare service name", func(t *testing.T) {
+		_, err := provider.validateAndNormalizeEndpoint("http://minio.ns:9000")
+		if err == nil {
+			t.Error("expected error for ambiguous bare service name")
 		}
 	})
 
@@ -219,7 +296,7 @@ func TestValidateAndNormalizeEndpoint(t *testing.T) {
 }
 
 func TestSSRFSafeDialContext(t *testing.T) {
-	dial := ssrfSafeDialContext(&net.Dialer{Timeout: 2 * time.Second}, false)
+	dial := ssrfSafeDialContext(&net.Dialer{Timeout: 2 * time.Second}, false, false)
 
 	t.Run("unresolvable hostname rejected", func(t *testing.T) {
 		_, err := dial(context.Background(), "tcp", "nonexistent.invalid:443")
@@ -232,11 +309,33 @@ func TestSSRFSafeDialContext(t *testing.T) {
 	})
 
 	t.Run("unresolvable hostname allowed when configured", func(t *testing.T) {
-		dialAllowUnresolved := ssrfSafeDialContext(&net.Dialer{Timeout: 2 * time.Second}, true)
+		dialAllowUnresolved := ssrfSafeDialContext(&net.Dialer{Timeout: 2 * time.Second}, true, false)
 		_, err := dialAllowUnresolved(context.Background(), "tcp", "nonexistent.invalid:443")
 		// Will fail to connect, but should NOT fail on "cannot be resolved"
 		if err != nil && strings.Contains(err.Error(), "cannot be resolved") {
 			t.Errorf("should allow unresolved hostname: %v", err)
+		}
+	})
+
+	t.Run("private-only endpoint rejects unresolvable hostname", func(t *testing.T) {
+		dialPrivateOnly := ssrfSafeDialContext(&net.Dialer{Timeout: 2 * time.Second}, true, true)
+		_, err := dialPrivateOnly(context.Background(), "tcp", "nonexistent.invalid:443")
+		if err == nil {
+			t.Error("expected error for unresolvable private-only endpoint")
+		}
+		if !strings.Contains(err.Error(), "cannot be resolved") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("private-only endpoint rejects public IP literal", func(t *testing.T) {
+		dialPrivateOnly := ssrfSafeDialContext(&net.Dialer{Timeout: 2 * time.Second}, true, true)
+		_, err := dialPrivateOnly(context.Background(), "tcp", "8.8.8.8:443")
+		if err == nil {
+			t.Error("expected error for public IP literal")
+		}
+		if !strings.Contains(err.Error(), "non-private IP") {
+			t.Errorf("unexpected error: %v", err)
 		}
 	})
 
@@ -259,4 +358,26 @@ func TestSSRFSafeDialContext(t *testing.T) {
 			t.Errorf("IP literal should not be re-validated at dial time: %v", err)
 		}
 	})
+}
+
+type blockingIPResolver struct{}
+
+func (blockingIPResolver) LookupIPAddr(ctx context.Context, _ string) ([]net.IPAddr, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+func TestSSRFSafeDialContextBoundsDNSAndDialTime(t *testing.T) {
+	dial := ssrfSafeDialContextWithResolver(
+		&net.Dialer{Timeout: time.Second},
+		false,
+		false,
+		blockingIPResolver{},
+		10*time.Millisecond,
+	)
+
+	_, err := dial(context.Background(), "tcp", "service.namespace.svc:9000")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("error = %v, want context deadline exceeded", err)
+	}
 }

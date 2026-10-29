@@ -538,7 +538,7 @@ func TestClientConfigWithDefaults(t *testing.T) {
 // Connection establishment and the wait for response headers must stay bounded;
 // payload body streaming must stay unbounded by a blanket deadline.
 func TestBuildHTTPClient_TransportTimeouts(t *testing.T) {
-	hc := (&awsClientProvider{cfg: ClientConfig{}}).buildHTTPClient()
+	hc := (&awsClientProvider{cfg: ClientConfig{}}).buildHTTPClient(false)
 
 	transport, ok := hc.Transport.(*http.Transport)
 	if !ok {
@@ -552,6 +552,39 @@ func TestBuildHTTPClient_TransportTimeouts(t *testing.T) {
 	}
 	if hc.Timeout != 0 {
 		t.Errorf("client Timeout = %v, want 0 — a blanket deadline truncates large transfers; bound the transport phases instead (see buildHTTPClient)", hc.Timeout)
+	}
+}
+
+func TestBuildAWSClientInternalHTTPUsesPrivateIPGuard(t *testing.T) {
+	for _, endpoint := range []string{
+		"http://minio.namespace.svc:9000",
+		"http://minio.namespace.svc.cluster.local:9000",
+	} {
+		t.Run(endpoint, func(t *testing.T) {
+			provider := &awsClientProvider{cfg: ClientConfig{AllowUnresolvableEndpoint: true}}
+			client, err := provider.buildAWSClient(ConnectionOptions{
+				AccessKeyID:     "access-key",
+				SecretAccessKey: "secret-key",
+				Region:          "us-east-1",
+				BaseEndpoint:    endpoint,
+			})
+			if err != nil {
+				t.Fatalf("buildAWSClient() error = %v", err)
+			}
+
+			httpClient, ok := client.Options().HTTPClient.(*http.Client)
+			if !ok {
+				t.Fatalf("HTTPClient is %T, want *http.Client", client.Options().HTTPClient)
+			}
+			transport, ok := httpClient.Transport.(*http.Transport)
+			if !ok {
+				t.Fatalf("Transport is %T, want *http.Transport", httpClient.Transport)
+			}
+			_, err = transport.DialContext(context.Background(), "tcp", "8.8.8.8:443")
+			if err == nil || !strings.Contains(err.Error(), "non-private IP") {
+				t.Fatalf("in-cluster HTTP transport error = %v, want non-private IP rejection", err)
+			}
+		})
 	}
 }
 

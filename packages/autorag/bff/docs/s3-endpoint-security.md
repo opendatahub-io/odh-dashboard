@@ -17,31 +17,34 @@ These endpoints retrieve S3 credentials from Kubernetes secrets and validate the
 
 ### 1. HTTPS Enforcement
 
-**Requirement**: All S3 endpoint URLs MUST use the HTTPS scheme.
+**Requirement**: External S3 endpoint URLs MUST use HTTPS. Plain HTTP is permitted only
+for suffix-qualified Kubernetes service endpoints:
+`<service>.<namespace>.svc` and `<service>.<namespace>.svc.cluster.local`.
 
 **Rejected**:
 - `http://s3.amazonaws.com` ❌
+- `http://minio.example.com:9000` ❌
 
 **Accepted**:
 - `https://s3.amazonaws.com` ✅
 - `https://s3.us-east-1.amazonaws.com` ✅
 - `https://minio.example.com:9000` ✅
+- `http://minio.minio.svc:9000` ✅ (all resolved addresses must be private/shared)
+- `http://minio.minio.svc.cluster.local:9000` ✅
 
-**Error Message**: `endpoint URL must use HTTPS scheme, got: http`
+**Error Message**: `endpoint URL must use HTTPS scheme for external endpoints, got: http`
 
-### 2. Private IP Range Blocking (RFC-1918)
+### 2. Address and Destination Validation
 
-**Blocked Ranges**:
-- `10.0.0.0/8`
-- `172.16.0.0/12`
-- `192.168.0.0/16`
+RFC-1918 private ranges and RFC-6598 shared address space are allowed because
+cluster-local S3-compatible services commonly use them. For suffix-qualified HTTP
+service names, every DNS result must be private or RFC-6598 shared before a connection
+is attempted. Public results are rejected.
 
-**Rejected**:
-- `https://10.0.0.1:9000` ❌
-- `https://172.16.0.1:9000` ❌
-- `https://192.168.1.1:9000` ❌
+Unsafe ranges are rejected for all endpoints, including loopback, link-local,
+multicast, unspecified, and reserved addresses.
 
-**Error Message**: `endpoint IP <ip> is in blocked RFC-1918 private range (<range>)`
+**Error Message**: `endpoint IP <ip> is in blocked <range>`
 
 ### 3. Loopback Address Blocking
 
@@ -63,17 +66,17 @@ These endpoints retrieve S3 credentials from Kubernetes secrets and validate the
 
 **Error Message**: `endpoint IP <ip> is in blocked link-local range (169.254.0.0/16)`
 
-### 5. IPv6 Private Range Blocking
+### 5. IPv6 Address Validation
 
 **Blocked Ranges**:
 - `::1/128` (IPv6 loopback)
 - `fe80::/10` (IPv6 link-local)
-- `fc00::/7` (IPv6 unique local addresses)
+- IPv6 unique-local addresses may be used for cluster-local endpoints
 
 **Rejected**:
 - `https://[::1]:9000` ❌
 - `https://[fe80::1]:9000` ❌
-- `https://[fc00::1]:9000` ❌
+- `http://[fc00::1]:9000` ❌ (not a suffix-qualified service hostname)
 
 **Error Message**: `endpoint IP <ip> is in blocked <description>`
 
@@ -89,23 +92,29 @@ These endpoints retrieve S3 credentials from Kubernetes secrets and validate the
 
 **Error Message**: `invalid endpoint URL format: <error>`
 
-### 7. DNS Resolution Validation
+### 7. DNS Resolution and Dial-Time Validation
 
-When a hostname is provided (not an IP address), the endpoint validator:
+When a hostname is provided (not an IP address), the endpoint validator and transport:
 
-1. **Resolves the hostname** to its IP addresses using `net.LookupIP`
-2. **Validates all resolved IPs** against the blocked ranges
-3. **Rejects unresolvable hostnames by default** to prevent DNS rebinding/TOCTOU attacks
-4. **Runs each time a real client is constructed** (today, each inbound S3 API call builds a new client), so hostname resolution and IP checks are fresh for that request
+1. Validate the URL syntax and scheme before constructing the client
+2. **Resolve the hostname** to its IP addresses at dial time
+3. **Validate all resolved IPs** against the blocked ranges
+4. Require private/shared results for suffix-qualified HTTP service names
+5. Dial the validated addresses directly to avoid a DNS check/use race
+6. **Reject unresolvable hostnames** by default (fail-closed)
 
 **Example**:
 ```
 Hostname: minio.example.com
-Resolves to: 192.168.1.10
-Result: ❌ Blocked - resolves to private IP
+Resolves to: 169.254.1.10
+Result: ❌ Blocked - resolves to link-local IP
 ```
 
 **Error Message**: `endpoint hostname '<hostname>' resolves to blocked IP <ip>: <error>`
+
+A successful DNS lookup that returns no addresses is also rejected with
+`endpoint hostname '<hostname>' resolved to no IP addresses`. The unresolved-host opt-out
+does not bypass this empty-result check.
 
 #### Production Mode (Default)
 
@@ -119,6 +128,14 @@ This fail-closed approach prevents:
 - **DNS rebinding attacks**: where a hostname resolves to a public IP at validation time but is changed to point to a private IP before the actual S3 connection
 - **TOCTOU vulnerabilities**: Time-of-check to time-of-use race conditions in DNS resolution
 
+### Operational Timeouts
+
+- DNS resolution and all connection attempts for one endpoint share a 10-second budget
+- TLS handshakes are limited to 10 seconds
+- S3 response headers are limited to 30 seconds
+- Metadata operations are limited to 15 seconds
+- Streaming uploads and downloads have no blanket client deadline; request context cancellation still applies
+
 #### Non-Production/Testing Mode
 
 For testing or development environments where DNS resolution may differ between validation and runtime, you can enable permissive mode by setting:
@@ -127,19 +144,22 @@ For testing or development environments where DNS resolution may differ between 
 ALLOW_UNRESOLVED_S3_ENDPOINTS=true
 ```
 
-When enabled, unresolvable hostnames are **allowed with a warning**:
-
-```
-Warning: Unable to resolve S3 endpoint hostname, allowing it to proceed (ALLOW_UNRESOLVED_S3_ENDPOINTS=true)
-```
+When enabled, unresolvable general endpoints are **allowed**. This setting never bypasses
+resolution for suffix-qualified HTTP service names, because their private destination cannot
+otherwise be verified. The BFF emits a startup security warning when this opt-out is
+enabled in development mode.
 
 ⚠️ **Security Warning**: This should only be used in non-production environments. Production deployments should use resolvable hostnames or direct IP addresses.
 
 #### When the endpoint is checked (real client)
 
-SSRF checks run in the **S3 integration layer** when a **real** AWS SDK client is constructed (`NewRealS3Client` in `internal/integrations/s3/client.go`), not inside the repository that reads secrets.
+SSRF checks run in the shared `autox-core` S3 client when a real AWS SDK client is
+constructed, not inside the repository that reads secrets.
 
-Handlers fetch credentials from Kubernetes (via `repositories/s3.go`), then call `S3ClientFactory.CreateClient(creds)`. For the real factory, that construction runs `validateAndNormalizeEndpoint` **once per request** (the BFF currently builds a new client per request). Operations such as `GetObject` / `UploadObject` / `ListObjects` use the already-configured endpoint on that client.
+Handlers fetch credentials from Kubernetes and pass them to the shared S3 service. The
+real client validates URL syntax and scheme before construction; its transport resolves
+and validates destination addresses immediately before dialing. Suffix-qualified HTTP service
+names require private/shared results at this second boundary.
 
 The mock S3 client factory (`internal/integrations/s3/s3mocks`) does not perform these checks and is intended for development/tests only.
 
@@ -157,32 +177,34 @@ This ensures that SSRF protections cannot be bypassed in production deployments,
 
 ## Implementation Details
 
-### Validation Function
+### Validation Functions
 
-Endpoint SSRF validation lives in **`internal/integrations/s3/client.go`** on `RealS3Client`:
+Endpoint SSRF validation lives in the shared `autox-core` S3 service:
 
 ```go
-// validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
-// It ensures the URL uses HTTPS, is properly formatted, and does not target blocked IP ranges.
-// Returns the normalized URL string or an error if validation fails.
-func (c *RealS3Client) validateAndNormalizeEndpoint(endpoint string) (string, error)
+// validateAndNormalizeEndpoint validates the URL and external/internal scheme policy.
+func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (string, error)
 
-// validateIPAddress checks if an IP address is in a blocked range (private, loopback, link-local, etc.).
-func (c *RealS3Client) validateIPAddress(ip net.IP) error
+// ssrfSafeDialContext validates resolved addresses immediately before dialing.
+func ssrfSafeDialContext(...)
 ```
 
-These are invoked from **`NewRealS3Client`** when the real **`S3ClientFactory`** creates a client. Wrapped failures use **`ErrEndpointValidation`** (`endpoint validation failed: ...`) so HTTP handlers can return **400 Bad Request** for bad endpoints.
+These are invoked when the shared real S3 client is created. Wrapped failures use
+**`ErrEndpointValidation`** (`endpoint validation failed: ...`) so HTTP handlers can
+return **400 Bad Request** for bad endpoints.
 
 ### Credential extraction (no SSRF validation)
 
-**`internal/repositories/s3.go`** only **reads** the Kubernetes secret and fills `S3Credentials` (including raw `AWS_S3_ENDPOINT`). It checks that required keys are **non-empty**; it does **not** run the SSRF / URL rules above. DSPA-based credential assembly (`GetS3CredentialsFromDSPA`) is also in this file.
+The repository layer only reads Kubernetes secrets and assembles credentials; it does
+not run the SSRF / URL rules above. DSPA-based credential assembly is also kept in the
+repository layer.
 
 ### Where validation occurs (summary)
 
 | Layer | File | Role |
 |-------|------|------|
 | Repository | `repositories/s3.go` | Load secret fields; required-field presence only |
-| S3 client | `integrations/s3/client.go` | `NewRealS3Client` → `validateAndNormalizeEndpoint` (SSRF protection) |
+| S3 client | shared `autox-core/services/s3` | URL validation and dial-time SSRF protection |
 | Handlers | `api/s3_handler.go` | Resolve credentials, `CreateClient`, then S3 operations |
 | Mock | `integrations/s3/s3mocks` | No SSRF validation; dev/test only |
 
@@ -241,12 +263,19 @@ https://storage.company.com
 https://objects.cloud-provider.com
 ```
 
+### S3-Compatible Services (Cluster-Local)
+```
+http://minio.minio.svc:9000
+http://minio.minio.svc.cluster.local:9000
+```
+
 ### Important Notes
 
-- ✅ **Always use HTTPS** - HTTP endpoints are rejected
-- ✅ **Use externally resolvable hostnames** - Hostnames that resolve to public IPs or use secure access patterns (VPN, VPC peering, Private Link, Service Mesh)
+- ✅ **Use HTTPS for external endpoints** - HTTP is accepted only for suffix-qualified Kubernetes service names
+- ✅ **Use suffix-qualified service names for cluster-local HTTP** - Suffix-qualified HTTP requires private/shared DNS results
+- ✅ **Use externally resolvable hostnames for external services** - Hostnames should resolve to public IPs or use secure access patterns (VPN, VPC peering, Private Link, Service Mesh)
 - ✅ **Include port if non-standard** - e.g., `:9000` for MinIO
-- ⚠️ **Private IPs are blocked by SSRF protection** - For internal MinIO/S3 services, use Service Mesh/Network Policies, VPN, VPC peering, Private Link, or a secured API gateway (see Migration Guide)
+- ⚠️ **Unsafe IPs are blocked by SSRF protection** - Cluster-local S3 services must use suffix-qualified service names and private/shared destinations
 - ❌ **Never use localhost or loopback addresses** - These are always blocked
 
 ## Security Rationale
@@ -259,9 +288,9 @@ SSRF attacks allow attackers to make requests to internal resources by manipulat
    - Exposes IAM credentials and other sensitive data
    - Blocked by link-local range validation
 
-2. **Internal Services** (RFC-1918 private IPs)
+2. **Internal Services** (unsafe or unexpected destinations)
    - Internal APIs, databases, admin panels
-   - Blocked by private IP range validation
+   - Suffix-qualified HTTP is limited to private/shared service destinations; unsafe ranges are blocked
 
 3. **Localhost Services** (`127.0.0.1`)
    - Services running on the same host
@@ -271,8 +300,8 @@ SSRF attacks allow attackers to make requests to internal resources by manipulat
 
 The validation implements multiple layers of protection:
 
-1. **Scheme validation** - Prevents downgrade attacks via HTTP
-2. **IP range blocking** - Prevents targeting internal resources
+1. **Scheme validation** - Requires HTTPS externally and limits HTTP to recognized service names
+2. **IP range and destination validation** - Blocks unsafe ranges and constrains suffix-qualified HTTP destinations
 3. **DNS resolution validation** - Prevents DNS rebinding attacks
 4. **URL format validation** - Prevents malformed URL exploits
 
@@ -281,57 +310,53 @@ The validation implements multiple layers of protection:
 SSRF rules are covered by unit tests on the validator and by API tests:
 
 ```bash
-go test -v ./internal/integrations/s3/ -run TestValidateAndNormalizeEndpoint
-go test -v ./internal/api -run 'S3|PostS3'
+cd packages/autox-core/services && go test -v ./s3 -run 'Test(IsInternalHost|ValidateAndNormalizeEndpoint|ValidateResolvedIPs|SSRFSafeDialContext)'
+cd packages/autorag/bff && go test -v ./internal/api -run 'S3|PostS3'
 ```
 
 ### Test Coverage
 
-- ✅ HTTP scheme rejection
-- ✅ Private IP blocking (all RFC-1918 ranges)
+- ✅ HTTP scheme rejection for external and ambiguous hostnames
+- ✅ Suffix-qualified Kubernetes HTTP service acceptance
+- ✅ Public and unresolved destination rejection for suffix-qualified HTTP
+- ✅ Unsafe IP range blocking
+- ✅ RFC-6598 shared-address acceptance for cluster-local HTTP
 - ✅ Loopback address blocking
 - ✅ Link-local address blocking
 - ✅ Invalid URL format rejection
 - ✅ Valid HTTPS URL acceptance
 
-Validator tests live in **`internal/integrations/s3/client_test.go`**. HTTP status and handler behaviour (including **400** for `ErrEndpointValidation`) are covered in **`internal/api/s3_handler_test.go`**.
+Validator tests live in **`packages/autox-core/services/s3/*_test.go`**. HTTP status and handler behaviour (including **400** for `ErrEndpointValidation`) are covered in **`packages/autorag/bff/internal/api/s3_handler_test.go`**.
 
 ## Troubleshooting
 
-### "endpoint URL must use HTTPS scheme"
+### "endpoint URL must use HTTPS scheme for external endpoints"
 
-**Problem**: Secret contains HTTP URL instead of HTTPS.
+**Problem**: Secret contains an HTTP URL for an external or ambiguous hostname.
 
-**Solution**: Update the secret's `AWS_S3_ENDPOINT` to use `https://`:
+**Solution**: Use `https://` for external endpoints. For cluster-local HTTP, use a
+suffix-qualified service hostname such as `http://minio.minio.svc:9000`.
 
 ```bash
 kubectl patch secret my-s3-secret -n my-namespace \
   --type='json' -p='[{"op": "replace", "path": "/data/AWS_S3_ENDPOINT", "value":"'$(echo -n "https://s3.amazonaws.com" | base64)'"}]'
 ```
 
-### "endpoint IP is in blocked RFC-1918 private range"
+### "endpoint IP is in a blocked range"
 
-**Problem**: Endpoint uses a private IP address.
+**Problem**: Endpoint uses a loopback, link-local, multicast, unspecified, or reserved IP address.
 
-**Solution**: Do NOT expose internal S3 services publicly. Instead, implement secure access:
-- **For cluster-internal services**: Use Service Mesh or Network Policies to allow BFF pods to access specific internal S3 endpoints
-- **For external services**: Use VPN, VPC peering, or Private Link for secure connectivity
-- **If a gateway is required**: Deploy a secured API gateway/bastion with strict authentication, IP allowlists, TLS, and RBAC
-- See Migration Guide for detailed alternatives
+**Solution**: Use a valid suffix-qualified service hostname for cluster-local S3, or
+use HTTPS for an external service. Never use localhost, metadata, or other blocked ranges.
 
 ### "endpoint hostname resolves to blocked IP"
 
-**Problem**: Hostname resolves to a private/blocked IP address.
+**Problem**: Hostname resolves to a blocked IP, or a suffix-qualified HTTP service hostname resolves to a public IP.
 
 **Solution**: The hostname DNS record points to an internal IP. Use secure access patterns:
-- **For cluster-internal services**: Configure Service Mesh or Network Policies to allow BFF pods to access the internal S3 service
-- **For external services**: Implement VPN, VPC peering, or Private Link (AWS PrivateLink, Azure Private Link) for secure private connectivity
-- **If a gateway is required**: Deploy a secured API gateway/bastion with:
-  - Strong authentication (mutual TLS, OAuth2, API keys)
-  - IP allowlists restricting access to known clients
-  - TLS encryption and credential rotation
-  - RBAC and request validation
-- See Migration Guide for detailed secure alternatives
+- **For cluster-internal services**: Use `service.namespace.svc` or
+  `service.namespace.svc.cluster.local`, and ensure DNS resolves to private/shared addresses
+- **For external services**: Use HTTPS and secure access patterns such as VPN, VPC peering, or Private Link
 
 ### "invalid endpoint URL format"
 
@@ -363,10 +388,9 @@ If you have existing secrets with endpoints that are now blocked:
      - Document the security trade-offs clearly
 
    - **Known Limitation** (Current state):
-     - Cluster-internal S3 services using private IPs are blocked by design
-     - This is an intentional security measure to prevent SSRF attacks
-     - For cluster-internal deployments, this represents a trade-off between SSRF protection and internal service accessibility
-     - Consider using external object storage or implementing one of the safer alternatives above
+      - Suffix-qualified cluster-internal S3 services are supported
+      - Suffix-qualified HTTP service names require private/shared DNS results at dial time
+      - Unsafe destinations and ambiguous/bare hostnames remain protected by the external HTTPS policy
 
 2. **AWS S3**:
    - Should already use `https://` and public endpoints

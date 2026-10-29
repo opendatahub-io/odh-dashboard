@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -78,7 +79,9 @@ type ClientConfig struct {
 	InsecureSkipVerify bool
 
 	// AllowUnresolvableEndpoint skips the error when DNS resolution fails for
-	// the S3 endpoint hostname. IP validation is still enforced if resolution succeeds.
+	// the S3 endpoint hostname. IP validation is still enforced if resolution succeeds;
+	// suffix-qualified in-cluster HTTP endpoints must always resolve so their destination
+	// can be checked against private IP ranges.
 	// SECURITY: This weakens SSRF protection — must only be enabled in development/testing
 	// contexts. Callers must block this in production to prevent weakening SSRF protections.
 	AllowUnresolvableEndpoint bool
@@ -311,6 +314,11 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrEndpointValidation, err)
 	}
+	validatedURL, err := url.Parse(validatedEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("%w: validated endpoint URL is invalid: %w", ErrEndpointValidation, err)
+	}
+	requirePrivateEndpoint := validatedURL.Scheme == "http" && isInternalHost(validatedURL.Hostname())
 
 	awsCfg := aws.Config{
 		Region: opts.Region,
@@ -320,7 +328,7 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 			"",
 		),
 		RetryMaxAttempts: 1,
-		HTTPClient:       p.buildHTTPClient(),
+		HTTPClient:       p.buildHTTPClient(requirePrivateEndpoint),
 	}
 
 	return awss3.NewFromConfig(awsCfg, func(o *awss3.Options) {
@@ -338,9 +346,13 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 // legitimately large uploads and downloads (see s3MetadataTimeout). The hang-prone
 // phases are bounded on the transport instead, and payload streaming is bounded by each
 // caller's request context.
-func (p *awsClientProvider) buildHTTPClient() *http.Client {
+func (p *awsClientProvider) buildHTTPClient(requirePrivateEndpoint bool) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.DialContext = ssrfSafeDialContext(&net.Dialer{Timeout: s3ConnectTimeout}, p.cfg.AllowUnresolvableEndpoint)
+	transport.DialContext = ssrfSafeDialContext(
+		&net.Dialer{Timeout: s3ConnectTimeout},
+		p.cfg.AllowUnresolvableEndpoint,
+		requirePrivateEndpoint,
+	)
 	transport.TLSHandshakeTimeout = s3ConnectTimeout
 	transport.ResponseHeaderTimeout = s3ResponseHeaderTimeout
 
