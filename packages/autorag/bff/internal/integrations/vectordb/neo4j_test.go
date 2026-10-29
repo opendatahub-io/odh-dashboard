@@ -447,6 +447,57 @@ func TestNeo4jSearchClassifiesQueryErrors(t *testing.T) {
 	require.ErrorIs(t, err, ErrDatabaseUnavailable)
 }
 
+func TestNeo4jSearchClassifiesServerRejectionsAsQueryFailures(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		err     error
+		wantErr error
+	}{
+		{
+			name:    "client error code maps to query failed",
+			err:     &neo4j.Neo4jError{Code: "Neo.ClientError.Schema.IndexNotFound"},
+			wantErr: ErrDatabaseQueryFailed,
+		},
+		{
+			name:    "statement syntax error maps to query failed",
+			err:     &neo4j.Neo4jError{Code: "Neo.ClientError.Statement.SyntaxError"},
+			wantErr: ErrDatabaseQueryFailed,
+		},
+		{
+			name:    "server-internal error stays unavailable",
+			err:     &neo4j.Neo4jError{Code: "Neo.DatabaseError.General.UnknownError"},
+			wantErr: ErrDatabaseUnavailable,
+		},
+		{
+			name:    "plain error stays unavailable",
+			err:     errors.New("connection reset"),
+			wantErr: ErrDatabaseUnavailable,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			driver := &fakeNeo4jDriver{session: &fakeNeo4jSession{err: tc.err}}
+			db, err := newNeo4jFromSecretWithDriver(context.Background(), validNeo4jSecret(), time.Second, func(context.Context, string, neo4j.AuthToken, func(*config.Config)) (neo4jDriver, error) {
+				return driver, nil
+			}, fakeNeo4jLookup("93.184.216.34"))
+			require.NoError(t, err)
+
+			_, err = db.Search(context.Background(), "collection", []float32{1}, "", SearchOptions{TopK: 1})
+			require.ErrorIs(t, err, tc.wantErr)
+		})
+	}
+}
+
+func TestNeo4jSearchQueryFailurePreservesDeadlineClassification(t *testing.T) {
+	// An operation deadline that expires with a server rejection pending must
+	// still classify as a timeout, not a query failure.
+	operationCtx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
+	time.Sleep(time.Millisecond) // let the deadline fire
+
+	err := classifyNeo4jSearchError(context.Background(), operationCtx, &neo4j.Neo4jError{Code: "Neo.ClientError.Schema.IndexNotFound"})
+	require.ErrorIs(t, err, ErrDatabaseTimeout)
+}
+
 func TestNeo4jGraphSearchQueryTogglesExpansion(t *testing.T) {
 	full := neo4jGraphSearchQuery(true, 5, 3, 1, 5)
 	assert.Contains(t, full, "CALL (node) { OPTIONAL MATCH (entity:__Entity__)")

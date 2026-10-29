@@ -17,6 +17,12 @@ var ErrDatabaseUnavailable = errors.New("vector database unavailable")
 
 var ErrDatabaseTimeout = errors.New("vector database operation timed out")
 
+// ErrDatabaseQueryFailed reports that the database server itself rejected a
+// query or its configuration (invalid query, missing index, wrong schema) — as
+// opposed to ErrDatabaseUnavailable, which is reserved for connectivity and
+// authentication failures.
+var ErrDatabaseQueryFailed = errors.New("vector database query failed")
+
 var ErrResultContentLimit = errors.New("vector result content limit exceeded")
 
 const (

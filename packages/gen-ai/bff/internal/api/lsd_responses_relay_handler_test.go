@@ -87,7 +87,7 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		Entry("path outside allowed relay prefixes", "target="+url.QueryEscape("/gen-ai/api/v1/lsd/responses")),
 	)
 
-	It("should return 503 when the gateway domain is not configured", func() {
+	It("should return 503 when neither gateway domain nor relay target is configured", func() {
 		t := GinkgoT()
 		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses"), `{"model":"m"}`)
 		rr := httptest.NewRecorder()
@@ -96,6 +96,24 @@ var _ = Describe("ResponsesRelayHandler", func() {
 
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 		assert.Contains(t, rr.Body.String(), "not configured")
+	})
+
+	It("should return 503 when GATEWAY_DOMAIN is scheme-qualified (passthrough consumers require a bare host)", func() {
+		t := GinkgoT()
+		// A scheme-qualified GATEWAY_DOMAIN would also corrupt the
+		// remote::passthrough provider URLs built from the same variable
+		// (token_k8s_client prepends https:// itself), so the relay must
+		// refuse it and point at the dedicated override instead.
+		app.config.GatewayDomain = "http://localhost:4001"
+
+		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses"), `{"model":"m"}`)
+		rr := httptest.NewRecorder()
+
+		app.ResponsesRelayHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+		assert.Contains(t, rr.Body.String(), "not allowed")
+		assert.Contains(t, rr.Body.String(), "GATEWAY_DOMAIN")
 	})
 
 	It("should return 413 when the request body exceeds the size limit", func() {
@@ -170,7 +188,7 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		assert.Equal(t, body, receivedBody)
 	})
 
-	It("should honor a scheme-qualified gateway domain for local development", func() {
+	It("should honor a scheme-qualified relay target for local development while GATEWAY_DOMAIN stays bare", func() {
 		t := GinkgoT()
 
 		var receivedPath, receivedQuery string
@@ -182,7 +200,12 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		}))
 		defer upstream.Close()
 
-		app.config.GatewayDomain = upstream.URL + "/"
+		// The exact local-stack shape the regression guards: the relay is
+		// redirected to a local BFF via RELAY_TARGET_URL while GATEWAY_DOMAIN
+		// remains a bare host, so passthrough consumers sharing the variable
+		// keep building well-formed https://<host>/... URLs.
+		app.config.GatewayDomain = "gateway.example.com"
+		app.config.RelayTargetURL = upstream.URL + "/"
 		app.httpClient = upstream.Client()
 
 		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses?namespace=test-ns"), `{"model":"m"}`)
@@ -220,31 +243,45 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		assert.JSONEq(t, upstreamBody, rr.Body.String())
 	})
 
-	It("should accept plain http gateway domains for every loopback host form", func() {
+	It("should accept plain http relay targets for every loopback host form", func() {
 		t := GinkgoT()
 
 		for _, tc := range []struct {
-			domain string
+			target string
 			want   string
 		}{
-			{domain: "http://localhost", want: "http://localhost"},
-			{domain: "http://localhost:8080", want: "http://localhost:8080"},
-			{domain: "http://127.0.0.1", want: "http://127.0.0.1"},
-			{domain: "http://[::1]", want: "http://[::1]"},
-			{domain: "http://[::1]:8080", want: "http://[::1]:8080"},
+			{target: "http://localhost", want: "http://localhost"},
+			{target: "http://localhost:8080", want: "http://localhost:8080"},
+			{target: "http://127.0.0.1", want: "http://127.0.0.1"},
+			{target: "http://[::1]", want: "http://[::1]"},
+			{target: "http://[::1]:8080", want: "http://[::1]:8080"},
+			{target: "https://gateway.example.com", want: "https://gateway.example.com"},
+			{target: "https://gateway.example.com/", want: "https://gateway.example.com"},
 		} {
-			baseURL, err := relayBaseURL(tc.domain)
-			assert.NoError(t, err, tc.domain)
-			assert.Equal(t, tc.want, baseURL, tc.domain)
+			baseURL, err := relayBaseURL("gateway.example.com", tc.target)
+			assert.NoError(t, err, tc.target)
+			assert.Equal(t, tc.want, baseURL, tc.target)
 		}
 
-		for _, domain := range []string{"http://[2001:db8::1]", "http://[2001:db8::1]:8080"} {
-			_, err := relayBaseURL(domain)
+		for _, target := range []string{"http://[2001:db8::1]", "http://[2001:db8::1]:8080", "gateway.example.com"} {
+			_, err := relayBaseURL("gateway.example.com", target)
+			assert.Error(t, err, target)
+		}
+
+		// Without the override, a bare-host GATEWAY_DOMAIN resolves to HTTPS —
+		// the same value the passthrough consumers prepend https:// to
+		// themselves, so both stay consistent.
+		baseURL, err := relayBaseURL("gateway.example.com", "")
+		assert.NoError(t, err)
+		assert.Equal(t, "https://gateway.example.com", baseURL)
+
+		for _, domain := range []string{"http://gateway.example.com", "https://gateway.example.com"} {
+			_, err := relayBaseURL(domain, "")
 			assert.Error(t, err, domain)
 		}
 	})
 
-	It("should return 503 when the gateway domain uses plain http for a non-loopback host", func() {
+	It("should return 503 when the relay target uses plain http for a non-loopback host", func() {
 		t := GinkgoT()
 
 		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -252,7 +289,7 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		}))
 		defer upstream.Close()
 
-		app.config.GatewayDomain = strings.Replace(upstream.URL, "127.0.0.1", "gateway.example.com", 1)
+		app.config.RelayTargetURL = strings.Replace(upstream.URL, "127.0.0.1", "gateway.example.com", 1)
 		app.httpClient = upstream.Client()
 
 		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses"), `{"model":"m"}`)

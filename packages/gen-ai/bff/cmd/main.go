@@ -84,6 +84,7 @@ func main() {
 
 	// Gateway configuration
 	flag.StringVar(&cfg.GatewayDomain, "gateway-domain", getEnvAsString("GATEWAY_DOMAIN", ""), "External gateway domain for BFF proxy URL (used by remote::passthrough provider)")
+	flag.StringVar(&cfg.RelayTargetURL, "relay-target-url", getEnvAsString("RELAY_TARGET_URL", ""), "Scheme-qualified base URL the responses relay forwards to (local development only; GATEWAY_DOMAIN is used when unset)")
 
 	// BFF inter-communication configuration
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")

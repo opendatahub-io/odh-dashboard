@@ -36,28 +36,36 @@ const relayTimeout = 3 * time.Minute
 var relayTargetPrefixes = []string{"/autorag/"}
 
 // relayBaseURL returns the scheme and host the relay forwards to. GATEWAY_DOMAIN
-// is a bare host in production (the operator injects it), but accepting an
-// explicit scheme lets local development point the relay at a local BFF. A
-// plain http:// scheme is accepted only for loopback hosts: the relay
-// forwards the user's bearer token, which must never travel unencrypted to a
-// remote endpoint.
-func relayBaseURL(gatewayDomain string) (string, error) {
-	domain := strings.TrimSpace(gatewayDomain)
-	if strings.HasPrefix(domain, "http://") {
-		parsed, err := url.Parse(domain)
-		if err != nil || !isLoopbackGatewayHost(parsed.Host) {
-			return "", errors.New("plain http GATEWAY_DOMAIN is only allowed for loopback hosts")
+// is a bare host in production (the operator injects it) and the relay always
+// reaches it over HTTPS, exactly like the passthrough consumers that share the
+// variable. Local development points the relay at a locally running BFF via the
+// separate RELAY_TARGET_URL override instead, so a scheme-qualified value never
+// has to travel through GATEWAY_DOMAIN (whose other consumers prepend https://
+// themselves and would emit malformed URLs). A plain http:// scheme is accepted
+// only for loopback hosts: the relay forwards the user's bearer token, which
+// must never travel unencrypted to a remote endpoint.
+func relayBaseURL(gatewayDomain, relayTargetURL string) (string, error) {
+	if target := strings.TrimSpace(relayTargetURL); target != "" {
+		if !strings.HasPrefix(target, "http://") && !strings.HasPrefix(target, "https://") {
+			return "", errors.New("RELAY_TARGET_URL must be scheme-qualified (http:// or https://)")
 		}
-		return strings.TrimRight(domain, "/"), nil
+		if strings.HasPrefix(target, "http://") {
+			parsed, err := url.Parse(target)
+			if err != nil || !isLoopbackGatewayHost(parsed.Host) {
+				return "", errors.New("plain http RELAY_TARGET_URL is only allowed for loopback hosts")
+			}
+		}
+		return strings.TrimRight(target, "/"), nil
 	}
-	if strings.HasPrefix(domain, "https://") {
-		return strings.TrimRight(domain, "/"), nil
+	domain := strings.TrimSpace(gatewayDomain)
+	if strings.HasPrefix(domain, "http://") || strings.HasPrefix(domain, "https://") {
+		return "", errors.New("GATEWAY_DOMAIN must be a bare host; use RELAY_TARGET_URL to override the relay target")
 	}
 	return "https://" + domain, nil
 }
 
 // isLoopbackGatewayHost reports whether a host (with optional port) from a
-// scheme-qualified GATEWAY_DOMAIN names a loopback endpoint.
+// scheme-qualified relay target names a loopback endpoint.
 func isLoopbackGatewayHost(hostPort string) bool {
 	host := hostPort
 	if h, _, err := net.SplitHostPort(hostPort); err == nil {
@@ -80,8 +88,8 @@ func isLoopbackGatewayHost(hostPort string) bool {
 // (e.g. AutoRAG's responsesEndpointUrl prop): the request body is forwarded
 // verbatim to the same-origin path given by the required "target" query
 // parameter, resolved against the externally accessed gateway route
-// ({scheme}://{GATEWAY_DOMAIN}{target}, HTTPS unless GATEWAY_DOMAIN carries an
-// explicit scheme). The user's bearer token is attached and
+// ({scheme}://{GATEWAY_DOMAIN}{target} over HTTPS, or RELAY_TARGET_URL when
+// that local-development override is set). The user's bearer token is attached and
 // the response — including SSE streams and non-200 error envelopes — is piped
 // back transparently, with no synthetic events added.
 //
@@ -97,7 +105,7 @@ func isLoopbackGatewayHost(hostPort string) bool {
 // The target is untrusted input (any external URL could be set in the embedded
 // playground props), so only same-origin paths under the allowed module
 // prefixes (relayTargetPrefixes) are accepted and the host always comes from
-// GATEWAY_DOMAIN, never from the request.
+// GATEWAY_DOMAIN (or RELAY_TARGET_URL), never from the request.
 //
 // Auth is required. Like the genai-proxy endpoints, this returns 401 when no
 // bearer identity is present, including under --auth-method=disabled.
@@ -150,24 +158,24 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	if app.config.GatewayDomain == "" {
+	if app.config.GatewayDomain == "" && app.config.RelayTargetURL == "" {
 		app.errorResponse(w, r, &integrations.HTTPError{
 			StatusCode: http.StatusServiceUnavailable,
 			ErrorResponse: integrations.ErrorResponse{
 				Code:    "service_unavailable",
-				Message: "relay target gateway is not configured (GATEWAY_DOMAIN)",
+				Message: "relay target gateway is not configured (GATEWAY_DOMAIN or RELAY_TARGET_URL)",
 			},
 		})
 		return
 	}
-	baseURL, err := relayBaseURL(app.config.GatewayDomain)
+	baseURL, err := relayBaseURL(app.config.GatewayDomain, app.config.RelayTargetURL)
 	if err != nil {
-		app.logger.Error("Relay gateway scheme rejected", "error", err)
+		app.logger.Error("Relay target configuration rejected", "error", err)
 		app.errorResponse(w, r, &integrations.HTTPError{
 			StatusCode: http.StatusServiceUnavailable,
 			ErrorResponse: integrations.ErrorResponse{
 				Code:    "service_unavailable",
-				Message: "relay target gateway scheme is not allowed (GATEWAY_DOMAIN)",
+				Message: "relay target configuration is not allowed (GATEWAY_DOMAIN / RELAY_TARGET_URL)",
 			},
 		})
 		return

@@ -62,11 +62,12 @@ Start each of the three processes below in its own terminal, from the
 repository root:
 
 ```bash
-# Gen AI BFF (GATEWAY_DOMAIN accepts a full URL for a fully local stack;
-# a bare host defaults to https://<host>)
+# Gen AI BFF (RELAY_TARGET_URL points the relay at the local AutoRAG BFF;
+# GATEWAY_DOMAIN stays unset in a fully local stack — the relay then uses
+# RELAY_TARGET_URL, and no passthrough providers are configured)
 cd packages/gen-ai/bff
 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token \
-  GATEWAY_DOMAIN=http://localhost:4001 make run PORT=8080
+  RELAY_TARGET_URL=http://localhost:4001 make run PORT=8080
 ```
 
 ```bash
@@ -77,14 +78,22 @@ AUTH_METHOD=user_token make run PORT=4001
 ```
 
 ```bash
-# AutoRAG frontend (forwards the oc/kubectl token, or KUBE_TOKEN, to /gen-ai/api)
+# AutoRAG frontend (forwards the oc/kubectl token, or KUBE_TOKEN, to /gen-ai/api).
+# HOST=localhost binds the dev server to loopback — required for the CLI-token
+# fallback: the dev config only captures the oc/kubectl token when the server
+# listens on a loopback host, since a non-loopback bind would hand the cluster
+# token to anyone who can reach the dev server. (Without an explicit HOST the
+# default deployment mode binds 0.0.0.0 and the fallback stays disabled.)
 cd packages/autorag/frontend
-AUTH_METHOD=user_token pnpm run start:dev
+AUTH_METHOD=user_token HOST=localhost pnpm run start:dev
 ```
 
-Pointing `GATEWAY_DOMAIN` at `http://localhost:4001` sends the playground's relayed
+Pointing `RELAY_TARGET_URL` at `http://localhost:4001` sends the playground's relayed
 requests to the local AutoRAG BFF, so local BFF changes (for example Neo4j support) are
-exercised without redeploying the cluster module.
+exercised without redeploying the cluster module. (`RELAY_TARGET_URL` exists so local
+relay routing never has to repurpose `GATEWAY_DOMAIN`, which the passthrough provider
+consumers require as a bare host; a plain `http://` relay target is accepted only for
+loopback hosts.)
 
 For in-depth local run guidance review the [contribution guidelines](../../CONTRIBUTING.md).
 

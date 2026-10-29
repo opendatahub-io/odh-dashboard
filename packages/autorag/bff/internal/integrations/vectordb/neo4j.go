@@ -224,6 +224,25 @@ func classifyNeo4jError(parentCtx, operationCtx context.Context, err error) erro
 	return fmt.Errorf("%w: %w", ErrDatabaseUnavailable, err)
 }
 
+// classifyNeo4jSearchError classifies errors from query execution (Run and
+// Collect). Unlike the connect/auth sites, a server-side rejection of the
+// query or its configuration is distinguishable here — the driver surfaces it
+// as a *neo4j.Neo4jError with a Neo.ClientError.* code — and maps to
+// ErrDatabaseQueryFailed so callers can tell an invalid search apart from a
+// connectivity failure. Server-internal failures (Neo.DatabaseError.*) and
+// everything unrecognized stay ErrDatabaseUnavailable. Cancellation and
+// deadline handling are unchanged: they take precedence over the query
+// classification and are delegated to classifyNeo4jError.
+func classifyNeo4jSearchError(parentCtx, operationCtx context.Context, err error) error {
+	if parentCtx.Err() == nil && !errors.Is(err, context.DeadlineExceeded) && operationCtx.Err() != context.DeadlineExceeded {
+		var neo4jErr *neo4j.Neo4jError
+		if errors.As(err, &neo4jErr) && strings.HasPrefix(neo4jErr.Code, "Neo.ClientError.") {
+			return fmt.Errorf("%w: %w", ErrDatabaseQueryFailed, err)
+		}
+	}
+	return classifyNeo4jError(parentCtx, operationCtx, err)
+}
+
 func newNeo4jFromSecret(ctx context.Context, data map[string][]byte) (VectorDB, error) {
 	return newNeo4jFromSecretWithDriver(ctx, data, 0, newNeo4jDriver, defaultVectorLookupIP)
 }
@@ -433,12 +452,12 @@ func (n *neo4jDB) Search(ctx context.Context, collection string, queryVec []floa
 		"top_k":        options.TopK,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("neo4j search: %w", classifyNeo4jError(ctx, operationCtx, err))
+		return nil, fmt.Errorf("neo4j search: %w", classifyNeo4jSearchError(ctx, operationCtx, err))
 	}
 
 	records, err := result.Collect(operationCtx)
 	if err != nil {
-		return nil, fmt.Errorf("neo4j search: %w", classifyNeo4jError(ctx, operationCtx, err))
+		return nil, fmt.Errorf("neo4j search: %w", classifyNeo4jSearchError(ctx, operationCtx, err))
 	}
 
 	out := make([]SearchResult, 0, len(records))
