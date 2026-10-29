@@ -66,7 +66,9 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
       <StackItem>{nameContent}</StackItem>
       <StackItem>
         <Link
-          to={isMaaSPortal ? `/model-access` : getSubscriptionViewUrl(subscriptionName)}
+          to={
+            isMaaSPortal ? `${URL_PREFIX}/model-access` : getSubscriptionViewUrl(subscriptionName)
+          }
           data-testid="subscription-governance-link"
           className="pf-v6-u-font-size-sm"
         >

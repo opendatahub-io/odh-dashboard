@@ -314,10 +314,10 @@ describe('MaaS Portal extensions', () => {
     expect(governanceRoute).toBeDefined();
   });
 
-  it('should expose the read-only Model Access page route to every user while grid is enabled', () => {
+  it('should expose the read-only Model Access page route to MaaS admins', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
-    store.setFeatureFlags({ ADMIN_USER: false, [GRID]: true });
+    store.setFeatureFlags({ ADMIN_USER: false, MAAS_MODEL_ACCESS_ADMIN: true, [GRID]: false });
 
     const modelAccessRoute = store
       .getExtensions()
@@ -326,19 +326,46 @@ describe('MaaS Portal extensions', () => {
     expect(modelAccessRoute).toBeDefined();
   });
 
-  it('should require grid for the read-only Model Access page route', () => {
+  it('should hide the read-only Model Access page route from non-admins', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: false, [GRID]: false });
 
-    // Exercise both initial states and runtime flag changes on the same store.
+    expect(
+      store
+        .getExtensions()
+        .some((e) => e.type === 'app.route' && e.properties.path === '/maas/model-access/*'),
+    ).toBe(false);
+  });
+
+  it('should keep the read-only Model Access page route when grid changes', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: true });
+
     [false, true, false].forEach((grid) => {
       store.setFeatureFlags({ [GRID]: grid });
       const modelAccessRoutes = store
         .getExtensions()
         .filter((e) => e.type === 'app.route' && e.properties.path === '/maas/model-access/*');
 
-      expect(modelAccessRoutes).toHaveLength(grid ? 1 : 0);
+      expect(modelAccessRoutes).toHaveLength(1);
     });
+  });
+
+  it('should select the portal Model Access navigation item for the read-only route', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ [GRID]: false, MAAS_MODEL_ACCESS_ADMIN: true });
+
+    const portalModelAccessNavigation = store
+      .getExtensions()
+      .find(
+        (e) => e.type === 'app.navigation/href' && e.properties.id === 'maas-model-access-portal',
+      );
+
+    expect(portalModelAccessNavigation?.properties.href).toBe('/maas/model-access');
+    expect(portalModelAccessNavigation?.properties.path).toBe('/maas/model-access/*');
   });
 
   it('should place MaaS governance last at the top level', () => {
@@ -394,6 +421,17 @@ describe('MaaS Portal extensions', () => {
 
     store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: true });
     expect(modelAccessExtensions()).toHaveLength(2);
+
+    store.setFeatureFlags({ [GRID]: true });
+    expect(
+      store
+        .getExtensions()
+        .some(
+          (extension) =>
+            extension.type === 'app.navigation/href' &&
+            extension.properties.id === 'maas-model-access-portal',
+        ),
+    ).toBe(true);
   });
 
   it('should not contain the gen-ai-studio section', () => {
