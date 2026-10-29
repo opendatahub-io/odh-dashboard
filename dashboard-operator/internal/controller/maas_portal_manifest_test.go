@@ -212,13 +212,19 @@ func TestRenderMaaSPortalManifestBundle(t *testing.T) {
 	rules, found, err = unstructured.NestedSlice(role.Object, "rules")
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Len(t, rules, 2, "portal ClusterRole is limited to cluster-scoped DSC and ingress discovery")
+	require.Len(t, rules, 3, "portal ClusterRole is limited to cluster-scoped DSC + ingress discovery and the cluster TLS profile read")
 	assert.Equal(t, []interface{}{"datasciencecluster.opendatahub.io"}, rules[0].(map[string]interface{})["apiGroups"])
 	assert.Equal(t, []interface{}{"datascienceclusters"}, rules[0].(map[string]interface{})["resources"])
 	assert.Equal(t, []interface{}{"get", "list"}, rules[0].(map[string]interface{})["verbs"])
 	assert.Equal(t, []interface{}{"config.openshift.io"}, rules[1].(map[string]interface{})["apiGroups"])
 	assert.Equal(t, []interface{}{"ingresses"}, rules[1].(map[string]interface{})["resources"])
 	assert.Equal(t, []interface{}{"get"}, rules[1].(map[string]interface{})["verbs"])
+	// The bundled Core BFF serves HTTPS and resolves the cluster-wide TLS security
+	// profile; this grant is scoped to the singleton apiservers/cluster, get-only.
+	assert.Equal(t, []interface{}{"config.openshift.io"}, rules[2].(map[string]interface{})["apiGroups"])
+	assert.Equal(t, []interface{}{"apiservers"}, rules[2].(map[string]interface{})["resources"])
+	assert.Equal(t, []interface{}{"cluster"}, rules[2].(map[string]interface{})["resourceNames"])
+	assert.Equal(t, []interface{}{"get"}, rules[2].(map[string]interface{})["verbs"])
 
 	assertOperatorSubscriptionRole(t, resources, "redhat-ods-operator", "rhods-operator")
 	assertOperatorSubscriptionRole(t, resources, "opendatahub-operator", "opendatahub-operator")

@@ -35,9 +35,17 @@ import (
 // openshift/api.
 type ProfileWatcher struct {
 	client.Client
-	InitialProfile  map[string]any
-	OnProfileChange func(ctx context.Context)
+	InitialProfile map[string]any
+	// InitialAdherence seeds the last-seen spec.tlsAdherence so the first reconcile
+	// does not fire a spurious change when the value already matches.
+	InitialAdherence string
+	// OnProfileChange is invoked when the profile OR the adherence policy changes.
+	// Returning an error leaves the last-seen values unchanged and requeues the
+	// request so the change is retried (e.g. when an in-process re-resolution
+	// failed transiently).
+	OnProfileChange func(ctx context.Context) error
 	lastProfile     map[string]any
+	lastAdherence   string
 }
 
 func (w *ProfileWatcher) Reconcile(
@@ -57,10 +65,20 @@ func (w *ProfileWatcher) Reconcile(
 		apiServer.Object, fieldSpec, fieldTLSSecurityProfile,
 	)
 	current = normalizeProfileMap(current)
+	currentAdherence, _, adhErr := unstructured.NestedString(
+		apiServer.Object, fieldSpec, fieldTLSAdherence,
+	)
+	// A malformed adherence field coerces to "" and would compare equal to a previous
+	// unset value, silently hiding the change. Treat a decode error as a change so the
+	// callback re-resolves (which flags it PolicyUnreadable and retains/retries).
 	if w.OnProfileChange != nil &&
-		!reflect.DeepEqual(w.lastProfile, current) {
+		(adhErr != nil || !reflect.DeepEqual(w.lastProfile, current) || w.lastAdherence != currentAdherence) {
+		if err := w.OnProfileChange(ctx); err != nil {
+			// Leave the last-seen values unchanged so the change is retried on requeue.
+			return reconcile.Result{}, err
+		}
 		w.lastProfile = current
-		w.OnProfileChange(ctx)
+		w.lastAdherence = currentAdherence
 	}
 
 	return reconcile.Result{}, nil
@@ -68,6 +86,7 @@ func (w *ProfileWatcher) Reconcile(
 
 func (w *ProfileWatcher) SetupWithManager(mgr ctrl.Manager) error {
 	w.lastProfile = w.InitialProfile
+	w.lastAdherence = w.InitialAdherence
 
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(apiServerGVK)

@@ -69,3 +69,14 @@ rules:
       - create
     resources:
       - tokenreviews
+  # Read the cluster-wide TLS security profile (apiservers.config.openshift.io/cluster)
+  # so the notebooks BFF can enforce it on its HTTPS listener and reload on change.
+  # list/watch must omit resourceNames to be granted; apiservers is a cluster singleton.
+  - apiGroups:
+      - config.openshift.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - apiservers
