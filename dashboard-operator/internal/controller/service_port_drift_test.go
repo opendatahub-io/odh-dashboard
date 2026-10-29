@@ -218,6 +218,28 @@ func TestBuildServicePortDriftPatch_DoesNotCopyAmbiguousNodePortAcrossRename(t *
 	assert.False(t, exists)
 }
 
+func TestBuildServicePortDriftPatch_DoesNotReuseNodePortAcrossDesiredPorts(t *testing.T) {
+	live := serviceWithPorts("dashboard", map[string]any{
+		"name": "old-https", "port": int64(8443), "targetPort": int64(8443), "nodePort": int64(30443),
+	})
+	desired := serviceWithPorts("dashboard",
+		map[string]any{
+			"name": "old-https", "port": int64(9443), "targetPort": int64(9443),
+		},
+		map[string]any{
+			"name": "https", "port": int64(8443), "targetPort": int64(8443),
+		},
+	)
+
+	patch, err := buildServicePortDriftPatch(live, desired)
+	require.NoError(t, err)
+	ports := patch["spec"].(map[string]any)["ports"].([]any)
+	require.Len(t, ports, 2)
+	assert.Equal(t, int64(30443), ports[0].(map[string]any)["nodePort"])
+	_, exists := ports[1].(map[string]any)["nodePort"]
+	assert.False(t, exists)
+}
+
 func TestBuildServicePortDriftPatch_SkipsMissingPortLists(t *testing.T) {
 	live := serviceWithPorts("dashboard")
 	desired := serviceWithPorts("dashboard")

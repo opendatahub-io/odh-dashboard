@@ -235,53 +235,85 @@ func servicePortNumber(value any) (int64, bool) {
 }
 
 func preserveAllocatedNodePorts(livePorts, desiredPorts []any) {
+	matchedLive := make([]int, len(desiredPorts))
+	for i := range matchedLive {
+		matchedLive[i] = -1
+	}
+	usedLive := make([]bool, len(livePorts))
+
+	// Reserve identity matches for the complete desired list before considering
+	// fallbacks, so a renamed port cannot reuse another desired port's allocation.
 	for desiredIndex, desiredPort := range desiredPorts {
 		desired, ok := desiredPort.(map[string]any)
-		if !ok || hasExplicitNodePort(desired) {
+		if !ok {
 			continue
 		}
-		var matchingLive map[string]any
-		for _, livePort := range livePorts {
+		for liveIndex, livePort := range livePorts {
 			live, ok := livePort.(map[string]any)
-			if !ok || !sameServicePortIdentity(live, desired) {
+			if !ok || usedLive[liveIndex] || !sameServicePortIdentity(live, desired) {
 				continue
 			}
-			matchingLive = live
+			matchedLive[desiredIndex] = liveIndex
+			usedLive[liveIndex] = true
 			break
 		}
-		if matchingLive == nil && desiredPortIsUnnamed(desired) && desiredIndex < len(livePorts) {
-			live, ok := livePorts[desiredIndex].(map[string]any)
-			if ok && desiredPortIsUnnamed(live) && normalizedProtocol(live) == normalizedProtocol(desired) {
-				matchingLive = live
+	}
+
+	// A number change removes an unnamed port's identity, so preserve its
+	// allocation by position when that live entry has not already been reserved.
+	for desiredIndex, desiredPort := range desiredPorts {
+		if matchedLive[desiredIndex] >= 0 || desiredIndex >= len(livePorts) || usedLive[desiredIndex] {
+			continue
+		}
+		desired, desiredOK := desiredPort.(map[string]any)
+		live, liveOK := livePorts[desiredIndex].(map[string]any)
+		if desiredOK && liveOK && desiredPortIsUnnamed(desired) && desiredPortIsUnnamed(live) &&
+			normalizedProtocol(live) == normalizedProtocol(desired) {
+			matchedLive[desiredIndex] = desiredIndex
+			usedLive[desiredIndex] = true
+		}
+	}
+
+	// Finally, a unique number/protocol match carries an allocation across a
+	// rename. Ambiguous or already-reserved entries remain available for the API
+	// server to allocate rather than risking a duplicate nodePort.
+	for desiredIndex, desiredPort := range desiredPorts {
+		if matchedLive[desiredIndex] >= 0 {
+			continue
+		}
+		desired, ok := desiredPort.(map[string]any)
+		if !ok {
+			continue
+		}
+		match := -1
+		for liveIndex, livePort := range livePorts {
+			live, ok := livePort.(map[string]any)
+			if !ok || usedLive[liveIndex] || !servicePortNumberEqual(live["port"], desired["port"]) ||
+				normalizedProtocol(live) != normalizedProtocol(desired) {
+				continue
 			}
+			if match >= 0 {
+				match = -1
+				break
+			}
+			match = liveIndex
 		}
-		if matchingLive == nil {
-			matchingLive = uniquelyMatchingLivePort(livePorts, desired)
+		if match >= 0 {
+			matchedLive[desiredIndex] = match
+			usedLive[match] = true
 		}
+	}
+
+	for desiredIndex, desiredPort := range desiredPorts {
+		desired, ok := desiredPort.(map[string]any)
+		if !ok || hasExplicitNodePort(desired) || matchedLive[desiredIndex] < 0 {
+			continue
+		}
+		matchingLive, _ := livePorts[matchedLive[desiredIndex]].(map[string]any)
 		if nodePort, exists := matchingLive["nodePort"]; exists {
 			desired["nodePort"] = nodePort
 		}
 	}
-}
-
-// uniquelyMatchingLivePort preserves an allocation when a named port was
-// renamed but its externally visible port and protocol did not change. It
-// deliberately declines ambiguous matches rather than copying the wrong
-// allocation between ports.
-func uniquelyMatchingLivePort(livePorts []any, desired map[string]any) map[string]any {
-	var match map[string]any
-	for _, livePort := range livePorts {
-		live, ok := livePort.(map[string]any)
-		if !ok || !servicePortNumberEqual(live["port"], desired["port"]) ||
-			normalizedProtocol(live) != normalizedProtocol(desired) {
-			continue
-		}
-		if match != nil {
-			return nil
-		}
-		match = live
-	}
-	return match
 }
 
 func desiredPortIsUnnamed(port map[string]any) bool {
