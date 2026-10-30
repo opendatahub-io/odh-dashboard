@@ -459,7 +459,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 	})
 
 	var _ = Describe("ListSubscriptionsPassthroughHandler", Ordered, func() {
-		It("filters owned subscriptions from the maas-api passthrough", func() {
+		It("filters owner-scoped subscriptions from the My Subscriptions list", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 			actual, rs, err := setupApiTest[Envelope[[]models.MySubscriptionListItem, None]](
 				http.MethodGet,
@@ -477,6 +477,22 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data[0].ModelRefs).To(HaveLen(1))
 			Expect(actual.Data[0].ModelRefs[0].DisplayName).To(Equal("Flan T5 Small"))
 			Expect(actual.Data[0].KeyCount).To(Equal(int32(subscriptionKeyCountCap)))
+		})
+
+		It("returns an owner-bearing subscription by ID when maas-api provides it", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[Envelope[*models.MySubscriptionListItem, None]](
+				http.MethodGet,
+				"/api/v1/subscriptions/premium-team-sub",
+				nil,
+				k8Factory,
+				identity,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data.SubscriptionIDHeader).To(Equal("premium-team-sub"))
+			Expect(actual.Data.Owner.Groups).To(HaveLen(2))
 		})
 
 		It("returns 400 when no identity is provided", func() {

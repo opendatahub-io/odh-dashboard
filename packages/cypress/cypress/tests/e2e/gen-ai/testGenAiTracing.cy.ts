@@ -86,7 +86,7 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
   it(
     'Enables tracing, sends a chat message, opens trace details, and persists tracing state',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to AI asset endpoints page with tracing enabled');

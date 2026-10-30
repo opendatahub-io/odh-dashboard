@@ -2907,7 +2907,7 @@ components:
 
     MySubscriptionListItem:
       type: object
-      description: Sanitized subscription shape returned to the MaaS portal. Backend roles, owner, and model subjects are omitted.
+      description: Subscription shape returned to the MaaS portal. Backend roles and model subjects are omitted; owner groups are included for Model Access presentation.
       properties:
         subscription_id_header:
           type: string
@@ -2933,6 +2933,8 @@ components:
           type: object
           additionalProperties:
             type: string
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
       required:
         - subscription_id_header
         - subscription_description

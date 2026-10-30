@@ -198,7 +198,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         '@Multimodal',
         '@Inference',
         '@VisionModel',
-        '@FeatureFlagged',
+        '@Featureflagged',
       ],
     },
     () => {
@@ -286,7 +286,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
         '@Multimodal',
         '@Inference',
         '@Audio',
-        '@FeatureFlagged',
+        '@Featureflagged',
         '@NonConcurrent',
       ],
     },
