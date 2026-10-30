@@ -555,6 +555,31 @@ func TestResolveTrustedHost(t *testing.T) {
 			wantAddresses: []string{"127.0.0.1:8443"},
 		},
 		{
+			name:    "slice without the named Service port does not discard other slices' targets",
+			service: selectorSvc("", intstr.FromString("https")),
+			slices: []discoveryv1.EndpointSlice{
+				func() discoveryv1.EndpointSlice {
+					slice := controllerManagedSlice("my-ns")
+					port := int32(8443)
+					name := "https"
+					slice.Ports = []discoveryv1.EndpointPort{{Name: &name, Port: &port}}
+					return slice
+				}(),
+				controllerManagedSlice("my-ns"),
+			},
+			want:          true,
+			wantName:      "my-model",
+			pod:           runningPod("my-ns", "127.0.0.1"),
+			wantAddresses: []string{"127.0.0.1:8443"},
+		},
+		{
+			name:     "named Service port with no slice exposing it fails closed",
+			service:  selectorSvc("", intstr.FromString("https")),
+			slices:   []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
+			pod:      runningPod("my-ns", "127.0.0.1"),
+			wantName: "my-model",
+		},
+		{
 			name:     "Service with no endpoints fails closed",
 			service:  selectorSvc("", intstr.FromInt32(8443)),
 			slices:   []discoveryv1.EndpointSlice{},

@@ -398,7 +398,11 @@ func resolveTrustedHost(
 				break
 			}
 			if sliceBackendPort == "" {
-				return false, nil, nil
+				// This slice does not expose the selected Service port (slices can
+				// carry different port sets, e.g. during mixed-version rollouts), so
+				// it supplies no backends for it; skip it without discarding the
+				// other slices' validated targets.
+				continue
 			}
 		}
 		for _, endpoint := range slice.Endpoints {
