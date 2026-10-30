@@ -1427,13 +1427,24 @@ jobs:
             echo "::group::Guarding CSS logical-properties lowering (${MODULE})"
             CSS_TMP=$(mktemp -d)
             CSS_CONTAINER=$(docker create "$IMAGE")
-            if docker cp "$CSS_CONTAINER":/static "$CSS_TMP/static" 2>/dev/null; then
+            # Every module in this matrix packages its frontend under /static
+            # (all packages/*/Dockerfile.workspace and distributions/core-bff's
+            # COPY ... ./static/), so a failed extraction is always a real
+            # failure — an unrunnable guard must never read as a pass. If a
+            # BFF-only module ever joins the matrix, list it here explicitly
+            # instead of inferring the exemption from a failed docker cp.
+            BFF_ONLY_MODULES=""
+            if docker cp "$CSS_CONTAINER":/static "$CSS_TMP/static" 2>"$CSS_TMP/cp-error.log"; then
               if ! bash scripts/check-css-lowering.sh "$CSS_TMP/static"; then
                 echo "::error::$MODULE emitted CSS contains LightningCSS logical-properties lowering"
                 FAILURES=$((FAILURES + 1))
               fi
+            elif [[ " $BFF_ONLY_MODULES " == *" $MODULE "* ]]; then
+              echo "ℹ️  INFO: $MODULE is BFF-only (explicit exemption) — no frontend output to scan"
             else
-              echo "ℹ️  INFO: $MODULE image has no /static directory (BFF-only module)"
+              echo "::error::$MODULE: could not extract /static from the image — the CSS guard could not run"
+              cat "$CSS_TMP/cp-error.log" >&2 || true
+              FAILURES=$((FAILURES + 1))
             fi
             docker rm "$CSS_CONTAINER" >/dev/null 2>&1 || true
             rm -rf "$CSS_TMP"
@@ -1524,6 +1535,7 @@ jobs:
           echo "Phase 5 (Manifest Validation): ${{ needs.manifest-validation.result }}"
           echo "BFF Detection: ${{ needs.detect-bff-changes.result }}"
           echo "BFF Build Validation: ${{ needs.bff-build-validation.result }}"
+          echo "Model Serving CSS Guard: ${{ needs.model-serving-css-guard.result }}"
 
           # Accept "success" and "skipped" as passing states
           # "skipped" occurs when upstream job was skipped (normal dependency chain)
@@ -1538,7 +1550,8 @@ jobs:
                         "${{ needs.runtime-validation-rhoai.result }}" \
                         "${{ needs.operator-integration.result }}" \
                         "${{ needs.detect-bff-changes.result }}" \
-                        "${{ needs.bff-build-validation.result }}"; do
+                        "${{ needs.bff-build-validation.result }}" \
+                        "${{ needs.model-serving-css-guard.result }}"; do
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               FAILED=true
               break

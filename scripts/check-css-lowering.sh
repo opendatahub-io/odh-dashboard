@@ -44,17 +44,23 @@ if [ -n "$offenders" ]; then
   exit 1
 fi
 
-count=""
-count=$(find "$@" -name '*.css' -type f 2>/dev/null | wc -l | tr -d ' ') || {
-  echo "❌ FAIL: could not enumerate CSS files under $*" >&2
-  exit 1
-}
-
 # A scan target with zero CSS files means the expected build output is
 # missing — treat as a failure so an absent or empty dist cannot pass.
-if [ "$count" -eq 0 ]; then
-  echo "❌ FAIL: no CSS files found under $* — expected built stylesheets are missing" >&2
-  exit 1
-fi
+# Count per directory: one empty target must fail even when another
+# supplied directory contains clean CSS.
+count=0
+for dir in "$@"; do
+  dir_count=""
+  dir_count=$(find "$dir" -name '*.css' -type f 2>/dev/null | wc -l | tr -d ' ') || {
+    echo "❌ FAIL: could not enumerate CSS files under $dir" >&2
+    exit 1
+  }
+
+  if [ "$dir_count" -eq 0 ]; then
+    echo "❌ FAIL: no CSS files found under $dir — expected built stylesheets are missing" >&2
+    exit 1
+  fi
+  count=$((count + dir_count))
+done
 
 echo "✅ PASS: no logical-properties lowering in ${count} CSS file(s)"
