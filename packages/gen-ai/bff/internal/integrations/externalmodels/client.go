@@ -62,10 +62,11 @@ type ClientOptions struct {
 	// RootCAs for TLS verification (defaults to system pool if not provided)
 	RootCAs *x509.CertPool
 	// PinnedDialAddresses restricts the transport's dial destinations to these
-	// addresses (IPs, with the URL's port), bypassing DNS entirely. Used to pin
-	// trusted in-cluster connections to the Pod addresses validated by the caller's
-	// repository-level trust decision, so later routing mutations cannot redirect
-	// the request. The HTTP Host header and TLS server name are unaffected.
+	// address:port targets (backend ports, not Service ports), bypassing DNS
+	// entirely. Used to pin trusted in-cluster connections to the Pod addresses
+	// validated by the caller's repository-level trust decision, so later routing
+	// mutations cannot redirect the request. The HTTP Host header and TLS server
+	// name are unaffected.
 	PinnedDialAddresses []string
 }
 
@@ -225,18 +226,14 @@ func NewExternalModelsClient(
 			transport = &http.Transport{}
 		}
 		if tr, ok := transport.(*http.Transport); ok {
-			addresses := opts.PinnedDialAddresses
+			targets := opts.PinnedDialAddresses
 			dialer := &net.Dialer{Timeout: 10 * time.Second}
-			// The address chosen by the transport's resolver is ignored; only the
-			// port is kept and the connection is dialed to a validated address.
-			tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-				_, port, err := net.SplitHostPort(addr)
-				if err != nil {
-					return nil, fmt.Errorf("pinned dial: invalid address %q: %w", addr, err)
-				}
+			// The address chosen by the transport's resolver is ignored entirely;
+			// the connection is dialed only to the validated targets.
+			tr.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
 				var lastErr error
-				for _, ip := range addresses {
-					conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
+				for _, target := range targets {
+					conn, err := dialer.DialContext(ctx, network, target)
 					if err == nil {
 						return conn, nil
 					}

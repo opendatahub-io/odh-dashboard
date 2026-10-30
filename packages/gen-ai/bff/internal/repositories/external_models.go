@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -218,22 +219,28 @@ func isInternalHost(baseURL string, allowedNamespace string) bool {
 		labels[len(labels)-4] == allowedNamespace
 }
 
-// k8sServiceHost extracts the service and namespace labels from a fully-qualified
-// in-cluster service DNS name (<service>.<namespace>.svc.cluster.local).
-func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) {
+// k8sServiceHost extracts the service and namespace labels, plus the pod-specific
+// hostname label when present (empty for plain Service DNS names), from a
+// fully-qualified in-cluster service DNS name
+// (<service>.<namespace>.svc.cluster.local or
+// <pod>.<service>.<namespace>.svc.cluster.local).
+func k8sServiceHost(baseURL string) (service string, namespace string, podLabel string, ok bool) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
-		return "", "", false
+		return "", "", "", false
 	}
 	h := u.Hostname()
 	labels := strings.Split(h, ".")
 	if !strings.HasSuffix(h, ".svc.cluster.local") || len(labels) < 5 {
-		return "", "", false
+		return "", "", "", false
 	}
 	// Anchor against the fixed suffix: pod-specific DNS names
 	// (<pod>.<service>.<namespace>.svc.cluster.local) have extra labels before
-	// the Service label, so labels[0] would name the pod, not the Service.
-	return labels[len(labels)-5], labels[len(labels)-4], true
+	// the Service label, so labels[0] names the pod, not the Service.
+	if len(labels) > 5 {
+		podLabel = labels[0]
+	}
+	return labels[len(labels)-5], labels[len(labels)-4], podLabel, true
 }
 
 // resolveTrustedHost decides whether a base URL in the caller's own namespace may
@@ -251,16 +258,23 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 // forge the endpoint's Pod targetRef. Every endpoint must therefore reference
 // a running, non-host-network Pod in the caller's namespace whose PodIPs contain the
 // endpoint's addresses, which is all the EndpointSlice controller itself ever
-// produces (fail closed on lookup errors too; readiness is not relied on, because
-// service routing can fall back to serving/terminating endpoints when no ready
-// endpoint exists). A Forbidden lookup returns an error so the caller learns the
-// missing permission instead of a misleading connectivity failure.
+// produces (fail closed on lookup errors too; readiness is not relied on for
+// validation, because service routing can fall back to serving/terminating
+// endpoints when no ready endpoint exists). A Forbidden lookup returns an error so
+// the caller learns the missing permission instead of a misleading connectivity
+// failure.
 //
-// When the host is trusted, the validated endpoint addresses are returned so the
-// connection can be pinned to them (see ClientOptions.PinnedDialAddresses): a
-// caller who mutates Services or EndpointSlices in their own namespace after the
-// lookup cannot redirect the request, because the dial bypasses DNS and the
-// Service VIP entirely.
+// When the host is trusted, the validated dial targets (address:backendPort) are
+// returned so the connection can be pinned to them (see
+// ClientOptions.PinnedDialAddresses): a caller who mutates Services or
+// EndpointSlices in their own namespace after the lookup cannot redirect the
+// request, because the dial bypasses DNS and the Service VIP entirely. The backend
+// port is the Service's targetPort for ClusterIP Services (direct dialing bypasses
+// the VIP's port translation) and the URL's port for headless Services, whose DNS
+// already points at Pod IPs. Dial candidates prefer ready endpoints, falling back
+// to serving endpoints only when no ready endpoint exists, mirroring service
+// routing. Pod-specific DNS names restrict candidates to the endpoint whose
+// hostname matches the pod label.
 func resolveTrustedHost(
 	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
@@ -272,10 +286,22 @@ func resolveTrustedHost(
 	if !isInternalHost(baseURL, namespace) {
 		return false, nil, nil
 	}
-	svcName, svcNamespace, ok := k8sServiceHost(baseURL)
+	svcName, svcNamespace, podLabel, ok := k8sServiceHost(baseURL)
 	if !ok {
 		// localhost/loopback for local development
 		return true, nil, nil
+	}
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return false, nil, nil
+	}
+	urlPort := u.Port()
+	if urlPort == "" {
+		if u.Scheme == "https" {
+			urlPort = "443"
+		} else {
+			urlPort = "80"
+		}
 	}
 	svc, err := client.GetService(ctx, identity, svcNamespace, svcName)
 	if err != nil {
@@ -291,6 +317,36 @@ func resolveTrustedHost(
 	if len(svc.Spec.Selector) == 0 {
 		return false, nil, nil
 	}
+	// Resolve the backend port. Headless Services resolve to Pod IPs directly, so
+	// the URL's port is the backend port. ClusterIP Services translate the Service
+	// port to the targetPort at the VIP, which direct dialing bypasses, so the
+	// targetPort must be resolved here: numeric targetPorts directly, named ones
+	// per EndpointSlice (slice port names match Service port names).
+	backendPort := ""
+	var svcPort corev1.ServicePort
+	if svc.Spec.ClusterIP != corev1.ClusterIPNone {
+		urlPortNum, err := strconv.ParseInt(urlPort, 10, 32)
+		if err != nil {
+			return false, nil, nil
+		}
+		found := false
+		for _, p := range svc.Spec.Ports {
+			if int64(p.Port) == urlPortNum {
+				svcPort, found = p, true
+				break
+			}
+		}
+		if !found {
+			// The URL's port is not exposed by the Service, so nothing routable
+			// matches it.
+			return false, nil, nil
+		}
+		if svcPort.TargetPort.IntValue() > 0 {
+			backendPort = strconv.Itoa(svcPort.TargetPort.IntValue())
+		}
+	} else {
+		backendPort = urlPort
+	}
 	slices, err := client.GetServiceEndpointSlices(ctx, identity, svcNamespace, svcName)
 	if err != nil {
 		if apierrors.IsForbidden(err) {
@@ -299,29 +355,53 @@ func resolveTrustedHost(
 		logger.Warn("endpoint slice lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
 		return false, nil, nil
 	}
-	// Readiness is deliberately not relied on: service routing can fall back to
-	// serving/terminating endpoints when no ready endpoint exists, so an endpoint
-	// omitted or marked not ready could still receive traffic. Every endpoint is
-	// therefore validated after fetching its referenced Pod and confirming the
-	// endpoint addresses belong to that Pod: a targetRef is just a name an
+	// Every endpoint is validated after fetching its referenced Pod and confirming
+	// the endpoint addresses belong to that Pod: a targetRef is just a name an
 	// EndpointSlice writer can forge, so it must be checked against a running,
 	// non-host-network Pod in the caller's namespace whose PodIPs contain every
-	// endpoint address. The validated addresses are returned so the connection is
-	// pinned to them.
-	addresses := make(map[string]bool)
+	// endpoint address. Pods are cached per name for the duration of this
+	// resolution. Validated addresses become dial candidates, separated by
+	// readiness so that ready endpoints are preferred and serving endpoints are
+	// only used as fallback (mirroring service routing).
+	podCache := make(map[string]*corev1.Pod)
+	var readyTargets, servingTargets []string
 	for i := range slices {
-		for _, endpoint := range slices[i].Endpoints {
+		slice := &slices[i]
+		sliceBackendPort := backendPort
+		if sliceBackendPort == "" {
+			// Named targetPort: resolve it against this slice's ports.
+			for _, p := range slice.Ports {
+				if p.Port == nil || p.Name == nil || (*p.Name != svcPort.Name && *p.Name != svcPort.TargetPort.String()) {
+					continue
+				}
+				sliceBackendPort = strconv.Itoa(int(*p.Port))
+				break
+			}
+			if sliceBackendPort == "" {
+				return false, nil, nil
+			}
+		}
+		for _, endpoint := range slice.Endpoints {
+			if podLabel != "" && (endpoint.Hostname == nil || *endpoint.Hostname != podLabel) {
+				// Pod-specific DNS names only route to the endpoint carrying
+				// that hostname.
+				continue
+			}
 			ref := endpoint.TargetRef
 			if ref == nil || ref.Kind != "Pod" || ref.Namespace != namespace || ref.Name == "" {
 				return false, nil, nil
 			}
-			pod, err := client.GetPod(ctx, identity, svcNamespace, ref.Name)
-			if err != nil {
-				if apierrors.IsForbidden(err) {
-					return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to get the Pod %s/%s, which the caller lacks", svcNamespace, ref.Name))
+			pod, cached := podCache[ref.Name]
+			if !cached {
+				pod, err = client.GetPod(ctx, identity, svcNamespace, ref.Name)
+				if err != nil {
+					if apierrors.IsForbidden(err) {
+						return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to get the Pod %s/%s, which the caller lacks", svcNamespace, ref.Name))
+					}
+					logger.Warn("pod lookup failed during trusted host resolution", "pod", ref.Name, "namespace", svcNamespace, "error", err)
+					return false, nil, nil
 				}
-				logger.Warn("pod lookup failed during trusted host resolution", "pod", ref.Name, "namespace", svcNamespace, "error", err)
-				return false, nil, nil
+				podCache[ref.Name] = pod
 			}
 			if pod.Spec.HostNetwork || pod.Status.Phase != corev1.PodRunning {
 				return false, nil, nil
@@ -334,20 +414,25 @@ func resolveTrustedHost(
 				if !podIPs[address] {
 					return false, nil, nil
 				}
-				addresses[address] = true
+				target := net.JoinHostPort(address, sliceBackendPort)
+				if endpoint.Conditions.Ready == nil || *endpoint.Conditions.Ready {
+					readyTargets = append(readyTargets, target)
+				} else if endpoint.Conditions.Serving == nil || *endpoint.Conditions.Serving {
+					servingTargets = append(servingTargets, target)
+				}
 			}
 		}
 	}
 	// Fail closed when no endpoint was verified: an endpoint-less Service (e.g.
 	// scaled to zero) has no validated destination to pin the connection to.
-	if len(addresses) == 0 {
+	targets := readyTargets
+	if len(targets) == 0 {
+		targets = servingTargets
+	}
+	if len(targets) == 0 {
 		return false, nil, nil
 	}
-	pinned := make([]string, 0, len(addresses))
-	for address := range addresses {
-		pinned = append(pinned, address)
-	}
-	return true, pinned, nil
+	return true, targets, nil
 }
 
 // forbiddenTrustError builds the permission error returned when a caller lacks read

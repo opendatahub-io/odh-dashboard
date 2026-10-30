@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -175,4 +176,73 @@ func TestVerifyModel_Transcription_ServerError(t *testing.T) {
 	require.ErrorAs(t, err, &extErr)
 	assert.Equal(t, ErrCodeConnectionFailed, extErr.Code)
 	assert.Contains(t, extErr.Message, "HTTP 500")
+}
+
+// TestPinnedDialReachesValidatedAddress proves the pinned transport connects only
+// to the validated address even though the URL hostname cannot resolve: a local
+// listener receives the request, with the URL's hostname preserved as the HTTP
+// Host header, and the connection succeeds despite DNS being bypassed entirely.
+func TestPinnedDialReachesValidatedAddress(t *testing.T) {
+	hostReceived := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case hostReceived <- r.Host:
+		default:
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data": []}`))
+	}))
+	defer server.Close()
+
+	_, port, err := net.SplitHostPort(server.Listener.Addr().String())
+	require.NoError(t, err)
+
+	client, err := NewExternalModelsClient(
+		slog.Default(),
+		"http://my-model.my-ns.svc.cluster.local/v1",
+		"test-api-key",
+		models.ModelTypeLLM,
+		&ClientOptions{
+			SkipSSRFValidation:  true,
+			AllowHTTP:           true,
+			PinnedDialAddresses: []string{net.JoinHostPort("127.0.0.1", port)},
+		},
+	)
+	require.NoError(t, err)
+
+	// The response is not a valid OpenAI completion, so verification fails; the
+	// assertion is that the request arrived at the pinned listener with the
+	// original hostname as Host.
+	_, _ = client.VerifyModel(context.Background(), "my-model", nil)
+
+	select {
+	case host := <-hostReceived:
+		assert.Equal(t, "my-model.my-ns.svc.cluster.local", host)
+	case <-time.After(5 * time.Second):
+		t.Fatal("pinned dial did not reach the validated local listener")
+	}
+}
+
+// TestPinnedDialFailsClosedWithoutDNSFallback proves that when no pinned address is
+// reachable, the request fails instead of falling back to resolving the URL
+// hostname: the URL uses a resolvable hostname (localhost), but the pinned target
+// (a loopback port with nothing listening) refuses the connection and the error
+// identifies the pinned dial.
+func TestPinnedDialFailsClosedWithoutDNSFallback(t *testing.T) {
+	client, err := NewExternalModelsClient(
+		slog.Default(),
+		"http://localhost:0/v1",
+		"test-api-key",
+		models.ModelTypeLLM,
+		&ClientOptions{
+			SkipSSRFValidation:  true,
+			AllowHTTP:           true,
+			PinnedDialAddresses: []string{"127.0.0.1:1"},
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = client.VerifyModel(context.Background(), "my-model", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pinned dial")
 }
