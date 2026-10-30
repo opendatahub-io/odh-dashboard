@@ -148,9 +148,9 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
     setStartModalOpen(true);
   }, [kueueStatus, isStarting, isRunning, isStopping]);
 
-  const queuePosition = kueueStatus ? getQueuePosition(kueueStatus) : undefined;
+  const queuePosition = !isError && kueueStatus ? getQueuePosition(kueueStatus) : undefined;
   const queueName = kueueStatus?.queueName;
-  const hasQueueNameSubtitle = Boolean(!queuePosition && queueName && statusSubtitle);
+  const hasQueueNameSubtitle = Boolean(!isError && !queuePosition && queueName && statusSubtitle);
 
   return (
     <>
