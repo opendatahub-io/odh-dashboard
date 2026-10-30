@@ -53,6 +53,9 @@ jobs:
           # Do not write GITHUB_TOKEN into .git/config before package-manager/upstream scripts run.
           persist-credentials: false
 
+      - name: Test sync failure handling
+        run: python3 -m unittest discover -s packages/app-config/scripts/tests -v
+
       - name: Configure git identity
         run: |
           git config user.name 'github-actions[bot]'
@@ -132,9 +135,11 @@ jobs:
         id: sync
         if: steps.upstream.outputs.up_to_date == 'false'
         continue-on-error: true
+        env:
+          SUBTREE_STRICT_EXIT: '1'
         run: |
           set -o pipefail
-          pnpm --filter "${{ env.PACKAGE_NAME }}" run update-subtree 2>&1 | tee sync-output.txt
+          pnpm --filter "${{ env.PACKAGE_NAME }}" run update-subtree 2>&1 | tee "$RUNNER_TEMP/sync-output.txt"
 
       - name: Detect sync outcome
         id: outcome
@@ -143,7 +148,7 @@ jobs:
           NEW_COMMIT=$(jq -r '.subtree.commit' "${{ env.PACKAGE_DIR }}/package.json")
           echo "new_commit=$NEW_COMMIT" >> "$GITHUB_OUTPUT"
 
-          if grep -q 'Conflict detected' sync-output.txt 2>/dev/null || \
+          if grep -q 'Conflict detected' "$RUNNER_TEMP/sync-output.txt" 2>/dev/null || \
              [[ -n "$(git diff --name-only --diff-filter=U)" ]]; then
             echo "status=conflict" >> "$GITHUB_OUTPUT"
             echo "Sync hit conflicts."
@@ -309,9 +314,16 @@ jobs:
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: model-registry-sync-artifacts
-          path: |
-            sync-artifacts/
-            sync-output.txt
+          path: sync-artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload sync log
+        if: always() && steps.sync.outcome != 'skipped'
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: model-registry-sync-log
+          path: ${{ runner.temp }}/sync-output.txt
           if-no-files-found: ignore
           retention-days: 14
 
@@ -345,7 +357,8 @@ jobs:
       - name: Download sync artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: model-registry-sync-artifacts
+          name: model-registry-sync-log
+          path: ${{ runner.temp }}
         continue-on-error: true
 
       - name: Open or update issue
@@ -356,8 +369,8 @@ jobs:
           STATUS="${{ needs.sync.outputs.status }}"
           TITLE="Model registry upstream sync ${STATUS} ($(date -u +%Y-%m-%d))"
           LOG_TAIL=""
-          if [[ -f sync-output.txt ]]; then
-            LOG_TAIL=$(tail -n 80 sync-output.txt)
+          if [[ -f "$RUNNER_TEMP/sync-output.txt" ]]; then
+            LOG_TAIL=$(tail -n 80 "$RUNNER_TEMP/sync-output.txt")
           fi
           BODY=$(cat <<EOF
           Automated model-registry upstream sync could not finish cleanly (\`${STATUS}\`).
@@ -416,6 +429,7 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: model-registry-sync-artifacts
+          path: sync-artifacts
 
       - name: Apply validated sync patches
         run: |
@@ -449,6 +463,7 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: model-registry-sync-artifacts
+          path: sync-artifacts
 
       - name: Create or update PR
         env:

@@ -113,7 +113,9 @@ clean_exit() {
     error_msg "$message"
   fi
 
-  if [ "$is_user_error" = "true" ] && [ -n "${npm_config_user_agent:-}" ]; then
+  # Automation can opt into reliable failures without changing interactive npm callers.
+  if [ "$is_user_error" = "true" ] && [ -n "${npm_config_user_agent:-}" ] &&
+     [ "${SUBTREE_STRICT_EXIT:-0}" != "1" ]; then
     warning_msg "Exiting with code 0 for npm compatibility (original exit code: $exit_code)"
     exit 0
   fi
