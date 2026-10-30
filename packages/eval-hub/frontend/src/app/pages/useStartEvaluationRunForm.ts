@@ -853,13 +853,33 @@ export function useStartEvaluationRunForm({
       return values.sourceName.trim();
     })();
 
-    // Endpoint and auth pass through in every mode: prerecorded-mode clearing
-    // is owned by buildEvaluationRequest, which preserves them for mixed
-    // collections whose non-prerecorded benchmarks still need inference.
-    const resolvedEndpointUrl =
-      values.sourceMode === 'model' && values.modelSelection === 'cluster'
-        ? (selectedInferenceServiceRef.current?.url ?? '')
-        : values.endpointUrl.trim();
+    let clusterUrlParseError: Error | undefined;
+    const resolvedEndpointUrl = (() => {
+      if (values.sourceMode === 'model' && values.modelSelection === 'cluster') {
+        const serviceUrl = selectedInferenceServiceRef.current?.url ?? '';
+        if (!serviceUrl) {
+          return '';
+        }
+        try {
+          const url = new URL(serviceUrl);
+          // URL parses non-HTTP(S) schemes (e.g. ftp:) successfully; reject them so the
+          // submission fails with the invalid-endpoint error instead of creating a job.
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            throw new Error('unsupported protocol');
+          }
+          const pathname = url.pathname.replace(/\/+$/, '');
+          url.pathname = pathname.endsWith('/v1') ? pathname : `${pathname}/v1`;
+          return url.toString();
+        } catch {
+          clusterUrlParseError = new Error('The selected model endpoint URL is invalid.');
+          return '';
+        }
+      }
+      // Endpoint and auth pass through in every other mode: prerecorded-mode clearing
+      // is owned by buildEvaluationRequest, which preserves them for mixed
+      // collections whose non-prerecorded benchmarks still need inference.
+      return values.endpointUrl.trim();
+    })();
 
     const resolvedAuth = values.apiKeySecretRef.trim();
 
@@ -936,6 +956,9 @@ export function useStartEvaluationRunForm({
     abortControllerRef.current = controller;
 
     try {
+      if (clusterUrlParseError) {
+        throw clusterUrlParseError;
+      }
       if (selectedHardwareProfile) {
         // Refresh the structural profile and LocalQueue selection without depending on
         // advisory provider compatibility, which may be unavailable or lack provider IDs.
