@@ -26,6 +26,8 @@ const STANDARD_NODE_SIZE = 40;
 const BRANCH_STEP_NODE_SIZE = 20;
 /** Row-label box stays tall enough for "Pattern A" while the dots shrink. */
 const ROW_LABEL_HEIGHT = 32;
+/** Approximate body-sm text width; the lane grows for longer pattern names. */
+const ROW_LABEL_CHARACTER_WIDTH = 7;
 const X_START = 40;
 const X_GAP = 120;
 const Y_CENTER = 200;
@@ -156,6 +158,19 @@ const calculatePipelineYPositions = (modelCount: number): number[] => {
   return Array.from({ length: modelCount }, (_, i) => startY + i * Y_PIPELINE_GAP);
 };
 
+const getPatternBranchLabel = (
+  branchNodes: PipelineNodeModelExpanded[],
+  branchIndex: number,
+): string =>
+  branchNodes.find((node) => node.id.includes('__pattern__'))?.label ??
+  getPatternRowLabel(branchIndex);
+
+const getPatternRowLabelWidth = (labels: string[]): number =>
+  Math.max(
+    ROW_LABEL_WIDTH,
+    ...labels.map((label) => Math.ceil(label.length * ROW_LABEL_CHARACTER_WIDTH)),
+  );
+
 const nextStepState = (
   topologyNode: PipelineNodeModelExpanded,
   predecessorFailed: boolean,
@@ -181,11 +196,10 @@ const createTreeNode = (
   const data: TreeNodeData = {
     stepState,
     activeIconVariant: topologyNode.data?.activeIconVariant,
+    patternKey: topologyNode.data?.patternKey,
     ...dataExtras,
   };
-  if (dataExtras?.hideLabel) {
-    data.label = undefined;
-  } else if (data.label === undefined) {
+  if (data.label === undefined) {
     data.label = topologyNode.label;
   }
   return {
@@ -257,12 +271,13 @@ const patternTerminusExtras = (
       collapsedBranchIndex === undefined ? 'Pattern' : getPatternRowLabel(collapsedBranchIndex);
   }
 
-  // Collapsed spine: branch-order label over "winner" — do not use the API display name here.
+  // On the collapsed spine, use the resolved winner's name; use branch-order labels otherwise.
   if (collapsedRowLabel !== undefined) {
     if (options.winnerResolved && isWinner) {
+      const winnerLabel = options.winnerPatternLabel ?? topologyNode.label;
       return {
         ...extras,
-        label: collapsedRowLabel,
+        label: winnerLabel === undefined ? undefined : formatPatternName(winnerLabel),
         labelSubtitle: 'winner',
       };
     }
@@ -360,10 +375,14 @@ export const transformStageMapNodesToTree = (
   const branchTailIds: string[] = [];
   const originOffset = (STANDARD_NODE_SIZE - BRANCH_STEP_NODE_SIZE) / 2;
   const needsFanOutLane = expandOptions.patternsExpanded && branchIndices.length > 1;
+  const expandedRowLabels = visibleBranchIndices.map((branchIndex) =>
+    getPatternBranchLabel(branches.get(branchIndex) ?? [], branchIndex),
+  );
+  const rowLabelWidth = getPatternRowLabelWidth(expandedRowLabels);
   const pipelineStartX = needsFanOutLane
     ? currentX +
       FAN_OUT_RUN +
-      ROW_LABEL_WIDTH +
+      rowLabelWidth +
       ROW_LABEL_GAP -
       (X_GAP - STANDARD_NODE_SIZE) -
       originOffset
@@ -381,7 +400,7 @@ export const transformStageMapNodesToTree = (
     let stepX = pipelineStartX;
     const branchNodeIds: string[] = [];
     let branchFailed = predecessorFailed;
-    const rowLabel = getPatternRowLabel(branchIndex);
+    const rowLabel = getPatternBranchLabel(branchNodes, branchIndex);
 
     if (hideExpandedBranchLabels && rowLabel) {
       rowLabels.push({
@@ -539,7 +558,7 @@ export const transformStageMapNodesToTree = (
       nodes.push({
         ...createAnnotationNode(
           row.id,
-          firstDotLeft - ROW_LABEL_GAP - ROW_LABEL_WIDTH,
+          firstDotLeft - ROW_LABEL_GAP - rowLabelWidth,
           row.y + rowLabelOffset,
           {
             stepState: 'pending',
@@ -547,7 +566,7 @@ export const transformStageMapNodesToTree = (
             nodeRole: 'row-label',
           },
         ),
-        width: ROW_LABEL_WIDTH,
+        width: rowLabelWidth,
         height: ROW_LABEL_HEIGHT,
       });
     });

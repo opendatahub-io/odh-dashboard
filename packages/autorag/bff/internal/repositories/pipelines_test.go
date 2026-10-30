@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -955,6 +957,91 @@ func TestValidateCreateIndexingPipelineRunRequest(t *testing.T) {
 			t.Errorf("error should mention description: %v", err)
 		}
 	})
+
+	t.Run("graph_extraction alias alongside canonical key", func(t *testing.T) {
+		req := valid
+		req.Parameters = map[string]any{
+			"embedding_model_id":      "embed-model",
+			"graph_extraction":        map[string]any{"mode": "constrained"},
+			"graph_extraction_config": map[string]any{"mode": "constrained"},
+		}
+		err := ValidateCreateIndexingPipelineRunRequest(req)
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+		if !strings.Contains(err.Error(), "not both") {
+			t.Errorf("error should mention the mutually exclusive keys: %v", err)
+		}
+		if !errors.Is(err, ErrValidation) {
+			t.Fatalf("error should unwrap to ErrValidation: %v", err)
+		}
+	})
+
+	t.Run("null graph_extraction alias alongside canonical key", func(t *testing.T) {
+		req := valid
+		req.Parameters = map[string]any{
+			"embedding_model_id":      "embed-model",
+			"graph_extraction":        nil,
+			"graph_extraction_config": map[string]any{"mode": "constrained"},
+		}
+		if err := ValidateCreateIndexingPipelineRunRequest(req); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
+
+func TestValidateGraphExtractionConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		params  map[string]any
+		wantErr string
+	}{
+		{name: "absent"},
+		{name: "constrained", params: map[string]any{"graph_extraction_config": map[string]any{"mode": "constrained"}}},
+		{name: "mode defaults to constrained", params: map[string]any{"graph_extraction_config": map[string]any{}}},
+		{name: "constrained with free-mode setting", params: map[string]any{
+			"graph_extraction_config": map[string]any{"mode": "constrained", "max_entities_per_chunk": 2},
+		}, wantErr: "max_entities_per_chunk is not allowed in constrained mode"},
+		{name: "constrained with unknown key", params: map[string]any{
+			"graph_extraction_config": map[string]any{"mode": "constrained", "other": true},
+		}, wantErr: "other is not allowed in constrained mode"},
+		{name: "free with limits", params: map[string]any{"graph_extraction_config": map[string]any{
+			"mode": "free", "max_entities_per_chunk": float64(8), "max_relationships_per_chunk": 4,
+		}}},
+		{name: "free as JSON string", params: map[string]any{
+			"graph_extraction_config": `{"mode":"free","max_entities_per_chunk":2,"max_relationships_per_chunk":1}`,
+		}},
+		{name: "pattern setting name", params: map[string]any{"graph_extraction": map[string]any{"mode": "constrained"}}},
+		{name: "unknown mode", params: map[string]any{"graph_extraction_config": map[string]any{"mode": "auto"}}, wantErr: "must be 'constrained' or 'free'"},
+		{name: "mode not a string", params: map[string]any{"graph_extraction_config": map[string]any{"mode": 1}}, wantErr: "mode must be a string"},
+		{name: "config not an object", params: map[string]any{"graph_extraction_config": []any{"constrained"}}, wantErr: "must be an object"},
+		{name: "config is the JSON null string", params: map[string]any{"graph_extraction_config": "null"}, wantErr: "must be an object"},
+		{name: "config is a JSON string", params: map[string]any{"graph_extraction_config": `"constrained"`}, wantErr: "must be an object"},
+		{name: "free missing entity limit", params: map[string]any{"graph_extraction_config": map[string]any{
+			"mode": "free", "max_relationships_per_chunk": 4,
+		}}, wantErr: "max_entities_per_chunk must be a positive integer"},
+		{name: "free zero relationship limit", params: map[string]any{"graph_extraction_config": map[string]any{
+			"mode": "free", "max_entities_per_chunk": 4, "max_relationships_per_chunk": 0,
+		}}, wantErr: "max_relationships_per_chunk must be a positive integer"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateGraphExtractionConfig(tt.params)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("error = %v, want containing %q", err, tt.wantErr)
+			}
+			if !errors.Is(err, ErrValidation) {
+				t.Fatalf("error should unwrap to ErrValidation: %v", err)
+			}
+		})
+	}
 }
 
 func TestCreateIndexingRun(t *testing.T) {
@@ -1020,6 +1107,223 @@ func TestCreateIndexingRun(t *testing.T) {
 		}
 		if disabled := gotInput.PluginsInput["mlflow"]["disabled"]; disabled != true {
 			t.Errorf("mlflow plugin disabled = %v, want true", disabled)
+		}
+	})
+
+	t.Run("forwards the graph_extraction setting under the canonical input name", func(t *testing.T) {
+		var gotInput *pipelines.CreatePipelineRunInput
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {
+						PipelineID: "idx-pid", PipelineVersionID: "idx-vid", PipelineName: "documents-indexing-pipeline",
+					},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return []string{"embedding_model_id", "graph_extraction_config"}, nil
+			},
+			createPipelineRunFn: func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+				gotInput = input
+				return &pipelines.PipelineRun{RunID: "idx-run", DisplayName: input.DisplayName, State: "PENDING"}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		setting := map[string]any{"mode": "constrained"}
+		run, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters: map[string]any{
+				"embedding_model_id": "embed-model",
+				"graph_extraction":   setting,
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if run.PipelineType != constants.PipelineTypeIndexing {
+			t.Errorf("pipeline type = %q", run.PipelineType)
+		}
+		if gotInput == nil || gotInput.RuntimeConfig == nil {
+			t.Fatal("expected runtime config")
+		}
+		if got, ok := gotInput.RuntimeConfig.Parameters["graph_extraction_config"].(map[string]any); !ok || !reflect.DeepEqual(got, setting) {
+			t.Errorf("graph_extraction_config = %v, want the alias value forwarded under the canonical name", gotInput.RuntimeConfig.Parameters["graph_extraction_config"])
+		}
+		if _, found := gotInput.RuntimeConfig.Parameters["graph_extraction"]; found {
+			t.Error("graph_extraction should not be submitted to Pipeline Server under the setting name")
+		}
+	})
+
+	t.Run("drops the graph_extraction setting when the pipeline declares neither name", func(t *testing.T) {
+		created := false
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return []string{"chunk_size"}, nil
+			},
+			createPipelineRunFn: func(context.Context, string, *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+				created = true
+				return nil, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		_, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters:  map[string]any{"graph_extraction": map[string]any{"mode": "constrained"}},
+		})
+		if !errors.Is(err, ErrValidation) {
+			t.Fatalf("expected validation error, got %v", err)
+		}
+		if created {
+			t.Error("CreatePipelineRun should not be called")
+		}
+	})
+
+	t.Run("ignores a null graph_extraction alias beside a canonical configuration", func(t *testing.T) {
+		// Map iteration order decides which of the two names writes last, so
+		// repeat the request: the canonical configuration must survive every
+		// iteration, never the null alias.
+		setting := map[string]any{"mode": "constrained"}
+		for i := 0; i < 20; i++ {
+			var gotParameters map[string]any
+			mock := &mockPipelinesService{
+				discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+					return map[string]*pipelines.DiscoveredPipeline{
+						constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+					}, nil
+				},
+				getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+					return []string{"embedding_model_id", "graph_extraction_config"}, nil
+				},
+				createPipelineRunFn: func(_ context.Context, _ string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+					gotParameters = input.RuntimeConfig.Parameters
+					return &pipelines.PipelineRun{RunID: "idx-run", DisplayName: input.DisplayName, State: "PENDING"}, nil
+				},
+			}
+			repo := NewPipelinesRepository(slog.New(slog.NewTextHandler(io.Discard, nil)), mock, PipelinesRepositoryConfig{
+				IndexingPipelineName: "documents-indexing-pipeline",
+			})
+
+			if _, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+				DisplayName: "index-run",
+				Parameters: map[string]any{
+					"embedding_model_id":      "embed-model",
+					"graph_extraction":        nil,
+					"graph_extraction_config": setting,
+				},
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if got, ok := gotParameters["graph_extraction_config"].(map[string]any); !ok || !reflect.DeepEqual(got, setting) {
+				t.Fatalf("iteration %d: graph_extraction_config = %v, want the canonical configuration (never null)", i, gotParameters["graph_extraction_config"])
+			}
+		}
+	})
+
+	t.Run("ignores a null canonical configuration beside a graph_extraction alias", func(t *testing.T) {
+		setting := map[string]any{"mode": "constrained"}
+		for i := 0; i < 20; i++ {
+			var gotParameters map[string]any
+			mock := &mockPipelinesService{
+				discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+					return map[string]*pipelines.DiscoveredPipeline{
+						constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+					}, nil
+				},
+				getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+					return []string{"embedding_model_id", "graph_extraction_config"}, nil
+				},
+				createPipelineRunFn: func(_ context.Context, _ string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+					gotParameters = input.RuntimeConfig.Parameters
+					return &pipelines.PipelineRun{RunID: "idx-run", DisplayName: input.DisplayName, State: "PENDING"}, nil
+				},
+			}
+			repo := NewPipelinesRepository(slog.New(slog.NewTextHandler(io.Discard, nil)), mock, PipelinesRepositoryConfig{
+				IndexingPipelineName: "documents-indexing-pipeline",
+			})
+
+			if _, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+				DisplayName: "index-run",
+				Parameters: map[string]any{
+					"embedding_model_id":      "embed-model",
+					"graph_extraction":        setting,
+					"graph_extraction_config": nil,
+				},
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if got, ok := gotParameters["graph_extraction_config"].(map[string]any); !ok || !reflect.DeepEqual(got, setting) {
+				t.Fatalf("iteration %d: graph_extraction_config = %v, want the alias value forwarded under the canonical name (never null)", i, gotParameters["graph_extraction_config"])
+			}
+		}
+	})
+
+	t.Run("bounds the dropped-parameter log entry", func(t *testing.T) {
+		var logBuf strings.Builder
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return []string{"chunk_size"}, nil
+			},
+			createPipelineRunFn: func(context.Context, string, *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+				return &pipelines.PipelineRun{RunID: "idx-run", State: "PENDING"}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.New(slog.NewTextHandler(&logBuf, nil)), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		// 15 unsupported names of 148 runes each; the zero-padded prefixes
+		// keep the sorted order stable so the first 10 listed are 00–09.
+		parameters := map[string]any{"chunk_size": 512}
+		for i := 0; i < 15; i++ {
+			parameters[fmt.Sprintf("%02d%s", i, strings.Repeat("x", 148))] = "value"
+		}
+		if _, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters:  parameters,
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		log := logBuf.String()
+		if !strings.Contains(log, "dropped_count=15") {
+			t.Errorf("log should carry the full dropped count: %s", log)
+		}
+		value := log[strings.Index(log, "dropped_names=")+len("dropped_names="):]
+		if newline := strings.IndexByte(value, '\n'); newline >= 0 {
+			value = value[:newline]
+		}
+		// The text handler quotes values containing commas/spaces.
+		value = strings.Trim(value, "\"")
+		names := strings.Split(value, ", ")
+		if len(names) != 10 {
+			t.Errorf("listed dropped names = %d, want the capped 10", len(names))
+		}
+		for _, name := range names {
+			if runeLen := len([]rune(name)); runeLen != 100 {
+				t.Errorf("listed name %q has %d runes, want the truncated 100", name, runeLen)
+			}
+		}
+		if !strings.Contains(value, "00"+strings.Repeat("x", 98)) {
+			t.Errorf("sorted listing should start with the first dropped name: %s", value)
+		}
+		if strings.Contains(value, "10"+strings.Repeat("x", 98)) {
+			t.Errorf("sorted listing should not include the 11th dropped name: %s", value)
 		}
 	})
 

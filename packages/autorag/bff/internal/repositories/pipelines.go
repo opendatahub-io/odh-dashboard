@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -273,23 +274,65 @@ func (r *PipelinesRepository) CreateIndexingRun(ctx context.Context, namespace s
 	}
 
 	filteredParameters := make(map[string]any, len(req.Parameters))
+	var droppedNames []string
 	for name, value := range req.Parameters {
+		// Null graph-extraction entries are treated as absent by validation;
+		// skipping them here keeps a null value under either name from
+		// overwriting the other name's forwarded configuration — both names
+		// write to the same canonical destination key.
+		if value == nil && (name == graphExtractionConfigParam || name == graphExtractionSettingName) {
+			continue
+		}
 		if _, allowed := allowedParameters[name]; allowed {
 			filteredParameters[name] = value
+			continue
 		}
+		// The persisted pattern setting name (graph_extraction) passes
+		// validation but is not a declared pipeline input; forward it under
+		// the canonical input name when the pipeline declares only that.
+		if name == graphExtractionSettingName {
+			if _, allowed := allowedParameters[graphExtractionConfigParam]; allowed {
+				filteredParameters[graphExtractionConfigParam] = value
+				continue
+			}
+		}
+		droppedNames = append(droppedNames, name)
 	}
 
 	if len(filteredParameters) == 0 {
 		return nil, NewValidationError("no supported indexing pipeline parameters were provided")
 	}
 
-	r.logger.Info(
-		"filtered indexing pipeline parameters",
+	logAttrs := []any{
 		"pipeline_id", dp.PipelineID,
 		"pipeline_version_id", dp.PipelineVersionID,
 		"provided_count", len(req.Parameters),
 		"accepted_count", len(filteredParameters),
-	)
+	}
+	if len(droppedNames) > 0 {
+		// Parameter names only — values may hold secret references. A client
+		// can send many long unsupported names alongside one accepted
+		// parameter, so bound the entry: the full count is logged separately
+		// and only a fixed number of truncated names are listed.
+		sort.Strings(droppedNames)
+		listed := droppedNames
+		if len(listed) > maxLoggedDroppedNames {
+			listed = listed[:maxLoggedDroppedNames]
+		}
+		truncated := make([]string, len(listed))
+		for i, name := range listed {
+			if runes := []rune(name); len(runes) > maxLoggedDroppedNameLength {
+				truncated[i] = string(runes[:maxLoggedDroppedNameLength])
+			} else {
+				truncated[i] = name
+			}
+		}
+		logAttrs = append(logAttrs,
+			"dropped_count", len(droppedNames),
+			"dropped_names", strings.Join(truncated, ", "),
+		)
+	}
+	r.logger.Info("filtered indexing pipeline parameters", logAttrs...)
 	req.Parameters = filteredParameters
 
 	input := BuildIndexingPipelineRunInput(req, dp.PipelineID, dp.PipelineVersionID)
@@ -500,8 +543,122 @@ func ValidateCreateIndexingPipelineRunRequest(req models.CreateIndexingPipelineR
 	if utf8.RuneCountInString(req.Description) > 255 {
 		return NewValidationError("description must be at most 255 characters")
 	}
+	if err := ValidateGraphExtractionConfig(req.Parameters); err != nil {
+		return err
+	}
+	// Both keys accepted at validation name the same setting; supplying both
+	// would otherwise be resolved by map order at normalization time.
+	if req.Parameters[graphExtractionSettingName] != nil && req.Parameters[graphExtractionConfigParam] != nil {
+		return NewValidationError(fmt.Sprintf("provide either %s or %s, not both", graphExtractionSettingName, graphExtractionConfigParam))
+	}
 
 	return nil
+}
+
+const (
+	graphExtractionConstrained = "constrained"
+	graphExtractionFree        = "free"
+)
+
+const (
+	// graphExtractionConfigParam is the canonical indexing pipeline input name.
+	graphExtractionConfigParam = "graph_extraction_config"
+	// graphExtractionSettingName is the persisted pattern setting name; it is
+	// accepted at validation and normalized to graphExtractionConfigParam when
+	// the discovered pipeline declares the canonical input.
+	graphExtractionSettingName = "graph_extraction"
+)
+
+// Bounds for the dropped-parameter log entry so a request carrying many long
+// unsupported names cannot produce an unbounded info-level log line.
+const (
+	maxLoggedDroppedNames      = 10
+	maxLoggedDroppedNameLength = 100
+)
+
+// ValidateGraphExtractionConfig validates the graph_extraction.mode setting used
+// by Neo4j GraphRAG indexing pipelines. It mirrors ai4rag's
+// _validate_kg_extraction_config: constrained extraction takes no extra
+// settings, while free extraction requires positive per-chunk entity and
+// relationship limits. Both the indexing parameter name
+// (graph_extraction_config) and the persisted pattern setting name
+// (graph_extraction) are accepted.
+func ValidateGraphExtractionConfig(parameters map[string]any) error {
+	for _, key := range []string{graphExtractionConfigParam, graphExtractionSettingName} {
+		raw, found := parameters[key]
+		if !found || raw == nil {
+			continue
+		}
+		config, ok := graphExtractionConfigMap(raw)
+		if !ok {
+			return NewValidationError(fmt.Sprintf("%s must be an object", key))
+		}
+		mode := graphExtractionConstrained
+		if value, present := config["mode"]; present {
+			modeValue, isString := value.(string)
+			if !isString {
+				return NewValidationError(fmt.Sprintf("%s.mode must be a string", key))
+			}
+			mode = modeValue
+		}
+		switch mode {
+		case graphExtractionConstrained:
+			// Constrained extraction takes no extra settings (mirroring
+			// ai4rag): reject known free-mode settings and unknown keys alike.
+			for name := range config {
+				if name != "mode" {
+					return NewValidationError(fmt.Sprintf("%s.%s is not allowed in constrained mode", key, name))
+				}
+			}
+		case graphExtractionFree:
+			for _, name := range []string{"max_entities_per_chunk", "max_relationships_per_chunk"} {
+				if err := validatePositiveInt(config[name], fmt.Sprintf("%s.%s", key, name)); err != nil {
+					return err
+				}
+			}
+		default:
+			return NewValidationError(fmt.Sprintf("%s.mode must be 'constrained' or 'free'", key))
+		}
+	}
+	return nil
+}
+
+func graphExtractionConfigMap(raw any) (map[string]any, bool) {
+	if config, ok := raw.(map[string]any); ok {
+		return config, true
+	}
+	if text, ok := raw.(string); ok {
+		var config map[string]any
+		// json.Unmarshal accepts the literal string "null" and leaves the map
+		// nil; both a malformed object and a null must be rejected.
+		if err := json.Unmarshal([]byte(text), &config); err != nil || config == nil {
+			return nil, false
+		}
+		return config, true
+	}
+	return nil, false
+}
+
+func validatePositiveInt(raw any, field string) error {
+	switch value := raw.(type) {
+	case int:
+		if value >= 1 {
+			return nil
+		}
+	case int64:
+		if value >= 1 {
+			return nil
+		}
+	case float64:
+		if value >= 1 && value == float64(int64(value)) {
+			return nil
+		}
+	case json.Number:
+		if parsed, err := value.Int64(); err == nil && parsed >= 1 {
+			return nil
+		}
+	}
+	return NewValidationError(fmt.Sprintf("%s must be a positive integer", field))
 }
 
 func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipelineVersionID string) *pipelines.CreatePipelineRunInput {

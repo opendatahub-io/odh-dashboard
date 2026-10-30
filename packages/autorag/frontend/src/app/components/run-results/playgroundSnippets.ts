@@ -152,7 +152,10 @@ const jsonToPython = (value: unknown, indent = 0): string => {
     return `[\n${items},\n${pad}]`;
   }
   if (typeof value === 'object') {
+    // Match JSON.stringify: keys with undefined values are omitted (e.g. the
+    // neo4j pattern clears ranking_options) rather than rendered as None.
     const items = Object.entries(value)
+      .filter(([, v]) => v !== undefined)
       .map(([k, v]) => `${innerPad}${JSON.stringify(k)}: ${jsonToPython(v, indent + 1)}`)
       .join(',\n');
     return items ? `{\n${items},\n${pad}}` : '{}';

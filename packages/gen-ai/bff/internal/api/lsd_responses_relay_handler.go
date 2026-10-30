@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -34,13 +35,76 @@ const relayTimeout = 3 * time.Minute
 // destination is a deliberate, reviewed change to this list.
 var relayTargetPrefixes = []string{"/autorag/"}
 
+// relayBaseURL returns the scheme and host the relay forwards to. GATEWAY_DOMAIN
+// is a bare host in production (the operator injects it) and the relay always
+// reaches it over HTTPS, exactly like the passthrough consumers that share the
+// variable. Local development points the relay at a locally running BFF via the
+// separate RELAY_TARGET_URL override instead, so a scheme-qualified value never
+// has to travel through GATEWAY_DOMAIN (whose other consumers prepend https://
+// themselves and would emit malformed URLs). A plain http:// scheme is accepted
+// only for loopback hosts: the relay forwards the user's bearer token, which
+// must never travel unencrypted to a remote endpoint.
+//
+// Both values are validated by parsing, not prefix matching: a scheme-qualified
+// RELAY_TARGET_URL must parse to an http/https URL with a host (url.Parse
+// normalizes the scheme, so casing does not matter), and a GATEWAY_DOMAIN that
+// carries a scheme (in any casing) is rejected outright.
+func relayBaseURL(gatewayDomain, relayTargetURL string) (string, error) {
+	if target := strings.TrimSpace(relayTargetURL); target != "" {
+		parsed, err := url.Parse(target)
+		if err != nil {
+			return "", errors.New("RELAY_TARGET_URL must be a valid URL (http:// or https://)")
+		}
+		switch strings.ToLower(parsed.Scheme) {
+		case "https":
+		case "http":
+			if !isLoopbackGatewayHost(parsed.Host) {
+				return "", errors.New("plain http RELAY_TARGET_URL is only allowed for loopback hosts")
+			}
+		default:
+			return "", errors.New("RELAY_TARGET_URL must be scheme-qualified (http:// or https://)")
+		}
+		if parsed.Hostname() == "" {
+			return "", errors.New("RELAY_TARGET_URL must include a host")
+		}
+		return strings.TrimRight(target, "/"), nil
+	}
+	domain := strings.TrimSpace(gatewayDomain)
+	if domain == "" {
+		return "", errors.New("neither GATEWAY_DOMAIN nor RELAY_TARGET_URL is configured")
+	}
+	if strings.Contains(domain, "://") {
+		return "", errors.New("GATEWAY_DOMAIN must be a bare host; use RELAY_TARGET_URL to override the relay target")
+	}
+	return "https://" + domain, nil
+}
+
+// isLoopbackGatewayHost reports whether a host (with optional port) from a
+// scheme-qualified relay target names a loopback endpoint.
+func isLoopbackGatewayHost(hostPort string) bool {
+	host := hostPort
+	if h, _, err := net.SplitHostPort(hostPort); err == nil {
+		host = h
+	} else if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		// Bracketed IPv6 literal without a port: url.Parse keeps the brackets
+		// and SplitHostPort rejects that form, so strip the pair here before
+		// the IP parse (mirroring what SplitHostPort does when a port exists).
+		host = host[1 : len(host)-1]
+	}
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	return net.ParseIP(host).IsLoopback()
+}
+
 // ResponsesRelayHandler handles POST /api/v1/lsd/responses/relay.
 //
 // This endpoint serves embedder-controlled targets for the embedded playground
 // (e.g. AutoRAG's responsesEndpointUrl prop): the request body is forwarded
 // verbatim to the same-origin path given by the required "target" query
 // parameter, resolved against the externally accessed gateway route
-// (https://{GATEWAY_DOMAIN}{target}). The user's bearer token is attached and
+// ({scheme}://{GATEWAY_DOMAIN}{target} over HTTPS, or RELAY_TARGET_URL when
+// that local-development override is set). The user's bearer token is attached and
 // the response — including SSE streams and non-200 error envelopes — is piped
 // back transparently, with no synthetic events added.
 //
@@ -56,7 +120,7 @@ var relayTargetPrefixes = []string{"/autorag/"}
 // The target is untrusted input (any external URL could be set in the embedded
 // playground props), so only same-origin paths under the allowed module
 // prefixes (relayTargetPrefixes) are accepted and the host always comes from
-// GATEWAY_DOMAIN, never from the request.
+// GATEWAY_DOMAIN (or RELAY_TARGET_URL), never from the request.
 //
 // Auth is required. Like the genai-proxy endpoints, this returns 401 when no
 // bearer identity is present, including under --auth-method=disabled.
@@ -109,12 +173,26 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	if app.config.GatewayDomain == "" {
+	// Trim-aware so a whitespace-only value is treated as unconfigured rather
+	// than slipping past this gate and failing later with a malformed base URL.
+	if strings.TrimSpace(app.config.GatewayDomain) == "" && strings.TrimSpace(app.config.RelayTargetURL) == "" {
 		app.errorResponse(w, r, &integrations.HTTPError{
 			StatusCode: http.StatusServiceUnavailable,
 			ErrorResponse: integrations.ErrorResponse{
 				Code:    "service_unavailable",
-				Message: "relay target gateway is not configured (GATEWAY_DOMAIN)",
+				Message: "relay target gateway is not configured (GATEWAY_DOMAIN or RELAY_TARGET_URL)",
+			},
+		})
+		return
+	}
+	baseURL, err := relayBaseURL(app.config.GatewayDomain, app.config.RelayTargetURL)
+	if err != nil {
+		app.logger.Error("Relay target configuration rejected", "error", err)
+		app.errorResponse(w, r, &integrations.HTTPError{
+			StatusCode: http.StatusServiceUnavailable,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "service_unavailable",
+				Message: "relay target configuration is not allowed (GATEWAY_DOMAIN / RELAY_TARGET_URL)",
 			},
 		})
 		return
@@ -148,7 +226,7 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 	// Build from the validated parsed components rather than the raw target,
 	// so the wire request carries exactly the validated path (EscapedPath
 	// re-encodes anything url.Parse decoded); fragments never reach the wire.
-	upstreamURL := "https://" + app.config.GatewayDomain + parsedTarget.EscapedPath()
+	upstreamURL := baseURL + parsedTarget.EscapedPath()
 	if parsedTarget.RawQuery != "" {
 		upstreamURL += "?" + parsedTarget.RawQuery
 	}
@@ -158,13 +236,43 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 	proxyReq.Header.Set("Authorization", "Bearer "+identity.Token)
+	// Embedders behind the gateway receive the token as x-forwarded-access-token
+	// (kube-rbac-proxy sets it in-cluster); set it too so a relay pointed at a
+	// BFF directly, as in local development, still authenticates the same token.
+	proxyReq.Header.Set("x-forwarded-access-token", identity.Token)
 	proxyReq.Header.Set("Content-Type", "application/json")
 	proxyReq.Header.Set("Accept", "text/event-stream")
 
 	// Dedicated client with no Timeout: a client timeout bounds the entire body
 	// read and would truncate a long stream after WriteHeader has committed.
 	// Reuse the app-level TLS transport for connection pooling and cert trust.
-	proxyClient := &http.Client{Transport: app.httpClient.Transport}
+	// Redirects are restricted to the original host and scheme: the relayed
+	// request carries the user's token in the x-forwarded-access-token header,
+	// which (unlike Authorization) Go's http.Client does not strip when a
+	// redirect crosses hosts, so a cross-host redirect would forward the token
+	// to an arbitrary origin named by the upstream response. A same-host
+	// HTTPS-to-HTTP downgrade must be refused too: Go keeps headers (including
+	// Authorization) across a same-host scheme change, which would send the
+	// token in plaintext.
+	proxyClient := &http.Client{
+		Transport: app.httpClient.Transport,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// A custom CheckRedirect replaces the standard client's
+			// defaultCheckRedirect, so its 10-redirect cap must be
+			// reproduced: an upstream redirect loop must fail fast instead
+			// of hanging until the relay timeout.
+			if len(via) >= 10 {
+				return errors.New("relay stopped after 10 redirects")
+			}
+			if len(via) != 0 && via[0].URL.Scheme == "https" && req.URL.Scheme != "https" {
+				return errors.New("relay refused HTTPS-to-HTTP redirect")
+			}
+			if len(via) != 0 && !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+				return fmt.Errorf("relay refused cross-host redirect to %q", req.URL.Host)
+			}
+			return nil
+		},
+	}
 
 	resp, err := proxyClient.Do(proxyReq)
 	if err != nil {
